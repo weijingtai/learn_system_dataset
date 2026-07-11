@@ -57,12 +57,14 @@ policy_disposition：
 
 ### 0.2 决策登记表
 
+> **2026-07-11 用户裁决（试运行批准）**：D-001 至 D-014（除已被 D-021 取代的 D-004）整批进入 `PROVISIONALLY_APPROVED` 状态——"先开发着试试"：决策以开发实践为检验，碰到现实冲突时回登记表修订，无需事前逐条书面批复。红线类决策（D-003 及各文档红线体系）不在试运行范围内，视为已生效。GATE-1 据此放行，Track 0／Track 1 开工。
+
 | Decision ID | 决定 | approval_status | policy_disposition | Owner | Approved by / at | Evidence |
 |---|---|---|---|---|---|---|
 | D-001 | 以证据型学习与迁移伴侣作为阶段零方向 | DRAFT | ALLOWED | 产品负责人 | 待用户原则批准 | E-001、既有竞品调研 |
 | D-002 | 区分文本来源忠实度与现实有效性 | DRAFT | ALLOWED | 知识与信任负责人 | 待用户原则批准 | 本稿第 3 节 |
 | D-003 | 欺骗、不可证伪和诱导依赖机制不得进入本产品 | DRAFT | PROHIBITED | 产品安全负责人 | 待用户原则及最终批准 | 本稿第 4、16 节 |
-| D-004 | 阶段一不提供用户盘面 AI 解释或 AI 学习教练 | INHERITED_UNVERIFIED | PROHIBITED | 产品与合规负责人 | 继承 v1.1.1，待补批准记录 | E-002、v1.1.1 第 15、20 节 |
+| D-004 | ~~阶段一不提供用户盘面 AI 解释或 AI 学习教练~~ | **SUPERSEDED** | — | 产品与合规负责人 | 被 D-021 取代（用户裁决 2026-07-11） | Superseded by D-021 |
 | D-005 | 旧 APP 合法导入是阶段零采用前提 | DRAFT | ALLOWED | 产品负责人 | 待用户原则批准 | 本稿第 8 节 |
 | D-006 | 第三方数据、RightsGrant 和撤回传播必须可验证 | DRAFT | ALLOWED | 隐私与权利负责人 | 待用户原则批准 | E-005、本稿第 10 节 |
 | D-007 | 阶段零只验证证据、迁移学习和真实付款 | DRAFT | ALLOWED | 增长与研究负责人 | 待用户原则批准 | 本稿第 13 节 |
@@ -79,6 +81,8 @@ policy_disposition：
 | D-018 | TagStyleEditor 押后：Phase A 契约照做；先以 3–5 套官方预设样式包验证换肤需求，编辑器待留存证据后另立决策 | PRINCIPLE_APPROVED | FROZEN_PENDING_EVIDENCE | 产品负责人 | 用户会话批准 2026-07-11 | TAG_STYLE_SPEC_review_report R3 |
 | D-019 | 官方稀缺分级纹理列为保留能力，用户样式不得复制；MarketplaceMetadata 预留 content_rating／expression_tendency 占位 | PRINCIPLE_APPROVED | ALLOWED | 信任与合规负责人 | 用户会话批准 2026-07-11 | TAG_STYLE_SPEC_review_report R4 |
 | D-020 | TagRenderModel 与 computed-mark-semantics 的 MarkInstance 合一；Registry 1.0 冻结须后置于 Tag/Concept/Mark 分类学收敛与 G1–G3 术理考据 | PRINCIPLE_APPROVED | ALLOWED | 规格负责人 | 用户会话批准 2026-07-11 | TAG_STYLE_SPEC_review_report R5 |
+| D-021 | **阶段一提供用户盘面 AI 解盘与多轮对话讨论**（取代 D-004），强制绑定既有约束架构：EvidenceBundle 证据绑定、断象不断事、引用与混派检查、高风险场景拒绝、大陆合规 profile 描述式表述、AI 内容标识；AI 回答中的格局／神煞／局等关键概念高亮并链接词条，**未能绑定已编译 Concept ID 的术语不得高亮**（高亮即验证门）；付费可能性仅预留占位，暂不展开分析 | USER_DECIDED | ALLOWED | 产品负责人（用户直裁） | 用户会话裁决 2026-07-11 | v1.1 §15、TAG_SYSTEM_DESIGN §2.3 |
+| D-022 | G1–G3 默认处置经占卜师评定通过并定稿：StateModifier 采用方案 A（CornerMark 子语义 RoleCorner/StateModifierCorner）；transformation_overlay 视觉权重必须低于本体五行与能量条；全部修饰 overlay 中性灰度、禁吉凶向色；phase_comparison 自动挂载 SchoolView；三扩展点接入 telemetry；minimal 档隐藏全部修饰仅留 OrdinalState | EXPERT_REVIEWED | ALLOWED | 设计与知识负责人 | 卦师评定＋用户转达 2026-07-11 | mark-taxonomy-and-registry-split §3 |
 
 章节与决定的映射如下；章节中的 SHALL、必须、禁止和不得仅在对应 Decision ID 获得规定状态后生效：
 
