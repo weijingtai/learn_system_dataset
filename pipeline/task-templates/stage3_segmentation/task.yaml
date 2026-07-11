@@ -1,0 +1,4 @@
+task_id: task_TEMPLATE_seg
+stage: segmentation
+source_snapshot: ""
+instruction_version: seg_v0.1

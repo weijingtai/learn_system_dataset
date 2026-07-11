@@ -1,0 +1,11 @@
+task_id: task_qimen_000003_concepts
+stage: concept_candidates
+instruction_version: concepts_v0.1
+model: opencode
+model_id: opencode
+endpoint: ''
+time: '2026-07-11T06:40:44.740148+00:00'
+input_files:
+  input/segments.yaml: c2b58acd23b3f0191962a6173ab4e39d56089678a7f037a9d0e43fa05d41d93c
+prompt_sha256: 60817e1e3f06e56987ce2e45682f6ca34a955fd8ff8b040df6e5e6a4304e4606
+response_sha256: 59aef82c5df8e54e24f5c877b3ffbf3e5b07b31f5a4591e9eea13c8892e5fe98

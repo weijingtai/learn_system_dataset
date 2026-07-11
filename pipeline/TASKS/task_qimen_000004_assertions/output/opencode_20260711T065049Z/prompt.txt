@@ -1,0 +1,1258 @@
+# 主张提取任务说明（工位 5，全流程风险最高，规则最严）
+
+你的唯一任务：对 input/segments.yaml 里的每个段落，提取"原文主张了什么"，一条命题一条记录，每条绑定证据。
+
+开工前必读：pipeline/lessons/LESSONS.md 的"通用"＋"工位 5"小节；本任务包 input/ 里的 glossary.yaml（术语参照）和 editorial_notes.yaml（若有，括号内容的文层归属以它为准）。
+
+## 铁律（违反即整条作废）
+
+1. **只提取原文说了的**。你自己的奇门知识一个字都不许进 proposition——原文没说"天蓬凶"，就不存在这条主张。
+2. **证据绑定**：每条主张的 evidence 必须引用段落编号对应的 span（映射规则：seg_id sNN → source_span_id ss_yanbo_ed02_p0001_sNN）。
+3. **限定词全部进 conditions**：月令、旺衰、阴阳遁、"若/凡/惟/独/偏宜"一个都不许丢。
+4. **否定方向不许反**："莫/勿/非/不可"提出来的主张必须保留否定。
+5. **一条一个命题**：一句里有两个主张就拆两条。
+6. 纯叙事句（如典故铺陈）没有可提取的主张 → 跳过即可，不是错误。
+7. 两种读法都通 → 该段 needs_escalation，按 HANDBOOK 2.3 出 ESC 草稿放 result.yaml，继续做其他段。
+
+## 编号
+
+只许使用 task.yaml 里 id_range 分配的号段（assertion 与 proposition 同号段各自编号）。
+
+## 输出格式（YAML）
+
+```yaml
+assertions:
+  - assertion_id: as_qimen_000100
+    proposition: 奇门以冬至、夏至为阴阳遁分界，起局宫数以一、九为始
+    proposition_id: pr_qimen_000100
+    relation: supports          # supports / qualifies / opposes
+    evidence:
+      - source_span_id: ss_yanbo_ed02_p0001_s01
+        support_type: interpreted   # direct=原文明说 / interpreted=通行解读
+    conditions:
+      - 此为"二至还乡一九宫"的通行解读
+    exceptions: []
+    school_ids: []
+    status: machine_extracted   # 固定填这个，禁止填更高状态
+```
+
+## 自查清单（交付前逐条过）
+
+1. 遮住 proposition 只看证据原文——原文真的这么说了吗？
+2. 限定词都进 conditions 了吗？
+3. 否定方向对吗？
+4. 一条里藏着两条吗？
+5. support_type 里"原文明说"和"你的解读"分清了吗？
+
+---
+glossary.yaml:
+glossary_version: qimen_glossary_v0.1
+built_from: task_qimen_000003_concepts + 复核补录
+date: '2026-07-10'
+status: 人工签发（2026-07-10，三项处置全部接受）
+concepts:
+- concept_id: co_qimen_000001
+  surface: 一元
+  kind: pattern
+  seg_ids:
+  - s12
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000002
+  surface: 丁
+  kind: stem_branch_dun
+  seg_ids:
+  - s17
+  - s22
+  - s42
+  - s44
+  - s53
+  - s62
+  - s64
+  - s78
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+  note: 提取方标记不确定；复核意见：单字天干地支按标准闭集纳入基础术语
+- concept_id: co_qimen_000003
+  surface: 丁奇
+  kind: stem_branch_dun
+  seg_ids:
+  - s42
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000004
+  surface: 三元
+  kind: pattern
+  seg_ids:
+  - s11
+  - s109
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000005
+  surface: 三奇
+  kind: stem_branch_dun
+  seg_ids:
+  - s17
+  - s19
+  - s21
+  - s23
+  - s40
+  - s55
+  - s76
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000006
+  surface: 三奇入墓
+  kind: pattern
+  seg_ids:
+  - s40
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000007
+  surface: 三奇得使
+  kind: pattern
+  seg_ids:
+  - s21
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000008
+  surface: 三遁
+  kind: pattern
+  seg_ids:
+  - s60
+  - s65
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000009
+  surface: 上格
+  kind: pattern
+  seg_ids:
+  - s75
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000010
+  surface: 丑
+  kind: stem_branch_dun
+  seg_ids:
+  - s44
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+  note: 提取方标记不确定；复核意见：单字天干地支按标准闭集纳入基础术语
+- concept_id: co_qimen_000011
+  surface: 丙
+  kind: stem_branch_dun
+  seg_ids:
+  - s17
+  - s22
+  - s41
+  - s53
+  - s62
+  - s66
+  - s67
+  - s69
+  - s70
+  - s81
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+  note: 提取方标记不确定；复核意见：单字天干地支按标准闭集纳入基础术语
+- concept_id: co_qimen_000012
+  surface: 丙奇
+  kind: stem_branch_dun
+  seg_ids:
+  - s41
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000013
+  surface: 中宫
+  kind: pattern
+  seg_ids:
+  - s94
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000014
+  surface: 乙
+  kind: stem_branch_dun
+  seg_ids:
+  - s17
+  - s22
+  - s42
+  - s51
+  - s53
+  - s63
+  - s70
+  - s73
+  - s79
+  - s102
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+  note: 提取方标记不确定；复核意见：单字天干地支按标准闭集纳入基础术语
+- concept_id: co_qimen_000015
+  surface: 乙丙丁
+  kind: stem_branch_dun
+  seg_ids:
+  - s17
+  - s53
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000016
+  surface: 乙奇
+  kind: stem_branch_dun
+  seg_ids:
+  - s42
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000017
+  surface: 九地
+  kind: god
+  seg_ids:
+  - s57
+  - s58
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000018
+  surface: 九天
+  kind: god
+  seg_ids:
+  - s57
+  - s58
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000019
+  surface: 九宫
+  kind: pattern
+  seg_ids:
+  - s01
+  - s09
+  - s13
+  - s14
+  - s104
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000020
+  surface: 九星
+  kind: star
+  seg_ids:
+  - s13
+  - s93
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000021
+  surface: 五不遇时
+  kind: pattern
+  seg_ids:
+  - s45
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000022
+  surface: 五阳
+  kind: pattern
+  seg_ids:
+  - s55
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000023
+  surface: 五阴
+  kind: pattern
+  seg_ids:
+  - s55
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000024
+  surface: 人遁
+  kind: pattern
+  seg_ids:
+  - s61
+  - s64
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000025
+  surface: 任
+  kind: star
+  seg_ids:
+  - s87
+  - s88
+  - s107
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000026
+  surface: 伏吟
+  kind: pattern
+  seg_ids:
+  - s34
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000027
+  surface: 伏干
+  kind: pattern
+  seg_ids:
+  - s71
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000028
+  surface: 伏逆
+  kind: pattern
+  seg_ids:
+  - s70
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000029
+  surface: 休囚
+  kind: pattern
+  seg_ids:
+  - s92
+  - s95
+  - s101
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000030
+  surface: 休门
+  kind: door
+  seg_ids:
+  - s64
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000031
+  surface: 值使
+  kind: god
+  seg_ids:
+  - s14
+  - s16
+  - s49
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000032
+  surface: 值符
+  kind: god
+  seg_ids:
+  - s16
+  - s38
+  - s49
+  - s52
+  - s56
+  - s73
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000033
+  surface: 兑
+  kind: pattern
+  seg_ids:
+  - s95
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000034
+  surface: 入墓
+  kind: pattern
+  seg_ids:
+  - s40
+  - s43
+  - s101
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000035
+  surface: 八卦
+  kind: pattern
+  seg_ids:
+  - s10
+  - s93
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000036
+  surface: 八节
+  kind: pattern
+  seg_ids:
+  - s10
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000037
+  surface: 八门
+  kind: pattern
+  seg_ids:
+  - s13
+  - s14
+  - s36
+  - s83
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000038
+  surface: 六丁
+  kind: stem_branch_dun
+  seg_ids:
+  - s22
+  - s62
+  - s64
+  - s78
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000039
+  surface: 六丙
+  kind: stem_branch_dun
+  seg_ids:
+  - s62
+  - s67
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000040
+  surface: 六乙
+  kind: stem_branch_dun
+  seg_ids:
+  - s63
+  - s79
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000041
+  surface: 六仪
+  kind: stem_branch_dun
+  seg_ids:
+  - s17
+  - s23
+  - s38
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000042
+  surface: 六合
+  kind: god
+  seg_ids:
+  - s28
+  - s56
+  - s59
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000043
+  surface: 六庚
+  kind: stem_branch_dun
+  seg_ids:
+  - s67
+  - s76
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000044
+  surface: 六甲
+  kind: stem_branch_dun
+  seg_ids:
+  - s17
+  - s21
+  - s103
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000045
+  surface: 六癸
+  kind: stem_branch_dun
+  seg_ids:
+  - s78
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000046
+  surface: 六辛
+  kind: stem_branch_dun
+  seg_ids:
+  - s79
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000047
+  surface: 冲
+  kind: star
+  seg_ids:
+  - s26
+  - s30
+  - s50
+  - s51
+  - s87
+  - s88
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000048
+  surface: 凶宿
+  kind: star
+  seg_ids:
+  - s37
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000049
+  surface: 击刑
+  kind: pattern
+  seg_ids:
+  - s38
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000050
+  surface: 勃
+  kind: pattern
+  seg_ids:
+  - s69
+  - s70
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000051
+  surface: 十干
+  kind: stem_branch_dun
+  seg_ids:
+  - s101
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000052
+  surface: 午
+  kind: stem_branch_dun
+  seg_ids:
+  - s39
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+  note: 提取方标记不确定；复核意见：单字天干地支按标准闭集纳入基础术语
+- concept_id: co_qimen_000053
+  surface: 吉宿
+  kind: star
+  seg_ids:
+  - s91
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000054
+  surface: 地四户
+  kind: pattern
+  seg_ids:
+  - s25
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000055
+  surface: 地户
+  kind: pattern
+  seg_ids:
+  - s27
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000056
+  surface: 地私门
+  kind: pattern
+  seg_ids:
+  - s28
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000057
+  surface: 地耳
+  kind: pattern
+  seg_ids:
+  - s103
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000058
+  surface: 地遁
+  kind: pattern
+  seg_ids:
+  - s61
+  - s63
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000059
+  surface: 坎
+  kind: pattern
+  seg_ids:
+  - s94
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000060
+  surface: 坤
+  kind: pattern
+  seg_ids:
+  - s40
+  - s94
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000061
+  surface: 壬
+  kind: stem_branch_dun
+  seg_ids:
+  - s44
+  - s75
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+  note: 提取方标记不确定；复核意见：单字天干地支按标准闭集纳入基础术语
+- concept_id: co_qimen_000062
+  surface: 大格
+  kind: pattern
+  seg_ids:
+  - s74
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000063
+  surface: 天三门
+  kind: pattern
+  seg_ids:
+  - s25
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000064
+  surface: 天上奇
+  kind: stem_branch_dun
+  seg_ids:
+  - s54
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000065
+  surface: 天乙
+  kind: god
+  seg_ids:
+  - s51
+  - s70
+  - s73
+  - s102
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000066
+  surface: 天乙伏
+  kind: pattern
+  seg_ids:
+  - s73
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000067
+  surface: 天乙飞
+  kind: pattern
+  seg_ids:
+  - s73
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000068
+  surface: 天冲
+  kind: star
+  seg_ids:
+  - s26
+  - s30
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000069
+  surface: 天目
+  kind: pattern
+  seg_ids:
+  - s103
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000070
+  surface: 天网
+  kind: pattern
+  seg_ids:
+  - s106
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000071
+  surface: 天英
+  kind: star
+  seg_ids:
+  - s52
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000072
+  surface: 天蓬
+  kind: star
+  seg_ids:
+  - s34
+  - s35
+  - s52
+  - s98
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000073
+  surface: 天遁
+  kind: pattern
+  seg_ids:
+  - s60
+  - s62
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000074
+  surface: 天门
+  kind: pattern
+  seg_ids:
+  - s26
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000075
+  surface: 天马
+  kind: pattern
+  seg_ids:
+  - s30
+  - s31
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000076
+  surface: 太常
+  kind: god
+  seg_ids:
+  - s28
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000077
+  surface: 太阴
+  kind: god
+  seg_ids:
+  - s28
+  - s47
+  - s56
+  - s59
+  - s61
+  - s64
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000078
+  surface: 奇格
+  kind: pattern
+  seg_ids:
+  - s76
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000079
+  surface: 奇门
+  kind: pattern
+  seg_ids:
+  - s06
+  - s29
+  - s37
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000080
+  surface: 子
+  kind: stem_branch_dun
+  seg_ids:
+  - s08
+  - s38
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+  note: 提取方标记不确定；复核意见：单字天干地支按标准闭集纳入基础术语
+- concept_id: co_qimen_000081
+  surface: 寅
+  kind: stem_branch_dun
+  seg_ids:
+  - s39
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+  note: 提取方标记不确定；复核意见：单字天干地支按标准闭集纳入基础术语
+- concept_id: co_qimen_000082
+  surface: 己
+  kind: stem_branch_dun
+  seg_ids:
+  - s63
+  - s74
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+  note: 提取方标记不确定；复核意见：单字天干地支按标准闭集纳入基础术语
+- concept_id: co_qimen_000083
+  surface: 巳
+  kind: stem_branch_dun
+  seg_ids:
+  - s39
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+  note: 提取方标记不确定；复核意见：单字天干地支按标准闭集纳入基础术语
+- concept_id: co_qimen_000084
+  surface: 巽
+  kind: pattern
+  seg_ids:
+  - s95
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000085
+  surface: 干
+  kind: pattern
+  seg_ids:
+  - s16
+  - s43
+  - s46
+  - s71
+  - s95
+  - s101
+  source_id: src_yanbo_ed02
+  status: rejected
+  note: 人工签发剔除：普通语素非术语
+- concept_id: co_qimen_000086
+  surface: 庚
+  kind: stem_branch_dun
+  seg_ids:
+  - s46
+  - s66
+  - s67
+  - s69
+  - s71
+  - s73
+  - s74
+  - s76
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+  note: 提取方标记不确定；复核意见：单字天干地支按标准闭集纳入基础术语
+- concept_id: co_qimen_000087
+  surface: 开休生
+  kind: door
+  seg_ids:
+  - s83
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000088
+  surface: 开门
+  kind: door
+  seg_ids:
+  - s63
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000089
+  surface: 心
+  kind: star
+  seg_ids:
+  - s48
+  - s87
+  - s88
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000090
+  surface: 戊
+  kind: stem_branch_dun
+  seg_ids:
+  - s44
+  - s53
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+  note: 提取方标记不确定；复核意见：单字天干地支按标准闭集纳入基础术语
+- concept_id: co_qimen_000091
+  surface: 戌
+  kind: stem_branch_dun
+  seg_ids:
+  - s39
+  - s41
+  - s44
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+  note: 提取方标记不确定；复核意见：单字天干地支按标准闭集纳入基础术语
+- concept_id: co_qimen_000092
+  surface: 接气
+  kind: pattern
+  seg_ids:
+  - s12
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000093
+  surface: 斗精
+  kind: pattern
+  seg_ids:
+  - s102
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000094
+  surface: 日干
+  kind: stem_branch_dun
+  seg_ids:
+  - s46
+  - s71
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000095
+  surface: 时干
+  kind: stem_branch_dun
+  seg_ids:
+  - s16
+  - s43
+  - s46
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000096
+  surface: 时干入墓
+  kind: pattern
+  seg_ids:
+  - s43
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000097
+  surface: 旺相
+  kind: pattern
+  seg_ids:
+  - s91
+  - s95
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000098
+  surface: 未
+  kind: stem_branch_dun
+  seg_ids:
+  - s03
+  - s39
+  - s44
+  - s88
+  - s109
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+  note: 提取方标记不确定；复核意见：单字天干地支按标准闭集纳入基础术语
+- concept_id: co_qimen_000099
+  surface: 柱
+  kind: star
+  seg_ids:
+  - s87
+  - s89
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000100
+  surface: 格
+  kind: pattern
+  seg_ids:
+  - s69
+  - s71
+  - s74
+  - s75
+  - s76
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000101
+  surface: 死门
+  kind: door
+  seg_ids:
+  - s86
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000102
+  surface: 水宿
+  kind: star
+  seg_ids:
+  - s98
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000103
+  surface: 游三避五
+  kind: pattern
+  seg_ids:
+  - s33
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000104
+  surface: 玉女守门
+  kind: pattern
+  seg_ids:
+  - s23
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000105
+  surface: 生气
+  kind: pattern
+  seg_ids:
+  - s32
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000106
+  surface: 生门
+  kind: door
+  seg_ids:
+  - s62
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000107
+  surface: 甲
+  kind: stem_branch_dun
+  seg_ids:
+  - s06
+  - s14
+  - s17
+  - s21
+  - s38
+  - s40
+  - s46
+  - s53
+  - s81
+  - s103
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+  note: 提取方标记不确定；复核意见：单字天干地支按标准闭集纳入基础术语
+- concept_id: co_qimen_000108
+  surface: 申
+  kind: stem_branch_dun
+  seg_ids:
+  - s39
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+  note: 提取方标记不确定；复核意见：单字天干地支按标准闭集纳入基础术语
+- concept_id: co_qimen_000109
+  surface: 癸
+  kind: stem_branch_dun
+  seg_ids:
+  - s44
+  - s74
+  - s78
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+  note: 提取方标记不确定；复核意见：单字天干地支按标准闭集纳入基础术语
+- concept_id: co_qimen_000110
+  surface: 白入荧
+  kind: pattern
+  seg_ids:
+  - s67
+  - s68
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000111
+  surface: 直使
+  kind: god
+  seg_ids:
+  - s15
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000112
+  surface: 直符
+  kind: god
+  seg_ids:
+  - s14
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000113
+  surface: 离
+  kind: pattern
+  seg_ids:
+  - s52
+  - s94
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000114
+  surface: 禽
+  kind: star
+  seg_ids:
+  - s87
+  - s88
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000115
+  surface: 艮
+  kind: pattern
+  seg_ids:
+  - s94
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000116
+  surface: 芮
+  kind: star
+  seg_ids:
+  - s87
+  - s89
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000117
+  surface: 英
+  kind: star
+  seg_ids:
+  - s52
+  - s87
+  - s89
+  - s94
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000118
+  surface: 荧入白
+  kind: pattern
+  seg_ids:
+  - s67
+  - s68
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000119
+  surface: 蓬
+  kind: star
+  seg_ids:
+  - s34
+  - s35
+  - s52
+  - s87
+  - s89
+  - s94
+  - s98
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000120
+  surface: 虎猖狂
+  kind: pattern
+  seg_ids:
+  - s79
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000121
+  surface: 蛇夭矫
+  kind: pattern
+  seg_ids:
+  - s78
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000122
+  surface: 超神
+  kind: pattern
+  seg_ids:
+  - s12
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000123
+  surface: 辅
+  kind: star
+  seg_ids:
+  - s87
+  - s88
+  - s104
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000124
+  surface: 辛
+  kind: stem_branch_dun
+  seg_ids:
+  - s79
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+  note: 提取方标记不确定；复核意见：单字天干地支按标准闭集纳入基础术语
+- concept_id: co_qimen_000125
+  surface: 辰
+  kind: stem_branch_dun
+  seg_ids:
+  - s28
+  - s39
+  - s44
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+  note: 提取方标记不确定；复核意见：单字天干地支按标准闭集纳入基础术语
+- concept_id: co_qimen_000126
+  surface: 返伏
+  kind: pattern
+  seg_ids:
+  - s36
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000127
+  surface: 返吟
+  kind: pattern
+  seg_ids:
+  - s35
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000128
+  surface: 遁甲
+  kind: pattern
+  seg_ids:
+  - s06
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000129
+  surface: 阳星
+  kind: star
+  seg_ids:
+  - s87
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000130
+  surface: 阳遁
+  kind: stem_branch_dun
+  seg_ids:
+  - s18
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000131
+  surface: 阴宿
+  kind: star
+  seg_ids:
+  - s87
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000132
+  surface: 阴遁
+  kind: stem_branch_dun
+  seg_ids:
+  - s18
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000133
+  surface: 阴阳二遁
+  kind: stem_branch_dun
+  seg_ids:
+  - s11
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000134
+  surface: 雀投江
+  kind: pattern
+  seg_ids:
+  - s78
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000135
+  surface: 震
+  kind: pattern
+  seg_ids:
+  - s95
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000136
+  surface: 飞勃
+  kind: pattern
+  seg_ids:
+  - s70
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000137
+  surface: 鸟跌穴
+  kind: pattern
+  seg_ids:
+  - s81
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000138
+  surface: 龙返首
+  kind: pattern
+  seg_ids:
+  - s81
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000139
+  surface: 龙逃走
+  kind: pattern
+  seg_ids:
+  - s79
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+- concept_id: co_qimen_000140
+  surface: 太白
+  kind: star
+  seg_ids:
+  - s66
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+  note: 复核补录；s66 原文"庚为太白"，为庚的星名别称
+- concept_id: co_qimen_000141
+  surface: 荧惑
+  kind: star
+  seg_ids:
+  - s66
+  source_id: src_yanbo_ed02
+  status: confirmed_v0
+  note: 复核补录；s66 原文"丙荧惑"，为丙的星名别称
+
+segments.yaml:
+segments:
+- seg_id: s01
+  text: 阴阳逆顺妙难穷，二至还乡一九宫。
+  note: 一联，开篇阴阳之理
+- seg_id: s02
+  text: 若能了达阴阳理，天地都来一掌中。
+  note: 一联，开篇阴阳之理
+- seg_id: s03
+  text: 轩辕黄帝战蚩尤，涿鹿经今苦未休。
+  note: 一联，开篇阴阳之理
+- seg_id: s04
+  text: 偶梦天神授符诀，登坛致祭谨虔修。
+  note: 一联，开篇阴阳之理
+- seg_id: s05
+  text: 神龙负图出洛水，彩凤衔书碧云里。
+  note: 一联，奇门起源典故
+- seg_id: s06
+  text: 因命风后演成文，遁甲奇门从此始。
+  note: 一联，奇门起源典故
+- seg_id: s07
+  text: 一千八百当时制，太公测成七十二。
+  note: 一联，奇门起源典故
+- seg_id: s08
+  text: 逮于汉代张子房，一十八局为精艺。
+  note: 一联，奇门起源典故
+- seg_id: s09
+  text: 先须掌上排九宫，纵横十五图其中。
+  note: 一联，九宫八卦基础
+- seg_id: s10
+  text: 次将八卦分八节，一气统三为正宗。
+  note: 一联，九宫八卦基础
+- seg_id: s11
+  text: 阴阳二遁分顺逆，一气三元人莫测。
+  note: 一联，九宫八卦基础
+- seg_id: s12
+  text: 五日都来接一元，接气超神为准则。
+  note: 一联，九宫八卦基础

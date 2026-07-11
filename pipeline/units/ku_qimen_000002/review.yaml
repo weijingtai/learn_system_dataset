@@ -1,0 +1,9 @@
+reviews:
+  - reviewer: opencode（生产 A 路）＋ claude（独立 B 路）
+    method: 双路盲提取＋证据对齐比对（tasks/task_qimen_000004_assertions/output/review_compare.yaml）
+    result: 13 条合并定稿，状态 cross_model_reviewed
+    date: "2026-07-10"
+  - reviewer: 人工（wjt）
+    method: 抽查 5/13 条（引文一致性、主张忠实性、条件完整性三问）
+    result: 全部通过，签发
+    date: "2026-07-10"

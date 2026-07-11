@@ -1,0 +1,11 @@
+task_id: task_qimen_000001_seg
+stage: segmentation
+instruction_version: seg_v0.1
+model: mock
+model_id: ''
+endpoint: ''
+time: '2026-07-11T21:43:11.516744+00:00'
+input_files:
+  input/text.md: c6fd0ed0a1828700bb0daaeea1bc74c1b87f35fe72970927d8b7939f4cddd006
+prompt_sha256: f54a4f273367d52f06e670e0a410fe4ffeec24331667ef608dd2416af40183de
+response_sha256: 4c6af5b7a0fcfb3978ab33269e42f1516bde9c5205717f4239ea91ca8f959776

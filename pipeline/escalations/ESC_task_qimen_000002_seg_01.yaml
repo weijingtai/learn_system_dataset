@@ -1,0 +1,20 @@
+esc_id: ESC_task_qimen_000002_seg_01
+task_id: task_qimen_000002_seg
+where: src_yanbo_ed02 正文第 78、109、114 行
+original_text: |
+  ① (开门六乙合六己，地遁如斯而已矣。)      ← 整句被括号包住
+  ② 辅禽心星为上吉，(冲任小吉)未全亨。      ← 句内插入括号
+  ③ 吉宿更能(逢)旺相，万举万全功必成。      ← 括号内仅一个字
+context_before: （三处均为七言歌诀正文行间）
+context_after: ""
+question: 这个简体电子本里的括号内容应按什么身份处理？它决定后续主张提取时这些文字算不算"原书正文"。
+options:
+  - A: 全部视为电子本编者添加的标记，统一按注文层（commentary）处理，不作为正文主张来源
+  - B: 全部视为正文原文，照常提取主张
+  - C: 逐处认定（推荐）——①整句括号疑似夹注按注文层；②"(冲任小吉)"疑似夹注按注文层；③"(逢)"疑似校补字，视为正文用字但在 uncertainties 记录
+impact: 影响 s63、s55 附近及后续工位 5 对这三句的主张提取与文层归属；不阻塞其他 107 段
+status: resolved
+resolution: C
+resolved_by: 用户（wjt）
+resolved_at: "2026-07-10"
+applied_to: corpus/qimen/yanbo_ed02/editorial_notes.yaml

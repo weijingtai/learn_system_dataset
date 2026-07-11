@@ -1,0 +1,6 @@
+model: mock
+endpoint: ''
+time: '2026-07-11T05:54:34.436969+00:00'
+input_files:
+  input/text.md: c6fd0ed0a1828700bb0daaeea1bc74c1b87f35fe72970927d8b7939f4cddd006
+response_sha256: 3e39f1351525d4a1a00fb132470d86b8f5b17c783db0bb05c24c565a0eba5a65

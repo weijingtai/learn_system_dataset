@@ -41,3 +41,5 @@
 - 任何模型输出都不得绕过校验直接成为发布知识。
 - 生成的 `ReleaseBundle` 不手工编辑；修改规范知识源后重新编译。
 - 最终获批的持久规格进入 `openspec/`；讨论稿可以保留在仓库根目录或 `docs/`。
+
+## Imported Claude Cowork project instructions

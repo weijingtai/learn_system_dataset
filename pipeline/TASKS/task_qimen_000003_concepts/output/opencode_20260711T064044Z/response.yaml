@@ -1,0 +1,853 @@
+candidates:
+- surface: 一元
+  kind_guess: pattern
+  seg_ids:
+  - s12
+  sure: true
+- surface: 丁
+  kind_guess: stem_branch_dun
+  seg_ids:
+  - s17
+  - s22
+  - s42
+  - s44
+  - s53
+  - s62
+  - s64
+  - s78
+  sure: false
+- surface: 丁奇
+  kind_guess: stem_branch_dun
+  seg_ids:
+  - s42
+  sure: true
+- surface: 三元
+  kind_guess: pattern
+  seg_ids:
+  - s11
+  - s109
+  sure: true
+- surface: 三奇
+  kind_guess: stem_branch_dun
+  seg_ids:
+  - s17
+  - s19
+  - s21
+  - s23
+  - s40
+  - s55
+  - s76
+  sure: true
+- surface: 三奇入墓
+  kind_guess: pattern
+  seg_ids:
+  - s40
+  sure: true
+- surface: 三奇得使
+  kind_guess: pattern
+  seg_ids:
+  - s21
+  sure: true
+- surface: 三遁
+  kind_guess: pattern
+  seg_ids:
+  - s60
+  - s65
+  sure: true
+- surface: 上格
+  kind_guess: pattern
+  seg_ids:
+  - s75
+  sure: true
+- surface: 丑
+  kind_guess: stem_branch_dun
+  seg_ids:
+  - s44
+  sure: false
+- surface: 丙
+  kind_guess: stem_branch_dun
+  seg_ids:
+  - s17
+  - s22
+  - s41
+  - s53
+  - s62
+  - s66
+  - s67
+  - s69
+  - s70
+  - s81
+  sure: false
+- surface: 丙奇
+  kind_guess: stem_branch_dun
+  seg_ids:
+  - s41
+  sure: true
+- surface: 中宫
+  kind_guess: pattern
+  seg_ids:
+  - s94
+  sure: true
+- surface: 乙
+  kind_guess: stem_branch_dun
+  seg_ids:
+  - s17
+  - s22
+  - s42
+  - s51
+  - s53
+  - s63
+  - s70
+  - s73
+  - s79
+  - s102
+  sure: false
+- surface: 乙丙丁
+  kind_guess: stem_branch_dun
+  seg_ids:
+  - s17
+  - s53
+  sure: true
+- surface: 乙奇
+  kind_guess: stem_branch_dun
+  seg_ids:
+  - s42
+  sure: true
+- surface: 九地
+  kind_guess: god
+  seg_ids:
+  - s57
+  - s58
+  sure: true
+- surface: 九天
+  kind_guess: god
+  seg_ids:
+  - s57
+  - s58
+  sure: true
+- surface: 九宫
+  kind_guess: pattern
+  seg_ids:
+  - s01
+  - s09
+  - s13
+  - s14
+  - s104
+  sure: true
+- surface: 九星
+  kind_guess: star
+  seg_ids:
+  - s13
+  - s93
+  sure: true
+- surface: 五不遇时
+  kind_guess: pattern
+  seg_ids:
+  - s45
+  sure: true
+- surface: 五阳
+  kind_guess: pattern
+  seg_ids:
+  - s55
+  sure: true
+- surface: 五阴
+  kind_guess: pattern
+  seg_ids:
+  - s55
+  sure: true
+- surface: 人遁
+  kind_guess: pattern
+  seg_ids:
+  - s61
+  - s64
+  sure: true
+- surface: 任
+  kind_guess: star
+  seg_ids:
+  - s87
+  - s88
+  - s107
+  sure: true
+- surface: 伏吟
+  kind_guess: pattern
+  seg_ids:
+  - s34
+  sure: true
+- surface: 伏干
+  kind_guess: pattern
+  seg_ids:
+  - s71
+  sure: true
+- surface: 伏逆
+  kind_guess: pattern
+  seg_ids:
+  - s70
+  sure: true
+- surface: 休囚
+  kind_guess: pattern
+  seg_ids:
+  - s92
+  - s95
+  - s101
+  sure: true
+- surface: 休门
+  kind_guess: door
+  seg_ids:
+  - s64
+  sure: true
+- surface: 值使
+  kind_guess: god
+  seg_ids:
+  - s14
+  - s16
+  - s49
+  sure: true
+- surface: 值符
+  kind_guess: god
+  seg_ids:
+  - s16
+  - s38
+  - s49
+  - s52
+  - s56
+  - s73
+  sure: true
+- surface: 兑
+  kind_guess: pattern
+  seg_ids:
+  - s95
+  sure: true
+- surface: 入墓
+  kind_guess: pattern
+  seg_ids:
+  - s40
+  - s43
+  - s101
+  sure: true
+- surface: 八卦
+  kind_guess: pattern
+  seg_ids:
+  - s10
+  - s93
+  sure: true
+- surface: 八节
+  kind_guess: pattern
+  seg_ids:
+  - s10
+  sure: true
+- surface: 八门
+  kind_guess: pattern
+  seg_ids:
+  - s13
+  - s14
+  - s36
+  - s83
+  sure: true
+- surface: 六丁
+  kind_guess: stem_branch_dun
+  seg_ids:
+  - s22
+  - s62
+  - s64
+  - s78
+  sure: true
+- surface: 六丙
+  kind_guess: stem_branch_dun
+  seg_ids:
+  - s62
+  - s67
+  sure: true
+- surface: 六乙
+  kind_guess: stem_branch_dun
+  seg_ids:
+  - s63
+  - s79
+  sure: true
+- surface: 六仪
+  kind_guess: stem_branch_dun
+  seg_ids:
+  - s17
+  - s23
+  - s38
+  sure: true
+- surface: 六合
+  kind_guess: god
+  seg_ids:
+  - s28
+  - s56
+  - s59
+  sure: true
+- surface: 六庚
+  kind_guess: stem_branch_dun
+  seg_ids:
+  - s67
+  - s76
+  sure: true
+- surface: 六甲
+  kind_guess: stem_branch_dun
+  seg_ids:
+  - s17
+  - s21
+  - s103
+  sure: true
+- surface: 六癸
+  kind_guess: stem_branch_dun
+  seg_ids:
+  - s78
+  sure: true
+- surface: 六辛
+  kind_guess: stem_branch_dun
+  seg_ids:
+  - s79
+  sure: true
+- surface: 冲
+  kind_guess: star
+  seg_ids:
+  - s26
+  - s30
+  - s50
+  - s51
+  - s87
+  - s88
+  sure: true
+- surface: 凶宿
+  kind_guess: star
+  seg_ids:
+  - s37
+  sure: true
+- surface: 击刑
+  kind_guess: pattern
+  seg_ids:
+  - s38
+  sure: true
+- surface: 勃
+  kind_guess: pattern
+  seg_ids:
+  - s69
+  - s70
+  sure: true
+- surface: 十干
+  kind_guess: stem_branch_dun
+  seg_ids:
+  - s101
+  sure: true
+- surface: 午
+  kind_guess: stem_branch_dun
+  seg_ids:
+  - s39
+  sure: false
+- surface: 吉宿
+  kind_guess: star
+  seg_ids:
+  - s91
+  sure: true
+- surface: 地四户
+  kind_guess: pattern
+  seg_ids:
+  - s25
+  sure: true
+- surface: 地户
+  kind_guess: pattern
+  seg_ids:
+  - s27
+  sure: true
+- surface: 地私门
+  kind_guess: pattern
+  seg_ids:
+  - s28
+  sure: true
+- surface: 地耳
+  kind_guess: pattern
+  seg_ids:
+  - s103
+  sure: true
+- surface: 地遁
+  kind_guess: pattern
+  seg_ids:
+  - s61
+  - s63
+  sure: true
+- surface: 坎
+  kind_guess: pattern
+  seg_ids:
+  - s94
+  sure: true
+- surface: 坤
+  kind_guess: pattern
+  seg_ids:
+  - s40
+  - s94
+  sure: true
+- surface: 壬
+  kind_guess: stem_branch_dun
+  seg_ids:
+  - s44
+  - s75
+  sure: false
+- surface: 大格
+  kind_guess: pattern
+  seg_ids:
+  - s74
+  sure: true
+- surface: 天三门
+  kind_guess: pattern
+  seg_ids:
+  - s25
+  sure: true
+- surface: 天上奇
+  kind_guess: stem_branch_dun
+  seg_ids:
+  - s54
+  sure: true
+- surface: 天乙
+  kind_guess: god
+  seg_ids:
+  - s51
+  - s70
+  - s73
+  - s102
+  sure: true
+- surface: 天乙伏
+  kind_guess: pattern
+  seg_ids:
+  - s73
+  sure: true
+- surface: 天乙飞
+  kind_guess: pattern
+  seg_ids:
+  - s73
+  sure: true
+- surface: 天冲
+  kind_guess: star
+  seg_ids:
+  - s26
+  - s30
+  sure: true
+- surface: 天目
+  kind_guess: pattern
+  seg_ids:
+  - s103
+  sure: true
+- surface: 天网
+  kind_guess: pattern
+  seg_ids:
+  - s106
+  sure: true
+- surface: 天英
+  kind_guess: star
+  seg_ids:
+  - s52
+  sure: true
+- surface: 天蓬
+  kind_guess: star
+  seg_ids:
+  - s34
+  - s35
+  - s52
+  - s98
+  sure: true
+- surface: 天遁
+  kind_guess: pattern
+  seg_ids:
+  - s60
+  - s62
+  sure: true
+- surface: 天门
+  kind_guess: pattern
+  seg_ids:
+  - s26
+  sure: true
+- surface: 天马
+  kind_guess: pattern
+  seg_ids:
+  - s30
+  - s31
+  sure: true
+- surface: 太常
+  kind_guess: god
+  seg_ids:
+  - s28
+  sure: true
+- surface: 太阴
+  kind_guess: god
+  seg_ids:
+  - s28
+  - s47
+  - s56
+  - s59
+  - s61
+  - s64
+  sure: true
+- surface: 奇格
+  kind_guess: pattern
+  seg_ids:
+  - s76
+  sure: true
+- surface: 奇门
+  kind_guess: pattern
+  seg_ids:
+  - s06
+  - s29
+  - s37
+  sure: true
+- surface: 子
+  kind_guess: stem_branch_dun
+  seg_ids:
+  - s08
+  - s38
+  sure: false
+- surface: 寅
+  kind_guess: stem_branch_dun
+  seg_ids:
+  - s39
+  sure: false
+- surface: 己
+  kind_guess: stem_branch_dun
+  seg_ids:
+  - s63
+  - s74
+  sure: false
+- surface: 巳
+  kind_guess: stem_branch_dun
+  seg_ids:
+  - s39
+  sure: false
+- surface: 巽
+  kind_guess: pattern
+  seg_ids:
+  - s95
+  sure: true
+- surface: 干
+  kind_guess: pattern
+  seg_ids:
+  - s16
+  - s43
+  - s46
+  - s71
+  - s95
+  - s101
+  sure: false
+- surface: 庚
+  kind_guess: stem_branch_dun
+  seg_ids:
+  - s46
+  - s66
+  - s67
+  - s69
+  - s71
+  - s73
+  - s74
+  - s76
+  sure: false
+- surface: 开休生
+  kind_guess: door
+  seg_ids:
+  - s83
+  sure: true
+- surface: 开门
+  kind_guess: door
+  seg_ids:
+  - s63
+  sure: true
+- surface: 心
+  kind_guess: star
+  seg_ids:
+  - s48
+  - s87
+  - s88
+  sure: true
+- surface: 戊
+  kind_guess: stem_branch_dun
+  seg_ids:
+  - s44
+  - s53
+  sure: false
+- surface: 戌
+  kind_guess: stem_branch_dun
+  seg_ids:
+  - s39
+  - s41
+  - s44
+  sure: false
+- surface: 接气
+  kind_guess: pattern
+  seg_ids:
+  - s12
+  sure: true
+- surface: 斗精
+  kind_guess: pattern
+  seg_ids:
+  - s102
+  sure: true
+- surface: 日干
+  kind_guess: stem_branch_dun
+  seg_ids:
+  - s46
+  - s71
+  sure: true
+- surface: 时干
+  kind_guess: stem_branch_dun
+  seg_ids:
+  - s16
+  - s43
+  - s46
+  sure: true
+- surface: 时干入墓
+  kind_guess: pattern
+  seg_ids:
+  - s43
+  sure: true
+- surface: 旺相
+  kind_guess: pattern
+  seg_ids:
+  - s91
+  - s95
+  sure: true
+- surface: 未
+  kind_guess: stem_branch_dun
+  seg_ids:
+  - s03
+  - s39
+  - s44
+  - s88
+  - s109
+  sure: false
+- surface: 柱
+  kind_guess: star
+  seg_ids:
+  - s87
+  - s89
+  sure: true
+- surface: 格
+  kind_guess: pattern
+  seg_ids:
+  - s69
+  - s71
+  - s74
+  - s75
+  - s76
+  sure: true
+- surface: 死门
+  kind_guess: door
+  seg_ids:
+  - s86
+  sure: true
+- surface: 水宿
+  kind_guess: star
+  seg_ids:
+  - s98
+  sure: true
+- surface: 游三避五
+  kind_guess: pattern
+  seg_ids:
+  - s33
+  sure: true
+- surface: 玉女守门
+  kind_guess: pattern
+  seg_ids:
+  - s23
+  sure: true
+- surface: 生气
+  kind_guess: pattern
+  seg_ids:
+  - s32
+  sure: true
+- surface: 生门
+  kind_guess: door
+  seg_ids:
+  - s62
+  sure: true
+- surface: 甲
+  kind_guess: stem_branch_dun
+  seg_ids:
+  - s06
+  - s14
+  - s17
+  - s21
+  - s38
+  - s40
+  - s46
+  - s53
+  - s81
+  - s103
+  sure: false
+- surface: 申
+  kind_guess: stem_branch_dun
+  seg_ids:
+  - s39
+  sure: false
+- surface: 癸
+  kind_guess: stem_branch_dun
+  seg_ids:
+  - s44
+  - s74
+  - s78
+  sure: false
+- surface: 白入荧
+  kind_guess: pattern
+  seg_ids:
+  - s67
+  - s68
+  sure: true
+- surface: 直使
+  kind_guess: god
+  seg_ids:
+  - s15
+  sure: true
+- surface: 直符
+  kind_guess: god
+  seg_ids:
+  - s14
+  sure: true
+- surface: 离
+  kind_guess: pattern
+  seg_ids:
+  - s52
+  - s94
+  sure: true
+- surface: 禽
+  kind_guess: star
+  seg_ids:
+  - s87
+  - s88
+  sure: true
+- surface: 艮
+  kind_guess: pattern
+  seg_ids:
+  - s94
+  sure: true
+- surface: 芮
+  kind_guess: star
+  seg_ids:
+  - s87
+  - s89
+  sure: true
+- surface: 英
+  kind_guess: star
+  seg_ids:
+  - s52
+  - s87
+  - s89
+  - s94
+  sure: true
+- surface: 荧入白
+  kind_guess: pattern
+  seg_ids:
+  - s67
+  - s68
+  sure: true
+- surface: 蓬
+  kind_guess: star
+  seg_ids:
+  - s34
+  - s35
+  - s52
+  - s87
+  - s89
+  - s94
+  - s98
+  sure: true
+- surface: 虎猖狂
+  kind_guess: pattern
+  seg_ids:
+  - s79
+  sure: true
+- surface: 蛇夭矫
+  kind_guess: pattern
+  seg_ids:
+  - s78
+  sure: true
+- surface: 超神
+  kind_guess: pattern
+  seg_ids:
+  - s12
+  sure: true
+- surface: 辅
+  kind_guess: star
+  seg_ids:
+  - s87
+  - s88
+  - s104
+  sure: true
+- surface: 辛
+  kind_guess: stem_branch_dun
+  seg_ids:
+  - s79
+  sure: false
+- surface: 辰
+  kind_guess: stem_branch_dun
+  seg_ids:
+  - s28
+  - s39
+  - s44
+  sure: false
+- surface: 返伏
+  kind_guess: pattern
+  seg_ids:
+  - s36
+  sure: true
+- surface: 返吟
+  kind_guess: pattern
+  seg_ids:
+  - s35
+  sure: true
+- surface: 遁甲
+  kind_guess: pattern
+  seg_ids:
+  - s06
+  sure: true
+- surface: 阳星
+  kind_guess: star
+  seg_ids:
+  - s87
+  sure: true
+- surface: 阳遁
+  kind_guess: stem_branch_dun
+  seg_ids:
+  - s18
+  sure: true
+- surface: 阴宿
+  kind_guess: star
+  seg_ids:
+  - s87
+  sure: true
+- surface: 阴遁
+  kind_guess: stem_branch_dun
+  seg_ids:
+  - s18
+  sure: true
+- surface: 阴阳二遁
+  kind_guess: stem_branch_dun
+  seg_ids:
+  - s11
+  sure: true
+- surface: 雀投江
+  kind_guess: pattern
+  seg_ids:
+  - s78
+  sure: true
+- surface: 震
+  kind_guess: pattern
+  seg_ids:
+  - s95
+  sure: true
+- surface: 飞勃
+  kind_guess: pattern
+  seg_ids:
+  - s70
+  sure: true
+- surface: 鸟跌穴
+  kind_guess: pattern
+  seg_ids:
+  - s81
+  sure: true
+- surface: 龙返首
+  kind_guess: pattern
+  seg_ids:
+  - s81
+  sure: true
+- surface: 龙逃走
+  kind_guess: pattern
+  seg_ids:
+  - s79
+  sure: true

@@ -1,0 +1,10 @@
+# 技法档案模板：一技一档。
+technique_id: 小写拼音，如 qimen / bazi / liuyao
+name: 技法名
+status: observed    # observed（知道存在）→ profiled（已立档）→ active（正在整理）
+one_line: 一句话说明这是什么
+core_works: []      # 公认核心典籍清单（书名即可，立项后建 works 档案）
+schools_known: []   # 已知流派名单，不确定的加 "?"
+glossary_path: ""   # 受控术语表位置（建立后填）
+open_questions: []  # 这个技法当前没搞清楚的事
+lessons: []

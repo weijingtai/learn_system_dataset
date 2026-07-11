@@ -1,0 +1,18 @@
+# 注意：以下 model 名是模板占位（deepseek-chat / glm-4-plus 为旧版名）。
+# M2b 真实调用前，由用户改成自己账号可用的最新模型（如 DeepSeek V4 系、GLM-5.2），
+# 改后先跑一个最小任务确认可用，再跑批。
+models:
+  production:            # 生产模型（干活的）
+    provider: deepseek
+    endpoint: https://api.deepseek.com/chat/completions
+    model: deepseek-chat
+    api_key_env: DEEPSEEK_API_KEY   # 从环境变量读 key，禁止把 key 写进任何文件
+    temperature: 0
+  reviewer:              # 复核模型（必须与生产模型不同家族）
+    provider: zhipu
+    endpoint: https://open.bigmodel.cn/api/paas/v4/chat/completions
+    model: glm-4-plus
+    api_key_env: GLM_API_KEY
+    temperature: 0
+  mock:                  # 测试用假模型：不联网，直接返回任务包里的 mock_output.yaml
+    provider: mock

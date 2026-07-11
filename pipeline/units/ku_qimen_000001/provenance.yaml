@@ -1,0 +1,11 @@
+source_spans:
+  - source_span_id: ss_yanbo_ed01_p0001_s01
+    source_id: src_yanbo_ed01
+    file: source/transcript_v1.md
+    quote: 陰陽順逆妙難窮
+    location: 第1页 第1句
+  - source_span_id: ss_yanbo_ed01_p0001_s02
+    source_id: src_yanbo_ed01
+    file: source/transcript_v1.md
+    quote: 二至還鄉一九宮
+    location: 第1页 第2句

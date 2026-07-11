@@ -1,0 +1,11 @@
+task_id: task_qimen_000002_seg
+stage: segmentation
+instruction_version: seg_v0.1
+model: opencode
+model_id: opencode
+endpoint: ''
+time: '2026-07-11T06:26:24.441524+00:00'
+input_files:
+  input/text.md: f72633cef3e64b8919440994e20369ff105458d774a1e122605fcce6e6998dac
+prompt_sha256: 726b925804f8f35b12725c2012e48ad4de2cdcd4005bc7c4de33d7b310d5abc8
+response_sha256: c2b58acd23b3f0191962a6173ab4e39d56089678a7f037a9d0e43fa05d41d93c

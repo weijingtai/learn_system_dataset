@@ -1,0 +1,13 @@
+# 编辑标记决议（依 ESC_task_qimen_000002_seg_01，用户裁决：C 逐处认定）
+# 下游工位（尤其工位 5 主张提取）处理这些位置时必须遵守本文件。
+source_id: src_yanbo_ed02
+notes:
+  - where: 正文第 78 行
+    text: "(开门六乙合六己，地遁如斯而已矣。)"
+    ruling: 夹注，按注文层（commentary）处理，不作为正文主张来源；commentator: unknown
+  - where: 正文第 109 行
+    text: "(冲任小吉)"
+    ruling: 句内夹注，按注文层处理，所注对象为该句"辅禽心星为上吉"
+  - where: 正文第 114 行
+    text: "(逢)"
+    ruling: 疑似校补字，视为正文用字；提取主张时在 uncertainties 记录"此字为电子本括号标记"

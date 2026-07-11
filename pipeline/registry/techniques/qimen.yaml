@@ -1,0 +1,20 @@
+technique_id: qimen
+name: 奇门遁甲
+status: active
+one_line: 以时辰起局、九宫布星门神的占测体系，本项目首个试点技法
+core_works:
+  - 烟波钓叟歌（歌诀总纲，已入库试点）
+  - 奇门遁甲统宗
+  - 遁甲演义
+schools_known:
+  - 转盘派
+  - 飞盘派
+  - "阴盘（道家奇门）?"   # 归类争议大，待考
+glossary_path: schemas/techniques/qimen/glossary_v0.yaml   # v0 初版（141 条候选，待人工抽查签发）
+open_questions:
+  - 试点用的正式底本尚未确定（当前 transcript 为占位文本）
+  - 转盘/飞盘的起局差异如何在 calculation_profile 里表达
+lessons:
+  - 2026-07-10 歌诀类文本按联切分效果好，正样例见 units/ku_qimen_000001
+  - 2026-07-10 M2 验收：任务书重述切分规则导致与 HANDBOOK 冲突（单句 vs 按联），已立"规则单一出处"纪律；切分输出新增 check_segments.py 程序校验
+  - 2026-07-10 首个真实任务（ed02 全文 110 段）：网络电子本自带括号标记（夹注/校补字混杂，见 ESC_task_qimen_000002_seg_01）——收网络文本时要预设"编者标记"问题；切分 note 会被模型批量复制，模板已加规则

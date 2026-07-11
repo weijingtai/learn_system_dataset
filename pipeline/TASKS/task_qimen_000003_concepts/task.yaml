@@ -1,0 +1,5 @@
+task_id: task_qimen_000003_concepts
+stage: concept_candidates
+source_snapshot: corpus/qimen/yanbo_ed02/source/transcript_v1.md
+input_from: task_qimen_000002_seg/output/opencode_20260711T062624Z/response.yaml
+instruction_version: concepts_v0.1

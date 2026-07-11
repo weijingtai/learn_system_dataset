@@ -1,0 +1,17 @@
+# 典籍档案模板：复制本文件，改名为 <拼音或简称>.yaml 后填写。一屏以内，写不下说明还没想清楚。
+work_id: work_<简称>
+title: 书名（原题）
+technique_id: 所属技法（对应 registry/techniques/）
+school_hint: 流派倾向，没有或不明填 unknown
+era: 成书年代（约略即可）
+why_selected: 一句话——这本书能为哪些高频问题提供出处
+priority: high / medium / low
+status: candidate   # candidate → selected → sourcing → digitizing → processing → compiled → archived
+text_type_guess: A/B/C/D（HANDBOOK 第 3 章），未看过原书填 unknown
+editions:           # 找到的底本，逐条登记
+  - where: 来源平台
+    url: ""
+    kind: 影像 / 文本 / 文本＋影像
+    rights_note: 权利判断依据
+corpus_path: ""     # 入库后填 corpus/ 下路径
+lessons: []         # 处理中学到的经验，逐条追加，永不删除

@@ -1,0 +1,4 @@
+task_id: task_qimen_000001_seg
+stage: segmentation
+source_snapshot: corpus/qimen/yanbo/source/transcript_v1.md
+instruction_version: seg_v0.1

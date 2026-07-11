@@ -1,0 +1,13 @@
+assertions:
+  - assertion_id: as_qimen_000001
+    proposition: 奇门起局分阳遁与阴遁，以冬至、夏至为分界，宫数以一、九为始
+    proposition_id: pr_qimen_000001
+    relation: supports
+    evidence:
+      - source_span_id: ss_yanbo_ed01_p0001_s02
+        support_type: interpreted
+    conditions:
+      - 此为"二至還鄉一九宮"的通行解读，具体起局细则须待后文与注家内容
+    exceptions: []
+    school_ids: []
+    status: machine_extracted

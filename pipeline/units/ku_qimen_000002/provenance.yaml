@@ -1,0 +1,46 @@
+source_spans:
+- source_span_id: ss_yanbo_ed02_p0001_s01
+  source_id: src_yanbo_ed02
+  file: source/transcript_v1.md
+  quote: 阴阳逆顺妙难穷，二至还乡一九宫。
+  location: 第1页 第1句
+- source_span_id: ss_yanbo_ed02_p0001_s02
+  source_id: src_yanbo_ed02
+  file: source/transcript_v1.md
+  quote: 若能了达阴阳理，天地都来一掌中。
+  location: 第1页 第2句
+- source_span_id: ss_yanbo_ed02_p0001_s06
+  source_id: src_yanbo_ed02
+  file: source/transcript_v1.md
+  quote: 因命风后演成文，遁甲奇门从此始。
+  location: 第1页 第6句
+- source_span_id: ss_yanbo_ed02_p0001_s07
+  source_id: src_yanbo_ed02
+  file: source/transcript_v1.md
+  quote: 一千八百当时制，太公测成七十二。
+  location: 第1页 第7句
+- source_span_id: ss_yanbo_ed02_p0001_s08
+  source_id: src_yanbo_ed02
+  file: source/transcript_v1.md
+  quote: 逮于汉代张子房，一十八局为精艺。
+  location: 第1页 第8句
+- source_span_id: ss_yanbo_ed02_p0001_s09
+  source_id: src_yanbo_ed02
+  file: source/transcript_v1.md
+  quote: 先须掌上排九宫，纵横十五图其中。
+  location: 第1页 第9句
+- source_span_id: ss_yanbo_ed02_p0001_s10
+  source_id: src_yanbo_ed02
+  file: source/transcript_v1.md
+  quote: 次将八卦分八节，一气统三为正宗。
+  location: 第1页 第10句
+- source_span_id: ss_yanbo_ed02_p0001_s11
+  source_id: src_yanbo_ed02
+  file: source/transcript_v1.md
+  quote: 阴阳二遁分顺逆，一气三元人莫测。
+  location: 第1页 第11句
+- source_span_id: ss_yanbo_ed02_p0001_s12
+  source_id: src_yanbo_ed02
+  file: source/transcript_v1.md
+  quote: 五日都来接一元，接气超神为准则。
+  location: 第1页 第12句

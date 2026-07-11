@@ -1,0 +1,16 @@
+unit_id: ku_qimen_000002
+technique_id: qimen
+source_id: src_yanbo_ed02
+title: 奇门基础：起局原理与节元规则
+span_ids:
+- ss_yanbo_ed02_p0001_s01
+- ss_yanbo_ed02_p0001_s02
+- ss_yanbo_ed02_p0001_s06
+- ss_yanbo_ed02_p0001_s07
+- ss_yanbo_ed02_p0001_s08
+- ss_yanbo_ed02_p0001_s09
+- ss_yanbo_ed02_p0001_s10
+- ss_yanbo_ed02_p0001_s11
+- ss_yanbo_ed02_p0001_s12
+status: source_verified
+created: '2026-07-11'

@@ -1,0 +1,17 @@
+technique_id: bazi
+name: 八字（子平）
+status: profiled
+one_line: 以出生年月日时四柱干支论命的体系，本项目第二个技法、首个大部头试运行载体
+core_works:
+  - 穷通宝鉴（拦江网）——试运行中
+  - 渊海子平
+  - 滴天髓（含任注/徐注分歧，适合 Assertion 冲突模型）
+  - 三命通会
+schools_known:
+  - "格局派 ?"
+  - "调候派（穷通宝鉴即其代表）?"
+glossary_path: ""          # 首批条目跑完后建 bazi 术语表 v0
+open_questions:
+  - 底本形态：白文先行还是带徐乐吾评注（D 类）——待用户决定
+  - 条目内命例（Case 候选）与通则主张的区分执行质量
+lessons: []

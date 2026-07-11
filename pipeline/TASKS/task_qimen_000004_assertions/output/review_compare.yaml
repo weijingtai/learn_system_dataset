@@ -1,0 +1,29 @@
+task_id: task_qimen_000004_assertions
+method: 双路盲提取（A=opencode 13 条，B=claude 12 条）按证据 span 对齐比对
+agreed: 10/13 个命题两路语义一致（措辞不同不算分歧）
+resolved_by_text:
+- where: s10
+  issue: A 读"一气统三"为"三候"，B 读"三元"
+  ruling: 取 B。s11 原文"一气三元人莫测"直接互证为"元"；A 自己在 s11 也提取了"三元"，与其 s10 自相矛盾。A 的"候"是模型自带节气知识渗入——这正是双路比对要抓的错误类型
+  winner: B
+- where: s07
+  issue: B 把初制局数与太公删减合为一条，A 拆两条
+  ruling: 取 A。HANDBOOK 铁律"一条一个命题"
+  winner: A
+- where: s02
+  issue: support_type：B 判 direct，A 判 interpreted
+  ruling: 取 A。比喻句的归纳属解读
+  winner: A
+- where: s06
+  issue: 两路都跨段补充了叙事细节（A 加"河图洛书"且"河图"原文无；B 加"天神所授符诀"）
+  ruling: 双方都收紧：定稿只保留 s06 字面，上下文引 s04–s05 作 condition 说明
+  winner: 双方修正
+- where: s11
+  issue: A 措辞"各有顺遁和逆遁"有歧义（像四种组合）
+  ruling: 取 B 保守表述，通行解读（阳顺阴逆）入 conditions
+  winner: B
+escalations: 无——所有分歧均可用原文证据裁决，不涉及流派争议
+format_notes:
+- A 未声明 skipped_segments（s03–s05），轻微格式缺失
+- A 全部标 interpreted 一刀切，定稿逐条重判
+verdict: both completed_with_warnings；合并定稿 13 条见 merged_final.yaml

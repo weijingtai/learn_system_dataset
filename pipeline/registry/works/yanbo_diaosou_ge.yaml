@@ -1,0 +1,17 @@
+work_id: work_yanbo
+title: 煙波釣叟歌
+technique_id: qimen
+school_hint: unknown        # 歌诀为诸派共尊
+era: 传为宋代（托名之说存疑）
+why_selected: 奇门总纲歌诀，短小、公版、术语与注家分歧密集，适合作全流程首个试点
+priority: high
+status: processing          # ed02 全文已切分（110 段）；s01–s12 主张已双路提取并经人工签发（ku_qimen_000002）；s13–s110 待扩批
+text_type_guess: A          # 韵文歌诀；注本为 D
+editions:
+  - where: 待定（候选：ctext / Kanripo / 国图影像中的《奇门遁甲统宗》所收本）
+    url: ""
+    kind: 待定
+    rights_note: 原书公版；取整理文本需逐平台确认条款
+corpus_path: corpus/qimen/yanbo/
+lessons:
+  - 2026-07-10 M1 用通行本文字做占位转录测试校验器；正式引用前必须换成有影像依据的底本并升版 manifest

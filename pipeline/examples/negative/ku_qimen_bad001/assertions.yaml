@@ -1,0 +1,21 @@
+assertions:
+  - assertion_id: as_qimen_000099
+    proposition: 天蓬星落坎宫主凶（模型自带知识，原文根本没提——应被抓出）
+    proposition_id: pr_qimen_000099
+    relation: supports
+    evidence: []
+    conditions: []
+    exceptions: []
+    school_ids: []
+    status: machine_extracted
+  - assertion_id: as_qimen_000100
+    proposition: 引用了不存在的证据片段（应被抓出）
+    proposition_id: pr_qimen_000100
+    relation: supports
+    evidence:
+      - source_span_id: ss_yanbo_ed01_p0099_s99
+        support_type: direct
+    conditions: []
+    exceptions: []
+    school_ids: []
+    status: machine_extracted

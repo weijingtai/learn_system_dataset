@@ -1,0 +1,12 @@
+task_id: task_qimen_000004_assertions
+stage: assertion_extraction
+instruction_version: assertions_v0.1
+model: opencode
+model_id: opencode
+endpoint: ''
+time: '2026-07-11T06:50:49.949252+00:00'
+input_files:
+  input/glossary.yaml: f19b94e72e471351332dd167ef0648487420d18b51f933af8f37a6c57279740a
+  input/segments.yaml: 839b456209619a61da20979b587daf2ba764db60bbda8c1145e71926d2924b8d
+prompt_sha256: d4bc383e38fa1d394dde10ea2c15e62f7c9182d10835709b6d573e96cad70167
+response_sha256: 4cdd98812173fa6fc9c6343ae17bf8025ee1261ceffd3d6f3589c872cd76faaf

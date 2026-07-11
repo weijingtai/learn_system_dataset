@@ -1,0 +1,12 @@
+source_id: src_yanbo_ed02
+work_title: 煙波釣叟歌
+edition_note: 用户提供的简体通行电子本，无影像底本，文字未核对，异文按本文件原样记录
+technique_id: qimen
+rights_status: public_domain
+files:
+  - path: raw/yanbodiaosou.md
+    role: raw_ebook
+    sha256: f72633cef3e64b8919440994e20369ff105458d774a1e122605fcce6e6998dac
+  - path: source/transcript_v1.md
+    role: transcript
+    sha256: b8a30fd6268dc8f6e28f8748d9fb942298d767e91219b77ee5b6eec7a7f641ab

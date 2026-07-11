@@ -1,0 +1,9 @@
+source_id: src_yanbo_ed01
+work_title: 煙波釣叟歌
+edition_note: 通行本文字，M1 占位转录（人工手写用于测试校验程序）；正式底本与页图在 M2 登记后升版
+technique_id: qimen
+rights_status: public_domain
+files:
+  - path: source/transcript_v1.md
+    role: transcript
+    sha256: 31353c4d1c444fb3d8f10ac867c193bbf9752601bf7d120cb00b53a0cb6394b4

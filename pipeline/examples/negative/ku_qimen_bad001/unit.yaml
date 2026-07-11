@@ -1,0 +1,8 @@
+unit_id: ku_qimen_bad1
+technique_id: qimen
+source_id: src_yanbo_ed01
+title: 故意写错的样例（用于测试校验程序）
+span_ids:
+  - ss_yanbo_ed01_p0001_s01
+status: totally_correct
+created: "2026-07-10"

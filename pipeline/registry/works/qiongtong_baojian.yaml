@@ -1,0 +1,16 @@
+work_id: work_qtbj
+title: 窮通寶鑑（欄江網）
+technique_id: bazi
+school_hint: 调候取用一系
+era: 明清间成书，托名传承有争议；徐乐吾评注为民国
+why_selected: 结构极规整的类型 C 条目书（十干×十二月），整本试运行的压测载体；调候内容是高频盘面问题的出处富矿
+priority: high
+status: selected            # 待用户放入电子文本后转 sourcing
+text_type_guess: C          # 白文为 C；徐注本为 D
+editions:
+  - where: 待用户提供（raw_books/bazi/qiongtongbaojian/）
+    url: ""
+    kind: 待定（白文 or 评注本）
+    rights_note: 原书公版；徐乐吾 1949 年卒、评注已过版权期；现代点校本的标点校勘权益须规避——电子文本按 ed 惯例登记"来源与文字未核"声明
+corpus_path: ""
+lessons: []

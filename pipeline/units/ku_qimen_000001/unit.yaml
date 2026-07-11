@@ -1,0 +1,9 @@
+unit_id: ku_qimen_000001
+technique_id: qimen
+source_id: src_yanbo_ed01
+title: 阴阳顺逆与二至换局
+span_ids:
+  - ss_yanbo_ed01_p0001_s01
+  - ss_yanbo_ed01_p0001_s02
+status: source_verified
+created: "2026-07-10"

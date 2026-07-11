@@ -1,0 +1,6 @@
+task_id: task_qimen_000004_assertions
+stage: assertion_extraction
+source_snapshot: corpus/qimen/yanbo_ed02/source/transcript_v1.md
+input_from: task_qimen_000002_seg（s01–s12 首批小范围，验证模板后再扩）
+instruction_version: assertions_v0.1
+id_range: [as_qimen_000100, as_qimen_000149]   # proposition 同段号 pr_qimen_000100–000149

@@ -1,0 +1,146 @@
+assertions:
+- assertion_id: as_qimen_000100
+  proposition: 起局以冬至、夏至为分界，宫数以一宫、九宫为始（冬至起一、夏至起九为通行解读）
+  proposition_id: pr_qimen_000100
+  relation: supports
+  evidence:
+  - source_span_id: ss_yanbo_ed02_p0001_s01
+    support_type: interpreted
+  conditions:
+  - 原文仅言'二至还乡一九宫'，冬至对一、夏至对九的具体对应为通行解读
+  exceptions: []
+  school_ids: []
+  status: machine_extracted
+- assertion_id: as_qimen_000101
+  proposition: 了达阴阳之理是掌握此术的关键（能者天地在握）
+  proposition_id: pr_qimen_000101
+  relation: supports
+  evidence:
+  - source_span_id: ss_yanbo_ed02_p0001_s02
+    support_type: direct
+  conditions:
+  - 条件句：'若能了达阴阳理'
+  exceptions: []
+  school_ids: []
+  status: machine_extracted
+- assertion_id: as_qimen_000102
+  proposition: 起源传说：黄帝命风后将（天神所授符诀）演成文字，遁甲奇门自此而始
+  proposition_id: pr_qimen_000102
+  relation: supports
+  evidence:
+  - source_span_id: ss_yanbo_ed02_p0001_s06
+    support_type: direct
+  conditions:
+  - 属传说叙事，非技法主张
+  exceptions: []
+  school_ids: []
+  status: machine_extracted
+- assertion_id: as_qimen_000103
+  proposition: 局数沿革：当时制一千八百局，太公删测为七十二局
+  proposition_id: pr_qimen_000103
+  relation: supports
+  evidence:
+  - source_span_id: ss_yanbo_ed02_p0001_s07
+    support_type: direct
+  conditions:
+  - 此本作'一千八百'，他本多作'一千八十'，异文待底本核
+  exceptions: []
+  school_ids: []
+  status: machine_extracted
+- assertion_id: as_qimen_000104
+  proposition: 局数沿革：至汉代张子房（张良）精简为一十八局
+  proposition_id: pr_qimen_000104
+  relation: supports
+  evidence:
+  - source_span_id: ss_yanbo_ed02_p0001_s08
+    support_type: direct
+  conditions: []
+  exceptions: []
+  school_ids: []
+  status: machine_extracted
+- assertion_id: as_qimen_000105
+  proposition: 习法步骤：首先须于掌上排布九宫
+  proposition_id: pr_qimen_000105
+  relation: supports
+  evidence:
+  - source_span_id: ss_yanbo_ed02_p0001_s09
+    support_type: direct
+  conditions: []
+  exceptions: []
+  school_ids: []
+  status: machine_extracted
+- assertion_id: as_qimen_000106
+  proposition: 九宫之数纵横（各行列）皆合十五
+  proposition_id: pr_qimen_000106
+  relation: supports
+  evidence:
+  - source_span_id: ss_yanbo_ed02_p0001_s09
+    support_type: direct
+  conditions: []
+  exceptions: []
+  school_ids: []
+  status: machine_extracted
+- assertion_id: as_qimen_000107
+  proposition: 习法步骤：其次将八卦分配于八节
+  proposition_id: pr_qimen_000107
+  relation: supports
+  evidence:
+  - source_span_id: ss_yanbo_ed02_p0001_s10
+    support_type: direct
+  conditions: []
+  exceptions: []
+  school_ids: []
+  status: machine_extracted
+- assertion_id: as_qimen_000108
+  proposition: 一气统三元为正宗（每一节气统辖三元）
+  proposition_id: pr_qimen_000108
+  relation: supports
+  evidence:
+  - source_span_id: ss_yanbo_ed02_p0001_s10
+    support_type: direct
+  conditions: []
+  exceptions: []
+  school_ids: []
+  status: machine_extracted
+- assertion_id: as_qimen_000109
+  proposition: 遁分阴阳二种，其排布分顺逆
+  proposition_id: pr_qimen_000109
+  relation: supports
+  evidence:
+  - source_span_id: ss_yanbo_ed02_p0001_s11
+    support_type: direct
+  conditions:
+  - '''阳遁顺、阴遁逆''的具体对应为通行解读，原文仅言''分顺逆'''
+  exceptions: []
+  school_ids: []
+  status: machine_extracted
+- assertion_id: as_qimen_000110
+  proposition: 五日为一元
+  proposition_id: pr_qimen_000110
+  relation: supports
+  evidence:
+  - source_span_id: ss_yanbo_ed02_p0001_s12
+    support_type: direct
+  conditions: []
+  exceptions: []
+  school_ids: []
+  status: machine_extracted
+- assertion_id: as_qimen_000111
+  proposition: 起局换元以接气、超神为准则
+  proposition_id: pr_qimen_000111
+  relation: supports
+  evidence:
+  - source_span_id: ss_yanbo_ed02_p0001_s12
+    support_type: direct
+  conditions:
+  - 接气、超神的具体机制本段未展开
+  exceptions: []
+  school_ids: []
+  status: machine_extracted
+skipped_segments:
+- seg_id: s03
+  reason: 典故叙事（黄帝战蚩尤）
+- seg_id: s04
+  reason: 典故叙事（梦授符诀）
+- seg_id: s05
+  reason: 典故叙事（龙图凤书意象）

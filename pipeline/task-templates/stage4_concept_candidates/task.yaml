@@ -1,0 +1,5 @@
+task_id: task_<technique>_<NNNNNN>_concepts
+stage: concept_candidates
+source_snapshot: <底本 transcript 路径>
+input_from: <上游切分结果路径>
+instruction_version: concepts_v0.1

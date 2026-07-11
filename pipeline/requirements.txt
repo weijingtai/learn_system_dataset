@@ -1,0 +1,6 @@
+# pipeline 全部脚本（validators/ runner/ rag/）的依赖。推荐 Python 3.10+
+# 安装：python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
+# 环境自检：python3 -c "import yaml, opencc; print('env ok')"
+PyYAML>=6.0
+opencc-python-reimplemented>=0.1.7
+requests>=2.31   # 仅 runner 真实 API 模式需要；mock/manual 模式可不装

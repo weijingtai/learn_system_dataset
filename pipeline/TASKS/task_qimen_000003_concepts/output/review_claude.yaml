@@ -1,0 +1,11 @@
+task_id: task_qimen_000003_concepts
+reviewer: claude
+verdict: completed_with_warnings
+checks:
+- 程序校验：139 条 surface 与段落逐字一致、无重复、归档完整 —— 通过
+- 封闭清单探测：漏网 2 条（太白、荧惑，已补录并核对证据）；"五不遇时"探测误报（已收录）
+- 过宽检查：pattern 类抽样合理；仅"干"1 条建议剔除
+- 不确定项：20 个单字干支标 sure=false 正确，建议按标准闭集纳入
+agree: 138
+disagree: 1
+added: 2

@@ -1,0 +1,8 @@
+# 流派档案模板。
+school_id: 技法_流派，如 qimen_zhuanpan
+name: 流派名
+technique_id: 所属技法
+one_line: 与其他流派的核心区别（一句话）
+key_works: []       # 该派代表典籍
+key_disputes: []    # 与哪些派在哪些命题上有分歧（发现一条记一条）
+lessons: []

@@ -1,0 +1,157 @@
+assertions:
+- assertion_id: as_qimen_000100
+  proposition: 冬至与夏至（二至）在奇门中分别归于九宫的一宫与九宫
+  proposition_id: pr_qimen_000100
+  relation: supports
+  evidence:
+  - source_span_id: ss_yanbo_ed02_p0001_s01
+    support_type: interpreted
+  conditions:
+  - 此为"二至还乡一九宫"的通行解读；冬至与夏至各自归于哪一宫须后文配方为证
+  exceptions: []
+  school_ids: []
+  status: machine_extracted
+- assertion_id: as_qimen_000101
+  proposition: 通达阴阳之理的术者，可将天地万物纳于掌中推演
+  proposition_id: pr_qimen_000101
+  relation: supports
+  evidence:
+  - source_span_id: ss_yanbo_ed02_p0001_s02
+    support_type: interpreted
+  conditions:
+  - '"一掌"指掌上排盘的技法，非字面意义'
+  exceptions: []
+  school_ids: []
+  status: machine_extracted
+- assertion_id: as_qimen_000102
+  proposition: 遁甲奇门之术起源于黄帝令风后依据河图洛书推演成文
+  proposition_id: pr_qimen_000102
+  relation: supports
+  evidence:
+  - source_span_id: ss_yanbo_ed02_p0001_s06
+    support_type: interpreted
+  conditions:
+  - 此为奇门起源的传说叙述，非史实考证；需结合 s05 河图洛书出世理解
+  exceptions: []
+  school_ids: []
+  status: machine_extracted
+- assertion_id: as_qimen_000103
+  proposition: 奇门初始定局数为一千八百局
+  proposition_id: pr_qimen_000103
+  relation: supports
+  evidence:
+  - source_span_id: ss_yanbo_ed02_p0001_s07
+    support_type: interpreted
+  conditions:
+  - '"当时制"指明此为黄帝时代的初始局制'
+  exceptions: []
+  school_ids: []
+  status: machine_extracted
+- assertion_id: as_qimen_000104
+  proposition: 姜太公将奇门一千八百局精简为七十二局
+  proposition_id: pr_qimen_000104
+  relation: supports
+  evidence:
+  - source_span_id: ss_yanbo_ed02_p0001_s07
+    support_type: interpreted
+  conditions:
+  - 此为奇门局数沿革的历史叙述；"测成"解为简化定局
+  exceptions: []
+  school_ids: []
+  status: machine_extracted
+- assertion_id: as_qimen_000105
+  proposition: 汉代张良将奇门精简为十八局，称为精艺
+  proposition_id: pr_qimen_000105
+  relation: supports
+  evidence:
+  - source_span_id: ss_yanbo_ed02_p0001_s08
+    support_type: interpreted
+  conditions:
+  - 此为奇门局数历史的最后一级精简；"精艺"指精华技法
+  exceptions: []
+  school_ids: []
+  status: machine_extracted
+- assertion_id: as_qimen_000106
+  proposition: 奇门先在手掌上排布九宫，其纵横各方向数字之和为十五（三阶幻方）
+  proposition_id: pr_qimen_000106
+  relation: supports
+  evidence:
+  - source_span_id: ss_yanbo_ed02_p0001_s09
+    support_type: interpreted
+  conditions:
+  - 掌上排盘为奇门基础操作方法；"十五"指三阶幻方每行每列及对角线和
+  exceptions: []
+  school_ids: []
+  status: machine_extracted
+- assertion_id: as_qimen_000107
+  proposition: 八卦分别分配于八个节气（八节）
+  proposition_id: pr_qimen_000107
+  relation: supports
+  evidence:
+  - source_span_id: ss_yanbo_ed02_p0001_s10
+    support_type: interpreted
+  conditions:
+  - 八卦如何具体配八节须后文展开
+  exceptions: []
+  school_ids: []
+  status: machine_extracted
+- assertion_id: as_qimen_000108
+  proposition: 每节气一气统领三候（一气统三），此为正宗法则
+  proposition_id: pr_qimen_000108
+  relation: supports
+  evidence:
+  - source_span_id: ss_yanbo_ed02_p0001_s10
+    support_type: interpreted
+  conditions:
+  - 每气含上中下三候；此为节候划分的基础规则
+  exceptions: []
+  school_ids: []
+  status: machine_extracted
+- assertion_id: as_qimen_000109
+  proposition: 阴阳二遁各有顺遁和逆遁之分
+  proposition_id: pr_qimen_000109
+  relation: supports
+  evidence:
+  - source_span_id: ss_yanbo_ed02_p0001_s11
+    support_type: interpreted
+  conditions:
+  - 顺逆的具体判定规则须后文展开
+  exceptions: []
+  school_ids: []
+  status: machine_extracted
+- assertion_id: as_qimen_000110
+  proposition: 一气之中包含上中下三元
+  proposition_id: pr_qimen_000110
+  relation: supports
+  evidence:
+  - source_span_id: ss_yanbo_ed02_p0001_s11
+    support_type: interpreted
+  conditions:
+  - '"人莫测"为修辞性强调，言三元变化复杂'
+  exceptions: []
+  school_ids: []
+  status: machine_extracted
+- assertion_id: as_qimen_000111
+  proposition: 五日为奇门中的一个基本时间单位，即一元
+  proposition_id: pr_qimen_000111
+  relation: supports
+  evidence:
+  - source_span_id: ss_yanbo_ed02_p0001_s12
+    support_type: interpreted
+  conditions:
+  - '"接"意为连续承接，五日接续而成一元'
+  exceptions: []
+  school_ids: []
+  status: machine_extracted
+- assertion_id: as_qimen_000112
+  proposition: 接气与超神是奇门定局的两项基本准则
+  proposition_id: pr_qimen_000112
+  relation: supports
+  evidence:
+  - source_span_id: ss_yanbo_ed02_p0001_s12
+    support_type: interpreted
+  conditions:
+  - 接气与超神的具体操作方法待后文展开
+  exceptions: []
+  school_ids: []
+  status: machine_extracted
