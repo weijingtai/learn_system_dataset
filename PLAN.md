@@ -1,6 +1,6 @@
 # PLAN
 
-更新时间：2026-07-10
+更新时间：2026-07-11
 
 - [x] 保存术数文献知识编译与学习系统讨论草案。
 - [x] 将 `learn_system` 初始化为独立 Git 工作区。
@@ -10,6 +10,7 @@
 - [x] 收敛十种 Tag 的个人样式定制与 Marketplace 接口设计规格。
 - [x] 完成 Tag Style 规格跨角色复审并落实问题修订。
 - [x] 同步 Tag Style 交叉评审报告与 D-015–D-020 落实门槛。
+- [x] 将 D-015–D-020 回写到 Tag Style 主规格正文并同步评审报告状态。
 - [x] 完成 `pipeline/` 首轮真实生命周期全面评审并保存 `PIPELINE_REVIEW_v1.md`。
 - [ ] 为 `pipeline/` 增加依赖声明与环境检查，保证 validators/RAG 可复现运行。
 - [ ] 增加 assertion task、glossary、RAG index 的确定性校验器。
@@ -24,4 +25,4 @@
 - [ ] 将用户批准的最终设计转入 OpenSpec。
 - [ ] 编写实施计划并开始校验器与编译器实现。
 
-当前阶段只进行需求澄清、规范设计和样本验证，不进入应用功能实现。
+当前 Tag Style 可进入 OpenSpec 拆分和基础契约开发准备；不得直接启动 `TagStyleEditor`、Marketplace 或用户 Dart/Flutter 插件实施。pipeline 线仍按 `PIPELINE_REVIEW_v1.md` 继续补依赖、环境检查和确定性校验器。

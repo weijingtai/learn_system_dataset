@@ -1,6 +1,6 @@
 # 十种 Tag 样式、个人定制与未来 Marketplace 接口设计
 
-> 状态：已完成头脑风暴，待用户审阅书面规格
+> 状态：已完成头脑风暴、交叉评审和 D-015–D-020 正文回写（2026-07-11）。当前可进入 OpenSpec 化和基础契约开发准备；不得直接启动 `TagStyleEditor` 或 Marketplace 实施。要点：语义通道分层锁定＋毕业解锁（D-015）、学习/测试/分享场景强制官方样式或显著标注（D-016）、Registry 增加 `required_slots` 硬约束（D-017）、**TagStyleEditor 押后，先以官方预设样式包验证需求**（D-018，Phase B 冻结待证据）、官方稀缺纹理为保留能力（D-019）、`TagRenderModel` 作为 `MarkInstance / computed-mark-semantics` 的运行时投影且 Registry 冻结后置（D-020）。
 >
 > 日期：2026-07-11
 >
@@ -10,7 +10,7 @@
 
 采用“方案 C：限定模板 + 语义槽 + 可替换 Renderer”。
 
-系统由官方 Flutter/Dart 实现有限、稳定、版本化的 Tag 布局模板。所有用户拥有同一套个人定制能力，可通过可视化编辑、Tag Style YAML 面板、PNG/SVG 资源管理、导入、导出、复制、回滚和实时预览修改十种 Tag 的外观。
+系统由官方 Flutter/Dart 实现有限、稳定、版本化的 Tag 布局模板。所有用户拥有同一套个人定制能力；首期能力收束为 Tag Style YAML、PNG/SVG 资源、官方预设样式包、导入校验、预览和回滚所需的基础契约。完整可视化编辑器只作为冻结候选设计保留，不作为当前开发承诺。
 
 用户不能上传或执行 Dart/Flutter 代码。用户输入仅限：
 
@@ -31,7 +31,7 @@
 | `TagStylePackage` | 十种 Tag 的 YAML、资产、预览和元数据 | 页面、导航、按钮等 App UI |
 | `TagStyleEngine` | 校验、编译、缓存和解析 Tag 样式 | 业务计算、知识判断和 Marketplace |
 | `TagRenderer` | 将运行时语义值渲染为 Flutter Widget | 修改业务值 |
-| `TagStyleEditor` | 编辑、预览、导入、导出和回滚个人样式 | 用户分级和交易 |
+| `TagStyleEditor` | 候选：编辑、预览、导入、导出和回滚个人样式 | 当前阶段实施、用户分级和交易 |
 | `TagStyleHostAdapter` | 读取宿主亮暗模式、字体等有限 token | 控制 App Theme |
 | `MarketplaceMetadata` | 预留未来商品识别字段 | 当前交易能力 |
 
@@ -64,12 +64,26 @@ Tag Style 不得修改宿主 Theme。宿主 token 缺失时，Tag 必须使用�
 
 例如，未读消息数可以使用状态图案代替精确数字，但金额、验证码或宿主明确要求精确展示的值不能这样处理。即使视觉采用模糊状态，读屏和可达详情是否必须提供精确值仍由 `DisplayContract` 决定。
 
+### 3.3 语义通道与装饰通道
+
+个人定制分为两类通道：
+
+- 装饰通道：背景、Vessel、纹理、非语义贴图、外框、氛围装饰和非业务前景。首期可以开放；
+- 语义通道：状态梯度方向、关系方向符号、类别形状语法、吉凶槽、争议状态和条件入口。默认锁定，由官方视觉语法控制。
+
+语义通道可以在用户完成视觉语法毕业测试后解锁。解锁后仍受三个限制：
+
+1. 学习练习、测试、北极星测量、分享截图和评论区嵌入默认使用官方样式；若产品选择允许个人样式进入共享语境，必须显著标注“自定义样式”；
+2. 首次出现可能反转认知的映射时给一次性提示，例如把旺映射成“好”的视觉暗示；
+3. 定制用户必须进入独立 cohort，避免污染视觉语法习得和留存实验。
+
 ## 4. 核心架构
 
 ```text
 Knowledge / Runtime System
         │
-        │ TagRenderModel：只读语义值
+        │ MarkInstance / computed-mark-semantics
+        │ TagRenderModel：只读运行时投影
         ▼
 DisplayContract
         │ 允许的 Renderer、精度、溢出和可达性
@@ -96,7 +110,9 @@ Flutter TagRenderer
 
 #### `TagRenderModel`
 
-由业务层创建，只读，示例字段包括：
+`TagRenderModel` 不是平行的新语义体系，而是上游 `MarkInstance / computed-mark-semantics` 在渲染层的只读投影。它只能在上游分类学、G1–G3 术理考据和 `computed-mark-semantics` OpenSpec 收敛后冻结字段表。
+
+由业务层创建，只读，候选字段包括：
 
 - `species`；
 - `label`；
@@ -111,7 +127,7 @@ Flutter TagRenderer
 - `disputeState`；
 - `density`。
 
-Style 无权改写这些字段。
+Style 无权改写这些字段。若上游 `MarkInstance` 声明某个语义槽为必达，Host 和 Style 都不得通过低配 `DisplayContract` 省略它。
 
 #### `DisplayContract`
 
@@ -131,6 +147,17 @@ display_contract:
     mode: cap
     max_value: 99
 ```
+
+`DisplayContract` 的取值范围受上游知识语义契约约束。单向依赖为：
+
+```text
+species_contract / MarkInstance
+  → DisplayContract
+  → TagTemplate capability
+  → TagStyleVariant
+```
+
+Host 可以选择更严格的显示方式，不能声明低于知识契约要求的精度、可达性或必渲染槽。
 
 #### `TagTemplate`
 
@@ -301,6 +328,10 @@ capability_registry:
     symbol_token:
       since: 1.0.0
       supported_species: [ShenShaSymbol]
+      required_slots:
+        - identity
+        - dispute_state
+      required_slot_policy: host_overlay_or_atomic_fallback
   renderers:
     glyph:
       since: 1.0.0
@@ -314,6 +345,10 @@ capability_registry:
 ```
 
 Package 编译时记录所用 Registry 版本。矩阵中出现而 Registry 未声明的 ID 一律报 `CAP_UNKNOWN`，不得猜测执行。
+
+`required_slots` 是硬约束。样式可以改变必渲染槽的样子，但不能省略、遮挡、降级成不可达信息，或用背景图把交互入口盖掉。若用户变体无法满足必渲染槽，编译器必须触发 `variant_atomic_fallback`，Host 必须保留 `interaction_overlay`。
+
+`CapabilityRegistry 1.0` 的冻结顺序为：上游分类学收敛 → G1–G3 术理考据收敛 → `computed-mark-semantics` OpenSpec 收敛 → 再冻结 Tag Style Registry。当前文档中的字段和矩阵是候选设计，不得作为破坏性兼容承诺。
 
 ### 6.3 Counter 示例
 
@@ -387,6 +422,8 @@ slots:
 | `ShenShaSymbol` | `symbol_token` | `identity`、`label`、`dispute_state` | text、asset、state_asset、hybrid | 争议状态是独立槽 |
 | `StarBodyItem` | `body_item` | `identity`、`label`、`state` | text、asset、hybrid | 不改变盘中业务位置 |
 | `Configuration` | `banner` / `seal` / `grid_seal` | `pattern`、`omen`、`label`、`status` | text、asset、seal_grid、state_asset、hybrid | 支持长短名称和四字印章 |
+
+每个物种进入 OpenSpec 时必须补充 `required_slots`、可选槽、可遮挡规则、可达详情和 fallback 粒度。上表只描述样式能力，不替代上游 `MarkInstance` 契约。
 
 ## 8. 图片尺寸、裁切与布局稳定性
 
@@ -558,7 +595,9 @@ fallback_policy:
 - `WARN`：允许使用，但报告清晰度、对比度或表达偏差；
 - `REJECT`：存在代码执行、外部访问、语义篡改或无法安全解析。
 
-个人审美和颜色映射不属于硬拒绝范围。用户可以把旺设为绿色、衰设为红色，也可以使用暗黑、古风、骷髅、火焰等视觉表达；系统可以给出表达或无障碍建议，但不能替用户决定个人审美。
+个人审美和颜色映射在个人作用域内不自动构成硬拒绝。用户可以选择暗黑、古风、强烈色彩或反常规颜色映射；系统给出认知、无障碍和表达倾向建议，但不以审美偏好本身拒绝个人包。
+
+语义通道、学习/测试/分享场景和平台分发另有硬边界：未解锁的语义通道必须锁定；共享语境必须使用官方样式或显著标注；恐吓、权威伪装和官方保留能力伪造进入 Marketplace 前必须被治理字段和平台审核拦截。
 
 ## 13. TagStylePackage
 
@@ -611,6 +650,10 @@ assets:
 distribution_hints:
   package_type: tag_style
   metadata_version: 1
+  content_rating_self_report: unrated
+  expression_tendency_self_report:
+    - decorative
+  marketplace_listing_ref: null
 ```
 
 `publisher_claim` 只是用户自述，不是平台背书。首期包只用于个人定制，不包含平台权威的 eligibility、审核、商品或许可结论。
@@ -629,6 +672,8 @@ MarketplaceAttestation
 ```
 
 Package 内的任何自报字段都不能直接提升为审核通过、可销售或权利已验证。
+
+`content_rating_self_report` 与 `expression_tendency_self_report` 只是未来 Marketplace 的材料占位，用于提示恐吓风格、权威伪装、强刺激表达或其他内容治理风险。它们不代表平台评级，不能绕过未来审核。
 
 ### 13.2 版本治理
 
@@ -662,7 +707,15 @@ font_family_fallback:
 
 自定义字体涉及版权、再分发许可、文件体积、生僻字覆盖和跨平台 shaping，未来如需支持必须另立 capability 和权利审核，不通过 PNG/SVG 旁路嵌入。
 
-## 14. TagStyleEditor 用户流程
+### 13.4 官方保留能力
+
+官方稀缺分级纹理、官方认证章、平台签名标记、审核通过标记、价格/权益标记和任何可能被理解为平台背书的视觉语言都是 `reserved_capability`。
+
+用户包不得复制或伪造这些能力。个人包若使用相近资产，编译器至少产生 `RESERVED_CAPABILITY_SIMILARITY_WARN`；未来 Marketplace 审核中应升级为人工复核或拒绝。稀缺视觉只能由上游格局罕见度和官方规则驱动，不能由个人样式包自行声明。
+
+## 14. TagStyleEditor 候选用户流程（冻结）
+
+本节保留未来编辑器的交互设计，但受 D-018 约束：当前阶段不实施完整 `TagStyleEditor`。Phase A/B 的实际入口是官方预设样式包、YAML/PNG/SVG 包格式、导入校验、预览矩阵和回滚能力；可视化编辑、AST 双向同步、undo/redo 和资源浏览器在预设包实验达标后重新立项。
 
 所有用户拥有相同能力，不区分普通和高级用户。
 
@@ -770,7 +823,7 @@ YAML 有语法错误时保留最后一个有效 AST，并在原字段附近显�
 
 ### 14.4 作用域与覆盖优先级
 
-Style 激活作用域至少区分 account、device、technique、scene、species、density 和 accessibility。首期可以只开放 account/device + species，但 Schema 必须保留稳定字段。
+Style 激活作用域至少区分 account、device、technique、scene、species、density 和 accessibility。首期默认跟随全局 account/device + species；technique 覆盖作为渐进披露候选，不作为默认入口，避免八字、奇门、六爻各自碎片化个人语法。
 
 覆盖顺序由低到高固定为：
 
@@ -798,6 +851,7 @@ official species fallback
 - capabilities；
 - previews；
 - 与包内容无关的未来 listing 引用槽。
+- 内容治理自述占位，例如 `content_rating_self_report` 和 `expression_tendency_self_report`。
 
 当前明确不做：
 
@@ -816,6 +870,14 @@ official species fallback
 平台审核、权利确认、可销售性、价格和下架状态不得写回用户可编辑 manifest；未来由 MarketplaceListing 和平台签名 Attestation 管理。
 
 用户现在可以选择记录图片来源、许可名称、许可文件、是否允许再分发和是否允许商业销售，便于未来申请上架，但这些字段仍只是待审核材料。
+
+未来 Marketplace 审核至少需要覆盖三类 Tag Style 特有风险：
+
+1. 恐吓风格包：将凶、灾、冲、刑等表现为恐吓式视觉，并诱导付费；
+2. 权威伪装风格包：用“大师专业版”“官方同款”等样式提高诈骗可信度；
+3. 官方稀缺纹理伪造：复制官方保留的稀缺、高光、认证或背书语言。
+
+当前个人定制只预留材料和字段，不实现审核结论、销售资格或推荐权重。
 
 ## 16. 安全、性能与资源预算
 
@@ -864,6 +926,7 @@ SVG sanitizer 采用允许列表，不采用只删除已知危险节点的 denyl
 - PNG、SVG、nine-slice；
 - 缺失资产、损坏资产和未知字段；
 - 导入、导出、复制和回滚。
+- `required_slots` 缺失、遮挡、被背景覆盖或不可达时触发 fallback。
 
 ### 17.2 视觉与无障碍
 
@@ -893,6 +956,16 @@ SVG sanitizer 采用允许列表，不采用只删除已知危险节点的 denyl
 - slot 与 variant atomic fallback；
 - 路径穿越、symlink、重复 entry、大小写碰撞和 YAML alias bomb；
 - Package 自报 Marketplace 字段不得改变平台权威状态。
+- 用户包不得声明或伪造 `reserved_capability`。
+
+### 17.5 学习场景与实验隔离
+
+- 未毕业用户不能解锁语义通道；
+- 学习练习、测试、北极星测量、分享截图和评论区嵌入使用官方样式或显著标注自定义样式；
+- 用户从官方样式切换到个人样式时提示视觉习惯重置风险；
+- 定制用户写入独立 cohort；
+- 预览矩阵显示个人场景和学习/分享场景的差异；
+- `required_slots` 在官方样式、个人样式和 fallback 后均保持可达。
 
 ## 18. gStack 三角色验收
 
@@ -901,6 +974,7 @@ SVG sanitizer 采用允许列表，不采用只删除已知危险节点的 denyl
 - 当前只解决个人定制，不提前建设 Marketplace；
 - Package 无需迁移即可在未来成为通用 Marketplace 的 `tag_style` 商品；
 - 用户能够保存多个样式并在真实页面使用；
+- 当前阶段以官方预设样式包验证换肤需求，不以编辑器功能数量证明增长；
 - 样式能力不侵入业务语义和 App Theme；
 - 收集个人定制、复用和导出意愿，为未来增长判断提供证据。
 
@@ -912,20 +986,22 @@ SVG sanitizer 采用允许列表，不采用只删除已知危险节点的 denyl
 - 同一用户无需理解全部高级字段即可完成换图和调整；
 - 预览覆盖长短文字、数字、密度、主题和大字；
 - safe area 可用拖动、数值输入和无障碍控制完成；
-- 编辑过程支持自动保存、undo/redo、退出恢复和启用前对比；
+- 候选编辑器需支持自动保存、undo/redo、退出恢复和启用前对比；
 - 错误信息说明原因、影响和修复方法；
-- 视觉自由不被错误地限制为官方颜色语法；
+- 个人视觉自由不被错误地限制为官方颜色语法，但学习/测试/分享语境保持官方语法或显著标注；
+- 用户看得到个人场景与学习/分享场景的样式差异；
 - fallback 发生时用户能够知道哪部分被替换。
 
 ### 18.3 Engineering Gate
 
 - Host 控制尺寸；
-- Style 不能修改 `TagRenderModel`；
+- Style 不能修改 `MarkInstance` 或 `TagRenderModel`；
 - 用户输入不能执行代码或访问网络；
 - PNG/SVG 经过确定性预处理；
 - Slot 有明确类型和绑定；
 - 模板、Schema、Engine 分别版本化；
 - Capability Registry 是所有枚举的唯一来源；
+- `required_slots` 由 Registry 和上游契约共同强制；
 - 坐标空间和变换顺序确定；
 - Draft、Preview、Active 和回滚是原子状态转换；
 - 未知或损坏内容逐层 fallback；
@@ -938,25 +1014,36 @@ SVG sanitizer 采用允许列表，不采用只删除已知危险节点的 denyl
 
 ### Phase A：契约和原型
 
-- 定义 `TagRenderModel`、`DisplayContract` 和 `TagStyleHostAdapter`；
+- 对齐 `MarkInstance / computed-mark-semantics`，定义 `TagRenderModel` 的只读投影边界、`DisplayContract` 和 `TagStyleHostAdapter`；
 - 定义 Package、模板、Slot 和 Renderer Schema；
-- 定义 Capability Registry、Host Geometry、坐标空间和变换顺序；
-- 定义 Draft/Preview/Active 生命周期和作用域覆盖；
+- 定义候选 Capability Registry、`required_slots`、Host Geometry、坐标空间和变换顺序；
+- 定义 Draft/Preview/Active 生命周期、作用域覆盖和官方保留能力；
 - 用现有五个奇门 Widget 建立迁移样本；
 - 原型验证 PNG/SVG、safe area、nine-slice 和 Counter digit atlas；
 - 建立确定性编译和 fallback 报告。
 
-### Phase B：个人定制基础
+### Phase B：官方预设样式包实验
 
 - 完成十种 Tag 的基础模板；
-- 建立 `TagStyleEditor`；
-- 支持自动保存、undo/redo、导入、导出、复制、原子启用和回滚；
+- 制作 3–5 套官方预设样式包，例如古风、极简、暗色、高对比和教学清晰版；
+- 使用同一 `TagStylePackage`、Compiler、Registry 和渲染链验证换肤需求；
+- 支持导入、启用、复制、原子启用和回滚；
 - 支持 full/mid/minimal 和宿主适配；
-- 建立视觉、兼容性、安全和性能测试矩阵。
+- 建立视觉、兼容性、安全、性能和学习场景豁免测试矩阵；
+- 记录启用率、切换率、留存差异、导出意愿和样式复用行为。
 
-### Phase C：增长证据，不建设交易
+### Phase C：候选编辑器复审
 
 - 观察创建、启用、复用、导出和多样式保存行为；
+- 研究用户是否主动分享预览；
+- 预设样式包数据达标后，再为 `TagStyleEditor` 建 Decision ID 和 OpenSpec change；
+- 验证创作者供给和付费意愿，不以编辑器建设代替需求验证；
+- 编辑器仍不得突破 YAML、PNG 和受限 SVG 的输入边界；
+- 编辑器仍不得开放用户 Dart/Flutter 代码。
+
+### Phase D：增长证据，不建设交易
+
+- 验证个人样式与官方预设是否带来留存、复用和导出增长；
 - 研究用户是否主动分享预览；
 - 验证创作者供给和付费意愿；
 - 证据成立后，再由独立 Marketplace 项目接入 `MarketplaceMetadata`。
@@ -969,7 +1056,10 @@ SVG sanitizer 采用允许列表，不采用只删除已知危险节点的 denyl
 - 当前阶段 Marketplace；
 - 用 Theme 修改业务数据；
 - 用图片原始尺寸控制页面布局；
-- 强制用户遵循官方旺衰颜色；
+- 在个人作用域内强制用户遵循官方旺衰颜色；
+- 在学习、测试和分享语境中绕过官方视觉语法或自定义标注；
+- 在当前阶段建设完整 `TagStyleEditor`；
+- 由用户包声明官方稀缺纹理、平台认证或销售资格；
 - 按用户身份区分编辑能力。
 
 ## 21. OpenSpec capability 拆分与验收纪律
@@ -980,8 +1070,18 @@ SVG sanitizer 采用允许列表，不采用只删除已知危险节点的 denyl
 2. `tag-style-compilation-and-activation`；
 3. `tag-style-rendering-contract`；
 4. `tag-style-asset-safety`；
-5. `tag-style-editor`；
+5. `tag-style-official-presets`；
 6. `tag-style-host-integration`。
+
+`tag-style-editor` 不进入当前 OpenSpec 执行批次，只保留为冻结候选 change。它必须等待官方预设样式包实验、学习场景豁免测试和用户定制 cohort 数据达标后重新评审。
+
+Tag Style OpenSpec 依赖上游：
+
+1. `knowledge-concept-taxonomy`；
+2. `computed-mark-semantics`；
+3. `mark-visual-grammar`。
+
+在上游 `MarkInstance` 和 `required_slots` 未冻结前，Tag Style capability 只能定义候选字段和兼容策略，不能声明 Registry 1.0 破坏性稳定。
 
 Marketplace 当前只保留接口 requirement，不建立 Marketplace capability。
 
@@ -1013,6 +1113,7 @@ Marketplace 当前只保留接口 requirement，不建立 Marketplace capability
 - 支持图片代替 Counter 数字；
 - 接受四条硬约束和一条 DisplayContract 规则；
 - 与 App Theme 只通过 Host Adapter 接入。
+- D-015–D-020 已回写正文：语义通道锁定、场景豁免、required_slots、编辑器冻结、保留能力和 MarkInstance 合一。
 
 本轮评审后补充并已给出解决方案：
 
@@ -1026,6 +1127,6 @@ Marketplace 当前只保留接口 requirement，不建立 Marketplace capability
 - atomic fallback 避免混搭失真；
 - 补齐字体、Counter 数值域、资源供应链和编辑器无障碍；
 - 明确确定性编译与跨平台渲染 conformance 的差异；
-- 拆分六项 OpenSpec capability。
+- 拆分当前六项 OpenSpec capability，并将 `tag-style-editor` 移出当前执行批次。
 
-用户审阅本文件并确认后，下一步才进入 OpenSpec capability 拆分和实施计划。
+用户审阅本文件并确认后，下一步进入 OpenSpec capability 拆分和实施计划。当前第一批 OpenSpec 应优先覆盖上游 `computed-mark-semantics` 依赖、Tag Style 包格式、编译激活、渲染契约、资源安全、官方预设和 Host 接入。
