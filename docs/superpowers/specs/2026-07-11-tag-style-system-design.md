@@ -10,7 +10,7 @@
 
 采用“方案 C：限定模板 + 语义槽 + 可替换 Renderer”。
 
-系统由官方 Flutter/Dart 实现有限、稳定、版本化的 Tag 布局模板。所有用户拥有同一套个人定制能力，可通过可视化编辑、Theme YAML 高级面板、PNG/SVG 资源管理、导入、导出、复制、回滚和实时预览修改十种 Tag 的外观。
+系统由官方 Flutter/Dart 实现有限、稳定、版本化的 Tag 布局模板。所有用户拥有同一套个人定制能力，可通过可视化编辑、Tag Style YAML 面板、PNG/SVG 资源管理、导入、导出、复制、回滚和实时预览修改十种 Tag 的外观。
 
 用户不能上传或执行 Dart/Flutter 代码。用户输入仅限：
 
@@ -140,6 +140,7 @@ display_contract:
 
 - `inline_label`；
 - `corner_badge`；
+- `symbol_token`；
 - `token`；
 - `meter`；
 - `relation_line`；
@@ -151,6 +152,27 @@ display_contract:
 - `freeform_layered`。
 
 `freeform_layered` 仍受图层数、anchor、offset、缩放、混合模式和动画白名单约束，不是任意布局语言。
+
+### 4.2 Host Geometry
+
+“Host 决定尺寸”同时覆盖矩形、路径和锚点三类几何契约：
+
+```text
+BoxHostGeometry
+  constraints + resolvedSize + clipBounds
+
+PathHostGeometry
+  path + tangent + endpoints + clipBounds
+
+AnchorHostGeometry
+  anchor + allowedRadius + clipBounds
+```
+
+- `BoxHostGeometry` 用于令牌、印章、角标和面板；
+- `PathHostGeometry` 用于 `RelationMark`，Style 只能修改 stroke、dash、端点图形和沿路径装饰，不能反转或重算关系路径；
+- `AnchorHostGeometry` 用于附着于单点的 CornerMark 或装饰物。
+
+Style 不能声明自身 Host Geometry，只能消费宿主提供的几何信息。
 
 ## 5. 分层合成模型
 
@@ -166,6 +188,8 @@ Layer 0  fallback_surface      官方安全回退
 ```
 
 `interaction_overlay` 始终位于主题图层之上，保证用户图片不能遮挡点击、焦点或读屏语义。
+
+Host 对 focus、selected、pressed、disabled、error 和 loading 保留最终状态可见性保障。Style 可以提供状态外观建议，但复杂图片不得让这些状态完全不可辨；Host 必要时叠加不可覆盖的轮廓、遮罩或语义提示。
 
 ### 5.1 Background
 
@@ -197,6 +221,35 @@ background:
 
 编辑器允许用户拖动、缩放安全区，并预览短文字、长文字、繁体和动态字号。
 
+### 5.4 坐标空间与变换顺序
+
+所有持久化位置、insets、anchor、offset 和切片范围默认使用 0–1 的 `normalized_space`，不得依赖源图片像素。
+
+系统定义三个坐标空间：
+
+- `asset_space`：原始文件像素或 SVG viewBox；
+- `normalized_space`：经过方向和裁切归一化后的 0–1 画布；
+- `container_space`：Flutter 逻辑像素中的最终 Host 区域。
+
+渲染顺序固定为：
+
+```text
+decode original asset
+  → normalize orientation and color profile
+  → determine visible bounds
+  → apply approved import crop
+  → create normalized_space
+  → calculate contain/cover/fill transform
+  → transform safe area into container_space
+  → apply nine-slice when supported
+  → place semantic slots
+  → place adornments and foreground
+  → apply host state overlay
+  → clip to host bounds
+```
+
+`cover` 裁切必须同步变换 safe area；nine-slice 的 center slice 必须在 `normalized_space` 内合法且具有非零中心区域，否则以 `ASSET_SLICE_INVALID` 进入 fallback。
+
 ## 6. 语义槽与可替换 Renderer
 
 Slot 承载的是语义值，不规定必须用文字显示。
@@ -226,6 +279,7 @@ Slot 承载的是语义值，不规定必须用文字显示。
 - `text`；
 - `asset`；
 - `asset_with_text`；
+- `glyph`；
 - `glyph_atlas`；
 - `digit_atlas`；
 - `finite_asset_map`；
@@ -233,9 +287,35 @@ Slot 承载的是语义值，不规定必须用文字显示。
 - `seal_grid`；
 - `meter`；
 - `line`；
+- `endpoint_asset`；
 - `hybrid`。
 
-### 6.2 Counter 示例
+### 6.2 Capability Registry
+
+模板、Renderer、物种和允许组合必须来自同一份版本化 `CapabilityRegistry`。文档矩阵、Schema、Editor 和 Engine 不得各自维护枚举。
+
+```yaml
+capability_registry:
+  version: 1.0.0
+  templates:
+    symbol_token:
+      since: 1.0.0
+      supported_species: [ShenShaSymbol]
+  renderers:
+    glyph:
+      since: 1.0.0
+      input: single_asset
+    glyph_atlas:
+      since: 1.0.0
+      input: asset_map
+    endpoint_asset:
+      since: 1.0.0
+      supported_templates: [relation_line]
+```
+
+Package 编译时记录所用 Registry 版本。矩阵中出现而 Registry 未声明的 ID 一律报 `CAP_UNKNOWN`，不得猜测执行。
+
+### 6.3 Counter 示例
 
 数字图片字形包：
 
@@ -277,6 +357,21 @@ slots:
       range_10_99: assets/many.svg
       range_100_plus: assets/burst.svg
 ```
+
+### 6.4 Counter 数值域
+
+`Counter` 不能只假设正整数。每个 `DisplayContract` 必须声明是否支持：
+
+- zero 的显示、隐藏或状态映射；
+- positive integer；
+- negative；
+- decimal；
+- unknown；
+- overflow；
+- compact notation，例如 `1.2K`；
+- locale digits 和文字方向。
+
+若使用 `digit_atlas`，能力声明必须覆盖该契约所需的 `0–9`、minus、decimal、plus、separator、overflow 和 unknown。缺失必需字形时必须 fallback，不能漏位、错位或改变数值。
 
 ## 7. 十种 Tag 能力矩阵
 
@@ -442,6 +537,20 @@ fallback_chain:
   - official_fallback
 ```
 
+模板可以声明两种 fallback 粒度：
+
+- `slot_fallback`：单个独立槽失败时只替换该槽；
+- `variant_atomic_fallback`：关键槽任一失败时，整组回退到同一来源，避免用户背景、官方文字和另一套前景混成不可控样式。
+
+```yaml
+fallback_policy:
+  mode: variant_atomic_fallback
+  atomic_groups:
+    - [background, label_style, foreground]
+```
+
+编译报告必须列出实际回退来源；用户启用前能够预览回退后的最终结果。
+
 导入结果：
 
 - `ACCEPT`：完整启用；
@@ -457,6 +566,7 @@ fallback_chain:
 my-tag-style/
 ├─ manifest.yaml
 ├─ tokens.yaml
+├─ assets.sha256
 ├─ species/
 │  ├─ symbol_annotation.yaml
 │  ├─ corner_mark.yaml
@@ -485,10 +595,9 @@ schema_version: 1
 engine_compatibility:
   min: 1.0.0
   max_exclusive: 2.0.0
-author:
-  local_display_name: 用户
-license:
-  type: personal
+publisher_claim:
+  display_name: 用户
+  claimed_license: personal
 capabilities:
   species:
     - Counter
@@ -499,12 +608,27 @@ capabilities:
     - digit_atlas
 assets:
   integrity_manifest: assets.sha256
-marketplace:
-  eligible: false
+distribution_hints:
+  package_type: tag_style
   metadata_version: 1
 ```
 
-首期 `license.type` 为 `personal`，`marketplace.eligible` 为 `false`。未来上架不更换包格式，只增加审核、权利、价格和发布记录。
+`publisher_claim` 只是用户自述，不是平台背书。首期包只用于个人定制，不包含平台权威的 eligibility、审核、商品或许可结论。
+
+未来 Marketplace 必须把权威状态放在包外：
+
+```text
+TagStylePackageManifest
+  用户可编辑的内容和作者自述
+
+MarketplaceListing
+  平台数据库中的商品、价格、发布和下架状态
+
+MarketplaceAttestation
+  平台签名的包哈希、审核版本、权利声明和兼容结果
+```
+
+Package 内的任何自报字段都不能直接提升为审核通过、可销售或权利已验证。
 
 ### 13.2 版本治理
 
@@ -517,6 +641,26 @@ marketplace:
 - asset integrity version。
 
 未知字段默认忽略并记录；未知必需能力、未知模板或不兼容主版本必须回退，不得猜测渲染。
+
+确定性承诺分为两级：
+
+1. `Deterministic compilation`：相同源包、Compiler、Capability Registry 和配置生成相同 Bundle 哈希；
+2. `Rendering conformance`：在声明的平台矩阵内满足布局、语义和性能不变量，不承诺不同 Flutter、Skia/Impeller、字体、GPU 和 device pixel ratio 下逐像素相同。
+
+视觉回归使用分平台 golden 和允许误差的感知 diff。
+
+### 13.3 字体政策
+
+首期不接受用户字体文件。Style 只能引用 Host 或官方字体稳定 ID，并必须提供系统 fallback：
+
+```yaml
+font_family: $host.default
+font_family_fallback:
+  - official.cjk_serif
+  - system
+```
+
+自定义字体涉及版权、再分发许可、文件体积、生僻字覆盖和跨平台 shaping，未来如需支持必须另立 capability 和权利审核，不通过 PNG/SVG 旁路嵌入。
 
 ## 14. TagStyleEditor 用户流程
 
@@ -535,7 +679,7 @@ marketplace:
       ↓
 查看兼容性与性能报告
       ↓
-保存、启用、导出或回滚
+保存草稿、预览、启用、导出或回滚
 ```
 
 同一编辑器同时提供：
@@ -549,6 +693,15 @@ marketplace:
 
 YAML 不是高级用户特权，只是同一能力的另一种操作方式。
 
+复杂选项采用渐进披露，而不是用户身份分级：
+
+```text
+第一层：选择样式、换图和颜色
+第二层：调整 fit、safe area 和尺寸档
+第三层：调整语义槽 Renderer 和 fallback
+第四层：YAML、动画和兼容性细节
+```
+
 ### 14.1 编辑器必须显示的三条边界
 
 ```text
@@ -559,20 +712,92 @@ Tag 实际容器
 
 用户必须能同时看到三者，避免把图片像素尺寸误认为 Widget 尺寸。
 
+拖动不是唯一操作方式。safe area、anchor 和 offset 同时提供数值输入、方向按钮微调、重置居中、键盘/开关控制和读屏播报；触控手柄命中区域不得小于 44×44pt。
+
+编辑器提供“官方样式 / 当前启用 / 编辑草稿”快速比较，并生成 `StyleHealthReport`：
+
+```text
+安全：通过
+兼容性：通过
+性能：2 项警告
+缺失状态：pressed、disabled
+大字模式：文字溢出
+部分回退：Counter 100+ 使用官方样式
+未来上架材料：缺少图片权利说明
+```
+
+报告中的安全与兼容性结论来自校验器；审美、对比度和表达倾向属于建议，不作为个人主题的硬拒绝理由，除非已经破坏 Host 的基本可操作性。
+
+### 14.2 Draft、Preview 与 Active 生命周期
+
+编辑永远修改 Draft，不能直接修改当前启用 Bundle：
+
+```text
+DRAFT
+  ↓ validate
+VALIDATED
+  ↓ compile in isolated preview
+PREVIEWABLE
+  ↓ atomic activate
+ACTIVE
+  ↓ runtime health failure or user rollback
+ROLLED_BACK
+```
+
+- Draft 自动保存；
+- 编辑器支持多步 undo/redo；
+- 导入覆盖前自动备份；
+- 只有完整编译成功的 Bundle 才能启用；
+- 激活使用原子指针切换；
+- 始终保留 last-known-good Bundle；
+- App 异常退出后恢复 Draft 和上一个 ACTIVE，而不是半编译状态；
+- 启用前展示最终 fallback 结果和差异摘要。
+
+### 14.3 可视化编辑与 YAML 的唯一数据源
+
+规范化 AST 是唯一 source of truth；可视化编辑器和 YAML 都操作同一个 Draft AST：
+
+```text
+YAML text
+  → parse to Draft AST
+  → schema validation
+  → normalized AST
+  → visual editor
+  → canonical YAML export
+```
+
+YAML 有语法错误时保留最后一个有效 AST，并在原字段附近显示错误。Canonical export 不保证保留注释和原字段顺序，编辑器必须在用户首次切换到 YAML 时说明这一点。
+
+### 14.4 作用域与覆盖优先级
+
+Style 激活作用域至少区分 account、device、technique、scene、species、density 和 accessibility。首期可以只开放 account/device + species，但 Schema 必须保留稳定字段。
+
+覆盖顺序由低到高固定为：
+
+```text
+official species fallback
+  < package species default
+  < technique override
+  < scene override
+  < density override
+  < accessibility adaptation
+  < host safety override
+```
+
+无障碍和 Host 安全层不可被 YAML 反向覆盖。部分 Package 的编辑源可以是 delta，但运行时 `CompiledTagStyleBundle` 必须 self-contained，不能依赖设备中另一个任意用户包。
+
 ## 15. Marketplace 预留，不在当前实施范围
 
 当前只预留：
 
 - 稳定 `package_id`；
 - package type；
-- 作者元数据；
-- 许可元数据；
+- 作者与许可的自述元数据；
 - 资产完整性；
 - 兼容性；
 - capabilities；
 - previews；
-- 未来审核状态槽；
-- 未来 Marketplace 商品引用槽。
+- 与包内容无关的未来 listing 引用槽。
 
 当前明确不做：
 
@@ -588,16 +813,27 @@ Tag 实际容器
 
 未来 Marketplace 是多业务平台，Tag Style 只是 `package_type: tag_style` 的一种商品，不为 Tag 建立独立商城协议。
 
+平台审核、权利确认、可销售性、价格和下架状态不得写回用户可编辑 manifest；未来由 MarketplaceListing 和平台签名 Attestation 管理。
+
+用户现在可以选择记录图片来源、许可名称、许可文件、是否允许再分发和是否允许商业销售，便于未来申请上架，但这些字段仍只是待审核材料。
+
 ## 16. 安全、性能与资源预算
 
 ### 16.1 安全
 
 - 拒绝 Dart、JavaScript、脚本和可执行内容；
 - SVG 禁止外部引用和事件；
-- ZIP 解包防路径穿越和压缩炸弹；
+- ZIP 解包防路径穿越、压缩炸弹、绝对路径、Windows 盘符、symlink、hardlink、重复 entry 和递归目录过深；
+- 限制文件数量、单文件大小、总解压大小和压缩比；
+- 文件名执行 Unicode 归一化并拒绝大小写碰撞；
+- YAML 禁止无界 alias 展开；
+- 依据文件内容检测 MIME，不信任扩展名；
+- PNG 导出净化副本，移除非必要文本和隐私元数据，明确拒绝未支持的动画 PNG；
 - 所有路径必须位于包内；
 - 编译后 Bundle 使用内容哈希；
 - 原始包和编译包隔离保存。
+
+SVG sanitizer 采用允许列表，不采用只删除已知危险节点的 denylist。无法完整解析或超出复杂度预算时直接回退，不尝试容错执行。
 
 ### 16.2 性能
 
@@ -610,6 +846,8 @@ Tag 实际容器
 - 同屏 Tag 数；
 - 同屏动画数；
 - 编译缓存大小；
+- 本地原始包、Draft、历史和编译 Bundle 的总存储配额；
+- 未引用资产的垃圾回收；
 - 低端 Android 内存与帧时间。
 
 具体数值由原型基准测试校准，不在未测试前伪造阈值。
@@ -646,6 +884,16 @@ Tag 实际容器
 - Package Schema 主版本不兼容；
 - 部分物种样式损坏时其他物种继续可用。
 
+### 17.4 生命周期与安全
+
+- Draft 自动保存和崩溃恢复；
+- YAML 错误不污染最后有效 AST；
+- Preview 与 ACTIVE 隔离；
+- Bundle 原子激活和 last-known-good 回滚；
+- slot 与 variant atomic fallback；
+- 路径穿越、symlink、重复 entry、大小写碰撞和 YAML alias bomb；
+- Package 自报 Marketplace 字段不得改变平台权威状态。
+
 ## 18. gStack 三角色验收
 
 ### 18.1 CEO Gate
@@ -661,7 +909,10 @@ Tag 实际容器
 - 用户理解图片画布、Tag 容器和内容安全区的区别；
 - 用户能仅凭 PNG/SVG 创建可用 Tag；
 - 用户能用图片代替 Counter 精确数字；
+- 同一用户无需理解全部高级字段即可完成换图和调整；
 - 预览覆盖长短文字、数字、密度、主题和大字；
+- safe area 可用拖动、数值输入和无障碍控制完成；
+- 编辑过程支持自动保存、undo/redo、退出恢复和启用前对比；
 - 错误信息说明原因、影响和修复方法；
 - 视觉自由不被错误地限制为官方颜色语法；
 - fallback 发生时用户能够知道哪部分被替换。
@@ -674,9 +925,13 @@ Tag 实际容器
 - PNG/SVG 经过确定性预处理；
 - Slot 有明确类型和绑定；
 - 模板、Schema、Engine 分别版本化；
+- Capability Registry 是所有枚举的唯一来源；
+- 坐标空间和变换顺序确定；
+- Draft、Preview、Active 和回滚是原子状态转换；
 - 未知或损坏内容逐层 fallback；
 - 动画仅使用白名单属性；
-- 相同输入和引擎版本产生稳定的编译 Bundle；
+- 相同输入、Compiler、Registry 和配置产生相同 Bundle 哈希；
+- 分平台渲染满足 conformance，不要求跨平台逐像素一致；
 - 性能预算在目标低端设备上通过实测。
 
 ## 19. 分阶段建议
@@ -685,6 +940,8 @@ Tag 实际容器
 
 - 定义 `TagRenderModel`、`DisplayContract` 和 `TagStyleHostAdapter`；
 - 定义 Package、模板、Slot 和 Renderer Schema；
+- 定义 Capability Registry、Host Geometry、坐标空间和变换顺序；
+- 定义 Draft/Preview/Active 生命周期和作用域覆盖；
 - 用现有五个奇门 Widget 建立迁移样本；
 - 原型验证 PNG/SVG、safe area、nine-slice 和 Counter digit atlas；
 - 建立确定性编译和 fallback 报告。
@@ -693,7 +950,7 @@ Tag 实际容器
 
 - 完成十种 Tag 的基础模板；
 - 建立 `TagStyleEditor`；
-- 支持导入、导出、复制和回滚；
+- 支持自动保存、undo/redo、导入、导出、复制、原子启用和回滚；
 - 支持 full/mid/minimal 和宿主适配；
 - 建立视觉、兼容性、安全和性能测试矩阵。
 
@@ -715,7 +972,34 @@ Tag 实际容器
 - 强制用户遵循官方旺衰颜色；
 - 按用户身份区分编辑能力。
 
-## 21. 待用户书面审阅
+## 21. OpenSpec capability 拆分与验收纪律
+
+本设计不能作为一个单体 capability 直接实施，至少拆为：
+
+1. `tag-style-package-format`；
+2. `tag-style-compilation-and-activation`；
+3. `tag-style-rendering-contract`；
+4. `tag-style-asset-safety`；
+5. `tag-style-editor`；
+6. `tag-style-host-integration`。
+
+Marketplace 当前只保留接口 requirement，不建立 Marketplace capability。
+
+每项 requirement 至少包含：
+
+- REQ-ID 和 Decision ID；
+- SHALL；
+- 适用平台、版本、用户和作用域；
+- Given/When/Then；
+- 稳定错误码；
+- 机器可判定谓词；
+- 测试数据集；
+- 证据产物；
+- 回滚条件。
+
+“足够的图层数”“受限 offset”“异常画布”“昂贵滤镜”“目标低端设备”“用户能够理解”和“稳定渲染”不得作为单独验收标准。它们必须在 Phase A 转成命名预算、设备档、任务成功率、错误率或布尔不变量。
+
+## 22. 待用户书面审阅
 
 本设计已经确认的产品决策：
 
@@ -729,5 +1013,19 @@ Tag 实际容器
 - 支持图片代替 Counter 数字；
 - 接受四条硬约束和一条 DisplayContract 规则；
 - 与 App Theme 只通过 Host Adapter 接入。
+
+本轮评审后补充并已给出解决方案：
+
+- Capability Registry 消除模板和 Renderer 枚举漂移；
+- 三类 Host Geometry 覆盖矩形、路径和锚点；
+- normalized 坐标和固定变换顺序消除 safe area 歧义；
+- Draft/Preview/Active 和 last-known-good 闭合启用生命周期；
+- 规范化 AST 统一 YAML 与可视化编辑；
+- 固定作用域和覆盖优先级；
+- Marketplace 权威状态移出用户包；
+- atomic fallback 避免混搭失真；
+- 补齐字体、Counter 数值域、资源供应链和编辑器无障碍；
+- 明确确定性编译与跨平台渲染 conformance 的差异；
+- 拆分六项 OpenSpec capability。
 
 用户审阅本文件并确认后，下一步才进入 OpenSpec capability 拆分和实施计划。
