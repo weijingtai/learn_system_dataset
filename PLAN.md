@@ -10,6 +10,11 @@
 - [x] 收敛十种 Tag 的个人样式定制与 Marketplace 接口设计规格。
 - [x] 完成 Tag Style 规格跨角色复审并落实问题修订。
 - [x] 同步 Tag Style 交叉评审报告与 D-015–D-020 落实门槛。
+- [x] 完成 `pipeline/` 首轮真实生命周期全面评审并保存 `PIPELINE_REVIEW_v1.md`。
+- [ ] 为 `pipeline/` 增加依赖声明与环境检查，保证 validators/RAG 可复现运行。
+- [ ] 增加 assertion task、glossary、RAG index 的确定性校验器。
+- [ ] 按 `PIPELINE_REVIEW_v1.md` 回写四本手册的当前状态与扩批规则。
+- [ ] 为《烟波钓叟歌》s13-s110 扩批建立 batches/id_range/metrics/review 模板。
 - [ ] 用户确认 v1.2 推荐项、冻结项和阶段零范围。
 - [ ] 确认旧 APP 类型并定稿迁移策略。
 - [ ] 选择一段具有正文、注文、条件、例外和术语的奇门试点材料。
