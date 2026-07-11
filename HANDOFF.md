@@ -1,8 +1,8 @@
 # HANDOFF
 
-更新时间：2026-07-10
+更新时间：2026-07-11
 当前分支/worktree：`codex/docs/knowledge-compilation`；独立仓库 `/Users/jingtaiwei/Git/Public/xuan-migration/learn_system`
-刚完成：新增 `METAPHYSICS_KNOWLEDGE_COMPILATION_WORKFLOW_v1.2.md`，收敛市场、迁移、信任、gStack、Superpowers 与 UI/UX Pro Max 评审。
-进行到一半的事（精确到文件和章节）：v1.2 已保存为评审收敛母稿，但第 17 节开放决策尚未获用户逐项批准；OpenSpec 尚未初始化。
-下一步（第一件事）：请用户确认 v1.2 推荐项、冻结项、旧 APP 类型和阶段零唯一产品，再建立阶段零 OpenSpec。
-已知的坑：v1.1/v1.1.1 及四份专题附件仍为未跟踪文件；外部 OCR 权利未确认；大陆无 AI 与 Buyer/Tag 的 AI 主链冲突已在 v1.2 冻结但尚未回改附件；工具补丁模板含反引号时必须转义。
+刚完成：新增 `TAG_SYSTEM_DESIGN_review_report.md`，完成 Tag/Marks 文档的产品、UI/UX、工程契约、风险和 OpenSpec 就绪度评审。
+进行到一半的事（精确到文件和章节）：评审报告已落盘；原 `TAG_SYSTEM_DESIGN.md` 尚未按报告拆分 Concept、ComputedFact、MarkDefinition、MarkInstance 和 ExposurePolicy。
+下一步（第一件事）：由用户确认评审结论与五项 OpenSpec capability 拆分，再决定是否回改 `TAG_SYSTEM_DESIGN.md`。
+已知的坑：OpenSpec 尚未初始化；v1.2 冻结项与 Tag Phase B 的 AI 联动、稀缺高光仍冲突；工作区另有大量既有未跟踪文件，本次提交不得误纳入。
