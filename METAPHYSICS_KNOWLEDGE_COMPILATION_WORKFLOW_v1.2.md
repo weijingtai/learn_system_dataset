@@ -73,6 +73,12 @@ policy_disposition：
 | D-012 | 核心 UX 和无障碍进入阶段零/一，不后置 | DRAFT | ALLOWED | 设计负责人 | 待用户原则批准 | 本稿第 7、11 节 |
 | D-013 | 阶段零前建立事故 SLA、撤回、denylist 和演练 | DRAFT | ALLOWED | 安全与运营负责人 | 待用户原则批准 | 本稿第 10、12 节 |
 | D-014 | 阶段门使用预注册量化 Gate，不使用模糊形容词 | DRAFT | ALLOWED | 研究与规格负责人 | 待用户原则批准 | 本稿第 13、14 节 |
+| D-015 | Tag 样式语义通道分层锁定：装饰通道开放，语义通道（梯度方向、关系符号、吉凶槽）经视觉语法毕业测试解锁 | PRINCIPLE_APPROVED | ALLOWED | 设计与学习负责人 | 用户会话批准 2026-07-11 | TAG_STYLE_SPEC_review_report R1 |
+| D-016 | 场景豁免：学习、测试、月令条、分享物、评论区嵌入强制官方样式或显著标注 | PRINCIPLE_APPROVED | ALLOWED | 设计与学习负责人 | 用户会话批准 2026-07-11 | TAG_STYLE_SPEC_review_report R1 |
+| D-017 | Capability Registry 定义 required_slots（争议标识、条件可及入口），Host 强制渲染，样式不可省略或遮挡 | PRINCIPLE_APPROVED | ALLOWED | 工程负责人 | 用户会话批准 2026-07-11 | TAG_STYLE_SPEC_review_report R2 |
+| D-018 | TagStyleEditor 押后：Phase A 契约照做；先以 3–5 套官方预设样式包验证换肤需求，编辑器待留存证据后另立决策 | PRINCIPLE_APPROVED | FROZEN_PENDING_EVIDENCE | 产品负责人 | 用户会话批准 2026-07-11 | TAG_STYLE_SPEC_review_report R3 |
+| D-019 | 官方稀缺分级纹理列为保留能力，用户样式不得复制；MarketplaceMetadata 预留 content_rating／expression_tendency 占位 | PRINCIPLE_APPROVED | ALLOWED | 信任与合规负责人 | 用户会话批准 2026-07-11 | TAG_STYLE_SPEC_review_report R4 |
+| D-020 | TagRenderModel 与 computed-mark-semantics 的 MarkInstance 合一；Registry 1.0 冻结须后置于 Tag/Concept/Mark 分类学收敛与 G1–G3 术理考据 | PRINCIPLE_APPROVED | ALLOWED | 规格负责人 | 用户会话批准 2026-07-11 | TAG_STYLE_SPEC_review_report R5 |
 
 章节与决定的映射如下；章节中的 SHALL、必须、禁止和不得仅在对应 Decision ID 获得规定状态后生效：
 
