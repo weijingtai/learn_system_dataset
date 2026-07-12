@@ -16,13 +16,14 @@
 | `TAG_SYSTEM_DESIGN.md` | 主规范 v1.0-draft-r1：哲学红线、需求、交互模型、视觉语法、物种、治理、验收 | 已收敛，P0 已落正文 |
 | `specs/mark-taxonomy-and-registry-split.md` | 六层对象模型、Registry 七对象拆分、G1–G3 定稿（D-022） | 已定稿 |
 | `specs/tag-style-system-design.md` | 个人样式定制与 Marketplace 接口（受 D-015–D-020 约束） | 已修订，Editor 冻结 |
+| `specs/official-tag-starter-kit.md` | 第一版官方基础 Tag 图标包、TechniqueProfile、预览目录和 AI 设计流程 | v0.1，待制作 |
 | `TAG_SYSTEM_DESIGN_review_report.md` | 主规范评审（P0/P1 清单） | P0 已处置 |
 | `TAG_STYLE_SPEC_review_report.md` | 样式规格交叉评审（R1–R6 → D-015–D-020） | 决议已登记 |
 | `EXECUTION_PLAN.md` | 本区执行计划：Phase A → 契约 → UI | 待开工 |
 
 ## 当前第一件事
 
-Phase A-1：Figma 点击原型（无字识别＋卡片分类＋元素详情卡可用性）——不写代码即可开始；工程侧第一件事是六层对象 Schema（依赖已满足：分类学已定稿、G1–G3 已闭合）。
+Phase A-6：先制作 `Official Tag Starter Kit v0.1` 的官方基础包规格、资产矩阵、TechniqueProfile 和 Preview Catalog。Figma 点击原型（A-1）与六层对象 Schema（A-4）可以并行，但第一批用户可见的 Tag 资产以 `official_starter_clear` 为最小落点。
 
 ## 依赖 knowledge_system 的接口（唯一允许的跨区耦合）
 

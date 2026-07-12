@@ -11,6 +11,7 @@
 - [x] 完成 Tag Style 规格跨角色复审并落实问题修订。
 - [x] 同步 Tag Style 交叉评审报告与 D-015–D-020 落实门槛。
 - [x] 将 D-015–D-020 回写到 Tag Style 主规格正文并同步评审报告状态。
+- [x] 新增 Official Tag Starter Kit v0.1 规格并接入 Tag 执行计划。
 - [x] 完成 `pipeline/` 首轮真实生命周期全面评审并保存 `PIPELINE_REVIEW_v1.md`。
 - [ ] 为 `pipeline/` 增加依赖声明与环境检查，保证 validators/RAG 可复现运行。
 - [ ] 增加 assertion task、glossary、RAG index 的确定性校验器。
@@ -25,4 +26,4 @@
 - [ ] 将用户批准的最终设计转入 OpenSpec。
 - [ ] 编写实施计划并开始校验器与编译器实现。
 
-当前 Tag Style 可进入 OpenSpec 拆分和基础契约开发准备；不得直接启动 `TagStyleEditor`、Marketplace 或用户 Dart/Flutter 插件实施。pipeline 线仍按 `PIPELINE_REVIEW_v1.md` 继续补依赖、环境检查和确定性校验器。
+当前 Tag 线优先制作 `official_starter_clear` 第一版官方基础包、TechniqueProfile 和 Preview Catalog；随后用它作为 TagStyleCompiler MVP 的 golden input。不得直接启动 `TagStyleEditor`、Marketplace 或用户 Dart/Flutter 插件实施。pipeline 线仍按 `PIPELINE_REVIEW_v1.md` 继续补依赖、环境检查和确定性校验器。
