@@ -1,0 +1,10 @@
+task_id: task_bazi_qtbj_para_s1
+stage: paraphrase
+review:
+  by: claude
+  verdict: PASS
+  source: opencode单路(直译模板)
+  paraphrases: 14
+  needs_escalation: 0
+  checks: validate_paraphrase_task --single PASS(PAR_005归一化空白后比对)
+  note: 译文人工抽读全段:直译忠实/术语加引号保留/吉凶一比一/否定方向正确,风格认可为工位6基准
