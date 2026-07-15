@@ -1,0 +1,10 @@
+task_id: task_bazi_qtbj_b025_seg
+result: completed
+uncertainties:
+- where: s01
+  note: 三冬己土后附总论金的四季特质大段文字，与他节（五行开头有独立论金篇）不同，本处体例待核
+- where: s02
+  note: 总论金段无标目（以金以至阴为体起句），是否为独立条目不确
+lesson_candidates:
+- 三冬己土段末附总论金为跨章节过渡内容，应独立成段
+needs_escalation: false

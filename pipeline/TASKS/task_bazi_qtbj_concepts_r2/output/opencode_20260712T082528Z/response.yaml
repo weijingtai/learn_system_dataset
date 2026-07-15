@@ -1,0 +1,74 @@
+candidates:
+- surface: 众杀猖狂
+  kind_guess: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0018_s01
+  sure: true
+- surface: 一仁可化
+  kind_guess: tiaohou
+  seg_ids:
+  - ss_qtbj_ed01_p0018_s01
+  sure: true
+- surface: 弃命从杀
+  kind_guess: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0019_s01
+  - ss_qtbj_ed01_p0019_s02
+  - ss_qtbj_ed01_p0024_s02
+  sure: true
+- surface: 化合逢时
+  kind_guess: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0019_s01
+  sure: true
+- surface: 建禄
+  kind_guess: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0022_s02
+  sure: true
+- surface: 独杀当权
+  kind_guess: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0022_s02
+  sure: true
+- surface: 身旺无依
+  kind_guess: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0022_s02
+  sure: true
+- surface: 丁壬化杀
+  kind_guess: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0023_s01
+  sure: false
+- surface: 二壬争合
+  kind_guess: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0024_s01
+  sure: true
+- surface: 二丙夺丁
+  kind_guess: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0024_s01
+  sure: false
+- surface: 官杀会党
+  kind_guess: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0027_s02
+  - ss_qtbj_ed01_p0027_s03
+  sure: true
+- surface: 土木自战
+  kind_guess: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0027_s03
+  sure: true
+- surface: 火炎土燥
+  kind_guess: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0028_s01
+  sure: true
+- surface: 君臣庆会
+  kind_guess: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0028_s02
+  sure: true

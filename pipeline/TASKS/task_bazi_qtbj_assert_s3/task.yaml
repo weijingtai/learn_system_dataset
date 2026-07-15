@@ -1,0 +1,17 @@
+task_id: task_bazi_qtbj_assert_s3
+stage: assertions
+technique_id: bazi
+source_id: src_qtbj_ed01
+instruction_version: assertions_bazi_v0.1
+covers_batches:
+- qtbj_b012
+- qtbj_b013
+- qtbj_b014
+- qtbj_b015
+- qtbj_b016
+- qtbj_b017
+- qtbj_b018
+- qtbj_b019
+id_range:
+  assertion: as_bazi (round s3)
+  proposition: pr_bazi (round s3)

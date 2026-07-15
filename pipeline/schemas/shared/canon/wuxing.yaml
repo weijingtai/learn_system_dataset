@@ -1,0 +1,44 @@
+canon_domain: wuxing
+schema_version: canon_v0.1
+closed_set_size: 5
+id_prefix: co_shared_wuxing_
+concepts:
+- concept_id: co_shared_wuxing_01
+  surface: 木
+  domain: wuxing
+  rev: 1
+  status: active
+  aliases: []
+  note: ''
+- concept_id: co_shared_wuxing_02
+  surface: 火
+  domain: wuxing
+  rev: 1
+  status: active
+  aliases: []
+  note: ''
+- concept_id: co_shared_wuxing_03
+  surface: 土
+  domain: wuxing
+  rev: 1
+  status: active
+  aliases: []
+  note: ''
+- concept_id: co_shared_wuxing_04
+  surface: 金
+  domain: wuxing
+  rev: 1
+  status: active
+  aliases: []
+  note: ''
+- concept_id: co_shared_wuxing_05
+  surface: 水
+  domain: wuxing
+  rev: 1
+  status: active
+  aliases: []
+  note: ''
+revisions:
+- date: '2026-07-11'
+  change: 初版生成
+  rev_scope: all@1

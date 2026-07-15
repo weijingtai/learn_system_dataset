@@ -1,0 +1,1412 @@
+# 术语候选提取任务说明 · 八字（bazi）专用
+
+你的唯一任务：从输入的切分段落里，找出所有**八字命理专用词**，登记为候选清单。
+本说明是工位 4 的八字特化版（奇门的星/门/神那套不适用）。
+
+开工前必读：`pipeline/lessons/LESSONS.md` 的"通用"＋"工位 4"小节。发现新经验写进 result.yaml 的 lesson_candidates。
+
+## 放量阶段：先闭集匹配，只提新词（三步判层，提效率）
+
+若 input/ 里有 `glossary_v0.yaml`（已签发术语表），按三步走，把机器能定的先定掉：
+1. **L1 共享源数据**：天干地支五行（甲乙…子丑…木火土金水）属共享 canon，**已知闭集，直接标 `layer: L1`、不必登记为新候选**（它们已在 schemas/shared/canon 里）；
+2. **L2/L3 已在 v0 表**：surface 命中 glossary_v0.yaml 里已有的词 → 标 `matched: <concept_id>`，不算新词；
+3. **新词**：v0 表里没有的术语才登记为新候选（candidates），走原格式。
+这样每批只需人判"新词"，已知术语机器匹配，省时省 token。
+
+## 什么算八字术语（只认这五类）
+
+1. **十神**：正官、七杀、正印、偏印、食神、伤官、正财、偏财、比肩、劫财、阳刃/羊刃；
+2. **格局/命象**：伤官生财、木火通明、阳刃驾杀、寒木向阳、财多身弱、水泛木浮、从才、从杀、从化、食神制杀 等有专名的格局；
+3. **调候/五行作用**：调候、用神、司令、司权、进气、退气、相济、制杀、斲凿、镕金 等描述五行生克制化作用的专词；
+4. **天干地支**：甲乙丙丁戊己庚辛壬癸、子丑寅卯…（单字干支按标准闭集纳入）；
+5. **旺衰/十二运**：长生、沐浴、冠带、临官、帝旺、衰、病、死、墓、绝、胎、养、生旺、死绝 等。
+
+普通文言词（如"富贵双全""余寒犹存"）不是术语。命造举例里的干支组合（"甲午日庚午时"）不是术语，是案例，跳过。拿不准的照样登记，但 `sure` 填 false。
+
+## ⚠ "名曰X" 不等于 X 是术语（工位4最难的判断）
+
+古籍"名曰/名为/号曰 X"是"它叫做 X"的句式，**不代表 X 就是受控术语**。要分两种：
+- **标准术语**（收）：跨书复用、其他命书也这么叫的格局名——如"去浊留清""木火通明""羊刃倒戈""杀印相生"。
+- **临时描述**（不收）：作者对某个具体命局的文学性盘面比喻——如"湖水汪洋""天和地润""乱臣无主奔波"。这类换本书就不再出现，是修辞不是术语。
+判据：问自己"别的八字书里会不会也用这个词当术语？"会→收；只是这里形容这一盘→不收。拿不准填 sure=false 交复核，**不要因为有'名曰'就无脑收**。
+
+## 硬性规矩
+
+- `surface` 必须与段落原文**逐字一致**（复制粘贴）；
+- **`seg_ids` 必须用全局 span_id**（形如 `ss_qtbj_ed01_p0005_s01`），不是批内的 `s01`——input 里的 `spans.yaml` 给出本批每段的 span_id 对照，照抄；
+- 你只登记"哪个词在哪些段出现"，**禁止解释词义**（那要证据，是工位 5 的事）；
+- 同一个词出现多段 → 一条记录，seg_ids（span_id）列全；
+- **禁止用你自己的八字知识补充段落里没出现的术语**；只认原文真出现的。
+
+## 输出格式（YAML）
+
+```yaml
+candidates:
+  - surface: 阳刃驾杀
+    kind_guess: pattern        # ten_god / pattern / tiaohou / stem_branch / phase / other
+    seg_ids: [ss_qtbj_ed01_p0005_s04]
+    sure: true
+  - surface: 用神
+    kind_guess: tiaohou
+    seg_ids: [ss_qtbj_ed01_p0005_s02, ss_qtbj_ed01_p0006_s01]
+    sure: true
+```
+
+kind_guess 枚举：`ten_god`（十神）/ `pattern`（格局）/ `tiaohou`（调候作用）/ `stem_branch`（干支）/ `phase`（旺衰十二运）/ `other`。
+
+## 容错
+
+- new_concept_candidates（词表没有的新词）是正常输出不是错误；
+- 一段里术语超过一半是你没把握的 → 可能类型判断有偏，blocked 并说明；
+- 同形不同义按上下文选（"死"在"死绝"是旺衰、在"死无棺椁"是普通词）拿不准 → 写 uncertainties。
+
+---
+glossary_v0.yaml:
+glossary_version: bazi_glossary_v0.3
+technique_id: bazi
+built_from: task_bazi_qtbj_concepts_batch1(甲木3批) + Claude复核签发
+date: '2026-07-12'
+status: '人工签发(Claude复核): 剔2动词, 升伤官遇杀, 单字干支归L1 canon不收录'
+shared_canon_note: 天干地支五行引用 schemas/shared/canon/ 的 co_shared_*, 本表不重复定义
+concepts:
+- concept_id: co_bazi_000001
+  surface: 伤官
+  kind: ten_god
+  seg_ids:
+  - ss_qtbj_ed01_p0005_s03
+  - ss_qtbj_ed01_p0006_s02
+  - ss_qtbj_ed01_p0007_s04
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000002
+  surface: 阳刃
+  kind: ten_god
+  seg_ids:
+  - ss_qtbj_ed01_p0005_s04
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000003
+  surface: 杀
+  kind: ten_god
+  seg_ids:
+  - ss_qtbj_ed01_p0005_s03
+  - ss_qtbj_ed01_p0005_s04
+  - ss_qtbj_ed01_p0006_s02
+  - ss_qtbj_ed01_p0007_s01
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000004
+  surface: 官
+  kind: ten_god
+  seg_ids:
+  - ss_qtbj_ed01_p0006_s02
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000005
+  surface: 印绶
+  kind: ten_god
+  seg_ids:
+  - ss_qtbj_ed01_p0006_s02
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000006
+  surface: 印
+  kind: ten_god
+  seg_ids:
+  - ss_qtbj_ed01_p0007_s01
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000007
+  surface: 才
+  kind: ten_god
+  seg_ids:
+  - ss_qtbj_ed01_p0005_s03
+  - ss_qtbj_ed01_p0005_s04
+  - ss_qtbj_ed01_p0005_s05
+  - ss_qtbj_ed01_p0006_s02
+  - ss_qtbj_ed01_p0007_s01
+  - ss_qtbj_ed01_p0007_s04
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+  note: 原文以"才"通假"财"(偏财),不依赖"财"字匹配
+- concept_id: co_bazi_000008
+  surface: 比肩
+  kind: ten_god
+  seg_ids:
+  - ss_qtbj_ed01_p0007_s04
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000009
+  surface: 比劫
+  kind: ten_god
+  seg_ids:
+  - ss_qtbj_ed01_p0005_s05
+  - ss_qtbj_ed01_p0006_s02
+  - ss_qtbj_ed01_p0007_s03
+  - ss_qtbj_ed01_p0007_s04
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000010
+  surface: 劫财
+  kind: ten_god
+  seg_ids:
+  - ss_qtbj_ed01_p0007_s04
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: candidate
+- concept_id: co_bazi_000011
+  surface: 寒木向阳
+  kind: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0005_s02
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000012
+  surface: 从才
+  kind: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0005_s03
+  - ss_qtbj_ed01_p0007_s01
+  - ss_qtbj_ed01_p0007_s04
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000013
+  surface: 从杀
+  kind: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0005_s03
+  - ss_qtbj_ed01_p0007_s01
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000014
+  surface: 从化
+  kind: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0005_s03
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000015
+  surface: 水泛木浮
+  kind: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0005_s03
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000016
+  surface: 财多身弱
+  kind: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0005_s03
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000017
+  surface: 木火通明
+  kind: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0005_s03
+  - ss_qtbj_ed01_p0006_s02
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000018
+  surface: 伤官生财格
+  kind: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0005_s03
+  - ss_qtbj_ed01_p0007_s04
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000019
+  surface: 木被金伤
+  kind: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0005_s03
+  - ss_qtbj_ed01_p0007_s03
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000020
+  surface: 阳刃驾杀
+  kind: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0005_s04
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000021
+  surface: 弃命从才
+  kind: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0005_s05
+  - ss_qtbj_ed01_p0006_s02
+  - ss_qtbj_ed01_p0007_s04
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000022
+  surface: 杂气夺才
+  kind: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0005_s05
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000023
+  surface: 杀重身轻
+  kind: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0006_s02
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000024
+  surface: 伤官伤尽
+  kind: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0006_s02
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000025
+  surface: 木火伤官
+  kind: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0006_s02
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000026
+  surface: 二土争合
+  kind: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0006_s02
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000027
+  surface: 逢时化合格
+  kind: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0006_s02
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000028
+  surface: 假从
+  kind: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0006_s02
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000029
+  surface: 从才格
+  kind: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0007_s04
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000030
+  surface: 天元一气
+  kind: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0007_s04
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000031
+  surface: 一才一用
+  kind: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0007_s04
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000032
+  surface: 假伤官
+  kind: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0007_s04
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000033
+  surface: 杀印相生
+  kind: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0007_s01
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000034
+  surface: 伤官遇杀
+  kind: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0006_s02
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000035
+  surface: 斲凿
+  kind: tiaohou
+  seg_ids:
+  - ss_qtbj_ed01_p0005_s01
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000036
+  surface: 相济
+  kind: tiaohou
+  seg_ids:
+  - ss_qtbj_ed01_p0005_s01
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000037
+  surface: 司权
+  kind: tiaohou
+  seg_ids:
+  - ss_qtbj_ed01_p0006_s01
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000038
+  surface: 用神
+  kind: tiaohou
+  seg_ids:
+  - ss_qtbj_ed01_p0006_s02
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000039
+  surface: 镕金
+  kind: tiaohou
+  seg_ids:
+  - ss_qtbj_ed01_p0007_s02
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000040
+  surface: 生旺
+  kind: phase
+  seg_ids:
+  - ss_qtbj_ed01_p0005_s01
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000041
+  surface: 退气
+  kind: phase
+  seg_ids:
+  - ss_qtbj_ed01_p0006_s01
+  - ss_qtbj_ed01_p0006_s02
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000042
+  surface: 死绝
+  kind: phase
+  seg_ids:
+  - ss_qtbj_ed01_p0007_s01
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000043
+  surface: 乘旺
+  kind: phase
+  seg_ids:
+  - ss_qtbj_ed01_p0007_s01
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: candidate
+- concept_id: co_bazi_000044
+  surface: 食
+  kind: ten_god
+  seg_ids:
+  - ss_qtbj_ed01_p0001_s07
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000045
+  surface: 去浊留清
+  kind: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0008_s01
+  - ss_qtbj_ed01_p0011_s04
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000046
+  surface: 春旱
+  kind: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0010_s02
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: candidate
+- concept_id: co_bazi_000047
+  surface: 困丙
+  kind: tiaohou
+  seg_ids:
+  - ss_qtbj_ed01_p0010_s02
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: candidate
+- concept_id: co_bazi_000048
+  surface: 假化
+  kind: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0010_s03
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000049
+  surface: 二庚争合
+  kind: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0010_s04
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000050
+  surface: 木秀火明
+  kind: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0011_s01
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000051
+  surface: 气散之文
+  kind: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0011_s03
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: candidate
+- concept_id: co_bazi_000052
+  surface: 司令
+  kind: tiaohou
+  seg_ids:
+  - ss_qtbj_ed01_p0012_s01
+  - ss_qtbj_ed01_p0013_s01
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000053
+  surface: 化合格
+  kind: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0012_s02
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000054
+  surface: 木火文星
+  kind: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0012_s03
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000055
+  surface: 藤萝系甲
+  kind: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0012_s04
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000056
+  surface: 既济
+  kind: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0016_s01
+  - ss_qtbj_ed01_p0017_s02
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000057
+  surface: 贪合
+  kind: tiaohou
+  seg_ids:
+  - ss_qtbj_ed01_p0016_s02
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000058
+  surface: 炎上
+  kind: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0016_s02
+  - ss_qtbj_ed01_p0017_s03
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000059
+  surface: 争合
+  kind: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0016_s03
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000060
+  surface: 贪财坏印
+  kind: tiaohou
+  seg_ids:
+  - ss_qtbj_ed01_p0016_s03
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: candidate
+- concept_id: co_bazi_000061
+  surface: 阳刃合杀
+  kind: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0017_s01
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000062
+  surface: 羊刃倒戈
+  kind: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0017_s01
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000063
+  surface: 阴刑杀重
+  kind: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0017_s02
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: candidate
+- concept_id: co_bazi_000064
+  surface: 众杀猖狂
+  kind: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0018_s01
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000065
+  surface: 一仁可化
+  kind: tiaohou
+  seg_ids:
+  - ss_qtbj_ed01_p0018_s01
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: candidate
+- concept_id: co_bazi_000066
+  surface: 弃命从杀
+  kind: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0019_s01
+  - ss_qtbj_ed01_p0019_s02
+  - ss_qtbj_ed01_p0024_s02
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000067
+  surface: 化合逢时
+  kind: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0019_s01
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000068
+  surface: 建禄
+  kind: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0022_s02
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000069
+  surface: 独杀当权
+  kind: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0022_s02
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000070
+  surface: 身旺无依
+  kind: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0022_s02
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000071
+  surface: 丁壬化杀
+  kind: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0023_s01
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: candidate
+- concept_id: co_bazi_000072
+  surface: 二壬争合
+  kind: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0024_s01
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000073
+  surface: 二丙夺丁
+  kind: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0024_s01
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: candidate
+- concept_id: co_bazi_000074
+  surface: 官杀会党
+  kind: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0027_s02
+  - ss_qtbj_ed01_p0027_s03
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000075
+  surface: 土木自战
+  kind: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0027_s03
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000076
+  surface: 火炎土燥
+  kind: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0028_s01
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000077
+  surface: 君臣庆会
+  kind: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0028_s02
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: candidate
+revisions:
+- date: '2026-07-12'
+  change: v0.1初版, 45候选->43收录(剔制伏/伤)
+  rev_scope: all@1
+- date: '2026-07-12'
+  change: 并入r1放量新词20个(b001,b005-b011)
+  rev_scope: v0.2
+- date: '2026-07-12'
+  change: 并入r2新词14个(b012-b019);降级一仁可化/君臣庆会为candidate
+  rev_scope: v0.3
+
+segments.yaml:
+segments:
+- span_id: ss_qtbj_ed01_p0029_s01
+  entry_title: 七月戊土
+  text: '### 三秋戊土
+
+    七月戊土，阳气渐入，寒气渐出，先丙后癸，甲木次之。丙癸甲透者，富贵极品。癸藏丙透，不仅秀才。丙甲两透，癸水会局藏辰，亦不失富贵。无丙得癸甲透，此人清雅，家富千金。无癸甲者、常人。有丙火、妻贤子肖。若丙甲癸三者俱无，下流之命。
+
+
+    或支成水局，休作弃命从才，宜取甲洩之。甲透者、稍有富贵。用神妻子仝前。
+
+
+    时日月年
+
+
+    壬戊戊壬
+
+
+    午辰申寅
+
+    时日月年
+
+
+    癸戊甲庚
+
+
+    丑寅申寅
+
+    时日月年
+
+
+    丙戊丙辛
+
+
+    辰子申酉
+
+    '
+- span_id: ss_qtbj_ed01_p0029_s02
+  entry_title: 八月戊土
+  text: '八月戊土，金洩身寒，赖丙照暖，喜水滋润，先丙后癸，不必木疏。丙癸两透，科甲中人。丙透癸藏，可许入泮。癸透丙藏，纳资得官。若丙藏又无癸，即多不透，此皆常人。丙癸全无，奔流之客。
+
+
+    或四柱皆辛，无丙丁，此名伤官格，为人清秀，即不能拾芥，亦可武庠。一见癸水，富而且贵。
+
+
+    或支成水局，壬癸出干，此名才多身弱，愚懦无能。若天干有比劫，分散才神，颇言衣食。
+
+
+    用神妻子仝前，秋土生金极弱，须丙火丁火出干方妙。
+
+    '
+- span_id: ss_qtbj_ed01_p0029_s03
+  entry_title: 九月戊土
+  text: '九月戊土当权，不可专用丙，先看甲木，次取癸水，却忌化合。见金先用癸水，后取丙火，配合支干，方成有生之土，定发云程。
+
+
+    或无丙有癸，不见甲透者，衣衿小富。无癸丙、有甲者。衣食而已。若癸甲全无，虽有丙火，亦属平常，或为僧道。或支成水局，壬癸透干，用戊止流，有比透反主富。
+
+
+    支成火局，名土燥，不发。
+
+
+    得金水两透，此人清高，略可富贵。无水、一生困苦。妻子同前。
+
+
+    时日月年
+
+
+    丙戊甲己
+
+
+    辰辰戌酉
+
+    时日月年
+
+
+    癸戊庚丁
+
+
+    亥戌戌亥
+
+
+    时日月年
+
+
+    壬戊戊丙
+
+
+    子寅戌戌
+
+    时日月年
+
+
+    乙戊庚丁
+
+
+    卯寅戌酉
+
+    时日月年
+
+
+    己戊戊丙
+
+
+    未辰戌子
+
+    '
+- span_id: ss_qtbj_ed01_p0030_s01
+  entry_title: 十月戊土
+  text: '### 三冬戊土
+
+    十月戊土，时值小阳，阳气略出，先用甲木，次取丙火。非甲、土不灵。非丙、土不暖，安能生发万物。甲丙两出，富贵中人。或甲得长生，遇支藏得地之水，一丙高透，亦主身贵扬名。
+
+
+    支见庚金，入泮而已。若不见庚金，甲木藏支，丙火高透，科甲有之。若有庚，丁出制，必异路功名。或为典吏。即庚丁不透，甲丙藏支，亦云富贵。
+
+
+    壬透得戊救丙，主富贵取贵。丙甲俱无，必为僧道。
+
+
+    时日月年
+
+
+    戊戊癸癸
+
+
+    午辰亥卯
+
+    时日月年
+
+
+    庚戊辛壬
+
+
+    甲寅亥申
+
+    时日月年
+
+
+    丙戊丁乙
+
+
+    辰戌亥卯
+
+    '
+- span_id: ss_qtbj_ed01_p0030_s02
+  entry_title: 十一十二月戊土
+  text: '十一二月严寒冰冻，丙火为专，甲木为佐。丙甲两透，桃浪之人，丙出甲藏，采芹食饩。丙藏甲出，佐杂前程。有丙无甲者，豪富。有甲无丙者，清贫。丙甲全无，下流之造。
+
+
+    或一派丙火，加以丙透，运值火土，弱中复强，又一壬透，主清高荣禄。乏壬、僧道孤寒。
+
+
+    或一派壬水，不见比劫，可作从才而论。即有比劫，得甲出干，又主富贵，若寒土无丙，虽有甲木，亦是内虚外实之人。
+
+
+    或二癸透月时，名为争合，终属劳碌之人。得一己出干制癸，反为忠义之士，舍己从人而论。
+
+
+    年月透辛金者，又属土金伤官，异路功名可许。以金为妻、水为子。
+
+
+    时日月年
+
+
+    壬戊壬壬
+
+
+    子子子子
+
+    时日月年
+
+
+    癸戊乙癸
+
+
+    丑申丑卯
+
+    时日月年
+
+
+    戊戊甲戊
+
+
+    午辰子寅
+
+    '
+- span_id: ss_qtbj_ed01_p0032_s01
+  entry_title: 正月己土
+  text: '### 三春己土
+
+    正月己土，田园犹冻，盖因腊气未除，余寒未退，故丙为尊。得丙照暖，万物自生，忌见壬水，反为己病，何也？壬乃江湖之水，湖水一发，则田园洗荡，变为沙土，而根苗尽没矣。须戊作堤，以保园圃。壬多要见戊制。有戊出干者，定主玉堂金马。若乏戊制，必属平常。
+
+
+    或一派甲木，有庚出干，加以癸丙齐透，配得中和，亦名利双全。即丙生寅月，庚透天干，亦有俊秀。若甲多无庚，残疾废人，宜用丁洩。
+
+
+    或一派火，即不见水无剋，何也？正月己土寒滋，必丙暖，反主厚禄。加一癸透，科甲自然。戊透、反作常人。或一派戊土，有甲出制，又主荣显。如见乙出，虽多不能疏土，且乙多者，奸诈小人。
+
+
+    用丙者，木妻、火子。
+
+    '
+- span_id: ss_qtbj_ed01_p0032_s02
+  entry_title: 二月己土
+  text: '二月己土，阳气渐升，虽禾稼未成，万物出土，田园未展，先取甲木疏之，忌合。次取癸水润之。甲癸出干，定主科甲，加以一丙出透，势压百僚。一见壬水，微末官职。
+
+
+    或见庚制甲，壬水出干，比劫重重，此必俗子。丙透犹有小富，丙藏衣禄无亏。
+
+
+    或支成木局，庚透富贵，若柱多乙木，乙又屈庚，庚必输情于乙，不能扫邪于正，此必狡诈之徒，运入东南，恐有不测。当用丁洩之。有丁者、小人而已，不致无良。
+
+
+    无比印、从杀者贵。
+
+
+    若柱中无甲丙癸者，皆下格。
+
+
+    妻子用神同前。
+
+
+    时日月年
+
+
+    庚己乙癸
+
+
+    午巳卯卯
+
+    时日月年
+
+
+    乙己乙癸
+
+
+    丑巳卯卯
+
+    '
+- span_id: ss_qtbj_ed01_p0032_s03
+  entry_title: 三月己土
+  text: '三月己土，正栽培禾稼之时，先丙后癸，土暖而润，随用甲疏，三者俱透天干，必官居黄阁。或三者透一，科甲定然，但要得地。却以庚金为病。
+
+
+    或有甲无癸，亦可致富，但不贵显。或有癸而无甲丙，亦有衣衿。或有丙癸无甲，亦系人才。丙癸全无，流俗之辈。
+
+
+    或一派乙木，无金制伏，贫而且夭也。
+
+
+    妻子同前。
+
+
+    时日月年
+
+
+    丙己甲壬
+
+
+    寅卯辰子
+
+    时日月年
+
+
+    甲己壬辛
+
+
+    子巳辰未
+
+    时日月年
+
+
+    壬己甲壬
+
+
+    申卯辰子
+
+    '
+- span_id: ss_qtbj_ed01_p0033_s01
+  entry_title: 三夏己土
+  text: '### 三夏己土
+
+    三夏己土，杂气才官，禾稼在田，最喜甘沛，取癸为要，次用丙火。夏无太阳，禾稼不长，故无癸曰旱田，无丙曰孤阴。
+
+
+    或丙癸两透，又加辛金生癸，此富贵之格，名水火既济，鼎甲之人。却忌戊癸化合。
+
+
+    或有丙无癸，有壬亦可，但不大发。
+
+
+    或一派丙火烈土，加以丁火制辛，癸水无根，如七八月之间旱，则苗藁矣，此命孤苦零丁。或有甲木，又见丙火重重，无滴水解炎，亦孤贫到老。
+
+
+    如有壬水，又见庚辛，此又不作孤看，但恐目疾，心肾肝脏之灾。若壬水有根，辛金得地，又非此而论。或壬癸并出，破火润土，此人聪特达，富中取贵，又转祸为福也。
+
+
+    用癸者、金妻水子。用丙者，木妻火子。
+
+
+    时日月年
+
+
+    戊己己己
+
+
+    辰巳巳巳
+
+    时日月年
+
+
+    辛己辛乙
+
+
+    未巳巳巳
+
+    时日月年
+
+
+    庚己辛乙
+
+
+    午巳巳丑
+
+    时日月年
+
+
+    乙己癸丙
+
+
+    亥亥巳申
+
+    '
+- span_id: ss_qtbj_ed01_p0034_s01
+  entry_title: 三秋己土
+  text: '### 三秋己土
+
+    三秋己土，万物收藏之际，外虚内实，寒气渐升，须丙火温之，癸水润之，不特此也，且癸能洩金，丙能制金，补土精神，则秋生之物咸茂矣。癸先丙后。
+
+
+    丙癸两透，雁塔题名。或无癸，有两丙透者，异途显达。或武职权高。或有丙火，不见壬癸，为假道斯文，终无诚实。或有壬癸无丙者，衣食充足，才能而已。
+
+
+    或支成金局，癸透有根，此人家畜万缗，富中取贵。
+
+
+    或支四库，甲透者富。乏甲者孤贫。或甲出无癸乏金，积德可全科甲。或会火局，无水救，乃大奸大恶之徒。
+
+
+    或丙透癸藏，遇金颇有选援，加一壬辅，富贵慷慨，有贤声。见戊透者，主遭凶厄且贫。
+
+
+    八月支成金局，无丙丁出救，此人零丁孤苦。如得丙透丁藏，生己元神，此人名魁天下，五福完人。
+
+
+    总之，三秋己土，先癸后丙，取辛辅癸。九月土盛，宜甲木疏之，余皆酌用。
+
+
+    时日月年
+
+
+    壬己癸甲
+
+
+    申未酉寅
+
+    时日月年
+
+
+    壬己甲己
+
+
+    申丑戌巳
+
+
+    勾陈全备润下，劳碌奔波之客。土凝水竭，离乡背井之流。
+
+
+    勾陈得位会才官，无剋无破必然端，甲子北方寅卯木，管教环拱戴金冠。戊己喜亥卯未为官，申子辰为才，忌刑剋杀害。
+
+    '
+- span_id: ss_qtbj_ed01_p0035_s01
+  entry_title: 三冬己土
+  text: '### 三冬己土
+
+    三冬己土，溼泥寒冻，非丙暖不生，取丙为尊，甲木参酌。戊土癸水不用。惟初冬壬旺，取戊制之。余皆用丙丁，但丁不能解冻除寒，不能大济。
+
+
+    或干透一丙，支藏一丙，加以甲透，科甲有准。即藏丙无制，亦主衣衿。
+
+
+    或多壬水，得戊透制之，此命安然，富中取贵。不见戊土，富屋贫人。
+
+
+    凡三冬己土，见壬水出干，为水浸湖田，此人孤苦。若见火不孤，见土不贫。
+
+
+    或一派癸，不见比劫，此为从才，反主富贵，虽不科甲，恩诰有之。若见比争，平常人物，妻子主事。从才者，木妻、火子。
+
+
+    或一派戊己，取甲制之，甲透者，富贵。
+
+
+    或一派辛庚，须用丙火，还须丁火为助。丙藏、富贵奇特之命。
+
+
+    时日月年
+
+
+    甲己癸壬
+
+
+    戌丑丑申
+
+    时日月年
+
+
+    己己癸壬
+
+
+    巳卯丑子
+
+    '
+- span_id: ss_qtbj_ed01_p0035_s02
+  entry_title: 总论金
+  text: '金以至阴为体，中含至阳之精，乃能坚刚，独异众物，若独阴而不坚，冰雪是也，遇火则消矣。故金无火炼，不能成器，金重火轻，执事繁难。金轻火重，煅炼消亡。金极火盛，为格最精。金火全、名曰铸印。犯丑字、即为损模。金火多名为乘轩，遇死衰、反为不利。
+
+
+    木火炼金，成名锐而退速。纯金遇水，逢富显以赢余。
+
+
+    金能生水，水旺则金沉；土能生金，金多则土贱。金无水干枯；水重、则沉沦无用。金无土则死绝；土重、则埋没不显。两金两火、最上。两金两木、才足。一金生三水，力弱难胜；一金得三木，顽钝自损。金成则火灭，故金未成器，欲得见火；金已成器，不欲见火。金到申酉巳丑，亦可谓之成也，运喜西北，不利东南。
+
+
+    生于春月，余寒未尽，贵乎火气为荣；性柔体弱，欲得厚土为助；水盛增寒，难施锋锐之势；木旺损力，有挫钝之危，金来比助，扶持最妙。比而无火，失类非良。
+
+
+    夏月之金，尤为柔弱，形质未备，尤嫌死绝。火多而却为不厌；水盛而滋润呈祥；见木而助鬼伤身；遇金而扶持精壮；土薄而最为有用；土厚而埋没无光。
+
+
+    秋月之金，当权得令，火来煅炼，遂成钟鼎之材。土多培养，反惹顽浊之气。见水则精神越秀；逢木则琢削施威；金助愈刚，刚过则决。气重愈旺，旺极则衰。
+
+
+    冬月之金，形寒性冷；木多则难施琢削之功；水盛未免沉潜之患。土能制水，金体不寒，火来助土，子母成功，喜比肩聚气相扶，欲官印温养为利。
+
+    '
+- span_id: ss_qtbj_ed01_p0037_s01
+  entry_title: 正月庚金
+  text: '### 三春庚金
+
+    正月庚金，木旺之际，有土皆死，不能生金，且金之寒气未除，先用丙暖庚性，又虑土厚埋金，须甲疏洩。丙甲两透，科甲显荣。二者透一，亦有生监。丙藏甲透，异路功名。
+
+
+    或柱中土多，甲透者贵；甲藏者富，庚出则否。
+
+
+    或丁火出干，加以戊己而无水者，又主富贵，名官星有气，才旺生扶，故以富贵推之。
+
+
+    如火多则用土。用土者，火妻土子。
+
+
+    或支成火局，壬透、有根者，大富贵。无根者、小富贵。乏水者、残疾之人。
+
+
+    或木被金伤，无丙丁出制，支无丁火﹐此系平人。或丙遭癸困，无戊制者亦然。
+
+
+    总之，正月庚金，丙甲为上，丁火次之。春金多火，不夭则贫。阳金最喜火炼，煅炼太过，反主奔流。
+
+
+    时日月年
+
+
+    庚庚壬壬
+
+
+    辰申寅子
+
+    时日月年
+
+
+    丙庚庚辛
+
+
+    戌戌寅巳
+
+    '
+- span_id: ss_qtbj_ed01_p0037_s02
+  entry_title: 二月庚金
+  text: '二月庚金，柱中自然有乙，当令之乙，见庚必输情于乙，此金有暗强之势，如秋金一理，故二月庚金，专用丁火，借甲引丁，借庚噼甲。无丁用丙者，富贵多出于勉强。
+
+
+    或丁在干，甲透引丁，支下再见一庚制甲，配得中和，必然大贵。如不见庚合者，虽丁甲两透，亦属平人。
+
+
+    春丁不旺不衰，故用甲为佐丁之物，甲若无庚噼，则不能引丁，乙木虽多，又忌溼乙伤丁，难为丁母，故有丁甲无庚者，常人。有丁庚、甲不出干者、常人。或丁透无庚甲者，可许贡监。无丁有丙者，异路功名。
+
+
+    或一片甲乙，忌庚出干破才，乃从才格，反主富贵。若见一比，又主孤贫。
+
+
+    从才者，火妻土子。用丁者，取甲为妻、若有庚制，难许同偕。
+
+
+    死金嫌盖顶之泥，重见戊土，如人压伏之象，须甲透为妙。
+
+
+    时日月年
+
+
+    丁庚己庚
+
+
+    丑寅卯申
+
+    时日月年
+
+
+    甲庚己庚
+
+
+    申子卯午
+
+    时日月年
+
+
+    丁庚辛辛
+
+
+    亥寅卯酉
+
+    时日月年
+
+
+    丁庚辛丙
+
+
+    亥辰卯申
+
+    '
+- span_id: ss_qtbj_ed01_p0037_s03
+  entry_title: 三月庚金
+  text: '三月庚金，戊土司令，无生金之理，有埋金之忧，故先甲后丁，不用庚噼甲。三月之庚，土旺金顽，顽金宜丁，旺土须甲，乏甲不能立业，乏丁焉能成名。二者少一，富贵不真。
+
+
+    庚金无火，非夭则贫。身弱才多，富贵不久。
+
+
+    得丁甲两透，不见比肩，科甲之命，但要好运相催。甲透丁藏，采芹拾芥。甲藏丁透，异路功名。丁甲俱藏，不受庚制，富中取贵，刀笔起家。有甲无丁，平常之辈。有丁无甲，迂儒腐儒。丁甲两无，下贱之流。
+
+
+    或一甲、无丁、有丙，由行伍而得官职，须不见壬癸为妙。
+
+
+    或支成土局，无木，贫贱僧道；见乙、奸诈小人。
+
+
+    或支成火局，癸水透，富贵。有丙丁出干，见壬制之、方吉。无制、残疾之人。
+
+
+    用甲者，水妻、木子。用丁者，木妻、火子。
+
+
+    时日月年
+
+
+    壬庚庚庚
+
+
+    午申辰子
+
+    '
+- span_id: ss_qtbj_ed01_p0038_s01
+  entry_title: 四月庚金
+  text: '### 三夏庚金
+
+    四月庚金，长生于巳，巳内有戊。丙不镕金，故不畏火炎，丙亦可作用，但先壬水，方得中和，故曰群金生夏，喜用勾陈。次取戊土，丙火佐之。三者皆全，登科及第，即透一二，亦非白丁。
+
+
+    或一派丙火，名曰假杀为权，须不见壬制者，此人假作清高，并无仁义，刑妻剋子。有壬制者，又主荣华。壬藏支者，有富贵之名，而无其实。
+
+
+    或支成金局，变弱为强，用丙无力，用丁方妙，故丁透者吉。无丁、无用之人。或丁出三四，煅制太过，其人奔波。
+
+
+    四月庚金，须用壬丙戊，但非拘执先后，宜分病用药。妻子仝前。
+
+
+    剑戟成功，入火乡而反害。金逢火已损，再见火必伤。庚辛火旺怕南方，逢辰巳之乡，又为荣断。
+
+    '
+- span_id: ss_qtbj_ed01_p0038_s02
+  entry_title: 五月庚金
+  text: '五月庚金，丁火旺烈，庚金败地，专用壬水，癸又次之。壬透癸藏，支见庚辛，必然科甲，切忌戊己透干制水、则否。戊藏支内，不失儒林。或壬在支，有金生助，又得金神出干，明经之贵。或癸出带辛，异路之荣。
+
+
+    或支成火局，乏水者，奔波之客。有壬癸制者，捐纳之人。又见戊己透者则吉。无壬癸制火者，又宜戊己出干补金洩火，庶不夭折孤贫。
+
+
+    总之，仲夏无水，必非上格，或一派木火，无伤、印、比劫，又作从杀而论。
+
+    '
+- span_id: ss_qtbj_ed01_p0038_s03
+  entry_title: 六月庚金
+  text: '六月庚金，三伏生寒，顽钝极矣，先用丁火，次取甲木。丁甲两透名显身荣，忌癸伤丁。有甲无丁、庸俗。有丁无甲、生员。丁甲全无，下贱之人。木虽有，丁不透，支又见水，执鞭之士。丁火无伤，贸易之流。
+
+
+    支会土局，甲先丁后。甲透者，文章显达。丁透者，刀笔扬名。或柱多金，有二丁出制，异路功名。
+
+
+    时日月年
+
+
+    丁庚丁丙
+
+
+    亥申未辰
+
+    时日月年
+
+
+    壬庚乙丙
+
+
+    午寅未午
+
+    时日月年
+
+
+    甲庚己癸
+
+
+    申子未巳
+
+    时日月年
+
+
+    癸庚乙丙
+
+
+    未辰未辰
+
+    '
+
+spans.yaml:
+spans:
+- span_id: ss_qtbj_ed01_p0029_s01
+  batch: qtbj_b020
+- span_id: ss_qtbj_ed01_p0029_s02
+  batch: qtbj_b020
+- span_id: ss_qtbj_ed01_p0029_s03
+  batch: qtbj_b020
+- span_id: ss_qtbj_ed01_p0030_s01
+  batch: qtbj_b021
+- span_id: ss_qtbj_ed01_p0030_s02
+  batch: qtbj_b021
+- span_id: ss_qtbj_ed01_p0032_s01
+  batch: qtbj_b022
+- span_id: ss_qtbj_ed01_p0032_s02
+  batch: qtbj_b022
+- span_id: ss_qtbj_ed01_p0032_s03
+  batch: qtbj_b022
+- span_id: ss_qtbj_ed01_p0033_s01
+  batch: qtbj_b023
+- span_id: ss_qtbj_ed01_p0034_s01
+  batch: qtbj_b024
+- span_id: ss_qtbj_ed01_p0035_s01
+  batch: qtbj_b025
+- span_id: ss_qtbj_ed01_p0035_s02
+  batch: qtbj_b025
+- span_id: ss_qtbj_ed01_p0037_s01
+  batch: qtbj_b026
+- span_id: ss_qtbj_ed01_p0037_s02
+  batch: qtbj_b026
+- span_id: ss_qtbj_ed01_p0037_s03
+  batch: qtbj_b026
+- span_id: ss_qtbj_ed01_p0038_s01
+  batch: qtbj_b027
+- span_id: ss_qtbj_ed01_p0038_s02
+  batch: qtbj_b027
+- span_id: ss_qtbj_ed01_p0038_s03
+  batch: qtbj_b027

@@ -1,0 +1,18 @@
+task_id: task_bazi_qtbj_assert_s5
+stage: assertions
+instruction_version: assertions_bazi_v0.1
+model: opencode
+model_id: opencode
+endpoint: ''
+time: '2026-07-15T05:44:43.223966+00:00'
+input_files:
+  input/glossary_v0.yaml: 9e921f82ee59fadfd4289e9cd98431c3d4f8a45762553673075275d2e374cbbf
+  input/segments.yaml: dd9bb9e4fd94c37644d9d638150469275d5e075e7eb7196474733b709a6d905c
+  input/spans.yaml: e08815e89708062bea5ea873101d6e05a611362894dffd0503d7d6426602dc6f
+prompt_sha256: 4139bbb2d1553f73b988f765175271d5c4fe3f8ee57a1e36881bb81c65eb684d
+response_sha256: 562e82dbc8f58883fdba5af81c988366182d197d5cd2911134c08e070b9de36b
+cost:
+  tokens_in: null
+  tokens_out: null
+  human_minutes: null
+  rework_rounds: null

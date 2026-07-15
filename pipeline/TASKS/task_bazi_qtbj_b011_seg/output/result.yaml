@@ -1,0 +1,13 @@
+task_id: task_bazi_qtbj_b011_seg
+result: completed
+uncertainties:
+  - where: s03
+    note: "'即有.' 疑似缺文或转录截断，后接'一二癸水'语义可续但标点异常，可能原书此处有脱漏"
+  - where: s02
+    note: "段中含三则命造表格（时日月年/四柱干支），表格与旁注文字边界存疑"
+  - where: s04
+    note: "段中含三则命造表格，同 s02"
+lesson_candidates:
+  - "四柱命造表格紧跟在'用X者，X妻X子'句后或条目末尾，不构成独立条目，并入前段并标记 case_candidate"
+  - "转录中以句号断开的截断文字（如'即有.'）可能是底本脱漏，勿擅自补全，按原样保留并在 uncertainties 中标记"
+needs_escalation: false

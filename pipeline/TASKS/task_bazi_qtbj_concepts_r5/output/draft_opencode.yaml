@@ -1,0 +1,61 @@
+candidates:
+  - surface: 假杀化权
+    kind_guess: pattern
+    seg_ids: [ss_qtbj_ed01_p0050_s01]
+    sure: true
+  - surface: 进气
+    kind_guess: tiaohou
+    seg_ids: [ss_qtbj_ed01_p0050_s05]
+    sure: true
+  - surface: 用神得地
+    kind_guess: tiaohou
+    seg_ids: [ss_qtbj_ed01_p0051_s02]
+    sure: true
+  - surface: 金寒水冻
+    kind_guess: tiaohou
+    seg_ids: [ss_qtbj_ed01_p0051_s04]
+    sure: true
+  - surface: 水土混杂
+    kind_guess: pattern
+    seg_ids: [ss_qtbj_ed01_p0051_s04]
+    sure: true
+  - surface: 水木伤官格
+    kind_guess: pattern
+    seg_ids: [ss_qtbj_ed01_p0051_s04]
+    sure: true
+  - surface: 阴阳和合
+    kind_guess: pattern
+    seg_ids: [ss_qtbj_ed01_p0053_s01]
+    sure: false
+  - surface: 假杀格
+    kind_guess: pattern
+    seg_ids: [ss_qtbj_ed01_p0053_s05]
+    sure: true
+  - surface: 劫印化晋
+    kind_guess: pattern
+    seg_ids: [ss_qtbj_ed01_p0054_s01]
+    sure: false
+  - surface: 死处逢生
+    kind_guess: phase
+    seg_ids: [ss_qtbj_ed01_p0055_s01]
+    sure: true
+  - surface: 独才格
+    kind_guess: pattern
+    seg_ids: [ss_qtbj_ed01_p0055_s01]
+    sure: true
+  - surface: 水暖金温
+    kind_guess: tiaohou
+    seg_ids: [ss_qtbj_ed01_p0055_s02]
+    sure: true
+  - surface: 冬水汪洋
+    kind_guess: pattern
+    seg_ids: [ss_qtbj_ed01_p0056_s01]
+    sure: false
+  - surface: 金温水暖
+    kind_guess: tiaohou
+    seg_ids: [ss_qtbj_ed01_p0056_s02, ss_qtbj_ed01_p0056_s03]
+    sure: true
+  - surface: 水辅阳光
+    kind_guess: pattern
+    seg_ids: [ss_qtbj_ed01_p0056_s03]
+    sure: true

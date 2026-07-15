@@ -1,0 +1,9 @@
+task_id: task_bazi_qtbj_concepts_r3
+result: completed
+  uncertainties:
+    - "旱田：标记sure=false，可能是穷通宝鉴特有的文学性比喻，非跨书标准术语"
+    - "乘轩：标记sure=false，在渊海子平/三命通会中有提及，但属较冷僻的特殊格局名"
+  lesson_candidates:
+    - "2026-07-12 | task_bazi_qtbj_concepts_r3 | 单字十神缩写比（比肩）漏注册风险：v0已有杀/官/印/才/食，比同样应作为十神缩写入库，发现于s037_s02若见一比"
+    - "2026-07-12 | task_bazi_qtbj_concepts_r3 | 同义异字（当权/司令/司权）需要群体判断：工位4目前将三词各自登记，未来需决定是收录所有异名还是归一"
+needs_escalation: false

@@ -1,1 +1,12 @@
 .DS_Store
+
+# 版权源书:扫描/电子原书不进公开仓(只提取转录文本与派生产物)
+*.epub
+*.pdf
+*.mobi
+*.azw3
+# 原始影像与原书目录
+raw_books/**/*.epub
+raw_books/**/*.pdf
+pipeline/corpus/**/raw/*.epub
+pipeline/corpus/**/raw/*.pdf

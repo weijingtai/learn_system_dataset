@@ -1,0 +1,9 @@
+task_id: task_bazi_qtbj_b026_seg
+result: completed
+uncertainties:
+- where: s03
+  note: 三月庚金条目仅一则命造表格（而正月两则、二月四则），数量显著偏少
+lesson_candidates:
+- 庚金三月条目命造表格远少于正月二月——并非均匀分布
+- 原文标点符号（如中文字符小逗号U+FE50）须逐字保留
+needs_escalation: false

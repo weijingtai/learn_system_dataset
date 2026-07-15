@@ -1,0 +1,11 @@
+task_id: task_bazi_qtbj_b018_seg
+result: completed
+uncertainties:
+- where: s01
+  note: 总论段仅一段短文（约80字），与正二月和三月详细论述形成鲜明对比，切分边界清晰
+- where: s03
+  note: 三月条目正文中嵌入了命造举例（丁未、癸卯、戊寅、乙卯），与段末固定格式的时日月年表格不同，系正文内举例
+lesson_candidates:
+- 戊土三春节有不含命造表格的段落（总论、正二月），并非每段都含表格——与甲乙木/丙丁火各段常附表格不同
+- 正文内嵌命造（如丁未/癸卯/戊寅/乙卯）不同于段末表格格式，仍应标记 case_candidate
+needs_escalation: false

@@ -1,0 +1,13 @@
+task_id: task_bazi_qtbj_b010_seg
+result: completed
+uncertainties:
+  - where: s02
+    note: "段中含四则命造表格（时日月年/四柱干支），表格与夹叙文字之间的边界存疑，暂全部纳入 s02"
+  - where: s03
+    note: "'凡用壬者，金妻水子。' 位于二月条目末尾、命造表格之前，表格归属（二月或附录）存疑，暂纳入 s03"
+  - where: s04
+    note: "三月条目仅三段短文，明显短于正月（含大量或变与命造表）和二月，可能原文缺页或未收录更多变例"
+lesson_candidates:
+  - "丙火节常见嵌入的四柱命造表格（时日月年四行、每行两字），属于该月条目的一部分，切分时不可拆出，且应标记 case_candidate"
+  - "命造表格紧跟在'用X者，X妻X子'句后或条目末尾，不构成独立条目，并入前段"
+needs_escalation: false

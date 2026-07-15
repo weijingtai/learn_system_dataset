@@ -1,0 +1,9 @@
+task_id: task_bazi_qtbj_b008_seg
+result: completed
+uncertainties:
+- seg_id: s03
+  issue: 编者夹注括号「癸在年（月）干」，逐字保留于text；文层归属（原文/编者补字）待复核定层
+  source: 补记 by Claude 复核，2026-07-11
+lesson_candidates:
+- 编者夹注括号须逐字保留并在此记录，见LESSONS通用第11条+类型C小节
+needs_escalation: false

@@ -1,0 +1,69 @@
+candidates:
+  - surface: 羊刃驾杀
+    kind_guess: pattern
+    seg_ids: [ss_qtbj_ed01_p0039_s02]
+    sure: true
+  - surface: 假杀重重
+    kind_guess: pattern
+    seg_ids: [ss_qtbj_ed01_p0039_s02]
+    sure: false
+  - surface: 土厚埋金
+    kind_guess: pattern
+    seg_ids: [ss_qtbj_ed01_p0039_s03, ss_qtbj_ed01_p0044_s03]
+    sure: true
+  - surface: 水冷金寒
+    kind_guess: tiaohou
+    seg_ids: [ss_qtbj_ed01_p0040_s01]
+    sure: true
+  - surface: 官杀混杂
+    kind_guess: pattern
+    seg_ids: [ss_qtbj_ed01_p0040_s02]
+    sure: true
+  - surface: 失令
+    kind_guess: tiaohou
+    seg_ids: [ss_qtbj_ed01_p0042_s01, ss_qtbj_ed01_p0043_s02]
+    sure: true
+  - surface: 金弱沉寒
+    kind_guess: pattern
+    seg_ids: [ss_qtbj_ed01_p0042_s01]
+    sure: false
+  - surface: 朝阳
+    kind_guess: pattern
+    seg_ids: [ss_qtbj_ed01_p0042_s01, ss_qtbj_ed01_p0044_s03]
+    sure: true
+  - surface: 官印相争
+    kind_guess: pattern
+    seg_ids: [ss_qtbj_ed01_p0042_s02]
+    sure: true
+  - surface: 土厚金埋
+    kind_guess: pattern
+    seg_ids: [ss_qtbj_ed01_p0042_s03]
+    sure: true
+  - surface: 火土杂乱
+    kind_guess: pattern
+    seg_ids: [ss_qtbj_ed01_p0042_s03]
+    sure: false
+  - surface: 一清澈底
+    kind_guess: pattern
+    seg_ids: [ss_qtbj_ed01_p0043_s01]
+    sure: true
+  - surface: 一清到底
+    kind_guess: pattern
+    seg_ids: [ss_qtbj_ed01_p0044_s03]
+    sure: true
+  - surface: 虎格
+    kind_guess: pattern
+    seg_ids: [ss_qtbj_ed01_p0044_s03]
+    sure: true
+  - surface: 金白水清
+    kind_guess: pattern
+    seg_ids: [ss_qtbj_ed01_p0045_s01]
+    sure: true
+  - surface: 辛水汪洋
+    kind_guess: pattern
+    seg_ids: [ss_qtbj_ed01_p0045_s01]
+    sure: false
+  - surface: 润下格
+    kind_guess: pattern
+    seg_ids: [ss_qtbj_ed01_p0045_s02]
+    sure: true

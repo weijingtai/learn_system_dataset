@@ -1,0 +1,18 @@
+task_id: task_bazi_qtbj_assert_s3
+stage: assertions
+instruction_version: assertions_bazi_v0.1
+model: gemini
+model_id: gemini
+endpoint: ''
+time: '2026-07-15T03:04:10.238785+00:00'
+input_files:
+  input/glossary_v0.yaml: 9e921f82ee59fadfd4289e9cd98431c3d4f8a45762553673075275d2e374cbbf
+  input/segments.yaml: 08ad6b195156ca7a2bab6b33cb4a0397019e01c6ade1dd85dd994cdca777ed52
+  input/spans.yaml: b676279de2415542c436d529297d0512938f3dcd82876394907d988c636c550f
+prompt_sha256: d26e2b83467f0a61182c7689418544b73f90c0e8a95f205c765d796210b70224
+response_sha256: b238f04ae38bc85a3ab0a9f873ed7e21a67fffbd86ee68f9a1e03b2ea397b6dd
+cost:
+  tokens_in: null
+  tokens_out: null
+  human_minutes: null
+  rework_rounds: null

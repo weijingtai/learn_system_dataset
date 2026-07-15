@@ -1,0 +1,11 @@
+task_id: task_bazi_qtbj_concepts_r5
+result: completed
+  uncertainties:
+    - "阴阳和合：sure=false，属道教哲学通用概念，非八字特有术语，但原文明确冠以名曰"
+    - "劫印化晋：sure=false，穷通宝鉴特有概念，跨书复用程度待确认"
+    - "冬水汪洋：sure=false，属穷通宝鉴盘面文学比喻，与辛水汪洋同类，是否收录待复核"
+  lesson_candidates:
+    - "2026-07-12 | task_bazi_qtbj_concepts_r5 | 进气是调候基础词，工位4示例列出但v0漏收，全程5轮放量才在r5被补登——需要全局扫描已签发术语表中缺失的基础词类"
+    - "2026-07-12 | task_bazi_qtbj_concepts_r5 | 同义异序异形词对持续出现：水暖金温/金温水暖再次印证表面逐字一致原则要求各自注册，复核时需统一策略"
+    - "2026-07-12 | task_bazi_qtbj_concepts_r5 | 假杀化权/假杀为权同类异字再次出现（化vs为），类似之前阳刃驾杀/阳刃合杀的问题，需建立同义异字收录决策规则"
+needs_escalation: false

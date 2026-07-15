@@ -1,0 +1,18 @@
+task_id: task_bazi_qtbj_concepts_r4
+stage: concept_candidates
+instruction_version: concepts_bazi_v0.1
+model: opencode
+model_id: opencode
+endpoint: ''
+time: '2026-07-12T08:53:34.144323+00:00'
+input_files:
+  input/glossary_v0.yaml: f88f62c715137a8aa6cb4633040691b7c91cee6e33d69a412654ed8aba562d25
+  input/segments.yaml: 6307235025c911a7e79cf8f7190d807884fb4d9137bc40045dbeb9e43a036f3c
+  input/spans.yaml: f60f7ecb19903091a548015608d21fcd0efda7c1968a6bf3cd016525dd881529
+prompt_sha256: 0dee9d39fe32f52ec77bf4357935326acf91427d737a6d3f87dcc9b745a3ecd9
+response_sha256: bc3d06810f41fa1dd9f1c80f4fc00d8ef70b98fc26754f05706d429704c0af5c
+cost:
+  tokens_in: null
+  tokens_out: null
+  human_minutes: null
+  rework_rounds: null

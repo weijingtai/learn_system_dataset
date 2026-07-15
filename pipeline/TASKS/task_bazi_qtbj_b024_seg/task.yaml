@@ -1,0 +1,12 @@
+task_id: task_bazi_qtbj_b024_seg
+stage: segmentation
+text_type: C
+source_snapshot: corpus/bazi/qtbj_ed01/source/transcript_v1.md
+source_id: src_qtbj_ed01
+batch_id: qtbj_b024
+node_id: n024
+path: 十干分论 / 论己土 / 三秋己土
+id_range:
+- ku_bazi_002500
+- ku_bazi_002599
+instruction_version: seg_C_v0.1

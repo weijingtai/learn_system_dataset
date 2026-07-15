@@ -1,0 +1,8 @@
+task_id: task_bazi_qtbj_b021_seg
+result: completed
+uncertainties:
+- where: s02
+  note: 十一二月合并为一个条目（非独占月），与十月分列不同，可能原书体例如此
+lesson_candidates:
+- 十一二月合并条目在穷通宝鉴中常见，切分时以原文显式标目为准不强行拆分
+needs_escalation: false

@@ -1,0 +1,8 @@
+task_id: task_bazi_qtbj_b024_seg
+result: completed
+uncertainties:
+- where: s01
+  note: 三秋己土为一体式总论，仅文中带过八月、九月，无独立分月条目，末尾附勾陈歌诀
+lesson_candidates:
+- 己土三秋节为一整体总论，不强行拆月；段末附歌诀为原文一部分，不可省略
+needs_escalation: false

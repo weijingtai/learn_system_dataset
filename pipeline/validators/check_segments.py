@@ -14,6 +14,9 @@ check_segments.py —— 工位 3（语义切分）输出的确定性校验
     SEG_003  seg_id 格式或顺序错误（应为 s01、s02… 连续递增）
     SEG_004  text 或 note 为空
     SEG_005  段长超限（仅 --type B）：单段超过 300 字，疑似含多个论点（警告，不阻塞）
+    SEG_008  类型 C 缺 entry_title / path 字段（阻塞）
+    SEG_009  类型 C 段内疑似嵌入命例（≥2 干支组合）却未标 case_candidate（警告）
+    SEG_010  类型 C 的 entry_title 丢天干（只有月令，如"二月"应为"二月辛金"）（阻塞）
 
 退出码：0 = PASS（可含警告）；1 = FAIL。只报错，不修改任何文件。
 """
@@ -148,6 +151,45 @@ def main():
                 if "commentator" not in s:
                     errors.append(
                         f"SEG_003 | {s.get('seg_id')} | layer=commentary 缺少 commentator")
+
+    # 类型 C（条目/表格）：entry_title / path 必填 + 命例检测
+    # 依据：HANDBOOK 3.2（条目式一条一段）＋ 试运行章程第 2、3 条
+    #   —— 条目的路径条件必须落到 path 字段（下游主张的 conditions 要继承它）；
+    #   —— 嵌入的举例命造是 Case 候选，不是主张，切分阶段先标出来提醒工位 5。
+    if args.type == "C":
+        # 干支组合：十天干 + 十二地支，用于识别命例（如"甲午日庚午时""甲子、乙丑"）
+        GAN = "甲乙丙丁戊己庚辛壬癸"
+        ZHI = "子丑寅卯辰巳午未申酉戌亥"
+        GANZHI_RE = re.compile(f"[{GAN}][{ZHI}]")
+        # 天干五行（论X木/三春X金…），用于校验 entry_title 是否丢天干
+        GANWX_RE = re.compile(f"[{GAN}](?:木|火|土|金|水)")
+        for s in segments:
+            sid = s.get("seg_id", "")
+            et = str(s.get("entry_title", "")).strip()
+            path = str(s.get("path", ""))
+            if not et:
+                errors.append(
+                    f"SEG_008 | {sid} | 类型 C 缺少 entry_title（条目标目，如『正月甲木』）")
+            if not str(s.get("path", "")).strip():
+                errors.append(
+                    f"SEG_008 | {sid} | 类型 C 缺少 path（条目路径，如『论甲木 / 三春甲木 / 正月』"
+                    "——下游主张的 conditions 要继承此路径条件）")
+            # SEG_010 entry_title 丢天干：含"月"却不含天干五行，但 path 上级有天干可参照
+            if et and "月" in et and not GANWX_RE.search(et):
+                path_gan = GANWX_RE.findall(path)
+                if path_gan:
+                    errors.append(
+                        f"SEG_010 | {sid} | entry_title『{et}』只有月令、丢了天干"
+                        f"（应为『{et}{path_gan[-1]}』，路径含『{path_gan[-1]}』）——"
+                        "entry_title 必须是完整标目，严禁脚本机械切割丢字")
+            # 命例检测：段内出现 ≥2 个干支组合，疑似举例命造，须标 case_candidate
+            text = str(s.get("text", ""))
+            ganzhi_hits = GANZHI_RE.findall(text)
+            if len(ganzhi_hits) >= 2 and not s.get("case_candidate"):
+                warnings.append(
+                    f"SEG_009 | {sid} | 段内含 {len(ganzhi_hits)} 处干支组合"
+                    f"（{'、'.join(ganzhi_hits[:4])}…），疑似嵌入命例。"
+                    "若为举例命造须标 case_candidate: true，工位 5 不得提成主张")
 
     for w in warnings:
         print(f"WARN  {w}")

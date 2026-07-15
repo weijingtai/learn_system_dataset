@@ -1,0 +1,11 @@
+task_id: task_bazi_qtbj_b017_seg
+result: completed
+uncertainties:
+- where: s01
+  note: 三冬丁火只有总论和十一月两段，缺少十月和十二月的独立条目，可能原书体例如此或底本结构不完整
+- where: s02
+  note: 十一月条目名以或式起句（或仲冬水多癸旺），与典型标目格式不同，是否为独立条目存疑
+lesson_candidates:
+- 丁火三冬节只有总论+十一月两个显式段落，不应强行拆出十月/十二月段
+- 十一月条目以或式开头的行文特征在穷通宝鉴中并非个例，切分时以显式标目（如十一月丁火）为锚点
+needs_escalation: false

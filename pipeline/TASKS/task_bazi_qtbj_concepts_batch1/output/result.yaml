@@ -1,0 +1,20 @@
+task_id: task_bazi_qtbj_concepts_batch1
+result: completed
+uncertainties:
+  - where: qbj_b003_s02 / 劫财
+    note: "s11'兄弟劫财争讼'中劫财兼具十神名称与动词短语（抢劫财产）两解，已登记为ten_god但标sure=false"
+  - where: batch1_everywhere / 伤
+    note: "'癸水伤丁''丙丁伤金'中的伤为动词损害义，非伤官十神；单独登记为other以警示同形异义"
+  - where: qbj_b004_s04 / 假伤官
+    note: "'假伤官'是穷通宝鉴特有格局变体名称（伤官格但有条件破除），不见于INSTRUCTIONS明确清单，归pattern sure=true"
+  - where: qbj_b003_s02 / 司权
+    note: "原文用'丙火司权'而非'司令'，INSTRUCTIONS两者并列，按原文surface登记为司权"
+  - where: qbj_b002_s01 / 生旺
+    note: "'生旺'可作旺衰状态（生+帝旺）或一般形容词，现有语境为旺衰状态，归phase"
+lesson_candidates:
+  - "穷通宝鉴中'才'常通'财'（才杀=财杀），工位4应单独登记'才'为十神，不依赖标准字形'财'来匹配同名术语"
+  - "木被金伤、伤官遇杀、杀重身轻等穷通宝鉴专有格局/组合名应归pattern，此类名虽不完全匹配INSTRUCTIONS示例清单但仍为命理专用词"
+  - "杀印相生是穷通宝鉴描述七杀生印星的常见作用模式，应归pattern（类似食神制杀）"
+  - "丙丁伤金、癸水伤丁中的'伤'为动词非伤官十神——同形异义检测应在工位4完成，不可留给下游工位5"
+  - "假伤官、天元一气、一才一用、假从、伤官伤尽等穷通宝鉴独有用词应登记为pattern，即使INSTRUCTIONS例表未全部覆盖"
+needs_escalation: false

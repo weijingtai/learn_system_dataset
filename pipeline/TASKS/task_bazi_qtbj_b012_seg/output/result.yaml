@@ -1,0 +1,11 @@
+task_id: task_bazi_qtbj_b012_seg
+result: completed
+uncertainties:
+  - where: s01
+    note: "三秋丙火节无独立总论段，节标题后直接进入七月丙火条目，与三春/三夏有总论段不同"
+  - where: s01
+    note: "段中含两则命造表格，边界归属存疑"
+lesson_candidates:
+  - "并非所有季节章节都有独立总论段，三秋丙火等章节标题后直接进入首月条目，切分时不应强行拆出一个总论段"
+  - "四柱命造表格格式统一为时日月年/四行两字，全篇一致，可据此判别命造举例段落"
+needs_escalation: false

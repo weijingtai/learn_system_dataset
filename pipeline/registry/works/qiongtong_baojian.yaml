@@ -5,12 +5,14 @@ school_hint: 调候取用一系
 era: 明清间成书，托名传承有争议；徐乐吾评注为民国
 why_selected: 结构极规整的类型 C 条目书（十干×十二月），整本试运行的压测载体；调候内容是高频盘面问题的出处富矿
 priority: high
-status: selected            # 待用户放入电子文本后转 sourcing
-text_type_guess: C          # 白文为 C；徐注本为 D
+status: sourced            # 电子文本已入库 corpus/bazi/qtbj_ed01，manifest 已建
+text_type_guess: C          # 已确认：白文本 = 纯类型 C
+source_id: src_qtbj_ed01
+corpus_path: corpus/bazi/qtbj_ed01
 editions:
-  - where: 待用户提供（raw_books/bazi/qiongtongbaojian/）
-    url: ""
-    kind: 待定（白文 or 评注本）
-    rights_note: 原书公版；徐乐吾 1949 年卒、评注已过版权期；现代点校本的标点校勘权益须规避——电子文本按 ed 惯例登记"来源与文字未核"声明
-corpus_path: ""
+  - where: corpus/bazi/qtbj_ed01/
+    url: https://zh.wikisource.org/wiki/穷通宝鉴
+    kind: 白文本（无徐乐吾评注）→ 类型 C
+    rights_note: 原书公版；维基文库社群转录，CC BY-SA 3.0 / GFDL，署名 Wikisource；无影像底本、文字未核声明见 manifest
+corpus_path_note: 徐注本（类型 D）留作第二轮验证再叠加，届时另立 ed02
 lessons: []

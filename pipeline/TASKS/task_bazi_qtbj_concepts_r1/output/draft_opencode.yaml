@@ -1,0 +1,81 @@
+candidates:
+  - surface: 食
+    kind_guess: ten_god
+    seg_ids: [ss_qtbj_ed01_p0001_s07]
+    sure: true
+  - surface: 去浊留清
+    kind_guess: pattern
+    seg_ids: [ss_qtbj_ed01_p0008_s01, ss_qtbj_ed01_p0011_s04]
+    sure: true
+  - surface: 春旱
+    kind_guess: pattern
+    seg_ids: [ss_qtbj_ed01_p0010_s02]
+    sure: true
+  - surface: 困丙
+    kind_guess: tiaohou
+    seg_ids: [ss_qtbj_ed01_p0010_s02]
+    sure: true
+  - surface: 假化
+    kind_guess: pattern
+    seg_ids: [ss_qtbj_ed01_p0010_s03]
+    sure: true
+  - surface: 二庚争合
+    kind_guess: pattern
+    seg_ids: [ss_qtbj_ed01_p0010_s04]
+    sure: true
+  - surface: 木秀火明
+    kind_guess: pattern
+    seg_ids: [ss_qtbj_ed01_p0011_s01]
+    sure: true
+  - surface: 气散之文
+    kind_guess: pattern
+    seg_ids: [ss_qtbj_ed01_p0011_s03]
+    sure: true
+  - surface: 司令
+    kind_guess: tiaohou
+    seg_ids: [ss_qtbj_ed01_p0012_s01, ss_qtbj_ed01_p0013_s01]
+    sure: true
+  - surface: 化合格
+    kind_guess: pattern
+    seg_ids: [ss_qtbj_ed01_p0012_s02]
+    sure: true
+  - surface: 木火文星
+    kind_guess: pattern
+    seg_ids: [ss_qtbj_ed01_p0012_s03]
+    sure: true
+  - surface: 藤萝系甲
+    kind_guess: pattern
+    seg_ids: [ss_qtbj_ed01_p0012_s04]
+    sure: true
+  - surface: 既济
+    kind_guess: pattern
+    seg_ids: [ss_qtbj_ed01_p0016_s01, ss_qtbj_ed01_p0017_s02]
+    sure: true
+  - surface: 贪合
+    kind_guess: tiaohou
+    seg_ids: [ss_qtbj_ed01_p0016_s02]
+    sure: true
+  - surface: 炎上
+    kind_guess: pattern
+    seg_ids: [ss_qtbj_ed01_p0016_s02, ss_qtbj_ed01_p0017_s03]
+    sure: true
+  - surface: 争合
+    kind_guess: pattern
+    seg_ids: [ss_qtbj_ed01_p0016_s03]
+    sure: true
+  - surface: 贪财坏印
+    kind_guess: tiaohou
+    seg_ids: [ss_qtbj_ed01_p0016_s03]
+    sure: false
+  - surface: 阳刃合杀
+    kind_guess: pattern
+    seg_ids: [ss_qtbj_ed01_p0017_s01]
+    sure: true
+  - surface: 羊刃倒戈
+    kind_guess: pattern
+    seg_ids: [ss_qtbj_ed01_p0017_s01]
+    sure: true
+  - surface: 阴刑杀重
+    kind_guess: pattern
+    seg_ids: [ss_qtbj_ed01_p0017_s02]
+    sure: false

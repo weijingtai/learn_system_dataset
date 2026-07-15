@@ -1,0 +1,23 @@
+canon_domain: yinyang
+schema_version: canon_v0.1
+closed_set_size: 2
+id_prefix: co_shared_yinyang_
+concepts:
+- concept_id: co_shared_yinyang_01
+  surface: 阴
+  domain: yinyang
+  rev: 1
+  status: active
+  aliases: []
+  note: ''
+- concept_id: co_shared_yinyang_02
+  surface: 阳
+  domain: yinyang
+  rev: 1
+  status: active
+  aliases: []
+  note: ''
+revisions:
+- date: '2026-07-11'
+  change: 初版生成
+  rev_scope: all@1

@@ -117,6 +117,16 @@ def write_output(task_dir, model_name, response_data, model_cfg, input_sha_map,
         "input_files": {rel: input_sha_map.get(rel, "") for rel in input_sha_map},
         "prompt_sha256": sha256_hex(prompt_path),
         "response_sha256": resp_sha,
+        # 成本记录（章程 G6）：manual/mock 模式填不了 token，留占位由账本回填；
+        # API 模式下由 call_model 的响应 usage 字段回填（见 write_output 调用处）。
+        "cost": {
+            "tokens_in": (response_data.get("usage", {}) or {}).get("prompt_tokens")
+            if isinstance(response_data, dict) else None,
+            "tokens_out": (response_data.get("usage", {}) or {}).get("completion_tokens")
+            if isinstance(response_data, dict) else None,
+            "human_minutes": None,   # 你验收时回填到 batches.yaml
+            "rework_rounds": None,   # 派发者按返工次数回填
+        },
     }
 
     run_path = out_dir / "run.yaml"

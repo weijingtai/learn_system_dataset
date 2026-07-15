@@ -1,0 +1,11 @@
+task_id: task_bazi_qtbj_b020_seg
+result: completed
+uncertainties:
+- where: s02
+  note: 八月戊土条文无命造表格，区别于七月（三表）和九月（五表），体例不一致
+- where: s03
+  note: 九月条目末尾五则命造表格，数量显著多于其他月，疑似原书在此多录命例
+lesson_candidates:
+- 戊土三秋节八月无表格、七月九月有表格——并非每个月都附命造举例，无表格不应强行补入
+- 戊土体例与甲乙木、丙丁火差异较大，命造表格出现频率和位置均不一致
+needs_escalation: false

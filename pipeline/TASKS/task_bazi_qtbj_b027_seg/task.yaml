@@ -1,0 +1,12 @@
+task_id: task_bazi_qtbj_b027_seg
+stage: segmentation
+text_type: C
+source_snapshot: corpus/bazi/qtbj_ed01/source/transcript_v1.md
+source_id: src_qtbj_ed01
+batch_id: qtbj_b027
+node_id: n027
+path: 十干分论 / 论庚金 / 三夏庚金
+id_range:
+- ku_bazi_002800
+- ku_bazi_002899
+instruction_version: seg_C_v0.1

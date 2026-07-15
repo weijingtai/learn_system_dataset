@@ -1,0 +1,1488 @@
+assertions:
+- assertion_id: as_bazi_000001
+  proposition: 北方阴极生寒，寒生水
+  proposition_id: pr_bazi_000001
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0001_s02
+    support_type: direct
+  conditions: []
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000002
+  proposition: 南方阳极生热，热生火
+  proposition_id: pr_bazi_000002
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0001_s02
+    support_type: direct
+  conditions: []
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000003
+  proposition: 东方阳散以泄而生风，风生木
+  proposition_id: pr_bazi_000003
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0001_s02
+    support_type: direct
+  conditions: []
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000004
+  proposition: 西方阴止以收而生燥，燥生金
+  proposition_id: pr_bazi_000004
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0001_s02
+    support_type: direct
+  conditions: []
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000005
+  proposition: 中央阴阳交而生温，温生土
+  proposition_id: pr_bazi_000005
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0001_s02
+    support_type: direct
+  conditions: []
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000006
+  proposition: 五行相生所以相维
+  proposition_id: pr_bazi_000006
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0001_s02
+    support_type: direct
+  conditions: []
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000007
+  proposition: 五行相克所以相制
+  proposition_id: pr_bazi_000007
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0001_s02
+    support_type: direct
+  conditions: []
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000008
+  proposition: 火为太阳，性炎上
+  proposition_id: pr_bazi_000008
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0001_s03
+    support_type: direct
+  conditions: []
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000009
+  proposition: 水为太阴，性润下
+  proposition_id: pr_bazi_000009
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0001_s03
+    support_type: direct
+  conditions: []
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000010
+  proposition: 木为少阳，性腾上而无所止
+  proposition_id: pr_bazi_000010
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0001_s03
+    support_type: direct
+  conditions: []
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000011
+  proposition: 金为少阴，性沉下而有所止
+  proposition_id: pr_bazi_000011
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0001_s03
+    support_type: direct
+  conditions: []
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000012
+  proposition: 土无常性，视四时所乘
+  proposition_id: pr_bazi_000012
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0001_s03
+    support_type: direct
+  conditions: []
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000013
+  proposition: 欲使五行相济得所，勿令太过弗及
+  proposition_id: pr_bazi_000013
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0001_s03
+    support_type: direct
+  conditions: []
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000014
+  proposition: 五行之性各致其用，水主智
+  proposition_id: pr_bazi_000014
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0001_s04
+    support_type: direct
+  conditions: []
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000015
+  proposition: 火主礼
+  proposition_id: pr_bazi_000015
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0001_s04
+    support_type: direct
+  conditions: []
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000016
+  proposition: 木主仁
+  proposition_id: pr_bazi_000016
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0001_s04
+    support_type: direct
+  conditions: []
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000017
+  proposition: 金主义
+  proposition_id: pr_bazi_000017
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0001_s04
+    support_type: direct
+  conditions: []
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000018
+  proposition: 土主信，重宽厚博，无所不容
+  proposition_id: pr_bazi_000018
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0001_s04
+    support_type: direct
+  conditions: []
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000019
+  proposition: 以之水即水附之而行，以之木则木托之而生，金不得土则无自出，火不得土则无自归，五行皆赖土
+  proposition_id: pr_bazi_000019
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0001_s04
+    support_type: direct
+  conditions: []
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000020
+  proposition: 五行正色：水黑、火赤、木青、土黄
+  proposition_id: pr_bazi_000020
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0001_s05
+    support_type: direct
+  conditions: []
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000021
+  proposition: 五行变易之色，生旺从正色，死绝从母色，成形冠带从妻色，病败从鬼色，旺墓从子色
+  proposition_id: pr_bazi_000021
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0001_s05
+    support_type: direct
+  conditions:
+  - 生旺
+  - 死绝
+  - 成形冠带
+  - 病败
+  - 旺墓
+  exceptions: []
+  concept_ids:
+  - co_bazi_000040
+  status: machine_extracted
+- assertion_id: as_bazi_000022
+  proposition: 五行之数：水一、火二、木三、金四、土五
+  proposition_id: pr_bazi_000022
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0001_s06
+    support_type: direct
+  conditions: []
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000023
+  proposition: 五行之数，生旺加倍
+  proposition_id: pr_bazi_000023
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0001_s06
+    support_type: direct
+  conditions:
+  - 生旺
+  exceptions: []
+  concept_ids:
+  - co_bazi_000040
+  status: machine_extracted
+- assertion_id: as_bazi_000024
+  proposition: 五行之数，死绝减半
+  proposition_id: pr_bazi_000024
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0001_s06
+    support_type: direct
+  conditions:
+  - 死绝
+  exceptions: []
+  concept_ids:
+  - co_bazi_000042
+  status: machine_extracted
+- assertion_id: as_bazi_000025
+  proposition: 过与不及皆为乖道
+  proposition_id: pr_bazi_000025
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0001_s07
+    support_type: direct
+  conditions: []
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000026
+  proposition: 高者抑之使平，下者举之使崇，或益其不及，或损其太过
+  proposition_id: pr_bazi_000026
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0001_s07
+    support_type: direct
+  conditions: []
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000027
+  proposition: 贵在折衷归于中道，使无有余不足之累，即才官印食贵人驿马之微意也，行运亦如之
+  proposition_id: pr_bazi_000027
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0001_s07
+    support_type: direct
+  conditions: []
+  exceptions: []
+  concept_ids:
+  - co_bazi_000044
+  - co_bazi_000007
+  status: machine_extracted
+- assertion_id: as_bazi_000028
+  proposition: 春月之木，渐有生长之象
+  proposition_id: pr_bazi_000028
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0005_s01
+    support_type: direct
+  conditions:
+  - 春月
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000029
+  proposition: 初春犹有余寒，当以火温暖，则有舒畅之美
+  proposition_id: pr_bazi_000029
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0005_s01
+    support_type: direct
+  conditions:
+  - 初春
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000030
+  proposition: 初春水多变克，有损精神
+  proposition_id: pr_bazi_000030
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0005_s01
+    support_type: direct
+  conditions:
+  - 初春
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000031
+  proposition: 春月重见生旺，必用庚金斫凿，可成栋梁
+  proposition_id: pr_bazi_000031
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0005_s01
+    support_type: direct
+  conditions:
+  - 春月
+  - 重见生旺
+  exceptions: []
+  concept_ids:
+  - co_bazi_000035
+  - co_bazi_000040
+  status: machine_extracted
+- assertion_id: as_bazi_000032
+  proposition: 春末阳壮水渴，藉水资扶，则花繁叶茂
+  proposition_id: pr_bazi_000032
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0005_s01
+    support_type: direct
+  conditions:
+  - 春末
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000033
+  proposition: 初春无火，增之以水，则阴浓气弱，根损枝枯，不能华秀
+  proposition_id: pr_bazi_000033
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0005_s01
+    support_type: direct
+  conditions:
+  - 初春
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000034
+  proposition: 春末失水，增之以火，则阳气太盛，燥渴相加，枝枯叶干，亦不华秀
+  proposition_id: pr_bazi_000034
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0005_s01
+    support_type: direct
+  conditions:
+  - 春末
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000035
+  proposition: 水火二物，要得时相济为美
+  proposition_id: pr_bazi_000035
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0005_s01
+    support_type: direct
+  conditions: []
+  exceptions: []
+  concept_ids:
+  - co_bazi_000036
+  status: machine_extracted
+- assertion_id: as_bazi_000036
+  proposition: 正月甲木，初春尚有余寒，得丙癸逢，富贵双全
+  proposition_id: pr_bazi_000036
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0005_s02
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000037
+  proposition: 癸藏丙透，名寒木向阳，主大富贵
+  proposition_id: pr_bazi_000037
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0005_s02
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000011
+  status: machine_extracted
+- assertion_id: as_bazi_000038
+  proposition: 倘风水不及，寒木向阳亦不失儒林俊秀
+  proposition_id: pr_bazi_000038
+  relation: qualifies
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0005_s02
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  - 风水不及
+  exceptions: []
+  concept_ids:
+  - co_bazi_000011
+  status: machine_extracted
+- assertion_id: as_bazi_000039
+  proposition: 正月甲木如无丙癸，平常人也
+  proposition_id: pr_bazi_000039
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0005_s02
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000040
+  proposition: 正二月甲木，素无取从才从杀从化之理
+  proposition_id: pr_bazi_000040
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0005_s03
+    support_type: direct
+  conditions:
+  - 正二月（寅卯月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000012
+  - co_bazi_000013
+  - co_bazi_000014
+  status: machine_extracted
+- assertion_id: as_bazi_000041
+  proposition: 正二月甲木一派庚辛，主一生劳苦，克子刑妻
+  proposition_id: pr_bazi_000041
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0005_s03
+    support_type: direct
+  conditions:
+  - 正二月（寅卯月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000042
+  proposition: 正二月甲木一派庚辛，支会金局，非贫即夭
+  proposition_id: pr_bazi_000042
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0005_s03
+    support_type: direct
+  conditions:
+  - 正二月（寅卯月）
+  - 支会金局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000043
+  proposition: 正二月甲木如无丙丁，一派壬癸，又无戊己制之，名水泛木浮，死无棺椁
+  proposition_id: pr_bazi_000043
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0005_s03
+    support_type: direct
+  conditions:
+  - 正二月（寅卯月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000015
+  status: machine_extracted
+- assertion_id: as_bazi_000044
+  proposition: 正二月甲木一派戊己，支会金局，为财多身弱，富屋贫人，终生劳苦，妻晚子迟
+  proposition_id: pr_bazi_000044
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0005_s03
+    support_type: direct
+  conditions:
+  - 正二月（寅卯月）
+  - 支会金局
+  exceptions: []
+  concept_ids:
+  - co_bazi_000016
+  status: machine_extracted
+- assertion_id: as_bazi_000045
+  proposition: 正二月甲木无庚金，有丁透，亦属文星，为木火通明之象，又名伤官生财格，主聪明雅秀
+  proposition_id: pr_bazi_000045
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0005_s03
+    support_type: direct
+  conditions:
+  - 正二月（寅卯月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000017
+  - co_bazi_000018
+  status: machine_extracted
+- assertion_id: as_bazi_000046
+  proposition: 正二月甲木一见癸水伤丁，但作厚道迂儒
+  proposition_id: pr_bazi_000046
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0005_s03
+    support_type: direct
+  conditions:
+  - 正二月（寅卯月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000047
+  proposition: 正二月甲木柱中多癸，滋助木神，伤灭丁火，其人奸雄枭险，言清行浊，笑里藏刀
+  proposition_id: pr_bazi_000047
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0005_s03
+    support_type: direct
+  conditions:
+  - 正二月（寅卯月）
+  - 多癸伤丁
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000048
+  proposition: 支成金局，多透庚辛，号曰木被金伤，若无丙丁破金，必主残疾
+  proposition_id: pr_bazi_000048
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0005_s03
+    support_type: direct
+  conditions:
+  - 支成金局
+  exceptions: []
+  concept_ids:
+  - co_bazi_000019
+  status: machine_extracted
+- assertion_id: as_bazi_000049
+  proposition: 支成火局，泄露太过，定主愚懦，常有啾唧灾病缠身，终有暗疾
+  proposition_id: pr_bazi_000049
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0005_s03
+    support_type: direct
+  conditions:
+  - 支成火局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000050
+  proposition: 支成木局，得庚为贵，无庚必凶，若非僧道，男主鳏孤，女主寡独
+  proposition_id: pr_bazi_000050
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0005_s03
+    support_type: direct
+  conditions:
+  - 支成木局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000051
+  proposition: 支成水局，戊透为贵
+  proposition_id: pr_bazi_000051
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0005_s03
+    support_type: direct
+  conditions:
+  - 支成水局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000052
+  proposition: 支成水局，无戊制，不但贫贱，且死无棺木
+  proposition_id: pr_bazi_000052
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0005_s03
+    support_type: direct
+  conditions:
+  - 支成水局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000053
+  proposition: 甲木若无根，全赖申子辰，干得才杀透，平步上青云
+  proposition_id: pr_bazi_000053
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0005_s03
+    support_type: direct
+  conditions: []
+  exceptions: []
+  concept_ids:
+  - co_bazi_000007
+  - co_bazi_000003
+  status: machine_extracted
+- assertion_id: as_bazi_000054
+  proposition: 凡三春甲木，用庚者，土为妻，金为子
+  proposition_id: pr_bazi_000054
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0005_s03
+    support_type: direct
+  conditions:
+  - 三春（寅卯辰月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000055
+  proposition: 凡三春甲木，用丁者，木为妻，火为子
+  proposition_id: pr_bazi_000055
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0005_s03
+    support_type: direct
+  conditions:
+  - 三春（寅卯辰月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000056
+  proposition: 总之正二月甲木，有庚戊者上命
+  proposition_id: pr_bazi_000056
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0005_s03
+    support_type: direct
+  conditions:
+  - 正二月（寅卯月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000057
+  proposition: 正二月甲木如有丁透，大富大贵之命也
+  proposition_id: pr_bazi_000057
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0005_s03
+    support_type: direct
+  conditions:
+  - 正二月（寅卯月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000058
+  proposition: 二月甲木，庚金得所，名阳刃驾杀，可云小贵，异途显达，或主武职，但要财资之
+  proposition_id: pr_bazi_000058
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0005_s04
+    support_type: direct
+  conditions:
+  - 二月（卯月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000002
+  - co_bazi_000003
+  - co_bazi_000020
+  status: machine_extracted
+- assertion_id: as_bazi_000059
+  proposition: 二月甲木柱中逢才，英雄独压万人
+  proposition_id: pr_bazi_000059
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0005_s04
+    support_type: direct
+  conditions:
+  - 二月（卯月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000007
+  status: machine_extracted
+- assertion_id: as_bazi_000060
+  proposition: 二月甲木若见癸水，困了才杀，主为光棍，重刃必定遭凶，性情凶暴
+  proposition_id: pr_bazi_000060
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0005_s04
+    support_type: direct
+  conditions:
+  - 二月（卯月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000007
+  - co_bazi_000003
+  - co_bazi_000002
+  status: machine_extracted
+- assertion_id: as_bazi_000061
+  proposition: 木旺宜火之光辉，秋闱可试
+  proposition_id: pr_bazi_000061
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0005_s04
+    support_type: direct
+  conditions:
+  - 木旺
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000062
+  proposition: 木向春生，处世安然有寿
+  proposition_id: pr_bazi_000062
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0005_s04
+    support_type: direct
+  conditions:
+  - 春生
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000063
+  proposition: 日主无依，却喜运行才地
+  proposition_id: pr_bazi_000063
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0005_s04
+    support_type: direct
+  conditions:
+  - 日主无依
+  exceptions: []
+  concept_ids:
+  - co_bazi_000007
+  status: machine_extracted
+- assertion_id: as_bazi_000064
+  proposition: 三月甲木，木气相竭，先取庚金，次用壬水
+  proposition_id: pr_bazi_000064
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0005_s05
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000065
+  proposition: 三月甲木庚壬两透，一榜堪图
+  proposition_id: pr_bazi_000065
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0005_s05
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000066
+  proposition: 三月甲木庚壬两透，但要运用相生，风水阴德，方许富贵
+  proposition_id: pr_bazi_000066
+  relation: qualifies
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0005_s05
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  - 运用相生
+  - 风水阴德
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000067
+  proposition: 三月甲木见一二庚金，独取壬水，壬透清秀之人，才学必富
+  proposition_id: pr_bazi_000067
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0005_s05
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  - 见一二庚金
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000068
+  proposition: 三月甲木天干透出二丙，庚藏支下，此钝斧无钢，富贵难求
+  proposition_id: pr_bazi_000068
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0005_s05
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000069
+  proposition: 三月甲木若有壬癸破火，堪作秀才
+  proposition_id: pr_bazi_000069
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0005_s05
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000070
+  proposition: 三月甲木柱中全无一水，戊己透干，支成土局，又作弃命从才，因人而致富贵，妻子有能
+  proposition_id: pr_bazi_000070
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0005_s05
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  - 柱中全无一水
+  - 支成土局
+  exceptions: []
+  concept_ids:
+  - co_bazi_000021
+  status: machine_extracted
+- assertion_id: as_bazi_000071
+  proposition: 三月甲木见戊己及比劫多者，名为杂气夺才，此人劳碌到老，无驭内之权
+  proposition_id: pr_bazi_000071
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0005_s05
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000022
+  - co_bazi_000009
+  status: machine_extracted
+- assertion_id: as_bazi_000072
+  proposition: 女命杂气夺才，女掌男权，贤能内助
+  proposition_id: pr_bazi_000072
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0005_s05
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  - 女命
+  exceptions: []
+  concept_ids:
+  - co_bazi_000022
+  status: machine_extracted
+- assertion_id: as_bazi_000073
+  proposition: 女命杂气夺才若比劫重见，淫恶不堪
+  proposition_id: pr_bazi_000073
+  relation: qualifies
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0005_s05
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  - 女命
+  - 比劫重见
+  exceptions: []
+  concept_ids:
+  - co_bazi_000022
+  - co_bazi_000009
+  status: machine_extracted
+- assertion_id: as_bazi_000074
+  proposition: 三月甲木支成金局，方可用丁，不然三月无用丁之法
+  proposition_id: pr_bazi_000074
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0005_s05
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  - 支成金局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000075
+  proposition: 三月甲木惟有先庚后壬取用
+  proposition_id: pr_bazi_000075
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0005_s05
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000076
+  proposition: 甲乙生寅卯，庚辛干上逢，离南推富贵，坎地却为凶
+  proposition_id: pr_bazi_000076
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0005_s05
+    support_type: direct
+  conditions:
+  - 生寅卯月
+  - 干逢庚辛
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000077
+  proposition: 四月甲木退气，丙火司权，先癸后丁
+  proposition_id: pr_bazi_000077
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0006_s01
+    support_type: direct
+  conditions:
+  - 四月（巳月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000041
+  - co_bazi_000037
+  status: machine_extracted
+- assertion_id: as_bazi_000078
+  proposition: 四月甲木庚金太多，甲反受病
+  proposition_id: pr_bazi_000078
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0006_s01
+    support_type: direct
+  conditions:
+  - 四月（巳月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000079
+  proposition: 四月甲木若得壬水，方配得中和，此人性好清高，假装富贵，即荫袭显达，终日好作祸乱，善辨巧谈，喜作诗文
+  proposition_id: pr_bazi_000079
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0006_s01
+    support_type: direct
+  conditions:
+  - 四月（巳月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000080
+  proposition: 四月甲木如一庚二丙，稍有富贵
+  proposition_id: pr_bazi_000080
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0006_s01
+    support_type: direct
+  conditions:
+  - 四月（巳月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000081
+  proposition: 四月甲木金多火多，又为下格
+  proposition_id: pr_bazi_000081
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0006_s01
+    support_type: direct
+  conditions:
+  - 四月（巳月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000082
+  proposition: 四月甲木癸丁与庚齐透天干，此命可言科甲，即风水浅薄，亦有选拔之才
+  proposition_id: pr_bazi_000082
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0006_s01
+    support_type: direct
+  conditions:
+  - 四月（巳月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000083
+  proposition: 四月甲木癸水不出，虽有庚金丁火，不过富中取贵异途官职而已
+  proposition_id: pr_bazi_000083
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0006_s01
+    support_type: direct
+  conditions:
+  - 四月（巳月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000084
+  proposition: 四月甲木壬透可云一富
+  proposition_id: pr_bazi_000084
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0006_s01
+    support_type: direct
+  conditions:
+  - 四月（巳月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000085
+  proposition: 四月甲木若全无点水，又无庚金丁火，一派丙戊，此无用之人也
+  proposition_id: pr_bazi_000085
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0006_s01
+    support_type: direct
+  conditions:
+  - 四月（巳月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000086
+  proposition: 五六月甲木，木性虚焦，一理共推
+  proposition_id: pr_bazi_000086
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0006_s02
+    support_type: direct
+  conditions:
+  - 五六月（午未月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000087
+  proposition: 五月先癸后丁，庚金次之
+  proposition_id: pr_bazi_000087
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0006_s02
+    support_type: direct
+  conditions:
+  - 五月（午月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000088
+  proposition: 六月三伏生寒，丁火退气，先丁后庚，无癸亦可
+  proposition_id: pr_bazi_000088
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0006_s02
+    support_type: direct
+  conditions:
+  - 六月（未月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000041
+  status: machine_extracted
+- assertion_id: as_bazi_000089
+  proposition: 五月乏癸，用丁亦可，要运行北地为佳
+  proposition_id: pr_bazi_000089
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0006_s02
+    support_type: direct
+  conditions:
+  - 五月（午月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000090
+  proposition: 五六月用丁火，虽运行北地，不致于死
+  proposition_id: pr_bazi_000090
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0006_s02
+    support_type: direct
+  conditions:
+  - 五六月（午未月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000091
+  proposition: 五六月用丁火，不利运行火地，号曰木化成灰必死
+  proposition_id: pr_bazi_000091
+  relation: opposes
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0006_s02
+    support_type: direct
+  conditions:
+  - 五六月（午未月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000092
+  proposition: 五六月用丁火，行西程又不吉，号曰伤官遇杀，不测灾来
+  proposition_id: pr_bazi_000092
+  relation: opposes
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0006_s02
+    support_type: direct
+  conditions:
+  - 五六月（午未月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000034
+  status: machine_extracted
+- assertion_id: as_bazi_000093
+  proposition: 五六月用丁火，惟东方则吉，北方次之
+  proposition_id: pr_bazi_000093
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0006_s02
+    support_type: direct
+  conditions:
+  - 五六月（午未月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000094
+  proposition: 凡用神太多，不宜克制，须泄之为妙
+  proposition_id: pr_bazi_000094
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0006_s02
+    support_type: direct
+  conditions:
+  - 用神太多
+  exceptions: []
+  concept_ids:
+  - co_bazi_000038
+  status: machine_extracted
+- assertion_id: as_bazi_000095
+  proposition: 五六月甲木，木盛先庚，庚盛先丁
+  proposition_id: pr_bazi_000095
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0006_s02
+    support_type: direct
+  conditions:
+  - 五六月（午未月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000096
+  proposition: 五月癸庚两透，为上上之格
+  proposition_id: pr_bazi_000096
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0006_s02
+    support_type: direct
+  conditions:
+  - 五月（午月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000097
+  proposition: 六月庚丁两透，亦为上上之格
+  proposition_id: pr_bazi_000097
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0006_s02
+    support_type: direct
+  conditions:
+  - 六月（未月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000098
+  proposition: 五六月甲木用神既透，木火通明，自然大富大贵
+  proposition_id: pr_bazi_000098
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0006_s02
+    support_type: direct
+  conditions:
+  - 五六月（午未月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000038
+  - co_bazi_000017
+  status: machine_extracted
+- assertion_id: as_bazi_000099
+  proposition: 五六月甲木丁火太多，癸水亦多，反作平人
+  proposition_id: pr_bazi_000099
+  relation: opposes
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0006_s02
+    support_type: direct
+  conditions:
+  - 五六月（午未月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000100
+  proposition: 五六月甲木柱中多金，名曰杀重身轻，先富后贫，运不相扶，非贫即夭
+  proposition_id: pr_bazi_000100
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0006_s02
+    support_type: direct
+  conditions:
+  - 五六月（午未月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000023
+  status: machine_extracted
+- assertion_id: as_bazi_000101
+  proposition: 五六月甲木庚多，有一二丙丁制伏，又有壬癸透干，泄金之气，此又为先贫后富
+  proposition_id: pr_bazi_000101
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0006_s02
+    support_type: direct
+  conditions:
+  - 五六月（午未月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000102
+  proposition: 五六月甲木满柱丙火，又加丁火，不见官杀，谓之伤官伤尽最为奇，反成清贵，定主才学过人，科甲有望
+  proposition_id: pr_bazi_000102
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0006_s02
+    support_type: direct
+  conditions:
+  - 五六月（午未月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000024
+  - co_bazi_000004
+  - co_bazi_000003
+  status: machine_extracted
+- assertion_id: as_bazi_000103
+  proposition: 五六月甲木伤官伤尽格，岁运不宜见水
+  proposition_id: pr_bazi_000103
+  relation: opposes
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0006_s02
+    support_type: direct
+  conditions:
+  - 五六月（午未月）
+  - 伤官伤尽格
+  exceptions: []
+  concept_ids:
+  - co_bazi_000024
+  status: machine_extracted
+- assertion_id: as_bazi_000104
+  proposition: 五六月甲木伤官伤尽格，若柱中有壬水，运又逢水，必贫夭死
+  proposition_id: pr_bazi_000104
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0006_s02
+    support_type: direct
+  conditions:
+  - 五六月（午未月）
+  - 伤官伤尽格
+  exceptions: []
+  concept_ids:
+  - co_bazi_000024
+  status: machine_extracted
+- assertion_id: as_bazi_000105
+  proposition: 木火伤官者，聪明智巧，却是人同心异，多见多疑，虽不生事害人，每抱忌妒之想
+  proposition_id: pr_bazi_000105
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0006_s02
+    support_type: direct
+  conditions: []
+  exceptions: []
+  concept_ids:
+  - co_bazi_000025
+  status: machine_extracted
+- assertion_id: as_bazi_000106
+  proposition: 女命木火伤官一理同推
+  proposition_id: pr_bazi_000106
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0006_s02
+    support_type: direct
+  conditions:
+  - 女命
+  exceptions: []
+  concept_ids:
+  - co_bazi_000025
+  status: machine_extracted
+- assertion_id: as_bazi_000107
+  proposition: 五六月甲木四柱多土，干上有乙木，切勿作弃命从才
+  proposition_id: pr_bazi_000107
+  relation: opposes
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0006_s02
+    support_type: direct
+  conditions:
+  - 五六月（午未月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000021
+  status: machine_extracted
+- assertion_id: as_bazi_000108
+  proposition: 五六月甲木时月两透己土，名二土争合，男主奔流，女主淫贱
+  proposition_id: pr_bazi_000108
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0006_s02
+    support_type: direct
+  conditions:
+  - 五六月（午未月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000026
+  status: machine_extracted
+- assertion_id: as_bazi_000109
+  proposition: 五六月甲木二土争合，见二甲则不争矣，亦属平庸之辈
+  proposition_id: pr_bazi_000109
+  relation: qualifies
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0006_s02
+    support_type: direct
+  conditions:
+  - 五六月（午未月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000026
+  status: machine_extracted
+- assertion_id: as_bazi_000110
+  proposition: 五六月甲木四柱有辰，干见二己二甲，此人名利双全，大富大贵
+  proposition_id: pr_bazi_000110
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0006_s02
+    support_type: direct
+  conditions:
+  - 五六月（午未月）
+  - 四柱有辰
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000111
+  proposition: 六月见辰支，名为逢时化合格，以癸水为妻，丁火为子
+  proposition_id: pr_bazi_000111
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0006_s02
+    support_type: direct
+  conditions:
+  - 六月（未月）
+  - 见辰支
+  exceptions: []
+  concept_ids:
+  - co_bazi_000027
+  status: machine_extracted
+- assertion_id: as_bazi_000112
+  proposition: 五六月甲木若二己一甲争合，取支中比劫为用
+  proposition_id: pr_bazi_000112
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0006_s02
+    support_type: direct
+  conditions:
+  - 五六月（午未月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000009
+  status: machine_extracted
+- assertion_id: as_bazi_000113
+  proposition: 五六月甲木以甲为用者，壬癸为妻，甲乙为子
+  proposition_id: pr_bazi_000113
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0006_s02
+    support_type: direct
+  conditions:
+  - 五六月（午未月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000114
+  proposition: 五六月甲木用庚者，土妻金子
+  proposition_id: pr_bazi_000114
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0006_s02
+    support_type: direct
+  conditions:
+  - 五六月（午未月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000115
+  proposition: 五六月甲木用丁者，木妻火子
+  proposition_id: pr_bazi_000115
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0006_s02
+    support_type: direct
+  conditions:
+  - 五六月（午未月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000116
+  proposition: 女命以妻作夫，用作子，十干皆同
+  proposition_id: pr_bazi_000116
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0006_s02
+    support_type: direct
+  conditions:
+  - 女命
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000117
+  proposition: 五六月甲木己土不见戊土，乃为假从，其人一生缩首，反畏妻子
+  proposition_id: pr_bazi_000117
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0006_s02
+    support_type: direct
+  conditions:
+  - 五六月（午未月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000028
+  status: machine_extracted
+- assertion_id: as_bazi_000118
+  proposition: 五六月甲木假从若无印绶，一生贫苦
+  proposition_id: pr_bazi_000118
+  relation: qualifies
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0006_s02
+    support_type: direct
+  conditions:
+  - 五六月（午未月）
+  - 假从
+  exceptions: []
+  concept_ids:
+  - co_bazi_000028
+  - co_bazi_000005
+  status: machine_extracted
+- assertion_id: as_bazi_000119
+  proposition: 五六月甲木假从，六月尤可，五月决不可
+  proposition_id: pr_bazi_000119
+  relation: qualifies
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0006_s02
+    support_type: direct
+  conditions:
+  - 假从
+  exceptions: []
+  concept_ids:
+  - co_bazi_000028
+  status: machine_extracted
+skipped_segments:
+- seg_id: p0001_s01
+  seg_span_id: ss_qtbj_ed01_p0001_s01
+  reason: narrative

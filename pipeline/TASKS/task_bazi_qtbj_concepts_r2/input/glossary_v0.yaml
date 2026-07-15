@@ -1,0 +1,545 @@
+glossary_version: bazi_glossary_v0.2
+technique_id: bazi
+built_from: task_bazi_qtbj_concepts_batch1(甲木3批) + Claude复核签发
+date: '2026-07-12'
+status: '人工签发(Claude复核): 剔2动词, 升伤官遇杀, 单字干支归L1 canon不收录'
+shared_canon_note: 天干地支五行引用 schemas/shared/canon/ 的 co_shared_*, 本表不重复定义
+concepts:
+- concept_id: co_bazi_000001
+  surface: 伤官
+  kind: ten_god
+  seg_ids:
+  - ss_qtbj_ed01_p0005_s03
+  - ss_qtbj_ed01_p0006_s02
+  - ss_qtbj_ed01_p0007_s04
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000002
+  surface: 阳刃
+  kind: ten_god
+  seg_ids:
+  - ss_qtbj_ed01_p0005_s04
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000003
+  surface: 杀
+  kind: ten_god
+  seg_ids:
+  - ss_qtbj_ed01_p0005_s03
+  - ss_qtbj_ed01_p0005_s04
+  - ss_qtbj_ed01_p0006_s02
+  - ss_qtbj_ed01_p0007_s01
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000004
+  surface: 官
+  kind: ten_god
+  seg_ids:
+  - ss_qtbj_ed01_p0006_s02
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000005
+  surface: 印绶
+  kind: ten_god
+  seg_ids:
+  - ss_qtbj_ed01_p0006_s02
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000006
+  surface: 印
+  kind: ten_god
+  seg_ids:
+  - ss_qtbj_ed01_p0007_s01
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000007
+  surface: 才
+  kind: ten_god
+  seg_ids:
+  - ss_qtbj_ed01_p0005_s03
+  - ss_qtbj_ed01_p0005_s04
+  - ss_qtbj_ed01_p0005_s05
+  - ss_qtbj_ed01_p0006_s02
+  - ss_qtbj_ed01_p0007_s01
+  - ss_qtbj_ed01_p0007_s04
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+  note: 原文以"才"通假"财"(偏财),不依赖"财"字匹配
+- concept_id: co_bazi_000008
+  surface: 比肩
+  kind: ten_god
+  seg_ids:
+  - ss_qtbj_ed01_p0007_s04
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000009
+  surface: 比劫
+  kind: ten_god
+  seg_ids:
+  - ss_qtbj_ed01_p0005_s05
+  - ss_qtbj_ed01_p0006_s02
+  - ss_qtbj_ed01_p0007_s03
+  - ss_qtbj_ed01_p0007_s04
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000010
+  surface: 劫财
+  kind: ten_god
+  seg_ids:
+  - ss_qtbj_ed01_p0007_s04
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: candidate
+- concept_id: co_bazi_000011
+  surface: 寒木向阳
+  kind: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0005_s02
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000012
+  surface: 从才
+  kind: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0005_s03
+  - ss_qtbj_ed01_p0007_s01
+  - ss_qtbj_ed01_p0007_s04
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000013
+  surface: 从杀
+  kind: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0005_s03
+  - ss_qtbj_ed01_p0007_s01
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000014
+  surface: 从化
+  kind: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0005_s03
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000015
+  surface: 水泛木浮
+  kind: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0005_s03
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000016
+  surface: 财多身弱
+  kind: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0005_s03
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000017
+  surface: 木火通明
+  kind: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0005_s03
+  - ss_qtbj_ed01_p0006_s02
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000018
+  surface: 伤官生财格
+  kind: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0005_s03
+  - ss_qtbj_ed01_p0007_s04
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000019
+  surface: 木被金伤
+  kind: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0005_s03
+  - ss_qtbj_ed01_p0007_s03
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000020
+  surface: 阳刃驾杀
+  kind: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0005_s04
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000021
+  surface: 弃命从才
+  kind: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0005_s05
+  - ss_qtbj_ed01_p0006_s02
+  - ss_qtbj_ed01_p0007_s04
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000022
+  surface: 杂气夺才
+  kind: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0005_s05
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000023
+  surface: 杀重身轻
+  kind: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0006_s02
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000024
+  surface: 伤官伤尽
+  kind: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0006_s02
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000025
+  surface: 木火伤官
+  kind: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0006_s02
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000026
+  surface: 二土争合
+  kind: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0006_s02
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000027
+  surface: 逢时化合格
+  kind: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0006_s02
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000028
+  surface: 假从
+  kind: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0006_s02
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000029
+  surface: 从才格
+  kind: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0007_s04
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000030
+  surface: 天元一气
+  kind: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0007_s04
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000031
+  surface: 一才一用
+  kind: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0007_s04
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000032
+  surface: 假伤官
+  kind: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0007_s04
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000033
+  surface: 杀印相生
+  kind: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0007_s01
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000034
+  surface: 伤官遇杀
+  kind: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0006_s02
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000035
+  surface: 斲凿
+  kind: tiaohou
+  seg_ids:
+  - ss_qtbj_ed01_p0005_s01
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000036
+  surface: 相济
+  kind: tiaohou
+  seg_ids:
+  - ss_qtbj_ed01_p0005_s01
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000037
+  surface: 司权
+  kind: tiaohou
+  seg_ids:
+  - ss_qtbj_ed01_p0006_s01
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000038
+  surface: 用神
+  kind: tiaohou
+  seg_ids:
+  - ss_qtbj_ed01_p0006_s02
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000039
+  surface: 镕金
+  kind: tiaohou
+  seg_ids:
+  - ss_qtbj_ed01_p0007_s02
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000040
+  surface: 生旺
+  kind: phase
+  seg_ids:
+  - ss_qtbj_ed01_p0005_s01
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000041
+  surface: 退气
+  kind: phase
+  seg_ids:
+  - ss_qtbj_ed01_p0006_s01
+  - ss_qtbj_ed01_p0006_s02
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000042
+  surface: 死绝
+  kind: phase
+  seg_ids:
+  - ss_qtbj_ed01_p0007_s01
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000043
+  surface: 乘旺
+  kind: phase
+  seg_ids:
+  - ss_qtbj_ed01_p0007_s01
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: candidate
+- concept_id: co_bazi_000044
+  surface: 食
+  kind: ten_god
+  seg_ids:
+  - ss_qtbj_ed01_p0001_s07
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000045
+  surface: 去浊留清
+  kind: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0008_s01
+  - ss_qtbj_ed01_p0011_s04
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000046
+  surface: 春旱
+  kind: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0010_s02
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: candidate
+- concept_id: co_bazi_000047
+  surface: 困丙
+  kind: tiaohou
+  seg_ids:
+  - ss_qtbj_ed01_p0010_s02
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: candidate
+- concept_id: co_bazi_000048
+  surface: 假化
+  kind: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0010_s03
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000049
+  surface: 二庚争合
+  kind: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0010_s04
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000050
+  surface: 木秀火明
+  kind: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0011_s01
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000051
+  surface: 气散之文
+  kind: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0011_s03
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: candidate
+- concept_id: co_bazi_000052
+  surface: 司令
+  kind: tiaohou
+  seg_ids:
+  - ss_qtbj_ed01_p0012_s01
+  - ss_qtbj_ed01_p0013_s01
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000053
+  surface: 化合格
+  kind: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0012_s02
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000054
+  surface: 木火文星
+  kind: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0012_s03
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000055
+  surface: 藤萝系甲
+  kind: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0012_s04
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000056
+  surface: 既济
+  kind: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0016_s01
+  - ss_qtbj_ed01_p0017_s02
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000057
+  surface: 贪合
+  kind: tiaohou
+  seg_ids:
+  - ss_qtbj_ed01_p0016_s02
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000058
+  surface: 炎上
+  kind: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0016_s02
+  - ss_qtbj_ed01_p0017_s03
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000059
+  surface: 争合
+  kind: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0016_s03
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000060
+  surface: 贪财坏印
+  kind: tiaohou
+  seg_ids:
+  - ss_qtbj_ed01_p0016_s03
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: candidate
+- concept_id: co_bazi_000061
+  surface: 阳刃合杀
+  kind: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0017_s01
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000062
+  surface: 羊刃倒戈
+  kind: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0017_s01
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: confirmed_v0
+- concept_id: co_bazi_000063
+  surface: 阴刑杀重
+  kind: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0017_s02
+  source_id: src_qtbj_ed01
+  rev: 1
+  status: candidate
+revisions:
+- date: '2026-07-12'
+  change: v0.1初版, 45候选->43收录(剔制伏/伤)
+  rev_scope: all@1
+- date: '2026-07-12'
+  change: 并入r1放量新词20个(b001,b005-b011)
+  rev_scope: v0.2

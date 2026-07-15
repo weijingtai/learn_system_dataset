@@ -1,0 +1,10 @@
+task_id: task_bazi_qtbj_concepts_r1
+result: completed
+  uncertainties:
+    - "贪财坏印：标记sure=false，判断是否为独立八字术语还是通用描述性短语待复核"
+    - "阴刑杀重：标记sure=false，是否为公认八字术语待确认"
+    - "才多身弱与财多身弱：原文用才字（通假财），v0用财字，按glossary note认定为同一术语匹配，但surface不同可能导致漏配"
+  lesson_candidates:
+    - "2026-07-12 | task_bazi_qtbj_concepts_r1 | 才/财通假匹配需在工位4指令中明确：原文用才表财时，v0财字术语必须视为命中（当前靠glossary note兜底，不机械）"
+    - "2026-07-12 | task_bazi_qtbj_concepts_r1 | 羊刃/阳刃异体字属同一概念，v0只有阳刃，工位4应明确异体字匹配策略"
+needs_escalation: false

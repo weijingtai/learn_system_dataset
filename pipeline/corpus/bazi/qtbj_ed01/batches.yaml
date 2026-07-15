@@ -1,0 +1,720 @@
+work: 窮通寶鑑
+source_id: src_qtbj_ed01
+batch_count: 41
+batches:
+- batch_id: qtbj_b001
+  node_id: n001
+  path: 五行总论
+  task_dir: tasks/task_bazi_qtbj_b001_seg
+  id_range:
+  - ku_bazi_000200
+  - ku_bazi_000299
+  stage_status:
+    segmentation: done
+    concepts: pending
+    assertions: pending
+  cost:
+    tokens_in: null
+    tokens_out: null
+    human_minutes: null
+    rework_rounds: 1
+  text_type: B
+  reject_note: 首次误按C类切成1大段(欠切分),类型改B后重切
+  seg_count: 7
+- batch_id: qtbj_b002
+  node_id: n002
+  path: 十干分论 / 论甲木 / 三春甲木
+  task_dir: tasks/task_bazi_qtbj_b002_seg
+  id_range:
+  - ku_bazi_000300
+  - ku_bazi_000399
+  stage_status:
+    segmentation: done
+    concepts: pending
+    assertions: pending
+  cost:
+    tokens_in: null
+    tokens_out: null
+    human_minutes: null
+    rework_rounds: 0
+  seg_count: 5
+- batch_id: qtbj_b003
+  node_id: n003
+  path: 十干分论 / 论甲木 / 三夏甲木
+  task_dir: tasks/task_bazi_qtbj_b003_seg
+  id_range:
+  - ku_bazi_000400
+  - ku_bazi_000499
+  stage_status:
+    segmentation: done
+    concepts: pending
+    assertions: pending
+  cost:
+    tokens_in: null
+    tokens_out: null
+    human_minutes: null
+    rework_rounds: 0
+  seg_count: 2
+- batch_id: qtbj_b004
+  node_id: n004
+  path: 十干分论 / 论甲木 / 三秋甲木
+  task_dir: tasks/task_bazi_qtbj_b004_seg
+  id_range:
+  - ku_bazi_000500
+  - ku_bazi_000599
+  stage_status:
+    segmentation: done
+    concepts: pending
+    assertions: pending
+  cost:
+    tokens_in: null
+    tokens_out: null
+    human_minutes: null
+    rework_rounds: 0
+  seg_count: 4
+- batch_id: qtbj_b005
+  node_id: n005
+  path: 十干分论 / 论甲木 / 三冬甲木
+  task_dir: tasks/task_bazi_qtbj_b005_seg
+  id_range:
+  - ku_bazi_000600
+  - ku_bazi_000699
+  stage_status:
+    segmentation: done
+    concepts: pending
+    assertions: pending
+  cost:
+    tokens_in: null
+    tokens_out: null
+    human_minutes: null
+    rework_rounds: 0
+    tokens_note: OpenCode平台未暴露token接口，A方案自报失败
+  seg_count: 3
+- batch_id: qtbj_b006
+  node_id: n006
+  path: 十干分论 / 论乙木 / 三春乙木
+  task_dir: tasks/task_bazi_qtbj_b006_seg
+  id_range:
+  - ku_bazi_000700
+  - ku_bazi_000799
+  stage_status:
+    segmentation: done
+    concepts: pending
+    assertions: pending
+  cost:
+    tokens_in: null
+    tokens_out: null
+    human_minutes: null
+    rework_rounds: 0
+    tokens_note: OpenCode平台未暴露token接口，A方案自报失败
+  seg_count: 4
+- batch_id: qtbj_b007
+  node_id: n007
+  path: 十干分论 / 论乙木 / 三夏乙木
+  task_dir: tasks/task_bazi_qtbj_b007_seg
+  id_range:
+  - ku_bazi_000800
+  - ku_bazi_000899
+  stage_status:
+    segmentation: done
+    concepts: pending
+    assertions: pending
+  cost:
+    tokens_in: null
+    tokens_out: null
+    human_minutes: null
+    rework_rounds: 0
+    tokens_note: OpenCode平台未暴露token接口，A方案自报失败
+  seg_count: 4
+- batch_id: qtbj_b008
+  node_id: n008
+  path: 十干分论 / 论乙木 / 三秋乙木
+  task_dir: tasks/task_bazi_qtbj_b008_seg
+  id_range:
+  - ku_bazi_000900
+  - ku_bazi_000999
+  stage_status:
+    segmentation: done
+    concepts: pending
+    assertions: pending
+  cost:
+    tokens_in: null
+    tokens_out: null
+    human_minutes: null
+    rework_rounds: 0
+    tokens_note: OpenCode平台未暴露token接口，A方案自报失败
+  seg_count: 4
+- batch_id: qtbj_b009
+  node_id: n009
+  path: 十干分论 / 论乙木 / 三冬乙木
+  task_dir: tasks/task_bazi_qtbj_b009_seg
+  id_range:
+  - ku_bazi_001000
+  - ku_bazi_001099
+  stage_status:
+    segmentation: done
+    concepts: pending
+    assertions: pending
+  cost:
+    tokens_in: null
+    tokens_out: null
+    human_minutes: null
+    rework_rounds: 0
+    tokens_note: OpenCode平台未暴露token接口，A方案自报失败
+  seg_count: 2
+- batch_id: qtbj_b010
+  node_id: n010
+  path: 十干分论 / 论丙火 / 三春丙火
+  task_dir: tasks/task_bazi_qtbj_b010_seg
+  id_range:
+  - ku_bazi_001100
+  - ku_bazi_001199
+  stage_status:
+    segmentation: done
+    concepts: pending
+    assertions: pending
+  cost:
+    tokens_in: null
+    tokens_out: null
+    human_minutes: null
+    rework_rounds: 0
+  seg_count: 4
+- batch_id: qtbj_b011
+  node_id: n011
+  path: 十干分论 / 论丙火 / 三夏丙火
+  task_dir: tasks/task_bazi_qtbj_b011_seg
+  id_range:
+  - ku_bazi_001200
+  - ku_bazi_001299
+  stage_status:
+    segmentation: done
+    concepts: pending
+    assertions: pending
+  cost:
+    tokens_in: null
+    tokens_out: null
+    human_minutes: null
+    rework_rounds: 0
+  seg_count: 4
+- batch_id: qtbj_b012
+  node_id: n012
+  path: 十干分论 / 论丙火 / 三秋丙火
+  task_dir: tasks/task_bazi_qtbj_b012_seg
+  id_range:
+  - ku_bazi_001300
+  - ku_bazi_001399
+  stage_status:
+    segmentation: done
+    concepts: pending
+    assertions: pending
+  cost:
+    tokens_in: null
+    tokens_out: null
+    human_minutes: null
+    rework_rounds: 0
+  seg_count: 3
+- batch_id: qtbj_b013
+  node_id: n013
+  path: 十干分论 / 论丙火 / 三冬丙火
+  task_dir: tasks/task_bazi_qtbj_b013_seg
+  id_range:
+  - ku_bazi_001400
+  - ku_bazi_001499
+  stage_status:
+    segmentation: done
+    concepts: pending
+    assertions: pending
+  cost:
+    tokens_in: null
+    tokens_out: null
+    human_minutes: null
+    rework_rounds: 0
+  seg_count: 3
+- batch_id: qtbj_b014
+  node_id: n014
+  path: 十干分论 / 论丁火 / 三春丁火
+  task_dir: tasks/task_bazi_qtbj_b014_seg
+  id_range:
+  - ku_bazi_001500
+  - ku_bazi_001599
+  stage_status:
+    segmentation: done
+    concepts: pending
+    assertions: pending
+  cost:
+    tokens_in: null
+    tokens_out: null
+    human_minutes: null
+    rework_rounds: 0
+  seg_count: 3
+- batch_id: qtbj_b015
+  node_id: n015
+  path: 十干分论 / 论丁火 / 三夏丁火
+  task_dir: tasks/task_bazi_qtbj_b015_seg
+  id_range:
+  - ku_bazi_001600
+  - ku_bazi_001699
+  stage_status:
+    segmentation: done
+    concepts: pending
+    assertions: pending
+  cost:
+    tokens_in: null
+    tokens_out: null
+    human_minutes: null
+    rework_rounds: 0
+  seg_count: 3
+- batch_id: qtbj_b016
+  node_id: n016
+  path: 十干分论 / 论丁火 / 三秋丁火
+  task_dir: tasks/task_bazi_qtbj_b016_seg
+  id_range:
+  - ku_bazi_001700
+  - ku_bazi_001799
+  stage_status:
+    segmentation: done
+    concepts: pending
+    assertions: pending
+  cost:
+    tokens_in: null
+    tokens_out: null
+    human_minutes: null
+    rework_rounds: 0
+  seg_count: 2
+- batch_id: qtbj_b017
+  node_id: n017
+  path: 十干分论 / 论丁火 / 三冬丁火
+  task_dir: tasks/task_bazi_qtbj_b017_seg
+  id_range:
+  - ku_bazi_001800
+  - ku_bazi_001899
+  stage_status:
+    segmentation: done
+    concepts: pending
+    assertions: pending
+  cost:
+    tokens_in: null
+    tokens_out: null
+    human_minutes: null
+    rework_rounds: 0
+  seg_count: 2
+- batch_id: qtbj_b018
+  node_id: n018
+  path: 十干分论 / 论戊土 / 三春戊土
+  task_dir: tasks/task_bazi_qtbj_b018_seg
+  id_range:
+  - ku_bazi_001900
+  - ku_bazi_001999
+  stage_status:
+    segmentation: done
+    concepts: pending
+    assertions: pending
+  cost:
+    tokens_in: null
+    tokens_out: null
+    human_minutes: null
+    rework_rounds: 0
+  seg_count: 3
+- batch_id: qtbj_b019
+  node_id: n019
+  path: 十干分论 / 论戊土 / 三夏戊土
+  task_dir: tasks/task_bazi_qtbj_b019_seg
+  id_range:
+  - ku_bazi_002000
+  - ku_bazi_002099
+  stage_status:
+    segmentation: done
+    concepts: pending
+    assertions: pending
+  cost:
+    tokens_in: null
+    tokens_out: null
+    human_minutes: null
+    rework_rounds: 0
+  seg_count: 3
+- batch_id: qtbj_b020
+  node_id: n020
+  path: 十干分论 / 论戊土 / 三秋戊土
+  task_dir: tasks/task_bazi_qtbj_b020_seg
+  id_range:
+  - ku_bazi_002100
+  - ku_bazi_002199
+  stage_status:
+    segmentation: done
+    concepts: pending
+    assertions: pending
+  cost:
+    tokens_in: null
+    tokens_out: null
+    human_minutes: null
+    rework_rounds: 0
+  seg_count: 3
+- batch_id: qtbj_b021
+  node_id: n021
+  path: 十干分论 / 论戊土 / 三冬戊土
+  task_dir: tasks/task_bazi_qtbj_b021_seg
+  id_range:
+  - ku_bazi_002200
+  - ku_bazi_002299
+  stage_status:
+    segmentation: done
+    concepts: pending
+    assertions: pending
+  cost:
+    tokens_in: null
+    tokens_out: null
+    human_minutes: null
+    rework_rounds: 1
+  seg_count: 2
+- batch_id: qtbj_b022
+  node_id: n022
+  path: 十干分论 / 论己土 / 三春己土
+  task_dir: tasks/task_bazi_qtbj_b022_seg
+  id_range:
+  - ku_bazi_002300
+  - ku_bazi_002399
+  stage_status:
+    segmentation: done
+    concepts: pending
+    assertions: pending
+  cost:
+    tokens_in: null
+    tokens_out: null
+    human_minutes: null
+    rework_rounds: 0
+  seg_count: 3
+- batch_id: qtbj_b023
+  node_id: n023
+  path: 十干分论 / 论己土 / 三夏己土
+  task_dir: tasks/task_bazi_qtbj_b023_seg
+  id_range:
+  - ku_bazi_002400
+  - ku_bazi_002499
+  stage_status:
+    segmentation: done
+    concepts: pending
+    assertions: pending
+  cost:
+    tokens_in: null
+    tokens_out: null
+    human_minutes: null
+    rework_rounds: 1
+  seg_count: 1
+- batch_id: qtbj_b024
+  node_id: n024
+  path: 十干分论 / 论己土 / 三秋己土
+  task_dir: tasks/task_bazi_qtbj_b024_seg
+  id_range:
+  - ku_bazi_002500
+  - ku_bazi_002599
+  stage_status:
+    segmentation: done
+    concepts: pending
+    assertions: pending
+  cost:
+    tokens_in: null
+    tokens_out: null
+    human_minutes: null
+    rework_rounds: 0
+  seg_count: 1
+- batch_id: qtbj_b025
+  node_id: n025
+  path: 十干分论 / 论己土 / 三冬己土
+  task_dir: tasks/task_bazi_qtbj_b025_seg
+  id_range:
+  - ku_bazi_002600
+  - ku_bazi_002699
+  stage_status:
+    segmentation: done
+    concepts: pending
+    assertions: pending
+  cost:
+    tokens_in: null
+    tokens_out: null
+    human_minutes: null
+    rework_rounds: 0
+  seg_count: 2
+- batch_id: qtbj_b026
+  node_id: n026
+  path: 十干分论 / 论庚金 / 三春庚金
+  task_dir: tasks/task_bazi_qtbj_b026_seg
+  id_range:
+  - ku_bazi_002700
+  - ku_bazi_002799
+  stage_status:
+    segmentation: done
+    concepts: pending
+    assertions: pending
+  cost:
+    tokens_in: null
+    tokens_out: null
+    human_minutes: null
+    rework_rounds: 1
+  seg_count: 3
+- batch_id: qtbj_b027
+  node_id: n027
+  path: 十干分论 / 论庚金 / 三夏庚金
+  task_dir: tasks/task_bazi_qtbj_b027_seg
+  id_range:
+  - ku_bazi_002800
+  - ku_bazi_002899
+  stage_status:
+    segmentation: done
+    concepts: pending
+    assertions: pending
+  cost:
+    tokens_in: null
+    tokens_out: null
+    human_minutes: null
+    rework_rounds: 1
+  seg_count: 3
+- batch_id: qtbj_b028
+  node_id: n028
+  path: 十干分论 / 论庚金 / 三秋庚金
+  task_dir: tasks/task_bazi_qtbj_b028_seg
+  id_range:
+  - ku_bazi_002900
+  - ku_bazi_002999
+  stage_status:
+    segmentation: done
+    concepts: pending
+    assertions: pending
+  cost:
+    tokens_in: null
+    tokens_out: null
+    human_minutes: null
+    rework_rounds: 0
+  seg_count: 3
+- batch_id: qtbj_b029
+  node_id: n029
+  path: 十干分论 / 论庚金 / 三冬庚金
+  task_dir: tasks/task_bazi_qtbj_b029_seg
+  id_range:
+  - ku_bazi_003000
+  - ku_bazi_003099
+  stage_status:
+    segmentation: done
+    concepts: pending
+    assertions: pending
+  cost:
+    tokens_in: null
+    tokens_out: null
+    human_minutes: null
+    rework_rounds: 0
+  seg_count: 3
+- batch_id: qtbj_b030
+  node_id: n030
+  path: 十干分论 / 论辛金 / 三春辛金
+  task_dir: tasks/task_bazi_qtbj_b030_seg
+  id_range:
+  - ku_bazi_003100
+  - ku_bazi_003199
+  stage_status:
+    segmentation: done
+    concepts: pending
+    assertions: pending
+  cost:
+    tokens_in: null
+    tokens_out: null
+    human_minutes: null
+    rework_rounds: 0
+    method_note: draft由脚本生成(偏差,见LESSONS)
+  seg_count: 3
+- batch_id: qtbj_b031
+  node_id: n031
+  path: 十干分论 / 论辛金 / 三夏辛金
+  task_dir: tasks/task_bazi_qtbj_b031_seg
+  id_range:
+  - ku_bazi_003200
+  - ku_bazi_003299
+  stage_status:
+    segmentation: done
+    concepts: pending
+    assertions: pending
+  cost:
+    tokens_in: null
+    tokens_out: null
+    human_minutes: null
+    rework_rounds: 0
+    method_note: draft由脚本生成(偏差,见LESSONS)
+  seg_count: 4
+- batch_id: qtbj_b032
+  node_id: n032
+  path: 十干分论 / 论辛金 / 三秋辛金
+  task_dir: tasks/task_bazi_qtbj_b032_seg
+  id_range:
+  - ku_bazi_003300
+  - ku_bazi_003399
+  stage_status:
+    segmentation: done
+    concepts: pending
+    assertions: pending
+  cost:
+    tokens_in: null
+    tokens_out: null
+    human_minutes: null
+    rework_rounds: 0
+    method_note: draft由脚本生成(偏差,见LESSONS)
+  seg_count: 5
+- batch_id: qtbj_b033
+  node_id: n033
+  path: 十干分论 / 论辛金 / 三冬辛金
+  task_dir: tasks/task_bazi_qtbj_b033_seg
+  id_range:
+  - ku_bazi_003400
+  - ku_bazi_003499
+  stage_status:
+    segmentation: done
+    concepts: pending
+    assertions: pending
+  cost:
+    tokens_in: null
+    tokens_out: null
+    human_minutes: null
+    rework_rounds: 0
+    method_note: draft由脚本生成(偏差,见LESSONS)
+  seg_count: 4
+- batch_id: qtbj_b034
+  node_id: n034
+  path: 十干分论 / 论壬水 / 三春壬水
+  task_dir: tasks/task_bazi_qtbj_b034_seg
+  id_range:
+  - ku_bazi_003500
+  - ku_bazi_003599
+  stage_status:
+    segmentation: done
+    concepts: pending
+    assertions: pending
+  cost:
+    tokens_in: null
+    tokens_out: null
+    human_minutes: null
+    rework_rounds: 0
+    method_note: draft由脚本生成(偏差,见LESSONS)
+  seg_count: 3
+- batch_id: qtbj_b035
+  node_id: n035
+  path: 十干分论 / 论壬水 / 三夏壬水
+  task_dir: tasks/task_bazi_qtbj_b035_seg
+  id_range:
+  - ku_bazi_003600
+  - ku_bazi_003699
+  stage_status:
+    segmentation: done
+    concepts: pending
+    assertions: pending
+  cost:
+    tokens_in: null
+    tokens_out: null
+    human_minutes: null
+    rework_rounds: 0
+    method_note: draft由脚本生成(偏差,见LESSONS)
+  seg_count: 3
+- batch_id: qtbj_b036
+  node_id: n036
+  path: 十干分论 / 论壬水 / 三秋壬水
+  task_dir: tasks/task_bazi_qtbj_b036_seg
+  id_range:
+  - ku_bazi_003700
+  - ku_bazi_003799
+  stage_status:
+    segmentation: done
+    concepts: pending
+    assertions: pending
+  cost:
+    tokens_in: null
+    tokens_out: null
+    human_minutes: null
+    rework_rounds: 0
+    method_note: draft由脚本生成(偏差,见LESSONS)
+  seg_count: 6
+- batch_id: qtbj_b037
+  node_id: n037
+  path: 十干分论 / 论壬水 / 三冬壬水
+  task_dir: tasks/task_bazi_qtbj_b037_seg
+  id_range:
+  - ku_bazi_003800
+  - ku_bazi_003899
+  stage_status:
+    segmentation: done
+    concepts: pending
+    assertions: pending
+  cost:
+    tokens_in: null
+    tokens_out: null
+    human_minutes: null
+    rework_rounds: 0
+    method_note: draft由脚本生成(偏差,见LESSONS)
+  seg_count: 4
+- batch_id: qtbj_b038
+  node_id: n038
+  path: 十干分论 / 论癸水 / 三春癸水
+  task_dir: tasks/task_bazi_qtbj_b038_seg
+  id_range:
+  - ku_bazi_003900
+  - ku_bazi_003999
+  stage_status:
+    segmentation: done
+    concepts: pending
+    assertions: pending
+  cost:
+    tokens_in: null
+    tokens_out: null
+    human_minutes: null
+    rework_rounds: 0
+    method_note: draft由脚本生成(偏差,见LESSONS)
+  seg_count: 6
+- batch_id: qtbj_b039
+  node_id: n039
+  path: 十干分论 / 论癸水 / 三夏癸水
+  task_dir: tasks/task_bazi_qtbj_b039_seg
+  id_range:
+  - ku_bazi_004000
+  - ku_bazi_004099
+  stage_status:
+    segmentation: done
+    concepts: pending
+    assertions: pending
+  cost:
+    tokens_in: null
+    tokens_out: null
+    human_minutes: null
+    rework_rounds: 0
+    method_note: draft由脚本生成(偏差,见LESSONS)
+  seg_count: 3
+- batch_id: qtbj_b040
+  node_id: n040
+  path: 十干分论 / 论癸水 / 三秋癸水
+  task_dir: tasks/task_bazi_qtbj_b040_seg
+  id_range:
+  - ku_bazi_004100
+  - ku_bazi_004199
+  stage_status:
+    segmentation: done
+    concepts: pending
+    assertions: pending
+  cost:
+    tokens_in: null
+    tokens_out: null
+    human_minutes: null
+    rework_rounds: 0
+    method_note: draft由脚本生成(偏差,见LESSONS)
+  seg_count: 5
+- batch_id: qtbj_b041
+  node_id: n041
+  path: 十干分论 / 论癸水 / 三冬癸水
+  task_dir: tasks/task_bazi_qtbj_b041_seg
+  id_range:
+  - ku_bazi_004200
+  - ku_bazi_004299
+  stage_status:
+    segmentation: done
+    concepts: pending
+    assertions: pending
+  cost:
+    tokens_in: null
+    tokens_out: null
+    human_minutes: null
+    rework_rounds: 0
+    method_note: draft由脚本生成(偏差,见LESSONS)
+  seg_count: 3

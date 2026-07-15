@@ -1,0 +1,310 @@
+assertions:
+- assertion_id: as_bazi_000167
+  proposition: 三月丁火戊土司令洩弱丁气，先用甲木引丁制土，次看庚金
+  proposition_id: pr_bazi_000167
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0021_s03
+    support_type: direct
+  conditions:
+  - 三月（辰月）丁火
+  exceptions: []
+  concept_ids:
+  - co_bazi_000052
+  status: machine_extracted
+- assertion_id: as_bazi_000168
+  proposition: 三月丁火庚甲两透定主科甲；一藏一透终非白丁
+  proposition_id: pr_bazi_000168
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0021_s03
+    support_type: direct
+  conditions:
+  - 三月丁火
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000169
+  proposition: 三月丁火支成木局取庚为先；得庚透丁癸不透，亦有异路功名
+  proposition_id: pr_bazi_000169
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0021_s03
+    support_type: direct
+  conditions:
+  - 三月丁火
+  - 支成木局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000170
+  proposition: 三月丁火支成水局加以壬透，名杀重身轻，必夭折天年或遭凶死
+  proposition_id: pr_bazi_000170
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0021_s03
+    support_type: direct
+  conditions:
+  - 三月丁火
+  - 支成水局
+  - 壬透
+  exceptions: []
+  concept_ids:
+  - co_bazi_000003
+  - co_bazi_000023
+  status: machine_extracted
+- assertion_id: as_bazi_000171
+  proposition: 三月丁火戊己两透廊庙之客；若一甲破定是常人
+  proposition_id: pr_bazi_000171
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0021_s03
+    support_type: direct
+  conditions:
+  - 三月丁火
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000172
+  proposition: 三春戊土无丙照暖则戊土不生，无甲疏噼则戊土不灵，无癸滋润则万物不长
+  proposition_id: pr_bazi_000172
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0027_s01
+    support_type: direct
+  conditions:
+  - 三春（寅卯辰月）戊土
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000173
+  proposition: 正二月戊土先丙后甲，癸又次之
+  proposition_id: pr_bazi_000173
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0027_s01
+    support_type: direct
+  conditions:
+  - 正二月戊土
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000174
+  proposition: 三月戊土先甲后丙，癸又次之，因戊土司权故也
+  proposition_id: pr_bazi_000174
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0027_s01
+    support_type: direct
+  conditions:
+  - 三月（辰月）戊土
+  - 戊土司权
+  exceptions: []
+  concept_ids:
+  - co_bazi_000037
+  - co_bazi_000052
+  status: machine_extracted
+- assertion_id: as_bazi_000175
+  proposition: 三春戊土有甲丙癸三者齐透，必主一品当朝；二透一藏亦登金榜；二藏一透也可异途
+  proposition_id: pr_bazi_000175
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0027_s01
+    support_type: direct
+  conditions:
+  - 三春戊土
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000176
+  proposition: 正二月即有甲癸，若无丙除寒，如万物生而不长，故无丙者富贵艰辛
+  proposition_id: pr_bazi_000176
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0027_s02
+    support_type: direct
+  conditions:
+  - 正二月戊土
+  - 无丙
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000177
+  proposition: 正二月戊土有丙无甲癸者名曰春旱，如万物生而多厄
+  proposition_id: pr_bazi_000177
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0027_s02
+    support_type: direct
+  conditions:
+  - 正二月戊土
+  - 有丙无甲癸
+  exceptions: []
+  concept_ids:
+  - co_bazi_000046
+  status: machine_extracted
+- assertion_id: as_bazi_000178
+  proposition: 支成火局不见壬癸，僧道孤贫；癸透者贵；壬透者富
+  proposition_id: pr_bazi_000178
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0027_s02
+    support_type: direct
+  conditions:
+  - 正二月戊土
+  - 支成火局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000179
+  proposition: 正二月戊土一派甲木无丙者常人，得一庚透方妙
+  proposition_id: pr_bazi_000179
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0027_s02
+    support_type: direct
+  conditions:
+  - 正二月戊土
+  - 一派甲木
+  - 无丙
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000180
+  proposition: 正二月戊土支成水局甲又出干又有庚透，富贵双全
+  proposition_id: pr_bazi_000180
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0027_s02
+    support_type: direct
+  conditions:
+  - 正二月戊土
+  - 支成水局
+  - 甲透
+  - 庚透
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000181
+  proposition: 正二月戊土无庚金又无比印，难作从杀，定主遭凶，不然必为盗贼
+  proposition_id: pr_bazi_000181
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0027_s02
+    support_type: direct
+  conditions:
+  - 正二月戊土
+  - 无庚金
+  - 无比印
+  exceptions: []
+  concept_ids:
+  - co_bazi_000003
+  - co_bazi_000006
+  - co_bazi_000013
+  status: machine_extracted
+- assertion_id: as_bazi_000182
+  proposition: 正二月戊土一派乙木为官杀会党，即有庚透却难制乙；加一甲在内无庚，必懒惰自甘
+  proposition_id: pr_bazi_000182
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0027_s02
+    support_type: direct
+  conditions:
+  - 正二月戊土
+  - 一派乙木
+  exceptions: []
+  concept_ids:
+  - co_bazi_000003
+  - co_bazi_000004
+  - co_bazi_000074
+  status: machine_extracted
+- assertion_id: as_bazi_000183
+  proposition: 正二月戊土丙多甲多，宜以癸庚参用
+  proposition_id: pr_bazi_000183
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0027_s02
+    support_type: direct
+  conditions:
+  - 正二月戊土
+  - 丙多甲多
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+skipped_segments:
+- seg_id: s01
+  batch: qtbj_b012
+  span_id: ss_qtbj_ed01_p0018_s01
+  reason: case_example
+- seg_id: s02
+  batch: qtbj_b012
+  span_id: ss_qtbj_ed01_p0018_s02
+  reason: case_example
+- seg_id: s03
+  batch: qtbj_b012
+  span_id: ss_qtbj_ed01_p0018_s03
+  reason: case_example
+- seg_id: s01
+  batch: qtbj_b013
+  span_id: ss_qtbj_ed01_p0019_s01
+  reason: case_example
+- seg_id: s02
+  batch: qtbj_b013
+  span_id: ss_qtbj_ed01_p0019_s02
+  reason: case_example
+- seg_id: s03
+  batch: qtbj_b013
+  span_id: ss_qtbj_ed01_p0019_s03
+  reason: case_example
+- seg_id: s01
+  batch: qtbj_b014
+  span_id: ss_qtbj_ed01_p0021_s01
+  reason: case_example
+- seg_id: s02
+  batch: qtbj_b014
+  span_id: ss_qtbj_ed01_p0021_s02
+  reason: case_example
+- seg_id: s01
+  batch: qtbj_b015
+  span_id: ss_qtbj_ed01_p0022_s01
+  reason: case_example
+- seg_id: s02
+  batch: qtbj_b015
+  span_id: ss_qtbj_ed01_p0022_s02
+  reason: case_example
+- seg_id: s03
+  batch: qtbj_b015
+  span_id: ss_qtbj_ed01_p0022_s03
+  reason: case_example
+- seg_id: s01
+  batch: qtbj_b016
+  span_id: ss_qtbj_ed01_p0023_s01
+  reason: case_example
+- seg_id: s02
+  batch: qtbj_b016
+  span_id: ss_qtbj_ed01_p0023_s02
+  reason: case_example
+- seg_id: s01
+  batch: qtbj_b017
+  span_id: ss_qtbj_ed01_p0024_s01
+  reason: case_example
+- seg_id: s02
+  batch: qtbj_b017
+  span_id: ss_qtbj_ed01_p0024_s02
+  reason: case_example
+- seg_id: s03
+  batch: qtbj_b018
+  span_id: ss_qtbj_ed01_p0027_s03
+  reason: case_example
+- seg_id: s01
+  batch: qtbj_b019
+  span_id: ss_qtbj_ed01_p0028_s01
+  reason: case_example
+- seg_id: s02
+  batch: qtbj_b019
+  span_id: ss_qtbj_ed01_p0028_s02
+  reason: case_example
+- seg_id: s03
+  batch: qtbj_b019
+  span_id: ss_qtbj_ed01_p0028_s03
+  reason: case_example

@@ -1,0 +1,12 @@
+task_id: task_bazi_qtbj_concepts_r4
+result: completed
+  uncertainties:
+    - "假杀重重：sure=false，穷通宝鉴特有描述，非通用术语"
+    - "金弱沉寒：sure=false，可能是穷通宝鉴特有，非跨书标准格局名"
+    - "火土杂乱：sure=false，跨书复用程度待确认"
+    - "辛水汪洋：sure=false，属穷通宝鉴盘面文学比喻，类似水泛木浮但针对辛金"
+  lesson_candidates:
+    - "2026-07-12 | task_bazi_qtbj_concepts_r4 | 同义异序surface需逐一登记：土厚埋金(倒装)与土厚金埋(正序)出现在不同段，表面逐字一致原则要求各自注册"
+    - "2026-07-12 | task_bazi_qtbj_concepts_r4 | 一清澈底/一清到底是同一概念不同措辞示例，工位4收了两条，复核时需决定是否合并"
+    - "2026-07-12 | task_bazi_qtbj_concepts_r4 | 失令是司令/司权的反面，属调候基础词类，补充了v0该义项空缺"
+needs_escalation: false

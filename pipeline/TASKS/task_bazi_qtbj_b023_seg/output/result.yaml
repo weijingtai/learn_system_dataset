@@ -1,0 +1,9 @@
+task_id: task_bazi_qtbj_b023_seg
+result: completed
+uncertainties:
+- where: s01
+  note: 三夏己土无分月条目，全文为一段总论带四则命造表格；原文含Unicode私有区字符（聪特）
+lesson_candidates:
+- 己土三夏节为一体式总论不分月份，与戊土等分月讨论不同
+- Unicode私有区字符在转录中应原样保留，不可擅自替换为近似字
+needs_escalation: false

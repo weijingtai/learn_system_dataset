@@ -1,0 +1,9 @@
+task_id: task_bazi_qtbj_assert_s5
+stage: assertions
+review:
+  by: claude
+  verdict: PASS
+  source: opencode单路(修正模板)
+  assertions: 259
+  id_range: as_bazi_000894..001152
+  checks: validate_assertion_task --single PASS; check_extraction_health PASS

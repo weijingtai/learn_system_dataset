@@ -1,0 +1,12 @@
+task_id: task_bazi_qtbj_b014_seg
+result: completed
+uncertainties:
+- where: s01
+  note: 三春丁火无独立总论段，节标题后直接进入正月条目
+- where: s02
+  note: 段中含三则命造表格，边界归属存疑
+- where: s03
+  note: 三月条目无命造表格，明显短于正月和二月，此处与前两月结构差异待复核
+lesson_candidates:
+- 丁火节前两月（正月、二月）含命造表格，三月不含——并非所有月份都附命造举例，切分时无表格不等于漏切
+needs_escalation: false

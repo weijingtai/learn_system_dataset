@@ -1,0 +1,25 @@
+source_id: src_qtbj_ed01
+work_title: 窮通寶鑑
+edition_note: 维基文库（zh.wikisource.org）社群转录电子本，白文本（无徐乐吾评注），无影像底本、文字未核对；由 tools/ingest_epub.py 确定性转换，异文按本文件原样记录
+technique_id: bazi
+text_type: C                      # 条目体（十干×四季×月令），白文纯 C 类
+rights_status: public_domain      # 原书公版；维基文库转录采 CC BY-SA 3.0 / GFDL，署名 Wikisource
+source_provenance:
+  origin: https://zh.wikisource.org/wiki/穷通宝鉴
+  license: CC BY-SA 3.0 / GNU FDL
+  contributor: Wikisource
+  epub_modified: "2026-07-11T22:38:26Z"   # EPUB 元数据 dcterms:modified，非本项目产出时间
+files:
+  - path: raw/穷通宝鉴.epub
+    role: raw_ebook
+    sha256: 351323ede81a07c268a3a03c007d26b78ae294cba299d289daf8b9700edc7093
+  - path: source/transcript_v1.md
+    role: transcript
+    sha256: 132f99e3f5aff61592de97addab40323a69d86e619989dd2ff724546a6ce9d9a
+  - path: source/sections.yaml
+    role: sections_map           # 伪页号→标题路径 对照（每个伪页 = 一个标题节）
+    sha256: 7f7fed78862e9e66f0503246ec66b70142a87e75a021c0908674b96a2f53d94e
+conversion:
+  tool: tools/ingest_epub.py
+  note: EPUB 无页码，标题节序号充当 span 编号的 p 值；56 个标题节 = 伪页 p0001–p0056
+  body_chars: 31635

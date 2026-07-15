@@ -1,0 +1,251 @@
+work: 窮通寶鑑
+source_id: src_qtbj_ed01
+leaf_count: 41
+total_chars: 29251
+outline:
+- node_id: n001
+  path: 五行总论
+  page: 1
+  text_type: B
+  est_chars: 502
+  status: pending
+- node_id: n002
+  path: 十干分论 / 论甲木 / 三春甲木
+  page: 5
+  text_type: C
+  est_chars: 1041
+  status: pending
+- node_id: n003
+  path: 十干分论 / 论甲木 / 三夏甲木
+  page: 6
+  text_type: C
+  est_chars: 829
+  status: pending
+- node_id: n004
+  path: 十干分论 / 论甲木 / 三秋甲木
+  page: 7
+  text_type: C
+  est_chars: 1235
+  status: pending
+- node_id: n005
+  path: 十干分论 / 论甲木 / 三冬甲木
+  page: 8
+  text_type: C
+  est_chars: 546
+  status: pending
+- node_id: n006
+  path: 十干分论 / 论乙木 / 三春乙木
+  page: 10
+  text_type: C
+  est_chars: 701
+  status: pending
+- node_id: n007
+  path: 十干分论 / 论乙木 / 三夏乙木
+  page: 11
+  text_type: C
+  est_chars: 864
+  status: pending
+- node_id: n008
+  path: 十干分论 / 论乙木 / 三秋乙木
+  page: 12
+  text_type: C
+  est_chars: 799
+  status: pending
+- node_id: n009
+  path: 十干分论 / 论乙木 / 三冬乙木
+  page: 13
+  text_type: C
+  est_chars: 717
+  status: pending
+- node_id: n010
+  path: 十干分论 / 论丙火 / 三春丙火
+  page: 16
+  text_type: C
+  est_chars: 1056
+  status: pending
+- node_id: n011
+  path: 十干分论 / 论丙火 / 三夏丙火
+  page: 17
+  text_type: C
+  est_chars: 955
+  status: pending
+- node_id: n012
+  path: 十干分论 / 论丙火 / 三秋丙火
+  page: 18
+  text_type: C
+  est_chars: 676
+  status: pending
+- node_id: n013
+  path: 十干分论 / 论丙火 / 三冬丙火
+  page: 19
+  text_type: C
+  est_chars: 591
+  status: pending
+- node_id: n014
+  path: 十干分论 / 论丁火 / 三春丁火
+  page: 21
+  text_type: C
+  est_chars: 741
+  status: pending
+- node_id: n015
+  path: 十干分论 / 论丁火 / 三夏丁火
+  page: 22
+  text_type: C
+  est_chars: 897
+  status: pending
+- node_id: n016
+  path: 十干分论 / 论丁火 / 三秋丁火
+  page: 23
+  text_type: C
+  est_chars: 612
+  status: pending
+- node_id: n017
+  path: 十干分论 / 论丁火 / 三冬丁火
+  page: 24
+  text_type: C
+  est_chars: 434
+  status: pending
+- node_id: n018
+  path: 十干分论 / 论戊土 / 三春戊土
+  page: 27
+  text_type: C
+  est_chars: 763
+  status: pending
+- node_id: n019
+  path: 十干分论 / 论戊土 / 三夏戊土
+  page: 28
+  text_type: C
+  est_chars: 571
+  status: pending
+- node_id: n020
+  path: 十干分论 / 论戊土 / 三秋戊土
+  page: 29
+  text_type: C
+  est_chars: 612
+  status: pending
+- node_id: n021
+  path: 十干分论 / 论戊土 / 三冬戊土
+  page: 30
+  text_type: C
+  est_chars: 488
+  status: pending
+- node_id: n022
+  path: 十干分论 / 论己土 / 三春己土
+  page: 32
+  text_type: C
+  est_chars: 691
+  status: pending
+- node_id: n023
+  path: 十干分论 / 论己土 / 三夏己土
+  page: 33
+  text_type: C
+  est_chars: 316
+  status: pending
+- node_id: n024
+  path: 十干分论 / 论己土 / 三秋己土
+  page: 34
+  text_type: C
+  est_chars: 433
+  status: pending
+- node_id: n025
+  path: 十干分论 / 论己土 / 三冬己土
+  page: 35
+  text_type: C
+  est_chars: 849
+  status: pending
+- node_id: n026
+  path: 十干分论 / 论庚金 / 三春庚金
+  page: 37
+  text_type: C
+  est_chars: 949
+  status: pending
+- node_id: n027
+  path: 十干分论 / 论庚金 / 三夏庚金
+  page: 38
+  text_type: C
+  est_chars: 648
+  status: pending
+- node_id: n028
+  path: 十干分论 / 论庚金 / 三秋庚金
+  page: 39
+  text_type: C
+  est_chars: 680
+  status: pending
+- node_id: n029
+  path: 十干分论 / 论庚金 / 三冬庚金
+  page: 40
+  text_type: C
+  est_chars: 590
+  status: pending
+- node_id: n030
+  path: 十干分论 / 论辛金 / 三春辛金
+  page: 42
+  text_type: C
+  est_chars: 907
+  status: pending
+- node_id: n031
+  path: 十干分论 / 论辛金 / 三夏辛金
+  page: 43
+  text_type: C
+  est_chars: 708
+  status: pending
+- node_id: n032
+  path: 十干分论 / 论辛金 / 三秋辛金
+  page: 44
+  text_type: C
+  est_chars: 1031
+  status: pending
+- node_id: n033
+  path: 十干分论 / 论辛金 / 三冬辛金
+  page: 45
+  text_type: C
+  est_chars: 599
+  status: pending
+- node_id: n034
+  path: 十干分论 / 论壬水 / 三春壬水
+  page: 48
+  text_type: C
+  est_chars: 649
+  status: pending
+- node_id: n035
+  path: 十干分论 / 论壬水 / 三夏壬水
+  page: 49
+  text_type: C
+  est_chars: 566
+  status: pending
+- node_id: n036
+  path: 十干分论 / 论壬水 / 三秋壬水
+  page: 50
+  text_type: C
+  est_chars: 720
+  status: pending
+- node_id: n037
+  path: 十干分论 / 论壬水 / 三冬壬水
+  page: 51
+  text_type: C
+  est_chars: 727
+  status: pending
+- node_id: n038
+  path: 十干分论 / 论癸水 / 三春癸水
+  page: 53
+  text_type: C
+  est_chars: 717
+  status: pending
+- node_id: n039
+  path: 十干分论 / 论癸水 / 三夏癸水
+  page: 54
+  text_type: C
+  est_chars: 584
+  status: pending
+- node_id: n040
+  path: 十干分论 / 论癸水 / 三秋癸水
+  page: 55
+  text_type: C
+  est_chars: 498
+  status: pending
+- node_id: n041
+  path: 十干分论 / 论癸水 / 三冬癸水
+  page: 56
+  text_type: C
+  est_chars: 759
+  status: pending

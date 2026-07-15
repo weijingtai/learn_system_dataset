@@ -1,0 +1,47 @@
+candidates:
+- surface: 伤官格
+  kind_guess: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0029_s02
+  sure: true
+- surface: 当权
+  kind_guess: tiaohou
+  seg_ids:
+  - ss_qtbj_ed01_p0029_s03
+  - ss_qtbj_ed01_p0035_s02
+  sure: true
+- surface: 土金伤官
+  kind_guess: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0030_s02
+  sure: true
+- surface: 旱田
+  kind_guess: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0033_s01
+  sure: false
+- surface: 铸印
+  kind_guess: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0035_s02
+  sure: true
+- surface: 乘轩
+  kind_guess: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0035_s02
+  sure: false
+- surface: 官星有气
+  kind_guess: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0037_s01
+  sure: true
+- surface: 比
+  kind_guess: ten_god
+  seg_ids:
+  - ss_qtbj_ed01_p0037_s02
+  sure: true
+- surface: 假杀为权
+  kind_guess: pattern
+  seg_ids:
+  - ss_qtbj_ed01_p0038_s01
+  sure: true

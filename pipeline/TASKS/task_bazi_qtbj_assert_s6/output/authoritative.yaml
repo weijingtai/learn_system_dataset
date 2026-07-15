@@ -1,0 +1,2043 @@
+assertions:
+- assertion_id: as_bazi_001153
+  proposition: 七月壬水，庚金司令，壬得申之长生，源流自远，转弱为强，专用戊土，次取丁火佐戊制庚
+  proposition_id: pr_bazi_001153
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0050_s01
+    support_type: direct
+  conditions:
+  - 七月（申月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000052
+  status: machine_extracted
+- assertion_id: as_bazi_001154
+  proposition: 七月壬水但用辰戌之戊，不用申中受病之戊
+  proposition_id: pr_bazi_001154
+  relation: qualifies
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0050_s01
+    support_type: direct
+  conditions:
+  - 七月（申月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001155
+  proposition: 七月壬水戊丁俱透，科甲生员
+  proposition_id: pr_bazi_001155
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0050_s01
+    support_type: direct
+  conditions:
+  - 七月（申月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001156
+  proposition: 七月壬水戊透天干，丁藏午戌，恩封可待，特忌戊癸化合
+  proposition_id: pr_bazi_001156
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0050_s01
+    support_type: direct
+  conditions:
+  - 七月（申月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001157
+  proposition: 七月壬水即支见寅戌，年出丁火，可许衣衿
+  proposition_id: pr_bazi_001157
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0050_s01
+    support_type: direct
+  conditions:
+  - 七月（申月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001158
+  proposition: 七月壬水丁戊两藏，富中取贵
+  proposition_id: pr_bazi_001158
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0050_s01
+    support_type: direct
+  conditions:
+  - 七月（申月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001159
+  proposition: 七月壬水四柱多壬，戊又透干，名假杀化权，阆苑之仙
+  proposition_id: pr_bazi_001159
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0050_s01
+    support_type: direct
+  conditions:
+  - 七月（申月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000104
+  status: machine_extracted
+- assertion_id: as_bazi_001160
+  proposition: 七月壬水四柱多壬，戊又透干，支中见甲，亦不忌也，但甲太多者常人
+  proposition_id: pr_bazi_001160
+  relation: qualifies
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0050_s01
+    support_type: direct
+  conditions:
+  - 七月（申月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001161
+  proposition: 七月壬水四柱多壬，有庚居申，颇有衣禄
+  proposition_id: pr_bazi_001161
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0050_s01
+    support_type: direct
+  conditions:
+  - 七月（申月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001162
+  proposition: 七月壬水戊多而透，得一甲制，略富贵，无甲常人
+  proposition_id: pr_bazi_001162
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0050_s01
+    support_type: direct
+  conditions:
+  - 七月（申月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001163
+  proposition: 七月壬水一派甲木，又见火多，无庚出者，别祖离乡，随缘度日，盖申中之庚不能救也
+  proposition_id: pr_bazi_001163
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0050_s01
+    support_type: direct
+  conditions:
+  - 七月（申月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001164
+  proposition: 七月壬水，专用戊土，丁火为佐
+  proposition_id: pr_bazi_001164
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0050_s02
+    support_type: direct
+  conditions:
+  - 七月（申月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001165
+  proposition: 八月壬水，辛金司权，正金白水清，忌戊土为病，专用甲木，甲木一透制戊，壬水澈底澄清，名高翰苑
+  proposition_id: pr_bazi_001165
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0050_s03
+    support_type: direct
+  conditions:
+  - 八月（酉月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000037
+  status: machine_extracted
+- assertion_id: as_bazi_001166
+  proposition: 八月壬水若甲出时干，功名显达，设见庚破，又属常人
+  proposition_id: pr_bazi_001166
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0050_s03
+    support_type: direct
+  conditions:
+  - 八月（酉月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001167
+  proposition: 八月壬水即甲藏支、无庚，秀才可许
+  proposition_id: pr_bazi_001167
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0050_s03
+    support_type: direct
+  conditions:
+  - 八月（酉月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001168
+  proposition: 八月壬水天干有壬，支见申亥，此非用甲，戊土作用，亥虽有甲，又有申中之金制甲，秀才一定，且富足多才
+  proposition_id: pr_bazi_001168
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0050_s03
+    support_type: direct
+  conditions:
+  - 八月（酉月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001169
+  proposition: 八月壬水无戊、多金水者，主人清才浊，困苦寒儒
+  proposition_id: pr_bazi_001169
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0050_s03
+    support_type: direct
+  conditions:
+  - 八月（酉月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001170
+  proposition: 八月壬水无甲用金，发水之源，名独水三犯庚辛，号曰体全之象
+  proposition_id: pr_bazi_001170
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0050_s03
+    support_type: direct
+  conditions:
+  - 八月（酉月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001171
+  proposition: 八月壬水，专用甲木，庚金次之
+  proposition_id: pr_bazi_001171
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0050_s04
+    support_type: direct
+  conditions:
+  - 八月（酉月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001172
+  proposition: 八月壬水用甲者，水妻木子
+  proposition_id: pr_bazi_001172
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0050_s04
+    support_type: direct
+  conditions:
+  - 八月（酉月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001173
+  proposition: 九月壬水进气，其性特厚
+  proposition_id: pr_bazi_001173
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0050_s05
+    support_type: direct
+  conditions:
+  - 九月（戌月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000105
+  status: machine_extracted
+- assertion_id: as_bazi_001174
+  proposition: 九月壬水若一派壬水，见一甲、制戌中之戊，戊又出干，斯用丙火，此格清贵极矣，正合一将当关，群邪自伏
+  proposition_id: pr_bazi_001174
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0050_s05
+    support_type: direct
+  conditions:
+  - 九月（戌月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001175
+  proposition: 九月壬水不见丙戊，亦不为妙
+  proposition_id: pr_bazi_001175
+  relation: opposes
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0050_s05
+    support_type: direct
+  conditions:
+  - 九月（戌月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001176
+  proposition: 九月壬水一派戊土，无一己庚杂乱，得一甲透时干，玉堂清贵，即甲透月上，亦主科甲
+  proposition_id: pr_bazi_001176
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0050_s05
+    support_type: direct
+  conditions:
+  - 九月（戌月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001177
+  proposition: 九月壬水一派戊土，若支藏己土，一榜可图
+  proposition_id: pr_bazi_001177
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0050_s05
+    support_type: direct
+  conditions:
+  - 九月（戌月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001178
+  proposition: 九月壬水庚透乏丁，贫贱之人
+  proposition_id: pr_bazi_001178
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0050_s05
+    support_type: direct
+  conditions:
+  - 九月（戌月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001179
+  proposition: 九月壬水丁透见甲，略贵
+  proposition_id: pr_bazi_001179
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0050_s05
+    support_type: direct
+  conditions:
+  - 九月（戌月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001180
+  proposition: 九月壬水水多乏丙者，又用戊土，常人
+  proposition_id: pr_bazi_001180
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0050_s05
+    support_type: direct
+  conditions:
+  - 九月（戌月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001181
+  proposition: 九月壬水，专用甲木，次用丙火
+  proposition_id: pr_bazi_001181
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0050_s06
+    support_type: direct
+  conditions:
+  - 九月（戌月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001182
+  proposition: 九月壬水用土者，火妻土子
+  proposition_id: pr_bazi_001182
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0050_s06
+    support_type: direct
+  conditions:
+  - 九月（戌月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001183
+  proposition: 十月壬水司权，至旺之极，取戊为用
+  proposition_id: pr_bazi_001183
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0051_s01
+    support_type: direct
+  conditions:
+  - 十月（亥月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000037
+  status: machine_extracted
+- assertion_id: as_bazi_001184
+  proposition: 十月壬水若生辰日干，又见辰时，必须戊透，又须庚制甲，不伤戊土，戊庚两全，定主登科及第，位显权高
+  proposition_id: pr_bazi_001184
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0051_s01
+    support_type: direct
+  conditions:
+  - 十月（亥月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001185
+  proposition: 十月壬水甲出制戊，不见庚救者，断之贫穷
+  proposition_id: pr_bazi_001185
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0051_s01
+    support_type: direct
+  conditions:
+  - 十月（亥月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001186
+  proposition: 十月壬水戊藏无制，可许生员
+  proposition_id: pr_bazi_001186
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0051_s01
+    support_type: direct
+  conditions:
+  - 十月（亥月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001187
+  proposition: 十月壬水戊庚两透无甲者，亦主荣显
+  proposition_id: pr_bazi_001187
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0051_s01
+    support_type: direct
+  conditions:
+  - 十月（亥月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001188
+  proposition: 十月壬水支成木局，有甲乙出干，得庚透者，富贵，无庚者平常
+  proposition_id: pr_bazi_001188
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0051_s01
+    support_type: direct
+  conditions:
+  - 十月（亥月）
+  - 支成木局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001189
+  proposition: 十月壬水支成水局，不见戊己，名润下格，运行西北大富贵，行东南者必危
+  proposition_id: pr_bazi_001189
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0051_s01
+    support_type: direct
+  conditions:
+  - 十月（亥月）
+  - 支成水局
+  exceptions: []
+  concept_ids:
+  - co_bazi_000103
+  status: machine_extracted
+- assertion_id: as_bazi_001190
+  proposition: 十月壬水丙戊两透，行火土运，名利双全
+  proposition_id: pr_bazi_001190
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0051_s01
+    support_type: direct
+  conditions:
+  - 十月（亥月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001191
+  proposition: 十月壬水有丙无戊，可云衣禄
+  proposition_id: pr_bazi_001191
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0051_s01
+    support_type: direct
+  conditions:
+  - 十月（亥月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001192
+  proposition: 十月壬水有戊无丙，难许推盈
+  proposition_id: pr_bazi_001192
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0051_s01
+    support_type: direct
+  conditions:
+  - 十月（亥月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001193
+  proposition: 十月壬水、专用戊丙，次取庚金
+  proposition_id: pr_bazi_001193
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0051_s01
+    support_type: direct
+  conditions:
+  - 十月（亥月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001194
+  proposition: 十一月壬水，阳刃帮身，较前更旺，先取戊土，次用丙火
+  proposition_id: pr_bazi_001194
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0051_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001195
+  proposition: 十一月壬水丙戊两透，富贵荣华
+  proposition_id: pr_bazi_001195
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0051_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001196
+  proposition: 十一月壬水有戊无丙，略可言富
+  proposition_id: pr_bazi_001196
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0051_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001197
+  proposition: 十一月壬水有丙无戊，好谋无成
+  proposition_id: pr_bazi_001197
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0051_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001198
+  proposition: 十一月壬水支成水局，丙不出干，即有戊土，亦是庸人
+  proposition_id: pr_bazi_001198
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0051_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  - 支成水局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001199
+  proposition: 十一月壬水丙透得所，即戊藏支，亦可显达，须运得用方妙
+  proposition_id: pr_bazi_001199
+  relation: qualifies
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0051_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001200
+  proposition: 十一月壬水支成火局，一富而已
+  proposition_id: pr_bazi_001200
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0051_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  - 支成火局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001201
+  proposition: 十一月壬水比见月时，年见丁火，平常之辈
+  proposition_id: pr_bazi_001201
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0051_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000085
+  status: machine_extracted
+- assertion_id: as_bazi_001202
+  proposition: 十一月壬水支成四库，富贵中人
+  proposition_id: pr_bazi_001202
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0051_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  - 支成四库
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001203
+  proposition: 十一月壬水丁出时干，名为争合，主名利难成
+  proposition_id: pr_bazi_001203
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0051_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000059
+  status: machine_extracted
+- assertion_id: as_bazi_001204
+  proposition: 十一月壬水壬子日、丁未时，虽不能科甲，亦有恩荣，盖用子中癸水为官，号曰用神得地，亦主荣华
+  proposition_id: pr_bazi_001204
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0051_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  - 壬子日丁未时
+  exceptions: []
+  concept_ids:
+  - co_bazi_000106
+  status: machine_extracted
+- assertion_id: as_bazi_001205
+  proposition: 十一月壬水，丙戊并用
+  proposition_id: pr_bazi_001205
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0051_s03
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001206
+  proposition: 十二月壬水，旺极复衰，上半月癸辛主事，故旺，专用丙火，下半月己土主事，故衰，亦用丙火，甲木佐之
+  proposition_id: pr_bazi_001206
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0051_s04
+    support_type: direct
+  conditions:
+  - 十二月（丑月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001207
+  proposition: 十二月壬水有丙解冻，名利双全
+  proposition_id: pr_bazi_001207
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0051_s04
+    support_type: direct
+  conditions:
+  - 十二月（丑月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001208
+  proposition: 十二月壬水丙透甲出，科甲之贵，然四柱无壬方妙
+  proposition_id: pr_bazi_001208
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0051_s04
+    support_type: direct
+  conditions:
+  - 十二月（丑月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001209
+  proposition: 十二月壬水无丙，单寒之士
+  proposition_id: pr_bazi_001209
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0051_s04
+    support_type: direct
+  conditions:
+  - 十二月（丑月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001210
+  proposition: 十二月壬水四柱多壬，戊透制之，衣衿可望
+  proposition_id: pr_bazi_001210
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0051_s04
+    support_type: direct
+  conditions:
+  - 十二月（丑月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001211
+  proposition: 十二月壬水丁出时干，化合成木，月干又见丁火，无癸破格，亦主富贵
+  proposition_id: pr_bazi_001211
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0051_s04
+    support_type: direct
+  conditions:
+  - 十二月（丑月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001212
+  proposition: 十二月壬水支成金局，名金寒水冻，一世孤贫，见火略可，即丙透遇辛，亦不为妙，见丁颇吉
+  proposition_id: pr_bazi_001212
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0051_s04
+    support_type: direct
+  conditions:
+  - 十二月（丑月）
+  - 支成金局
+  exceptions: []
+  concept_ids:
+  - co_bazi_000107
+  status: machine_extracted
+- assertion_id: as_bazi_001213
+  proposition: 腊月壬水，先取丙火，丁甲为佐
+  proposition_id: pr_bazi_001213
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0051_s04
+    support_type: direct
+  conditions:
+  - 十二月（丑月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001214
+  proposition: 腊月壬水用火者，木妻火子
+  proposition_id: pr_bazi_001214
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0051_s04
+    support_type: direct
+  conditions:
+  - 十二月（丑月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001215
+  proposition: 水旺居垣须有智，水土混杂必愚顽
+  proposition_id: pr_bazi_001215
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0051_s04
+    support_type: direct
+  conditions: []
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001216
+  proposition: 壬癸路经南域，主健，富贵堪图
+  proposition_id: pr_bazi_001216
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0051_s04
+    support_type: direct
+  conditions: []
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001217
+  proposition: 正月癸水，值三阳之候，雨露之精，其性至柔，先用辛金，生癸水之源，次用丙火照暖，名阴阳和合，万物发生
+  proposition_id: pr_bazi_001217
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0053_s01
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000110
+  status: machine_extracted
+- assertion_id: as_bazi_001218
+  proposition: 正月癸水辛丙两透，金榜有名
+  proposition_id: pr_bazi_001218
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0053_s01
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001219
+  proposition: 正月癸水支成火局，辛金受伤，有壬出救者富贵，无壬者贫穷
+  proposition_id: pr_bazi_001219
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0053_s01
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  - 支成火局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001220
+  proposition: 正月癸水丙出天干，辛在酉丑，亦有衣衿
+  proposition_id: pr_bazi_001220
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0053_s01
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001221
+  proposition: 正月癸水若辛丙皆无，贫寒下格
+  proposition_id: pr_bazi_001221
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0053_s01
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001222
+  proposition: 正月癸水辛透丙藏，恩荣之造
+  proposition_id: pr_bazi_001222
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0053_s01
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001223
+  proposition: 正月癸水丙辛在柱，以富得官
+  proposition_id: pr_bazi_001223
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0053_s01
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001224
+  proposition: 正月癸水戊透月上、坐辰时，不见比劫，丙丁出干，此为化合，定主腰金，见刑冲则否
+  proposition_id: pr_bazi_001224
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0053_s01
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000009
+  status: machine_extracted
+- assertion_id: as_bazi_001225
+  proposition: 正月癸水支成水局，宜有丙透，无壬者，衣禄不少
+  proposition_id: pr_bazi_001225
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0053_s01
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  - 支成水局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001226
+  proposition: 正月癸水支成水局，若见丙火重重，又作贵推
+  proposition_id: pr_bazi_001226
+  relation: qualifies
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0053_s01
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  - 支成水局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001227
+  proposition: 正月癸水，辛金为主，庚金次之，丙亦不可少
+  proposition_id: pr_bazi_001227
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0053_s02
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001228
+  proposition: 正月癸水若无庚辛，虽有丙火，无用之人
+  proposition_id: pr_bazi_001228
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0053_s02
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001229
+  proposition: 正月癸水火多土多，残疾不免
+  proposition_id: pr_bazi_001229
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0053_s02
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001230
+  proposition: 正月癸水用辛者，土妻金子
+  proposition_id: pr_bazi_001230
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0053_s02
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001231
+  proposition: 二月癸水，不刚不柔，乙木司令，泄弱元神，专以庚金为用，辛金次之
+  proposition_id: pr_bazi_001231
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0053_s03
+    support_type: direct
+  conditions:
+  - 二月（卯月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000052
+  status: machine_extracted
+- assertion_id: as_bazi_001232
+  proposition: 二月癸水庚辛俱透，无丁出干者，贵由科甲
+  proposition_id: pr_bazi_001232
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0053_s03
+    support_type: direct
+  conditions:
+  - 二月（卯月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001233
+  proposition: 二月癸水无庚辛者常人
+  proposition_id: pr_bazi_001233
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0053_s03
+    support_type: direct
+  conditions:
+  - 二月（卯月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001234
+  proposition: 二月癸水庚透辛藏，荣封有准
+  proposition_id: pr_bazi_001234
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0053_s03
+    support_type: direct
+  conditions:
+  - 二月（卯月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001235
+  proposition: 二月癸水庚藏辛透，亦有衣衿
+  proposition_id: pr_bazi_001235
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0053_s03
+    support_type: direct
+  conditions:
+  - 二月（卯月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001236
+  proposition: 二月癸水庚辛两藏，富中取贵，或刀笔扬名
+  proposition_id: pr_bazi_001236
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0053_s03
+    support_type: direct
+  conditions:
+  - 二月（卯月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001237
+  proposition: 二月癸水庚辛重见，有己丁出干者亦贵
+  proposition_id: pr_bazi_001237
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0053_s03
+    support_type: direct
+  conditions:
+  - 二月（卯月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001238
+  proposition: 二月癸水支成木局，月时又见木者，为泄水太过，定主贫困多灾，即运入西方，亦属无用
+  proposition_id: pr_bazi_001238
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0053_s03
+    support_type: direct
+  conditions:
+  - 二月（卯月）
+  - 支成木局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001239
+  proposition: 三月癸水，要分清明谷雨，清明后火气未炽，专用丙火，为阴阳合谐
+  proposition_id: pr_bazi_001239
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0053_s04
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  - 清明后
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001240
+  proposition: 三月癸水谷雨后，虽用丙火，尚宜辛甲佐之
+  proposition_id: pr_bazi_001240
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0053_s04
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  - 谷雨后
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001241
+  proposition: 三月癸水用丙，木妻火子
+  proposition_id: pr_bazi_001241
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0053_s04
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001242
+  proposition: 三月癸水，从化者多，得化者荣禄，不化者平常
+  proposition_id: pr_bazi_001242
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0053_s05
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001243
+  proposition: 三月癸水支成水局，又见己土、无木，乃假杀格，有甲出者常人
+  proposition_id: pr_bazi_001243
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0053_s05
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  - 支成水局
+  exceptions: []
+  concept_ids:
+  - co_bazi_000111
+  status: machine_extracted
+- assertion_id: as_bazi_001244
+  proposition: 三月癸水支坐四库，又得甲透，可谓显达名扬，无甲者僧道孤苦
+  proposition_id: pr_bazi_001244
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0053_s05
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  - 支坐四库
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001245
+  proposition: 三月癸水支成木局，名伤官生财格，主聪明博学，衣禄充饶
+  proposition_id: pr_bazi_001245
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0053_s05
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  - 支成木局
+  exceptions: []
+  concept_ids:
+  - co_bazi_000018
+  status: machine_extracted
+- assertion_id: as_bazi_001246
+  proposition: 三月癸水，辛甲皆酌用，下半月土妻金子
+  proposition_id: pr_bazi_001246
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0053_s06
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  - 下半月
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001247
+  proposition: 四月癸水，喜辛金为用，无辛用庚
+  proposition_id: pr_bazi_001247
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0054_s01
+    support_type: direct
+  conditions:
+  - 四月（巳月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001248
+  proposition: 四月癸水若辛高透，不见丁火，加以壬透，主科名荣贵，声播四夷
+  proposition_id: pr_bazi_001248
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0054_s01
+    support_type: direct
+  conditions:
+  - 四月（巳月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001249
+  proposition: 四月癸水若有丁破格，贫无立锥，有壬可免
+  proposition_id: pr_bazi_001249
+  relation: opposes
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0054_s01
+    support_type: direct
+  conditions:
+  - 四月（巳月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001250
+  proposition: 四月癸水辛藏无丁，贡监衣衿
+  proposition_id: pr_bazi_001250
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0054_s01
+    support_type: direct
+  conditions:
+  - 四月（巳月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001251
+  proposition: 四月癸水一派火土乏辛，即有己庚，亦不能生水，又无比肩羊刃，必至熬干癸水，损目无疑
+  proposition_id: pr_bazi_001251
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0054_s01
+    support_type: direct
+  conditions:
+  - 四月（巳月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000008
+  status: machine_extracted
+- assertion_id: as_bazi_001252
+  proposition: 四月癸水若庚壬两透，泄制火土，名劫印化晋，极贵之造，有丁见干者则否
+  proposition_id: pr_bazi_001252
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0054_s01
+    support_type: direct
+  conditions:
+  - 四月（巳月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000112
+  status: machine_extracted
+- assertion_id: as_bazi_001253
+  proposition: 四月癸水有庚无壬，亦无丁破庚者，堪入儒林
+  proposition_id: pr_bazi_001253
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0054_s01
+    support_type: direct
+  conditions:
+  - 四月（巳月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001254
+  proposition: 四月癸水有庚无辛者，异路功名
+  proposition_id: pr_bazi_001254
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0054_s01
+    support_type: direct
+  conditions:
+  - 四月（巳月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001255
+  proposition: 四月癸水，专用辛金方妙
+  proposition_id: pr_bazi_001255
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0054_s01
+    support_type: direct
+  conditions:
+  - 四月（巳月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001256
+  proposition: 五月癸水，至弱无根，必须庚辛为生身之本，但丁火司权，金难敌火，安能滋养癸水，宜见比劫，方得辛金之用
+  proposition_id: pr_bazi_001256
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0054_s02
+    support_type: direct
+  conditions:
+  - 五月（午月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000037
+  - co_bazi_000009
+  status: machine_extracted
+- assertion_id: as_bazi_001257
+  proposition: 五月癸水，庚辛壬参酌并用可也
+  proposition_id: pr_bazi_001257
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0054_s02
+    support_type: direct
+  conditions:
+  - 五月（午月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001258
+  proposition: 五月癸水如庚辛透干，又见壬癸者，定主钟鼎名家
+  proposition_id: pr_bazi_001258
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0054_s02
+    support_type: direct
+  conditions:
+  - 五月（午月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001259
+  proposition: 五月癸水有金透，支见申子辰者，亦主金榜挂名
+  proposition_id: pr_bazi_001259
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0054_s02
+    support_type: direct
+  conditions:
+  - 五月（午月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001260
+  proposition: 五月癸水无水出干，支只一水，虽有庚辛，一富之造，故曰水源会夏，富重贵轻
+  proposition_id: pr_bazi_001260
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0054_s02
+    support_type: direct
+  conditions:
+  - 五月（午月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001261
+  proposition: 五月癸水支成火局，无壬出干，定主僧道
+  proposition_id: pr_bazi_001261
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0054_s02
+    support_type: direct
+  conditions:
+  - 五月（午月）
+  - 支成火局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001262
+  proposition: 五月癸水二壬一庚同透，衣锦腰金
+  proposition_id: pr_bazi_001262
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0054_s02
+    support_type: direct
+  conditions:
+  - 五月（午月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001263
+  proposition: 五月癸水一派己土，无甲出制，此作从杀而论，又主大贵，凡从杀者，切不可破格方吉
+  proposition_id: pr_bazi_001263
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0054_s02
+    support_type: direct
+  conditions:
+  - 五月（午月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000013
+  status: machine_extracted
+- assertion_id: as_bazi_001264
+  proposition: 六月癸水，有上下月之分，下半月庚辛有气，上半月庚辛休囚，凡六癸日、多不验者，因未中有乙己同宫，破而不破，故癸水不能从杀，所以专用庚辛
+  proposition_id: pr_bazi_001264
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0054_s03
+    support_type: direct
+  conditions:
+  - 六月（未月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001265
+  proposition: 六月癸水上半月金神衰弱，火气炎烈，宜比劫助身，可云富贵，与五月一理
+  proposition_id: pr_bazi_001265
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0054_s03
+    support_type: direct
+  conditions:
+  - 六月（未月）
+  - 上半月
+  exceptions: []
+  concept_ids:
+  - co_bazi_000009
+  status: machine_extracted
+- assertion_id: as_bazi_001266
+  proposition: 六月癸水下半月庚辛有气，即无比劫亦可，又忌丁透，即丁在支亦不吉
+  proposition_id: pr_bazi_001266
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0054_s03
+    support_type: direct
+  conditions:
+  - 六月（未月）
+  - 下半月
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001267
+  proposition: 七月癸水，正母旺子相之时，癸虽死申，殊不知申中有庚生之，名死处逢生，弱中复强，即运行西北，亦不死也
+  proposition_id: pr_bazi_001267
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0055_s01
+    support_type: direct
+  conditions:
+  - 七月（申月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000113
+  status: machine_extracted
+- assertion_id: as_bazi_001268
+  proposition: 七月癸水庚司令刚锐极矣，必取丁火为用
+  proposition_id: pr_bazi_001268
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0055_s01
+    support_type: direct
+  conditions:
+  - 七月（申月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000052
+  status: machine_extracted
+- assertion_id: as_bazi_001269
+  proposition: 七月癸水丁透有甲，名有焰之火，必主科甲
+  proposition_id: pr_bazi_001269
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0055_s01
+    support_type: direct
+  conditions:
+  - 七月（申月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001270
+  proposition: 七月癸水丁透无甲，又无壬癸，即有一二庚金，亦有生监，有二丁更妙
+  proposition_id: pr_bazi_001270
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0055_s01
+    support_type: direct
+  conditions:
+  - 七月（申月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001271
+  proposition: 七月癸水金多乏丁制者，贫困之人
+  proposition_id: pr_bazi_001271
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0055_s01
+    support_type: direct
+  conditions:
+  - 七月（申月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001272
+  proposition: 七月癸水一丁坐午，名独才格，主金玉满堂，富中取贵，若在未戌，则是常人
+  proposition_id: pr_bazi_001272
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0055_s01
+    support_type: direct
+  conditions:
+  - 七月（申月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000114
+  status: machine_extracted
+- assertion_id: as_bazi_001273
+  proposition: 七月癸水柱见二戌二未，又得丙丁藏支，干见甲出、无水，亦作富贵而推
+  proposition_id: pr_bazi_001273
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0055_s01
+    support_type: direct
+  conditions:
+  - 七月（申月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001274
+  proposition: 八月癸水，辛金虚灵，非顽金可比，正金白水清，故取辛金为用，丙火佐之，名水暖金温
+  proposition_id: pr_bazi_001274
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0055_s02
+    support_type: direct
+  conditions:
+  - 八月（酉月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000115
+  status: machine_extracted
+- assertion_id: as_bazi_001275
+  proposition: 八月癸水如丙与辛隔位同透，主科甲功名
+  proposition_id: pr_bazi_001275
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0055_s02
+    support_type: direct
+  conditions:
+  - 八月（酉月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001276
+  proposition: 八月癸水丙透辛藏，一榜之士
+  proposition_id: pr_bazi_001276
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0055_s02
+    support_type: direct
+  conditions:
+  - 八月（酉月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001277
+  proposition: 八月癸水土多克水，生意中人
+  proposition_id: pr_bazi_001277
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0055_s02
+    support_type: direct
+  conditions:
+  - 八月（酉月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001278
+  proposition: 八月癸水，丙辛皆用
+  proposition_id: pr_bazi_001278
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0055_s03
+    support_type: direct
+  conditions:
+  - 八月（酉月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001279
+  proposition: 九月癸水，失令无根，戊土司权，克制太过，专用辛金发水之源，要比肩滋甲制戊方妙
+  proposition_id: pr_bazi_001279
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0055_s04
+    support_type: direct
+  conditions:
+  - 九月（戌月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000092
+  - co_bazi_000037
+  - co_bazi_000008
+  status: machine_extracted
+- assertion_id: as_bazi_001280
+  proposition: 九月癸水辛甲两透，支见子癸，定主平步青云
+  proposition_id: pr_bazi_001280
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0055_s04
+    support_type: direct
+  conditions:
+  - 九月（戌月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001281
+  proposition: 九月癸水癸甲两透，富贵成名
+  proposition_id: pr_bazi_001281
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0055_s04
+    support_type: direct
+  conditions:
+  - 九月（戌月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001282
+  proposition: 九月癸水有甲辛无癸者，亦有恩封
+  proposition_id: pr_bazi_001282
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0055_s04
+    support_type: direct
+  conditions:
+  - 九月（戌月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001283
+  proposition: 九月癸水有甲癸无辛者，富大贵小
+  proposition_id: pr_bazi_001283
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0055_s04
+    support_type: direct
+  conditions:
+  - 九月（戌月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001284
+  proposition: 九月癸水有甲无癸辛者，常人
+  proposition_id: pr_bazi_001284
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0055_s04
+    support_type: direct
+  conditions:
+  - 九月（戌月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001285
+  proposition: 九月癸水三者俱无，贫贱之格
+  proposition_id: pr_bazi_001285
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0055_s04
+    support_type: direct
+  conditions:
+  - 九月（戌月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001286
+  proposition: 九月癸水有甲见壬者，颇许衣衿
+  proposition_id: pr_bazi_001286
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0055_s04
+    support_type: direct
+  conditions:
+  - 九月（戌月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001287
+  proposition: 九月癸水，辛甲并用
+  proposition_id: pr_bazi_001287
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0055_s05
+    support_type: direct
+  conditions:
+  - 九月（戌月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001288
+  proposition: 十月癸水，旺中有弱，因亥摇木，泄散元神，宜用庚辛为妙
+  proposition_id: pr_bazi_001288
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0056_s01
+    support_type: direct
+  conditions:
+  - 十月（亥月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001289
+  proposition: 十月癸水得庚辛两透，不见丁伤者，功名有准
+  proposition_id: pr_bazi_001289
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0056_s01
+    support_type: direct
+  conditions:
+  - 十月（亥月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001290
+  proposition: 十月癸水支成木局，有丁出干，为木旺火相，制住庚辛不生水，必主清寒
+  proposition_id: pr_bazi_001290
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0056_s01
+    support_type: direct
+  conditions:
+  - 十月（亥月）
+  - 支成木局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001291
+  proposition: 十月癸水成木局，干见丙丁，异路之荣
+  proposition_id: pr_bazi_001291
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0056_s01
+    support_type: direct
+  conditions:
+  - 十月（亥月）
+  - 成木局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001292
+  proposition: 十月癸水一派壬水，不见戊制，名冬水汪洋，奔波到老，若得戊透，清贵堪夸
+  proposition_id: pr_bazi_001292
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0056_s01
+    support_type: direct
+  conditions:
+  - 十月（亥月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000116
+  status: machine_extracted
+- assertion_id: as_bazi_001293
+  proposition: 十月癸水一派庚辛，得丁出制，主名利双全，若不见丁，又主贫薄
+  proposition_id: pr_bazi_001293
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0056_s01
+    support_type: direct
+  conditions:
+  - 十月（亥月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001294
+  proposition: 十月癸水四柱火多，名才多身弱，富屋贫人
+  proposition_id: pr_bazi_001294
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0056_s01
+    support_type: direct
+  conditions:
+  - 十月（亥月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000016
+  status: machine_extracted
+- assertion_id: as_bazi_001295
+  proposition: 十一月癸水，值冰冻之时，金水无交欢之象，专用丙火解冻，庶不致成冰，又要辛金滋扶，无丙有辛不妙
+  proposition_id: pr_bazi_001295
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0056_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001296
+  proposition: 凡冬季癸水，有丙透解冻，则金温水暖，两两相生，要不见壬癸，自然登科及第，紫诰金章
+  proposition_id: pr_bazi_001296
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0056_s02
+    support_type: direct
+  conditions:
+  - 冬
+  exceptions: []
+  concept_ids:
+  - co_bazi_000117
+  status: machine_extracted
+- assertion_id: as_bazi_001297
+  proposition: 十一月癸水一派壬水，无丙出干，寒困之士
+  proposition_id: pr_bazi_001297
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0056_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001298
+  proposition: 十一月癸水一派癸水，孤贱之流
+  proposition_id: pr_bazi_001298
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0056_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001299
+  proposition: 十一月癸水支成水局，得丙火重出干者，又主蟒袍玉带之荣
+  proposition_id: pr_bazi_001299
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0056_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  - 支成水局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001300
+  proposition: 十一月癸水支成金局，丙火无克者，芒鞋革履之流
+  proposition_id: pr_bazi_001300
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0056_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  - 支成金局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001301
+  proposition: 十一月癸水如辛年丙月癸日，有火者主恩荣宠锡，绕膝芝兰，无火者捐资得贵，位重当朝
+  proposition_id: pr_bazi_001301
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0056_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001302
+  proposition: 十一月癸水一派戊己，名杀重身轻，非贫即夭
+  proposition_id: pr_bazi_001302
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0056_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000023
+  status: machine_extracted
+- assertion_id: as_bazi_001303
+  proposition: 十一月癸水用火者，木妻火子
+  proposition_id: pr_bazi_001303
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0056_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001304
+  proposition: 十一月癸水用辛者，土妻金子
+  proposition_id: pr_bazi_001304
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0056_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001305
+  proposition: 十二月癸水，寒极成冰，万物不能舒泰，宜丙火解冻
+  proposition_id: pr_bazi_001305
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0056_s03
+    support_type: direct
+  conditions:
+  - 十二月（丑月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001306
+  proposition: 十二月癸水丙透年时，加以壬透，支中多戊，名水辅阳光，主显达名臣，无戊者异途之职
+  proposition_id: pr_bazi_001306
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0056_s03
+    support_type: direct
+  conditions:
+  - 十二月（丑月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000118
+  status: machine_extracted
+- assertion_id: as_bazi_001307
+  proposition: 十二月癸水有丙无壬，黉门之客
+  proposition_id: pr_bazi_001307
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0056_s03
+    support_type: direct
+  conditions:
+  - 十二月（丑月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001308
+  proposition: 十二月癸水有壬无丙，戊又出干者，皂隶之流
+  proposition_id: pr_bazi_001308
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0056_s03
+    support_type: direct
+  conditions:
+  - 十二月（丑月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001309
+  proposition: 十二月癸水支见子丑，比肩出干，即有丙透，不能解冻，此属平常
+  proposition_id: pr_bazi_001309
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0056_s03
+    support_type: direct
+  conditions:
+  - 十二月（丑月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000008
+  status: machine_extracted
+- assertion_id: as_bazi_001310
+  proposition: 十二月癸水无癸水，有辛与合，亦不为美，有丁出颇吉
+  proposition_id: pr_bazi_001310
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0056_s03
+    support_type: direct
+  conditions:
+  - 十二月（丑月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001311
+  proposition: 十二月癸水一片癸己会党，年透丁火，名雪后灯光，夜生者贵，日生者否
+  proposition_id: pr_bazi_001311
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0056_s03
+    support_type: direct
+  conditions:
+  - 十二月（丑月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001312
+  proposition: 十二月癸水一片癸己会党，若无丁火，又主孤贫
+  proposition_id: pr_bazi_001312
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0056_s03
+    support_type: direct
+  conditions:
+  - 十二月（丑月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001313
+  proposition: 十二月癸水支成水局，无丙者，四海为家，一生劳苦
+  proposition_id: pr_bazi_001313
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0056_s03
+    support_type: direct
+  conditions:
+  - 十二月（丑月）
+  - 支成水局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001314
+  proposition: 十二月癸水支成火局，有庚辛透者，衣食充足，无金出，孤苦零丁
+  proposition_id: pr_bazi_001314
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0056_s03
+    support_type: direct
+  conditions:
+  - 十二月（丑月）
+  - 支成火局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001315
+  proposition: 十二月癸水支成金局，丙透得地，名金温水暖，彼此相生，定许光大门闾，声驰翰苑，乏丙者即文章骇世，总为孙山
+  proposition_id: pr_bazi_001315
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0056_s03
+    support_type: direct
+  conditions:
+  - 十二月（丑月）
+  - 支成金局
+  exceptions: []
+  concept_ids:
+  - co_bazi_000117
+  status: machine_extracted
+- assertion_id: as_bazi_001316
+  proposition: 十二月癸水支成木局，泄水太过，主残病呻吟，得金出干辅救，技艺之流
+  proposition_id: pr_bazi_001316
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0056_s03
+    support_type: direct
+  conditions:
+  - 十二月（丑月）
+  - 支成木局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001317
+  proposition: 凡冬月用丙，须丙火得地方妙，不然，即重重丙火出干，安能轻许富贵哉
+  proposition_id: pr_bazi_001317
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0056_s03
+    support_type: direct
+  conditions:
+  - 冬月
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+skipped_segments: []

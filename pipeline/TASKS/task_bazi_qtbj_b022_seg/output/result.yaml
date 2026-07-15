@@ -1,0 +1,10 @@
+task_id: task_bazi_qtbj_b022_seg
+result: completed
+uncertainties:
+- where: s01
+  note: 三春己土无独立总论段，节标题后直接进入正月条目
+- where: s02
+  note: 二月条目末尾附两则命造表格，边界归属存疑
+lesson_candidates:
+- 己土节的命造表格集中在二月、三月，正月不含表格——命造分布不均衡，切分时以原文为准
+needs_escalation: false

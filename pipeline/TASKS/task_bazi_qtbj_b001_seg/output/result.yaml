@@ -1,0 +1,12 @@
+task_id: task_bazi_qtbj_b001_seg
+result: completed
+uncertainties:
+  - where: s01
+    note: "s01 仅一句约20字、s06 约30字，均短于HANDBOOK建议的50–300字范围，但各自为独立完整论点（五行定义/五行数理），短而不缺"
+  - where: s01
+    note: "全文为纯论说文，无括号夹注、无干支组合、无命造举例，B类校验不检查entry_title/path完整性（SEG_008仅对C类生效）"
+lesson_candidates:
+  - "五行总论为B类论说散文，应按HANDBOOK 3.1论点切分规则（一个完整论点+论据=一段），不可按C类压为1大段——切分类型错误会导致下游主张提取颗粒度粗化"
+  - "原著自然段边界即论点边界：五行定义→方位起源→性情→功用→形色→数理→折衷之道，七段七个论点，无需要合并或拆分"
+  - "B类论说散文各段entry_title统一填节标题（五行总论），path统一用节路径；SEG_008仅对C类强制检查，B类不受此约束"
+needs_escalation: false

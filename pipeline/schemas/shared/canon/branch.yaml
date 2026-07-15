@@ -1,0 +1,169 @@
+canon_domain: branch
+schema_version: canon_v0.1
+closed_set_size: 12
+id_prefix: co_shared_branch_
+concepts:
+- concept_id: co_shared_branch_01
+  surface: 子
+  domain: branch
+  rev: 1
+  status: active
+  aliases: []
+  note: ''
+  yinyang: 阳
+  wuxing: 水
+  zodiac: 鼠
+  hidden_stems:
+  - 癸
+- concept_id: co_shared_branch_02
+  surface: 丑
+  domain: branch
+  rev: 1
+  status: active
+  aliases: []
+  note: ''
+  yinyang: 阴
+  wuxing: 土
+  zodiac: 牛
+  hidden_stems:
+  - 己
+  - 癸
+  - 辛
+- concept_id: co_shared_branch_03
+  surface: 寅
+  domain: branch
+  rev: 1
+  status: active
+  aliases: []
+  note: ''
+  yinyang: 阳
+  wuxing: 木
+  zodiac: 虎
+  hidden_stems:
+  - 甲
+  - 丙
+  - 戊
+- concept_id: co_shared_branch_04
+  surface: 卯
+  domain: branch
+  rev: 1
+  status: active
+  aliases: []
+  note: ''
+  yinyang: 阴
+  wuxing: 木
+  zodiac: 兔
+  hidden_stems:
+  - 乙
+- concept_id: co_shared_branch_05
+  surface: 辰
+  domain: branch
+  rev: 1
+  status: active
+  aliases: []
+  note: ''
+  yinyang: 阳
+  wuxing: 土
+  zodiac: 龙
+  hidden_stems:
+  - 戊
+  - 乙
+  - 癸
+- concept_id: co_shared_branch_06
+  surface: 巳
+  domain: branch
+  rev: 1
+  status: active
+  aliases: []
+  note: ''
+  yinyang: 阴
+  wuxing: 火
+  zodiac: 蛇
+  hidden_stems:
+  - 丙
+  - 庚
+  - 戊
+- concept_id: co_shared_branch_07
+  surface: 午
+  domain: branch
+  rev: 1
+  status: active
+  aliases: []
+  note: ''
+  yinyang: 阳
+  wuxing: 火
+  zodiac: 马
+  hidden_stems:
+  - 丁
+  - 己
+- concept_id: co_shared_branch_08
+  surface: 未
+  domain: branch
+  rev: 1
+  status: active
+  aliases: []
+  note: ''
+  yinyang: 阴
+  wuxing: 土
+  zodiac: 羊
+  hidden_stems:
+  - 己
+  - 丁
+  - 乙
+- concept_id: co_shared_branch_09
+  surface: 申
+  domain: branch
+  rev: 1
+  status: active
+  aliases: []
+  note: ''
+  yinyang: 阳
+  wuxing: 金
+  zodiac: 猴
+  hidden_stems:
+  - 庚
+  - 壬
+  - 戊
+- concept_id: co_shared_branch_10
+  surface: 酉
+  domain: branch
+  rev: 1
+  status: active
+  aliases: []
+  note: ''
+  yinyang: 阴
+  wuxing: 金
+  zodiac: 鸡
+  hidden_stems:
+  - 辛
+- concept_id: co_shared_branch_11
+  surface: 戌
+  domain: branch
+  rev: 1
+  status: active
+  aliases: []
+  note: ''
+  yinyang: 阳
+  wuxing: 土
+  zodiac: 狗
+  hidden_stems:
+  - 戊
+  - 辛
+  - 丁
+- concept_id: co_shared_branch_12
+  surface: 亥
+  domain: branch
+  rev: 1
+  status: active
+  aliases: []
+  note: ''
+  yinyang: 阴
+  wuxing: 水
+  zodiac: 猪
+  hidden_stems:
+  - 壬
+  - 甲
+revisions:
+- date: '2026-07-11'
+  change: 初版生成
+  rev_scope: all@1

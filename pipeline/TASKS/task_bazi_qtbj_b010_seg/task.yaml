@@ -1,0 +1,12 @@
+task_id: task_bazi_qtbj_b010_seg
+stage: segmentation
+text_type: C
+source_snapshot: corpus/bazi/qtbj_ed01/source/transcript_v1.md
+source_id: src_qtbj_ed01
+batch_id: qtbj_b010
+node_id: n010
+path: 十干分论 / 论丙火 / 三春丙火
+id_range:
+- ku_bazi_001100
+- ku_bazi_001199
+instruction_version: seg_C_v0.1

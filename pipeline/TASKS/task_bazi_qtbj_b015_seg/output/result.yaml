@@ -1,0 +1,11 @@
+task_id: task_bazi_qtbj_b015_seg
+result: completed
+uncertainties:
+- where: s02
+  note: 五月条文中含乱码字符（刑子息），疑为转录Unicode映射异常，原文待核
+- where: s02
+  note: 五月条目含五则命造表格，数量多于四月和六月（各两则），疑似五月原文命造举例特别密集
+lesson_candidates:
+- 丁火三夏各月正文末尾均附命造表格（格式：时日月年/四柱干支），应标记 case_candidate 并保留原格式
+- 转录中的Unicode乱码（如）不切分单独处理，保留原文并在 uncertainties 中标记
+needs_escalation: false

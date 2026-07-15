@@ -1,0 +1,18 @@
+task_id: task_bazi_qtbj_b025_seg
+stage: segmentation
+instruction_version: seg_C_v0.1
+model: opencode
+model_id: opencode
+endpoint: ''
+time: '2026-07-12T01:34:05.979245+00:00'
+input_files:
+  input/context_before.md: 1c699d2ec55af116567b72afb64327bad94ac8428490fcea1cbd92f294dcffb1
+  input/path.txt: 479c427e93e0ae58af8991614b7c05c4811e219d42dc9bbd4052bf25c98b3dc1
+  input/text.md: e45bb3de2c9e5b71a507d979bc83e8c9f32625eb40f19558aa0b3a09b0c53586
+prompt_sha256: 40e081be64f8a0c847fdd48af64674ffea0c4d82de3c3be7ac858a0cc5f68665
+response_sha256: babf4f2aab3400f91e9ca411512767f86b1b2ab156b69f47b2a9a0e446a83be0
+cost:
+  tokens_in: null
+  tokens_out: null
+  human_minutes: null
+  rework_rounds: null

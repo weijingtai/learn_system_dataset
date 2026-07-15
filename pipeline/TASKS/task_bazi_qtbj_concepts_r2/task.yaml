@@ -1,0 +1,15 @@
+task_id: task_bazi_qtbj_concepts_r2
+stage: concept_candidates
+technique_id: bazi
+source_id: src_qtbj_ed01
+instruction_version: concepts_bazi_v0.1
+covers_batches:
+- qtbj_b012
+- qtbj_b013
+- qtbj_b014
+- qtbj_b015
+- qtbj_b016
+- qtbj_b017
+- qtbj_b018
+- qtbj_b019
+glossary_ref: input/glossary_v0.yaml

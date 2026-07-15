@@ -1,0 +1,12 @@
+task_id: task_bazi_qtbj_b038_seg
+stage: segmentation
+text_type: C
+source_snapshot: corpus/bazi/qtbj_ed01/source/transcript_v1.md
+source_id: src_qtbj_ed01
+batch_id: qtbj_b038
+node_id: n038
+path: 十干分论 / 论癸水 / 三春癸水
+id_range:
+- ku_bazi_003900
+- ku_bazi_003999
+instruction_version: seg_C_v0.1

@@ -1,0 +1,9 @@
+task_id: task_bazi_qtbj_concepts_r2
+result: completed
+  uncertainties:
+    - "丁壬化杀：标记sure=false，是否属公认标准术语待复核"
+    - "二丙夺丁：标记sure=false，是否为独立格局术语或仅属丙夺丁光变体描述"
+  lesson_candidates:
+    - "2026-07-12 | task_bazi_qtbj_concepts_r2 | 才/财通假在本书中并非始终一致：p0023_s02用弃命从财(财)而非弃命从才(才)，v0匹配策略必须才↔财双向等价"
+    - "2026-07-12 | task_bazi_qtbj_concepts_r2 | 名曰X判据首次严格执行：文学比喻不收（如湖水汪洋、天和地润、朱门饿莩），跨书复用格局才收（如独杀当权、君臣庆会、土木自战）"
+needs_escalation: false

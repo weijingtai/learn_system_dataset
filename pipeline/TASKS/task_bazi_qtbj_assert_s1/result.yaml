@@ -1,0 +1,9 @@
+task_id: task_bazi_qtbj_assert_s1
+stage: assertions
+review:
+  by: claude
+  verdict: PASS
+  source: opencode_v2(双路交叉验证后采信)
+  assertions: 119
+  cross_check: 与gemini双路比对:181条gemini独有条目经三层筛查0条为OC真遗漏(全系gemini意译/命例误提/碎片);OCv2覆盖完整、忠实照录、命例分离正确
+  authoritative_file: output/authoritative.yaml

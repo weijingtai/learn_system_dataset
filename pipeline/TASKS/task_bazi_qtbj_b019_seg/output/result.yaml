@@ -1,0 +1,11 @@
+task_id: task_bazi_qtbj_b019_seg
+result: completed
+uncertainties:
+- where: s02
+  note: 五月条目正文中嵌入显式命造（一命、辛未、甲午、戊寅、壬子），不同于段末表格格式
+- where: s03
+  note: 六月条目中时日月年表格共三则，其中首则含戌字（未戍）下标疑为戌异体字
+lesson_candidates:
+- 戊土五月以正文嵌入命造而非表格附后，与丙火/丁火表格格式不同，但应同样标记 case_candidate
+- ��戍异体在转录中应原样保留（如未戍），不可径改为戌
+needs_escalation: false

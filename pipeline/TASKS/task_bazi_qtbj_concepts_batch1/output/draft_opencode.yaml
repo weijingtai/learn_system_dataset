@@ -1,0 +1,454 @@
+candidates:
+  # ===== 十神 =====
+  - surface: 伤官
+    kind_guess: ten_god
+    seg_ids:
+      - ss_qtbj_ed01_p0005_s03
+      - ss_qtbj_ed01_p0006_s02
+      - ss_qtbj_ed01_p0007_s04
+    sure: true
+
+  - surface: 阳刃
+    kind_guess: ten_god
+    seg_ids:
+      - ss_qtbj_ed01_p0005_s04
+    sure: true
+
+  - surface: 杀
+    kind_guess: ten_god
+    seg_ids:
+      - ss_qtbj_ed01_p0005_s03
+      - ss_qtbj_ed01_p0005_s04
+      - ss_qtbj_ed01_p0006_s02
+      - ss_qtbj_ed01_p0007_s01
+    sure: true
+
+  - surface: 官
+    kind_guess: ten_god
+    seg_ids:
+      - ss_qtbj_ed01_p0006_s02
+    sure: true
+
+  - surface: 印绶
+    kind_guess: ten_god
+    seg_ids:
+      - ss_qtbj_ed01_p0006_s02
+    sure: true
+
+  - surface: 印
+    kind_guess: ten_god
+    seg_ids:
+      - ss_qtbj_ed01_p0007_s01
+    sure: true
+
+  - surface: 才
+    kind_guess: ten_god
+    seg_ids:
+      - ss_qtbj_ed01_p0005_s03
+      - ss_qtbj_ed01_p0005_s04
+      - ss_qtbj_ed01_p0005_s05
+      - ss_qtbj_ed01_p0006_s02
+      - ss_qtbj_ed01_p0007_s01
+      - ss_qtbj_ed01_p0007_s04
+    sure: true
+
+  - surface: 比肩
+    kind_guess: ten_god
+    seg_ids:
+      - ss_qtbj_ed01_p0007_s04
+    sure: true
+
+  - surface: 比劫
+    kind_guess: ten_god
+    seg_ids:
+      - ss_qtbj_ed01_p0005_s05
+      - ss_qtbj_ed01_p0006_s02
+      - ss_qtbj_ed01_p0007_s03
+      - ss_qtbj_ed01_p0007_s04
+    sure: true
+
+  - surface: 劫财
+    kind_guess: ten_god
+    seg_ids:
+      - ss_qtbj_ed01_p0007_s04
+    sure: false
+
+  # ===== 格局 =====
+  - surface: 寒木向阳
+    kind_guess: pattern
+    seg_ids:
+      - ss_qtbj_ed01_p0005_s02
+    sure: true
+
+  - surface: 从才
+    kind_guess: pattern
+    seg_ids:
+      - ss_qtbj_ed01_p0005_s03
+      - ss_qtbj_ed01_p0007_s01
+      - ss_qtbj_ed01_p0007_s04
+    sure: true
+
+  - surface: 从杀
+    kind_guess: pattern
+    seg_ids:
+      - ss_qtbj_ed01_p0005_s03
+      - ss_qtbj_ed01_p0007_s01
+    sure: true
+
+  - surface: 从化
+    kind_guess: pattern
+    seg_ids:
+      - ss_qtbj_ed01_p0005_s03
+    sure: true
+
+  - surface: 水泛木浮
+    kind_guess: pattern
+    seg_ids:
+      - ss_qtbj_ed01_p0005_s03
+    sure: true
+
+  - surface: 财多身弱
+    kind_guess: pattern
+    seg_ids:
+      - ss_qtbj_ed01_p0005_s03
+    sure: true
+
+  - surface: 木火通明
+    kind_guess: pattern
+    seg_ids:
+      - ss_qtbj_ed01_p0005_s03
+      - ss_qtbj_ed01_p0006_s02
+    sure: true
+
+  - surface: 伤官生财格
+    kind_guess: pattern
+    seg_ids:
+      - ss_qtbj_ed01_p0005_s03
+      - ss_qtbj_ed01_p0007_s04
+    sure: true
+
+  - surface: 木被金伤
+    kind_guess: pattern
+    seg_ids:
+      - ss_qtbj_ed01_p0005_s03
+      - ss_qtbj_ed01_p0007_s03
+    sure: true
+
+  - surface: 阳刃驾杀
+    kind_guess: pattern
+    seg_ids:
+      - ss_qtbj_ed01_p0005_s04
+    sure: true
+
+  - surface: 弃命从才
+    kind_guess: pattern
+    seg_ids:
+      - ss_qtbj_ed01_p0005_s05
+      - ss_qtbj_ed01_p0006_s02
+      - ss_qtbj_ed01_p0007_s04
+    sure: true
+
+  - surface: 杂气夺才
+    kind_guess: pattern
+    seg_ids:
+      - ss_qtbj_ed01_p0005_s05
+    sure: true
+
+  - surface: 杀重身轻
+    kind_guess: pattern
+    seg_ids:
+      - ss_qtbj_ed01_p0006_s02
+    sure: true
+
+  - surface: 伤官伤尽
+    kind_guess: pattern
+    seg_ids:
+      - ss_qtbj_ed01_p0006_s02
+    sure: true
+
+  - surface: 木火伤官
+    kind_guess: pattern
+    seg_ids:
+      - ss_qtbj_ed01_p0006_s02
+    sure: true
+
+  - surface: 二土争合
+    kind_guess: pattern
+    seg_ids:
+      - ss_qtbj_ed01_p0006_s02
+    sure: true
+
+  - surface: 逢时化合格
+    kind_guess: pattern
+    seg_ids:
+      - ss_qtbj_ed01_p0006_s02
+    sure: true
+
+  - surface: 假从
+    kind_guess: pattern
+    seg_ids:
+      - ss_qtbj_ed01_p0006_s02
+    sure: true
+
+  - surface: 从才格
+    kind_guess: pattern
+    seg_ids:
+      - ss_qtbj_ed01_p0007_s04
+    sure: true
+
+  - surface: 天元一气
+    kind_guess: pattern
+    seg_ids:
+      - ss_qtbj_ed01_p0007_s04
+    sure: true
+
+  - surface: 一才一用
+    kind_guess: pattern
+    seg_ids:
+      - ss_qtbj_ed01_p0007_s04
+    sure: true
+
+  - surface: 假伤官
+    kind_guess: pattern
+    seg_ids:
+      - ss_qtbj_ed01_p0007_s04
+    sure: true
+
+  - surface: 杀印相生
+    kind_guess: pattern
+    seg_ids:
+      - ss_qtbj_ed01_p0007_s01
+    sure: true
+
+  - surface: 伤官遇杀
+    kind_guess: pattern
+    seg_ids:
+      - ss_qtbj_ed01_p0006_s02
+    sure: false
+
+  # ===== 调候 / 五行作用 =====
+  - surface: 斲凿
+    kind_guess: tiaohou
+    seg_ids:
+      - ss_qtbj_ed01_p0005_s01
+    sure: true
+
+  - surface: 相济
+    kind_guess: tiaohou
+    seg_ids:
+      - ss_qtbj_ed01_p0005_s01
+    sure: true
+
+  - surface: 司权
+    kind_guess: tiaohou
+    seg_ids:
+      - ss_qtbj_ed01_p0006_s01
+    sure: true
+
+  - surface: 用神
+    kind_guess: tiaohou
+    seg_ids:
+      - ss_qtbj_ed01_p0006_s02
+    sure: true
+
+  - surface: 镕金
+    kind_guess: tiaohou
+    seg_ids:
+      - ss_qtbj_ed01_p0007_s02
+    sure: true
+
+  # ===== 旺衰 / 十二运 =====
+  - surface: 生旺
+    kind_guess: phase
+    seg_ids:
+      - ss_qtbj_ed01_p0005_s01
+    sure: true
+
+  - surface: 退气
+    kind_guess: phase
+    seg_ids:
+      - ss_qtbj_ed01_p0006_s01
+      - ss_qtbj_ed01_p0006_s02
+    sure: true
+
+  - surface: 死绝
+    kind_guess: phase
+    seg_ids:
+      - ss_qtbj_ed01_p0007_s01
+    sure: true
+
+  - surface: 乘旺
+    kind_guess: phase
+    seg_ids:
+      - ss_qtbj_ed01_p0007_s01
+    sure: false
+
+  # ===== 天干（单字闭集） =====
+  - surface: 甲
+    kind_guess: stem_branch
+    seg_ids:
+      - ss_qtbj_ed01_p0005_s01
+      - ss_qtbj_ed01_p0005_s02
+      - ss_qtbj_ed01_p0005_s03
+      - ss_qtbj_ed01_p0005_s04
+      - ss_qtbj_ed01_p0005_s05
+      - ss_qtbj_ed01_p0006_s01
+      - ss_qtbj_ed01_p0006_s02
+      - ss_qtbj_ed01_p0007_s01
+      - ss_qtbj_ed01_p0007_s02
+      - ss_qtbj_ed01_p0007_s03
+      - ss_qtbj_ed01_p0007_s04
+    sure: false
+
+  - surface: 乙
+    kind_guess: stem_branch
+    seg_ids:
+      - ss_qtbj_ed01_p0005_s05
+      - ss_qtbj_ed01_p0006_s02
+      - ss_qtbj_ed01_p0007_s04
+    sure: false
+
+  - surface: 丙
+    kind_guess: stem_branch
+    seg_ids:
+      - ss_qtbj_ed01_p0005_s02
+      - ss_qtbj_ed01_p0005_s03
+      - ss_qtbj_ed01_p0005_s05
+      - ss_qtbj_ed01_p0006_s01
+      - ss_qtbj_ed01_p0006_s02
+      - ss_qtbj_ed01_p0007_s03
+      - ss_qtbj_ed01_p0007_s04
+    sure: false
+
+  - surface: 丁
+    kind_guess: stem_branch
+    seg_ids:
+      - ss_qtbj_ed01_p0005_s03
+      - ss_qtbj_ed01_p0005_s05
+      - ss_qtbj_ed01_p0006_s01
+      - ss_qtbj_ed01_p0006_s02
+      - ss_qtbj_ed01_p0007_s01
+      - ss_qtbj_ed01_p0007_s02
+      - ss_qtbj_ed01_p0007_s03
+      - ss_qtbj_ed01_p0007_s04
+    sure: false
+
+  - surface: 戊
+    kind_guess: stem_branch
+    seg_ids:
+      - ss_qtbj_ed01_p0005_s03
+      - ss_qtbj_ed01_p0005_s05
+      - ss_qtbj_ed01_p0006_s01
+      - ss_qtbj_ed01_p0006_s02
+      - ss_qtbj_ed01_p0007_s01
+      - ss_qtbj_ed01_p0007_s02
+      - ss_qtbj_ed01_p0007_s03
+      - ss_qtbj_ed01_p0007_s04
+    sure: false
+
+  - surface: 己
+    kind_guess: stem_branch
+    seg_ids:
+      - ss_qtbj_ed01_p0005_s03
+      - ss_qtbj_ed01_p0005_s05
+      - ss_qtbj_ed01_p0006_s02
+      - ss_qtbj_ed01_p0007_s01
+      - ss_qtbj_ed01_p0007_s03
+      - ss_qtbj_ed01_p0007_s04
+    sure: false
+
+  - surface: 庚
+    kind_guess: stem_branch
+    seg_ids:
+      - ss_qtbj_ed01_p0005_s01
+      - ss_qtbj_ed01_p0005_s03
+      - ss_qtbj_ed01_p0005_s04
+      - ss_qtbj_ed01_p0005_s05
+      - ss_qtbj_ed01_p0006_s01
+      - ss_qtbj_ed01_p0006_s02
+      - ss_qtbj_ed01_p0007_s01
+      - ss_qtbj_ed01_p0007_s02
+      - ss_qtbj_ed01_p0007_s03
+      - ss_qtbj_ed01_p0007_s04
+    sure: false
+
+  - surface: 辛
+    kind_guess: stem_branch
+    seg_ids:
+      - ss_qtbj_ed01_p0005_s03
+    sure: false
+
+  - surface: 壬
+    kind_guess: stem_branch
+    seg_ids:
+      - ss_qtbj_ed01_p0005_s03
+      - ss_qtbj_ed01_p0005_s05
+      - ss_qtbj_ed01_p0006_s01
+      - ss_qtbj_ed01_p0006_s02
+      - ss_qtbj_ed01_p0007_s01
+      - ss_qtbj_ed01_p0007_s02
+      - ss_qtbj_ed01_p0007_s04
+    sure: false
+
+  - surface: 癸
+    kind_guess: stem_branch
+    seg_ids:
+      - ss_qtbj_ed01_p0005_s02
+      - ss_qtbj_ed01_p0005_s03
+      - ss_qtbj_ed01_p0005_s04
+      - ss_qtbj_ed01_p0006_s01
+      - ss_qtbj_ed01_p0006_s02
+      - ss_qtbj_ed01_p0007_s01
+      - ss_qtbj_ed01_p0007_s02
+      - ss_qtbj_ed01_p0007_s03
+      - ss_qtbj_ed01_p0007_s04
+    sure: false
+
+  # ===== 地支（单字闭集，仅散文部分不取命造举例） =====
+  - surface: 寅
+    kind_guess: stem_branch
+    seg_ids:
+      - ss_qtbj_ed01_p0005_s05
+    sure: false
+
+  - surface: 卯
+    kind_guess: stem_branch
+    seg_ids:
+      - ss_qtbj_ed01_p0005_s05
+    sure: false
+
+  - surface: 辰
+    kind_guess: stem_branch
+    seg_ids:
+      - ss_qtbj_ed01_p0005_s03
+      - ss_qtbj_ed01_p0006_s02
+    sure: false
+
+  - surface: 申
+    kind_guess: stem_branch
+    seg_ids:
+      - ss_qtbj_ed01_p0005_s03
+    sure: false
+
+  - surface: 子
+    kind_guess: stem_branch
+    seg_ids:
+      - ss_qtbj_ed01_p0005_s03
+    sure: false
+
+  # ===== 同形异义 / 边界模糊项 =====
+  - surface: 制伏
+    kind_guess: other
+    seg_ids:
+      - ss_qtbj_ed01_p0006_s02
+      - ss_qtbj_ed01_p0007_s01
+    sure: false
+    note: 在“壬癸透干泄金之气”语境中为五行作用词，在“癸叠叠制伏丁火”中为克制义；非格局专名，归 other。
+
+  - surface: 伤
+    kind_guess: other
+    seg_ids:
+      - ss_qtbj_ed01_p0005_s03
+      - ss_qtbj_ed01_p0007_s04
+    sure: false
+    note: “癸水伤丁”“一派丙丁伤金”中的伤是动词损害义，非伤官十神；归 other。

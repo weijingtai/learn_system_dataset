@@ -10,6 +10,8 @@ import yaml
 PIPELINE_ROOT = Path(__file__).resolve().parent.parent
 
 ID_GLOSSARY = re.compile(r"^co_[a-z]+_\d{6}$")
+# L1 共享 canon 引用：co_shared_<domain>_NN（技法表可引用共享概念，见 CROSS_TECHNIQUE_ONTOLOGY）
+ID_SHARED = re.compile(r"^co_shared_[a-z]+_\d{2,}$")
 STATUS_ENUM = {"confirmed_v0", "candidate", "rejected", "rejected_suggested"}
 
 errors = []
@@ -50,8 +52,8 @@ def main():
         # GLO_001 编号
         if not cid:
             err("GLO_001", "concept_id 缺失")
-        elif not ID_GLOSSARY.match(cid):
-            err("GLO_001", f"concept_id 格式错误: {cid}（应符合 co_[a-z]+_\\d{{6}}）")
+        elif not (ID_GLOSSARY.match(cid) or ID_SHARED.match(cid)):
+            err("GLO_001", f"concept_id 格式错误: {cid}（应符合 co_[a-z]+_\\d{{6}} 或 co_shared_<domain>_NN）")
         else:
             if cid in seen_ids:
                 err("GLO_001", f"concept_id 重复: {cid}")

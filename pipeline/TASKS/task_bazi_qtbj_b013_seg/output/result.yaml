@@ -1,0 +1,11 @@
+task_id: task_bazi_qtbj_b013_seg
+result: completed
+uncertainties:
+  - where: s01
+    note: "三冬丙火无独立总论段，节标题后直接进入十月丙火条目"
+  - where: s03
+    note: "十二月条目含五则命造表格，数量多于其他月（十月三则、十一月三则），可能原文此处汇编了较多举例"
+lesson_candidates:
+  - "丙火节各月条目末尾几乎都含命造表格（时日月年/四柱干支），格式一致，切分时表格必须附着于前段，不可拆分"
+  - "三冬丙火无独立总论——并非所有季节章节都有总论段，无标目的节标题直接归属于首月条目"
+needs_escalation: false
