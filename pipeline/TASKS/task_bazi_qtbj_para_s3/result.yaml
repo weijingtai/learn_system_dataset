@@ -1,0 +1,10 @@
+task_id: task_bazi_qtbj_para_s3
+stage: paraphrase
+review:
+  by: claude
+  verdict: PASS
+  source: opencode单路(直译模板)
+  paraphrases: 22
+  needs_escalation: 0
+  checks: validate_paraphrase_task --single PASS
+  note: 抽读直译忠实/吉凶一比一/否定不反; 含p0022_s02乱码勘误后回归(刑克子息)

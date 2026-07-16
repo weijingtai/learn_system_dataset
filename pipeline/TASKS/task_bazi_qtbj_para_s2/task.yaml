@@ -1,0 +1,14 @@
+task_id: task_bazi_qtbj_para_s2
+stage: paraphrase
+technique_id: bazi
+source_id: src_qtbj_ed01
+instruction_version: paraphrase_bazi_v0.1
+covers_batches:
+- qtbj_b004
+- qtbj_b005
+- qtbj_b006
+- qtbj_b007
+- qtbj_b008
+- qtbj_b009
+- qtbj_b010
+- qtbj_b011

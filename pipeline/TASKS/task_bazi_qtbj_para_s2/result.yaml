@@ -1,0 +1,10 @@
+task_id: task_bazi_qtbj_para_s2
+stage: paraphrase
+review:
+  by: claude
+  verdict: PASS
+  source: opencode单路(直译模板)
+  paraphrases: 29
+  needs_escalation: 0
+  checks: validate_paraphrase_task --single PASS
+  note: 抽读吉凶段+或字/恐/难等模糊语气段:直译忠实,吉凶一比一无放大,否定与不确定语气保留,歌诀嵌文正确处理
