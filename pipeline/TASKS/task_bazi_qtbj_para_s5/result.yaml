@@ -1,0 +1,10 @@
+task_id: task_bazi_qtbj_para_s5
+stage: paraphrase
+review:
+  by: claude
+  verdict: PASS
+  source: opencode单路(直译模板)
+  paraphrases: 28
+  needs_escalation: 0
+  checks: validate_paraphrase_task --single PASS
+  note: 抽读直译忠实/吉凶一比一; 修正p0044_s01漏译后半段(补福寿命格段)+p0042_s02标点照抄

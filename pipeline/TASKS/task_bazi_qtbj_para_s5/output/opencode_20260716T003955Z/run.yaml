@@ -1,0 +1,17 @@
+task_id: task_bazi_qtbj_para_s5
+stage: paraphrase
+instruction_version: paraphrase_bazi_v0.1
+model: opencode
+model_id: opencode
+endpoint: ''
+time: '2026-07-16T00:39:55.466776+00:00'
+input_files:
+  input/glossary_v0.yaml: 9e921f82ee59fadfd4289e9cd98431c3d4f8a45762553673075275d2e374cbbf
+  input/segments.yaml: 4e963182fea913849d659c67c828ebfb36988e946dc8892490e1ed218bcb060d
+prompt_sha256: 2fffbefe5ce1a98c101fa1ba682f869367dabfa5d80ebdd90d4a83234c4a1b4f
+response_sha256: 5c93a229b0d63cfc9aa0fb5453f096d9feeab13c1bedc6b61d2e337b3e6a1bb8
+cost:
+  tokens_in: null
+  tokens_out: null
+  human_minutes: null
+  rework_rounds: null

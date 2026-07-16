@@ -1,0 +1,10 @@
+task_id: task_bazi_qtbj_para_s6
+stage: paraphrase
+review:
+  by: claude
+  verdict: PASS
+  source: opencode单路(直译模板)
+  paraphrases: 27
+  needs_escalation: 0
+  checks: validate_paraphrase_task --single PASS; 漏尾专项:27段original长度全匹配
+  note: 全书最后一批;多自然段尾部抽读译全(末句对应);直译忠实吉凶一比一
