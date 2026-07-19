@@ -27,7 +27,8 @@ STATUS_ENUM = {
     "source_verified", "machine_extracted", "cross_model_reviewed",
     "disputed", "needs_expert", "expert_verified", "deprecated",
 }
-RELATION_ENUM = {"supports", "qualifies", "opposes"}
+RELATION_ENUM = {"supports", "qualifies", "opposes",
+                 "corresponds", "equivalent"}  # 后两者:工位10 跨技法连接预留
 SUPPORT_TYPE_ENUM = {"direct", "interpreted"}
 RIGHTS_ENUM = {"public_domain", "licensed"}  # unknown 不在枚举内 = 阻断
 

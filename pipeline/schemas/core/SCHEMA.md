@@ -1,6 +1,8 @@
-# 数据格式说明 v0.1（M1 最小集）
+# 数据格式说明 v0.2（M1 最小集 + 工位10 预留）
 
 对应 v1.1.1 §5–§6 的知识对象模型，只保留 M1 需要的字段。字段增删须更新本文件并升版本号。
+
+> **v0.2（2026-07-16）**：为工位10 跨技法连接预留——`relation` 枚举增 `corresponds`/`equivalent`，主张增可选字段 `canon_refs`。两者可选、不强制，向后兼容存量数据。
 
 ## 1. 来源登记 corpus/<technique>/<work>/manifest.yaml
 
@@ -46,15 +48,24 @@ assertions:
   - assertion_id: as_qimen_000001  # 格式 as_<technique>_<6位数字>
     proposition: 冬至后用阳遁、夏至后用阴遁，起局宫数以一、九为始
     proposition_id: pr_qimen_000001
-    relation: supports             # 枚举: supports / qualifies / opposes
+    relation: supports             # 枚举: supports / qualifies / opposes / corresponds / equivalent
     evidence:
       - source_span_id: ss_yanbo_ed01_p0001_s02
         support_type: interpreted  # 枚举: direct(原文明说) / interpreted(通行解读)
     conditions: []                 # 适用条件，宁多勿漏
     exceptions: []
     school_ids: []                 # 流派归属，空 = 未标注
+    canon_refs: []                 # 可选(工位10 预留): 本主张所踩的 canon 基元 concept_id，
+                                   #   如 [co_shared_wuxing_01, co_shared_wuxing_02]（木、火）。
+                                   #   空 = 未标注；工位10 立项前不强制，存量无需回填。
     status: machine_extracted      # 枚举见 §5
 ```
+
+> **关于 `corresponds` / `equivalent` 与 `canon_refs`（工位10 跨技法连接预留）**
+> 二者为工位10「跨技法连接」预留，见 `pipeline/HANDBOOK.md` 工位10 方案④。
+> - `corresponds` / `equivalent`：跨技法对应关系升格为一等主张时使用（如"七政四余暖照 ≈ 八字调候"），走同套双模型复核与状态升级。
+> - `canon_refs`：标注主张所踩的技法无关基元，使共享同一组基元的跨技法主张关联可涌现。
+> 两者当前均为**可选、不强制**：校验器接受但不要求，存量 1317+ 条主张无需回填。工位10 正式立项后再决定是否强制。
 
 ## 5. 状态枚举（v1.1.1 §9.4）
 
