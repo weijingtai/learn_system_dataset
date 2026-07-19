@@ -260,7 +260,7 @@ def ingest(args: argparse.Namespace) -> None:
     print(f"    sha256:    {transcript_sha}")
     print(f"{'=' * 60}")
     print(f"\n后续步骤（参照 HANDBOOK.md 和 PLAN.md）：")
-    print(f"  4. 建任务包 → pipeline/tasks/task_xxx_seg/")
+    print(f"  4. 建任务包 → pipeline/TASKS/task_xxx_seg/")
     print(f"  5. 语义切分 → output/draft_opencode.yaml")
     print(f"  6. 归档    → python3 runner/run_task.py ... --model manual")
     print(f"  7. 校验    → python3 validators/check_segments.py ... --type A")

@@ -7,7 +7,7 @@
 ## 一、一个任务包的完整走法
 
 ```
-1. 任务包就绪（tasks/task_xxx/，含 INSTRUCTIONS、input、task.yaml）
+1. 任务包就绪（TASKS/task_xxx/，含 INSTRUCTIONS、input、task.yaml）
 2. 你把下面的启动句粘给 OpenCode        ← 生产
 3. OpenCode 写出结果、归档、自跑校验、汇报
 4. 你把"复核启动句"粘给 Claude（Cowork）  ← 复核（不同家族）

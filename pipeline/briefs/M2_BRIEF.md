@@ -61,7 +61,7 @@ models:
 
 **验证**：两个文件存在且 YAML 可解析。
 
-## 步骤 4：建首个任务实例 `tasks/task_qimen_000001_seg/`
+## 步骤 4：建首个任务实例 `TASKS/task_qimen_000001_seg/`
 
 - `task.yaml`：按模板填，task_id 为 `task_qimen_000001_seg`；
 - `INSTRUCTIONS.md`：从模板复制；
@@ -69,17 +69,17 @@ models:
 - `mock_output.yaml`：手写一份符合步骤 3 输出格式的切分结果（**切分粒度按 HANDBOOK 第 3 章类型 A：按联切，四联 = 4 段**，text 逐字复制），供 mock 测试用。
   【勘误 2026-07-10】本条原写"8 句 = 8 段"，与 HANDBOOK 类型 A 规则冲突，导致首次执行按单句切出半联。教训：任务书不得重述切分规则，只许引用 HANDBOOK 章节——规则只能有一个出处。
 
-**验证**：`ls tasks/task_qimen_000001_seg/` 能看到 4 项。
+**验证**：`ls TASKS/task_qimen_000001_seg/` 能看到 4 项。
 
 ## 步骤 5：跑通 mock
 
 ```
-python3 runner/run_task.py tasks/task_qimen_000001_seg --model mock
+python3 runner/run_task.py TASKS/task_qimen_000001_seg --model mock
 ```
 
 **验证（全部满足才算过）**：
 - 退出码 0；
-- `tasks/task_qimen_000001_seg/output/mock_*/` 下有 `response.yaml` 和 `run.yaml`；
+- `TASKS/task_qimen_000001_seg/output/mock_*/` 下有 `response.yaml` 和 `run.yaml`；
 - `run.yaml` 里有输入文件的 sha256 和 response 的 sha256；
 - `git status --short corpus/` 无任何输出（corpus 未被改动）。
 

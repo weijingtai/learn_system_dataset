@@ -8,7 +8,7 @@ gen_concept_task.py —— 为工位 4（术语识别）放量批次生成任务
     python3 tools/gen_concept_task.py corpus/bazi/qtbj_ed01 <round_name> <batch_id...>
     例：python3 tools/gen_concept_task.py corpus/bazi/qtbj_ed01 r1 qtbj_b001 qtbj_b005 qtbj_b006
 
-产出 tasks/task_bazi_qtbj_concepts_<round_name>/：
+产出 TASKS/task_bazi_qtbj_concepts_<round_name>/：
     INSTRUCTIONS.md            （八字工位4专用说明）
     input/segments.yaml        （本轮各批段落，seg_id 已换成全局 span_id）
     input/spans.yaml           （span 对照）
@@ -37,7 +37,7 @@ def main():
 
     segs, sp = [], []
     for bid in batch_ids:
-        draft = PIPELINE / f"tasks/task_bazi_{bid}_seg/output/draft_opencode.yaml"
+        draft = PIPELINE / f"TASKS/task_bazi_{bid}_seg/output/draft_opencode.yaml"
         data = yaml.safe_load(draft.read_text())
         for s in data["segments"]:
             span_id = span_by[(bid, s["seg_id"])]
@@ -45,7 +45,7 @@ def main():
                          "text": s["text"]})
             sp.append({"span_id": span_id, "batch": bid})
 
-    task_dir = PIPELINE / f"tasks/task_bazi_qtbj_concepts_{round_name}"
+    task_dir = PIPELINE / f"TASKS/task_bazi_qtbj_concepts_{round_name}"
     (task_dir / "input").mkdir(parents=True, exist_ok=True)
     yaml.dump({"segments": segs}, open(task_dir / "input/segments.yaml", "w"),
               allow_unicode=True, sort_keys=False)

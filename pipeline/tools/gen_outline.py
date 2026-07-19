@@ -71,7 +71,7 @@ def main():
             "node_id": nid,
             "path": s["path"],
             "text_type": text_type,
-            "task_dir": f"tasks/task_bazi_qtbj_b{n:03d}_seg",
+            "task_dir": f"TASKS/task_bazi_qtbj_b{n:03d}_seg",
             "id_range": [f"ku_bazi_{lo:06d}", f"ku_bazi_{lo + 99:06d}"],
             "stage_status": {"segmentation": "pending",
                              "concepts": "pending",

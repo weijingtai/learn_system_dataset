@@ -7,7 +7,7 @@ gen_task.py —— 从 batches.yaml 为指定 batch 生成切分任务包
 用法：
     python3 tools/gen_task.py corpus/bazi/qtbj_ed01 qtbj_b002
 
-产出 tasks/task_bazi_qtbj_b002_seg/：
+产出 TASKS/task_bazi_qtbj_b002_seg/：
     INSTRUCTIONS.md              （软链/复制自 task-templates/stage3c_segmentation_C）
     input/text.md                （本 batch 叶子节点的正文，逐字取自 transcript）
     input/path.txt               （卷章路径）

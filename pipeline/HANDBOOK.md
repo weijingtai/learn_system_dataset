@@ -180,7 +180,7 @@ outline:
 batches:
   - batch_id: qtbj_b012
     node_id: n001
-    task_dir: tasks/task_bazi_qtbj_b012_seg
+    task_dir: TASKS/task_bazi_qtbj_b012_seg
     id_range: [ku_bazi_000200, ku_bazi_000299]
     stage_status:
       segmentation: done
@@ -358,7 +358,7 @@ segments:
 
 ## 第 7 章 模板速查（复制用）
 
-result.yaml、ESC、batches.yaml 模板见第 2、4 章。切分/主张的正确示范见 `units/ku_qimen_000001/` 和 `tasks/task_qimen_000001_seg/mock_output.yaml`（M2 完成后）。
+result.yaml、ESC、batches.yaml 模板见第 2、4 章。切分/主张的正确示范见 `units/ku_qimen_000001/` 和 `TASKS/task_qimen_000001_seg/mock_output.yaml`（M2 完成后）。
 
 ## 第 8 章 版本与修订
 

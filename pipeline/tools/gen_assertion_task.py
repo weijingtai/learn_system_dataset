@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """gen_assertion_task.py —— 为工位 5（主张提取）生成任务包（八字）
 用法: python3 tools/gen_assertion_task.py corpus/bazi/qtbj_ed01 <round> <batch_id...>
-产出 tasks/task_bazi_qtbj_assert_<round>/：INSTRUCTIONS / input(segments+spans+glossary) / task.yaml
+产出 TASKS/task_bazi_qtbj_assert_<round>/：INSTRUCTIONS / input(segments+spans+glossary) / task.yaml
 segments 带 case_candidate 标记（工位5据此排除命例）。确定性：同输入同输出。
 """
 import shutil
@@ -25,7 +25,7 @@ def main():
 
     segs, sp = [], []
     for bid in batch_ids:
-        draft = PIPELINE / f"tasks/task_bazi_{bid}_seg/output/draft_opencode.yaml"
+        draft = PIPELINE / f"TASKS/task_bazi_{bid}_seg/output/draft_opencode.yaml"
         data = yaml.safe_load(draft.read_text())
         for s in data["segments"]:
             span_id = span_by[(bid, s["seg_id"])]
@@ -37,7 +37,7 @@ def main():
                          "text": s["text"]})
             sp.append({"seg_id": seg_local, "span_id": span_id, "batch": bid})
 
-    td = PIPELINE / f"tasks/task_bazi_qtbj_assert_{rnd}"
+    td = PIPELINE / f"TASKS/task_bazi_qtbj_assert_{rnd}"
     (td / "input").mkdir(parents=True, exist_ok=True)
     yaml.dump({"segments": segs}, open(td / "input/segments.yaml", "w"),
               allow_unicode=True, sort_keys=False)
