@@ -1,0 +1,125 @@
+assertions:
+- assertion_id: as_bazi_000408
+  proposition: 四月丙火，建禄于巳，火势炎炎，宜专用壬水，解炎威之力，成既济之功
+  proposition_id: pr_bazi_000408
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0017_s02
+    support_type: direct
+  conditions:
+  - 四月（巳月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000056
+  status: machine_extracted
+- assertion_id: as_bazi_000409
+  proposition: 四月丙火如无壬水，孤阳失辅，难透清光
+  proposition_id: pr_bazi_000409
+  relation: opposes
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0017_s02
+    support_type: direct
+  conditions:
+  - 四月（巳月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000410
+  proposition: 四月丙火得庚发水源，方为有根之水，壬庚两透，不见戊土，号曰湖水汪洋，广映太阳，光辉显著，文明之象
+  proposition_id: pr_bazi_000410
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0017_s02
+    support_type: direct
+  conditions:
+  - 四月（巳月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000411
+  proposition: 四月丙火无壬水，癸亦姑用，见庚透癸，不富必贵，但心性乖僻，巧谋善辩
+  proposition_id: pr_bazi_000411
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0017_s02
+    support_type: direct
+  conditions:
+  - 四月（巳月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000412
+  proposition: 四月丙火壬癸俱无，愚顽之辈
+  proposition_id: pr_bazi_000412
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0017_s02
+    support_type: direct
+  conditions:
+  - 四月（巳月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000413
+  proposition: 四月丙火火炎无制，僧道之流，不然，须防夭折
+  proposition_id: pr_bazi_000413
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0017_s02
+    support_type: direct
+  conditions:
+  - 四月（巳月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000414
+  proposition: 四月丙火一派庚金，不见比劫，有富无贵
+  proposition_id: pr_bazi_000414
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0017_s02
+    support_type: direct
+  conditions:
+  - 四月（巳月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000415
+  proposition: 四月丙火丙午日干，四柱多壬，不见戊制，名曰阴刑杀重，光棍之流
+  proposition_id: pr_bazi_000415
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0017_s02
+    support_type: direct
+  conditions:
+  - 四月（巳月）
+  - 丙午日
+  exceptions: []
+  concept_ids:
+  - co_bazi_000063
+  status: machine_extracted
+- assertion_id: as_bazi_000416
+  proposition: 四月丙火支水局，加之重重壬透，一无制伏，盗贼之命，如见己土，下贱鄙夫
+  proposition_id: pr_bazi_000416
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0017_s02
+    support_type: direct
+  conditions:
+  - 四月（巳月）
+  - 支成水局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000417
+  proposition: 四月丙火用壬者，金妻水子
+  proposition_id: pr_bazi_000417
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0017_s02
+    support_type: direct
+  conditions:
+  - 四月（巳月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted

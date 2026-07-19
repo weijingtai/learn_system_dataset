@@ -1,0 +1,101 @@
+assertions:
+- assertion_id: as_bazi_001256
+  proposition: 五月癸水，至弱无根，必须庚辛为生身之本，但丁火司权，金难敌火，安能滋养癸水，宜见比劫，方得辛金之用
+  proposition_id: pr_bazi_001256
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0054_s02
+    support_type: direct
+  conditions:
+  - 五月（午月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000037
+  - co_bazi_000009
+  status: machine_extracted
+- assertion_id: as_bazi_001257
+  proposition: 五月癸水，庚辛壬参酌并用可也
+  proposition_id: pr_bazi_001257
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0054_s02
+    support_type: direct
+  conditions:
+  - 五月（午月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001258
+  proposition: 五月癸水如庚辛透干，又见壬癸者，定主钟鼎名家
+  proposition_id: pr_bazi_001258
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0054_s02
+    support_type: direct
+  conditions:
+  - 五月（午月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001259
+  proposition: 五月癸水有金透，支见申子辰者，亦主金榜挂名
+  proposition_id: pr_bazi_001259
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0054_s02
+    support_type: direct
+  conditions:
+  - 五月（午月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001260
+  proposition: 五月癸水无水出干，支只一水，虽有庚辛，一富之造，故曰水源会夏，富重贵轻
+  proposition_id: pr_bazi_001260
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0054_s02
+    support_type: direct
+  conditions:
+  - 五月（午月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001261
+  proposition: 五月癸水支成火局，无壬出干，定主僧道
+  proposition_id: pr_bazi_001261
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0054_s02
+    support_type: direct
+  conditions:
+  - 五月（午月）
+  - 支成火局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001262
+  proposition: 五月癸水二壬一庚同透，衣锦腰金
+  proposition_id: pr_bazi_001262
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0054_s02
+    support_type: direct
+  conditions:
+  - 五月（午月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001263
+  proposition: 五月癸水一派己土，无甲出制，此作从杀而论，又主大贵，凡从杀者，切不可破格方吉
+  proposition_id: pr_bazi_001263
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0054_s02
+    support_type: direct
+  conditions:
+  - 五月（午月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000013
+  status: machine_extracted

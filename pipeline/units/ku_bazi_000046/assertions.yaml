@@ -1,0 +1,63 @@
+assertions:
+- assertion_id: as_bazi_000467
+  proposition: 十月丙火，太阳失令，得见甲戊庚出干，可云科甲，主为人性好清高，斯文领袖
+  proposition_id: pr_bazi_000467
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0019_s01
+    support_type: direct
+  conditions:
+  - 十月（亥月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000468
+  proposition: 十月丙火如辛透见辰，名化合逢时，主大贵
+  proposition_id: pr_bazi_000468
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0019_s01
+    support_type: direct
+  conditions:
+  - 十月（亥月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000067
+  status: machine_extracted
+- assertion_id: as_bazi_000469
+  proposition: 十月丙火壬多无甲，乃作弃命从杀，即不科甲，亦是宦僚
+  proposition_id: pr_bazi_000469
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0019_s01
+    support_type: direct
+  conditions:
+  - 十月（亥月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000066
+  status: machine_extracted
+- assertion_id: as_bazi_000470
+  proposition: 十月丙火壬多有甲无戊，却非从杀，宜用己土混壬
+  proposition_id: pr_bazi_000470
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0019_s01
+    support_type: direct
+  conditions:
+  - 十月（亥月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000471
+  proposition: 总之十月丙火，木旺宜庚，水旺宜戊，火旺用壬，随宜酌用可也
+  proposition_id: pr_bazi_000471
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0019_s01
+    support_type: direct
+  conditions:
+  - 十月（亥月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted

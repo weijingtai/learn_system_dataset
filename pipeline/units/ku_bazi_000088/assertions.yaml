@@ -1,0 +1,74 @@
+assertions:
+- assertion_id: as_bazi_000947
+  proposition: 十二月庚金，寒气太重，且多湿泥，愈寒愈冻，先取丙火解冻，次取丁火炼金，甲亦不可少
+  proposition_id: pr_bazi_000947
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0040_s03
+    support_type: direct
+  conditions:
+  - 十二月（丑月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000948
+  proposition: 十二月庚金丙丁甲透者，即不科甲，亦有恩荣
+  proposition_id: pr_bazi_000948
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0040_s03
+    support_type: direct
+  conditions:
+  - 十二月（丑月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000949
+  proposition: 十二月庚金有丙无丁甲者，富中取贵
+  proposition_id: pr_bazi_000949
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0040_s03
+    support_type: direct
+  conditions:
+  - 十二月（丑月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000950
+  proposition: 十二月庚金有丁甲无丙者，特达才人
+  proposition_id: pr_bazi_000950
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0040_s03
+    support_type: direct
+  conditions:
+  - 十二月（丑月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000951
+  proposition: 十二月庚金有丙丁无甲者，白手成家，刀笔亨通，乏金更美
+  proposition_id: pr_bazi_000951
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0040_s03
+    support_type: direct
+  conditions:
+  - 十二月（丑月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000952
+  proposition: 十二月庚金支成金局无火，僧道之流
+  proposition_id: pr_bazi_000952
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0040_s03
+    support_type: direct
+  conditions:
+  - 十二月（丑月）
+  - 支成金局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted

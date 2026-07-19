@@ -1,0 +1,223 @@
+assertions:
+- assertion_id: as_bazi_000843
+  proposition: 三月庚金，戊土司令，无生金之理，有埋金之忧，故先甲后丁，不用庚噼甲
+  proposition_id: pr_bazi_000843
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0037_s03
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000052
+  status: machine_extracted
+- assertion_id: as_bazi_000844
+  proposition: 三月之庚，土旺金顽，顽金宜丁，旺土须甲，乏甲不能立业，乏丁焉能成名，二者少一，富贵不真
+  proposition_id: pr_bazi_000844
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0037_s03
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000845
+  proposition: 庚金无火，非夭则贫
+  proposition_id: pr_bazi_000845
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0037_s03
+    support_type: direct
+  conditions: []
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000846
+  proposition: 身弱才多，富贵不久
+  proposition_id: pr_bazi_000846
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0037_s03
+    support_type: direct
+  conditions:
+  - 身弱才多
+  exceptions: []
+  concept_ids:
+  - co_bazi_000007
+  status: machine_extracted
+- assertion_id: as_bazi_000847
+  proposition: 三月庚金得丁甲两透，不见比肩，科甲之命，但要好运相催
+  proposition_id: pr_bazi_000847
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0037_s03
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000008
+  status: machine_extracted
+- assertion_id: as_bazi_000848
+  proposition: 三月庚金甲透丁藏，采芹拾芥
+  proposition_id: pr_bazi_000848
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0037_s03
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000849
+  proposition: 三月庚金甲藏丁透，异路功名
+  proposition_id: pr_bazi_000849
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0037_s03
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000850
+  proposition: 三月庚金丁甲俱藏，不受庚制，富中取贵，刀笔起家
+  proposition_id: pr_bazi_000850
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0037_s03
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000851
+  proposition: 三月庚金有甲无丁，平常之辈
+  proposition_id: pr_bazi_000851
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0037_s03
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000852
+  proposition: 三月庚金有丁无甲，迂儒腐儒
+  proposition_id: pr_bazi_000852
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0037_s03
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000853
+  proposition: 三月庚金丁甲两无，下贱之流
+  proposition_id: pr_bazi_000853
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0037_s03
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000854
+  proposition: 三月庚金一甲、无丁、有丙，由行伍而得官职，须不见壬癸为妙
+  proposition_id: pr_bazi_000854
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0037_s03
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000855
+  proposition: 三月庚金支成土局，无木，贫贱僧道
+  proposition_id: pr_bazi_000855
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0037_s03
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  - 支成土局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000856
+  proposition: 三月庚金支成土局，见乙，奸诈小人
+  proposition_id: pr_bazi_000856
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0037_s03
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  - 支成土局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000857
+  proposition: 三月庚金支成火局，癸水透，富贵
+  proposition_id: pr_bazi_000857
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0037_s03
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  - 支成火局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000858
+  proposition: 三月庚金支成火局，有丙丁出干，见壬制之方吉，无制，残疾之人
+  proposition_id: pr_bazi_000858
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0037_s03
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  - 支成火局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000859
+  proposition: 三月庚金用甲者，水妻木子
+  proposition_id: pr_bazi_000859
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0037_s03
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000860
+  proposition: 三月庚金用丁者，木妻火子
+  proposition_id: pr_bazi_000860
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0037_s03
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted

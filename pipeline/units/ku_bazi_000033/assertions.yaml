@@ -1,0 +1,112 @@
+assertions:
+- assertion_id: as_bazi_000320
+  proposition: 十月乙木，木不受气，而壬水司令，取丙为用，戊土次之
+  proposition_id: pr_bazi_000320
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0013_s01
+    support_type: direct
+  conditions:
+  - 十月（亥月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000052
+  status: machine_extracted
+- assertion_id: as_bazi_000321
+  proposition: 十月乙木丙戊两透，科甲定然
+  proposition_id: pr_bazi_000321
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0013_s01
+    support_type: direct
+  conditions:
+  - 十月（亥月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000322
+  proposition: 十月乙木有丙无戊，虽不科甲，亦入儒林
+  proposition_id: pr_bazi_000322
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0013_s01
+    support_type: direct
+  conditions:
+  - 十月（亥月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000323
+  proposition: 十月乙木支多丙火，运入火乡，亦主显达
+  proposition_id: pr_bazi_000323
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0013_s01
+    support_type: direct
+  conditions:
+  - 十月（亥月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000324
+  proposition: 十月乙木水多无戊，乙性漂浮，流荡之徒
+  proposition_id: pr_bazi_000324
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0013_s01
+    support_type: direct
+  conditions:
+  - 十月（亥月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000325
+  proposition: 十月乙木若不见丙巳，妻子难全
+  proposition_id: pr_bazi_000325
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0013_s01
+    support_type: direct
+  conditions:
+  - 十月（亥月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000326
+  proposition: 十月乙木一点壬水，即多见戊土，亦为不妙，得甲制戊，可许能干，但为人好生祸乱，构讼生非，男女一理
+  proposition_id: pr_bazi_000326
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0013_s01
+    support_type: direct
+  conditions:
+  - 十月（亥月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000327
+  proposition: 十月乙木支成木局，时值小阳，此又如春木同旺，若有癸出，须取戊为尊，加以丙透，科甲之人
+  proposition_id: pr_bazi_000327
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0013_s01
+    support_type: direct
+  conditions:
+  - 十月（亥月）
+  - 支成木局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000328
+  proposition: 十月乙木支成木局，若无丙戊二字，自成自败，终非承受之辈
+  proposition_id: pr_bazi_000328
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0013_s01
+    support_type: direct
+  conditions:
+  - 十月（亥月）
+  - 支成木局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted

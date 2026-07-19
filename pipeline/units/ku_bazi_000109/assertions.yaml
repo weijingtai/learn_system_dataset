@@ -1,0 +1,88 @@
+assertions:
+- assertion_id: as_bazi_001136
+  proposition: 五月壬水，丁旺壬弱，取癸为用，取庚为佐，无庚不能发水，无癸不能伤丁
+  proposition_id: pr_bazi_001136
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0049_s02
+    support_type: direct
+  conditions:
+  - 五月（午月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001137
+  proposition: 五月壬水，辛癸亦可参用，其理与四月皆同
+  proposition_id: pr_bazi_001137
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0049_s02
+    support_type: direct
+  conditions:
+  - 五月（午月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001138
+  proposition: 五月壬水庚癸两透，科甲必然
+  proposition_id: pr_bazi_001138
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0049_s02
+    support_type: direct
+  conditions:
+  - 五月（午月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001139
+  proposition: 五月壬水庚壬两透，官居极品
+  proposition_id: pr_bazi_001139
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0049_s02
+    support_type: direct
+  conditions:
+  - 五月（午月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001140
+  proposition: 五月壬水有庚无壬癸者，常人
+  proposition_id: pr_bazi_001140
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0049_s02
+    support_type: direct
+  conditions:
+  - 五月（午月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001141
+  proposition: 五月壬水支成火局，全无金水，名才多身弱，富屋贫人
+  proposition_id: pr_bazi_001141
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0049_s02
+    support_type: direct
+  conditions:
+  - 五月（午月）
+  - 支成火局
+  exceptions: []
+  concept_ids:
+  - co_bazi_000016
+  status: machine_extracted
+- assertion_id: as_bazi_001142
+  proposition: 五月壬水支成火局，若又甲乙多者，僧道之命
+  proposition_id: pr_bazi_001142
+  relation: qualifies
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0049_s02
+    support_type: direct
+  conditions:
+  - 五月（午月）
+  - 支成火局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted

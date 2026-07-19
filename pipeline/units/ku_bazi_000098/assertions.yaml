@@ -1,0 +1,242 @@
+assertions:
+- assertion_id: as_bazi_001033
+  proposition: 八月辛金，当权得令，旺之极矣，专用壬水淘洗，如见戊己，则生扶太过，故以土为病，见甲制土方妙，无戊不宜用甲
+  proposition_id: pr_bazi_001033
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0044_s03
+    support_type: direct
+  conditions:
+  - 八月（酉月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000079
+  status: machine_extracted
+- assertion_id: as_bazi_001034
+  proposition: 八月辛金四柱一点壬水，甲多泄水，此为用神无力，奸诈之徒，得庚制者，反主仁义
+  proposition_id: pr_bazi_001034
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0044_s03
+    support_type: direct
+  conditions:
+  - 八月（酉月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000038
+  status: machine_extracted
+- assertion_id: as_bazi_001035
+  proposition: 八月辛金三点辛金，一重壬水，多见甲木，有庚透者，主大富贵，不见丁为美
+  proposition_id: pr_bazi_001035
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0044_s03
+    support_type: direct
+  conditions:
+  - 八月（酉月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001036
+  proposition: 八月辛金若见一丁，此人风雅清高，衣食饶裕而已
+  proposition_id: pr_bazi_001036
+  relation: qualifies
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0044_s03
+    support_type: direct
+  conditions:
+  - 八月（酉月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001037
+  proposition: 八月辛金一二比肩，壬甲皆一，无庚出干，亦有恩荣
+  proposition_id: pr_bazi_001037
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0044_s03
+    support_type: direct
+  conditions:
+  - 八月（酉月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000008
+  status: machine_extracted
+- assertion_id: as_bazi_001038
+  proposition: 八月辛金二三比肩，一点壬水，戊土多见，此为土厚埋金，此人愚懦，见一甲出，必为创立之人
+  proposition_id: pr_bazi_001038
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0044_s03
+    support_type: direct
+  conditions:
+  - 八月（酉月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000089
+  status: machine_extracted
+- assertion_id: as_bazi_001039
+  proposition: 八月辛金一派辛金，一位壬水，无庚杂乱，又主富中取贵
+  proposition_id: pr_bazi_001039
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0044_s03
+    support_type: direct
+  conditions:
+  - 八月（酉月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001040
+  proposition: 八月辛金一派壬水泄金，无戊出制，为沙水同流，主奔波劳苦
+  proposition_id: pr_bazi_001040
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0044_s03
+    support_type: direct
+  conditions:
+  - 八月（酉月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001041
+  proposition: 八月辛金一派壬水，若得支见一戊止流，其人颇有才略，艺术过人
+  proposition_id: pr_bazi_001041
+  relation: qualifies
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0044_s03
+    support_type: direct
+  conditions:
+  - 八月（酉月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001042
+  proposition: 八月辛金支成金局，干见比肩，无壬淘洗，此宜用丁，无丁必主凶顽无赖
+  proposition_id: pr_bazi_001042
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0044_s03
+    support_type: direct
+  conditions:
+  - 八月（酉月）
+  - 支成金局
+  exceptions: []
+  concept_ids:
+  - co_bazi_000008
+  status: machine_extracted
+- assertion_id: as_bazi_001043
+  proposition: 八月辛金支成金局，若得一壬高透，以泄群金，又名一清到底，定有治国之材
+  proposition_id: pr_bazi_001043
+  relation: qualifies
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0044_s03
+    support_type: direct
+  conditions:
+  - 八月（酉月）
+  - 支成金局
+  exceptions: []
+  concept_ids:
+  - co_bazi_000099
+  status: machine_extracted
+- assertion_id: as_bazi_001044
+  proposition: 八月辛金支成金局，戊己透干，壬透无火，名曰虎格，运行西北，富贵大显，子息艰难
+  proposition_id: pr_bazi_001044
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0044_s03
+    support_type: direct
+  conditions:
+  - 八月（酉月）
+  - 支成金局
+  exceptions: []
+  concept_ids:
+  - co_bazi_000100
+  status: machine_extracted
+- assertion_id: as_bazi_001045
+  proposition: 八月辛金支成金局，或透丙火，虽有壬出，亦属平庸
+  proposition_id: pr_bazi_001045
+  relation: qualifies
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0044_s03
+    support_type: direct
+  conditions:
+  - 八月（酉月）
+  - 支成金局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001046
+  proposition: 八月辛金一二辛金，一派己土，定为僧道
+  proposition_id: pr_bazi_001046
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0044_s03
+    support_type: direct
+  conditions:
+  - 八月（酉月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001047
+  proposition: 八月辛金干透己土，支见庚甲，一生安闲
+  proposition_id: pr_bazi_001047
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0044_s03
+    support_type: direct
+  conditions:
+  - 八月（酉月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001048
+  proposition: 八月辛金一派乙木，不见庚干，为才多身弱，一见庚制，富贵可期
+  proposition_id: pr_bazi_001048
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0044_s03
+    support_type: direct
+  conditions:
+  - 八月（酉月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000016
+  status: machine_extracted
+- assertion_id: as_bazi_001049
+  proposition: 金生秋月土重，贫无寸铁
+  proposition_id: pr_bazi_001049
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0044_s03
+    support_type: direct
+  conditions:
+  - 秋月
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001050
+  proposition: 六辛日逢戊子时，运喜西方，阴若朝阳，切忌丙丁离位
+  proposition_id: pr_bazi_001050
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0044_s03
+    support_type: direct
+  conditions:
+  - 六辛日逢戊子时
+  exceptions: []
+  concept_ids:
+  - co_bazi_000094
+  status: machine_extracted
+- assertion_id: as_bazi_001051
+  proposition: 庚辛局全巳酉丑，位高权重
+  proposition_id: pr_bazi_001051
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0044_s03
+    support_type: direct
+  conditions:
+  - 巳酉丑
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted

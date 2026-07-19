@@ -1,0 +1,111 @@
+assertions:
+- assertion_id: as_bazi_001247
+  proposition: 四月癸水，喜辛金为用，无辛用庚
+  proposition_id: pr_bazi_001247
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0054_s01
+    support_type: direct
+  conditions:
+  - 四月（巳月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001248
+  proposition: 四月癸水若辛高透，不见丁火，加以壬透，主科名荣贵，声播四夷
+  proposition_id: pr_bazi_001248
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0054_s01
+    support_type: direct
+  conditions:
+  - 四月（巳月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001249
+  proposition: 四月癸水若有丁破格，贫无立锥，有壬可免
+  proposition_id: pr_bazi_001249
+  relation: opposes
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0054_s01
+    support_type: direct
+  conditions:
+  - 四月（巳月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001250
+  proposition: 四月癸水辛藏无丁，贡监衣衿
+  proposition_id: pr_bazi_001250
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0054_s01
+    support_type: direct
+  conditions:
+  - 四月（巳月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001251
+  proposition: 四月癸水一派火土乏辛，即有己庚，亦不能生水，又无比肩羊刃，必至熬干癸水，损目无疑
+  proposition_id: pr_bazi_001251
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0054_s01
+    support_type: direct
+  conditions:
+  - 四月（巳月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000008
+  status: machine_extracted
+- assertion_id: as_bazi_001252
+  proposition: 四月癸水若庚壬两透，泄制火土，名劫印化晋，极贵之造，有丁见干者则否
+  proposition_id: pr_bazi_001252
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0054_s01
+    support_type: direct
+  conditions:
+  - 四月（巳月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000112
+  status: machine_extracted
+- assertion_id: as_bazi_001253
+  proposition: 四月癸水有庚无壬，亦无丁破庚者，堪入儒林
+  proposition_id: pr_bazi_001253
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0054_s01
+    support_type: direct
+  conditions:
+  - 四月（巳月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001254
+  proposition: 四月癸水有庚无辛者，异路功名
+  proposition_id: pr_bazi_001254
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0054_s01
+    support_type: direct
+  conditions:
+  - 四月（巳月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001255
+  proposition: 四月癸水，专用辛金方妙
+  proposition_id: pr_bazi_001255
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0054_s01
+    support_type: direct
+  conditions:
+  - 四月（巳月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted

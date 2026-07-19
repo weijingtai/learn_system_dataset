@@ -1,0 +1,25 @@
+assertions:
+- assertion_id: as_bazi_001171
+  proposition: 八月壬水，专用甲木，庚金次之
+  proposition_id: pr_bazi_001171
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0050_s04
+    support_type: direct
+  conditions:
+  - 八月（酉月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001172
+  proposition: 八月壬水用甲者，水妻木子
+  proposition_id: pr_bazi_001172
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0050_s04
+    support_type: direct
+  conditions:
+  - 八月（酉月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted

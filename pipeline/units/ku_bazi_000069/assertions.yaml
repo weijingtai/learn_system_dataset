@@ -1,0 +1,198 @@
+assertions:
+- assertion_id: as_bazi_000677
+  proposition: 十一二月严寒冰冻，丙火为专，甲木为佐
+  proposition_id: pr_bazi_000677
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0030_s02
+    support_type: direct
+  conditions:
+  - 十一十二月（子丑月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000678
+  proposition: 十一二月戊土丙甲两透，桃浪之人
+  proposition_id: pr_bazi_000678
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0030_s02
+    support_type: direct
+  conditions:
+  - 十一十二月（子丑月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000679
+  proposition: 十一二月戊土丙出甲藏，采芹食饩
+  proposition_id: pr_bazi_000679
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0030_s02
+    support_type: direct
+  conditions:
+  - 十一十二月（子丑月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000680
+  proposition: 十一二月戊土丙藏甲出，佐杂前程
+  proposition_id: pr_bazi_000680
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0030_s02
+    support_type: direct
+  conditions:
+  - 十一十二月（子丑月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000681
+  proposition: 十一二月戊土有丙无甲者，豪富
+  proposition_id: pr_bazi_000681
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0030_s02
+    support_type: direct
+  conditions:
+  - 十一十二月（子丑月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000682
+  proposition: 十一二月戊土有甲无丙者，清贫
+  proposition_id: pr_bazi_000682
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0030_s02
+    support_type: direct
+  conditions:
+  - 十一十二月（子丑月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000683
+  proposition: 十一二月戊土丙甲全无，下流之造
+  proposition_id: pr_bazi_000683
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0030_s02
+    support_type: direct
+  conditions:
+  - 十一十二月（子丑月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000684
+  proposition: 十一二月戊土一派丙火，加以丙透，运值火土，弱中复强，又一壬透，主清高荣禄
+  proposition_id: pr_bazi_000684
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0030_s02
+    support_type: direct
+  conditions:
+  - 十一十二月（子丑月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000685
+  proposition: 十一二月戊土一派丙火，乏壬，僧道孤寒
+  proposition_id: pr_bazi_000685
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0030_s02
+    support_type: direct
+  conditions:
+  - 十一十二月（子丑月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000686
+  proposition: 十一二月戊土一派壬水，不见比劫，可作从才而论
+  proposition_id: pr_bazi_000686
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0030_s02
+    support_type: direct
+  conditions:
+  - 十一十二月（子丑月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000012
+  status: machine_extracted
+- assertion_id: as_bazi_000687
+  proposition: 十一十二月戊土一派壬水即有比劫，得甲出干，又主富贵
+  proposition_id: pr_bazi_000687
+  relation: qualifies
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0030_s02
+    support_type: direct
+  conditions:
+  - 十一十二月（子丑月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000688
+  proposition: 十一十二月戊土若寒土无丙，虽有甲木，亦是内虚外实之人
+  proposition_id: pr_bazi_000688
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0030_s02
+    support_type: direct
+  conditions:
+  - 十一十二月（子丑月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000689
+  proposition: 十一十二月戊土二癸透月时，名为争合，终属劳碌之人
+  proposition_id: pr_bazi_000689
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0030_s02
+    support_type: direct
+  conditions:
+  - 十一十二月（子丑月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000059
+  status: machine_extracted
+- assertion_id: as_bazi_000690
+  proposition: 十一十二月戊土二癸透月时，得一己出干制癸，反为忠义之士，舍己从人而论
+  proposition_id: pr_bazi_000690
+  relation: qualifies
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0030_s02
+    support_type: direct
+  conditions:
+  - 十一十二月（子丑月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000691
+  proposition: 十一十二月戊土年月透辛金者，又属土金伤官，异路功名可许
+  proposition_id: pr_bazi_000691
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0030_s02
+    support_type: direct
+  conditions:
+  - 十一十二月（子丑月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000080
+  status: machine_extracted
+- assertion_id: as_bazi_000692
+  proposition: 十一十二月戊土土金伤官，以金为妻，水为子
+  proposition_id: pr_bazi_000692
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0030_s02
+    support_type: direct
+  conditions:
+  - 十一十二月（子丑月）
+  - 土金伤官
+  exceptions: []
+  concept_ids:
+  - co_bazi_000080
+  status: machine_extracted

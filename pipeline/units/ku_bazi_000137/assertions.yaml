@@ -1,0 +1,164 @@
+assertions:
+- assertion_id: as_bazi_001305
+  proposition: 十二月癸水，寒极成冰，万物不能舒泰，宜丙火解冻
+  proposition_id: pr_bazi_001305
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0056_s03
+    support_type: direct
+  conditions:
+  - 十二月（丑月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001306
+  proposition: 十二月癸水丙透年时，加以壬透，支中多戊，名水辅阳光，主显达名臣，无戊者异途之职
+  proposition_id: pr_bazi_001306
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0056_s03
+    support_type: direct
+  conditions:
+  - 十二月（丑月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000118
+  status: machine_extracted
+- assertion_id: as_bazi_001307
+  proposition: 十二月癸水有丙无壬，黉门之客
+  proposition_id: pr_bazi_001307
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0056_s03
+    support_type: direct
+  conditions:
+  - 十二月（丑月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001308
+  proposition: 十二月癸水有壬无丙，戊又出干者，皂隶之流
+  proposition_id: pr_bazi_001308
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0056_s03
+    support_type: direct
+  conditions:
+  - 十二月（丑月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001309
+  proposition: 十二月癸水支见子丑，比肩出干，即有丙透，不能解冻，此属平常
+  proposition_id: pr_bazi_001309
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0056_s03
+    support_type: direct
+  conditions:
+  - 十二月（丑月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000008
+  status: machine_extracted
+- assertion_id: as_bazi_001310
+  proposition: 十二月癸水无癸水，有辛与合，亦不为美，有丁出颇吉
+  proposition_id: pr_bazi_001310
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0056_s03
+    support_type: direct
+  conditions:
+  - 十二月（丑月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001311
+  proposition: 十二月癸水一片癸己会党，年透丁火，名雪后灯光，夜生者贵，日生者否
+  proposition_id: pr_bazi_001311
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0056_s03
+    support_type: direct
+  conditions:
+  - 十二月（丑月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001312
+  proposition: 十二月癸水一片癸己会党，若无丁火，又主孤贫
+  proposition_id: pr_bazi_001312
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0056_s03
+    support_type: direct
+  conditions:
+  - 十二月（丑月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001313
+  proposition: 十二月癸水支成水局，无丙者，四海为家，一生劳苦
+  proposition_id: pr_bazi_001313
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0056_s03
+    support_type: direct
+  conditions:
+  - 十二月（丑月）
+  - 支成水局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001314
+  proposition: 十二月癸水支成火局，有庚辛透者，衣食充足，无金出，孤苦零丁
+  proposition_id: pr_bazi_001314
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0056_s03
+    support_type: direct
+  conditions:
+  - 十二月（丑月）
+  - 支成火局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001315
+  proposition: 十二月癸水支成金局，丙透得地，名金温水暖，彼此相生，定许光大门闾，声驰翰苑，乏丙者即文章骇世，总为孙山
+  proposition_id: pr_bazi_001315
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0056_s03
+    support_type: direct
+  conditions:
+  - 十二月（丑月）
+  - 支成金局
+  exceptions: []
+  concept_ids:
+  - co_bazi_000117
+  status: machine_extracted
+- assertion_id: as_bazi_001316
+  proposition: 十二月癸水支成木局，泄水太过，主残病呻吟，得金出干辅救，技艺之流
+  proposition_id: pr_bazi_001316
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0056_s03
+    support_type: direct
+  conditions:
+  - 十二月（丑月）
+  - 支成木局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001317
+  proposition: 凡冬月用丙，须丙火得地方妙，不然，即重重丙火出干，安能轻许富贵哉
+  proposition_id: pr_bazi_001317
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0056_s03
+    support_type: direct
+  conditions:
+  - 冬月
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted

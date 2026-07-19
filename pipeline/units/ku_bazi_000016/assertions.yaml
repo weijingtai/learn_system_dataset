@@ -1,0 +1,126 @@
+assertions:
+- assertion_id: as_bazi_000139
+  proposition: 八月甲木，木囚金旺，丁火为先，次用丙火，庚金再次
+  proposition_id: pr_bazi_000139
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0007_s03
+    support_type: direct
+  conditions:
+  - 八月（酉月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000140
+  proposition: 八月甲木一丁一庚，科甲定显
+  proposition_id: pr_bazi_000140
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0007_s03
+    support_type: direct
+  conditions:
+  - 八月（酉月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000141
+  proposition: 八月甲木癸水一透，科甲不全
+  proposition_id: pr_bazi_000141
+  relation: opposes
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0007_s03
+    support_type: direct
+  conditions:
+  - 八月（酉月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000142
+  proposition: 八月甲木丙庚两透，富大贵小
+  proposition_id: pr_bazi_000142
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0007_s03
+    support_type: direct
+  conditions:
+  - 八月（酉月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000143
+  proposition: 八月甲木丙丁全无，僧道之命
+  proposition_id: pr_bazi_000143
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0007_s03
+    support_type: direct
+  conditions:
+  - 八月（酉月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000144
+  proposition: 八月甲木丙透无癸，富贵双全
+  proposition_id: pr_bazi_000144
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0007_s03
+    support_type: direct
+  conditions:
+  - 八月（酉月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000145
+  proposition: 八月甲木有癸制丙，寻常之人
+  proposition_id: pr_bazi_000145
+  relation: opposes
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0007_s03
+    support_type: direct
+  conditions:
+  - 八月（酉月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000146
+  proposition: 八月甲木支成火局，可许假贵，戊己一透，可作富翁
+  proposition_id: pr_bazi_000146
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0007_s03
+    support_type: direct
+  conditions:
+  - 八月（酉月）
+  - 支成火局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000147
+  proposition: 八月甲木支成金局，干露庚金，为木被金伤，必主残疾，得丙丁破金，亦主老来暗疾
+  proposition_id: pr_bazi_000147
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0007_s03
+    support_type: direct
+  conditions:
+  - 八月（酉月）
+  - 支成金局
+  exceptions: []
+  concept_ids:
+  - co_bazi_000019
+  status: machine_extracted
+- assertion_id: as_bazi_000148
+  proposition: 八月甲木支成木局，干透比劫，反取庚金为先，次用丁火
+  proposition_id: pr_bazi_000148
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0007_s03
+    support_type: direct
+  conditions:
+  - 八月（酉月）
+  - 支成木局
+  exceptions: []
+  concept_ids:
+  - co_bazi_000009
+  status: machine_extracted

@@ -1,0 +1,137 @@
+assertions:
+- assertion_id: as_bazi_001183
+  proposition: 十月壬水司权，至旺之极，取戊为用
+  proposition_id: pr_bazi_001183
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0051_s01
+    support_type: direct
+  conditions:
+  - 十月（亥月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000037
+  status: machine_extracted
+- assertion_id: as_bazi_001184
+  proposition: 十月壬水若生辰日干，又见辰时，必须戊透，又须庚制甲，不伤戊土，戊庚两全，定主登科及第，位显权高
+  proposition_id: pr_bazi_001184
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0051_s01
+    support_type: direct
+  conditions:
+  - 十月（亥月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001185
+  proposition: 十月壬水甲出制戊，不见庚救者，断之贫穷
+  proposition_id: pr_bazi_001185
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0051_s01
+    support_type: direct
+  conditions:
+  - 十月（亥月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001186
+  proposition: 十月壬水戊藏无制，可许生员
+  proposition_id: pr_bazi_001186
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0051_s01
+    support_type: direct
+  conditions:
+  - 十月（亥月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001187
+  proposition: 十月壬水戊庚两透无甲者，亦主荣显
+  proposition_id: pr_bazi_001187
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0051_s01
+    support_type: direct
+  conditions:
+  - 十月（亥月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001188
+  proposition: 十月壬水支成木局，有甲乙出干，得庚透者，富贵，无庚者平常
+  proposition_id: pr_bazi_001188
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0051_s01
+    support_type: direct
+  conditions:
+  - 十月（亥月）
+  - 支成木局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001189
+  proposition: 十月壬水支成水局，不见戊己，名润下格，运行西北大富贵，行东南者必危
+  proposition_id: pr_bazi_001189
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0051_s01
+    support_type: direct
+  conditions:
+  - 十月（亥月）
+  - 支成水局
+  exceptions: []
+  concept_ids:
+  - co_bazi_000103
+  status: machine_extracted
+- assertion_id: as_bazi_001190
+  proposition: 十月壬水丙戊两透，行火土运，名利双全
+  proposition_id: pr_bazi_001190
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0051_s01
+    support_type: direct
+  conditions:
+  - 十月（亥月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001191
+  proposition: 十月壬水有丙无戊，可云衣禄
+  proposition_id: pr_bazi_001191
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0051_s01
+    support_type: direct
+  conditions:
+  - 十月（亥月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001192
+  proposition: 十月壬水有戊无丙，难许推盈
+  proposition_id: pr_bazi_001192
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0051_s01
+    support_type: direct
+  conditions:
+  - 十月（亥月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001193
+  proposition: 十月壬水、专用戊丙，次取庚金
+  proposition_id: pr_bazi_001193
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0051_s01
+    support_type: direct
+  conditions:
+  - 十月（亥月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted

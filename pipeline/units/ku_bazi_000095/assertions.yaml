@@ -1,0 +1,111 @@
+assertions:
+- assertion_id: as_bazi_001017
+  proposition: 六月辛金，己土当权，辅助太多，恐掩金光，先用壬水，取庚佐之
+  proposition_id: pr_bazi_001017
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0043_s04
+    support_type: direct
+  conditions:
+  - 六月（未月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000079
+  status: machine_extracted
+- assertion_id: as_bazi_001018
+  proposition: 六月辛金壬庚两透，科甲功名，即不出干，藏支得所，亦有荣华
+  proposition_id: pr_bazi_001018
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0043_s04
+    support_type: direct
+  conditions:
+  - 六月（未月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001019
+  proposition: 六月辛金忌戊出，得甲制之方吉，甲须隔位，恐贪己合，反掩金光，又塞壬水之流，下贱之格
+  proposition_id: pr_bazi_001019
+  relation: opposes
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0043_s04
+    support_type: direct
+  conditions:
+  - 六月（未月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001020
+  proposition: 六月辛金又忌庚出制甲
+  proposition_id: pr_bazi_001020
+  relation: opposes
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0043_s04
+    support_type: direct
+  conditions:
+  - 六月（未月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001021
+  proposition: 六月辛金只有未中一己，见了壬水，又为湿泥，不可见甲，甲出，反作平人
+  proposition_id: pr_bazi_001021
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0043_s04
+    support_type: direct
+  conditions:
+  - 六月（未月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001022
+  proposition: 六月辛金总以一壬一己，见庚无甲，方妙
+  proposition_id: pr_bazi_001022
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0043_s04
+    support_type: direct
+  conditions:
+  - 六月（未月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001023
+  proposition: 六月辛金丁乙出干，又有庚壬者，显贵
+  proposition_id: pr_bazi_001023
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0043_s04
+    support_type: direct
+  conditions:
+  - 六月（未月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001024
+  proposition: 六月辛金丁乙出干，无壬者否
+  proposition_id: pr_bazi_001024
+  relation: opposes
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0043_s04
+    support_type: direct
+  conditions:
+  - 六月（未月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001025
+  proposition: 六月辛金支成木局，得壬透，又有庚金发水之源，可云富贵
+  proposition_id: pr_bazi_001025
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0043_s04
+    support_type: direct
+  conditions:
+  - 六月（未月）
+  - 支成木局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted

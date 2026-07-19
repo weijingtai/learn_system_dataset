@@ -1,0 +1,229 @@
+assertions:
+- assertion_id: as_bazi_000040
+  proposition: 正二月甲木，素无取从才从杀从化之理
+  proposition_id: pr_bazi_000040
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0005_s03
+    support_type: direct
+  conditions:
+  - 正二月（寅卯月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000012
+  - co_bazi_000013
+  - co_bazi_000014
+  status: machine_extracted
+- assertion_id: as_bazi_000041
+  proposition: 正二月甲木一派庚辛，主一生劳苦，克子刑妻
+  proposition_id: pr_bazi_000041
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0005_s03
+    support_type: direct
+  conditions:
+  - 正二月（寅卯月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000042
+  proposition: 正二月甲木一派庚辛，支会金局，非贫即夭
+  proposition_id: pr_bazi_000042
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0005_s03
+    support_type: direct
+  conditions:
+  - 正二月（寅卯月）
+  - 支会金局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000043
+  proposition: 正二月甲木如无丙丁，一派壬癸，又无戊己制之，名水泛木浮，死无棺椁
+  proposition_id: pr_bazi_000043
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0005_s03
+    support_type: direct
+  conditions:
+  - 正二月（寅卯月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000015
+  status: machine_extracted
+- assertion_id: as_bazi_000044
+  proposition: 正二月甲木一派戊己，支会金局，为财多身弱，富屋贫人，终生劳苦，妻晚子迟
+  proposition_id: pr_bazi_000044
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0005_s03
+    support_type: direct
+  conditions:
+  - 正二月（寅卯月）
+  - 支会金局
+  exceptions: []
+  concept_ids:
+  - co_bazi_000016
+  status: machine_extracted
+- assertion_id: as_bazi_000045
+  proposition: 正二月甲木无庚金，有丁透，亦属文星，为木火通明之象，又名伤官生财格，主聪明雅秀
+  proposition_id: pr_bazi_000045
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0005_s03
+    support_type: direct
+  conditions:
+  - 正二月（寅卯月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000017
+  - co_bazi_000018
+  status: machine_extracted
+- assertion_id: as_bazi_000046
+  proposition: 正二月甲木一见癸水伤丁，但作厚道迂儒
+  proposition_id: pr_bazi_000046
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0005_s03
+    support_type: direct
+  conditions:
+  - 正二月（寅卯月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000047
+  proposition: 正二月甲木柱中多癸，滋助木神，伤灭丁火，其人奸雄枭险，言清行浊，笑里藏刀
+  proposition_id: pr_bazi_000047
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0005_s03
+    support_type: direct
+  conditions:
+  - 正二月（寅卯月）
+  - 多癸伤丁
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000048
+  proposition: 支成金局，多透庚辛，号曰木被金伤，若无丙丁破金，必主残疾
+  proposition_id: pr_bazi_000048
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0005_s03
+    support_type: direct
+  conditions:
+  - 支成金局
+  exceptions: []
+  concept_ids:
+  - co_bazi_000019
+  status: machine_extracted
+- assertion_id: as_bazi_000049
+  proposition: 支成火局，泄露太过，定主愚懦，常有啾唧灾病缠身，终有暗疾
+  proposition_id: pr_bazi_000049
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0005_s03
+    support_type: direct
+  conditions:
+  - 支成火局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000050
+  proposition: 支成木局，得庚为贵，无庚必凶，若非僧道，男主鳏孤，女主寡独
+  proposition_id: pr_bazi_000050
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0005_s03
+    support_type: direct
+  conditions:
+  - 支成木局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000051
+  proposition: 支成水局，戊透为贵
+  proposition_id: pr_bazi_000051
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0005_s03
+    support_type: direct
+  conditions:
+  - 支成水局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000052
+  proposition: 支成水局，无戊制，不但贫贱，且死无棺木
+  proposition_id: pr_bazi_000052
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0005_s03
+    support_type: direct
+  conditions:
+  - 支成水局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000053
+  proposition: 甲木若无根，全赖申子辰，干得才杀透，平步上青云
+  proposition_id: pr_bazi_000053
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0005_s03
+    support_type: direct
+  conditions: []
+  exceptions: []
+  concept_ids:
+  - co_bazi_000007
+  - co_bazi_000003
+  status: machine_extracted
+- assertion_id: as_bazi_000054
+  proposition: 凡三春甲木，用庚者，土为妻，金为子
+  proposition_id: pr_bazi_000054
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0005_s03
+    support_type: direct
+  conditions:
+  - 三春（寅卯辰月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000055
+  proposition: 凡三春甲木，用丁者，木为妻，火为子
+  proposition_id: pr_bazi_000055
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0005_s03
+    support_type: direct
+  conditions:
+  - 三春（寅卯辰月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000056
+  proposition: 总之正二月甲木，有庚戊者上命
+  proposition_id: pr_bazi_000056
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0005_s03
+    support_type: direct
+  conditions:
+  - 正二月（寅卯月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000057
+  proposition: 正二月甲木如有丁透，大富大贵之命也
+  proposition_id: pr_bazi_000057
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0005_s03
+    support_type: direct
+  conditions:
+  - 正二月（寅卯月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted

@@ -1,0 +1,124 @@
+assertions:
+- assertion_id: as_bazi_000216
+  proposition: 二月乙木，阳气渐升，木不寒矣，以丙为君，癸为臣，丙癸两透，不透庚金，大富大贵
+  proposition_id: pr_bazi_000216
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0010_s03
+    support_type: direct
+  conditions:
+  - 二月（卯月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000217
+  proposition: 二月乙木天干透庚，支下无辰，不能化金，得癸透养木亦为贵
+  proposition_id: pr_bazi_000217
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0010_s03
+    support_type: direct
+  conditions:
+  - 二月（卯月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000218
+  proposition: 二月乙木天干透庚，若见水库，则为假化，平常人也
+  proposition_id: pr_bazi_000218
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0010_s03
+    support_type: direct
+  conditions:
+  - 二月（卯月）
+  - 见水库（辰）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000048
+  status: machine_extracted
+- assertion_id: as_bazi_000219
+  proposition: 二月乙木，耑用丙癸，或支成木局，有癸透乃作贵命，更得丙泄木气，上上之命，但须透癸
+  proposition_id: pr_bazi_000219
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0010_s03
+    support_type: direct
+  conditions:
+  - 二月（卯月）
+  - 支成木局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000220
+  proposition: 二月乙木水多困丙，多戊化癸，皆下格
+  proposition_id: pr_bazi_000220
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0010_s03
+    support_type: direct
+  conditions:
+  - 二月（卯月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000221
+  proposition: 二月乙木用丙者，木妻火子
+  proposition_id: pr_bazi_000221
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0010_s03
+    support_type: direct
+  conditions:
+  - 二月（卯月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000222
+  proposition: 二月乙木用癸者，金妻水子
+  proposition_id: pr_bazi_000222
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0010_s03
+    support_type: direct
+  conditions:
+  - 二月（卯月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000223
+  proposition: 亥卯未逢于甲乙，富贵无疑
+  proposition_id: pr_bazi_000223
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0010_s03
+    support_type: direct
+  conditions:
+  - 亥卯未会木局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000224
+  proposition: 木全寅卯辰方，功名有准
+  proposition_id: pr_bazi_000224
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0010_s03
+    support_type: direct
+  conditions:
+  - 寅卯辰会木方
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000225
+  proposition: 活木忌埋根之铁，支下有庚辛，戕贼其根，木则朽矣
+  proposition_id: pr_bazi_000225
+  relation: opposes
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0010_s03
+    support_type: direct
+  conditions:
+  - 支下有庚辛
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted

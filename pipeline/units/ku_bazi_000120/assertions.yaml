@@ -1,0 +1,133 @@
+assertions:
+- assertion_id: as_bazi_001206
+  proposition: 十二月壬水，旺极复衰，上半月癸辛主事，故旺，专用丙火，下半月己土主事，故衰，亦用丙火，甲木佐之
+  proposition_id: pr_bazi_001206
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0051_s04
+    support_type: direct
+  conditions:
+  - 十二月（丑月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001207
+  proposition: 十二月壬水有丙解冻，名利双全
+  proposition_id: pr_bazi_001207
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0051_s04
+    support_type: direct
+  conditions:
+  - 十二月（丑月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001208
+  proposition: 十二月壬水丙透甲出，科甲之贵，然四柱无壬方妙
+  proposition_id: pr_bazi_001208
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0051_s04
+    support_type: direct
+  conditions:
+  - 十二月（丑月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001209
+  proposition: 十二月壬水无丙，单寒之士
+  proposition_id: pr_bazi_001209
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0051_s04
+    support_type: direct
+  conditions:
+  - 十二月（丑月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001210
+  proposition: 十二月壬水四柱多壬，戊透制之，衣衿可望
+  proposition_id: pr_bazi_001210
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0051_s04
+    support_type: direct
+  conditions:
+  - 十二月（丑月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001211
+  proposition: 十二月壬水丁出时干，化合成木，月干又见丁火，无癸破格，亦主富贵
+  proposition_id: pr_bazi_001211
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0051_s04
+    support_type: direct
+  conditions:
+  - 十二月（丑月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001212
+  proposition: 十二月壬水支成金局，名金寒水冻，一世孤贫，见火略可，即丙透遇辛，亦不为妙，见丁颇吉
+  proposition_id: pr_bazi_001212
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0051_s04
+    support_type: direct
+  conditions:
+  - 十二月（丑月）
+  - 支成金局
+  exceptions: []
+  concept_ids:
+  - co_bazi_000107
+  status: machine_extracted
+- assertion_id: as_bazi_001213
+  proposition: 腊月壬水，先取丙火，丁甲为佐
+  proposition_id: pr_bazi_001213
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0051_s04
+    support_type: direct
+  conditions:
+  - 十二月（丑月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001214
+  proposition: 腊月壬水用火者，木妻火子
+  proposition_id: pr_bazi_001214
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0051_s04
+    support_type: direct
+  conditions:
+  - 十二月（丑月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001215
+  proposition: 水旺居垣须有智，水土混杂必愚顽
+  proposition_id: pr_bazi_001215
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0051_s04
+    support_type: direct
+  conditions: []
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001216
+  proposition: 壬癸路经南域，主健，富贵堪图
+  proposition_id: pr_bazi_001216
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0051_s04
+    support_type: direct
+  conditions: []
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted

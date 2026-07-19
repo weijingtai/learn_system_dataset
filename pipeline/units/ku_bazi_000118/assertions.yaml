@@ -1,0 +1,140 @@
+assertions:
+- assertion_id: as_bazi_001194
+  proposition: 十一月壬水，阳刃帮身，较前更旺，先取戊土，次用丙火
+  proposition_id: pr_bazi_001194
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0051_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001195
+  proposition: 十一月壬水丙戊两透，富贵荣华
+  proposition_id: pr_bazi_001195
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0051_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001196
+  proposition: 十一月壬水有戊无丙，略可言富
+  proposition_id: pr_bazi_001196
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0051_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001197
+  proposition: 十一月壬水有丙无戊，好谋无成
+  proposition_id: pr_bazi_001197
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0051_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001198
+  proposition: 十一月壬水支成水局，丙不出干，即有戊土，亦是庸人
+  proposition_id: pr_bazi_001198
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0051_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  - 支成水局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001199
+  proposition: 十一月壬水丙透得所，即戊藏支，亦可显达，须运得用方妙
+  proposition_id: pr_bazi_001199
+  relation: qualifies
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0051_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001200
+  proposition: 十一月壬水支成火局，一富而已
+  proposition_id: pr_bazi_001200
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0051_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  - 支成火局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001201
+  proposition: 十一月壬水比见月时，年见丁火，平常之辈
+  proposition_id: pr_bazi_001201
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0051_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000085
+  status: machine_extracted
+- assertion_id: as_bazi_001202
+  proposition: 十一月壬水支成四库，富贵中人
+  proposition_id: pr_bazi_001202
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0051_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  - 支成四库
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001203
+  proposition: 十一月壬水丁出时干，名为争合，主名利难成
+  proposition_id: pr_bazi_001203
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0051_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000059
+  status: machine_extracted
+- assertion_id: as_bazi_001204
+  proposition: 十一月壬水壬子日、丁未时，虽不能科甲，亦有恩荣，盖用子中癸水为官，号曰用神得地，亦主荣华
+  proposition_id: pr_bazi_001204
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0051_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  - 壬子日丁未时
+  exceptions: []
+  concept_ids:
+  - co_bazi_000106
+  status: machine_extracted

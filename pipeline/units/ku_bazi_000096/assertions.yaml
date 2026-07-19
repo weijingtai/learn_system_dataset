@@ -1,0 +1,74 @@
+assertions:
+- assertion_id: as_bazi_001026
+  proposition: 七月辛金，值庚司令，不旺自旺，且壬水居申，四柱不见戊土，胎元戊藏申内，为壬堤岸，人命得此，为官清正，但不富耳
+  proposition_id: pr_bazi_001026
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0044_s01
+    support_type: direct
+  conditions:
+  - 七月（申月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000052
+  status: machine_extracted
+- assertion_id: as_bazi_001027
+  proposition: 七月辛金有土无甲，为有病无药，常人
+  proposition_id: pr_bazi_001027
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0044_s01
+    support_type: direct
+  conditions:
+  - 七月（申月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001028
+  proposition: 七月辛金有甲者，衣衿可望
+  proposition_id: pr_bazi_001028
+  relation: qualifies
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0044_s01
+    support_type: direct
+  conditions:
+  - 七月（申月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001029
+  proposition: 七月辛金四柱金多，宜水泄之
+  proposition_id: pr_bazi_001029
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0044_s01
+    support_type: direct
+  conditions:
+  - 七月（申月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001030
+  proposition: 七月辛金若一派金水，得一戊土，反为辛用，又宜甲制，自然富贵
+  proposition_id: pr_bazi_001030
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0044_s01
+    support_type: direct
+  conditions:
+  - 七月（申月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001031
+  proposition: 七月辛金干支水多，重见戊土，逢生得位，福寿之造
+  proposition_id: pr_bazi_001031
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0044_s01
+    support_type: direct
+  conditions:
+  - 七月（申月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted

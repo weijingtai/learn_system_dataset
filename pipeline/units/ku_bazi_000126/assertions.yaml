@@ -1,0 +1,14 @@
+assertions:
+- assertion_id: as_bazi_001246
+  proposition: 三月癸水，辛甲皆酌用，下半月土妻金子
+  proposition_id: pr_bazi_001246
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0053_s06
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  - 下半月
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted

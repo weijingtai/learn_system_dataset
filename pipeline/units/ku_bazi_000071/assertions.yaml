@@ -1,0 +1,137 @@
+assertions:
+- assertion_id: as_bazi_000708
+  proposition: 二月己土，阳气渐升，虽禾稼未成，万物出土，田园未展，先取甲木疏之，忌合，次取癸水润之
+  proposition_id: pr_bazi_000708
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0032_s02
+    support_type: direct
+  conditions:
+  - 二月（卯月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000709
+  proposition: 二月己土甲癸出干，定主科甲，加以一丙出透，势压百僚
+  proposition_id: pr_bazi_000709
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0032_s02
+    support_type: direct
+  conditions:
+  - 二月（卯月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000710
+  proposition: 二月己土甲癸出干，一见壬水，微末官职
+  proposition_id: pr_bazi_000710
+  relation: qualifies
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0032_s02
+    support_type: direct
+  conditions:
+  - 二月（卯月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000711
+  proposition: 二月己土见庚制甲，壬水出干，比劫重重，此必俗子
+  proposition_id: pr_bazi_000711
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0032_s02
+    support_type: direct
+  conditions:
+  - 二月（卯月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000712
+  proposition: 二月己土丙透犹有小富
+  proposition_id: pr_bazi_000712
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0032_s02
+    support_type: direct
+  conditions:
+  - 二月（卯月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000713
+  proposition: 二月己土丙藏衣禄无亏
+  proposition_id: pr_bazi_000713
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0032_s02
+    support_type: direct
+  conditions:
+  - 二月（卯月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000714
+  proposition: 二月己土支成木局，庚透富贵
+  proposition_id: pr_bazi_000714
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0032_s02
+    support_type: direct
+  conditions:
+  - 二月（卯月）
+  - 支成木局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000715
+  proposition: 二月己土支成木局，若柱多乙木，乙又屈庚，庚必输情于乙，不能扫邪于正，此必狡诈之徒，运入东南，恐有不测，当用丁泄之
+  proposition_id: pr_bazi_000715
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0032_s02
+    support_type: direct
+  conditions:
+  - 二月（卯月）
+  - 支成木局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000716
+  proposition: 二月己土支成木局，有丁者，小人而已，不致无良
+  proposition_id: pr_bazi_000716
+  relation: qualifies
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0032_s02
+    support_type: direct
+  conditions:
+  - 二月（卯月）
+  - 支成木局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000717
+  proposition: 二月己土无比印，从杀者贵
+  proposition_id: pr_bazi_000717
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0032_s02
+    support_type: direct
+  conditions:
+  - 二月（卯月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000013
+  status: machine_extracted
+- assertion_id: as_bazi_000718
+  proposition: 二月己土若柱中无甲丙癸者，皆下格
+  proposition_id: pr_bazi_000718
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0032_s02
+    support_type: direct
+  conditions:
+  - 二月（卯月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted

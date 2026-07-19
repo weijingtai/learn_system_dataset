@@ -1,0 +1,113 @@
+assertions:
+- assertion_id: as_bazi_001127
+  proposition: 四月壬水，丙火司权，水弱极矣，专取壬水比肩为助，次取辛金发源，且暗合丙火，庚金为佐
+  proposition_id: pr_bazi_001127
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0049_s01
+    support_type: direct
+  conditions:
+  - 四月（巳月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000037
+  - co_bazi_000008
+  status: machine_extracted
+- assertion_id: as_bazi_001128
+  proposition: 四月壬水壬辛两透，金榜有名
+  proposition_id: pr_bazi_001128
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0049_s01
+    support_type: direct
+  conditions:
+  - 四月（巳月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001129
+  proposition: 四月壬水癸辛两出，加以甲透，亦主异路之荣，无甲者富贵门下之客
+  proposition_id: pr_bazi_001129
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0049_s01
+    support_type: direct
+  conditions:
+  - 四月（巳月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001130
+  proposition: 四月壬水如无壬，木少火多者，又作弃命从才格，因妻致富
+  proposition_id: pr_bazi_001130
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0049_s01
+    support_type: direct
+  conditions:
+  - 四月（巳月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000021
+  status: machine_extracted
+- assertion_id: as_bazi_001131
+  proposition: 四月壬水癸透者残疾
+  proposition_id: pr_bazi_001131
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0049_s01
+    support_type: direct
+  conditions:
+  - 四月（巳月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001132
+  proposition: 四月壬水四柱多金得地，则极弱复强，须用巳中戊土，亦主名利双全，或异途之贵
+  proposition_id: pr_bazi_001132
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0049_s01
+    support_type: direct
+  conditions:
+  - 四月（巳月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001133
+  proposition: 四月壬水若见一甲藏寅，与巳相刑，主有暗疾，名利皆虚，不能创立
+  proposition_id: pr_bazi_001133
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0049_s01
+    support_type: direct
+  conditions:
+  - 四月（巳月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001134
+  proposition: 四月壬水多甲乙，有庚出干者贵，无庚者否
+  proposition_id: pr_bazi_001134
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0049_s01
+    support_type: direct
+  conditions:
+  - 四月（巳月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001135
+  proposition: 四月壬水支成水局，大贵
+  proposition_id: pr_bazi_001135
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0049_s01
+    support_type: direct
+  conditions:
+  - 四月（巳月）
+  - 支成水局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted

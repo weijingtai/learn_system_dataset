@@ -1,0 +1,137 @@
+assertions:
+- assertion_id: as_bazi_001096
+  proposition: 正月壬水，汪洋之象，能并百川之流，然水性柔弱，宜用庚金之源，庶不致汪洋无度
+  proposition_id: pr_bazi_001096
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0048_s01
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001097
+  proposition: 正月壬水有庚丙戊三者齐透，科甲功名
+  proposition_id: pr_bazi_001097
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0048_s01
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001098
+  proposition: 正月壬水庚戊藏支，丙坐寅支者，亦有恩诰
+  proposition_id: pr_bazi_001098
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0048_s01
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001099
+  proposition: 正月壬水即一庚透，贡监有之
+  proposition_id: pr_bazi_001099
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0048_s01
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001100
+  proposition: 凡壬日无比肩羊刃者，不必用戊，专用庚金，以丙为佐
+  proposition_id: pr_bazi_001100
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0048_s01
+    support_type: direct
+  conditions:
+  - 壬日
+  - 无比肩羊刃
+  exceptions: []
+  concept_ids:
+  - co_bazi_000008
+  status: machine_extracted
+- assertion_id: as_bazi_001101
+  proposition: 正月壬水见比劫，又有庚辛，此弱极复旺，又宜制伏，戊透可云科甲，戊藏则是秀才，然必丙透不合为妙
+  proposition_id: pr_bazi_001101
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0048_s01
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000009
+  status: machine_extracted
+- assertion_id: as_bazi_001102
+  proposition: 正月壬水支见多戊，又有甲出，名一将当关，群邪自伏，主光明磊落，名重百僚
+  proposition_id: pr_bazi_001102
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0048_s01
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001103
+  proposition: 正月壬水支成火局，惜不逢时，主名利皆虚，文章骇俗
+  proposition_id: pr_bazi_001103
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0048_s01
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  - 支成火局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001104
+  proposition: 正月壬水用庚者，土妻庚子
+  proposition_id: pr_bazi_001104
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0048_s01
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001105
+  proposition: 正月壬水用丙者，木妻火子
+  proposition_id: pr_bazi_001105
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0048_s01
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001106
+  proposition: 正月壬水用戊者，火妻土子
+  proposition_id: pr_bazi_001106
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0048_s01
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted

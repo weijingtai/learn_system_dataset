@@ -1,0 +1,85 @@
+assertions:
+- assertion_id: as_bazi_001010
+  proposition: 五月辛金，壬、癸、己三者皆用
+  proposition_id: pr_bazi_001010
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0043_s03
+    support_type: direct
+  conditions:
+  - 五月（午月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001011
+  proposition: 五月辛金壬己两透，支见癸水，不克，定主显达
+  proposition_id: pr_bazi_001011
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0043_s03
+    support_type: direct
+  conditions:
+  - 五月（午月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001012
+  proposition: 五月辛金壬己两透，即己藏支，亦有廪贡
+  proposition_id: pr_bazi_001012
+  relation: qualifies
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0043_s03
+    support_type: direct
+  conditions:
+  - 五月（午月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001013
+  proposition: 五月辛金无壬有己，须得异途
+  proposition_id: pr_bazi_001013
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0043_s03
+    support_type: direct
+  conditions:
+  - 五月（午月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001014
+  proposition: 五月辛金癸出有庚，必主衣锦，叨受恩荣
+  proposition_id: pr_bazi_001014
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0043_s03
+    support_type: direct
+  conditions:
+  - 五月（午月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001015
+  proposition: 五月辛金若水土多见，见甲方妙
+  proposition_id: pr_bazi_001015
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0043_s03
+    support_type: direct
+  conditions:
+  - 五月（午月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001016
+  proposition: 庚辛生于夏月，要壬癸得地，若木多火多，不见金水，逢金水运必败
+  proposition_id: pr_bazi_001016
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0043_s03
+    support_type: direct
+  conditions:
+  - 夏月
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted

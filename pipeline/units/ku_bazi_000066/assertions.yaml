@@ -1,0 +1,138 @@
+assertions:
+- assertion_id: as_bazi_000647
+  proposition: 八月戊土，金泄身寒，赖丙照暖，喜水滋润，先丙后癸，不必木疏
+  proposition_id: pr_bazi_000647
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0029_s02
+    support_type: direct
+  conditions:
+  - 八月（酉月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000648
+  proposition: 八月戊土丙癸两透，科甲中人
+  proposition_id: pr_bazi_000648
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0029_s02
+    support_type: direct
+  conditions:
+  - 八月（酉月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000649
+  proposition: 八月戊土丙透癸藏，可许入泮
+  proposition_id: pr_bazi_000649
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0029_s02
+    support_type: direct
+  conditions:
+  - 八月（酉月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000650
+  proposition: 八月戊土癸透丙藏，纳资得官
+  proposition_id: pr_bazi_000650
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0029_s02
+    support_type: direct
+  conditions:
+  - 八月（酉月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000651
+  proposition: 八月戊土若丙藏又无癸，即多不透，此皆常人
+  proposition_id: pr_bazi_000651
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0029_s02
+    support_type: direct
+  conditions:
+  - 八月（酉月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000652
+  proposition: 八月戊土丙癸全无，奔流之客
+  proposition_id: pr_bazi_000652
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0029_s02
+    support_type: direct
+  conditions:
+  - 八月（酉月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000653
+  proposition: 八月戊土四柱皆辛，无丙丁，此名伤官格，为人清秀，即不能拾芥，亦可武庠
+  proposition_id: pr_bazi_000653
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0029_s02
+    support_type: direct
+  conditions:
+  - 八月（酉月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000078
+  status: machine_extracted
+- assertion_id: as_bazi_000654
+  proposition: 八月戊土四柱皆辛，一见癸水，富而且贵
+  proposition_id: pr_bazi_000654
+  relation: qualifies
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0029_s02
+    support_type: direct
+  conditions:
+  - 八月（酉月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000655
+  proposition: 八月戊土支成水局，壬癸出干，此名才多身弱，愚懦无能
+  proposition_id: pr_bazi_000655
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0029_s02
+    support_type: direct
+  conditions:
+  - 八月（酉月）
+  - 支成水局
+  exceptions: []
+  concept_ids:
+  - co_bazi_000016
+  status: machine_extracted
+- assertion_id: as_bazi_000656
+  proposition: 八月戊土支成水局，天干有比劫，分散才神，颇言衣食
+  proposition_id: pr_bazi_000656
+  relation: qualifies
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0029_s02
+    support_type: direct
+  conditions:
+  - 八月（酉月）
+  - 支成水局
+  exceptions: []
+  concept_ids:
+  - co_bazi_000009
+  status: machine_extracted
+- assertion_id: as_bazi_000657
+  proposition: 秋土生金极弱，须丙火丁火出干方妙
+  proposition_id: pr_bazi_000657
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0029_s02
+    support_type: direct
+  conditions:
+  - 秋
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted

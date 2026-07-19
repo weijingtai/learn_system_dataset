@@ -1,0 +1,74 @@
+assertions:
+- assertion_id: as_bazi_000560
+  proposition: 七月丁火，退气柔弱，端用甲木，金虽乘旺司权，无伤丁之理，仍取庚劈甲为引火之物，或借丙暖金晒甲，不虑丙夺丁光
+  proposition_id: pr_bazi_000560
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0023_s02
+    support_type: direct
+  conditions:
+  - 七月（申月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000561
+  proposition: 七月丁火两丙夹丁，夏月忌之，余月不忌，但此格少年困苦刑克，中年富贵，必要地支见水制丙方妙
+  proposition_id: pr_bazi_000561
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0023_s02
+    support_type: direct
+  conditions:
+  - 七月（申月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000562
+  proposition: 七月丁火八月一派辛金，不见庚金，又无比劫，此弃命从财，富而且贵，虽不科甲，亦有异途
+  proposition_id: pr_bazi_000562
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0023_s02
+    support_type: direct
+  conditions:
+  - 七月/八月（申酉月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000563
+  proposition: 从财者水为妻，不克，有偏正，木为子，不刑
+  proposition_id: pr_bazi_000563
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0023_s02
+    support_type: direct
+  conditions:
+  - 从财
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000564
+  proposition: 七月丁火九月一派戊土，泄丁火之气，不见甲木，为伤官伤尽，非寻常可比
+  proposition_id: pr_bazi_000564
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0023_s02
+    support_type: direct
+  conditions:
+  - 九月（戌月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000024
+  status: machine_extracted
+- assertion_id: as_bazi_000565
+  proposition: 七月丁火九月一派戊土，甲木透出，为文书清贵，秋闱可夺，用甲者庚不可少，水妻木子
+  proposition_id: pr_bazi_000565
+  relation: qualifies
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0023_s02
+    support_type: direct
+  conditions:
+  - 九月（戌月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted

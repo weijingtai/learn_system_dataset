@@ -1,0 +1,295 @@
+assertions:
+- assertion_id: as_bazi_000329
+  proposition: 十一月乙木，花木寒冻，一阳来复，喜用丙火解冻，则花木有向阳之意，不宜用癸以冻花木，故耑用丙火
+  proposition_id: pr_bazi_000329
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0013_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000330
+  proposition: 十一月乙木有一二点丙火出干，无癸制者，可许科甲
+  proposition_id: pr_bazi_000330
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0013_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000331
+  proposition: 十一月乙木丙藏支内，亦有选拔恩封，得此不贵，必因风水薄
+  proposition_id: pr_bazi_000331
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0013_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000332
+  proposition: 十一月乙木壬癸出干，有戊制，可作能人，即丙在支内，亦是俊秀
+  proposition_id: pr_bazi_000332
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0013_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000333
+  proposition: 十一月乙木若壬透无戊，贫贱之人
+  proposition_id: pr_bazi_000333
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0013_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000334
+  proposition: 十一月乙木支成水局，干透壬癸，丙丁全无，虽有戊制，贫乏到老，运至南方，稍有衣食
+  proposition_id: pr_bazi_000334
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0013_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  - 支成水局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000335
+  proposition: 十一月乙木丁火有亦如无，丁乃灯烛之火，岂能解严寒之冻
+  proposition_id: pr_bazi_000335
+  relation: opposes
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0013_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000336
+  proposition: 十一月乙木设无丙丁，戊土多见，金水奔流，下贱
+  proposition_id: pr_bazi_000336
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0013_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000337
+  proposition: 十一月乙木有戊己无火，亦属常人，但不至下贱
+  proposition_id: pr_bazi_000337
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0013_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000338
+  proposition: 十一月乙木一派丁火，大奸大诈之徒，如无甲引丁，孤鳏到老
+  proposition_id: pr_bazi_000338
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0013_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000339
+  proposition: 十一月乙木丁火见甲，必主麟趾振振，芝兰绕膝
+  proposition_id: pr_bazi_000339
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0013_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000340
+  proposition: 十一月乙木成水局，壬癸两透，则木浮矣，不特贫贱，而且夭折，得一戊救方可
+  proposition_id: pr_bazi_000340
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0013_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  - 成水局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000341
+  proposition: 冬月之木，虽取戊制水，不可作用，耑取丙火则可
+  proposition_id: pr_bazi_000341
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0013_s02
+    support_type: direct
+  conditions:
+  - 冬月（亥子丑月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000342
+  proposition: 冬月乙木用火者，木妻火子
+  proposition_id: pr_bazi_000342
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0013_s02
+    support_type: direct
+  conditions:
+  - 冬月（亥子丑月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000343
+  proposition: 冬月乙木用土者，火妻土子
+  proposition_id: pr_bazi_000343
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0013_s02
+    support_type: direct
+  conditions:
+  - 冬月（亥子丑月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000344
+  proposition: 乙木生于冬至之后，坐下木局，得丙透干者，富贵之造
+  proposition_id: pr_bazi_000344
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0013_s02
+    support_type: direct
+  conditions:
+  - 冬至后
+  - 坐下木局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000345
+  proposition: 乙木生于冬至之后，即丁出干，亦有衣禄，须忌癸制丁
+  proposition_id: pr_bazi_000345
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0013_s02
+    support_type: direct
+  conditions:
+  - 冬至后
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000346
+  proposition: 乙木生于冬月，己土透干，又有丙透，大富贵之造
+  proposition_id: pr_bazi_000346
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0013_s02
+    support_type: direct
+  conditions:
+  - 冬月（亥子丑月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000347
+  proposition: 十一月乙木，木寒宜丙，有寒谷回春之象，得一丙透，无癸出破格，不特科甲，定主名臣显宦
+  proposition_id: pr_bazi_000347
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0013_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000348
+  proposition: 十一月乙木丙火藏支，食饩而已
+  proposition_id: pr_bazi_000348
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0013_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000349
+  proposition: 十一月乙木干支无丙，一介寒儒
+  proposition_id: pr_bazi_000349
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0013_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000350
+  proposition: 十一月乙木四柱多己，不逢比劫，乃为从才，富比王侯
+  proposition_id: pr_bazi_000350
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0013_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000012
+  status: machine_extracted
+- assertion_id: as_bazi_000351
+  proposition: 十一月乙木从才若见比劫，贫无立锥
+  proposition_id: pr_bazi_000351
+  relation: qualifies
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0013_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  - 从才
+  exceptions: []
+  concept_ids:
+  - co_bazi_000009
+  status: machine_extracted
+- assertion_id: as_bazi_000352
+  proposition: 十一月乙木一派戊己，见甲颇有衣禄，耑以丙火为用方妙
+  proposition_id: pr_bazi_000352
+  relation: qualifies
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0013_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted

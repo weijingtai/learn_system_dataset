@@ -1,0 +1,123 @@
+assertions:
+- assertion_id: as_bazi_001143
+  proposition: 六月壬水，己土当权，丁火退气，先用辛金癸水，次用甲木噼土，先辛后甲，次取癸水
+  proposition_id: pr_bazi_001143
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0049_s03
+    support_type: direct
+  conditions:
+  - 六月（未月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000079
+  status: machine_extracted
+- assertion_id: as_bazi_001144
+  proposition: 六月壬水辛甲两透，富贵清高
+  proposition_id: pr_bazi_001144
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0049_s03
+    support_type: direct
+  conditions:
+  - 六月（未月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001145
+  proposition: 六月壬水甲藏辛透，贡监生员
+  proposition_id: pr_bazi_001145
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0049_s03
+    support_type: direct
+  conditions:
+  - 六月（未月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001146
+  proposition: 六月壬水辛藏甲透，异途武职
+  proposition_id: pr_bazi_001146
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0049_s03
+    support_type: direct
+  conditions:
+  - 六月（未月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001147
+  proposition: 六月壬水甲壬两透，无伤，有治国之贵
+  proposition_id: pr_bazi_001147
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0049_s03
+    support_type: direct
+  conditions:
+  - 六月（未月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001148
+  proposition: 六月壬水甲藏壬出无破，是拾芥之才
+  proposition_id: pr_bazi_001148
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0049_s03
+    support_type: direct
+  conditions:
+  - 六月（未月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001149
+  proposition: 六月壬水支多土火，又只清贫
+  proposition_id: pr_bazi_001149
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0049_s03
+    support_type: direct
+  conditions:
+  - 六月（未月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001150
+  proposition: 六月壬水一派己土，此假从杀格，为人奸诈，且主孤贫，得甲乙出制可救
+  proposition_id: pr_bazi_001150
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0049_s03
+    support_type: direct
+  conditions:
+  - 六月（未月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001151
+  proposition: 凡土居生旺之地，须用木制方妙
+  proposition_id: pr_bazi_001151
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0049_s03
+    support_type: direct
+  conditions:
+  - 土居生旺之地
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001152
+  proposition: 六月壬水支成木局，泄水太过，当用金水为贵，以金为妻、水为子
+  proposition_id: pr_bazi_001152
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0049_s03
+    support_type: direct
+  conditions:
+  - 六月（未月）
+  - 支成木局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted

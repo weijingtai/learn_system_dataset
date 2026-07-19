@@ -1,0 +1,86 @@
+assertions:
+- assertion_id: as_bazi_000250
+  proposition: 四月乙木，自有丙火，耑取癸水为尊，丙火酌用，虽以庚辛佐癸，须辛透为清
+  proposition_id: pr_bazi_000250
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0011_s02
+    support_type: direct
+  conditions:
+  - 四月（巳月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000251
+  proposition: 四月乙木癸透、庚辛又透，科甲定然
+  proposition_id: pr_bazi_000251
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0011_s02
+    support_type: direct
+  conditions:
+  - 四月（巳月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000252
+  proposition: 四月乙木独一点癸水、无金，是水无根，虽出天干，不过秀才小富，须要大运相扶
+  proposition_id: pr_bazi_000252
+  relation: qualifies
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0011_s02
+    support_type: direct
+  conditions:
+  - 四月（巳月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000253
+  proposition: 四月乙木土多困癸，贫贱之人
+  proposition_id: pr_bazi_000253
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0011_s02
+    support_type: direct
+  conditions:
+  - 四月（巳月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000254
+  proposition: 四月乙木丙戊太多，支成火局，瞽目之流
+  proposition_id: pr_bazi_000254
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0011_s02
+    support_type: direct
+  conditions:
+  - 四月（巳月）
+  - 支成火局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000255
+  proposition: 四月乙木用癸者，金妻水子
+  proposition_id: pr_bazi_000255
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0011_s02
+    support_type: direct
+  conditions:
+  - 四月（巳月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000256
+  proposition: 乙逢双女木伤残，若见辛金寿必难，不得丙丁来制伏，岂知安乐不久长
+  proposition_id: pr_bazi_000256
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0011_s02
+    support_type: direct
+  conditions:
+  - 双女（巳月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted

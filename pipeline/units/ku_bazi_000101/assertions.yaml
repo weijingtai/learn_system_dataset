@@ -1,0 +1,147 @@
+assertions:
+- assertion_id: as_bazi_001064
+  proposition: 十月辛金，时值小阳，阳气渐升，寒气将降，先用壬水，次取丙火，壬丙两透，金榜题名
+  proposition_id: pr_bazi_001064
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0045_s01
+    support_type: direct
+  conditions:
+  - 十月（亥月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001065
+  proposition: 辛金有壬水丙火，名金白水清，又在亥月故发
+  proposition_id: pr_bazi_001065
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0045_s01
+    support_type: direct
+  conditions:
+  - 亥月
+  exceptions: []
+  concept_ids:
+  - co_bazi_000101
+  status: machine_extracted
+- assertion_id: as_bazi_001066
+  proposition: 十月辛金丙透壬藏，采芹之造
+  proposition_id: pr_bazi_001066
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0045_s01
+    support_type: direct
+  conditions:
+  - 十月（亥月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001067
+  proposition: 十月辛金丙藏壬透，富有千金
+  proposition_id: pr_bazi_001067
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0045_s01
+    support_type: direct
+  conditions:
+  - 十月（亥月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001068
+  proposition: 十月辛金壬丙在支，聪明之士
+  proposition_id: pr_bazi_001068
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0045_s01
+    support_type: direct
+  conditions:
+  - 十月（亥月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001069
+  proposition: 十月辛金戊壬在柱，积富之人
+  proposition_id: pr_bazi_001069
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0045_s01
+    support_type: direct
+  conditions:
+  - 十月（亥月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001070
+  proposition: 十月辛金壬多无戊，名辛水汪洋，反成贫贱
+  proposition_id: pr_bazi_001070
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0045_s01
+    support_type: direct
+  conditions:
+  - 十月（亥月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000102
+  status: machine_extracted
+- assertion_id: as_bazi_001071
+  proposition: 十月辛金戊多壬少，又主成名
+  proposition_id: pr_bazi_001071
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0045_s01
+    support_type: direct
+  conditions:
+  - 十月（亥月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001072
+  proposition: 十月辛金甲多戊少，因艺术而蓄金
+  proposition_id: pr_bazi_001072
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0045_s01
+    support_type: direct
+  conditions:
+  - 十月（亥月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001073
+  proposition: 十月辛金若己多有戊，壬水被困，金被埋，不过诚实之人
+  proposition_id: pr_bazi_001073
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0045_s01
+    support_type: direct
+  conditions:
+  - 十月（亥月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001074
+  proposition: 十月辛金壬癸多无戊丙者，劳碌辛苦
+  proposition_id: pr_bazi_001074
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0045_s01
+    support_type: direct
+  conditions:
+  - 十月（亥月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001075
+  proposition: 十月辛金，先壬后丙，余皆参用
+  proposition_id: pr_bazi_001075
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0045_s01
+    support_type: direct
+  conditions:
+  - 十月（亥月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted

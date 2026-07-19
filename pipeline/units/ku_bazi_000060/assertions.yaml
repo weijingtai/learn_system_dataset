@@ -1,0 +1,177 @@
+assertions:
+- assertion_id: as_bazi_000585
+  proposition: 正二月戊土即有甲癸，若无丙除寒，如万物生而不长，故无丙者，富贵艰辛
+  proposition_id: pr_bazi_000585
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0027_s02
+    support_type: direct
+  conditions:
+  - 正二月（寅卯月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000586
+  proposition: 正二月戊土有丙无甲癸者，名曰春旱，如万物生而多厄
+  proposition_id: pr_bazi_000586
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0027_s02
+    support_type: direct
+  conditions:
+  - 正二月（寅卯月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000046
+  status: machine_extracted
+- assertion_id: as_bazi_000587
+  proposition: 正二月戊土无甲癸者，一生勤苦，劳而无功
+  proposition_id: pr_bazi_000587
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0027_s02
+    support_type: direct
+  conditions:
+  - 正二月（寅卯月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000588
+  proposition: 正二月戊土一派丙火，有甲欠癸，先泰后否
+  proposition_id: pr_bazi_000588
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0027_s02
+    support_type: direct
+  conditions:
+  - 正二月（寅卯月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000589
+  proposition: 正二月戊土支成火局，不见壬癸，僧道孤贫，癸透者贵，壬透者富
+  proposition_id: pr_bazi_000589
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0027_s02
+    support_type: direct
+  conditions:
+  - 正二月（寅卯月）
+  - 支成火局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000590
+  proposition: 正二月戊土用水者，要审水之多少
+  proposition_id: pr_bazi_000590
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0027_s02
+    support_type: direct
+  conditions:
+  - 正二月（寅卯月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000591
+  proposition: 正二月戊土一派甲木，无丙者，常人
+  proposition_id: pr_bazi_000591
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0027_s02
+    support_type: direct
+  conditions:
+  - 正二月（寅卯月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000592
+  proposition: 正二月戊土一派甲木，得一庚透方妙
+  proposition_id: pr_bazi_000592
+  relation: qualifies
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0027_s02
+    support_type: direct
+  conditions:
+  - 正二月（寅卯月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000593
+  proposition: 正二月戊土支成水局，甲又出干，又有庚透，富贵双全
+  proposition_id: pr_bazi_000593
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0027_s02
+    support_type: direct
+  conditions:
+  - 正二月（寅卯月）
+  - 支成水局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000594
+  proposition: 正二月戊土无庚金，又无比印，难作从杀，定主遭凶，不然，必为盗贼
+  proposition_id: pr_bazi_000594
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0027_s02
+    support_type: direct
+  conditions:
+  - 正二月（寅卯月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000008
+  - co_bazi_000006
+  status: machine_extracted
+- assertion_id: as_bazi_000595
+  proposition: 正二月戊土若日下坐午，不得善终
+  proposition_id: pr_bazi_000595
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0027_s02
+    support_type: direct
+  conditions:
+  - 正二月（寅卯月）
+  - 日下坐午
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000596
+  proposition: 正二月戊土一派乙木，为官杀会党，即有庚透，却难制乙，此人内奸外直，口是心非
+  proposition_id: pr_bazi_000596
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0027_s02
+    support_type: direct
+  conditions:
+  - 正二月（寅卯月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000074
+  status: machine_extracted
+- assertion_id: as_bazi_000597
+  proposition: 正二月戊土派乙木官杀会党，加一甲在内，无庚，必懒惰自甘，好食无厌
+  proposition_id: pr_bazi_000597
+  relation: qualifies
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0027_s02
+    support_type: direct
+  conditions:
+  - 正二月（寅卯月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000074
+  status: machine_extracted
+- assertion_id: as_bazi_000598
+  proposition: 正二月戊土丙多甲多，宜以癸庚参用
+  proposition_id: pr_bazi_000598
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0027_s02
+    support_type: direct
+  conditions:
+  - 正二月（寅卯月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted

@@ -1,0 +1,435 @@
+assertions:
+- assertion_id: as_bazi_000086
+  proposition: 五六月甲木，木性虚焦，一理共推
+  proposition_id: pr_bazi_000086
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0006_s02
+    support_type: direct
+  conditions:
+  - 五六月（午未月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000087
+  proposition: 五月先癸后丁，庚金次之
+  proposition_id: pr_bazi_000087
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0006_s02
+    support_type: direct
+  conditions:
+  - 五月（午月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000088
+  proposition: 六月三伏生寒，丁火退气，先丁后庚，无癸亦可
+  proposition_id: pr_bazi_000088
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0006_s02
+    support_type: direct
+  conditions:
+  - 六月（未月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000041
+  status: machine_extracted
+- assertion_id: as_bazi_000089
+  proposition: 五月乏癸，用丁亦可，要运行北地为佳
+  proposition_id: pr_bazi_000089
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0006_s02
+    support_type: direct
+  conditions:
+  - 五月（午月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000090
+  proposition: 五六月用丁火，虽运行北地，不致于死
+  proposition_id: pr_bazi_000090
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0006_s02
+    support_type: direct
+  conditions:
+  - 五六月（午未月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000091
+  proposition: 五六月用丁火，不利运行火地，号曰木化成灰必死
+  proposition_id: pr_bazi_000091
+  relation: opposes
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0006_s02
+    support_type: direct
+  conditions:
+  - 五六月（午未月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000092
+  proposition: 五六月用丁火，行西程又不吉，号曰伤官遇杀，不测灾来
+  proposition_id: pr_bazi_000092
+  relation: opposes
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0006_s02
+    support_type: direct
+  conditions:
+  - 五六月（午未月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000034
+  status: machine_extracted
+- assertion_id: as_bazi_000093
+  proposition: 五六月用丁火，惟东方则吉，北方次之
+  proposition_id: pr_bazi_000093
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0006_s02
+    support_type: direct
+  conditions:
+  - 五六月（午未月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000094
+  proposition: 凡用神太多，不宜克制，须泄之为妙
+  proposition_id: pr_bazi_000094
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0006_s02
+    support_type: direct
+  conditions:
+  - 用神太多
+  exceptions: []
+  concept_ids:
+  - co_bazi_000038
+  status: machine_extracted
+- assertion_id: as_bazi_000095
+  proposition: 五六月甲木，木盛先庚，庚盛先丁
+  proposition_id: pr_bazi_000095
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0006_s02
+    support_type: direct
+  conditions:
+  - 五六月（午未月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000096
+  proposition: 五月癸庚两透，为上上之格
+  proposition_id: pr_bazi_000096
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0006_s02
+    support_type: direct
+  conditions:
+  - 五月（午月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000097
+  proposition: 六月庚丁两透，亦为上上之格
+  proposition_id: pr_bazi_000097
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0006_s02
+    support_type: direct
+  conditions:
+  - 六月（未月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000098
+  proposition: 五六月甲木用神既透，木火通明，自然大富大贵
+  proposition_id: pr_bazi_000098
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0006_s02
+    support_type: direct
+  conditions:
+  - 五六月（午未月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000038
+  - co_bazi_000017
+  status: machine_extracted
+- assertion_id: as_bazi_000099
+  proposition: 五六月甲木丁火太多，癸水亦多，反作平人
+  proposition_id: pr_bazi_000099
+  relation: opposes
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0006_s02
+    support_type: direct
+  conditions:
+  - 五六月（午未月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000100
+  proposition: 五六月甲木柱中多金，名曰杀重身轻，先富后贫，运不相扶，非贫即夭
+  proposition_id: pr_bazi_000100
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0006_s02
+    support_type: direct
+  conditions:
+  - 五六月（午未月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000023
+  status: machine_extracted
+- assertion_id: as_bazi_000101
+  proposition: 五六月甲木庚多，有一二丙丁制伏，又有壬癸透干，泄金之气，此又为先贫后富
+  proposition_id: pr_bazi_000101
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0006_s02
+    support_type: direct
+  conditions:
+  - 五六月（午未月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000102
+  proposition: 五六月甲木满柱丙火，又加丁火，不见官杀，谓之伤官伤尽最为奇，反成清贵，定主才学过人，科甲有望
+  proposition_id: pr_bazi_000102
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0006_s02
+    support_type: direct
+  conditions:
+  - 五六月（午未月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000024
+  - co_bazi_000004
+  - co_bazi_000003
+  status: machine_extracted
+- assertion_id: as_bazi_000103
+  proposition: 五六月甲木伤官伤尽格，岁运不宜见水
+  proposition_id: pr_bazi_000103
+  relation: opposes
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0006_s02
+    support_type: direct
+  conditions:
+  - 五六月（午未月）
+  - 伤官伤尽格
+  exceptions: []
+  concept_ids:
+  - co_bazi_000024
+  status: machine_extracted
+- assertion_id: as_bazi_000104
+  proposition: 五六月甲木伤官伤尽格，若柱中有壬水，运又逢水，必贫夭死
+  proposition_id: pr_bazi_000104
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0006_s02
+    support_type: direct
+  conditions:
+  - 五六月（午未月）
+  - 伤官伤尽格
+  exceptions: []
+  concept_ids:
+  - co_bazi_000024
+  status: machine_extracted
+- assertion_id: as_bazi_000105
+  proposition: 木火伤官者，聪明智巧，却是人同心异，多见多疑，虽不生事害人，每抱忌妒之想
+  proposition_id: pr_bazi_000105
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0006_s02
+    support_type: direct
+  conditions: []
+  exceptions: []
+  concept_ids:
+  - co_bazi_000025
+  status: machine_extracted
+- assertion_id: as_bazi_000106
+  proposition: 女命木火伤官一理同推
+  proposition_id: pr_bazi_000106
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0006_s02
+    support_type: direct
+  conditions:
+  - 女命
+  exceptions: []
+  concept_ids:
+  - co_bazi_000025
+  status: machine_extracted
+- assertion_id: as_bazi_000107
+  proposition: 五六月甲木四柱多土，干上有乙木，切勿作弃命从才
+  proposition_id: pr_bazi_000107
+  relation: opposes
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0006_s02
+    support_type: direct
+  conditions:
+  - 五六月（午未月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000021
+  status: machine_extracted
+- assertion_id: as_bazi_000108
+  proposition: 五六月甲木时月两透己土，名二土争合，男主奔流，女主淫贱
+  proposition_id: pr_bazi_000108
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0006_s02
+    support_type: direct
+  conditions:
+  - 五六月（午未月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000026
+  status: machine_extracted
+- assertion_id: as_bazi_000109
+  proposition: 五六月甲木二土争合，见二甲则不争矣，亦属平庸之辈
+  proposition_id: pr_bazi_000109
+  relation: qualifies
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0006_s02
+    support_type: direct
+  conditions:
+  - 五六月（午未月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000026
+  status: machine_extracted
+- assertion_id: as_bazi_000110
+  proposition: 五六月甲木四柱有辰，干见二己二甲，此人名利双全，大富大贵
+  proposition_id: pr_bazi_000110
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0006_s02
+    support_type: direct
+  conditions:
+  - 五六月（午未月）
+  - 四柱有辰
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000111
+  proposition: 六月见辰支，名为逢时化合格，以癸水为妻，丁火为子
+  proposition_id: pr_bazi_000111
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0006_s02
+    support_type: direct
+  conditions:
+  - 六月（未月）
+  - 见辰支
+  exceptions: []
+  concept_ids:
+  - co_bazi_000027
+  status: machine_extracted
+- assertion_id: as_bazi_000112
+  proposition: 五六月甲木若二己一甲争合，取支中比劫为用
+  proposition_id: pr_bazi_000112
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0006_s02
+    support_type: direct
+  conditions:
+  - 五六月（午未月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000009
+  status: machine_extracted
+- assertion_id: as_bazi_000113
+  proposition: 五六月甲木以甲为用者，壬癸为妻，甲乙为子
+  proposition_id: pr_bazi_000113
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0006_s02
+    support_type: direct
+  conditions:
+  - 五六月（午未月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000114
+  proposition: 五六月甲木用庚者，土妻金子
+  proposition_id: pr_bazi_000114
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0006_s02
+    support_type: direct
+  conditions:
+  - 五六月（午未月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000115
+  proposition: 五六月甲木用丁者，木妻火子
+  proposition_id: pr_bazi_000115
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0006_s02
+    support_type: direct
+  conditions:
+  - 五六月（午未月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000116
+  proposition: 女命以妻作夫，用作子，十干皆同
+  proposition_id: pr_bazi_000116
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0006_s02
+    support_type: direct
+  conditions:
+  - 女命
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000117
+  proposition: 五六月甲木己土不见戊土，乃为假从，其人一生缩首，反畏妻子
+  proposition_id: pr_bazi_000117
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0006_s02
+    support_type: direct
+  conditions:
+  - 五六月（午未月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000028
+  status: machine_extracted
+- assertion_id: as_bazi_000118
+  proposition: 五六月甲木假从若无印绶，一生贫苦
+  proposition_id: pr_bazi_000118
+  relation: qualifies
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0006_s02
+    support_type: direct
+  conditions:
+  - 五六月（午未月）
+  - 假从
+  exceptions: []
+  concept_ids:
+  - co_bazi_000028
+  - co_bazi_000005
+  status: machine_extracted
+- assertion_id: as_bazi_000119
+  proposition: 五六月甲木假从，六月尤可，五月决不可
+  proposition_id: pr_bazi_000119
+  relation: qualifies
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0006_s02
+    support_type: direct
+  conditions:
+  - 假从
+  exceptions: []
+  concept_ids:
+  - co_bazi_000028
+  status: machine_extracted

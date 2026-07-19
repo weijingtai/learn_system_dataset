@@ -1,0 +1,250 @@
+assertions:
+- assertion_id: as_bazi_000358
+  proposition: 正月丙火，三阳开泰，火气渐炎，取壬为尊，庚金佐之
+  proposition_id: pr_bazi_000358
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0016_s02
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000359
+  proposition: 正月丙火壬庚两透，科甲定然，即壬透庚藏，亦有异途显达
+  proposition_id: pr_bazi_000359
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0016_s02
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000360
+  proposition: 正月丙火若一庚高透，支藏一二丙火，纳粟奏名，主为人慷慨英雄，有才迈众
+  proposition_id: pr_bazi_000360
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0016_s02
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000361
+  proposition: 正月丙火一派庚辛混杂，常人
+  proposition_id: pr_bazi_000361
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0016_s02
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000362
+  proposition: 正月丙火得时月两透庚金、无辛者，定主清贵
+  proposition_id: pr_bazi_000362
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0016_s02
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000363
+  proposition: 正月丙火辛年辛时，名为贪合，酒色之徒，女命一理
+  proposition_id: pr_bazi_000363
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0016_s02
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000057
+  status: machine_extracted
+- assertion_id: as_bazi_000364
+  proposition: 正月丙火丙少壬多，而无戊制，名杀重身轻，斯人笑里藏刀，寻非痞棍
+  proposition_id: pr_bazi_000364
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0016_s02
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000023
+  status: machine_extracted
+- assertion_id: as_bazi_000365
+  proposition: 正月丙火丙少壬多，见一戊制壬，反而富贵，宜见一二比肩方妙
+  proposition_id: pr_bazi_000365
+  relation: qualifies
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0016_s02
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000008
+  status: machine_extracted
+- assertion_id: as_bazi_000366
+  proposition: 正月丙火一片戊土，甲不出干，终非大器，且恐孤贫
+  proposition_id: pr_bazi_000366
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0016_s02
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000367
+  proposition: 正月之丙，忌戊晦光
+  proposition_id: pr_bazi_000367
+  relation: opposes
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0016_s02
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000368
+  proposition: 正月丙火支成火局，耑取壬水为贵，无壬、癸亦姑用，若壬癸俱无，取戊以泄火气，但属平人
+  proposition_id: pr_bazi_000368
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0016_s02
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  - 支成火局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000369
+  proposition: 正月丙火支成火局，又作炎上而推，但不逢时耳，若不见东南岁运，反致孤贫
+  proposition_id: pr_bazi_000369
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0016_s02
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  - 支成火局
+  exceptions: []
+  concept_ids:
+  - co_bazi_000058
+  status: machine_extracted
+- assertion_id: as_bazi_000370
+  proposition: 正月丙火四柱有甲木，得庚金暗制，可作秀才
+  proposition_id: pr_bazi_000370
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0016_s02
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000371
+  proposition: 正月丙火无壬用癸者，略富贵，且官杀亦要旺相有根
+  proposition_id: pr_bazi_000371
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0016_s02
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000004
+  - co_bazi_000003
+  status: machine_extracted
+- assertion_id: as_bazi_000372
+  proposition: 丙火无壬，多主贫贱，屡征屡验
+  proposition_id: pr_bazi_000372
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0016_s02
+    support_type: direct
+  conditions: []
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000373
+  proposition: 正月丙火火多无水，一至水乡必死，不然，定有灾咎
+  proposition_id: pr_bazi_000373
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0016_s02
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000374
+  proposition: 惟五月丙火，合炎上格，则不喜水破格
+  proposition_id: pr_bazi_000374
+  relation: qualifies
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0016_s02
+    support_type: direct
+  conditions:
+  - 五月（午月）
+  - 炎上格
+  exceptions: []
+  concept_ids:
+  - co_bazi_000058
+  status: machine_extracted
+- assertion_id: as_bazi_000375
+  proposition: 正月丙火用癸无根，定主目疾
+  proposition_id: pr_bazi_000375
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0016_s02
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000376
+  proposition: 正月丙火用壬者，金妻水子
+  proposition_id: pr_bazi_000376
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0016_s02
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000377
+  proposition: 正月丙火用庚者，土妻金子
+  proposition_id: pr_bazi_000377
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0016_s02
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted

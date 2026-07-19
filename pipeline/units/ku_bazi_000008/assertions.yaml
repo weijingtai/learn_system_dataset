@@ -1,0 +1,52 @@
+assertions:
+- assertion_id: as_bazi_000036
+  proposition: 正月甲木，初春尚有余寒，得丙癸逢，富贵双全
+  proposition_id: pr_bazi_000036
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0005_s02
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000037
+  proposition: 癸藏丙透，名寒木向阳，主大富贵
+  proposition_id: pr_bazi_000037
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0005_s02
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000011
+  status: machine_extracted
+- assertion_id: as_bazi_000038
+  proposition: 倘风水不及，寒木向阳亦不失儒林俊秀
+  proposition_id: pr_bazi_000038
+  relation: qualifies
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0005_s02
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  - 风水不及
+  exceptions: []
+  concept_ids:
+  - co_bazi_000011
+  status: machine_extracted
+- assertion_id: as_bazi_000039
+  proposition: 正月甲木如无丙癸，平常人也
+  proposition_id: pr_bazi_000039
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0005_s02
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted

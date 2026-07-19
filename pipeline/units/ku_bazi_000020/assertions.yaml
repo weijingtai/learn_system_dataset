@@ -1,0 +1,148 @@
+assertions:
+- assertion_id: as_bazi_000193
+  proposition: 十二月甲木，天寒气冻，木性极寒，无生发之象，先用庚噼甲，方引丁火始得木火有通明之象，故丁次之
+  proposition_id: pr_bazi_000193
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0008_s03
+    support_type: direct
+  conditions:
+  - 十二月（丑月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000017
+  status: machine_extracted
+- assertion_id: as_bazi_000194
+  proposition: 十二月甲木庚丁两透，科甲恩封
+  proposition_id: pr_bazi_000194
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0008_s03
+    support_type: direct
+  conditions:
+  - 十二月（丑月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000195
+  proposition: 十二月甲木庚透丁藏，小贵
+  proposition_id: pr_bazi_000195
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0008_s03
+    support_type: direct
+  conditions:
+  - 十二月（丑月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000196
+  proposition: 十二月甲木丁透庚藏，小富贵
+  proposition_id: pr_bazi_000196
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0008_s03
+    support_type: direct
+  conditions:
+  - 十二月（丑月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000197
+  proposition: 十二月甲木无庚者，贫贱
+  proposition_id: pr_bazi_000197
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0008_s03
+    support_type: direct
+  conditions:
+  - 十二月（丑月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000198
+  proposition: 十二月甲木无丁者，寒儒
+  proposition_id: pr_bazi_000198
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0008_s03
+    support_type: direct
+  conditions:
+  - 十二月（丑月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000199
+  proposition: 十二月甲木有丁透重重，亦是富贵中人，但须比肩，能发丁之焰，自有德业才能
+  proposition_id: pr_bazi_000199
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0008_s03
+    support_type: direct
+  conditions:
+  - 十二月（丑月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000008
+  status: machine_extracted
+- assertion_id: as_bazi_000200
+  proposition: 十二月甲木有丁透重重，如无比肩，寻常之士，稍有衣食而已
+  proposition_id: pr_bazi_000200
+  relation: qualifies
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0008_s03
+    support_type: direct
+  conditions:
+  - 十二月（丑月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000008
+  status: machine_extracted
+- assertion_id: as_bazi_000201
+  proposition: 十二月甲木支多见水，即有比肩，亦属平常
+  proposition_id: pr_bazi_000201
+  relation: qualifies
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0008_s03
+    support_type: direct
+  conditions:
+  - 十二月（丑月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000008
+  status: machine_extracted
+- assertion_id: as_bazi_000202
+  proposition: 总之腊月甲木，虽有庚金，丁不可少
+  proposition_id: pr_bazi_000202
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0008_s03
+    support_type: direct
+  conditions:
+  - 十二月（丑月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000203
+  proposition: 腊月甲木乏庚略可，乏丁无用
+  proposition_id: pr_bazi_000203
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0008_s03
+    support_type: direct
+  conditions:
+  - 十二月（丑月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000204
+  proposition: 甲木无根，男女夭寿
+  proposition_id: pr_bazi_000204
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0008_s03
+    support_type: direct
+  conditions: []
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted

@@ -1,0 +1,8 @@
+unit_id: ku_bazi_000010
+technique_id: bazi
+source_id: src_qtbj_ed01
+title: 二月甲木
+span_ids:
+- ss_qtbj_ed01_p0005_s04
+status: machine_extracted
+created: '2026-07-16'

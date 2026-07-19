@@ -1,0 +1,199 @@
+assertions:
+- assertion_id: as_bazi_000226
+  proposition: 三月乙木，阳气愈炽，先癸后丙
+  proposition_id: pr_bazi_000226
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0010_s04
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000227
+  proposition: 三月乙木癸丙两透，不见己庚，玉堂之客
+  proposition_id: pr_bazi_000227
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0010_s04
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000228
+  proposition: 三月乙木癸丙两透，见己庚者，平常之人
+  proposition_id: pr_bazi_000228
+  relation: qualifies
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0010_s04
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000229
+  proposition: 三月乙木一乙逢庚，不见己者，亦主小富贵，但不显达
+  proposition_id: pr_bazi_000229
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0010_s04
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000230
+  proposition: 三月乙木多水见己，只恐高才不第
+  proposition_id: pr_bazi_000230
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0010_s04
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000231
+  proposition: 三月乙木见戊堪发异途
+  proposition_id: pr_bazi_000231
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0010_s04
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000232
+  proposition: 三月乙木庚己混杂，丙癸全，则为下格
+  proposition_id: pr_bazi_000232
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0010_s04
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000233
+  proposition: 三月乙木见水局，丙戊高透，亦主科甲
+  proposition_id: pr_bazi_000233
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0010_s04
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  - 支合水局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000234
+  proposition: 三月乙木柱中全无丙戊，支合水局，此离乡之命
+  proposition_id: pr_bazi_000234
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0010_s04
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  - 支合水局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000235
+  proposition: 三月乙木见一派癸水，又有辛金，则作旺看，得一戊己制癸，亦可云小富贵
+  proposition_id: pr_bazi_000235
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0010_s04
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000236
+  proposition: 三月乙木一派壬水，不特贫贱，而且夭折
+  proposition_id: pr_bazi_000236
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0010_s04
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000237
+  proposition: 三月乙木一派壬水，有一戊己，方云有寿，但终为技术之人
+  proposition_id: pr_bazi_000237
+  relation: qualifies
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0010_s04
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  - 一派壬水
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000238
+  proposition: 三月乙木庚辰时月，名二庚争合，乃贫贱之辈
+  proposition_id: pr_bazi_000238
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0010_s04
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  - 庚辰时月
+  exceptions: []
+  concept_ids:
+  - co_bazi_000049
+  status: machine_extracted
+- assertion_id: as_bazi_000239
+  proposition: 三月乙木二庚争合，年干见丁破庚，可云从化，亦不失武职之权
+  proposition_id: pr_bazi_000239
+  relation: qualifies
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0010_s04
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000049
+  status: machine_extracted
+- assertion_id: as_bazi_000240
+  proposition: 三月乙木用癸者，金妻水子
+  proposition_id: pr_bazi_000240
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0010_s04
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000241
+  proposition: 三月乙木癸多用丙者，木妻火子
+  proposition_id: pr_bazi_000241
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0010_s04
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted

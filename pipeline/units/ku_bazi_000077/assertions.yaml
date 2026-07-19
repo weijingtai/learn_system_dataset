@@ -1,0 +1,185 @@
+assertions:
+- assertion_id: as_bazi_000815
+  proposition: 正月庚金，木旺之际，有土皆死，不能生金，且金之寒气未除，先用丙暖庚性，又虑土厚埋金，须甲疏泄
+  proposition_id: pr_bazi_000815
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0037_s01
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000089
+  status: machine_extracted
+- assertion_id: as_bazi_000816
+  proposition: 正月庚金丙甲两透，科甲显荣
+  proposition_id: pr_bazi_000816
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0037_s01
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000817
+  proposition: 正月庚金丙甲二者透一，亦有生监
+  proposition_id: pr_bazi_000817
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0037_s01
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000818
+  proposition: 正月庚金丙藏甲透，异路功名
+  proposition_id: pr_bazi_000818
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0037_s01
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000819
+  proposition: 正月庚金柱中土多，甲透者贵，甲藏者富，庚出则否
+  proposition_id: pr_bazi_000819
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0037_s01
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000820
+  proposition: 正月庚金丁火出干，加以戊己而无水者，又主富贵，名官星有气，才旺生扶，故以富贵推之
+  proposition_id: pr_bazi_000820
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0037_s01
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000084
+  status: machine_extracted
+- assertion_id: as_bazi_000821
+  proposition: 正月庚金火多则用土，用土者火妻土子
+  proposition_id: pr_bazi_000821
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0037_s01
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000822
+  proposition: 正月庚金支成火局，壬透有根者，大富贵
+  proposition_id: pr_bazi_000822
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0037_s01
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  - 支成火局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000823
+  proposition: 正月庚金支成火局，壬透无根者，小富贵
+  proposition_id: pr_bazi_000823
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0037_s01
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  - 支成火局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000824
+  proposition: 正月庚金支成火局，乏水者，残疾之人
+  proposition_id: pr_bazi_000824
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0037_s01
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  - 支成火局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000825
+  proposition: 正月庚金木被金伤，无丙丁出制，支无丁火，此系平人
+  proposition_id: pr_bazi_000825
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0037_s01
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000826
+  proposition: 正月庚金丙遭癸困，无戊制者，亦然（平人）
+  proposition_id: pr_bazi_000826
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0037_s01
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000827
+  proposition: 正月庚金，丙甲为上，丁火次之
+  proposition_id: pr_bazi_000827
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0037_s01
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000828
+  proposition: 春金多火，不夭则贫
+  proposition_id: pr_bazi_000828
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0037_s01
+    support_type: direct
+  conditions:
+  - 春
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000829
+  proposition: 阳金最喜火炼，锻炼太过，反主奔流
+  proposition_id: pr_bazi_000829
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0037_s01
+    support_type: direct
+  conditions: []
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted

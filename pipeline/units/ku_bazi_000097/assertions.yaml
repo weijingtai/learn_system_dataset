@@ -1,0 +1,13 @@
+assertions:
+- assertion_id: as_bazi_001032
+  proposition: 七月辛金，壬不在多，壬水为尊，甲戊酌用可也，癸水不可为用
+  proposition_id: pr_bazi_001032
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0044_s02
+    support_type: direct
+  conditions:
+  - 七月（申月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted

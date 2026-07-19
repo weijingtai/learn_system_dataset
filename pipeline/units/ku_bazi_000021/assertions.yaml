@@ -1,0 +1,37 @@
+assertions:
+- assertion_id: as_bazi_000205
+  proposition: 三春乙木，为芝兰蒿草之物，丙癸不可离也
+  proposition_id: pr_bazi_000205
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0010_s01
+    support_type: direct
+  conditions:
+  - 三春（寅卯辰月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000206
+  proposition: 春乙见丙，卉木向阳，万象回春，须癸滋养根基
+  proposition_id: pr_bazi_000206
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0010_s01
+    support_type: direct
+  conditions:
+  - 春
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000207
+  proposition: 三春乙木丙癸齐透天干，无化合克制，自然登科及第
+  proposition_id: pr_bazi_000207
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0010_s01
+    support_type: direct
+  conditions:
+  - 三春（寅卯辰月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted

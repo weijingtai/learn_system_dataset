@@ -1,0 +1,62 @@
+assertions:
+- assertion_id: as_bazi_000353
+  proposition: 三春丙火，秉象至威，阳回大地，侮雪欺霜，耑用壬水为扶阳，名曰天和地润，既济功成
+  proposition_id: pr_bazi_000353
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0016_s01
+    support_type: direct
+  conditions:
+  - 三春（寅卯辰月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000056
+  status: machine_extracted
+- assertion_id: as_bazi_000354
+  proposition: 正月丙火用壬，庚辛为助
+  proposition_id: pr_bazi_000354
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0016_s01
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000355
+  proposition: 二月丙火耑用壬水
+  proposition_id: pr_bazi_000355
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0016_s01
+    support_type: direct
+  conditions:
+  - 二月（卯月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000356
+  proposition: 三月丙火土重晦光，取甲佐之为妙
+  proposition_id: pr_bazi_000356
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0016_s01
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000357
+  proposition: 癸丙春生，不晴不雨之天，丙日春生，时月出癸，云雾迷濛，不显不达，非若壬水辅丙也
+  proposition_id: pr_bazi_000357
+  relation: opposes
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0016_s01
+    support_type: direct
+  conditions:
+  - 春生
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted

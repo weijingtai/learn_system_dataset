@@ -1,0 +1,13 @@
+assertions:
+- assertion_id: as_bazi_001063
+  proposition: 九月辛金，火土为病，水木为药
+  proposition_id: pr_bazi_001063
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0044_s05
+    support_type: direct
+  conditions:
+  - 九月（戌月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted

@@ -1,0 +1,90 @@
+assertions:
+- assertion_id: as_bazi_000257
+  proposition: 五月乙木，丁火司权，禾稼俱旱，上半月属阳，仍用癸水，下半月属阴，三伏生寒，丙癸齐用
+  proposition_id: pr_bazi_000257
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0011_s03
+    support_type: direct
+  conditions:
+  - 五月（午月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000037
+  status: machine_extracted
+- assertion_id: as_bazi_000258
+  proposition: 五月乙木柱多金水，丙火为先，余皆用癸水为先
+  proposition_id: pr_bazi_000258
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0011_s03
+    support_type: direct
+  conditions:
+  - 五月（午月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000259
+  proposition: 五月乙木，乙木重逢火位，名为气散之文，支成火局，泄乙精神，须用癸滋
+  proposition_id: pr_bazi_000259
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0011_s03
+    support_type: direct
+  conditions:
+  - 五月（午月）
+  - 支成火局
+  exceptions: []
+  concept_ids:
+  - co_bazi_000051
+  status: machine_extracted
+- assertion_id: as_bazi_000260
+  proposition: 五月乙木气散之文，癸透有根，富贵双全
+  proposition_id: pr_bazi_000260
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0011_s03
+    support_type: direct
+  conditions:
+  - 五月（午月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000051
+  status: machine_extracted
+- assertion_id: as_bazi_000261
+  proposition: 五月乙木庚辛年上，癸透时干，定许科甲，无癸者常人
+  proposition_id: pr_bazi_000261
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0011_s03
+    support_type: direct
+  conditions:
+  - 五月（午月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000262
+  proposition: 五月乙木若见丙透，支成火局，阳焦木性，此人残疾，无癸必夭，见壬可解
+  proposition_id: pr_bazi_000262
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0011_s03
+    support_type: direct
+  conditions:
+  - 五月（午月）
+  - 支成火局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000263
+  proposition: 五月乙木火土太多，其人愚贱，或为僧道门下闲人
+  proposition_id: pr_bazi_000263
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0011_s03
+    support_type: direct
+  conditions:
+  - 五月（午月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted

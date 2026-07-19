@@ -1,0 +1,13 @@
+assertions:
+- assertion_id: as_bazi_001095
+  proposition: 十二月辛金，丙先壬后，戊己次之
+  proposition_id: pr_bazi_001095
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0045_s04
+    support_type: direct
+  conditions:
+  - 十二月（丑月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted

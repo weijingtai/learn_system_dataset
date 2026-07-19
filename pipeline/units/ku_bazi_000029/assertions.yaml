@@ -1,0 +1,14 @@
+assertions:
+- assertion_id: as_bazi_000280
+  proposition: 三秋乙木，金神司令，先丙后癸，惟九月耑用癸水，恐丙暖戊土为病也
+  proposition_id: pr_bazi_000280
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0012_s01
+    support_type: direct
+  conditions:
+  - 三秋（申酉戌月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000052
+  status: machine_extracted

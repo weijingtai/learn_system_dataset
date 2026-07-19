@@ -1,0 +1,160 @@
+assertions:
+- assertion_id: as_bazi_000830
+  proposition: 二月庚金，柱中自然有乙，当令之乙，见庚必输情于乙，此金有暗强之势，如秋金一理，故二月庚金，专用丁火，借甲引丁，借庚噼甲
+  proposition_id: pr_bazi_000830
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0037_s02
+    support_type: direct
+  conditions:
+  - 二月（卯月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000831
+  proposition: 二月庚金无丁用丙者，富贵多出于勉强
+  proposition_id: pr_bazi_000831
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0037_s02
+    support_type: direct
+  conditions:
+  - 二月（卯月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000832
+  proposition: 二月庚金丁在干，甲透引丁，支下再见一庚制甲，配得中和，必然大贵
+  proposition_id: pr_bazi_000832
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0037_s02
+    support_type: direct
+  conditions:
+  - 二月（卯月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000833
+  proposition: 二月庚金如不见庚合者，虽丁甲两透，亦属平人
+  proposition_id: pr_bazi_000833
+  relation: opposes
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0037_s02
+    support_type: direct
+  conditions:
+  - 二月（卯月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000834
+  proposition: 二月庚金有丁甲无庚者，常人
+  proposition_id: pr_bazi_000834
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0037_s02
+    support_type: direct
+  conditions:
+  - 二月（卯月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000835
+  proposition: 二月庚金有丁庚、甲不出干者，常人
+  proposition_id: pr_bazi_000835
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0037_s02
+    support_type: direct
+  conditions:
+  - 二月（卯月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000836
+  proposition: 二月庚金丁透无庚甲者，可许贡监
+  proposition_id: pr_bazi_000836
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0037_s02
+    support_type: direct
+  conditions:
+  - 二月（卯月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000837
+  proposition: 二月庚金无丁有丙者，异路功名
+  proposition_id: pr_bazi_000837
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0037_s02
+    support_type: direct
+  conditions:
+  - 二月（卯月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000838
+  proposition: 二月庚金一片甲乙，忌庚出干破才，乃从才格，反主富贵
+  proposition_id: pr_bazi_000838
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0037_s02
+    support_type: direct
+  conditions:
+  - 二月（卯月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000029
+  status: machine_extracted
+- assertion_id: as_bazi_000839
+  proposition: 二月庚金一片甲乙，从才格若见一比，又主孤贫
+  proposition_id: pr_bazi_000839
+  relation: qualifies
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0037_s02
+    support_type: direct
+  conditions:
+  - 二月（卯月）
+  - 从才格
+  exceptions: []
+  concept_ids:
+  - co_bazi_000085
+  status: machine_extracted
+- assertion_id: as_bazi_000840
+  proposition: 二月庚金从才者，火妻土子
+  proposition_id: pr_bazi_000840
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0037_s02
+    support_type: direct
+  conditions:
+  - 二月（卯月）
+  - 从才
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000841
+  proposition: 二月庚金用丁者，取甲为妻，若有庚制，难许同偕
+  proposition_id: pr_bazi_000841
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0037_s02
+    support_type: direct
+  conditions:
+  - 二月（卯月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000842
+  proposition: 死金嫌盖顶之泥，重见戊土，如人压伏之象，须甲透为妙
+  proposition_id: pr_bazi_000842
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0037_s02
+    support_type: direct
+  conditions: []
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted

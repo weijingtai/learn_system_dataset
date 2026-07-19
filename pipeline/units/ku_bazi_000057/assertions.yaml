@@ -1,0 +1,124 @@
+assertions:
+- assertion_id: as_bazi_000566
+  proposition: 三冬丁火微寒，耑用庚甲，甲乃庚之良友，凡用甲木，庚不可少
+  proposition_id: pr_bazi_000566
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0024_s01
+    support_type: direct
+  conditions:
+  - 三冬（亥子丑月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000567
+  proposition: 三冬丁火无庚无甲，何能引丁，难云木火通明
+  proposition_id: pr_bazi_000567
+  relation: opposes
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0024_s01
+    support_type: direct
+  conditions:
+  - 三冬（亥子丑月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000017
+  status: machine_extracted
+- assertion_id: as_bazi_000568
+  proposition: 冬丁有甲，不怕水多金多，可称上格
+  proposition_id: pr_bazi_000568
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0024_s01
+    support_type: direct
+  conditions:
+  - 冬
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000569
+  proposition: 三冬丁火甲庚两透，科甲分明，见己则否，己多合甲，则为常人
+  proposition_id: pr_bazi_000569
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0024_s01
+    support_type: direct
+  conditions:
+  - 三冬（亥子丑月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000570
+  proposition: 三冬丁火一丙夺丁，必赖支内水救，若有支金发水之源，官拜乌台有准
+  proposition_id: pr_bazi_000570
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0024_s01
+    support_type: direct
+  conditions:
+  - 三冬（亥子丑月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000571
+  proposition: 三冬丁火全无癸水制丙，无用之徒
+  proposition_id: pr_bazi_000571
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0024_s01
+    support_type: direct
+  conditions:
+  - 三冬（亥子丑月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000572
+  proposition: 三冬丁火有金无水，贫寒之士
+  proposition_id: pr_bazi_000572
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0024_s01
+    support_type: direct
+  conditions:
+  - 三冬（亥子丑月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000573
+  proposition: 三冬丁火有水无金，又主清高
+  proposition_id: pr_bazi_000573
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0024_s01
+    support_type: direct
+  conditions:
+  - 三冬（亥子丑月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000574
+  proposition: 三冬丁火时月二壬争合，取戊破之，有戊稍有富贵，无戊常人，设戊藏得所，不失衣衿
+  proposition_id: pr_bazi_000574
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0024_s01
+    support_type: direct
+  conditions:
+  - 三冬（亥子丑月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000072
+  status: machine_extracted
+- assertion_id: as_bazi_000575
+  proposition: 三冬丁火二丙夺丁，得年干有癸，支下带合，金水得所，亦必显达，纳粟奏名，必验
+  proposition_id: pr_bazi_000575
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0024_s01
+    support_type: direct
+  conditions:
+  - 三冬（亥子丑月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000073
+  status: machine_extracted

@@ -1,0 +1,136 @@
+assertions:
+- assertion_id: as_bazi_001052
+  proposition: 九月辛金，戊土司令，母旺子相，须甲疏土，壬泄旺金，先壬后甲
+  proposition_id: pr_bazi_001052
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0044_s04
+    support_type: direct
+  conditions:
+  - 九月（戌月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000052
+  status: machine_extracted
+- assertion_id: as_bazi_001053
+  proposition: 九月辛金壬甲两透，桃洞之仙
+  proposition_id: pr_bazi_001053
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0044_s04
+    support_type: direct
+  conditions:
+  - 九月（戌月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001054
+  proposition: 九月辛金壬透甲藏，又见戊者，平人
+  proposition_id: pr_bazi_001054
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0044_s04
+    support_type: direct
+  conditions:
+  - 九月（戌月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001055
+  proposition: 九月辛金甲透、壬藏，戊在支内，异途之仕
+  proposition_id: pr_bazi_001055
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0044_s04
+    support_type: direct
+  conditions:
+  - 九月（戌月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001056
+  proposition: 九月辛金辛日甲月，壬水在支，有庚自能去浊留清，秋闱一榜
+  proposition_id: pr_bazi_001056
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0044_s04
+    support_type: direct
+  conditions:
+  - 九月（戌月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000045
+  status: machine_extracted
+- assertion_id: as_bazi_001057
+  proposition: 九月辛金若戊戌月，即有甲在支，亦否
+  proposition_id: pr_bazi_001057
+  relation: opposes
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0044_s04
+    support_type: direct
+  conditions:
+  - 九月（戌月）
+  - 戊戌月
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001058
+  proposition: 九月辛金土太多，甲不出干，莫问功名，得一壬出，洗土助甲，虽不发达，富而可求
+  proposition_id: pr_bazi_001058
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0044_s04
+    support_type: direct
+  conditions:
+  - 九月（戌月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001059
+  proposition: 九月辛金土多无壬甲，时月多透丙辛者，略贵，加以辰字在支，则荣显莫及
+  proposition_id: pr_bazi_001059
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0044_s04
+    support_type: direct
+  conditions:
+  - 九月（戌月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001060
+  proposition: 九月辛金木多土厚，无水者常人
+  proposition_id: pr_bazi_001060
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0044_s04
+    support_type: direct
+  conditions:
+  - 九月（戌月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001061
+  proposition: 九月辛金干上重见癸水，虽无淘洗之功，颇有清明之用，此命主贵、辛苦
+  proposition_id: pr_bazi_001061
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0044_s04
+    support_type: direct
+  conditions:
+  - 九月（戌月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001062
+  proposition: 九月辛金己透无壬有癸，亦能滋生金力，衣衿之贵，但恐己多，不免浊富
+  proposition_id: pr_bazi_001062
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0044_s04
+    support_type: direct
+  conditions:
+  - 九月（戌月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted

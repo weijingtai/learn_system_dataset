@@ -1,0 +1,113 @@
+assertions:
+- assertion_id: as_bazi_000311
+  proposition: 九月乙木，根枯叶落，必赖癸水滋养
+  proposition_id: pr_bazi_000311
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0012_s04
+    support_type: direct
+  conditions:
+  - 九月（戌月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000312
+  proposition: 九月乙木如见甲申时，名为藤萝系甲，可秋可冬
+  proposition_id: pr_bazi_000312
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0012_s04
+    support_type: direct
+  conditions:
+  - 九月（戌月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000055
+  status: machine_extracted
+- assertion_id: as_bazi_000313
+  proposition: 九月乙木见癸水，又遇辛金发水之源，定主科甲
+  proposition_id: pr_bazi_000313
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0012_s04
+    support_type: direct
+  conditions:
+  - 九月（戌月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000314
+  proposition: 九月乙木有癸无辛，常人
+  proposition_id: pr_bazi_000314
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0012_s04
+    support_type: direct
+  conditions:
+  - 九月（戌月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000315
+  proposition: 九月乙木有辛无癸，贫贱
+  proposition_id: pr_bazi_000315
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0012_s04
+    support_type: direct
+  conditions:
+  - 九月（戌月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000316
+  proposition: 九月乙木四柱壬多，水难生乙，亦是寻常之辈
+  proposition_id: pr_bazi_000316
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0012_s04
+    support_type: direct
+  conditions:
+  - 九月（戌月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000317
+  proposition: 九月乙木支多戊土，又逢天干，作从才看，无比劫方妙
+  proposition_id: pr_bazi_000317
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0012_s04
+    support_type: direct
+  conditions:
+  - 九月（戌月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000012
+  status: machine_extracted
+- assertion_id: as_bazi_000318
+  proposition: 九月乙木从才一逢比劫，富屋贫人
+  proposition_id: pr_bazi_000318
+  relation: qualifies
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0012_s04
+    support_type: direct
+  conditions:
+  - 九月（戌月）
+  - 从才
+  exceptions: []
+  concept_ids:
+  - co_bazi_000009
+  status: machine_extracted
+- assertion_id: as_bazi_000319
+  proposition: 九月乙木用癸者，金妻水子，但子女艰难，季土克制故也
+  proposition_id: pr_bazi_000319
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0012_s04
+    support_type: direct
+  conditions:
+  - 九月（戌月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted

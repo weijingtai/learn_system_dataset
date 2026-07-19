@@ -1,0 +1,113 @@
+assertions:
+- assertion_id: as_bazi_000658
+  proposition: 九月戊土当权，不可专用丙，先看甲木，次取癸水，却忌化合
+  proposition_id: pr_bazi_000658
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0029_s03
+    support_type: direct
+  conditions:
+  - 九月（戌月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000079
+  status: machine_extracted
+- assertion_id: as_bazi_000659
+  proposition: 九月戊土见金先用癸水，后取丙火，配合支干，方成有生之土，定发云程
+  proposition_id: pr_bazi_000659
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0029_s03
+    support_type: direct
+  conditions:
+  - 九月（戌月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000660
+  proposition: 九月戊土无丙有癸，不见甲透者，衣衿小富
+  proposition_id: pr_bazi_000660
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0029_s03
+    support_type: direct
+  conditions:
+  - 九月（戌月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000661
+  proposition: 九月戊土无癸丙有甲者，衣食而已
+  proposition_id: pr_bazi_000661
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0029_s03
+    support_type: direct
+  conditions:
+  - 九月（戌月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000662
+  proposition: 九月戊土若癸甲全无，虽有丙火，亦属平常，或为僧道
+  proposition_id: pr_bazi_000662
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0029_s03
+    support_type: direct
+  conditions:
+  - 九月（戌月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000663
+  proposition: 九月戊土支成水局，壬癸透干，用戊止流，有比透反主富
+  proposition_id: pr_bazi_000663
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0029_s03
+    support_type: direct
+  conditions:
+  - 九月（戌月）
+  - 支成水局
+  exceptions: []
+  concept_ids:
+  - co_bazi_000085
+  status: machine_extracted
+- assertion_id: as_bazi_000664
+  proposition: 九月戊土支成火局，名土燥，不发
+  proposition_id: pr_bazi_000664
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0029_s03
+    support_type: direct
+  conditions:
+  - 九月（戌月）
+  - 支成火局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000665
+  proposition: 九月戊土得金水两透，此人清高，略可富贵
+  proposition_id: pr_bazi_000665
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0029_s03
+    support_type: direct
+  conditions:
+  - 九月（戌月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000666
+  proposition: 九月戊土无水，一生困苦
+  proposition_id: pr_bazi_000666
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0029_s03
+    support_type: direct
+  conditions:
+  - 九月（戌月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted

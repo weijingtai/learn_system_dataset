@@ -1,0 +1,203 @@
+assertions:
+- assertion_id: as_bazi_000599
+  proposition: 三月戊土司令，不见丙甲癸者，愚而且贱
+  proposition_id: pr_bazi_000599
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0027_s03
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000052
+  status: machine_extracted
+- assertion_id: as_bazi_000600
+  proposition: 三月戊土甲癸透者，科甲
+  proposition_id: pr_bazi_000600
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0027_s03
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000601
+  proposition: 三月戊土丙癸透者，生员
+  proposition_id: pr_bazi_000601
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0027_s03
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000602
+  proposition: 三月戊土甲癸俱藏者，只可云富，有癸异途
+  proposition_id: pr_bazi_000602
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0027_s03
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000603
+  proposition: 三月戊土丙多无癸，旱田无水，不能种苗，旧谷已没，新谷未登，此先富后贫之造
+  proposition_id: pr_bazi_000603
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0027_s03
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000604
+  proposition: 三月戊土火多有壬透者，先贫后富
+  proposition_id: pr_bazi_000604
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0027_s03
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000605
+  proposition: 三月戊土癸透先贱后荣
+  proposition_id: pr_bazi_000605
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0027_s03
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000606
+  proposition: 三月戊土壬藏不过食足，癸藏不过名传，即此亦须运美
+  proposition_id: pr_bazi_000606
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0027_s03
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000607
+  proposition: 三月戊土支成火局，得癸透者，富贵天然
+  proposition_id: pr_bazi_000607
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0027_s03
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  - 支成火局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000608
+  proposition: 三月戊土支成火局，壬透富贵辛苦，何也？癸乃天上甘霖，壬乃江河波浪，所以有劳逸之殊
+  proposition_id: pr_bazi_000608
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0027_s03
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  - 支成火局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000609
+  proposition: 三月戊土支成木局，又甲乙出干，此名官杀会党，官杀无去留之义，得一庚透，扫除官杀，亦主富贵
+  proposition_id: pr_bazi_000609
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0027_s03
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  - 支成木局
+  exceptions: []
+  concept_ids:
+  - co_bazi_000074
+  status: machine_extracted
+- assertion_id: as_bazi_000610
+  proposition: 三月戊土官杀会党无庚乃浅薄之人，宜用火泄木气
+  proposition_id: pr_bazi_000610
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0027_s03
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  - 官杀会党
+  exceptions: []
+  concept_ids:
+  - co_bazi_000074
+  status: machine_extracted
+- assertion_id: as_bazi_000611
+  proposition: 三月戊土有比印，耑看癸透，取癸而成贵格
+  proposition_id: pr_bazi_000611
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0027_s03
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000008
+  - co_bazi_000006
+  status: machine_extracted
+- assertion_id: as_bazi_000612
+  proposition: 三月戊土无癸、无火、无金，名为土木自战，主腹中疾病，忧愁艰苦
+  proposition_id: pr_bazi_000612
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0027_s03
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000075
+  status: machine_extracted
+- assertion_id: as_bazi_000613
+  proposition: 三月戊土用甲者，水妻木子
+  proposition_id: pr_bazi_000613
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0027_s03
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000614
+  proposition: 三月戊土用丙者，木妻火子
+  proposition_id: pr_bazi_000614
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0027_s03
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted

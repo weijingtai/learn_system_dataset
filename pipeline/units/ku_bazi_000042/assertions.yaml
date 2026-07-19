@@ -1,0 +1,109 @@
+assertions:
+- assertion_id: as_bazi_000427
+  proposition: 六月丙火退气，三伏生寒，壬水为用，取庚辅佐
+  proposition_id: pr_bazi_000427
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0017_s04
+    support_type: direct
+  conditions:
+  - 六月（未月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000428
+  proposition: 六月丙火庚壬两透，贴身相生，可云科甲名宦
+  proposition_id: pr_bazi_000428
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0017_s04
+    support_type: direct
+  conditions:
+  - 六月（未月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000429
+  proposition: 六月丙火无庚有壬，不见戊出，小富小贵
+  proposition_id: pr_bazi_000429
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0017_s04
+    support_type: direct
+  conditions:
+  - 六月（未月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000430
+  proposition: 六月丙火见戊制壬，则为乡贤而已
+  proposition_id: pr_bazi_000430
+  relation: qualifies
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0017_s04
+    support_type: direct
+  conditions:
+  - 六月（未月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000431
+  proposition: 六月丙火己土出干混杂，此必庸夫俗子
+  proposition_id: pr_bazi_000431
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0017_s04
+    support_type: direct
+  conditions:
+  - 六月（未月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000432
+  proposition: 六月丙火壬水浅，己土出干，其人贫困
+  proposition_id: pr_bazi_000432
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0017_s04
+    support_type: direct
+  conditions:
+  - 六月（未月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000433
+  proposition: 六月丙火无壬下格，贱而且顽，男女一理
+  proposition_id: pr_bazi_000433
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0017_s04
+    support_type: direct
+  conditions:
+  - 六月（未月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000434
+  proposition: 六月丙火天干一派丙火，阳极生阴，干支两见庚壬，登科及第
+  proposition_id: pr_bazi_000434
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0017_s04
+    support_type: direct
+  conditions:
+  - 六月（未月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000435
+  proposition: 总之六月丙火用壬，不同余月用壬，喜运行西北，六月用壬，喜运行西南
+  proposition_id: pr_bazi_000435
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0017_s04
+    support_type: direct
+  conditions:
+  - 六月（未月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted

@@ -1,0 +1,121 @@
+assertions:
+- assertion_id: as_bazi_000628
+  proposition: 六月戊土，遇夏干枯，先看癸水，次用丙火甲木
+  proposition_id: pr_bazi_000628
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0028_s03
+    support_type: direct
+  conditions:
+  - 六月（未月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000629
+  proposition: 六月戊土癸丙两透，科甲中人
+  proposition_id: pr_bazi_000629
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0028_s03
+    support_type: direct
+  conditions:
+  - 六月（未月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000630
+  proposition: 六月戊土有癸无丙，见甲可许秀才，无甲略富
+  proposition_id: pr_bazi_000630
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0028_s03
+    support_type: direct
+  conditions:
+  - 六月（未月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000631
+  proposition: 六月戊土有丙无癸，假道斯文，衣食颇足
+  proposition_id: pr_bazi_000631
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0028_s03
+    support_type: direct
+  conditions:
+  - 六月（未月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000632
+  proposition: 六月戊土癸透辛出，以刀笔之才，可谋异路
+  proposition_id: pr_bazi_000632
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0028_s03
+    support_type: direct
+  conditions:
+  - 六月（未月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000633
+  proposition: 六月戊土无癸丙者，常人，若又无甲，下贱之辈
+  proposition_id: pr_bazi_000633
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0028_s03
+    support_type: direct
+  conditions:
+  - 六月（未月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000634
+  proposition: 六月戊土土多得一甲出，不见庚辛，为人作事轩昂，性情谨慎，即不显扬，亦文章惊世
+  proposition_id: pr_bazi_000634
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0028_s03
+    support_type: direct
+  conditions:
+  - 六月（未月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000635
+  proposition: 六月戊土用癸者，金妻水子
+  proposition_id: pr_bazi_000635
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0028_s03
+    support_type: direct
+  conditions:
+  - 六月（未月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000636
+  proposition: 六月戊土用丙者，木妻火子
+  proposition_id: pr_bazi_000636
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0028_s03
+    support_type: direct
+  conditions:
+  - 六月（未月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000637
+  proposition: 六月戊土用甲者，水妻木子
+  proposition_id: pr_bazi_000637
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0028_s03
+    support_type: direct
+  conditions:
+  - 六月（未月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted

@@ -1,0 +1,85 @@
+assertions:
+- assertion_id: as_bazi_001088
+  proposition: 十二月辛金，寒冻之极，先丙后壬，无丙不能解冻，无壬不能洗淘
+  proposition_id: pr_bazi_001088
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0045_s03
+    support_type: direct
+  conditions:
+  - 十二月（丑月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001089
+  proposition: 十二月辛金丙壬两透，金马玉堂之客
+  proposition_id: pr_bazi_001089
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0045_s03
+    support_type: direct
+  conditions:
+  - 十二月（丑月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001090
+  proposition: 十二月辛金壬丙俱藏，游庠食饩之人
+  proposition_id: pr_bazi_001090
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0045_s03
+    support_type: direct
+  conditions:
+  - 十二月（丑月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001091
+  proposition: 十二月辛金有丙无壬，富真贵假
+  proposition_id: pr_bazi_001091
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0045_s03
+    support_type: direct
+  conditions:
+  - 十二月（丑月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001092
+  proposition: 十二月辛金有壬乏丙，贱而且贫
+  proposition_id: pr_bazi_001092
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0045_s03
+    support_type: direct
+  conditions:
+  - 十二月（丑月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001093
+  proposition: 十二月辛金丙多、无壬、有癸，市中贸易之流
+  proposition_id: pr_bazi_001093
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0045_s03
+    support_type: direct
+  conditions:
+  - 十二月（丑月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001094
+  proposition: 十二月辛金水多、有戊己出干，又有丙丁，必主衣食充盈，一生安乐
+  proposition_id: pr_bazi_001094
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0045_s03
+    support_type: direct
+  conditions:
+  - 十二月（丑月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted

@@ -1,0 +1,100 @@
+assertions:
+- assertion_id: as_bazi_000208
+  proposition: 正月乙木，必须用丙，因天气尤有余寒，非丙不暖，虽有癸水，恐凝寒气，故以丙火为先，癸水次之
+  proposition_id: pr_bazi_000208
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0010_s02
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000209
+  proposition: 正月乙木丙癸两透，科甲定然
+  proposition_id: pr_bazi_000209
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0010_s02
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000210
+  proposition: 正月乙木有丙无癸，门户阐扬
+  proposition_id: pr_bazi_000210
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0010_s02
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000211
+  proposition: 正月乙木丙多乏癸，名曰春旱，独阳不长，浊富之人
+  proposition_id: pr_bazi_000211
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0010_s02
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000046
+  status: machine_extracted
+- assertion_id: as_bazi_000212
+  proposition: 正月乙木丙少癸多，又为困丙，终为寒士
+  proposition_id: pr_bazi_000212
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0010_s02
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000047
+  status: machine_extracted
+- assertion_id: as_bazi_000213
+  proposition: 正月乙木癸己多见，为湿土之木，皆下格
+  proposition_id: pr_bazi_000213
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0010_s02
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000214
+  proposition: 正月乙木用丙者，木妻火子
+  proposition_id: pr_bazi_000214
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0010_s02
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000215
+  proposition: 正月乙木用癸水见火多者，金妻水子
+  proposition_id: pr_bazi_000215
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0010_s02
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  - 火多
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted

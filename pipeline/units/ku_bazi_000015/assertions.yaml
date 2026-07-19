@@ -1,0 +1,50 @@
+assertions:
+- assertion_id: as_bazi_000135
+  proposition: 七月甲木，丁火为尊，庚金次之，庚金不可少
+  proposition_id: pr_bazi_000135
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0007_s02
+    support_type: direct
+  conditions:
+  - 七月（申月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000136
+  proposition: 七月甲木火隔水不能镕金，故丁火镕金必赖甲木引助，方成洪炉
+  proposition_id: pr_bazi_000136
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0007_s02
+    support_type: direct
+  conditions:
+  - 七月（申月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000039
+  status: machine_extracted
+- assertion_id: as_bazi_000137
+  proposition: 七月甲木若有癸水阻隔，便灭丁火
+  proposition_id: pr_bazi_000137
+  relation: opposes
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0007_s02
+    support_type: direct
+  conditions:
+  - 七月（申月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000138
+  proposition: 七月甲木壬水无碍，且能合丁，但须见戊土，方可制水存火
+  proposition_id: pr_bazi_000138
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0007_s02
+    support_type: direct
+  conditions:
+  - 七月（申月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted

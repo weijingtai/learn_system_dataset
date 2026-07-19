@@ -1,0 +1,13 @@
+assertions:
+- assertion_id: as_bazi_001205
+  proposition: 十一月壬水，丙戊并用
+  proposition_id: pr_bazi_001205
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0051_s03
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted

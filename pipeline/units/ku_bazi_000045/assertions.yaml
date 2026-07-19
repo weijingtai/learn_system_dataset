@@ -1,0 +1,134 @@
+assertions:
+- assertion_id: as_bazi_000456
+  proposition: 九月丙火，火气愈退，所忌土晦光火，必须先用甲木，次取壬水
+  proposition_id: pr_bazi_000456
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0018_s03
+    support_type: direct
+  conditions:
+  - 九月（戌月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000457
+  proposition: 九月丙火甲壬两透，富贵非凡
+  proposition_id: pr_bazi_000457
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0018_s03
+    support_type: direct
+  conditions:
+  - 九月（戌月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000458
+  proposition: 九月丙火若无壬水，得癸透干亦可，虽不科甲，异路功名
+  proposition_id: pr_bazi_000458
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0018_s03
+    support_type: direct
+  conditions:
+  - 九月（戌月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000459
+  proposition: 九月丙火壬癸藏支，贡监而已
+  proposition_id: pr_bazi_000459
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0018_s03
+    support_type: direct
+  conditions:
+  - 九月（戌月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000460
+  proposition: 九月丙火甲藏壬透，无庚破甲，可许秀才
+  proposition_id: pr_bazi_000460
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0018_s03
+    support_type: direct
+  conditions:
+  - 九月（戌月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000461
+  proposition: 九月丙火庚戊困了水木，定是庸才
+  proposition_id: pr_bazi_000461
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0018_s03
+    support_type: direct
+  conditions:
+  - 九月（戌月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000462
+  proposition: 九月丙火无甲壬癸者，下格
+  proposition_id: pr_bazi_000462
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0018_s03
+    support_type: direct
+  conditions:
+  - 九月（戌月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000463
+  proposition: 九月丙火一派火土，虽不太旺，亦自燥矣，如不离乡过继，亦主奔流，加以无庚辛壬癸出干，必为夭命
+  proposition_id: pr_bazi_000463
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0018_s03
+    support_type: direct
+  conditions:
+  - 九月（戌月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000464
+  proposition: 九月丙火支成火局，炎上失时，若运入南方，一贫彻骨
+  proposition_id: pr_bazi_000464
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0018_s03
+    support_type: direct
+  conditions:
+  - 九月（戌月）
+  - 支成火局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000465
+  proposition: 九月丙火用甲者，水妻木子
+  proposition_id: pr_bazi_000465
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0018_s03
+    support_type: direct
+  conditions:
+  - 九月（戌月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000466
+  proposition: 九月丙火用壬者，金妻水子
+  proposition_id: pr_bazi_000466
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0018_s03
+    support_type: direct
+  conditions:
+  - 九月（戌月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted

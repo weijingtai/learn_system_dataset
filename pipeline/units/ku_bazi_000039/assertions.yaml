@@ -1,0 +1,98 @@
+assertions:
+- assertion_id: as_bazi_000400
+  proposition: 三夏丙火，阳威性烈，专用壬水
+  proposition_id: pr_bazi_000400
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0017_s01
+    support_type: direct
+  conditions:
+  - 三夏（巳午未月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000401
+  proposition: 三夏丙火若亥宫壬水无力，回克泄气故也，仍用申宫长生之水，方云富贵
+  proposition_id: pr_bazi_000401
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0017_s01
+    support_type: direct
+  conditions:
+  - 三夏（巳午未月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000402
+  proposition: 四月丙火耑用壬水，金为佐
+  proposition_id: pr_bazi_000402
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0017_s01
+    support_type: direct
+  conditions:
+  - 四月（巳月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000403
+  proposition: 五月丙火亦耑用壬，四五月壬透者富贵
+  proposition_id: pr_bazi_000403
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0017_s01
+    support_type: direct
+  conditions:
+  - 四五月（巳午月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000404
+  proposition: 四五月丙火丁多，兼看癸水
+  proposition_id: pr_bazi_000404
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0017_s01
+    support_type: direct
+  conditions:
+  - 四五月（巳午月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000405
+  proposition: 六月丙火用壬，但借庚金为佐
+  proposition_id: pr_bazi_000405
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0017_s01
+    support_type: direct
+  conditions:
+  - 六月（未月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000406
+  proposition: 阳刃合杀，威权万里，丁火羊刃太旺，正谓羊刃倒戈，无头之鬼
+  proposition_id: pr_bazi_000406
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0017_s01
+    support_type: direct
+  conditions: []
+  exceptions: []
+  concept_ids:
+  - co_bazi_000061
+  - co_bazi_000062
+  status: machine_extracted
+- assertion_id: as_bazi_000407
+  proposition: 丙火用壬，生旺坐实方好，忌壬水太多，名杀重身轻
+  proposition_id: pr_bazi_000407
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0017_s01
+    support_type: direct
+  conditions: []
+  exceptions: []
+  concept_ids:
+  - co_bazi_000023
+  status: machine_extracted

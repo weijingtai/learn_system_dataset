@@ -1,0 +1,283 @@
+assertions:
+- assertion_id: as_bazi_000149
+  proposition: 九月甲木，木星凋零，独爱丁火，壬癸滋扶，丁壬癸透，戊己亦透，此命配得中和，可许一榜
+  proposition_id: pr_bazi_000149
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0007_s04
+    support_type: direct
+  conditions:
+  - 九月（戌月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000150
+  proposition: 九月甲木庚金得所，科甲定然
+  proposition_id: pr_bazi_000150
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0007_s04
+    support_type: direct
+  conditions:
+  - 九月（戌月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000151
+  proposition: 九月甲木见一二比肩，无庚金制之，平常人也
+  proposition_id: pr_bazi_000151
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0007_s04
+    support_type: direct
+  conditions:
+  - 九月（戌月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000008
+  status: machine_extracted
+- assertion_id: as_bazi_000152
+  proposition: 九月甲木倘运不得用，贫无立锥
+  proposition_id: pr_bazi_000152
+  relation: qualifies
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0007_s04
+    support_type: direct
+  conditions:
+  - 九月（戌月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000153
+  proposition: 九月甲木遇比用才，专取季土
+  proposition_id: pr_bazi_000153
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0007_s04
+    support_type: direct
+  conditions:
+  - 九月（戌月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000007
+  status: machine_extracted
+- assertion_id: as_bazi_000154
+  proposition: 九月甲木或见庚丙，可许入泮，白手成家
+  proposition_id: pr_bazi_000154
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0007_s04
+    support_type: direct
+  conditions:
+  - 九月（戌月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000155
+  proposition: 九月甲木用火者，木妻火子，子肖妻贤
+  proposition_id: pr_bazi_000155
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0007_s04
+    support_type: direct
+  conditions:
+  - 九月（戌月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000156
+  proposition: 九月甲木四柱木多，用丙用丁，皆不足异，耑用庚金为妙
+  proposition_id: pr_bazi_000156
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0007_s04
+    support_type: direct
+  conditions:
+  - 九月（戌月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000157
+  proposition: 凡四季甲木，总不外乎庚金，譬木为犁，能疏季土，非庚金为犁嘴，安能疏土虽用丙丁，癸庚决不可少也
+  proposition_id: pr_bazi_000157
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0007_s04
+    support_type: direct
+  conditions:
+  - 四季（辰未戌丑月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000158
+  proposition: 九月甲木不取土妻庚子，当取水妻木子
+  proposition_id: pr_bazi_000158
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0007_s04
+    support_type: direct
+  conditions:
+  - 九月（戌月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000159
+  proposition: 凡甲木，多见戊己，定作弃命从才而看
+  proposition_id: pr_bazi_000159
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0007_s04
+    support_type: direct
+  conditions: []
+  exceptions: []
+  concept_ids:
+  - co_bazi_000021
+  status: machine_extracted
+- assertion_id: as_bazi_000160
+  proposition: 从才格，取火妻土子
+  proposition_id: pr_bazi_000160
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0007_s04
+    support_type: direct
+  conditions:
+  - 从才格
+  exceptions: []
+  concept_ids:
+  - co_bazi_000029
+  status: machine_extracted
+- assertion_id: as_bazi_000161
+  proposition: 九月甲木见一派丙丁伤金，不过假道斯文，有壬癸破了丙丁，技艺之流
+  proposition_id: pr_bazi_000161
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0007_s04
+    support_type: direct
+  conditions:
+  - 九月（戌月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000162
+  proposition: 九月甲木无壬癸破火，支又成火局，乃为枯朽之木，有庚亦何能为力，定作孤贫下贱之辈，男女一理
+  proposition_id: pr_bazi_000162
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0007_s04
+    support_type: direct
+  conditions:
+  - 九月（戌月）
+  - 支成火局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000163
+  proposition: 九月甲木有假伤官，得地逢生，此正合甲乙秋生贵元武之说，用水制伤官者，以金为妻，水为子
+  proposition_id: pr_bazi_000163
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0007_s04
+    support_type: direct
+  conditions:
+  - 九月（戌月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000032
+  - co_bazi_000001
+  status: machine_extracted
+- assertion_id: as_bazi_000164
+  proposition: 九月甲木丁戊俱多，总不见水，又为伤官生财格，亦可云富贵，此格取火为妻，土为子
+  proposition_id: pr_bazi_000164
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0007_s04
+    support_type: direct
+  conditions:
+  - 九月（戌月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000018
+  status: machine_extracted
+- assertion_id: as_bazi_000165
+  proposition: 凡甲多庚透，大贵
+  proposition_id: pr_bazi_000165
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0007_s04
+    support_type: direct
+  conditions: []
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000166
+  proposition: 凡甲多，庚藏，小贵
+  proposition_id: pr_bazi_000166
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0007_s04
+    support_type: direct
+  conditions: []
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000167
+  proposition: 凡甲多，若柱中多庚，则又以丁为奇，富贵人也
+  proposition_id: pr_bazi_000167
+  relation: qualifies
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0007_s04
+    support_type: direct
+  conditions:
+  - 柱中多庚
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000168
+  proposition: 九月甲木若无庚丙年月，又无火星出干，虽曰好学，终困名场
+  proposition_id: pr_bazi_000168
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0007_s04
+    support_type: direct
+  conditions:
+  - 九月（戌月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000169
+  proposition: 九月甲木，耑用丁癸，见戊透必贵
+  proposition_id: pr_bazi_000169
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0007_s04
+    support_type: direct
+  conditions:
+  - 九月（戌月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000170
+  proposition: 甲乙比肩，又逢比劫运，主兄弟劫财争讼，刑妻损子
+  proposition_id: pr_bazi_000170
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0007_s04
+    support_type: direct
+  conditions: []
+  exceptions: []
+  concept_ids:
+  - co_bazi_000008
+  - co_bazi_000009
+  status: machine_extracted
+- assertion_id: as_bazi_000171
+  proposition: 甲乙生正二月，无制无泄，主长发师姑
+  proposition_id: pr_bazi_000171
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0007_s04
+    support_type: direct
+  conditions:
+  - 正二月（寅卯月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted

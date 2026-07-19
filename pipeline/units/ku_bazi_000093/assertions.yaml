@@ -1,0 +1,65 @@
+assertions:
+- assertion_id: as_bazi_001005
+  proposition: 五月辛金，丁火司权，辛金失令，阴柔之极，不宜锻炼，须己壬兼用，己为泥沙，壬为湖海，己无壬不湿，辛无己不生，故壬己并用
+  proposition_id: pr_bazi_001005
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0043_s02
+    support_type: direct
+  conditions:
+  - 五月（午月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000037
+  status: machine_extracted
+- assertion_id: as_bazi_001006
+  proposition: 五月辛金无壬，癸亦可用，但癸力小
+  proposition_id: pr_bazi_001006
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0043_s02
+    support_type: direct
+  conditions:
+  - 五月（午月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001007
+  proposition: 五月辛金支成火局，即重见癸出亦不济，得壬透破火方可，必主生员
+  proposition_id: pr_bazi_001007
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0043_s02
+    support_type: direct
+  conditions:
+  - 五月（午月）
+  - 支成火局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001008
+  proposition: 五月辛金支成火局，若无壬，癸见戊，虽有午宫己土，燥泥成灰，金必毁镕，反遭埋没，必为僧道
+  proposition_id: pr_bazi_001008
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0043_s02
+    support_type: direct
+  conditions:
+  - 五月（午月）
+  - 支成火局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001009
+  proposition: 五月辛金有一二重比肩，不致孤独
+  proposition_id: pr_bazi_001009
+  relation: qualifies
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0043_s02
+    support_type: direct
+  conditions:
+  - 五月（午月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000008
+  status: machine_extracted

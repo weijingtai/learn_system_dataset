@@ -1,0 +1,67 @@
+assertions:
+- assertion_id: as_bazi_000014
+  proposition: 五行之性各致其用，水主智
+  proposition_id: pr_bazi_000014
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0001_s04
+    support_type: direct
+  conditions: []
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000015
+  proposition: 火主礼
+  proposition_id: pr_bazi_000015
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0001_s04
+    support_type: direct
+  conditions: []
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000016
+  proposition: 木主仁
+  proposition_id: pr_bazi_000016
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0001_s04
+    support_type: direct
+  conditions: []
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000017
+  proposition: 金主义
+  proposition_id: pr_bazi_000017
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0001_s04
+    support_type: direct
+  conditions: []
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000018
+  proposition: 土主信，重宽厚博，无所不容
+  proposition_id: pr_bazi_000018
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0001_s04
+    support_type: direct
+  conditions: []
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000019
+  proposition: 以之水即水附之而行，以之木则木托之而生，金不得土则无自出，火不得土则无自归，五行皆赖土
+  proposition_id: pr_bazi_000019
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0001_s04
+    support_type: direct
+  conditions: []
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted

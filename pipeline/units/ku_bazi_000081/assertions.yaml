@@ -1,0 +1,125 @@
+assertions:
+- assertion_id: as_bazi_000873
+  proposition: 五月庚金，丁火旺烈，庚金败地，专用壬水，癸又次之
+  proposition_id: pr_bazi_000873
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0038_s02
+    support_type: direct
+  conditions:
+  - 五月（午月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000874
+  proposition: 五月庚金壬透癸藏，支见庚辛，必然科甲，切忌戊己透干制水则否
+  proposition_id: pr_bazi_000874
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0038_s02
+    support_type: direct
+  conditions:
+  - 五月（午月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000875
+  proposition: 五月庚金壬透癸藏，戊藏支内，不失儒林
+  proposition_id: pr_bazi_000875
+  relation: qualifies
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0038_s02
+    support_type: direct
+  conditions:
+  - 五月（午月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000876
+  proposition: 五月庚金壬在支，有金生助，又得金神出干，明经之贵
+  proposition_id: pr_bazi_000876
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0038_s02
+    support_type: direct
+  conditions:
+  - 五月（午月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000877
+  proposition: 五月庚金癸出带辛，异路之荣
+  proposition_id: pr_bazi_000877
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0038_s02
+    support_type: direct
+  conditions:
+  - 五月（午月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000878
+  proposition: 五月庚金支成火局，乏水者，奔波之客
+  proposition_id: pr_bazi_000878
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0038_s02
+    support_type: direct
+  conditions:
+  - 五月（午月）
+  - 支成火局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000879
+  proposition: 五月庚金支成火局，有壬癸制者，捐纳之人，又见戊己透者则吉
+  proposition_id: pr_bazi_000879
+  relation: qualifies
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0038_s02
+    support_type: direct
+  conditions:
+  - 五月（午月）
+  - 支成火局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000880
+  proposition: 五月庚金支成火局，无壬癸制火者，又宜戊己出干补金泄火，庶不夭折孤贫
+  proposition_id: pr_bazi_000880
+  relation: qualifies
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0038_s02
+    support_type: direct
+  conditions:
+  - 五月（午月）
+  - 支成火局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000881
+  proposition: 仲夏无水，必非上格
+  proposition_id: pr_bazi_000881
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0038_s02
+    support_type: direct
+  conditions:
+  - 五月（午月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000882
+  proposition: 五月庚金一派木火，无伤、印、比劫，又作从杀而论
+  proposition_id: pr_bazi_000882
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0038_s02
+    support_type: direct
+  conditions:
+  - 五月（午月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000013
+  status: machine_extracted

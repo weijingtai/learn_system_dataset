@@ -1,0 +1,148 @@
+assertions:
+- assertion_id: as_bazi_000281
+  proposition: 七月乙木，庚金乘令，庚虽输情于乙妹，怎奈干乙难合支金，柱见庚多，乙难受载
+  proposition_id: pr_bazi_000281
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0012_s02
+    support_type: direct
+  conditions:
+  - 七月（申月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000282
+  proposition: 七月乙木丙透干，又加巳出埋金，此格可云科甲
+  proposition_id: pr_bazi_000282
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0012_s02
+    support_type: direct
+  conditions:
+  - 七月（申月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000283
+  proposition: 七月乙木有己透加丙，亦是上命
+  proposition_id: pr_bazi_000283
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0012_s02
+    support_type: direct
+  conditions:
+  - 七月（申月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000284
+  proposition: 七月乙木喜己土为用，或不见丙癸，己土必不可少，此则以火为妻，土为子
+  proposition_id: pr_bazi_000284
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0012_s02
+    support_type: direct
+  conditions:
+  - 七月（申月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000285
+  proposition: 七月乙木癸透、丙藏、庚少，此不用己，可许贡拔
+  proposition_id: pr_bazi_000285
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0012_s02
+    support_type: direct
+  conditions:
+  - 七月（申月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000286
+  proposition: 七月乙木无丙、有癸透者，不失刀笔门户
+  proposition_id: pr_bazi_000286
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0012_s02
+    support_type: direct
+  conditions:
+  - 七月（申月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000287
+  proposition: 七月乙木支下庚多，癸又藏者，无丙己二神，平常人物
+  proposition_id: pr_bazi_000287
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0012_s02
+    support_type: direct
+  conditions:
+  - 七月（申月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000288
+  proposition: 七月乙木生辰时，此为从化，反主富贵
+  proposition_id: pr_bazi_000288
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0012_s02
+    support_type: direct
+  conditions:
+  - 七月（申月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000053
+  status: machine_extracted
+- assertion_id: as_bazi_000289
+  proposition: 凡化合格皆以所生之神为用，化金者戊为用神，特忌丙丁锻炼破格
+  proposition_id: pr_bazi_000289
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0012_s02
+    support_type: direct
+  conditions:
+  - 化合格
+  exceptions: []
+  concept_ids:
+  - co_bazi_000053
+  - co_bazi_000038
+  status: machine_extracted
+- assertion_id: as_bazi_000290
+  proposition: 七月乙木从化者以火为妻，土为子，其余以金为妻，妻必贤美，以水为子，子必克肖，但忌刑冲，凡命皆然
+  proposition_id: pr_bazi_000290
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0012_s02
+    support_type: direct
+  conditions:
+  - 七月（申月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000291
+  proposition: 秋乙逢金，非贫即夭
+  proposition_id: pr_bazi_000291
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0012_s02
+    support_type: direct
+  conditions:
+  - 秋
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000292
+  proposition: 秋生乙木忌根枯，根既枯槁，贫苦到老
+  proposition_id: pr_bazi_000292
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0012_s02
+    support_type: direct
+  conditions:
+  - 秋生
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted

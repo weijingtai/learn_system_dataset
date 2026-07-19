@@ -1,0 +1,134 @@
+assertions:
+- assertion_id: as_bazi_000389
+  proposition: 三月丙火，气渐炎升，用壬水
+  proposition_id: pr_bazi_000389
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0016_s04
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000390
+  proposition: 三月丙火或成土局，取甲为辅，壬不可离
+  proposition_id: pr_bazi_000390
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0016_s04
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  - 成土局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000391
+  proposition: 三月丙火壬甲两透，科甲定宜，惟忌庚出制甲，则秀才而已
+  proposition_id: pr_bazi_000391
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0016_s04
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000392
+  proposition: 三月丙火无甲用庚，助壬水泄土气
+  proposition_id: pr_bazi_000392
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0016_s04
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000393
+  proposition: 三月丙火壬透甲藏，富大贵小
+  proposition_id: pr_bazi_000393
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0016_s04
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000394
+  proposition: 三月丙火有甲无壬，劳碌浊富
+  proposition_id: pr_bazi_000394
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0016_s04
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000395
+  proposition: 三月丙火壬藏无甲，一介寒儒
+  proposition_id: pr_bazi_000395
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0016_s04
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000396
+  proposition: 三月丙火壬甲两无，愚贱之辈
+  proposition_id: pr_bazi_000396
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0016_s04
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000397
+  proposition: 三月丙火乙丁杂乱，定必属凡夫
+  proposition_id: pr_bazi_000397
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0016_s04
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000398
+  proposition: 三月丙火用壬者，金妻水子
+  proposition_id: pr_bazi_000398
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0016_s04
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000399
+  proposition: 三月丙火用甲者，水妻木子
+  proposition_id: pr_bazi_000399
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0016_s04
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted

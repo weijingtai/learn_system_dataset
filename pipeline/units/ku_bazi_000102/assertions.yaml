@@ -1,0 +1,151 @@
+assertions:
+- assertion_id: as_bazi_001076
+  proposition: 十一月辛金，癸水司令，为寒冬雨露，切忌癸出冻金，而困丙火
+  proposition_id: pr_bazi_001076
+  relation: opposes
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0045_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000052
+  status: machine_extracted
+- assertion_id: as_bazi_001077
+  proposition: 十一月辛金壬丙两透，不见戊癸，衣锦腰金
+  proposition_id: pr_bazi_001077
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0045_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001078
+  proposition: 十一月辛金壬藏丙透，一榜堪图
+  proposition_id: pr_bazi_001078
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0045_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001079
+  proposition: 十一月辛金壬多有戊，丙甲出干者，青云之客
+  proposition_id: pr_bazi_001079
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0045_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001080
+  proposition: 十一月辛金壬多无戊丙者，泄金太过，定主寒儒
+  proposition_id: pr_bazi_001080
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0045_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001081
+  proposition: 十一月辛金壬多、甲乙重重，无丙火者，贫寒
+  proposition_id: pr_bazi_001081
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0045_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001082
+  proposition: 十一月辛金支成水局，癸水出干，有二戊制者，富贵恩荣
+  proposition_id: pr_bazi_001082
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0045_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  - 支成水局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001083
+  proposition: 十一月辛金支成水局，癸水出干，无戊者常人
+  proposition_id: pr_bazi_001083
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0045_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  - 支成水局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001084
+  proposition: 十一月辛金支见亥子丑，干出比劫，无丙，名润下格，富贵双全，运喜西北
+  proposition_id: pr_bazi_001084
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0045_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  - 支见亥子丑
+  exceptions: []
+  concept_ids:
+  - co_bazi_000103
+  status: machine_extracted
+- assertion_id: as_bazi_001085
+  proposition: 十一月辛金若无庚辛，又出甲乙，无戊丙者，必主僧道
+  proposition_id: pr_bazi_001085
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0045_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001086
+  proposition: 十一月辛金支成木局，有丁出干，又见戊者，功名特达
+  proposition_id: pr_bazi_001086
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0045_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  - 支成木局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001087
+  proposition: 冬月辛金，须丙温暖方妙
+  proposition_id: pr_bazi_001087
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0045_s02
+    support_type: direct
+  conditions:
+  - 冬月
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted

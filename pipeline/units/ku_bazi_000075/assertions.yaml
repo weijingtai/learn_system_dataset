@@ -1,0 +1,172 @@
+assertions:
+- assertion_id: as_bazi_000756
+  proposition: 三冬己土，湿泥寒冻，非丙暖不生，取丙为尊，甲木参酌，戊土癸水不用
+  proposition_id: pr_bazi_000756
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0035_s01
+    support_type: direct
+  conditions:
+  - 三冬（亥子丑月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000757
+  proposition: 三冬己土惟初冬壬旺，取戊制之
+  proposition_id: pr_bazi_000757
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0035_s01
+    support_type: direct
+  conditions:
+  - 初冬（亥月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000758
+  proposition: 三冬己土余皆用丙丁，但丁不能解冻除寒，不能大济
+  proposition_id: pr_bazi_000758
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0035_s01
+    support_type: direct
+  conditions:
+  - 三冬（亥子丑月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000759
+  proposition: 三冬己土干透一丙，支藏一丙，加以甲透，科甲有准
+  proposition_id: pr_bazi_000759
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0035_s01
+    support_type: direct
+  conditions:
+  - 三冬（亥子丑月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000760
+  proposition: 三冬己土即藏丙无制，亦主衣衿
+  proposition_id: pr_bazi_000760
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0035_s01
+    support_type: direct
+  conditions:
+  - 三冬（亥子丑月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000761
+  proposition: 三冬己土多壬水，得戊透制之，此命安然，富中取贵
+  proposition_id: pr_bazi_000761
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0035_s01
+    support_type: direct
+  conditions:
+  - 三冬（亥子丑月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000762
+  proposition: 三冬己土多壬水，不见戊土，富屋贫人
+  proposition_id: pr_bazi_000762
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0035_s01
+    support_type: direct
+  conditions:
+  - 三冬（亥子丑月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000763
+  proposition: 凡三冬己土，见壬水出干，为水浸湖田，此人孤苦
+  proposition_id: pr_bazi_000763
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0035_s01
+    support_type: direct
+  conditions:
+  - 三冬（亥子丑月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000764
+  proposition: 三冬己土若见火不孤，见土不贫
+  proposition_id: pr_bazi_000764
+  relation: qualifies
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0035_s01
+    support_type: direct
+  conditions:
+  - 三冬（亥子丑月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000765
+  proposition: 三冬己土一派癸，不见比劫，此为从才，反主富贵，虽不科甲，恩诰有之
+  proposition_id: pr_bazi_000765
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0035_s01
+    support_type: direct
+  conditions:
+  - 三冬（亥子丑月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000012
+  status: machine_extracted
+- assertion_id: as_bazi_000766
+  proposition: 三冬己土一派癸，若见比争，平常人物，妻子主事
+  proposition_id: pr_bazi_000766
+  relation: qualifies
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0035_s01
+    support_type: direct
+  conditions:
+  - 三冬（亥子丑月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000085
+  status: machine_extracted
+- assertion_id: as_bazi_000767
+  proposition: 三冬己土从才者，木妻火子
+  proposition_id: pr_bazi_000767
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0035_s01
+    support_type: direct
+  conditions:
+  - 三冬（亥子丑月）
+  - 从才
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000768
+  proposition: 三冬己土一派戊己，取甲制之，甲透者富贵
+  proposition_id: pr_bazi_000768
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0035_s01
+    support_type: direct
+  conditions:
+  - 三冬（亥子丑月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000769
+  proposition: 三冬己土一派辛庚，须用丙火，还须丁火为助，丙藏，富贵奇特之命
+  proposition_id: pr_bazi_000769
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0035_s01
+    support_type: direct
+  conditions:
+  - 三冬（亥子丑月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted

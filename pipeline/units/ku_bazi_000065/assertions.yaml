@@ -1,0 +1,111 @@
+assertions:
+- assertion_id: as_bazi_000638
+  proposition: 七月戊土，阳气渐入，寒气渐出，先丙后癸，甲木次之
+  proposition_id: pr_bazi_000638
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0029_s01
+    support_type: direct
+  conditions:
+  - 七月（申月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000639
+  proposition: 七月戊土丙癸甲透者，富贵极品
+  proposition_id: pr_bazi_000639
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0029_s01
+    support_type: direct
+  conditions:
+  - 七月（申月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000640
+  proposition: 七月戊土癸藏丙透，不仅秀才
+  proposition_id: pr_bazi_000640
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0029_s01
+    support_type: direct
+  conditions:
+  - 七月（申月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000641
+  proposition: 七月戊土丙甲两透，癸水会局藏辰，亦不失富贵
+  proposition_id: pr_bazi_000641
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0029_s01
+    support_type: direct
+  conditions:
+  - 七月（申月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000642
+  proposition: 七月戊土无丙得癸甲透，此人清雅，家富千金
+  proposition_id: pr_bazi_000642
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0029_s01
+    support_type: direct
+  conditions:
+  - 七月（申月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000643
+  proposition: 七月戊土无癸甲者，常人
+  proposition_id: pr_bazi_000643
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0029_s01
+    support_type: direct
+  conditions:
+  - 七月（申月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000644
+  proposition: 七月戊土有丙火，妻贤子肖
+  proposition_id: pr_bazi_000644
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0029_s01
+    support_type: direct
+  conditions:
+  - 七月（申月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000645
+  proposition: 七月戊土若丙甲癸三者俱无，下流之命
+  proposition_id: pr_bazi_000645
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0029_s01
+    support_type: direct
+  conditions:
+  - 七月（申月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000646
+  proposition: 七月戊土支成水局，休作弃命从才，宜取甲泄之，甲透者稍有富贵
+  proposition_id: pr_bazi_000646
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0029_s01
+    support_type: direct
+  conditions:
+  - 七月（申月）
+  - 支成水局
+  exceptions: []
+  concept_ids:
+  - co_bazi_000021
+  status: machine_extracted

@@ -1,0 +1,25 @@
+assertions:
+- assertion_id: as_bazi_001181
+  proposition: 九月壬水，专用甲木，次用丙火
+  proposition_id: pr_bazi_001181
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0050_s06
+    support_type: direct
+  conditions:
+  - 九月（戌月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001182
+  proposition: 九月壬水用土者，火妻土子
+  proposition_id: pr_bazi_001182
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0050_s06
+    support_type: direct
+  conditions:
+  - 九月（戌月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted

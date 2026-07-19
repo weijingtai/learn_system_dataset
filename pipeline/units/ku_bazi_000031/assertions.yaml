@@ -1,0 +1,225 @@
+assertions:
+- assertion_id: as_bazi_000293
+  proposition: 八月乙木，芝兰禾稼均退，白露之后，桂蕊未开，耑用癸水以滋桂萼
+  proposition_id: pr_bazi_000293
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0012_s03
+    support_type: direct
+  conditions:
+  - 八月（酉月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000294
+  proposition: 八月乙木秋分后，桂花已开，却喜向阳，又宜用丙，癸水次之，丙癸两透，科甲名臣
+  proposition_id: pr_bazi_000294
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0012_s03
+    support_type: direct
+  conditions:
+  - 八月（酉月）
+  - 秋分后
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000295
+  proposition: 八月乙木支成金局，宜暗藏丁，无丁制金，恐木被金伤
+  proposition_id: pr_bazi_000295
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0012_s03
+    support_type: direct
+  conditions:
+  - 八月（酉月）
+  - 支成金局
+  exceptions: []
+  concept_ids:
+  - co_bazi_000019
+  status: machine_extracted
+- assertion_id: as_bazi_000296
+  proposition: 八月乙木支成金局，若无水火，此人劳碌
+  proposition_id: pr_bazi_000296
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0012_s03
+    support_type: direct
+  conditions:
+  - 八月（酉月）
+  - 支成金局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000297
+  proposition: 八月乙木支成金局，得癸水为子得母，其人一生丰盈
+  proposition_id: pr_bazi_000297
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0012_s03
+    support_type: direct
+  conditions:
+  - 八月（酉月）
+  - 支成金局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000298
+  proposition: 八月乙木丙癸两透，戊土杂出，亦主异路功名
+  proposition_id: pr_bazi_000298
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0012_s03
+    support_type: direct
+  conditions:
+  - 八月（酉月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000299
+  proposition: 八月乙木生秋分后，有丙无癸，亦略富贵
+  proposition_id: pr_bazi_000299
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0012_s03
+    support_type: direct
+  conditions:
+  - 八月（酉月）
+  - 秋分后
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000300
+  proposition: 八月乙木生秋分后，有癸无丙，名利虚花
+  proposition_id: pr_bazi_000300
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0012_s03
+    support_type: direct
+  conditions:
+  - 八月（酉月）
+  - 秋分后
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000301
+  proposition: 八月乙木四柱不见丙癸，下格
+  proposition_id: pr_bazi_000301
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0012_s03
+    support_type: direct
+  conditions:
+  - 八月（酉月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000302
+  proposition: 八月乙木癸在年（月）干，丙透时干，名为木火文星，定主上达，生于秋分后方佳
+  proposition_id: pr_bazi_000302
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0012_s03
+    support_type: direct
+  conditions:
+  - 八月（酉月）
+  - 秋分后
+  exceptions: []
+  concept_ids:
+  - co_bazi_000054
+  status: machine_extracted
+- assertion_id: as_bazi_000303
+  proposition: 八月乙木生上半月无癸，姑用壬水，不然枯木无用，必作贫人
+  proposition_id: pr_bazi_000303
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0012_s03
+    support_type: direct
+  conditions:
+  - 八月（酉月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000304
+  proposition: 八月乙木四柱多见戊己，下格
+  proposition_id: pr_bazi_000304
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0012_s03
+    support_type: direct
+  conditions:
+  - 八月（酉月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000305
+  proposition: 八月乙木用癸者，金妻水子
+  proposition_id: pr_bazi_000305
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0012_s03
+    support_type: direct
+  conditions:
+  - 八月（酉月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000306
+  proposition: 八月乙木用丙者，木妻火子
+  proposition_id: pr_bazi_000306
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0012_s03
+    support_type: direct
+  conditions:
+  - 八月（酉月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000307
+  proposition: 八月乙木用壬者，金妻水子
+  proposition_id: pr_bazi_000307
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0012_s03
+    support_type: direct
+  conditions:
+  - 八月（酉月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000308
+  proposition: 甲乙遇强金，魂归西土，青龙逢兑旺，且贫且贱
+  proposition_id: pr_bazi_000308
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0012_s03
+    support_type: direct
+  conditions: []
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000309
+  proposition: 乙木生居酉，莫逢巳酉丑，富贵坎离宫，贫穷申酉守
+  proposition_id: pr_bazi_000309
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0012_s03
+    support_type: direct
+  conditions:
+  - 乙木生酉月
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000310
+  proposition: 木逢金旺巳伤，再遇金乡，岂不损寿
+  proposition_id: pr_bazi_000310
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0012_s03
+    support_type: direct
+  conditions:
+  - 木逢金旺
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted

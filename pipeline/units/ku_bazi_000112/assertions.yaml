@@ -1,0 +1,13 @@
+assertions:
+- assertion_id: as_bazi_001164
+  proposition: 七月壬水，专用戊土，丁火为佐
+  proposition_id: pr_bazi_001164
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0050_s02
+    support_type: direct
+  conditions:
+  - 七月（申月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted

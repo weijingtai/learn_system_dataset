@@ -1,0 +1,536 @@
+assertions:
+- assertion_id: as_bazi_000770
+  proposition: 金以至阴为体，中含至阳之精，乃能坚刚，独异众物，若独阴而不坚，冰雪是也，遇火则消矣
+  proposition_id: pr_bazi_000770
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0035_s02
+    support_type: direct
+  conditions: []
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000771
+  proposition: 金无火炼，不能成器
+  proposition_id: pr_bazi_000771
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0035_s02
+    support_type: direct
+  conditions: []
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000772
+  proposition: 金重火轻，执事繁难
+  proposition_id: pr_bazi_000772
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0035_s02
+    support_type: direct
+  conditions:
+  - 金重火轻
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000773
+  proposition: 金轻火重，锻炼消亡
+  proposition_id: pr_bazi_000773
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0035_s02
+    support_type: direct
+  conditions:
+  - 金轻火重
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000774
+  proposition: 金极火盛，为格最精
+  proposition_id: pr_bazi_000774
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0035_s02
+    support_type: direct
+  conditions:
+  - 金极火盛
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000775
+  proposition: 金火全名曰铸印，犯丑字即为损模
+  proposition_id: pr_bazi_000775
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0035_s02
+    support_type: direct
+  conditions:
+  - 金火全
+  exceptions:
+  - 犯丑字即为损模
+  concept_ids:
+  - co_bazi_000082
+  status: machine_extracted
+- assertion_id: as_bazi_000776
+  proposition: 金火多名为乘轩，遇死衰反为不利
+  proposition_id: pr_bazi_000776
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0035_s02
+    support_type: direct
+  conditions:
+  - 金火多
+  - 遇死衰
+  exceptions: []
+  concept_ids:
+  - co_bazi_000083
+  status: machine_extracted
+- assertion_id: as_bazi_000777
+  proposition: 木火炼金，成名锐而退速
+  proposition_id: pr_bazi_000777
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0035_s02
+    support_type: direct
+  conditions: []
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000778
+  proposition: 纯金遇水，逢富显以赢余
+  proposition_id: pr_bazi_000778
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0035_s02
+    support_type: direct
+  conditions: []
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000779
+  proposition: 金能生水，水旺则金沉
+  proposition_id: pr_bazi_000779
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0035_s02
+    support_type: direct
+  conditions:
+  - 水旺
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000780
+  proposition: 土能生金，金多则土贱
+  proposition_id: pr_bazi_000780
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0035_s02
+    support_type: direct
+  conditions:
+  - 金多
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000781
+  proposition: 金无水干枯
+  proposition_id: pr_bazi_000781
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0035_s02
+    support_type: direct
+  conditions: []
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000782
+  proposition: 金水重则沉沦无用
+  proposition_id: pr_bazi_000782
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0035_s02
+    support_type: direct
+  conditions:
+  - 水重
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000783
+  proposition: 金无土则死绝
+  proposition_id: pr_bazi_000783
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0035_s02
+    support_type: direct
+  conditions: []
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000784
+  proposition: 金土重则埋没不显
+  proposition_id: pr_bazi_000784
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0035_s02
+    support_type: direct
+  conditions:
+  - 土重
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000785
+  proposition: 两金两火最上
+  proposition_id: pr_bazi_000785
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0035_s02
+    support_type: direct
+  conditions: []
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000786
+  proposition: 两金两木才足
+  proposition_id: pr_bazi_000786
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0035_s02
+    support_type: direct
+  conditions: []
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000787
+  proposition: 一金生三水，力弱难胜
+  proposition_id: pr_bazi_000787
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0035_s02
+    support_type: direct
+  conditions: []
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000788
+  proposition: 一金得三木，顽钝自损
+  proposition_id: pr_bazi_000788
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0035_s02
+    support_type: direct
+  conditions: []
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000789
+  proposition: 金成则火灭，故金未成器，欲得见火；金已成器，不欲见火
+  proposition_id: pr_bazi_000789
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0035_s02
+    support_type: direct
+  conditions: []
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000790
+  proposition: 金到申酉巳丑，亦可谓之成也，运喜西北，不利东南
+  proposition_id: pr_bazi_000790
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0035_s02
+    support_type: direct
+  conditions:
+  - 金到申酉巳丑
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000791
+  proposition: 金生于春月，余寒未尽，贵乎火气为荣
+  proposition_id: pr_bazi_000791
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0035_s02
+    support_type: direct
+  conditions:
+  - 春月
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000792
+  proposition: 春月之金，性柔体弱，欲得厚土为助
+  proposition_id: pr_bazi_000792
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0035_s02
+    support_type: direct
+  conditions:
+  - 春月
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000793
+  proposition: 春月之金，水盛增寒，难施锋锐之势
+  proposition_id: pr_bazi_000793
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0035_s02
+    support_type: direct
+  conditions:
+  - 春月
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000794
+  proposition: 春月之金，木旺损力，有挫钝之危
+  proposition_id: pr_bazi_000794
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0035_s02
+    support_type: direct
+  conditions:
+  - 春月
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000795
+  proposition: 春月之金，金来比助，扶持最妙，比而无火，失类非良
+  proposition_id: pr_bazi_000795
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0035_s02
+    support_type: direct
+  conditions:
+  - 春月
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000796
+  proposition: 夏月之金，尤为柔弱，形质未备，尤嫌死绝
+  proposition_id: pr_bazi_000796
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0035_s02
+    support_type: direct
+  conditions:
+  - 夏月
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000797
+  proposition: 夏月之金，火多而却为不厌
+  proposition_id: pr_bazi_000797
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0035_s02
+    support_type: direct
+  conditions:
+  - 夏月
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000798
+  proposition: 夏月之金，水盛而滋润呈祥
+  proposition_id: pr_bazi_000798
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0035_s02
+    support_type: direct
+  conditions:
+  - 夏月
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000799
+  proposition: 夏月之金，见木而助鬼伤身
+  proposition_id: pr_bazi_000799
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0035_s02
+    support_type: direct
+  conditions:
+  - 夏月
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000800
+  proposition: 夏月之金，遇金而扶持精壮
+  proposition_id: pr_bazi_000800
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0035_s02
+    support_type: direct
+  conditions:
+  - 夏月
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000801
+  proposition: 夏月之金，土薄而最为有用
+  proposition_id: pr_bazi_000801
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0035_s02
+    support_type: direct
+  conditions:
+  - 夏月
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000802
+  proposition: 夏月之金，土厚而埋没无光
+  proposition_id: pr_bazi_000802
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0035_s02
+    support_type: direct
+  conditions:
+  - 夏月
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000803
+  proposition: 秋月之金，当权得令，火来锻炼，遂成钟鼎之材
+  proposition_id: pr_bazi_000803
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0035_s02
+    support_type: direct
+  conditions:
+  - 秋月
+  exceptions: []
+  concept_ids:
+  - co_bazi_000079
+  status: machine_extracted
+- assertion_id: as_bazi_000804
+  proposition: 秋月之金，土多培养，反惹顽浊之气
+  proposition_id: pr_bazi_000804
+  relation: opposes
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0035_s02
+    support_type: direct
+  conditions:
+  - 秋月
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000805
+  proposition: 秋月之金，见水则精神越秀
+  proposition_id: pr_bazi_000805
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0035_s02
+    support_type: direct
+  conditions:
+  - 秋月
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000806
+  proposition: 秋月之金，逢木则琢削施威
+  proposition_id: pr_bazi_000806
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0035_s02
+    support_type: direct
+  conditions:
+  - 秋月
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000807
+  proposition: 秋月之金，金助愈刚，刚过则决
+  proposition_id: pr_bazi_000807
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0035_s02
+    support_type: direct
+  conditions:
+  - 秋月
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000808
+  proposition: 秋月之金，气重愈旺，旺极则衰
+  proposition_id: pr_bazi_000808
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0035_s02
+    support_type: direct
+  conditions:
+  - 秋月
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000809
+  proposition: 冬月之金，形寒性冷
+  proposition_id: pr_bazi_000809
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0035_s02
+    support_type: direct
+  conditions:
+  - 冬月
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000810
+  proposition: 冬月之金，木多则难施琢削之功
+  proposition_id: pr_bazi_000810
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0035_s02
+    support_type: direct
+  conditions:
+  - 冬月
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000811
+  proposition: 冬月之金，水盛未免沉潜之患
+  proposition_id: pr_bazi_000811
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0035_s02
+    support_type: direct
+  conditions:
+  - 冬月
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000812
+  proposition: 冬月之金，土能制水，金体不寒
+  proposition_id: pr_bazi_000812
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0035_s02
+    support_type: direct
+  conditions:
+  - 冬月
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000813
+  proposition: 冬月之金，火来助土，子母成功
+  proposition_id: pr_bazi_000813
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0035_s02
+    support_type: direct
+  conditions:
+  - 冬月
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000814
+  proposition: 冬月之金，喜比肩聚气相扶，欲官印温养为利
+  proposition_id: pr_bazi_000814
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0035_s02
+    support_type: direct
+  conditions:
+  - 冬月
+  exceptions: []
+  concept_ids:
+  - co_bazi_000008
+  status: machine_extracted

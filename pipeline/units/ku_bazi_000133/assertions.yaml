@@ -1,0 +1,100 @@
+assertions:
+- assertion_id: as_bazi_001279
+  proposition: 九月癸水，失令无根，戊土司权，克制太过，专用辛金发水之源，要比肩滋甲制戊方妙
+  proposition_id: pr_bazi_001279
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0055_s04
+    support_type: direct
+  conditions:
+  - 九月（戌月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000092
+  - co_bazi_000037
+  - co_bazi_000008
+  status: machine_extracted
+- assertion_id: as_bazi_001280
+  proposition: 九月癸水辛甲两透，支见子癸，定主平步青云
+  proposition_id: pr_bazi_001280
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0055_s04
+    support_type: direct
+  conditions:
+  - 九月（戌月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001281
+  proposition: 九月癸水癸甲两透，富贵成名
+  proposition_id: pr_bazi_001281
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0055_s04
+    support_type: direct
+  conditions:
+  - 九月（戌月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001282
+  proposition: 九月癸水有甲辛无癸者，亦有恩封
+  proposition_id: pr_bazi_001282
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0055_s04
+    support_type: direct
+  conditions:
+  - 九月（戌月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001283
+  proposition: 九月癸水有甲癸无辛者，富大贵小
+  proposition_id: pr_bazi_001283
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0055_s04
+    support_type: direct
+  conditions:
+  - 九月（戌月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001284
+  proposition: 九月癸水有甲无癸辛者，常人
+  proposition_id: pr_bazi_001284
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0055_s04
+    support_type: direct
+  conditions:
+  - 九月（戌月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001285
+  proposition: 九月癸水三者俱无，贫贱之格
+  proposition_id: pr_bazi_001285
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0055_s04
+    support_type: direct
+  conditions:
+  - 九月（戌月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001286
+  proposition: 九月癸水有甲见壬者，颇许衣衿
+  proposition_id: pr_bazi_001286
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0055_s04
+    support_type: direct
+  conditions:
+  - 九月（戌月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted

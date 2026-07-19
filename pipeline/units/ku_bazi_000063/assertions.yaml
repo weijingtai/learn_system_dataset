@@ -1,0 +1,76 @@
+assertions:
+- assertion_id: as_bazi_000622
+  proposition: 五月戊土，仲夏火炎，先看壬水，次取甲木，丙火酌用，用癸力微
+  proposition_id: pr_bazi_000622
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0028_s02
+    support_type: direct
+  conditions:
+  - 五月（午月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000623
+  proposition: 五月戊土壬甲两透，名君臣庆会，自然桃浪先声，权高位显，又得辛透年干，官居一品
+  proposition_id: pr_bazi_000623
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0028_s02
+    support_type: direct
+  conditions:
+  - 五月（午月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000077
+  status: machine_extracted
+- assertion_id: as_bazi_000624
+  proposition: 五月戊土若支成火局，即透癸水，不能大济，是一杯水难济薪火也，即好学不倦，亦不能成名，且主目疾
+  proposition_id: pr_bazi_000624
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0028_s02
+    support_type: direct
+  conditions:
+  - 五月（午月）
+  - 支成火局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000625
+  proposition: 五月戊土支成火局，若得壬水出干，则非此比
+  proposition_id: pr_bazi_000625
+  relation: qualifies
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0028_s02
+    support_type: direct
+  conditions:
+  - 五月（午月）
+  - 支成火局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000626
+  proposition: 五月戊土土木重重，全无滴水，僧道孤贫之辈
+  proposition_id: pr_bazi_000626
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0028_s02
+    support_type: direct
+  conditions:
+  - 五月（午月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000627
+  proposition: 五月戊土用壬者，金妻水子
+  proposition_id: pr_bazi_000627
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0028_s02
+    support_type: direct
+  conditions:
+  - 五月（午月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted

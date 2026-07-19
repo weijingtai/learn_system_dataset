@@ -1,0 +1,121 @@
+assertions:
+- assertion_id: as_bazi_000667
+  proposition: 十月戊土，时值小阳，阳气略出，先用甲木，次取丙火
+  proposition_id: pr_bazi_000667
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0030_s01
+    support_type: direct
+  conditions:
+  - 十月（亥月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000668
+  proposition: 十月戊土非甲，土不灵；非丙，土不暖，安能生发万物
+  proposition_id: pr_bazi_000668
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0030_s01
+    support_type: direct
+  conditions:
+  - 十月（亥月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000669
+  proposition: 十月戊土甲丙两出，富贵中人
+  proposition_id: pr_bazi_000669
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0030_s01
+    support_type: direct
+  conditions:
+  - 十月（亥月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000670
+  proposition: 十月戊土甲得长生，遇支藏得地之水，一丙高透，亦主身贵扬名
+  proposition_id: pr_bazi_000670
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0030_s01
+    support_type: direct
+  conditions:
+  - 十月（亥月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000671
+  proposition: 十月戊土支见庚金，入泮而已
+  proposition_id: pr_bazi_000671
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0030_s01
+    support_type: direct
+  conditions:
+  - 十月（亥月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000672
+  proposition: 十月戊土若不见庚金，甲木藏支，丙火高透，科甲有之
+  proposition_id: pr_bazi_000672
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0030_s01
+    support_type: direct
+  conditions:
+  - 十月（亥月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000673
+  proposition: 十月戊土若有庚，丁出制，必异路功名，或为典吏
+  proposition_id: pr_bazi_000673
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0030_s01
+    support_type: direct
+  conditions:
+  - 十月（亥月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000674
+  proposition: 十月戊土即庚丁不透，甲丙藏支，亦云富贵
+  proposition_id: pr_bazi_000674
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0030_s01
+    support_type: direct
+  conditions:
+  - 十月（亥月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000675
+  proposition: 十月戊土壬透得戊救丙，主富贵取贵
+  proposition_id: pr_bazi_000675
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0030_s01
+    support_type: direct
+  conditions:
+  - 十月（亥月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000676
+  proposition: 十月戊土丙甲俱无，必为僧道
+  proposition_id: pr_bazi_000676
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0030_s01
+    support_type: direct
+  conditions:
+  - 十月（亥月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted

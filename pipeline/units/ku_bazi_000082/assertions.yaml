@@ -1,0 +1,136 @@
+assertions:
+- assertion_id: as_bazi_000883
+  proposition: 六月庚金，三伏生寒，顽钝极矣，先用丁火，次取甲木
+  proposition_id: pr_bazi_000883
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0038_s03
+    support_type: direct
+  conditions:
+  - 六月（未月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000884
+  proposition: 六月庚金丁甲两透名显身荣，忌癸伤丁
+  proposition_id: pr_bazi_000884
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0038_s03
+    support_type: direct
+  conditions:
+  - 六月（未月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000885
+  proposition: 六月庚金有甲无丁，庸俗
+  proposition_id: pr_bazi_000885
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0038_s03
+    support_type: direct
+  conditions:
+  - 六月（未月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000886
+  proposition: 六月庚金有丁无甲，生员
+  proposition_id: pr_bazi_000886
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0038_s03
+    support_type: direct
+  conditions:
+  - 六月（未月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000887
+  proposition: 六月庚金丁甲全无，下贱之人
+  proposition_id: pr_bazi_000887
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0038_s03
+    support_type: direct
+  conditions:
+  - 六月（未月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000888
+  proposition: 六月庚金木虽有，丁不透，支又见水，执鞭之士
+  proposition_id: pr_bazi_000888
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0038_s03
+    support_type: direct
+  conditions:
+  - 六月（未月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000889
+  proposition: 六月庚金丁火无伤，贸易之流
+  proposition_id: pr_bazi_000889
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0038_s03
+    support_type: direct
+  conditions:
+  - 六月（未月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000890
+  proposition: 六月庚金支会土局，甲先丁后
+  proposition_id: pr_bazi_000890
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0038_s03
+    support_type: direct
+  conditions:
+  - 六月（未月）
+  - 支会土局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000891
+  proposition: 六月庚金支会土局，甲透者文章显达
+  proposition_id: pr_bazi_000891
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0038_s03
+    support_type: direct
+  conditions:
+  - 六月（未月）
+  - 支会土局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000892
+  proposition: 六月庚金支会土局，丁透者刀笔扬名
+  proposition_id: pr_bazi_000892
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0038_s03
+    support_type: direct
+  conditions:
+  - 六月（未月）
+  - 支会土局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000893
+  proposition: 六月庚金柱多金，有二丁出制，异路功名
+  proposition_id: pr_bazi_000893
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0038_s03
+    support_type: direct
+  conditions:
+  - 六月（未月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted

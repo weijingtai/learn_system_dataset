@@ -1,0 +1,111 @@
+assertions:
+- assertion_id: as_bazi_000077
+  proposition: 四月甲木退气，丙火司权，先癸后丁
+  proposition_id: pr_bazi_000077
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0006_s01
+    support_type: direct
+  conditions:
+  - 四月（巳月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000041
+  - co_bazi_000037
+  status: machine_extracted
+- assertion_id: as_bazi_000078
+  proposition: 四月甲木庚金太多，甲反受病
+  proposition_id: pr_bazi_000078
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0006_s01
+    support_type: direct
+  conditions:
+  - 四月（巳月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000079
+  proposition: 四月甲木若得壬水，方配得中和，此人性好清高，假装富贵，即荫袭显达，终日好作祸乱，善辨巧谈，喜作诗文
+  proposition_id: pr_bazi_000079
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0006_s01
+    support_type: direct
+  conditions:
+  - 四月（巳月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000080
+  proposition: 四月甲木如一庚二丙，稍有富贵
+  proposition_id: pr_bazi_000080
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0006_s01
+    support_type: direct
+  conditions:
+  - 四月（巳月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000081
+  proposition: 四月甲木金多火多，又为下格
+  proposition_id: pr_bazi_000081
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0006_s01
+    support_type: direct
+  conditions:
+  - 四月（巳月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000082
+  proposition: 四月甲木癸丁与庚齐透天干，此命可言科甲，即风水浅薄，亦有选拔之才
+  proposition_id: pr_bazi_000082
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0006_s01
+    support_type: direct
+  conditions:
+  - 四月（巳月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000083
+  proposition: 四月甲木癸水不出，虽有庚金丁火，不过富中取贵异途官职而已
+  proposition_id: pr_bazi_000083
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0006_s01
+    support_type: direct
+  conditions:
+  - 四月（巳月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000084
+  proposition: 四月甲木壬透可云一富
+  proposition_id: pr_bazi_000084
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0006_s01
+    support_type: direct
+  conditions:
+  - 四月（巳月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000085
+  proposition: 四月甲木若全无点水，又无庚金丁火，一派丙戊，此无用之人也
+  proposition_id: pr_bazi_000085
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0006_s01
+    support_type: direct
+  conditions:
+  - 四月（巳月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted

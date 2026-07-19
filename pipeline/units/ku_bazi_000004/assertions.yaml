@@ -1,0 +1,29 @@
+assertions:
+- assertion_id: as_bazi_000020
+  proposition: 五行正色：水黑、火赤、木青、土黄
+  proposition_id: pr_bazi_000020
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0001_s05
+    support_type: direct
+  conditions: []
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000021
+  proposition: 五行变易之色，生旺从正色，死绝从母色，成形冠带从妻色，病败从鬼色，旺墓从子色
+  proposition_id: pr_bazi_000021
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0001_s05
+    support_type: direct
+  conditions:
+  - 生旺
+  - 死绝
+  - 成形冠带
+  - 病败
+  - 旺墓
+  exceptions: []
+  concept_ids:
+  - co_bazi_000040
+  status: machine_extracted

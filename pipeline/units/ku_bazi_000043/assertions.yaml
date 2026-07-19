@@ -1,0 +1,113 @@
+assertions:
+- assertion_id: as_bazi_000436
+  proposition: 七月丙火，太阳转西，阳气衰矣，日近西山，见土皆晦，惟日照湖海，暮夜光天，故仍用壬水，辅映光辉
+  proposition_id: pr_bazi_000436
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0018_s01
+    support_type: direct
+  conditions:
+  - 七月（申月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000437
+  proposition: 七月丙火如壬多，取戊制方妙
+  proposition_id: pr_bazi_000437
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0018_s01
+    support_type: direct
+  conditions:
+  - 七月（申月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000438
+  proposition: 七月丙火有壬透干，又见戊土出干，可云科甲
+  proposition_id: pr_bazi_000438
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0018_s01
+    support_type: direct
+  conditions:
+  - 七月（申月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000439
+  proposition: 七月丙火如戊藏支内，不过生员
+  proposition_id: pr_bazi_000439
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0018_s01
+    support_type: direct
+  conditions:
+  - 七月（申月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000440
+  proposition: 七月丙火多壬无戊，平常人也
+  proposition_id: pr_bazi_000440
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0018_s01
+    support_type: direct
+  conditions:
+  - 七月（申月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000441
+  proposition: 七月丙火戊多壬少，亦属常人
+  proposition_id: pr_bazi_000441
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0018_s01
+    support_type: direct
+  conditions:
+  - 七月（申月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000442
+  proposition: 七月丙火多壬，一戊出制，所谓众杀猖狂，一仁可化，必主显达，有权职
+  proposition_id: pr_bazi_000442
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0018_s01
+    support_type: direct
+  conditions:
+  - 七月（申月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000064
+  - co_bazi_000065
+  status: machine_extracted
+- assertion_id: as_bazi_000443
+  proposition: 七月丙火一派辛金，又为弃命从才，奇特之造，虽不科甲，亦得恩荣，但多依亲戚而为进身之阶
+  proposition_id: pr_bazi_000443
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0018_s01
+    support_type: direct
+  conditions:
+  - 七月（申月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000021
+  status: machine_extracted
+- assertion_id: as_bazi_000444
+  proposition: 七月丙火从才者以水妻木子
+  proposition_id: pr_bazi_000444
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0018_s01
+    support_type: direct
+  conditions:
+  - 七月（申月）
+  - 从才
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted

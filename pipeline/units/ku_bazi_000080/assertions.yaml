@@ -1,0 +1,148 @@
+assertions:
+- assertion_id: as_bazi_000861
+  proposition: 四月庚金，长生于巳，巳内有戊，丙不镕金，故不畏火炎，丙亦可作用，但先壬水，方得中和，故曰群金生夏，喜用勾陈
+  proposition_id: pr_bazi_000861
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0038_s01
+    support_type: direct
+  conditions:
+  - 四月（巳月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000862
+  proposition: 四月庚金次取戊土，丙火佐之，三者皆全，登科及第，即透一二，亦非白丁
+  proposition_id: pr_bazi_000862
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0038_s01
+    support_type: direct
+  conditions:
+  - 四月（巳月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000863
+  proposition: 四月庚金一派丙火，名曰假杀为权，须不见壬制者，此人假作清高，并无仁义，刑妻克子
+  proposition_id: pr_bazi_000863
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0038_s01
+    support_type: direct
+  conditions:
+  - 四月（巳月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000086
+  status: machine_extracted
+- assertion_id: as_bazi_000864
+  proposition: 四月庚金一派丙火，有壬制者，又主荣华
+  proposition_id: pr_bazi_000864
+  relation: qualifies
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0038_s01
+    support_type: direct
+  conditions:
+  - 四月（巳月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000865
+  proposition: 四月庚金一派丙火，壬藏支者，有富贵之名，而无其实
+  proposition_id: pr_bazi_000865
+  relation: qualifies
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0038_s01
+    support_type: direct
+  conditions:
+  - 四月（巳月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000866
+  proposition: 四月庚金支成金局，变弱为强，用丙无力，用丁方妙，故丁透者吉
+  proposition_id: pr_bazi_000866
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0038_s01
+    support_type: direct
+  conditions:
+  - 四月（巳月）
+  - 支成金局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000867
+  proposition: 四月庚金支成金局，无丁，无用之人
+  proposition_id: pr_bazi_000867
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0038_s01
+    support_type: direct
+  conditions:
+  - 四月（巳月）
+  - 支成金局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000868
+  proposition: 四月庚金支成金局，丁出三四，锻制太过，其人奔波
+  proposition_id: pr_bazi_000868
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0038_s01
+    support_type: direct
+  conditions:
+  - 四月（巳月）
+  - 支成金局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000869
+  proposition: 四月庚金，须用壬丙戊，但非拘执先后，宜分病用药
+  proposition_id: pr_bazi_000869
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0038_s01
+    support_type: direct
+  conditions:
+  - 四月（巳月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000870
+  proposition: 剑戟成功，入火乡而反害
+  proposition_id: pr_bazi_000870
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0038_s01
+    support_type: direct
+  conditions:
+  - 剑戟成功（金已成器）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000871
+  proposition: 金逢火已损，再见火必伤
+  proposition_id: pr_bazi_000871
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0038_s01
+    support_type: direct
+  conditions: []
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000872
+  proposition: 庚辛火旺怕南方，逢辰巳之乡，又为荣断
+  proposition_id: pr_bazi_000872
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0038_s01
+    support_type: direct
+  conditions:
+  - 逢辰巳
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted

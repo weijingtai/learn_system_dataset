@@ -1,0 +1,98 @@
+assertions:
+- assertion_id: as_bazi_000242
+  proposition: 三夏乙木，木性枯焦，四月专尚癸水，五六月先丙后癸，夏至前仍用癸水
+  proposition_id: pr_bazi_000242
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0011_s01
+    support_type: direct
+  conditions:
+  - 三夏（巳午未月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000243
+  proposition: 三夏乙木先得丙透，支下又有丙火，名曰木秀火明，得一癸透，科甲中人
+  proposition_id: pr_bazi_000243
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0011_s01
+    support_type: direct
+  conditions:
+  - 三夏（巳午未月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000050
+  status: machine_extracted
+- assertion_id: as_bazi_000244
+  proposition: 三夏乙木透二丙一癸，可许采芹
+  proposition_id: pr_bazi_000244
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0011_s01
+    support_type: direct
+  conditions:
+  - 三夏（巳午未月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000245
+  proposition: 三夏乙木一派癸水，有丁无丙，平常之人
+  proposition_id: pr_bazi_000245
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0011_s01
+    support_type: direct
+  conditions:
+  - 三夏（巳午未月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000246
+  proposition: 三夏乙木一癸透干，异途显宦，难由科甲
+  proposition_id: pr_bazi_000246
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0011_s01
+    support_type: direct
+  conditions:
+  - 三夏（巳午未月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000247
+  proposition: 三夏乙木癸居子辰，异路小职
+  proposition_id: pr_bazi_000247
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0011_s01
+    support_type: direct
+  conditions:
+  - 三夏（巳午未月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000248
+  proposition: 三夏乙木丙藏支下，癸透年干，己出月上，虽非科甲，异路功名
+  proposition_id: pr_bazi_000248
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0011_s01
+    support_type: direct
+  conditions:
+  - 三夏（巳午未月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000249
+  proposition: 三夏乙木重重癸水，或支藏癸水，由行伍出身得功名
+  proposition_id: pr_bazi_000249
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0011_s01
+    support_type: direct
+  conditions:
+  - 三夏（巳午未月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted

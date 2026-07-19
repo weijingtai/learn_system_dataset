@@ -1,0 +1,88 @@
+assertions:
+- assertion_id: as_bazi_001267
+  proposition: 七月癸水，正母旺子相之时，癸虽死申，殊不知申中有庚生之，名死处逢生，弱中复强，即运行西北，亦不死也
+  proposition_id: pr_bazi_001267
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0055_s01
+    support_type: direct
+  conditions:
+  - 七月（申月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000113
+  status: machine_extracted
+- assertion_id: as_bazi_001268
+  proposition: 七月癸水庚司令刚锐极矣，必取丁火为用
+  proposition_id: pr_bazi_001268
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0055_s01
+    support_type: direct
+  conditions:
+  - 七月（申月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000052
+  status: machine_extracted
+- assertion_id: as_bazi_001269
+  proposition: 七月癸水丁透有甲，名有焰之火，必主科甲
+  proposition_id: pr_bazi_001269
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0055_s01
+    support_type: direct
+  conditions:
+  - 七月（申月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001270
+  proposition: 七月癸水丁透无甲，又无壬癸，即有一二庚金，亦有生监，有二丁更妙
+  proposition_id: pr_bazi_001270
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0055_s01
+    support_type: direct
+  conditions:
+  - 七月（申月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001271
+  proposition: 七月癸水金多乏丁制者，贫困之人
+  proposition_id: pr_bazi_001271
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0055_s01
+    support_type: direct
+  conditions:
+  - 七月（申月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001272
+  proposition: 七月癸水一丁坐午，名独才格，主金玉满堂，富中取贵，若在未戌，则是常人
+  proposition_id: pr_bazi_001272
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0055_s01
+    support_type: direct
+  conditions:
+  - 七月（申月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000114
+  status: machine_extracted
+- assertion_id: as_bazi_001273
+  proposition: 七月癸水柱见二戌二未，又得丙丁藏支，干见甲出、无水，亦作富贵而推
+  proposition_id: pr_bazi_001273
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0055_s01
+    support_type: direct
+  conditions:
+  - 七月（申月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted

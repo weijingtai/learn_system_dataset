@@ -1,0 +1,8 @@
+unit_id: ku_bazi_000003
+technique_id: bazi
+source_id: src_qtbj_ed01
+title: 五行总论
+span_ids:
+- ss_qtbj_ed01_p0001_s04
+status: machine_extracted
+created: '2026-07-16'

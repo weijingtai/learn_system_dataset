@@ -1,0 +1,88 @@
+assertions:
+- assertion_id: as_bazi_000479
+  proposition: 十二月丙火，气进二阳，侮雪欺霜，喜壬为用
+  proposition_id: pr_bazi_000479
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0019_s03
+    support_type: direct
+  conditions:
+  - 十二月（丑月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000480
+  proposition: 十二月丙火己土司令，土多又不可少甲
+  proposition_id: pr_bazi_000480
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0019_s03
+    support_type: direct
+  conditions:
+  - 十二月（丑月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000052
+  status: machine_extracted
+- assertion_id: as_bazi_000481
+  proposition: 十二月丙火壬甲两透，科甲堪宜，甲藏则秀才而已
+  proposition_id: pr_bazi_000481
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0019_s03
+    support_type: direct
+  conditions:
+  - 十二月（丑月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000482
+  proposition: 十二月丙火无甲得一壬透，富中取贵
+  proposition_id: pr_bazi_000482
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0019_s03
+    support_type: direct
+  conditions:
+  - 十二月（丑月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000483
+  proposition: 十二月丙火如见一派己土，不见甲乙，名为假伤官，聪明性傲，名利虚浮
+  proposition_id: pr_bazi_000483
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0019_s03
+    support_type: direct
+  conditions:
+  - 十二月（丑月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000032
+  - co_bazi_000001
+  status: machine_extracted
+- assertion_id: as_bazi_000484
+  proposition: 十二月丙火一派癸水，得己出干，必自主创业
+  proposition_id: pr_bazi_000484
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0019_s03
+    support_type: direct
+  conditions:
+  - 十二月（丑月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000485
+  proposition: 十二月丙火若制伏太过，又取辛金作用，得见癸透，此人即不成名，必清雅文墨士
+  proposition_id: pr_bazi_000485
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0019_s03
+    support_type: direct
+  conditions:
+  - 十二月（丑月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted

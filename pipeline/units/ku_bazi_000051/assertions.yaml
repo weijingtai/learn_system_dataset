@@ -1,0 +1,103 @@
+assertions:
+- assertion_id: as_bazi_000512
+  proposition: 三月丁火，戊土司令，泄弱丁气，先用甲木引丁制土，次看庚金
+  proposition_id: pr_bazi_000512
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0021_s03
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000052
+  status: machine_extracted
+- assertion_id: as_bazi_000513
+  proposition: 三月丁火庚甲两透，定主科甲，或一藏一透，终非白丁
+  proposition_id: pr_bazi_000513
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0021_s03
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000514
+  proposition: 三月丁火支成木局，取庚为先，得庚透，丁癸不透，亦有异路功名
+  proposition_id: pr_bazi_000514
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0021_s03
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  - 支成木局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000515
+  proposition: 三月丁火支成水局，加以壬透，名杀重身轻，必夭折天年，或遭凶死
+  proposition_id: pr_bazi_000515
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0021_s03
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  - 支成水局
+  exceptions: []
+  concept_ids:
+  - co_bazi_000023
+  status: machine_extracted
+- assertion_id: as_bazi_000516
+  proposition: 三月丁火支成水局，戊己两透，廊庙之客
+  proposition_id: pr_bazi_000516
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0021_s03
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  - 支成水局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000517
+  proposition: 三月丁火支成水局，戊己两透，若一甲破，定是常人
+  proposition_id: pr_bazi_000517
+  relation: qualifies
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0021_s03
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  - 支成水局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000518
+  proposition: 三月丁火用甲者，水妻木子
+  proposition_id: pr_bazi_000518
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0021_s03
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000519
+  proposition: 三月丁火用金者，土妻金子
+  proposition_id: pr_bazi_000519
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0021_s03
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted

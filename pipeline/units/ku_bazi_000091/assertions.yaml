@@ -1,0 +1,151 @@
+assertions:
+- assertion_id: as_bazi_000981
+  proposition: 三月辛金，戊土司令，辛承正气，母旺子相，先壬后甲
+  proposition_id: pr_bazi_000981
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0042_s03
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000052
+  status: machine_extracted
+- assertion_id: as_bazi_000982
+  proposition: 三月辛金壬甲两透，富贵必然
+  proposition_id: pr_bazi_000982
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0042_s03
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000983
+  proposition: 三月辛金壬透甲藏，廪贡不失
+  proposition_id: pr_bazi_000983
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0042_s03
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000984
+  proposition: 三月辛金甲透壬藏，富则可云
+  proposition_id: pr_bazi_000984
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0042_s03
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000985
+  proposition: 三月辛金壬甲皆无，平常之格
+  proposition_id: pr_bazi_000985
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0042_s03
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000986
+  proposition: 三月辛金所忌者丙贪合也，如月时皆丙，名为争合，主慷慨风流，交游四海
+  proposition_id: pr_bazi_000986
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0042_s03
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000059
+  status: machine_extracted
+- assertion_id: as_bazi_000987
+  proposition: 三月辛金月时皆丙，若癸出干制丙，可许采芹
+  proposition_id: pr_bazi_000987
+  relation: qualifies
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0042_s03
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000988
+  proposition: 三月辛金支坐亥子之乡，支又见申，即非玉堂，亦必高增禄位
+  proposition_id: pr_bazi_000988
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0042_s03
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000989
+  proposition: 三月辛金若戊出干制水，不见甲乙，清闲之人
+  proposition_id: pr_bazi_000989
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0042_s03
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000990
+  proposition: 三月辛金支见四库，名土厚金埋，不见甲制，愚顽之辈
+  proposition_id: pr_bazi_000990
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0042_s03
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  - 支见四库
+  exceptions: []
+  concept_ids:
+  - co_bazi_000096
+  status: machine_extracted
+- assertion_id: as_bazi_000991
+  proposition: 三月辛金四柱火多，无水制伏，名火土杂乱，主作缁衣，见癸可解
+  proposition_id: pr_bazi_000991
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0042_s03
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000097
+  status: machine_extracted
+- assertion_id: as_bazi_000992
+  proposition: 三月辛金比劫重重，壬癸浅弱，主夭，有甲出干则贵，然无庚制方妙
+  proposition_id: pr_bazi_000992
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0042_s03
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000009
+  status: machine_extracted

@@ -1,0 +1,125 @@
+assertions:
+- assertion_id: as_bazi_001295
+  proposition: 十一月癸水，值冰冻之时，金水无交欢之象，专用丙火解冻，庶不致成冰，又要辛金滋扶，无丙有辛不妙
+  proposition_id: pr_bazi_001295
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0056_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001296
+  proposition: 凡冬季癸水，有丙透解冻，则金温水暖，两两相生，要不见壬癸，自然登科及第，紫诰金章
+  proposition_id: pr_bazi_001296
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0056_s02
+    support_type: direct
+  conditions:
+  - 冬
+  exceptions: []
+  concept_ids:
+  - co_bazi_000117
+  status: machine_extracted
+- assertion_id: as_bazi_001297
+  proposition: 十一月癸水一派壬水，无丙出干，寒困之士
+  proposition_id: pr_bazi_001297
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0056_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001298
+  proposition: 十一月癸水一派癸水，孤贱之流
+  proposition_id: pr_bazi_001298
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0056_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001299
+  proposition: 十一月癸水支成水局，得丙火重出干者，又主蟒袍玉带之荣
+  proposition_id: pr_bazi_001299
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0056_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  - 支成水局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001300
+  proposition: 十一月癸水支成金局，丙火无克者，芒鞋革履之流
+  proposition_id: pr_bazi_001300
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0056_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  - 支成金局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001301
+  proposition: 十一月癸水如辛年丙月癸日，有火者主恩荣宠锡，绕膝芝兰，无火者捐资得贵，位重当朝
+  proposition_id: pr_bazi_001301
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0056_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001302
+  proposition: 十一月癸水一派戊己，名杀重身轻，非贫即夭
+  proposition_id: pr_bazi_001302
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0056_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000023
+  status: machine_extracted
+- assertion_id: as_bazi_001303
+  proposition: 十一月癸水用火者，木妻火子
+  proposition_id: pr_bazi_001303
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0056_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001304
+  proposition: 十一月癸水用辛者，土妻金子
+  proposition_id: pr_bazi_001304
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0056_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted

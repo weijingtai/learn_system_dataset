@@ -1,0 +1,100 @@
+assertions:
+- assertion_id: as_bazi_000028
+  proposition: 春月之木，渐有生长之象
+  proposition_id: pr_bazi_000028
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0005_s01
+    support_type: direct
+  conditions:
+  - 春月
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000029
+  proposition: 初春犹有余寒，当以火温暖，则有舒畅之美
+  proposition_id: pr_bazi_000029
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0005_s01
+    support_type: direct
+  conditions:
+  - 初春
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000030
+  proposition: 初春水多变克，有损精神
+  proposition_id: pr_bazi_000030
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0005_s01
+    support_type: direct
+  conditions:
+  - 初春
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000031
+  proposition: 春月重见生旺，必用庚金斫凿，可成栋梁
+  proposition_id: pr_bazi_000031
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0005_s01
+    support_type: direct
+  conditions:
+  - 春月
+  - 重见生旺
+  exceptions: []
+  concept_ids:
+  - co_bazi_000035
+  - co_bazi_000040
+  status: machine_extracted
+- assertion_id: as_bazi_000032
+  proposition: 春末阳壮水渴，藉水资扶，则花繁叶茂
+  proposition_id: pr_bazi_000032
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0005_s01
+    support_type: direct
+  conditions:
+  - 春末
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000033
+  proposition: 初春无火，增之以水，则阴浓气弱，根损枝枯，不能华秀
+  proposition_id: pr_bazi_000033
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0005_s01
+    support_type: direct
+  conditions:
+  - 初春
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000034
+  proposition: 春末失水，增之以火，则阳气太盛，燥渴相加，枝枯叶干，亦不华秀
+  proposition_id: pr_bazi_000034
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0005_s01
+    support_type: direct
+  conditions:
+  - 春末
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000035
+  proposition: 水火二物，要得时相济为美
+  proposition_id: pr_bazi_000035
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0005_s01
+    support_type: direct
+  conditions: []
+  exceptions: []
+  concept_ids:
+  - co_bazi_000036
+  status: machine_extracted

@@ -1,0 +1,135 @@
+assertions:
+- assertion_id: as_bazi_001153
+  proposition: 七月壬水，庚金司令，壬得申之长生，源流自远，转弱为强，专用戊土，次取丁火佐戊制庚
+  proposition_id: pr_bazi_001153
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0050_s01
+    support_type: direct
+  conditions:
+  - 七月（申月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000052
+  status: machine_extracted
+- assertion_id: as_bazi_001154
+  proposition: 七月壬水但用辰戌之戊，不用申中受病之戊
+  proposition_id: pr_bazi_001154
+  relation: qualifies
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0050_s01
+    support_type: direct
+  conditions:
+  - 七月（申月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001155
+  proposition: 七月壬水戊丁俱透，科甲生员
+  proposition_id: pr_bazi_001155
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0050_s01
+    support_type: direct
+  conditions:
+  - 七月（申月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001156
+  proposition: 七月壬水戊透天干，丁藏午戌，恩封可待，特忌戊癸化合
+  proposition_id: pr_bazi_001156
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0050_s01
+    support_type: direct
+  conditions:
+  - 七月（申月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001157
+  proposition: 七月壬水即支见寅戌，年出丁火，可许衣衿
+  proposition_id: pr_bazi_001157
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0050_s01
+    support_type: direct
+  conditions:
+  - 七月（申月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001158
+  proposition: 七月壬水丁戊两藏，富中取贵
+  proposition_id: pr_bazi_001158
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0050_s01
+    support_type: direct
+  conditions:
+  - 七月（申月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001159
+  proposition: 七月壬水四柱多壬，戊又透干，名假杀化权，阆苑之仙
+  proposition_id: pr_bazi_001159
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0050_s01
+    support_type: direct
+  conditions:
+  - 七月（申月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000104
+  status: machine_extracted
+- assertion_id: as_bazi_001160
+  proposition: 七月壬水四柱多壬，戊又透干，支中见甲，亦不忌也，但甲太多者常人
+  proposition_id: pr_bazi_001160
+  relation: qualifies
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0050_s01
+    support_type: direct
+  conditions:
+  - 七月（申月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001161
+  proposition: 七月壬水四柱多壬，有庚居申，颇有衣禄
+  proposition_id: pr_bazi_001161
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0050_s01
+    support_type: direct
+  conditions:
+  - 七月（申月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001162
+  proposition: 七月壬水戊多而透，得一甲制，略富贵，无甲常人
+  proposition_id: pr_bazi_001162
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0050_s01
+    support_type: direct
+  conditions:
+  - 七月（申月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001163
+  proposition: 七月壬水一派甲木，又见火多，无庚出者，别祖离乡，随缘度日，盖申中之庚不能救也
+  proposition_id: pr_bazi_001163
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0050_s01
+    support_type: direct
+  conditions:
+  - 七月（申月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted

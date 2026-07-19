@@ -1,0 +1,124 @@
+assertions:
+- assertion_id: as_bazi_000520
+  proposition: 四月丁火乘旺，虽取甲引丁，必用庚噼甲，伐甲方云木火通明
+  proposition_id: pr_bazi_000520
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0022_s01
+    support_type: direct
+  conditions:
+  - 四月（巳月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000017
+  status: machine_extracted
+- assertion_id: as_bazi_000521
+  proposition: 四月丁火甲多，又取庚为先
+  proposition_id: pr_bazi_000521
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0022_s01
+    support_type: direct
+  conditions:
+  - 四月（巳月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000522
+  proposition: 四月丁火四柱忌见癸水，癸水一见，泄金、湿甲、伤丁，故以癸为病
+  proposition_id: pr_bazi_000522
+  relation: opposes
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0022_s01
+    support_type: direct
+  conditions:
+  - 四月（巳月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000523
+  proposition: 四月丁火癸水藏支，壬水出干制丙，不夺丁光，自是雁塔题名，玉堂清贵
+  proposition_id: pr_bazi_000523
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0022_s01
+    support_type: direct
+  conditions:
+  - 四月（巳月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000524
+  proposition: 四月丁火有庚无甲，戊透天干，此为伤官生才，又取戊为用，必主富贵
+  proposition_id: pr_bazi_000524
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0022_s01
+    support_type: direct
+  conditions:
+  - 四月（巳月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000018
+  status: machine_extracted
+- assertion_id: as_bazi_000525
+  proposition: 四月丁火戊土出干，不见甲乙，又不见水，是伤官伤尽，清高，但不大贵，亦不大富
+  proposition_id: pr_bazi_000525
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0022_s01
+    support_type: direct
+  conditions:
+  - 四月（巳月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000024
+  status: machine_extracted
+- assertion_id: as_bazi_000526
+  proposition: 四月丁火见水多木多，定是常人
+  proposition_id: pr_bazi_000526
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0022_s01
+    support_type: direct
+  conditions:
+  - 四月（巳月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000527
+  proposition: 四月丁火四柱多丙，不见壬癸，夺了丁光，此人贫苦
+  proposition_id: pr_bazi_000527
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0022_s01
+    support_type: direct
+  conditions:
+  - 四月（巳月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000528
+  proposition: 四月丁火丁年、巳月、丁巳日、丙午时，一丙不夺二丁，即不显达，亦名播四邻
+  proposition_id: pr_bazi_000528
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0022_s01
+    support_type: direct
+  conditions:
+  - 四月（巳月）
+  - 丁年巳月丁巳日丙午时
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000529
+  proposition: 丁火阴柔一烛灯，太阳相见夺光明；柱中若见甲木透，定许身安福自临
+  proposition_id: pr_bazi_000529
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0022_s01
+    support_type: direct
+  conditions: []
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted

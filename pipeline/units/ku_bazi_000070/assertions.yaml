@@ -1,0 +1,181 @@
+assertions:
+- assertion_id: as_bazi_000693
+  proposition: 正月己土，田园犹冻，盖因腊气未除，余寒未退，故丙为尊
+  proposition_id: pr_bazi_000693
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0032_s01
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000694
+  proposition: 正月己土得丙照暖，万物自生
+  proposition_id: pr_bazi_000694
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0032_s01
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000695
+  proposition: 正月己土忌见壬水，反为己病，何也？壬乃江湖之水，湖水一发，则田园洗荡，变为沙土，而根苗尽没矣
+  proposition_id: pr_bazi_000695
+  relation: opposes
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0032_s01
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000696
+  proposition: 正月己土须戊作堤，以保园圃，壬多要见戊制
+  proposition_id: pr_bazi_000696
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0032_s01
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000697
+  proposition: 正月己土有戊出干者，定主玉堂金马
+  proposition_id: pr_bazi_000697
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0032_s01
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000698
+  proposition: 正月己土若乏戊制，必属平常
+  proposition_id: pr_bazi_000698
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0032_s01
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000699
+  proposition: 正月己土一派甲木，有庚出干，加以癸丙齐透，配得中和，亦名利双全
+  proposition_id: pr_bazi_000699
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0032_s01
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000700
+  proposition: 正月己土即丙生寅月，庚透天干，亦有俊秀
+  proposition_id: pr_bazi_000700
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0032_s01
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000701
+  proposition: 正月己土若甲多无庚，残疾废人，宜用丁泄
+  proposition_id: pr_bazi_000701
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0032_s01
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000702
+  proposition: 正月己土一派火，即不见水无克，反主厚禄
+  proposition_id: pr_bazi_000702
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0032_s01
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000703
+  proposition: 正月己土一派火，加一癸透，科甲自然
+  proposition_id: pr_bazi_000703
+  relation: qualifies
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0032_s01
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000704
+  proposition: 正月己土一派火，戊透，反作常人
+  proposition_id: pr_bazi_000704
+  relation: opposes
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0032_s01
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000705
+  proposition: 正月己土一派戊土，有甲出制，又主荣显
+  proposition_id: pr_bazi_000705
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0032_s01
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000706
+  proposition: 正月己土一派戊土，如见乙出，虽多不能疏土，且乙多者，奸诈小人
+  proposition_id: pr_bazi_000706
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0032_s01
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000707
+  proposition: 正月己土用丙者，木妻火子
+  proposition_id: pr_bazi_000707
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0032_s01
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted

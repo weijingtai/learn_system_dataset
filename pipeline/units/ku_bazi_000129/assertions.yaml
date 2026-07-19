@@ -1,0 +1,40 @@
+assertions:
+- assertion_id: as_bazi_001264
+  proposition: 六月癸水，有上下月之分，下半月庚辛有气，上半月庚辛休囚，凡六癸日、多不验者，因未中有乙己同宫，破而不破，故癸水不能从杀，所以专用庚辛
+  proposition_id: pr_bazi_001264
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0054_s03
+    support_type: direct
+  conditions:
+  - 六月（未月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001265
+  proposition: 六月癸水上半月金神衰弱，火气炎烈，宜比劫助身，可云富贵，与五月一理
+  proposition_id: pr_bazi_001265
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0054_s03
+    support_type: direct
+  conditions:
+  - 六月（未月）
+  - 上半月
+  exceptions: []
+  concept_ids:
+  - co_bazi_000009
+  status: machine_extracted
+- assertion_id: as_bazi_001266
+  proposition: 六月癸水下半月庚辛有气，即无比劫亦可，又忌丁透，即丁在支亦不吉
+  proposition_id: pr_bazi_001266
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0054_s03
+    support_type: direct
+  conditions:
+  - 六月（未月）
+  - 下半月
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted

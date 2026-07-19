@@ -15,7 +15,8 @@ files:
     sha256: 351323ede81a07c268a3a03c007d26b78ae294cba299d289daf8b9700edc7093
   - path: source/transcript_v1.md
     role: transcript
-    sha256: 132f99e3f5aff61592de97addab40323a69d86e619989dd2ff724546a6ce9d9a
+    # 哈希于 1bdb4ff 更新：PUA 乱码勘误(7处私用区字→正字)后重算，非内容改写
+    sha256: 06a301a2d3401d6cd3e1db4a6d4b439db96b3feff2bf1d732b54048e81f02f39
   - path: source/sections.yaml
     role: sections_map           # 伪页号→标题路径 对照（每个伪页 = 一个标题节）
     sha256: 7f7fed78862e9e66f0503246ec66b70142a87e75a021c0908674b96a2f53d94e

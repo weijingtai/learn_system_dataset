@@ -1,0 +1,135 @@
+assertions:
+- assertion_id: as_bazi_000549
+  proposition: 三秋丁火，退气柔弱，耑用甲木，金虽乘旺司权，无伤丁之理，仍取庚噼甲，为引火之物
+  proposition_id: pr_bazi_000549
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0023_s01
+    support_type: direct
+  conditions:
+  - 三秋（申酉戌月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000550
+  proposition: 三秋丁火借丙暖金晒木，不虑丙夺丁火，凡两丙夹丁者，夏月忌之，余月不忌
+  proposition_id: pr_bazi_000550
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0023_s01
+    support_type: direct
+  conditions:
+  - 三秋（申酉戌月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000551
+  proposition: 三秋丁火两丙夹丁格，少年困苦刑克，中年富贵，必要地支见水制丙方妙
+  proposition_id: pr_bazi_000551
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0023_s01
+    support_type: direct
+  conditions:
+  - 三秋（申酉戌月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000552
+  proposition: 三秋甲庚丙并用，仍分优劣：七月甲丙，申中有庚；八月甲丙庚皆用；七八月或无甲木，乙亦可用，为枯草引灯，却不离丙晒也；九月耑用甲庚
+  proposition_id: pr_bazi_000552
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0023_s01
+    support_type: direct
+  conditions:
+  - 三秋（申酉戌月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000553
+  proposition: 三秋丁火甲不离庚，乙不离丙，其理极明
+  proposition_id: pr_bazi_000553
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0023_s01
+    support_type: direct
+  conditions:
+  - 三秋（申酉戌月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000554
+  proposition: 三秋丁火见甲庚丙皆透，必主科甲
+  proposition_id: pr_bazi_000554
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0023_s01
+    support_type: direct
+  conditions:
+  - 三秋（申酉戌月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000555
+  proposition: 三秋丁火无甲用乙者，富贵皆小，且富而不贵者多
+  proposition_id: pr_bazi_000555
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0023_s01
+    support_type: direct
+  conditions:
+  - 三秋（申酉戌月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000556
+  proposition: 三秋丁火一重壬水，又多见癸水，必以戊土为制，自然富贵光辉
+  proposition_id: pr_bazi_000556
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0023_s01
+    support_type: direct
+  conditions:
+  - 三秋（申酉戌月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000557
+  proposition: 三秋丁火一派庚金，名财多身弱，主富屋贫人，妻多主事
+  proposition_id: pr_bazi_000557
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0023_s01
+    support_type: direct
+  conditions:
+  - 三秋（申酉戌月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000016
+  status: machine_extracted
+- assertion_id: as_bazi_000558
+  proposition: 三秋丁火壬多泄庚，丁壬化杀，反成富贵
+  proposition_id: pr_bazi_000558
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0023_s01
+    support_type: direct
+  conditions:
+  - 三秋（申酉戌月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000071
+  status: machine_extracted
+- assertion_id: as_bazi_000559
+  proposition: 三秋丁火庚多无壬，奔流下贱
+  proposition_id: pr_bazi_000559
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0023_s01
+    support_type: direct
+  conditions:
+  - 三秋（申酉戌月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted

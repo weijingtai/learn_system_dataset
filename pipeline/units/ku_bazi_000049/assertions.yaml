@@ -1,0 +1,124 @@
+assertions:
+- assertion_id: as_bazi_000486
+  proposition: 正月丁火，甲木当权，乃为母旺，非庚不能噼甲，何以引丁，姑用庚金
+  proposition_id: pr_bazi_000486
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0021_s01
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000487
+  proposition: 正月丁火一派甲木，无庚制之，非贫即夭
+  proposition_id: pr_bazi_000487
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0021_s01
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000488
+  proposition: 正月丁火只一甲木，多见乙木者，必离乡之客，焉问妻儿
+  proposition_id: pr_bazi_000488
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0021_s01
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000489
+  proposition: 正月丁火见甲乙，生庚子时，又主妻早子早，且可采芹
+  proposition_id: pr_bazi_000489
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0021_s01
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  - 庚子时
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000490
+  proposition: 正月丁火得壬化木，弱极复生，合此必主大贵，但此化合，反以不见庚破格为妙
+  proposition_id: pr_bazi_000490
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0021_s01
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000491
+  proposition: 正月丁火有庚金壬癸，得己土出干制之，此命不由科甲，亦有异途
+  proposition_id: pr_bazi_000491
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0021_s01
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000492
+  proposition: 正月丁火一派壬癸，不得寅时，又无庚金，必主穷困
+  proposition_id: pr_bazi_000492
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0021_s01
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000493
+  proposition: 正月丁火丁年、壬月、丁日、壬时，男主大贵，女则不宜，此格以土为妻、金为子，但子女艰难
+  proposition_id: pr_bazi_000493
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0021_s01
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000494
+  proposition: 正月丁火女命丁年壬月丁日壬时，淫贱，刑夫克子
+  proposition_id: pr_bazi_000494
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0021_s01
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  - 女命
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000495
+  proposition: 正月丁火支火局，无滴水解，僧道之命，见甲出略可，总不可无水，水多亦不宜
+  proposition_id: pr_bazi_000495
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0021_s01
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  - 支成火局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted

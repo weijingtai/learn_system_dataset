@@ -1,0 +1,49 @@
+assertions:
+- assertion_id: as_bazi_000581
+  proposition: 三春戊土，无丙照暖，戊土不生，无甲疏噼，戊土不灵，无癸滋润，万物不长
+  proposition_id: pr_bazi_000581
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0027_s01
+    support_type: direct
+  conditions:
+  - 三春（寅卯辰月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000582
+  proposition: 正二月戊土先丙后甲，癸又次之
+  proposition_id: pr_bazi_000582
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0027_s01
+    support_type: direct
+  conditions:
+  - 正二月（寅卯月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000583
+  proposition: 三月戊土先甲后丙，癸又次之，因戊土司权故也
+  proposition_id: pr_bazi_000583
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0027_s01
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000584
+  proposition: 三春戊土有甲、丙、癸三者齐透，必主一品当朝，或二透一藏，亦登金榜，二藏一透，也可异途
+  proposition_id: pr_bazi_000584
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0027_s01
+    support_type: direct
+  conditions:
+  - 三春（寅卯辰月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted

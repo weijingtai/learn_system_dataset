@@ -1,0 +1,86 @@
+assertions:
+- assertion_id: as_bazi_000472
+  proposition: 十一月丙火，冬至一阳生，弱中复强，壬水为最，戊土佐之
+  proposition_id: pr_bazi_000472
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0019_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000473
+  proposition: 十一月丙火壬戊两透，科甲可许，无戊见己，异路功名
+  proposition_id: pr_bazi_000473
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0019_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000474
+  proposition: 十一月丙火无壬水，有癸出干得金滋无伤，又有丙透以解冻，可许衣衿
+  proposition_id: pr_bazi_000474
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0019_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000475
+  proposition: 十一月丙火一派壬，则耑用戊土，此人虽不成名，文章迈众，但名利虚浮，因戊晦光，又须甲木为药也
+  proposition_id: pr_bazi_000475
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0019_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000476
+  proposition: 十一月丙火无壬水，癸亦可用，但不甚显
+  proposition_id: pr_bazi_000476
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0019_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000477
+  proposition: 十一月丙火四柱多壬无甲，乃作弃命从杀，亦有云路
+  proposition_id: pr_bazi_000477
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0019_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000066
+  status: machine_extracted
+- assertion_id: as_bazi_000478
+  proposition: 十一月丙火水多、有甲、无戊，却非从杀，宜用己土浊壬，十一月丙火与十月颇同
+  proposition_id: pr_bazi_000478
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0019_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted

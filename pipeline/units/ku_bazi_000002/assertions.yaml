@@ -1,0 +1,67 @@
+assertions:
+- assertion_id: as_bazi_000008
+  proposition: 火为太阳，性炎上
+  proposition_id: pr_bazi_000008
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0001_s03
+    support_type: direct
+  conditions: []
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000009
+  proposition: 水为太阴，性润下
+  proposition_id: pr_bazi_000009
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0001_s03
+    support_type: direct
+  conditions: []
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000010
+  proposition: 木为少阳，性腾上而无所止
+  proposition_id: pr_bazi_000010
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0001_s03
+    support_type: direct
+  conditions: []
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000011
+  proposition: 金为少阴，性沉下而有所止
+  proposition_id: pr_bazi_000011
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0001_s03
+    support_type: direct
+  conditions: []
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000012
+  proposition: 土无常性，视四时所乘
+  proposition_id: pr_bazi_000012
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0001_s03
+    support_type: direct
+  conditions: []
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000013
+  proposition: 欲使五行相济得所，勿令太过弗及
+  proposition_id: pr_bazi_000013
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0001_s03
+    support_type: direct
+  conditions: []
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted

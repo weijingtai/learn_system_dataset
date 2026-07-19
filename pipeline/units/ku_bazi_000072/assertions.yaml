@@ -1,0 +1,85 @@
+assertions:
+- assertion_id: as_bazi_000719
+  proposition: 三月己土，正栽培禾稼之时，先丙后癸，土暖而润，随用甲疏，三者俱透天干，必官居黄阁
+  proposition_id: pr_bazi_000719
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0032_s03
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000720
+  proposition: 三月己土丙甲癸三者透一，科甲定然，但要得地，却以庚金为病
+  proposition_id: pr_bazi_000720
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0032_s03
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000721
+  proposition: 三月己土有甲无癸，亦可致富，但不贵显
+  proposition_id: pr_bazi_000721
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0032_s03
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000722
+  proposition: 三月己土有癸而无甲丙，亦有衣衿
+  proposition_id: pr_bazi_000722
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0032_s03
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000723
+  proposition: 三月己土有丙癸无甲，亦系人才
+  proposition_id: pr_bazi_000723
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0032_s03
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000724
+  proposition: 三月己土丙癸全无，流俗之辈
+  proposition_id: pr_bazi_000724
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0032_s03
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000725
+  proposition: 三月己土一派乙木，无金制伏，贫而且夭也
+  proposition_id: pr_bazi_000725
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0032_s03
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted

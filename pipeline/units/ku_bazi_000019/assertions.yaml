@@ -1,0 +1,123 @@
+assertions:
+- assertion_id: as_bazi_000183
+  proposition: 十一月甲木，木性生寒，丁先庚后，丙火佐之
+  proposition_id: pr_bazi_000183
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0008_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000184
+  proposition: 十一月甲木癸水司权，为火金之病
+  proposition_id: pr_bazi_000184
+  relation: opposes
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0008_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000185
+  proposition: 十一月甲木庚丁两透，支见巳寅，科甲有准，风水不及，选拔有之
+  proposition_id: pr_bazi_000185
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0008_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000186
+  proposition: 十一月甲木癸透伤丁，无戊己辅救，残疾之人
+  proposition_id: pr_bazi_000186
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0008_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000187
+  proposition: 十一月甲木壬水重出，丁火全无者，庸人也，得丙方妙
+  proposition_id: pr_bazi_000187
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0008_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000188
+  proposition: 十一月甲木支成水局，加以壬透，名为水泛木浮，死无棺木
+  proposition_id: pr_bazi_000188
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0008_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  - 支成水局
+  exceptions: []
+  concept_ids:
+  - co_bazi_000015
+  status: machine_extracted
+- assertion_id: as_bazi_000189
+  proposition: 总之十一月甲木，为寒枝，不比春木清茂，耑取庚丁
+  proposition_id: pr_bazi_000189
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0008_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000190
+  proposition: 十一月甲木透壬无丙，不过刀笔异途，武职有验
+  proposition_id: pr_bazi_000190
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0008_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000191
+  proposition: 十一月甲木用庚，土妻金子
+  proposition_id: pr_bazi_000191
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0008_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000192
+  proposition: 十一月甲木用火，木妻火子
+  proposition_id: pr_bazi_000192
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0008_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted

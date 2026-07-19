@@ -1,0 +1,87 @@
+assertions:
+- assertion_id: as_bazi_000542
+  proposition: 六月之丁，阴柔退气，但值三伏生寒，丁弱极矣，专取甲木，壬水次之
+  proposition_id: pr_bazi_000542
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0022_s03
+    support_type: direct
+  conditions:
+  - 六月（未月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000543
+  proposition: 六月丁火若得甲出天干，支成木局，见亥中之壬，为木神有根，接引丁火，必然科甲
+  proposition_id: pr_bazi_000543
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0022_s03
+    support_type: direct
+  conditions:
+  - 六月（未月）
+  - 支成木局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000544
+  proposition: 六月丁火即不见木局，支见壬水，虽不大贵，亦有凌云之气，无庚不妙
+  proposition_id: pr_bazi_000544
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0022_s03
+    support_type: direct
+  conditions:
+  - 六月（未月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000545
+  proposition: 六月丁火支成水局，见水透干，则湿木性，不能引丁，必为平人，有甲透亦有才干，有庚透方无刑伤
+  proposition_id: pr_bazi_000545
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0022_s03
+    support_type: direct
+  conditions:
+  - 六月（未月）
+  - 支成水局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000546
+  proposition: 六月丁火若无甲木，假名假利，虽能生财，固执懦夫
+  proposition_id: pr_bazi_000546
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0022_s03
+    support_type: direct
+  conditions:
+  - 六月（未月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000547
+  proposition: 六月丁火年月日时皆一派丁未之类，此为纯阴，终无大用
+  proposition_id: pr_bazi_000547
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0022_s03
+    support_type: direct
+  conditions:
+  - 六月（未月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000548
+  proposition: 六月丁火用甲者，水妻木子
+  proposition_id: pr_bazi_000548
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0022_s03
+    support_type: direct
+  conditions:
+  - 六月（未月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted

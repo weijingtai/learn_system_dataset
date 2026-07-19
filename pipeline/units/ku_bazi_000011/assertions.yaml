@@ -1,0 +1,173 @@
+assertions:
+- assertion_id: as_bazi_000064
+  proposition: 三月甲木，木气相竭，先取庚金，次用壬水
+  proposition_id: pr_bazi_000064
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0005_s05
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000065
+  proposition: 三月甲木庚壬两透，一榜堪图
+  proposition_id: pr_bazi_000065
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0005_s05
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000066
+  proposition: 三月甲木庚壬两透，但要运用相生，风水阴德，方许富贵
+  proposition_id: pr_bazi_000066
+  relation: qualifies
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0005_s05
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  - 运用相生
+  - 风水阴德
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000067
+  proposition: 三月甲木见一二庚金，独取壬水，壬透清秀之人，才学必富
+  proposition_id: pr_bazi_000067
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0005_s05
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  - 见一二庚金
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000068
+  proposition: 三月甲木天干透出二丙，庚藏支下，此钝斧无钢，富贵难求
+  proposition_id: pr_bazi_000068
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0005_s05
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000069
+  proposition: 三月甲木若有壬癸破火，堪作秀才
+  proposition_id: pr_bazi_000069
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0005_s05
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000070
+  proposition: 三月甲木柱中全无一水，戊己透干，支成土局，又作弃命从才，因人而致富贵，妻子有能
+  proposition_id: pr_bazi_000070
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0005_s05
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  - 柱中全无一水
+  - 支成土局
+  exceptions: []
+  concept_ids:
+  - co_bazi_000021
+  status: machine_extracted
+- assertion_id: as_bazi_000071
+  proposition: 三月甲木见戊己及比劫多者，名为杂气夺才，此人劳碌到老，无驭内之权
+  proposition_id: pr_bazi_000071
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0005_s05
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000022
+  - co_bazi_000009
+  status: machine_extracted
+- assertion_id: as_bazi_000072
+  proposition: 女命杂气夺才，女掌男权，贤能内助
+  proposition_id: pr_bazi_000072
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0005_s05
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  - 女命
+  exceptions: []
+  concept_ids:
+  - co_bazi_000022
+  status: machine_extracted
+- assertion_id: as_bazi_000073
+  proposition: 女命杂气夺才若比劫重见，淫恶不堪
+  proposition_id: pr_bazi_000073
+  relation: qualifies
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0005_s05
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  - 女命
+  - 比劫重见
+  exceptions: []
+  concept_ids:
+  - co_bazi_000022
+  - co_bazi_000009
+  status: machine_extracted
+- assertion_id: as_bazi_000074
+  proposition: 三月甲木支成金局，方可用丁，不然三月无用丁之法
+  proposition_id: pr_bazi_000074
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0005_s05
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  - 支成金局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000075
+  proposition: 三月甲木惟有先庚后壬取用
+  proposition_id: pr_bazi_000075
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0005_s05
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000076
+  proposition: 甲乙生寅卯，庚辛干上逢，离南推富贵，坎地却为凶
+  proposition_id: pr_bazi_000076
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0005_s05
+    support_type: direct
+  conditions:
+  - 生寅卯月
+  - 干逢庚辛
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted

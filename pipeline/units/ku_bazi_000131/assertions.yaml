@@ -1,0 +1,50 @@
+assertions:
+- assertion_id: as_bazi_001274
+  proposition: 八月癸水，辛金虚灵，非顽金可比，正金白水清，故取辛金为用，丙火佐之，名水暖金温
+  proposition_id: pr_bazi_001274
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0055_s02
+    support_type: direct
+  conditions:
+  - 八月（酉月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000115
+  status: machine_extracted
+- assertion_id: as_bazi_001275
+  proposition: 八月癸水如丙与辛隔位同透，主科甲功名
+  proposition_id: pr_bazi_001275
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0055_s02
+    support_type: direct
+  conditions:
+  - 八月（酉月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001276
+  proposition: 八月癸水丙透辛藏，一榜之士
+  proposition_id: pr_bazi_001276
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0055_s02
+    support_type: direct
+  conditions:
+  - 八月（酉月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001277
+  proposition: 八月癸水土多克水，生意中人
+  proposition_id: pr_bazi_001277
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0055_s02
+    support_type: direct
+  conditions:
+  - 八月（酉月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted

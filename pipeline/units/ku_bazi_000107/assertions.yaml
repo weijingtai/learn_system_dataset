@@ -1,0 +1,148 @@
+assertions:
+- assertion_id: as_bazi_001115
+  proposition: 三月壬水，戊土司权，恐有推山填海之患，先用甲疏季土，次取庚金
+  proposition_id: pr_bazi_001115
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0048_s03
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000037
+  status: machine_extracted
+- assertion_id: as_bazi_001116
+  proposition: 三月壬水甲庚俱透，科甲定然
+  proposition_id: pr_bazi_001116
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0048_s03
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001117
+  proposition: 三月壬水甲透庚藏，修齐品格
+  proposition_id: pr_bazi_001117
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0048_s03
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001118
+  proposition: 三月壬水甲藏有根，可云俊秀
+  proposition_id: pr_bazi_001118
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0048_s03
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001119
+  proposition: 三月壬水有癸滋甲，必主干城
+  proposition_id: pr_bazi_001119
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0048_s03
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001120
+  proposition: 三月壬水独甲藏支，必富
+  proposition_id: pr_bazi_001120
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0048_s03
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001121
+  proposition: 三月壬水独庚在柱，常人
+  proposition_id: pr_bazi_001121
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0048_s03
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001122
+  proposition: 三月壬水无甲，刚暴之徒
+  proposition_id: pr_bazi_001122
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0048_s03
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001123
+  proposition: 三月壬水乏庚，愚顽之辈
+  proposition_id: pr_bazi_001123
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0048_s03
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001124
+  proposition: 三月壬水时干透丁者，此为化合，助火而不助水，见丁未一理
+  proposition_id: pr_bazi_001124
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0048_s03
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001125
+  proposition: 三月壬水支成四库，乏甲者，名杀重身轻，终身有损
+  proposition_id: pr_bazi_001125
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0048_s03
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  - 支成四库
+  exceptions: []
+  concept_ids:
+  - co_bazi_000023
+  status: machine_extracted
+- assertion_id: as_bazi_001126
+  proposition: 凡水旺多见庚金者，乃无用之人，须丙制之方妙
+  proposition_id: pr_bazi_001126
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0048_s03
+    support_type: direct
+  conditions:
+  - 水旺
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted

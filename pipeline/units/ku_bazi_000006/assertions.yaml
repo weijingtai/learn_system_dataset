@@ -1,0 +1,36 @@
+assertions:
+- assertion_id: as_bazi_000025
+  proposition: 过与不及皆为乖道
+  proposition_id: pr_bazi_000025
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0001_s07
+    support_type: direct
+  conditions: []
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000026
+  proposition: 高者抑之使平，下者举之使崇，或益其不及，或损其太过
+  proposition_id: pr_bazi_000026
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0001_s07
+    support_type: direct
+  conditions: []
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000027
+  proposition: 贵在折衷归于中道，使无有余不足之累，即才官印食贵人驿马之微意也，行运亦如之
+  proposition_id: pr_bazi_000027
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0001_s07
+    support_type: direct
+  conditions: []
+  exceptions: []
+  concept_ids:
+  - co_bazi_000044
+  - co_bazi_000007
+  status: machine_extracted

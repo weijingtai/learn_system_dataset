@@ -1,0 +1,111 @@
+assertions:
+- assertion_id: as_bazi_000906
+  proposition: 八月庚金，刚锐未退，用丁用甲，丙不可少
+  proposition_id: pr_bazi_000906
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0039_s02
+    support_type: direct
+  conditions:
+  - 八月（酉月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000907
+  proposition: 八月庚金若丁甲透，又见一丙，功名显赫，且见羊刃，无刑克，丙杀藏支，名为羊刃驾杀，主出将入相，直介忠臣
+  proposition_id: pr_bazi_000907
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0039_s02
+    support_type: direct
+  conditions:
+  - 八月（酉月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000087
+  status: machine_extracted
+- assertion_id: as_bazi_000908
+  proposition: 八月庚金丙火重重，一丁高透，亦主科甲
+  proposition_id: pr_bazi_000908
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0039_s02
+    support_type: direct
+  conditions:
+  - 八月（酉月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000909
+  proposition: 八月庚金丙出丁藏，异路功名
+  proposition_id: pr_bazi_000909
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0039_s02
+    support_type: direct
+  conditions:
+  - 八月（酉月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000910
+  proposition: 八月庚金甲藏支，火透而水不透者，亦主清高，衣衿可望
+  proposition_id: pr_bazi_000910
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0039_s02
+    support_type: direct
+  conditions:
+  - 八月（酉月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000911
+  proposition: 八月庚金丁藏支内，重见丙火者，此名假杀重重，虽羊刃帖身，却难从杀也
+  proposition_id: pr_bazi_000911
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0039_s02
+    support_type: direct
+  conditions:
+  - 八月（酉月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000088
+  status: machine_extracted
+- assertion_id: as_bazi_000912
+  proposition: 八月庚金即一丙透，秀而不富
+  proposition_id: pr_bazi_000912
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0039_s02
+    support_type: direct
+  conditions:
+  - 八月（酉月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000913
+  proposition: 八月庚金支见重重甲乙，无用之人
+  proposition_id: pr_bazi_000913
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0039_s02
+    support_type: direct
+  conditions:
+  - 八月（酉月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000914
+  proposition: 旺金木衰，非火莫制，不见丙丁，艺术之辈
+  proposition_id: pr_bazi_000914
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0039_s02
+    support_type: direct
+  conditions:
+  - 旺金木衰
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted

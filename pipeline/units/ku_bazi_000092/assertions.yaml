@@ -1,0 +1,149 @@
+assertions:
+- assertion_id: as_bazi_000993
+  proposition: 四月辛金，时逢首夏，忌丙火之燥烈，喜壬水之洗淘
+  proposition_id: pr_bazi_000993
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0043_s01
+    support_type: direct
+  conditions:
+  - 四月（巳月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000994
+  proposition: 四月辛金支成金局，水透出干，有木制戊，名一清澈底，科甲功名
+  proposition_id: pr_bazi_000994
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0043_s01
+    support_type: direct
+  conditions:
+  - 四月（巳月）
+  - 支成金局
+  exceptions: []
+  concept_ids:
+  - co_bazi_000098
+  status: machine_extracted
+- assertion_id: as_bazi_000995
+  proposition: 四月辛金癸透壬藏，富真贵假
+  proposition_id: pr_bazi_000995
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0043_s01
+    support_type: direct
+  conditions:
+  - 四月（巳月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000996
+  proposition: 四月辛金若壬癸皆藏，戊己亦藏，略富
+  proposition_id: pr_bazi_000996
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0043_s01
+    support_type: direct
+  conditions:
+  - 四月（巳月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000997
+  proposition: 四月辛金若壬癸俱无，反见火出，必主鳏独
+  proposition_id: pr_bazi_000997
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0043_s01
+    support_type: direct
+  conditions:
+  - 四月（巳月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000998
+  proposition: 四月辛金支成火局，有制者吉，无制者凶
+  proposition_id: pr_bazi_000998
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0043_s01
+    support_type: direct
+  conditions:
+  - 四月（巳月）
+  - 支成火局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000999
+  proposition: 夏月辛金凡火旺无水，取土泄之
+  proposition_id: pr_bazi_000999
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0043_s01
+    support_type: direct
+  conditions:
+  - 夏月
+  - 火旺无水
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001000
+  proposition: 四月辛金若壬水藏亥，戊不出干，亦主上达
+  proposition_id: pr_bazi_001000
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0043_s01
+    support_type: direct
+  conditions:
+  - 四月（巳月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001001
+  proposition: 四月辛金若壬水藏亥，有戊常人
+  proposition_id: pr_bazi_001001
+  relation: qualifies
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0043_s01
+    support_type: direct
+  conditions:
+  - 四月（巳月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001002
+  proposition: 四月辛金有一甲透，衣禄可求
+  proposition_id: pr_bazi_001002
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0043_s01
+    support_type: direct
+  conditions:
+  - 四月（巳月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001003
+  proposition: 四月辛金有甲无壬癸者，富贵虚浮，所谓羊质虎皮是也
+  proposition_id: pr_bazi_001003
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0043_s01
+    support_type: direct
+  conditions:
+  - 四月（巳月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001004
+  proposition: 四月辛金壬、癸、甲三者全无，又不合格，斯为下品
+  proposition_id: pr_bazi_001004
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0043_s01
+    support_type: direct
+  conditions:
+  - 四月（巳月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted

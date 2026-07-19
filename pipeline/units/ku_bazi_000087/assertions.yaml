@@ -1,0 +1,160 @@
+assertions:
+- assertion_id: as_bazi_000934
+  proposition: 十一月庚金，天气严寒，仍取丁甲，次取丙火照暖
+  proposition_id: pr_bazi_000934
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0040_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000935
+  proposition: 十一月庚金丁甲两透，丙在支中，必主科甲
+  proposition_id: pr_bazi_000935
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0040_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000936
+  proposition: 十一月庚金丁甲两透，即无丙火，亦有衣衿
+  proposition_id: pr_bazi_000936
+  relation: qualifies
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0040_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000937
+  proposition: 十一月庚金有丁无甲，亦可富中取贵
+  proposition_id: pr_bazi_000937
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0040_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000938
+  proposition: 十一月庚金有甲无丁，只作常人
+  proposition_id: pr_bazi_000938
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0040_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000939
+  proposition: 十一月庚金丙透丁藏，异途名望
+  proposition_id: pr_bazi_000939
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0040_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000940
+  proposition: 十一月庚金丁藏有甲，武学可许
+  proposition_id: pr_bazi_000940
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0040_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000941
+  proposition: 十一月庚金重重丙火，可许一富，但不清高
+  proposition_id: pr_bazi_000941
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0040_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000942
+  proposition: 十一月庚金丙戊生寅，或丙坐支寅，有一二者，富真贵假
+  proposition_id: pr_bazi_000942
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0040_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000943
+  proposition: 十一月庚金若见癸透，一介寒儒
+  proposition_id: pr_bazi_000943
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0040_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000944
+  proposition: 十一月庚金支成水局，二见丙丁者，此乃伤官格，为人清雅，衣禄常盈，但子息艰难耳
+  proposition_id: pr_bazi_000944
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0040_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  - 支成水局
+  exceptions: []
+  concept_ids:
+  - co_bazi_000078
+  status: machine_extracted
+- assertion_id: as_bazi_000945
+  proposition: 十一月庚金丙丁太多，名官杀混杂最无良，又怕身轻有损伤
+  proposition_id: pr_bazi_000945
+  relation: opposes
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0040_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000091
+  status: machine_extracted
+- assertion_id: as_bazi_000946
+  proposition: 十一月庚金柱中一派金水，不入火土之乡，主一生孤贫浪荡，难望有成也
+  proposition_id: pr_bazi_000946
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0040_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted

@@ -1,0 +1,38 @@
+assertions:
+- assertion_id: as_bazi_000022
+  proposition: 五行之数：水一、火二、木三、金四、土五
+  proposition_id: pr_bazi_000022
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0001_s06
+    support_type: direct
+  conditions: []
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000023
+  proposition: 五行之数，生旺加倍
+  proposition_id: pr_bazi_000023
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0001_s06
+    support_type: direct
+  conditions:
+  - 生旺
+  exceptions: []
+  concept_ids:
+  - co_bazi_000040
+  status: machine_extracted
+- assertion_id: as_bazi_000024
+  proposition: 五行之数，死绝减半
+  proposition_id: pr_bazi_000024
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0001_s06
+    support_type: direct
+  conditions:
+  - 死绝
+  exceptions: []
+  concept_ids:
+  - co_bazi_000042
+  status: machine_extracted

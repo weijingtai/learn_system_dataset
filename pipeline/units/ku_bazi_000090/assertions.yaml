@@ -1,0 +1,173 @@
+assertions:
+- assertion_id: as_bazi_000967
+  proposition: 二月辛金，阳和之际，壬水为尊，见戊己为病，得甲制伏，则辛金不致埋没，壬水不致混浊，合此者必身入玉堂
+  proposition_id: pr_bazi_000967
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0042_s02
+    support_type: direct
+  conditions:
+  - 二月（卯月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000968
+  proposition: 二月辛金有壬甲透者贵显，否则乡绅
+  proposition_id: pr_bazi_000968
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0042_s02
+    support_type: direct
+  conditions:
+  - 二月（卯月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000969
+  proposition: 二月辛金壬坐亥支，不见土出，可能入芥，家亦小康
+  proposition_id: pr_bazi_000969
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0042_s02
+    support_type: direct
+  conditions:
+  - 二月（卯月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000970
+  proposition: 二月辛金得申中之壬者，异途名望
+  proposition_id: pr_bazi_000970
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0042_s02
+    support_type: direct
+  conditions:
+  - 二月（卯月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000971
+  proposition: 二月辛金无壬者常人
+  proposition_id: pr_bazi_000971
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0042_s02
+    support_type: direct
+  conditions:
+  - 二月（卯月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000972
+  proposition: 二月辛金壬戊透，甲不出干，此为病不遇药，平常之人
+  proposition_id: pr_bazi_000972
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0042_s02
+    support_type: direct
+  conditions:
+  - 二月（卯月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000973
+  proposition: 二月辛金壬戊透，得乙破戊，颇有衣衿，但假名假利，刻薄乖张
+  proposition_id: pr_bazi_000973
+  relation: qualifies
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0042_s02
+    support_type: direct
+  conditions:
+  - 二月（卯月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000974
+  proposition: 二月辛金一派壬水汪洋，名金水淘洗太过，不得中和，略有衣食，全无作为
+  proposition_id: pr_bazi_000974
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0042_s02
+    support_type: direct
+  conditions:
+  - 二月（卯月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000975
+  proposition: 二月辛金如壬水重重，得戊反吉
+  proposition_id: pr_bazi_000975
+  relation: qualifies
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0042_s02
+    support_type: direct
+  conditions:
+  - 二月（卯月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000976
+  proposition: 二月辛金支成木局，泄尽壬水，有庚富贵，无庚平人
+  proposition_id: pr_bazi_000976
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0042_s02
+    support_type: direct
+  conditions:
+  - 二月（卯月）
+  - 支成木局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000977
+  proposition: 二月辛金支成火局，名官印相争，金水两伤，下流之格
+  proposition_id: pr_bazi_000977
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0042_s02
+    support_type: direct
+  conditions:
+  - 二月（卯月）
+  - 支成火局
+  exceptions: []
+  concept_ids:
+  - co_bazi_000095
+  status: machine_extracted
+- assertion_id: as_bazi_000978
+  proposition: 二月辛金支成火局，得二壬出制，富贵反奇
+  proposition_id: pr_bazi_000978
+  relation: qualifies
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0042_s02
+    support_type: direct
+  conditions:
+  - 二月（卯月）
+  - 支成火局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000979
+  proposition: 辛金生于春季，一派壬水，而无丙火，即能显达，家无宿舂
+  proposition_id: pr_bazi_000979
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0042_s02
+    support_type: direct
+  conditions:
+  - 春季
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000980
+  proposition: 辛金生于春季，得壬丙齐透，方许大富大贵
+  proposition_id: pr_bazi_000980
+  relation: qualifies
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0042_s02
+    support_type: direct
+  conditions:
+  - 春季
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted

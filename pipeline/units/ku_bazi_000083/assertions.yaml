@@ -1,0 +1,148 @@
+assertions:
+- assertion_id: as_bazi_000894
+  proposition: 七月庚金，刚锐极矣，专用丁火煅炼，次取甲木引丁
+  proposition_id: pr_bazi_000894
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0039_s01
+    support_type: direct
+  conditions:
+  - 七月（申月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000895
+  proposition: 七月庚金得丁甲两透，定步青云
+  proposition_id: pr_bazi_000895
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0039_s01
+    support_type: direct
+  conditions:
+  - 七月（申月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000896
+  proposition: 七月庚金有丁无甲为俊秀
+  proposition_id: pr_bazi_000896
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0039_s01
+    support_type: direct
+  conditions:
+  - 七月（申月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000897
+  proposition: 七月庚金有甲无丁是平人
+  proposition_id: pr_bazi_000897
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0039_s01
+    support_type: direct
+  conditions:
+  - 七月（申月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000898
+  proposition: 七月庚金丁甲两无无用物，只堪门下作闲人
+  proposition_id: pr_bazi_000898
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0039_s01
+    support_type: direct
+  conditions:
+  - 七月（申月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000899
+  proposition: 七月庚金支成水局，乏丁用丙，柱中即有丙火，不见甲木者，必主愚懦
+  proposition_id: pr_bazi_000899
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0039_s01
+    support_type: direct
+  conditions:
+  - 七月（申月）
+  - 支成水局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000900
+  proposition: 七月庚金支成水局，见甲出引丁，可云生监，甲弱者衣食充盈
+  proposition_id: pr_bazi_000900
+  relation: qualifies
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0039_s01
+    support_type: direct
+  conditions:
+  - 七月（申月）
+  - 支成水局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000901
+  proposition: 七月庚金支成土局，先甲后丁
+  proposition_id: pr_bazi_000901
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0039_s01
+    support_type: direct
+  conditions:
+  - 七月（申月）
+  - 支成土局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000902
+  proposition: 七月庚金支成火局，富贵中人
+  proposition_id: pr_bazi_000902
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0039_s01
+    support_type: direct
+  conditions:
+  - 七月（申月）
+  - 支成火局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000903
+  proposition: 金刚木明，行商坐贾之人
+  proposition_id: pr_bazi_000903
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0039_s01
+    support_type: direct
+  conditions: []
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000904
+  proposition: 金备申酉戌之地，富贵无疑
+  proposition_id: pr_bazi_000904
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0039_s01
+    support_type: direct
+  conditions:
+  - 申酉戌
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000905
+  proposition: 金神入火乡，逢羊刃，富贵荣华
+  proposition_id: pr_bazi_000905
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0039_s01
+    support_type: direct
+  conditions:
+  - 逢羊刃
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted

@@ -1,0 +1,39 @@
+assertions:
+- assertion_id: as_bazi_001239
+  proposition: 三月癸水，要分清明谷雨，清明后火气未炽，专用丙火，为阴阳合谐
+  proposition_id: pr_bazi_001239
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0053_s04
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  - 清明后
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001240
+  proposition: 三月癸水谷雨后，虽用丙火，尚宜辛甲佐之
+  proposition_id: pr_bazi_001240
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0053_s04
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  - 谷雨后
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001241
+  proposition: 三月癸水用丙，木妻火子
+  proposition_id: pr_bazi_001241
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0053_s04
+    support_type: direct
+  conditions:
+  - 三月（辰月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted

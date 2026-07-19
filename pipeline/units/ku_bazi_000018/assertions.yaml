@@ -1,0 +1,137 @@
+assertions:
+- assertion_id: as_bazi_000172
+  proposition: 十月甲木，庚丁为要，丙火次之
+  proposition_id: pr_bazi_000172
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0008_s01
+    support_type: direct
+  conditions:
+  - 十月（亥月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000173
+  proposition: 十月甲木忌壬水泛身，须戊土制之
+  proposition_id: pr_bazi_000173
+  relation: opposes
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0008_s01
+    support_type: direct
+  conditions:
+  - 十月（亥月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000174
+  proposition: 十月甲木庚丁两透，又加戊出干，名曰去浊留清，富贵之极
+  proposition_id: pr_bazi_000174
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0008_s01
+    support_type: direct
+  conditions:
+  - 十月（亥月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000045
+  status: machine_extracted
+- assertion_id: as_bazi_000175
+  proposition: 十月甲木庚丁两透，乏丁火，亦稍有富贵
+  proposition_id: pr_bazi_000175
+  relation: qualifies
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0008_s01
+    support_type: direct
+  conditions:
+  - 十月（亥月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000176
+  proposition: 十月甲木甲多制戊，庚金无根，平常人也
+  proposition_id: pr_bazi_000176
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0008_s01
+    support_type: direct
+  conditions:
+  - 十月（亥月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000177
+  proposition: 十月甲木庚戊若透，虽出比劫，必定富而寿
+  proposition_id: pr_bazi_000177
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0008_s01
+    support_type: direct
+  conditions:
+  - 十月（亥月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000009
+  status: machine_extracted
+- assertion_id: as_bazi_000178
+  proposition: 十月甲木多比劫，只一庚出干，坐禄逢生乃为舍丁从庚，略富贵
+  proposition_id: pr_bazi_000178
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0008_s01
+    support_type: direct
+  conditions:
+  - 十月（亥月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000009
+  status: machine_extracted
+- assertion_id: as_bazi_000179
+  proposition: 十月甲木支见申亥，戊己得所，以救庚丁，可许科甲
+  proposition_id: pr_bazi_000179
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0008_s01
+    support_type: direct
+  conditions:
+  - 十月（亥月）
+  - 支见申亥
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000180
+  proposition: 十月甲木若单己透，其力弱小，不过贡监而已
+  proposition_id: pr_bazi_000180
+  relation: qualifies
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0008_s01
+    support_type: direct
+  conditions:
+  - 十月（亥月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000181
+  proposition: 十月甲木用庚，土妻金子
+  proposition_id: pr_bazi_000181
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0008_s01
+    support_type: direct
+  conditions:
+  - 十月（亥月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000182
+  proposition: 十月甲木用丁，木妻火子
+  proposition_id: pr_bazi_000182
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0008_s01
+    support_type: direct
+  conditions:
+  - 十月（亥月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted

@@ -1,0 +1,49 @@
+assertions:
+- assertion_id: as_bazi_001227
+  proposition: 正月癸水，辛金为主，庚金次之，丙亦不可少
+  proposition_id: pr_bazi_001227
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0053_s02
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001228
+  proposition: 正月癸水若无庚辛，虽有丙火，无用之人
+  proposition_id: pr_bazi_001228
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0053_s02
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001229
+  proposition: 正月癸水火多土多，残疾不免
+  proposition_id: pr_bazi_001229
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0053_s02
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_001230
+  proposition: 正月癸水用辛者，土妻金子
+  proposition_id: pr_bazi_001230
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0053_s02
+    support_type: direct
+  conditions:
+  - 正月（寅月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted

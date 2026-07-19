@@ -1,0 +1,199 @@
+assertions:
+- assertion_id: as_bazi_000264
+  proposition: 六月乙木，木性且寒，柱多金水，丙火为尊
+  proposition_id: pr_bazi_000264
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0011_s04
+    support_type: direct
+  conditions:
+  - 六月（未月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000265
+  proposition: 六月乙木支成水局，乙得无伤，癸水透干，大富大贵
+  proposition_id: pr_bazi_000265
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0011_s04
+    support_type: direct
+  conditions:
+  - 六月（未月）
+  - 支成水局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000266
+  proposition: 六月乙木无癸定作常人，运不行北，困苦一生
+  proposition_id: pr_bazi_000266
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0011_s04
+    support_type: direct
+  conditions:
+  - 六月（未月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000267
+  proposition: 凡五六月乙木，气退枯焦，用癸水切忌戊己杂乱，则为下格
+  proposition_id: pr_bazi_000267
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0011_s04
+    support_type: direct
+  conditions:
+  - 五六月（午未月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000268
+  proposition: 五六月乙木甲木高透，制伏土神名为去浊留清，可许俊秀
+  proposition_id: pr_bazi_000268
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0011_s04
+    support_type: direct
+  conditions:
+  - 五六月（午未月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000045
+  status: machine_extracted
+- assertion_id: as_bazi_000269
+  proposition: 五六月乙木土多乏甲，秀气脱空，庸人而已
+  proposition_id: pr_bazi_000269
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0011_s04
+    support_type: direct
+  conditions:
+  - 五六月（午未月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000270
+  proposition: 五六月乙木丙癸两透，加以甲透制戊，选拔定然
+  proposition_id: pr_bazi_000270
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0011_s04
+    support_type: direct
+  conditions:
+  - 五六月（午未月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000271
+  proposition: 五六月乙木不见丙癸，只有丁火，亦属常人，有壬可充衣食
+  proposition_id: pr_bazi_000271
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0011_s04
+    support_type: direct
+  conditions:
+  - 五六月（午未月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000272
+  proposition: 五六月乙木柱中无水，又无比劫出干，乃为弃命从才，富大贵小，能招贤德之妻
+  proposition_id: pr_bazi_000272
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0011_s04
+    support_type: direct
+  conditions:
+  - 五六月（午未月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000021
+  status: machine_extracted
+- assertion_id: as_bazi_000273
+  proposition: 五六月乙木从才格以火为妻，土为子
+  proposition_id: pr_bazi_000273
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0011_s04
+    support_type: direct
+  conditions:
+  - 从才格
+  - 五六月（午未月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000029
+  status: machine_extracted
+- assertion_id: as_bazi_000274
+  proposition: 五六月乙木一派戊土出干，不见比肩，名为才多身弱，终为富屋贫人
+  proposition_id: pr_bazi_000274
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0011_s04
+    support_type: direct
+  conditions:
+  - 五六月（午未月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000016
+  status: machine_extracted
+- assertion_id: as_bazi_000275
+  proposition: 五六月乙木丙辛化水，嫖赌破家，终非承受之儿
+  proposition_id: pr_bazi_000275
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0011_s04
+    support_type: direct
+  conditions:
+  - 五六月（午未月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000276
+  proposition: 五六月乙木一派乙木，不见丙癸，名为乱臣无主，劳碌奔波，又加支多辛金，僧道之辈
+  proposition_id: pr_bazi_000276
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0011_s04
+    support_type: direct
+  conditions:
+  - 五六月（午未月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000277
+  proposition: 五六月乙木一派甲木，无癸无丙，又无庚金，此人一生虚浮，总不诚实
+  proposition_id: pr_bazi_000277
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0011_s04
+    support_type: direct
+  conditions:
+  - 五六月（午未月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000278
+  proposition: 五六月乙木一派甲木，有庚制甲，乃有谋之人，但嗜酒贪花，多欲败德，不修品行，男女一理
+  proposition_id: pr_bazi_000278
+  relation: qualifies
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0011_s04
+    support_type: direct
+  conditions:
+  - 五六月（午未月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000279
+  proposition: 总之夏月之乙木，耑用癸水，丙火酌用，庚辛次之
+  proposition_id: pr_bazi_000279
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0011_s04
+    support_type: direct
+  conditions:
+  - 夏月（巳午未月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted

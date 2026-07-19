@@ -1,0 +1,113 @@
+assertions:
+- assertion_id: as_bazi_000418
+  proposition: 五月丙火，得壬高透，方为上命
+  proposition_id: pr_bazi_000418
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0017_s03
+    support_type: direct
+  conditions:
+  - 五月（午月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000419
+  proposition: 五月丙火一壬无庚，亦主贡监，犹防戊己出干，丁壬化合，则为平人
+  proposition_id: pr_bazi_000419
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0017_s03
+    support_type: direct
+  conditions:
+  - 五月（午月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000420
+  proposition: 五月丙火即不透庚壬，或有申宫长生之水，济之坐禄之金，至妙，必入词林，又怕戊己杂乱，则为异路
+  proposition_id: pr_bazi_000420
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0017_s03
+    support_type: direct
+  conditions:
+  - 五月（午月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000421
+  proposition: 五月丙火成火局，不见滴水者，乃僧道鳏独之命
+  proposition_id: pr_bazi_000421
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0017_s03
+    support_type: direct
+  conditions:
+  - 五月（午月）
+  - 成火局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000422
+  proposition: 五月丙火一二癸水，多遇火土，用之无力，瞽目之人
+  proposition_id: pr_bazi_000422
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0017_s03
+    support_type: direct
+  conditions:
+  - 五月（午月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000423
+  proposition: 五月丙火得戊己透泄火气，亦主刑克孤寡，行北运多凶，所谓燥烈水激反凶
+  proposition_id: pr_bazi_000423
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0017_s03
+    support_type: direct
+  conditions:
+  - 五月（午月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000424
+  proposition: 五月丙火成炎上格，柱运不见庚辛，多见甲乙者，反主大富贵，然亦不可见水运
+  proposition_id: pr_bazi_000424
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0017_s03
+    support_type: direct
+  conditions:
+  - 五月（午月）
+  - 炎上格
+  exceptions: []
+  concept_ids:
+  - co_bazi_000058
+  status: machine_extracted
+- assertion_id: as_bazi_000425
+  proposition: 五月丙火有庚癸透者，衣禄充足，支火轻，无目疾，支见水者，异途
+  proposition_id: pr_bazi_000425
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0017_s03
+    support_type: direct
+  conditions:
+  - 五月（午月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000426
+  proposition: 五月丙火成土局，又为泄太过，得壬滋甲出干，土被制而火得生扶，此必富贵寿考之格也
+  proposition_id: pr_bazi_000426
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0017_s03
+    support_type: direct
+  conditions:
+  - 五月（午月）
+  - 成土局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted

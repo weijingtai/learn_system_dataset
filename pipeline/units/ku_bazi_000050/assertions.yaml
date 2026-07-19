@@ -1,0 +1,196 @@
+assertions:
+- assertion_id: as_bazi_000496
+  proposition: 二月丁火，湿乙伤丁，先庚后甲，非庚不能去乙，非甲不能引丁
+  proposition_id: pr_bazi_000496
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0021_s02
+    support_type: direct
+  conditions:
+  - 二月（卯月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000497
+  proposition: 二月丁火庚甲两透，科甲定然
+  proposition_id: pr_bazi_000497
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0021_s02
+    support_type: direct
+  conditions:
+  - 二月（卯月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000498
+  proposition: 二月丁火庚透甲藏，亦有生贡
+  proposition_id: pr_bazi_000498
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0021_s02
+    support_type: direct
+  conditions:
+  - 二月（卯月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000499
+  proposition: 二月丁火甲透庚藏，异路功名
+  proposition_id: pr_bazi_000499
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0021_s02
+    support_type: direct
+  conditions:
+  - 二月（卯月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000500
+  proposition: 二月丁火庚乙俱透，庚必输情于乙，未免贪合，运行金水，一贫彻骨
+  proposition_id: pr_bazi_000500
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0021_s02
+    support_type: direct
+  conditions:
+  - 二月（卯月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000501
+  proposition: 二月丁火庚透乙藏，则不能贪合，乙反引丁，即用乙亦无害，运入木火之乡，自然富贵
+  proposition_id: pr_bazi_000501
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0021_s02
+    support_type: direct
+  conditions:
+  - 二月（卯月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000502
+  proposition: 二月丁火用乙者，水妻木子
+  proposition_id: pr_bazi_000502
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0021_s02
+    support_type: direct
+  conditions:
+  - 二月（卯月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000503
+  proposition: 二月丁火尽是乙木，不见一甲，此人富贵不久，因贪致祸，弄巧反拙，且不能承受先人之业
+  proposition_id: pr_bazi_000503
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0021_s02
+    support_type: direct
+  conditions:
+  - 二月（卯月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000504
+  proposition: 二月丁火支成木局，有庚透，主清贵
+  proposition_id: pr_bazi_000504
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0021_s02
+    support_type: direct
+  conditions:
+  - 二月（卯月）
+  - 支成木局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000505
+  proposition: 二月丁火支成木局，不见庚者，常人
+  proposition_id: pr_bazi_000505
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0021_s02
+    support_type: direct
+  conditions:
+  - 二月（卯月）
+  - 支成木局
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000506
+  proposition: 二月乙木司权，必须有庚，有乙无庚，主贫苦无依
+  proposition_id: pr_bazi_000506
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0021_s02
+    support_type: direct
+  conditions:
+  - 二月（卯月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000507
+  proposition: 二月丁火用庚者，土妻金子
+  proposition_id: pr_bazi_000507
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0021_s02
+    support_type: direct
+  conditions:
+  - 二月（卯月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000508
+  proposition: 二月丁火得印旺杀高，大富大贵
+  proposition_id: pr_bazi_000508
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0021_s02
+    support_type: direct
+  conditions:
+  - 二月（卯月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000006
+  status: machine_extracted
+- assertion_id: as_bazi_000509
+  proposition: 二月丁火一派水，无一戊制，主贫苦无依
+  proposition_id: pr_bazi_000509
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0021_s02
+    support_type: direct
+  conditions:
+  - 二月（卯月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000510
+  proposition: 二月丁火乙少癸多，有戊出制，反吉
+  proposition_id: pr_bazi_000510
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0021_s02
+    support_type: direct
+  conditions:
+  - 二月（卯月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000511
+  proposition: 二月丁火用土者，火妻土子
+  proposition_id: pr_bazi_000511
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0021_s02
+    support_type: direct
+  conditions:
+  - 二月（卯月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted

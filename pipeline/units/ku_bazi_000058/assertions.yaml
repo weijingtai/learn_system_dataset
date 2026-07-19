@@ -1,0 +1,63 @@
+assertions:
+- assertion_id: as_bazi_000576
+  proposition: 十一月丁火，仲冬水多癸旺，全无比印，此作弃命从杀，亦有异途功名
+  proposition_id: pr_bazi_000576
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0024_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000066
+  status: machine_extracted
+- assertion_id: as_bazi_000577
+  proposition: 十一月丁火见丁比出干，难合格局，常人，且主骨肉浮云，六亲流水
+  proposition_id: pr_bazi_000577
+  relation: qualifies
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0024_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  exceptions: []
+  concept_ids:
+  - co_bazi_000008
+  status: machine_extracted
+- assertion_id: as_bazi_000578
+  proposition: 十一月丁火戊出破癸，颇有兄弟妻儿，此格用戊，火妻土子
+  proposition_id: pr_bazi_000578
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0024_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000579
+  proposition: 十一月丁火用甲，水妻木子
+  proposition_id: pr_bazi_000579
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0024_s02
+    support_type: direct
+  conditions:
+  - 十一月（子月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
+- assertion_id: as_bazi_000580
+  proposition: 三冬丁火，甲木为尊，庚金佐之，癸戊权宜酌用可也
+  proposition_id: pr_bazi_000580
+  relation: supports
+  evidence:
+  - source_span_id: ss_qtbj_ed01_p0024_s02
+    support_type: direct
+  conditions:
+  - 三冬（亥子丑月）
+  exceptions: []
+  concept_ids: []
+  status: machine_extracted
