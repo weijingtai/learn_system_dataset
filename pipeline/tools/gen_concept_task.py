@@ -19,7 +19,7 @@ gen_concept_task.py —— 为工位 4（术语识别）放量批次生成任务
 import sys
 from pathlib import Path
 
-from lib.taskgen import PIPELINE, DownstreamTaskSpec, build
+from lib.taskgen import DownstreamTaskSpec, build
 
 
 def _seg(bid, span_id, seg_local, s):
@@ -36,8 +36,7 @@ def main():
         batch_ids=sys.argv[3:],
         stage="concept_candidates",
         task_suffix="concepts",
-        template=PIPELINE / "task-templates/stage4_concepts_bazi/INSTRUCTIONS.md",
-        glossary=PIPELINE / "schemas/techniques/bazi/glossary_v0.yaml",
+        template_stage_dir="stage4_concepts",
         instruction_version="concepts_bazi_v0.1",
         seg_builder=_seg,
         emit_spans=True,

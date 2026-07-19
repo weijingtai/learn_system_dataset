@@ -8,7 +8,7 @@
 import sys
 from pathlib import Path
 
-from lib.taskgen import PIPELINE, DownstreamTaskSpec, build
+from lib.taskgen import DownstreamTaskSpec, build
 
 
 def _seg(bid, span_id, seg_local, s):
@@ -29,8 +29,7 @@ def main():
         batch_ids=sys.argv[3:],
         stage="paraphrase",
         task_suffix="para",
-        template=PIPELINE / "task-templates/stage6_paraphrase_bazi/INSTRUCTIONS.md",
-        glossary=PIPELINE / "schemas/techniques/bazi/glossary_v0.yaml",
+        template_stage_dir="stage6_paraphrase",
         instruction_version="paraphrase_bazi_v0.1",
         seg_builder=_seg,
         emit_spans=False,

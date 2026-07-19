@@ -9,7 +9,7 @@ segments 带 case_candidate 标记（工位5据此排除命例）。确定性：
 import sys
 from pathlib import Path
 
-from lib.taskgen import PIPELINE, DownstreamTaskSpec, build
+from lib.taskgen import DownstreamTaskSpec, build
 
 
 def _seg(bid, span_id, seg_local, s):
@@ -42,8 +42,7 @@ def main():
         batch_ids=sys.argv[3:],
         stage="assertions",
         task_suffix="assert",
-        template=PIPELINE / "task-templates/stage5_assertions_bazi/INSTRUCTIONS.md",
-        glossary=PIPELINE / "schemas/techniques/bazi/glossary_v0.yaml",
+        template_stage_dir="stage5_assertions",
         instruction_version="assertions_bazi_v0.1",
         seg_builder=seg,
         emit_spans=True,

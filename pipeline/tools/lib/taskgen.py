@@ -26,6 +26,21 @@ def load_manifest(corpus: Path) -> dict:
     return yaml.safe_load((corpus / "manifest.yaml").read_text())
 
 
+def resolve_template(stage_dir: str, technique_id: str) -> Path:
+    """按技法解析模板：优先 <stage_dir>_<technique>，缺失时回落到通用基座 <stage_dir>。
+    例：resolve_template("stage6_paraphrase", "bazi") → stage6_paraphrase_bazi/INSTRUCTIONS.md，
+    若无 _qimen 派生则 qimen 落到 stage6_paraphrase/INSTRUCTIONS.md（通用基座）。"""
+    base = PIPELINE / "task-templates"
+    specific = base / f"{stage_dir}_{technique_id}" / "INSTRUCTIONS.md"
+    if specific.exists():
+        return specific
+    generic = base / stage_dir / "INSTRUCTIONS.md"
+    if generic.exists():
+        return generic
+    raise FileNotFoundError(
+        f"模板缺失：既无 {specific.relative_to(PIPELINE)} 也无 {generic.relative_to(PIPELINE)}")
+
+
 def _dump(obj, path: Path):
     yaml.dump(obj, open(path, "w"), allow_unicode=True, sort_keys=False)
 
@@ -38,9 +53,13 @@ class DownstreamTaskSpec:
     batch_ids: list                   # 覆盖的切分批次
     stage: str                        # SCHEMA stage 名（concept_candidates/assertions/paraphrase）
     task_suffix: str                  # task_id 尾缀（concepts/assert/para）
-    template: Path                    # INSTRUCTIONS.md 模板绝对路径
-    glossary: Path                    # glossary_v0.yaml 绝对路径
     instruction_version: str          # 指令版本号
+    # glossary：None 时按技法解析 schemas/techniques/<technique>/glossary_v0.yaml
+    glossary: Optional[Path] = None
+    # 模板二选一：template 直接给绝对路径；template_stage_dir 给 "stageN_name"，
+    # 由 build() 按技法解析 <dir>_<technique>，缺失回落通用基座 <dir>（见 resolve_template）。
+    template: Optional[Path] = None
+    template_stage_dir: Optional[str] = None
     # 组装单个 segment：签名 (bid, span_id, seg_local, raw_seg) -> (seg_dict, sp_dict|None)
     # 字段顺序即 YAML 输出顺序，byte 敏感，由各工位精确控制。
     seg_builder: Callable = None
@@ -73,14 +92,24 @@ def build(spec: DownstreamTaskSpec) -> Path:
             if sp_rec is not None:
                 sp.append(sp_rec)
 
+    # 模板解析：优先显式 template，否则按技法从 template_stage_dir 解析
+    if spec.template is not None:
+        template = spec.template
+    elif spec.template_stage_dir is not None:
+        template = resolve_template(spec.template_stage_dir, technique_id)
+    else:
+        raise ValueError("spec 必须提供 template 或 template_stage_dir 之一")
+
     task_id = f"task_{technique_id}_{book}_{spec.task_suffix}_{spec.round_name}"
     td = PIPELINE / f"TASKS/{task_id}"
     (td / "input").mkdir(parents=True, exist_ok=True)
     _dump({"segments": segs}, td / "input/segments.yaml")
     if spec.emit_spans:
         _dump({"spans": sp}, td / "input/spans.yaml")
-    shutil.copy(spec.template, td / "INSTRUCTIONS.md")
-    shutil.copy(spec.glossary, td / "input/glossary_v0.yaml")
+    glossary = spec.glossary or (
+        PIPELINE / f"schemas/techniques/{technique_id}/glossary_v0.yaml")
+    shutil.copy(template, td / "INSTRUCTIONS.md")
+    shutil.copy(glossary, td / "input/glossary_v0.yaml")
 
     task_meta = {"task_id": task_id, "stage": spec.stage,
                  "technique_id": technique_id, "source_id": source_id,
