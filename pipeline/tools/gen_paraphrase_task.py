@@ -21,12 +21,11 @@ def _done(n_segs, n_batches, td_rel):
     return f"完成：{td_rel}  （{n_segs} 段待译）"
 
 
-def main():
-    corpus = Path(sys.argv[1])
-    build(DownstreamTaskSpec(
-        corpus=corpus,
-        round_name=sys.argv[2],
-        batch_ids=sys.argv[3:],
+def make_spec(corpus, round_name, batch_ids):
+    return DownstreamTaskSpec(
+        corpus=Path(corpus),
+        round_name=round_name,
+        batch_ids=batch_ids,
         stage="paraphrase",
         task_suffix="para",
         template_stage_dir="stage6_paraphrase",
@@ -34,7 +33,11 @@ def main():
         seg_builder=_seg,
         emit_spans=False,
         done_note=_done,
-    ))
+    )
+
+
+def main():
+    build(make_spec(sys.argv[1], sys.argv[2], sys.argv[3:]))
 
 
 if __name__ == "__main__":

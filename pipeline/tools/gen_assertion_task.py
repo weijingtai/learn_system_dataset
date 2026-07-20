@@ -21,9 +21,8 @@ def _seg(bid, span_id, seg_local, s):
     return seg, sp
 
 
-def main():
-    corpus = Path(sys.argv[1])
-    rnd = sys.argv[2]
+def make_spec(corpus, round_name, batch_ids):
+    rnd = round_name
     # 统计命例数用于完成语：包一层 seg_builder 累加
     ncase = {"n": 0}
 
@@ -36,10 +35,10 @@ def main():
     def done(n_segs, n_batches, td_rel):
         return f"完成：{td_rel}  （{n_segs} 段，其中命例 {ncase['n']} 段待排除）"
 
-    build(DownstreamTaskSpec(
-        corpus=corpus,
+    return DownstreamTaskSpec(
+        corpus=Path(corpus),
         round_name=rnd,
-        batch_ids=sys.argv[3:],
+        batch_ids=batch_ids,
         stage="assertions",
         task_suffix="assert",
         template_stage_dir="stage5_assertions",
@@ -49,7 +48,11 @@ def main():
         extra_task_meta={"id_range": {"assertion": f"as_bazi (round {rnd})",
                                       "proposition": f"pr_bazi (round {rnd})"}},
         done_note=done,
-    ))
+    )
+
+
+def main():
+    build(make_spec(sys.argv[1], sys.argv[2], sys.argv[3:]))
 
 
 if __name__ == "__main__":

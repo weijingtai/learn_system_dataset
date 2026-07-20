@@ -69,8 +69,10 @@ class DownstreamTaskSpec:
     done_note: Optional[Callable] = None
 
 
-def build(spec: DownstreamTaskSpec) -> Path:
-    """执行公共骨架，返回任务目录。"""
+def build(spec: DownstreamTaskSpec, out_root: Optional[Path] = None) -> Path:
+    """执行公共骨架，返回任务目录。
+    out_root：任务包落地根目录，默认 PIPELINE/TASKS；测试可指向临时目录，
+    从而在不触碰真实 TASKS/ 的前提下验证产物（内容与默认路径完全一致）。"""
     manifest = load_manifest(spec.corpus)
     technique_id = manifest["technique_id"]
     source_id = manifest["source_id"]
@@ -101,7 +103,7 @@ def build(spec: DownstreamTaskSpec) -> Path:
         raise ValueError("spec 必须提供 template 或 template_stage_dir 之一")
 
     task_id = f"task_{technique_id}_{book}_{spec.task_suffix}_{spec.round_name}"
-    td = PIPELINE / f"TASKS/{task_id}"
+    td = (out_root or (PIPELINE / "TASKS")) / task_id
     (td / "input").mkdir(parents=True, exist_ok=True)
     _dump({"segments": segs}, td / "input/segments.yaml")
     if spec.emit_spans:
@@ -118,7 +120,10 @@ def build(spec: DownstreamTaskSpec) -> Path:
     task_meta.update(spec.extra_task_meta)
     _dump(task_meta, td / "task.yaml")
 
-    td_rel = td.relative_to(PIPELINE)
+    try:
+        td_rel = td.relative_to(PIPELINE)
+    except ValueError:
+        td_rel = td  # out_root 在 PIPELINE 之外（测试临时目录），直接显示绝对路径
     if spec.done_note:
         print(spec.done_note(len(segs), len(spec.batch_ids), td_rel))
     else:
