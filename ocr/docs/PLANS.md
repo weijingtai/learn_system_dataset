@@ -367,7 +367,42 @@ page
 
 ---
 
-## 6. 风险与对策
+## 6. 与 pipeline/ 知识编译的衔接（本任务完成后的接入）
+
+**背景：** learn_system 已有完整的知识编译管线（`pipeline/`，AGENT_GUIDE.md 定六条铁律），它把 `corpus/` 的转录文本切分为知识单元（units/），由 Claude Code / OpenCode 执行、校验器强制把关。**当前缺口在 corpus/（转录文本）依赖人工手打/模型转录**——本 OCR 系统正是这个缺口的上游。
+
+**接入目标：** OCR 识别+校对完成后，导出产物直接进入 pipeline/ 的 corpus/，形成完整链路：
+
+```text
+raw_books/ 原书扫描（只读）
+   ↓  [本系统] Colab 识别 → 本地校对 → 导出
+corpus/{technique}/{book}_edNN/source/transcript_v1.md   ← OCR 产物落位
+   ↓  [pipeline] Claude Code/OpenCode 切分任务 (TASKS/)
+units/ 知识单元（unit.yaml + provenance.yaml + assertions.yaml）
+   ↓  校验器 validators/validate.py（TXT_001 强制引用与原文一致）
+knowledge_system/ 产品母稿与决策登记
+```
+
+### 6.1 导出格式对齐（本系统必须遵守）
+
+参照 `corpus/qimen/yanbo_ed02/` 实测样例：
+
+1. **transcript_v1.md 格式**：每页以 `<!-- p0001 -->` 注释标记起始，后跟正文文本；文本按古籍阅读序（列右→左、列内上→下）排列；**繁体保持原字形，禁止转简体**（铁律 3：差一字校验 TXT_001 即失败）
+2. **manifest.yaml**：必填 `source_id`（`src_{book}_{edNN}`）、`work_title`、`technique_id`、`edition_note`、`rights_status`，`files[].sha256` 记录转录文件哈希（SRC_003 校验用）
+3. **目录落位**：`corpus/{technique}/{book}_{edNN}/source/transcript_v1.md` + `manifest.yaml`（+ 可选 `raw/` 原始扫描）
+4. **未识别字处理**：导出时按 M16 分组映射；未入组未识别字用占位符 □，并在 manifest 的 `edition_note` 中注明"该底本存在 N 个未识别字形待人工补录"——**不得伪造字符**（铁律 4：原文没说的一个字都不许添）
+
+### 6.2 本系统导出模块的职责（新增任务，并入里程碑）
+
+- 导出模块生成：transcript_v1.md（按阅读序）+ manifest.yaml（含 sha256）
+- 导出前校验：对照 pipeline 校验器规则自检（页标记完整、无简繁转换、未识别占位已标注）
+- 导出位置可配置：默认 `../pipeline/corpus/{technique}/{book}_edNN/`
+
+**里程碑并入：** M7 端到端验收增加一项——导出的 transcript_v1.md 能被 `pipeline/validators/validate.py` 接受（或至少通过 TXT_001 类引用一致性自检）。
+
+---
+
+## 7. 风险与对策
 
 | 风险 | 影响 | 对策 |
 |---|---|---|
