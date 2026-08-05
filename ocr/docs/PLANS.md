@@ -75,6 +75,8 @@
 | M11 | **玄学技法分组** | 管理对象是玄学古籍，按技法组织是核心导航方式（流派不重要） | book.json 增加 technique 字段；Web UI 按技法分组树浏览（技法→书→卷→页） |
 | M12 | **技法维度统计** | 各技法下有多少书/页/识别进度，管理视图需要 | 分组面板显示每技法计数与进度汇总 |
 | M13 | **Colab 远程监控视图** | 本地要能看到远端识别进度，否则不知何时完成 | 本地监控页读 Drive 同步的 progress.json 显示进度条/当前页/错误列表（见 §2.4） |
+| M14 | **生僻字截图** | 框选生僻字 → 按 box 坐标从底图裁剪存 PNG，建立字形样本库；同一字多页可存多张样本 | 裁剪图存 `data/glyph_samples/{char_or_id}_{page}_{seq}.png`，与字框 ID 关联 |
+| M15 | **重复字统计表** | 一本书生僻字大量重复，需要知道哪些字重复、重复在哪 | SQLite `GROUP BY char HAVING COUNT(*)>1` 出表：字\|次数\|位置列表（页+框ID+坐标） |
 
 ---
 
@@ -294,6 +296,22 @@ page
 - 加载：book.json → 定位页 → 读 page JSON（内存建父子索引）
 - 写入：编辑后原子写 JSON（tmp+rename）；同步更新 SQLite（可延迟批量）
 - 校验：schema 校验 page JSON（必填字段/坐标范围/父子引用完整性）
+
+### 生僻字截图（M14 详细）
+
+- 触发：校对时框选一个生僻字 → 点击"截图存档"
+- 实现：从底图按 `box` 坐标裁剪（PIL crop，可外扩 2-4px 留边）
+- 存储：`data/glyph_samples/{char}_{page}_{seq}.png`；同一字在不同页出现 → 多张样本，文件名的 `{seq}` 递增
+- 关联：字框 JSON 增加 `sample_img` 字段指向裁剪图路径；反向索引（按 char 找全部样本）由 SQLite 提供
+- 用途：字形样本库——比对异体/俗字在不同页的写法，供拆解与人工判断
+
+### 重复字统计（M15 详细）
+
+- 触发：本地 Web UI "重复字"面板（按技法/按书筛选）
+- SQL：`SELECT char, COUNT(*) cnt, GROUP_CONCAT(page||':'||id) positions FROM chars WHERE status!='unrecognized' GROUP BY char HAVING cnt>1 ORDER BY cnt DESC`
+- 展示表格：字 | 次数 | 位置列表（页+框ID+坐标）
+- 交互：点击某行 → 跳转到该字任一出现处（复原视图）；可批量标记/批量改字（如某字全页皆同一误识）
+- 价值：一本书生僻字大量重复时，一次看清重复分布，决定"逐处校"还是"批量校"
 
 ---
 
