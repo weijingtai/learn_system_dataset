@@ -13,6 +13,7 @@
 |---|---|---|---|
 | 云端识别引擎 | **PaddleOCR（PP-OCRv6, lang=ch）**，运行于 **Colab** | ✅ 已定 | 2026-08-04 实测：竖排正文置信度 0.9+，质量远超 Apple Vision；Colab 免费 GPU 可跑 |
 | 云端运行环境 | Google Colab（免费 GPU T4） | ✅ 已定 | 全部识别工作在 Colab 完成，本地不跑识别模型 |
+| Colab 远程监控 | **Google Drive 总线 + progress.json 心跳**（主）；cloudflared 隧道实时面板（可选） | ✅ 已定 | 见 §2.4；免费、断点续传、分钟级延迟可接受 |
 | 结果数据格式 | 每页一个 JSON（底图 + 逐字框 + 字 + 置信度 + 方向角） | ✅ 已定 | 见 PRD §4.1 |
 | 方向检测 | 旋转候选 + 识别置信度择优（OCR 自验证，不引入额外模型） | ✅ 已定 | 零额外依赖；斜向字多来自星盘图曲线排布，逐字旋转后对比置信度 |
 | 单字切分 | 列内投影法二次切分（竖排按行投影）为主，det 单字框为辅 | ⚠️ 待验证 | M2 实验确认 |
@@ -70,6 +71,54 @@
 | M8 | **质量报告** | 校对完要知道整体质量（未识别率、低置信度占比、错误修正数） | 每页/每书汇总统计，导出 report.md |
 | M9 | **异常输入校验** | Colab 输出的 JSON 可能有缺失字段，本地直接读会崩 | 加载时 schema 校验（必填字段、坐标范围、类型），报错定位到文件 |
 | M10 | **备份策略** | JSON 是唯一劳动成果，丢了全完 | 每页 git commit + 可配置自动备份目录（cp 到 ~/Backups/ocr/） |
+| M11 | **玄学技法分组** | 管理对象是玄学古籍，按技法组织是核心导航方式（流派不重要） | book.json 增加 technique 字段；Web UI 按技法分组树浏览（技法→书→卷→页） |
+| M12 | **技法维度统计** | 各技法下有多少书/页/识别进度，管理视图需要 | 分组面板显示每技法计数与进度汇总 |
+| M13 | **Colab 远程监控视图** | 本地要能看到远端识别进度，否则不知何时完成 | 本地监控页读 Drive 同步的 progress.json 显示进度条/当前页/错误列表（见 §2.4） |
+
+---
+
+## 2.4 Colab 远程监控方案（详细）
+
+**背景：** 识别在远端 Colab 运行，本地需要知道进度、结果何时可用、是否出错。Colab 免费版限制：会话最长 12h、空闲 90min 断开、重启后环境清空（但 Drive 挂载保留）。
+
+### 方案 A：Google Drive 总线 + progress.json 心跳（主方案，推荐）
+
+```text
+[Colab]
+  ├─ 挂载 Google Drive (/content/drive/MyDrive/ocr_batch/)
+  ├─ 每处理一页:
+  │    ├─ 写 page_XXX.png + page_XXX.json 到 Drive
+  │    └─ 更新 progress.json:
+  │         { batch_id, total, done, current_page, errors[], start_time, last_update, status }
+  └─ 全部完成 → progress.json status=done
+
+[本地]
+  ├─ Drive 桌面版 / rclone 同步 ocr_batch/ 到本地目录
+  ├─ 监控脚本(或 Web UI 监控页) 每 N 分钟读 progress.json
+  └─ 显示: 进度条 / 当前页 / 错误列表 / 预计剩余
+```
+
+优点：免费、稳定、断点续传（文件落在 Drive 不丢）；Colab 重启后从 progress.json 续跑。
+缺点：同步有分钟级延迟，非实时。
+
+### 方案 B：cloudflared 隧道实时面板（可选增强）
+
+```text
+[Colab] pip install cloudflared
+        → 启动 FastAPI 状态服务(:8080, 读 progress.json)
+        → cloudflared tunnel --url http://localhost:8080
+        → 得到 https://xxx.trycloudflare.com 公网 URL
+[本地] 浏览器直接打开 URL 看实时进度
+```
+
+优点：实时刷新。
+缺点：免费隧道每次会话重启 URL 变化；Colab 网络策略可能阻止出站隧道（需实测）。
+
+### 决策
+
+- v0.1 实现**方案 A**（可靠优先）；方案 B 作为可选开关，M6 联调时验证可行性。
+- progress.json 由 Colab 端每页原子写入（先写临时文件再 rename，避免半写状态）。
+- 本地监控并入 Web UI 作为独立页（M13）。
 
 ---
 
@@ -113,9 +162,52 @@ ocr/
 │   ├── export.py         # JSON/TXT/TSV 导出
 │   ├── audit.py          # 审计日志
 │   └── user_dict.json    # 自定义字库
-├── book.json             # 书目元数据
+├── book.json             # 书目元数据（含技法分组）
 └── data/                 # 校对后的页面 JSON（每页一个）
 ```
+
+### book.json 数据模型（技法分组）
+
+```json
+{
+  "techniques": [
+    {
+      "id": "qintang",
+      "name": "七政四余（琴堂）",
+      "category": "星命",
+      "books": ["book_qt01"]
+    },
+    {
+      "id": "liuren",
+      "name": "大六壬",
+      "category": "三式",
+      "books": ["book_lr01"]
+    }
+  ],
+  "books": [
+    {
+      "id": "book_qt01",
+      "title": "新刻琴堂五星",
+      "technique": "qintang",
+      "version": "明万历31年胡文焕刻本（山东省图书馆藏）",
+      "pages": ["page_001", "page_002"]
+    }
+  ],
+  "pages": {
+    "page_001": {
+      "book": "book_qt01",
+      "image": "raw_books/.../page_001.png",
+      "result": "data/page_001.json"
+    }
+  }
+}
+```
+
+说明：
+- **技法（technique）是分组主键**：流派不重要、不进模型；同一本书只属一个技法
+- 层级：技法 → 书 → 卷(可选) → 页
+- Web UI 左侧按技法分组树导航（M11）；右侧按技法显示统计（M12）
+- 技法分类建议（v0.1 预置，可增）：星命（七政四余/琴堂/星学大成）、三式（奇门/六壬/太乙）、四柱（子平）、六爻、风水（堪舆）等——**待用户确认默认技法清单**
 
 ---
 
@@ -128,8 +220,8 @@ ocr/
 | M3 | 本地 Web UI：加载/复原/导航/放大镜/低置信度筛选 | 打开一页 → 看到底图 + 全部字框 + 字标签；低置信度标红 |
 | M4 | 编辑能力：手动框选补标/改字/旋转调正/撤销 | JSON 回写正确；undo 可用 |
 | M5 | 生僻字查询 + 拆解 + 自定义字库 | 框选生僻字 → 本地出读音/释义/部首；再查命中 user_dict |
-| M6 | 元数据 + 审计 + 进度 + 质量报告 + 导出 | book.json 管理全书；audit 可追溯；report.md 可生成；导出三格式可用 |
-| M7 | 端到端：选一本古籍全流程跑通 | 完成 1 本（如《琴堂五星》卷一）校对，导出文本按阅读序正确 |
+| M6 | 元数据 + 审计 + 进度 + 质量报告 + 导出 + 技法分组 + 远程监控 | book.json 按技法组织全书；audit 可追溯；report.md 可生成；导出三格式可用；监控页读 progress.json |
+| M7 | 端到端：选一本古籍全流程跑通 | 完成 1 本（如《琴堂五星》卷一）校对，导出文本按阅读序正确；Colab→Drive→本地 全链路验证 |
 
 ---
 
