@@ -1,0 +1,5 @@
+# Colab 端依赖（PaddleOCR 3.x 古籍识别）
+paddleocr>=3.0
+paddlepaddle>=3.0
+opencv-python-headless>=4.8
+numpy>=1.24
