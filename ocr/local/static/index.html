@@ -99,7 +99,6 @@ async function loadPage() {
 function drawBoxes() {
   // 在底图缩放比例下定位（若底图被缩放）
   const img = document.getElementById('bg');
-  const scaleX = img.naturalWidth ? 1 : 1, scaleY = img.naturalHeight ? 1 : 1;
   for (const c of charData) {
     const d = document.createElement('div');
     d.className = 'box' + (c.is_rare ? (c.rare_reason==='low_conf' ? ' lowconf' : ' rare') : '');
@@ -108,7 +107,12 @@ function drawBoxes() {
     d.style.width = c.box.w + 'px';
     d.style.height = c.box.h + 'px';
     const span = document.createElement('span');
-    span.textContent = c.char || '□';
+    // 显示当前字；若有映射(非原始)则附原始字，便于追溯
+    let label = c.char || '□';
+    if (c.mapping && c.mapping.from && c.mapping.from !== c.char) {
+      label = `${c.char}≈${c.mapping.from}`;  // 当前字≈原始字
+    }
+    span.textContent = label;
     d.appendChild(span);
     // 生僻字可点击查询
     if (c.is_rare) {
