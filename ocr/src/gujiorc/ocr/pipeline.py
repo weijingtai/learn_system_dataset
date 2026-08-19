@@ -85,6 +85,7 @@ def image_to_page(
             text=c.char,
             conf=c.conf,
             angle=c.angle,
+            extra={"band": c.extra.get("band", 0)},
         ))
 
     return PageResult(

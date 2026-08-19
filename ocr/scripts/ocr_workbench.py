@@ -39,10 +39,10 @@ def cmd_run(args):
     from gujiorc.core.paths import get_root
     from gujiorc.core.progress import ProgressReporter
     from gujiorc.ocr.pipeline import image_to_page
+    from gujiorc.ocr.segment import segment_page_chars
     from gujiorc.core.storage import save_page_json
     from gujiorc.index.fulltext import CharIndex
     from gujiorc.rare.detector import detect_rare_chars, build_common_set
-    from gujiorc.rare.crop import crop_all_rare
 
     target = Path(args.image)
     files = _img_files(target)
@@ -64,8 +64,12 @@ def cmd_run(args):
                 gap_thresh=args.gap,
                 conf_thresh=args.conf,
             )
-            # 生僻字判定（反向筛选）
-            detect_rare_chars(page_result, common_set)
+            # 单字切分（PLANS M2）：整行块 → 单字框
+            if args.segment:
+                n_chars = segment_page_chars(str(f), page_result)
+                print(f"  [{page}] 单字切分 {n_chars} 字", file=sys.stderr)
+            # 生僻字判定（按单字精度）
+            detect_rare_chars(page_result, common_set, conf_thresh=args.conf)
             # 存 JSON
             save_page_json(page_result)
             # 索引
@@ -214,6 +218,7 @@ def main():
     p_run.add_argument("image", help="图片文件或目录")
     p_run.add_argument("--gap", type=float, default=40)
     p_run.add_argument("--conf", type=float, default=0.6)
+    p_run.add_argument("--segment", action="store_true", help="单字切分（竖排列→单字框）")
     p_run.add_argument("--report-every", type=float, default=5.0)
     p_run.set_defaults(func=cmd_run)
 

@@ -76,6 +76,7 @@ class LineBox:
     children: list[str] = field(default_factory=list)
     conf: float = 0.0
     angle: float = 0.0
+    extra: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict:
         return asdict(self)
