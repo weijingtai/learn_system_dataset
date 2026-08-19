@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+*.egg-info/
+
+# gujiorc 运行时数据（大/临时，不提交）
+data_work/
+*.db
+*.sqlite
+
+# 本地缓存
+.cache/
+logs/
+glyph_samples/
+
+# macOS
+.DS_Store

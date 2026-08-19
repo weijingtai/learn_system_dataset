@@ -1,0 +1,22 @@
+# gujiorc 配置示例（本地 + Colab 通用）
+# 复制为 data_work/config.yaml（或 OCR_ROOT/config.yaml）生效
+
+# OCR 识别
+ocr:
+  gap_thresh: 40          # 区块切分阈值（OCR 框 y 间隙，PLANS §4.3）
+  col_gap_thresh: 30      # 列聚合阈值
+  conf_thresh: 0.6        # 低置信度阈值
+
+# 生僻字判定
+rare:
+  # 常用字表路径（相对 OCR_ROOT，或绝对路径）
+  # 生产建议放《通用规范汉字表》8105字
+  common_hanzi: data/common_hanzi.txt
+
+# 全字索引
+index:
+  db: index.db
+
+# 进度汇报
+progress:
+  report_every: 5.0       # 每 ≥5% 汇报一次

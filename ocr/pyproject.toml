@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gujiorc"
+version = "0.1.0"
+description = "古籍 OCR 识别与生僻字校对工作台：CoLab 识别 + 本地/云校对"
+requires-python = ">=3.9"
+dependencies = [
+    "paddleocr>=3.0",
+    "paddlepaddle>=3.0",
+    "opencv-python-headless>=4.8",
+    "numpy>=1.24",
+    "Pillow>=9.0",
+]
+
+[project.optional-dependencies]
+web = ["fastapi>=0.100", "uvicorn>=0.20"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
