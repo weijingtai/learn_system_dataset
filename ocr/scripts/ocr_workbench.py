@@ -198,15 +198,49 @@ def cmd_dups(args):
 
 
 def cmd_groups(args):
-    from gujiorc.rare.groups import load_groups
+    """生僻字分组归并（M12）：展示/创建/添加/定义。"""
+    from gujiorc.rare.groups import load_groups, save_groups, create_group, \
+        add_samples, define_group, remove_samples
+
     groups = load_groups()
+
+    if args.action == "list" or args.action is None:
+        _print_groups(groups)
+    elif args.action == "create":
+        g = create_group(groups, args.name, args.samples or [], args.note or "")
+        save_groups(groups)
+        print(f"✅ 创建组 {g.id}「{g.name}」(样本 {len(g.samples)} 个)")
+    elif args.action == "add":
+        if not args.id or not args.samples:
+            print("add 需要 --id 和 --samples")
+            return 1
+        add_samples(groups, args.id, args.samples)
+        save_groups(groups)
+        print(f"✅ 组 {args.id} 已添加 {len(args.samples)} 个样本")
+    elif args.action == "define":
+        if not args.id or (args.char is None and args.font is None):
+            print("define 需要 --id 和 --char 或 --font")
+            return 1
+        define_group(groups, args.id, char=args.char, font=args.font)
+        save_groups(groups)
+        print(f"✅ 组 {args.id} 已定义 char={args.char or '（沿用）'} font={args.font or '-'}")
+    elif args.action == "remove":
+        if not args.id or not args.samples:
+            print("remove 需要 --id 和 --samples")
+            return 1
+        remove_samples(groups, args.id, args.samples)
+        save_groups(groups)
+        print(f"✅ 组 {args.id} 已移除 {len(args.samples)} 个样本")
+    return 0
+
+
+def _print_groups(groups):
     if not groups:
-        print("暂无分组")
-        return 0
+        print("暂无生僻字分组（用 `groups create --name 组名` 创建）")
+        return
     for g in groups:
         print(f"[{g.id}] {g.name}  status={g.status}  样本数={len(g.samples)}  "
-              f"char={g.char or '未定义'}  font={g.font or '-'}")
-    return 0
+              f"char={g.char or '未定义'}  font={g.font or '-'}  note={g.note or ''}")
 
 
 def main():
@@ -240,7 +274,15 @@ def main():
     p_d.add_argument("--min-count", type=int, default=2)
     p_d.set_defaults(func=cmd_dups)
 
-    p_g = sub.add_parser("groups", help="生僻字分组清单")
+    p_g = sub.add_parser("groups", help="生僻字分组归并")
+    p_g.add_argument("action", nargs="?", default="list", choices=["list", "create", "add", "define", "remove"],
+                     help="list=展示, create=创建, add=加样本, define=定义字/字体, remove=移样本")
+    p_g.add_argument("--name", help="组名（create）")
+    p_g.add_argument("--id", help="组 ID")
+    p_g.add_argument("--samples", nargs="*", help="字框 ID 列表")
+    p_g.add_argument("--char", help="定义的目标字（define）")
+    p_g.add_argument("--font", help="TTF 字体名（define）")
+    p_g.add_argument("--note", help="备注")
     p_g.set_defaults(func=cmd_groups)
 
     args = parser.parse_args()
