@@ -260,6 +260,34 @@ def cmd_show_char(args):
     return 0
 
 
+def cmd_export(args):
+    """导出识别成果（JSON/TXT/TSV/transcript）。对齐 pipeline·corpus。"""
+    from gujiorc.core.paths import get_root
+    from gujiorc.core.report import load_all_pages
+    from gujiorc.core.export import export_common
+    from gujiorc.rare.groups import load_groups, resolve_char
+
+    root = Path(get_root())
+    pages = load_all_pages(root / "data")
+    if not pages:
+        print(f"无页面数据于 {root / 'data'}")
+        return 1
+
+    # 分组映射（若已定义组）
+    groups = load_groups()
+
+    def gr(char_id: str):
+        return next((g.char for g in groups if g.status == "defined" and g.char and char_id in g.samples), None)
+
+    out_dir = root / "export"
+    fmts = tuple(args.formats.split(",")) if args.formats else ("json", "txt", "tsv", "transcript")
+    outs = export_common(pages, out_dir, prefix=args.book or "book", groups_resolve=gr, formats=fmts)
+    print(f"📦 导出完成 → {out_dir}")
+    for fmt, p in outs.items():
+        print(f"  {fmt}: {p}")
+    return 0
+
+
 def cmd_report(args):
     """生成 OCR 质量报告（M6_）。导出 report.md。"""
     from gujiorc.core.paths import get_root
@@ -393,6 +421,12 @@ def main():
     p_report = sub.add_parser("report", help="生成OCR质量报告")
     p_report.add_argument("--book", default="", help="书名（用于标题）")
     p_report.set_defaults(func=cmd_report)
+
+    p_export = sub.add_parser("export", help="导出识别成果(JSON/TXT/TSV/transcript)")
+    p_export.add_argument("--book", default="book", help="输出文件前缀")
+    p_export.add_argument("--formats", default="json,txt,tsv,transcript",
+                          help="逗号分隔格式: json,txt,tsv,transcript")
+    p_export.set_defaults(func=cmd_export)
 
     p_g = sub.add_parser("groups", help="生僻字分组归并")
     p_g.add_argument("action", nargs="?", default="list", choices=["list", "create", "add", "define", "remove"],
