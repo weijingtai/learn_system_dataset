@@ -94,6 +94,7 @@ full_pipeline('/content/drive/MyDrive/ocr_work/books')
 ### 短期（建议优先）
 1. **Colab 实机跑通**：上传 `colab/` 到 Drive，用 `full_pipeline` 跑一本真实古籍，验证进度心跳、Drive 持久化、断点。
 2. **Web UI 人工验收**：`local/app.py` 打开浏览器，走查改字/框选/旋转，修前端 bug。
+3. **工程缺口补齐**（已拆成任务书）：`ocr/docs/TASKS_ENG_GAPS.md`，四个任务 A(Unihan 下载脚本)→B(export 生成 manifest.yaml 打通 pipeline)→C(全局审计日志 audit.jsonl)→D(星盘曲线字弧线切分实验)。**此文件为给执行 AI agent 的逐步指令，按序独立执行、独立提交。**
 
 ### 中期
 3. **曲线字单字切分**：若遇星盘图，开发弧线段切分（沿圆弧投影）——单独算法任务。
@@ -111,9 +112,10 @@ full_pipeline('/content/drive/MyDrive/ocr_work/books')
 - **繁简归一用 OpenCC**（`opencc-python-reimplemented`），别删依赖——否则繁体字会误判生僻。
 - **单字切分质量**：常规竖排列好，曲线/极密小字会切过度或误并，需人工（Web UI 可补）。`--segment` 开关可关。
 - .venv/ 和 data_work/ 已 gitignore，别提交。
+- **工作区有未提交的 Web UI Vue 改版**（`local/static/index.html` 重写 + `local/static/vendor/` + `scripts/fetch_frontend.py`，2026-08 起）：前端已从原生 JS 迁到 Vue3 + Element Plus（离线 vendor），代码写完但**未浏览器验收、未提交**。其他 agent 提交时禁止 `git add .`/`git add -A`，勿误纳入；也别改动这三个路径，等人工验收线处理。
 
 ## 8. 最后状态
 
-- 全部代码已提交到 learn_system 根仓库（ocr/ 子目录），工作区干净。
+- 后端代码已全部提交到 learn_system 根仓库（ocr/ 子目录）；**例外**：Web UI Vue 改版三处未提交（见 §7 已知坑末条）。
 - 测试 37 全过。
-- 下一步从"Colab 实机跑通"或"Web UI 验收"开始。
+- 下一步三选一：① 执行 `docs/TASKS_ENG_GAPS.md` 工程缺口任务书（给执行 agent）；② Colab 实机跑通；③ Web UI 人工验收（先验收再提交 Vue 改版）。
