@@ -2,261 +2,256 @@
 <html lang="zh">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>gujiorc 古籍 OCR 工作台</title>
+<link rel="stylesheet" href="/static/vendor/element-plus.css">
 <style>
-  body { font-family: -apple-system, "PingFang SC", sans-serif; margin: 0; background: #f5f5f7; }
-  .header { background: #1d1d1f; color: #fff; padding: 12px 20px; display: flex; align-items: center; gap: 16px; }
-  .header h1 { font-size: 18px; margin: 0; font-weight: 600; }
-  .toolbar { background: #fff; padding: 10px 20px; border-bottom: 1px solid #ddd; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
-  .toolbar select, .toolbar button, .toolbar input { padding: 6px 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; }
-  .toolbar button { background: #0071e3; color: #fff; border: none; cursor: pointer; }
-  .toolbar button:hover { background: #0077ed; }
-  .stats { font-size: 13px; color: #555; }
-  .main { padding: 20px; display: flex; gap: 20px; }
-  .canvas-wrap { flex: 1; overflow: auto; background: #fff; border: 1px solid #ddd; border-radius: 8px; }
-  #stage { position: relative; display: inline-block; }
-  #bg { display: block; max-width: none; }
-  .box { position: absolute; border: 1.5px solid rgba(0,113,227,.8); }
-  .box.rare { border-color: #ff3b30; background: rgba(255,59,48,.08); }
-  .box.lowconf { border-color: #ffcc00; background: rgba(255,204,0,.10); }
-  .box span { position: absolute; font-size: 11px; color: #fff; background: rgba(0,113,227,.85); padding: 1px 3px; border-radius: 2px; white-space: nowrap; transform: translateY(-100%); top: 0; }
+  body { font-family: -apple-system, "PingFang SC", Tahoma, sans-serif; margin: 0; background: #f5f5f7; }
+  .app-header { background: #1d1d1f; color: #fff; padding: 10px 20px; display: flex; align-items: center; gap: 12px; }
+  .app-header h1 { font-size: 17px; margin: 0; font-weight: 600; }
+  .toolbar { background: #fff; padding: 8px 16px; border-bottom: 1px solid #e5e5ea; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .main { display: flex; gap: 0; height: calc(100vh - 110px); }
+  .canvas-wrap { flex: 1; overflow: auto; background: #888; position: relative; }
+  #stage { position: relative; display: inline-block; min-width: 100%; }
+  #bg { display: block; min-width: 100%; user-select: none; }
+  .box { position: absolute; border: 1.5px solid #0071e3; cursor: pointer; }
+  .box.rare { border-color: #ff3b30; background: rgba(255,59,48,.06); }
+  .box.lowconf { border-color: #ffcc00; background: rgba(255,204,0,.08); }
+  .box.fix { border-color: #34c759; }
+  .box.selected { outline: 3px solid #0071e3; outline-offset: 1px; z-index: 2; }
+  .box span { position: absolute; top: 0; left: 0; transform: translateY(-100%); font-size: 11px; line-height: 1.2; color: #fff; background: rgba(0,113,227,.85); padding: 1px 3px; border-radius: 2px; white-space: nowrap; }
   .box.rare span { background: rgba(255,59,48,.85); }
-  .box.lowconf span { background: rgba(255,204,0,.9); color: #333; }
-  .side { width: 320px; background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 16px; height: fit-content; }
-  .side h3 { margin-top: 0; }
-  .rare-list { max-height: 400px; overflow-y: auto; }
-  .rare-item { padding: 4px 0; border-bottom: 1px solid #eee; cursor: pointer; font-size: 14px; }
-  .rare-item:hover { background: #f0f0f0; }
-  .legend span { display: inline-block; margin-right: 12px; font-size: 13px; }
-  .legend .dot { display: inline-block; width: 12px; height: 12px; border: 2px solid; margin-right: 4px; vertical-align: -2px; }
+  .box.lowconf span { background: rgba(255,204,0,.92); color: #333; }
+  .side { width: 360px; background: #fff; border-left: 1px solid #e5e5ea; display: flex; flex-direction: column; }
+  .side .panel { padding: 12px 16px; border-bottom: 1px solid #f0f0f2; }
+  .side h3 { margin: 0 0 8px; font-size: 14px; }
+  .side h4 { margin: 8px 0 4px; font-size: 12px; color: #666; }
+  .v-line { margin: 0 6px; color: #ccc; }
+  .mono { font-family: ui-monospace, Menlo, monospace; }
 </style>
 </head>
 <body>
-<div class="header"><h1>📜 gujiorc 古籍 OCR 工作台</h1></div>
+<div id="app">
+  <!-- 顶部 -->
+  <div class="app-header">
+    <h1>📜 gujiorc 古籍 OCR 工作台</h1>
+    <el-tag type="success" size="small" effect="dark">Vue3 + Element Plus</el-tag>
+    <div style="flex:1"></div>
+    <span style="font-size:12px;color:#999">{{ stats }}</span>
+  </div>
 
-<div class="toolbar">
-  <select id="pageSel"><option>加载中…</option></select>
-  <button onclick="loadPage()">显示</button>
-  <input id="searchBox" placeholder="查某字出现位置" style="width:140px">
-  <button onclick="searchChar()">检索</button>
-  <div class="stats" id="stats"></div>
-  <div class="legend">
-    <span><span class="dot" style="border-color:#0071e3"></span>已识别</span>
-    <span><span class="dot" style="border-color:#ff3b30"></span>生僻字</span>
-    <span><span class="dot" style="border-color:#ffcc00"></span>低置信</span>
+  <!-- 工具栏 -->
+  <div class="toolbar">
+    <el-select v-model="curPage" placeholder="选页面" size="small" style="width:160px" @change="loadPage">
+      <el-option v-for="p in pages" :key="p" :label="p" :value="p"/>
+    </el-select>
+    <el-input v-model="searchChar" placeholder="查某字全书位置" size="small" style="width:140px"
+              clearable @keyup.enter="doSearch">
+      <template #append><el-button @click="doSearch">检索</el-button></template>
+    </el-input>
+    <span style="font-size:12px;color:#999">检索「{{ lastSearch }}」全书 {{ searchHits }} 处</span>
+  </div>
+
+  <!-- 编辑栏 -->
+  <div class="toolbar" style="border-top:0">
+    <b style="font-size:13px">编辑:</b>
+    <el-button size="small" type="primary" @click="nudgeAngle(-1)" :disabled="!selected">◄ 左旋</el-button>
+    <el-button size="small" type="primary" @click="nudgeAngle(1)" :disabled="!selected">右旋 ►</el-button>
+    <el-slider v-model="angle" :min="-45" :max="45" :step="1" style="width:160px" :disabled="!selected"
+               @change="onAngleChange" />
+    <span class="mono" style="font-size:12px;color:#666">{{ angle }}°</span>
+    <span class="v-line">|</span>
+    <el-input v-model="fixTo" placeholder="改为(空=重新识别)" size="small" style="width:120px"
+              @keyup.enter="doFix" @keyup.delete="doFix">
+      <template #append><el-button @click="doFix" :disabled="!selected">改字</el-button></template>
+    </el-input>
+    <el-switch v-model="drawMode" active-text="框选补标" @change="toggleDraw" />
+    <span style="font-size:12px;color:#999">选中: {{ selInfo }}</span>
+  </div>
+
+  <div class="main">
+    <!-- 画布 -->
+    <div class="canvas-wrap" id="canvasWrap" @click="onCanvasClick">
+      <div id="stage" ref="stage">
+        <img id="bg" ref="bgimg" :src="bgSrc" @load="onImgLoad"/>
+        <div v-for="c in chars" :key="c.id"
+             :data-id="c.id"
+             :class="['box', c.is_rare ? (c.rare_reason=='low_conf'?'lowconf':'rare') : '', c.id==selId?'selected':'', c.status=='corrected'?'fix':'']"
+             :style="{left:c.box.x+'px', top:c.box.y+'px', width:c.box.w+'px', height:c.box.h+'px'}"
+             @click="selectChar(c, $event)"
+             @dblclick="lookup(c)">
+          <span>{{ boxLabel(c) }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 侧栏 -->
+    <div class="side">
+      <div class="panel">
+        <h3>旋转预览</h3>
+        <div style="text-align:center"><img :src="rotSrc" v-if="selected" style="max-width:220px;border:1px solid #ddd;background:#000"/>
+          <span v-else style="color:#aaa;font-size:12px">点击一个框查看旋转效果</span></div>
+      </div>
+      <div class="panel" style="flex:1;overflow:auto">
+        <h3>生僻字 ({{ rareList.length }})</h3>
+        <el-table :data="rareList" size="small" height="100%" @row-click="locateRow">
+          <el-table-column label="字" width="50">
+            <template #default="{row}">{{ row.char || '□' }}</template>
+          </el-table-column>
+          <el-table-column label="置信" width="70">
+            <template #default="{row}">{{ row.conf.toFixed(2) }}</template>
+          </el-table-column>
+          <el-table-column label="原因">
+            <template #default="{row}">{{ row.rare_reason }}</template>
+          </el-table-column>
+        </el-table>
+      </div>
+    </div>
   </div>
 </div>
 
-<div class="toolbar" style="border-top:0">
-  <b>编辑:</b>
-  <input id="newChar" placeholder="改正为" style="width:70px">
-  <button onclick="fixSelected()">改字</button>
-  <button id="drawBtn" onclick="toggleDraw()">框选补标</button>
-  <span id="drawHint" style="display:none;color:#888">在图上拖拽画框（第一点/第二点）</span>
-  <span>旋转:
-    <input type="range" id="rotSlider" min="-90" max="90" value="0" oninput="showRotate()">
-    <span id="rotVal">0°</span>
-  </span>
-</div>
-
-<div class="main">
-  <div class="canvas-wrap" id="canvasWrap" onclick="saveDrawnBox(event)">
-    <div id="stage"></div>
-  </div>
-  <div class="side">
-    <h3>选中信息</h3>
-    <div id="selInfo" style="font-size:12px;color:#555;margin-bottom:8px">点击一个字框查看</div>
-    <h4>旋转预览</h4>
-    <div><img id="rotImg" style="max-width:200px;border:1px solid #ddd;background:#000" alt="旋转预览"></div>
-    <h3>生僻字</h3>
-    <div id="rareList" class="rare-list"><i>选择页面查看</i></div>
-  </div>
-</div>
-
+<script src="/static/vendor/vue.global.prod.js"></script>
+<script src="/static/vendor/element-plus.min.js"></script>
 <script>
-let currentPage = null;
-let charData = [];
-let selectedId = null;
-let drawing = false;
-let drawStart = null;
-let drawMode = false;
+const { createApp } = Vue;
 
-async function api(url, opts) {
-  const r = await fetch(url, opts);
-  if (!r.ok) { const t = await r.text(); throw new Error(t.slice(0,120)); }
-  return r.json();
-}
-
-async function init() {
-  const { pages } = await api('/api/pages');
-  if (!pages.length) { document.getElementById('pageSel').innerHTML='<option>无页面</option>'; return; }
-  const sel = document.getElementById('pageSel');
-  sel.innerHTML = pages.map(p=>`<option>${p}</option>`).join('');
-  await loadPage();
-}
-
-async function loadPage() {
-  const page = document.getElementById('pageSel').value;
-  if (!page) return;
-  currentPage = page;
-  const data = await api(`/api/page/${page}`);
-  charData = data.chars || [];
-  const stage = document.getElementById('stage');
-  stage.innerHTML = '';
-  const img = document.createElement('img');
-  img.id = 'bg';
-  img.src = `/api/image/${page}`;
-  img.onload = () => {
-    stage.style.width = img.naturalWidth + 'px';
-    stage.style.height = img.naturalHeight + 'px';
-  };
-  stage.appendChild(img);
-  drawBoxes();
-  fillStats(data);
-  fillRareList(data);
-}
-
-function drawBoxes() {
-  const stage = document.getElementById('stage');
-  // 清除旧框（保留 img）
-  while (stage.children.length > 1) stage.removeChild(stage.lastChild);
-  for (const c of charData) {
-    const d = document.createElement('div');
-    d.className = 'box' + (c.is_rare ? (c.rare_reason==='low_conf' ? ' lowconf' : ' rare') : '');
-    d.dataset.id = c.id;
-    d.style.left = c.box.x + 'px';
-    d.style.top = c.box.y + 'px';
-    d.style.width = c.box.w + 'px';
-    d.style.height = c.box.h + 'px';
-    const span = document.createElement('span');
-    let label = c.char || '□';
-    if (c.mapping && c.mapping.from && c.mapping.from !== c.char) {
-      label = `${c.char}≈${c.mapping.from}`;
-    }
-    span.textContent = label;
-    d.appendChild(span);
-    d.addEventListener('click', (e) => {
-      e.stopPropagation();
-      selectChar(c.id);
-    });
-    // 生僻字可点击查询
-    if (c.is_rare) {
-      d.style.cursor = 'pointer';
-      d.addEventListener('dblclick', () => window.open(`/static/rare.html?char=${encodeURIComponent(c.char||'')}`, '_blank'));
-    }
-    stage.appendChild(d);
-  }
-}
-
-function selectChar(id) {
-  selectedId = id;
-  const stage = document.getElementById('stage');
-  for (const b of stage.querySelectorAll('.box')) b.style.outline = '';
-  const el = stage.querySelector(`[data-id="${id}"]`);
-  if (el) { el.style.outline = '3px solid #00f'; el.style.outlineOffset = '2px'; }
-  // 显示选中信息
-  const c = charData.find(x=>x.id===id);
-  if (c) {
-    const m = c.mapping||{};
-    document.getElementById('selInfo').textContent =
-      `选中: ${c.id} 原字=${c.orig_char||'-'} 当前=${c.char||'-'} 映射=${m.from?`${m.from}→${m.target}(${m.source})`:'无'} conf=${c.conf.toFixed(2)}`;
-  }
-  // 显示旋转预览
-  showRotate(c);
-}
-
-async function showRotate(c) {
-  if (!c) c = charData.find(x=>x.id===selectedId);
-  if (!c) return;
-  const ang = document.getElementById('rotSlider').value;
-  document.getElementById('rotVal').textContent = ang + '°';
-  const img = document.getElementById('rotImg');
-  img.src = `/api/page/${currentPage}/char/${c.id}/rotate?angle=${ang}`;
-}
-
-async function fixSelected() {
-  if (!selectedId) { alert('先点击选中一个字框'); return; }
-  const newChar = document.getElementById('newChar').value.trim();
-  if (!newChar) { alert('输入改正后的字'); return; }
-  const c = charData.find(x=>x.id===selectedId);
-  await api(`/api/page/${currentPage}/fix`, {method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({char_id:selectedId, new_char:newChar})});
-  // 更新本地数据
-  c.char = newChar; c.mapping = {from:c.orig_char||c.char, target:newChar, source:'manual'};
-  document.getElementById('newChar').value='';
-  drawBoxes();
-  // 若前面已改正映射，orig 保持不变
-  alert(`已改正 → ${newChar}（原始 ${c.orig_char} 已保留）`);
-}
-
-function toggleDraw() {
-  drawMode = !drawMode;
-  document.getElementById('drawBtn').textContent = drawMode ? '取消框选' : '框选补标';
-  document.getElementById('drawHint').style.display = drawMode ? 'inline' : 'none';
-}
-
-function saveDrawnBox(e) {
-  if (!drawMode) return;
-  const bounds = document.getElementById('stage').getBoundingClientRect();
-  const x = (e.pageX - bounds.left + window.scrollX*0); // 简化
-  // 用 stage 内 offset
-  const rect = document.getElementById('stage');
-  const scaleX = 1, scaleY = 1; // 图未缩放
-  const bx = e.clientX - bounds.left;
-  const by = e.clientY - bounds.top;
-  if (drawStart) {
-    const sx = Math.min(drawStart.x, bx), sy = Math.min(drawStart.y, by);
-    const w = Math.abs(bx - drawStart.x), h = Math.abs(by - drawStart.y);
-    if (w > 5 && h > 5) {
-      api(`/api/page/${currentPage}/segment-new`, {method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({box:{x:sx, y:sy, w:w, h:h}})}).then(r=>{
-        alert(`已补标新框 ${r.id}`);
-        loadPage();
+createApp({
+  data() {
+    return {
+      pages: [], curPage: '', chars: [], rareList: [],
+      selId: null, selInfo: '无',
+      rotateList: {}, angle: 0, rotSrc: '',
+      fixTo: '', searchChar: '', lastSearch: '', searchHits: 0,
+      drawMode: false, drawStart: null, rawScale: 1,
+      stats: '',
+      stageW: 0, stageH: 0, srcW: 0, srcH: 0,
+    };
+  },
+  computed: {
+    bgSrc() { return this.curPage ? `/api/image/${this.curPage}` : ''; },
+    selected() {
+      return this.chars.find(c => c.id === this.selId) || null;
+    },
+  },
+  methods: {
+    async api(url, opts) {
+      const r = await fetch(url, opts);
+      if (!r.ok) { const t = await r.text(); throw new Error(t.slice(0,120)); }
+      return r.json();
+    },
+    async init() {
+      const { pages } = await this.api('/api/pages');
+      this.pages = pages;
+      if (pages.length) { this.curPage = pages[0]; await this.loadPage(); }
+    },
+    async loadPage() {
+      if (!this.curPage) return;
+      const data = await this.api(`/api/page/${this.curPage}`);
+      this.chars = data.chars || [];
+      this.srcW = data.width; this.srcH = data.height;
+      this.selId = null; this.selInfo = '无'; this.rotSrc = '';
+      this.stats = `共 ${this.chars.length} 字 · 生僻 ${this.chars.filter(c=>c.is_rare).length}`;
+      this.rareList = this.chars.filter(c => c.is_rare);
+      this.$nextTick(() => { if (this.$refs.img) this.onImgLoad(); });
+    },
+    onImgLoad() {
+      const img = this.$refs.bgimg;
+      if (!img) return;
+      this.stageW = img.naturalWidth || this.srcW;
+      this.stageH = img.naturalHeight || this.srcH;
+    },
+    boxLabel(c) {
+      let l = c.char || '□';
+      if (c.mapping && c.mapping.from && c.mapping.from !== c.char) l += `≈${c.mapping.from}`;
+      return l;
+    },
+    selectChar(c, ev) {
+      if (ev) ev.stopPropagation();
+      this.selId = c.id; this.selInfo = `${c.id} ${c.orig_char||'-'}→${c.char||'-'}`;
+      this.angle = this.rotateList[c.id] || 0;
+      this.showRotate();
+    },
+    onAngleChange() {
+      if (this.selected) { this.rotateList[this.selId] = this.angle; this.showRotate(); }
+    },
+    nudgeAngle(dir) {
+      if (!this.selected) return;
+      this.angle += dir;
+      this.rotateList[this.selId] = this.angle;
+      this.showRotate();
+    },
+    showRotate() {
+      if (!this.selected) return;
+      this.rotSrc = `/api/page/${this.curPage}/char/${this.selId}/rotate?angle=${this.angle}`;
+    },
+    async doFix() {
+      if (!this.selected) { alert('先点选一个框'); return; }
+      const c = this.selected;
+      const newChar = (this.fixTo || '').trim();
+      if (!newChar) { alert('输入改正后的字，或按删除键重识别'); return; }
+      const r = await this.api(`/api/page/${this.curPage}/fix`, {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({char_id:c.id, new_char:newChar}),
       });
-    }
-    drawStart = null;
-    drawMode = false;
-    document.getElementById('drawBtn').textContent = '框选补标';
-    document.getElementById('drawHint').style.display='none';
-  } else {
-    drawStart = {x:bx, y:by};
-  }
-}
-
-function fillStats(data) {
-  const total = (data.chars||[]).length;
-  const rare = (data.chars||[]).filter(c=>c.is_rare).length;
-  document.getElementById('stats').textContent = `共 ${total} 字 | 生僻 ${rare}`;
-}
-
-function fillRareList(data) {
-  const rare = (data.chars||[]).filter(c=>c.is_rare);
-  const list = document.getElementById('rareList');
-  if (!rare.length) { list.innerHTML='<i>无生僻字</i>'; return; }
-  list.innerHTML = rare.map(c=>`<div class="rare-item" onclick="locateChar('${c.id}')">${c.char||'□'} <small>conf=${c.conf.toFixed(2)}</small></div>`).join('');
-}
-
-function locateChar(id) {
-  const c = charData.find(x=>x.id===id); if(!c) return;
-  const wrap = document.getElementById('canvasWrap');
-  wrap.scrollLeft = c.box.x - 100;
-  wrap.scrollTop = c.box.y - 100;
-}
-
-async function searchChar() {
-  const q = document.getElementById('searchBox').value.trim();
-  if (!q) return;
-  try {
-    const res = await api(`/api/search?char=${encodeURIComponent(q)}`);
-    const stage = document.getElementById('stage');
-    for (const box of stage.querySelectorAll('.box')) box.style.outline = '';
-    let found = 0;
-    for (const c of charData) if (c.char === q) { const el=stage.querySelector(`[data-id="${c.id}"]`); if(el){el.style.outline='3px solid #ff2d55'; found++;} }
-    document.getElementById('stats').textContent = `检索「${q}」页内 ${found} 处（全书${res.hits.length}处）`;
-  } catch(e) { alert('检索失败: '+e.message); }
-}
-
-init();
+      c.char = newChar;
+      c.mapping = {from:c.orig_char||c.char, target:newChar, source:'manual'};
+      c.status = 'corrected';
+      this.fixTo = '';
+      this.$message.success(`已改正 → ${newChar}（原始 ${c.orig_char} 保留）`);
+    },
+    toggleDraw() {
+      if (!this.drawMode) { this.drawStart = null; }
+    },
+    async onCanvasClick(ev) {
+      if (this.drawMode) {
+        const rect = this.$refs.stage.getBoundingClientRect();
+        const x = ev.clientX - rect.left, y = ev.clientY - rect.top;
+        if (!this.drawStart) { this.drawStart = {x, y}; return; }
+        const {x:sx, y:sy} = this.drawStart;
+        const w = Math.abs(x-sx), h = Math.abs(y-sy);
+        this.drawStart = null; this.drawMode = false;
+        if (w>4 && h>4) {
+          const r = await this.api(`/api/page/${this.curPage}/segment-new`, {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({box:{x:Math.min(sx,x), y:Math.min(sy,y), w, h}}),
+          });
+          this.$message.success(`已补标 ${r.id}`);
+          await this.loadPage();
+        }
+      } else {
+        this.selId = null; this.selInfo='无'; this.rotSrc='';
+      }
+    },
+    async lookup(c) {
+      if (c.char) {
+        const d = await this.api(`/api/dict/${encodeURIComponent(c.char)}`);
+        this.$alert(`${Object.entries(d).map(([k,v])=>`${k}: ${v}`).join('\n')}`, `生僻字 ${c.char||''}`, {pre-wrap:true});
+      }
+    },
+    async doSearch() {
+      this.lastSearch = this.searchChar;
+      if (!this.searchChar) return;
+      const r = await this.api(`/api/search?char=${encodeURIComponent(this.searchChar)}`);
+      this.searchHits = r.hits.length;
+      // 高亮当前页匹配
+      this.$nextTick(() => {
+        this.chars.forEach(c => {
+          const el = this.$refs.stage?.querySelector(`[data-id="${c.id}"]`);
+          if (el) el.style.outline = (c.char === this.searchChar) ? '3px solid #ff2d55' : '';
+        });
+      });
+    },
+    locateRow(row) {
+      const c = this.chars.find(x => x.id === row.id);
+      if (c) {
+        this.selId = c.id;
+        document.getElementById('canvasWrap').scrollLeft = c.box.x - 150;
+        document.getElementById('canvasWrap').scrollTop = c.box.y - 150;
+      }
+    },
+  },
+  mounted() { this.init(); },
+}).use(ElementPlus).mount('#app');
 </script>
 </body>
 </html>
