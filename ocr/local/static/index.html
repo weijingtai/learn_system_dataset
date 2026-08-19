@@ -47,11 +47,27 @@
   </div>
 </div>
 
+<div class="toolbar" style="border-top:0">
+  <b>编辑:</b>
+  <input id="newChar" placeholder="改正为" style="width:70px">
+  <button onclick="fixSelected()">改字</button>
+  <button id="drawBtn" onclick="toggleDraw()">框选补标</button>
+  <span id="drawHint" style="display:none;color:#888">在图上拖拽画框（第一点/第二点）</span>
+  <span>旋转:
+    <input type="range" id="rotSlider" min="-90" max="90" value="0" oninput="showRotate()">
+    <span id="rotVal">0°</span>
+  </span>
+</div>
+
 <div class="main">
-  <div class="canvas-wrap" id="canvasWrap">
+  <div class="canvas-wrap" id="canvasWrap" onclick="saveDrawnBox(event)">
     <div id="stage"></div>
   </div>
   <div class="side">
+    <h3>选中信息</h3>
+    <div id="selInfo" style="font-size:12px;color:#555;margin-bottom:8px">点击一个字框查看</div>
+    <h4>旋转预览</h4>
+    <div><img id="rotImg" style="max-width:200px;border:1px solid #ddd;background:#000" alt="旋转预览"></div>
     <h3>生僻字</h3>
     <div id="rareList" class="rare-list"><i>选择页面查看</i></div>
   </div>
@@ -60,10 +76,14 @@
 <script>
 let currentPage = null;
 let charData = [];
+let selectedId = null;
+let drawing = false;
+let drawStart = null;
+let drawMode = false;
 
-async function api(url) {
-  const r = await fetch(url);
-  if (!r.ok) throw new Error((await r.text()).slice(0,100));
+async function api(url, opts) {
+  const r = await fetch(url, opts);
+  if (!r.ok) { const t = await r.text(); throw new Error(t.slice(0,120)); }
   return r.json();
 }
 
@@ -97,48 +117,127 @@ async function loadPage() {
 }
 
 function drawBoxes() {
-  // 在底图缩放比例下定位（若底图被缩放）
-  const img = document.getElementById('bg');
+  const stage = document.getElementById('stage');
+  // 清除旧框（保留 img）
+  while (stage.children.length > 1) stage.removeChild(stage.lastChild);
   for (const c of charData) {
     const d = document.createElement('div');
     d.className = 'box' + (c.is_rare ? (c.rare_reason==='low_conf' ? ' lowconf' : ' rare') : '');
+    d.dataset.id = c.id;
     d.style.left = c.box.x + 'px';
     d.style.top = c.box.y + 'px';
     d.style.width = c.box.w + 'px';
     d.style.height = c.box.h + 'px';
     const span = document.createElement('span');
-    // 显示当前字；若有映射(非原始)则附原始字，便于追溯
     let label = c.char || '□';
     if (c.mapping && c.mapping.from && c.mapping.from !== c.char) {
-      label = `${c.char}≈${c.mapping.from}`;  // 当前字≈原始字
+      label = `${c.char}≈${c.mapping.from}`;
     }
     span.textContent = label;
     d.appendChild(span);
+    d.addEventListener('click', (e) => {
+      e.stopPropagation();
+      selectChar(c.id);
+    });
     // 生僻字可点击查询
     if (c.is_rare) {
       d.style.cursor = 'pointer';
-      d.onclick = () => window.open(`/static/rare.html?char=${encodeURIComponent(c.char||'')}`, '_blank');
+      d.addEventListener('dblclick', () => window.open(`/static/rare.html?char=${encodeURIComponent(c.char||'')}`, '_blank'));
     }
-    document.getElementById('stage').appendChild(d);
+    stage.appendChild(d);
+  }
+}
+
+function selectChar(id) {
+  selectedId = id;
+  const stage = document.getElementById('stage');
+  for (const b of stage.querySelectorAll('.box')) b.style.outline = '';
+  const el = stage.querySelector(`[data-id="${id}"]`);
+  if (el) { el.style.outline = '3px solid #00f'; el.style.outlineOffset = '2px'; }
+  // 显示选中信息
+  const c = charData.find(x=>x.id===id);
+  if (c) {
+    const m = c.mapping||{};
+    document.getElementById('selInfo').textContent =
+      `选中: ${c.id} 原字=${c.orig_char||'-'} 当前=${c.char||'-'} 映射=${m.from?`${m.from}→${m.target}(${m.source})`:'无'} conf=${c.conf.toFixed(2)}`;
+  }
+  // 显示旋转预览
+  showRotate(c);
+}
+
+async function showRotate(c) {
+  if (!c) c = charData.find(x=>x.id===selectedId);
+  if (!c) return;
+  const ang = document.getElementById('rotSlider').value;
+  document.getElementById('rotVal').textContent = ang + '°';
+  const img = document.getElementById('rotImg');
+  img.src = `/api/page/${currentPage}/char/${c.id}/rotate?angle=${ang}`;
+}
+
+async function fixSelected() {
+  if (!selectedId) { alert('先点击选中一个字框'); return; }
+  const newChar = document.getElementById('newChar').value.trim();
+  if (!newChar) { alert('输入改正后的字'); return; }
+  const c = charData.find(x=>x.id===selectedId);
+  await api(`/api/page/${currentPage}/fix`, {method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({char_id:selectedId, new_char:newChar})});
+  // 更新本地数据
+  c.char = newChar; c.mapping = {from:c.orig_char||c.char, target:newChar, source:'manual'};
+  document.getElementById('newChar').value='';
+  drawBoxes();
+  // 若前面已改正映射，orig 保持不变
+  alert(`已改正 → ${newChar}（原始 ${c.orig_char} 已保留）`);
+}
+
+function toggleDraw() {
+  drawMode = !drawMode;
+  document.getElementById('drawBtn').textContent = drawMode ? '取消框选' : '框选补标';
+  document.getElementById('drawHint').style.display = drawMode ? 'inline' : 'none';
+}
+
+function saveDrawnBox(e) {
+  if (!drawMode) return;
+  const bounds = document.getElementById('stage').getBoundingClientRect();
+  const x = (e.pageX - bounds.left + window.scrollX*0); // 简化
+  // 用 stage 内 offset
+  const rect = document.getElementById('stage');
+  const scaleX = 1, scaleY = 1; // 图未缩放
+  const bx = e.clientX - bounds.left;
+  const by = e.clientY - bounds.top;
+  if (drawStart) {
+    const sx = Math.min(drawStart.x, bx), sy = Math.min(drawStart.y, by);
+    const w = Math.abs(bx - drawStart.x), h = Math.abs(by - drawStart.y);
+    if (w > 5 && h > 5) {
+      api(`/api/page/${currentPage}/segment-new`, {method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({box:{x:sx, y:sy, w:w, h:h}})}).then(r=>{
+        alert(`已补标新框 ${r.id}`);
+        loadPage();
+      });
+    }
+    drawStart = null;
+    drawMode = false;
+    document.getElementById('drawBtn').textContent = '框选补标';
+    document.getElementById('drawHint').style.display='none';
+  } else {
+    drawStart = {x:bx, y:by};
   }
 }
 
 function fillStats(data) {
   const total = (data.chars||[]).length;
   const rare = (data.chars||[]).filter(c=>c.is_rare).length;
-  const low = (data.chars||[]).filter(c=>c.rare_reason==='low_conf').length;
-  document.getElementById('stats').textContent = `共 ${total} 字 | 生僻/低置信 ${rare} 字（含低置信 ${low}）`;
+  document.getElementById('stats').textContent = `共 ${total} 字 | 生僻 ${rare}`;
 }
 
 function fillRareList(data) {
   const rare = (data.chars||[]).filter(c=>c.is_rare);
   const list = document.getElementById('rareList');
   if (!rare.length) { list.innerHTML='<i>无生僻字</i>'; return; }
-  list.innerHTML = rare.map((c,i)=>`<div class="rare-item" onclick="jumpTo(${i})">${c.char||'□'} <small>conf=${c.conf.toFixed(2)} ${c.rare_reason}</small></div>`).join('');
+  list.innerHTML = rare.map(c=>`<div class="rare-item" onclick="locateChar('${c.id}')">${c.char||'□'} <small>conf=${c.conf.toFixed(2)}</small></div>`).join('');
 }
 
-function jumpTo(i) {
-  const c = charData[i];
+function locateChar(id) {
+  const c = charData.find(x=>x.id===id); if(!c) return;
   const wrap = document.getElementById('canvasWrap');
   wrap.scrollLeft = c.box.x - 100;
   wrap.scrollTop = c.box.y - 100;
@@ -147,21 +246,14 @@ function jumpTo(i) {
 async function searchChar() {
   const q = document.getElementById('searchBox').value.trim();
   if (!q) return;
-  // 通过索引接口查（需本地重建索引时自动）
   try {
     const res = await api(`/api/search?char=${encodeURIComponent(q)}`);
     const stage = document.getElementById('stage');
-    // 高亮匹配
     for (const box of stage.querySelectorAll('.box')) box.style.outline = '';
     let found = 0;
-    for (let i=0;i<charData.length;i++){
-      if (charData[i].char === q) {
-        const d = stage.children[i+1]; // +1 跳过 img
-        if (d) { d.style.outline = '3px solid #ff2d55'; found++; }
-      }
-    }
-    document.getElementById('stats').textContent += `｜ 检索「${q}」页内 ${found} 处`;
-  } catch(e) { document.getElementById('stats').textContent = '检索失败: '+e.message; }
+    for (const c of charData) if (c.char === q) { const el=stage.querySelector(`[data-id="${c.id}"]`); if(el){el.style.outline='3px solid #ff2d55'; found++;} }
+    document.getElementById('stats').textContent = `检索「${q}」页内 ${found} 处（全书${res.hits.length}处）`;
+  } catch(e) { alert('检索失败: '+e.message); }
 }
 
 init();
