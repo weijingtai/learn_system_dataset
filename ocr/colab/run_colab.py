@@ -58,12 +58,12 @@ def full_pipeline(books_dir: str, ocr_root: str | None = None,
     check_drive(ocr_root)
 
     from gujiorc.ocr.pipeline import image_to_page
+    from gujiorc.ocr.segment import segment_page_chars
     from gujiorc.core.progress import ProgressReporter
     from gujiorc.core.storage import save_page_json, save_rare_list
     from gujiorc.index.fulltext import CharIndex
     from gujiorc.rare.detector import detect_rare_chars, build_common_set, build_rare_list
     from gujiorc.rare.crop import crop_all_rare
-    from gujiorc.core.paths import get_root, ensure_struct
 
     # 收集图片
     book_path = Path(books_dir)
@@ -84,6 +84,8 @@ def full_pipeline(books_dir: str, ocr_root: str | None = None,
         try:
             pr = image_to_page(str(f), page=page, image_path=str(f),
                                gap_thresh=gap, conf_thresh=conf)
+            # 单字切分（PLANS M2）：整行块 → 单字框
+            segment_page_chars(str(f), pr)
             detect_rare_chars(pr, common, conf_thresh=conf)
             save_page_json(pr)
             idx.rebuild_from_page(pr)
