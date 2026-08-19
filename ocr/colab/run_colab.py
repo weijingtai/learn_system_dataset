@@ -73,7 +73,11 @@ def full_pipeline(books_dir: str, ocr_root: str | None = None,
         print(f"未找到图片于 {book_path}")
         return
 
-    common = build_common_set(table_path=str(Path(ocr_root) / "data" / "common_hanzi.txt"))
+    # 常用字表：优先 OCR_ROOT/data/common_hanzi.txt，否则框架自动用项目内置/项目data
+    if (Path(ocr_root) / "data" / "common_hanzi.txt").exists():
+        common = build_common_set(table_path=str(Path(ocr_root) / "data" / "common_hanzi.txt"))
+    else:
+        common = build_common_set()
     prog = ProgressReporter(total=len(files), report_every=report_every,
                             progress_path=str(Path(ocr_root) / "logs" / "progress.json"))
     idx = CharIndex()

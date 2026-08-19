@@ -3,3 +3,4 @@ paddleocr>=3.0
 paddlepaddle>=3.0
 opencv-python-headless>=4.8
 numpy>=1.24
+opencc-python-reimplemented>=0.1   # 繁简归一，生僻字判定

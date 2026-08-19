@@ -80,10 +80,31 @@ _HANZI_CHECK = lambda c: '\u4e00' <= c <= '\u9fff'   # noqa: E731
 def build_common_set(extra: str = "", table_path: str | None = None) -> set[str]:
     """构建常用字集合。
 
-    优先级：外部 common_hanzi.txt（若提供且存在） > 内置常用字集。
-    再叠加术数白名单 + extra。
+    优先级：外部 common_hanzi.txt > 内置常用字集。再叠加术数白名单 + extra。
+    table_path 若为 None，则自动查找项目 data/common_hanzi.txt；
+    但优先用 OCR_ROOT 指向的 data/common_hanzi.txt（若有）。
     """
     s = set(_COMMON_HANZI) | _TECHNIQUE_WHITELIST
+
+    # 确定字表路径：显式 table_path > OCR_ROOT/data/common_hanzi.txt > 项目 data/
+    if table_path is None:
+        import os
+        candidates = []
+        root = os.environ.get("OCR_ROOT", "")
+        if root:
+            candidates.append(Path(root) / "data" / "common_hanzi.txt")
+        # 沿包目录向上找含 data/common_hanzi.txt 的项目根（src/gujiorc/rare → 项目根）
+        here = Path(__file__).resolve().parent  # src/gujiorc/rare
+        for _ in range(8):
+            cand = here / "data" / "common_hanzi.txt"
+            candidates.append(cand)
+            if (here / "pyproject.toml").exists():
+                break
+            here = here.parent
+        for cand in candidates:
+            if cand.exists():
+                table_path = str(cand)
+                break
 
     if table_path and Path(table_path).exists():
         try:
@@ -116,7 +137,7 @@ def detect_rare_chars(page: PageResult, common_set: set[str] | None = None,
     """对一页所有字框做生僻判定，更新 is_rare/rare_reason。
 
     生僻字来源二：
-    1. not_in_common_set：汉字不在常用字集（含白名单）
+    1. not_in_common_set：汉字（或简体形式）不在常用字集（含白名单）
     2. low_conf：识别置信度 < conf_thresh（形变/模糊字，需人工确认）
 
     注意：本阶段 PaddleOCR 输出的是「行/列文本块」，先按整块判定；
@@ -124,6 +145,9 @@ def detect_rare_chars(page: PageResult, common_set: set[str] | None = None,
     """
     if common_set is None:
         common_set = build_common_set()
+
+    # 繁简归一检测器（古籍繁体字 → 简体判断是否常用）
+    cc = _get_opencc()
 
     for ch in page.chars:
         # 低置信度 → 标 low_conf（不因常见字就免除）
@@ -138,8 +162,15 @@ def detect_rare_chars(page: PageResult, common_set: set[str] | None = None,
             # 无汉字(纯符号/空) → 保持原状态，不判生僻
             continue
 
-        # 若整块文本的所有汉字都在常用集 → 非生僻
-        rare_chars = [c for c in hanzi if c not in common_set]
+        # 繁简归一后判断：字或其简体形式都不在常用集 → 生僻
+        rare_chars = []
+        for c in hanzi:
+            to_check = {c}
+            if cc is not None:
+                to_check.add(cc.convert(c))  # 繁体→简体
+            if not (to_check & common_set):
+                rare_chars.append(c)
+
         if rare_chars:
             ch.is_rare = True
             ch.rare_reason = RARE_NOT_IN_COMMON
@@ -148,6 +179,15 @@ def detect_rare_chars(page: PageResult, common_set: set[str] | None = None,
         # 否则 ch.is_rare 保持原状（可能 false 或 low_conf）
 
     return page.chars
+
+
+def _get_opencc():
+    """懒加载 OpenCC 繁简转换器（可选依赖）。未装则返回 None。"""
+    try:
+        from opencc import OpenCC
+        return OpenCC("t2s")
+    except Exception:
+        return None
 
 
 def build_rare_list(pages: list[PageResult]) -> list:

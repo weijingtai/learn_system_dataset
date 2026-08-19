@@ -105,6 +105,8 @@ PYTHONPATH=src .venv/bin/python scripts/ocr_workbench.py groups define --id grp_
 
 ## 常用字表（生僻字判定）
 
-- 生产推荐放置《通用规范汉字表》(8105字) 为 `data/common_hanzi.txt`
-- 缺省时程序用内置常用字集 + 术数白名单兜底（含 孛/炁/罗/计 等，避免误判）
-- 见 `data/README.md`
+- **重要：内置兜底常用字集较小**（只够演示页如扉页）。正文生僻字判定会因缺少常见字（如"妾/路/限/則/帶"）而误判为生僻。
+- **生产必须放置完整《通用规范汉字表》(8105字)** 为 `data/common_hanzi.txt`（本机/Colab 均可），程序优先加载它。
+- 缺省时程序用内置常用字集 + 术数白名单兜底（含 孛/炁/罗/计 等）。
+- 生成完整字表方法见下方 `gen_common_hanzi.py` 脚本。
+- 见 `data/README.md`。

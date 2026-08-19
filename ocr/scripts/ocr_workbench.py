@@ -51,7 +51,7 @@ def cmd_run(args):
         return 1
     print(f"共 {len(files)} 张图待识别")
 
-    common_set = build_common_set(table_path=os.path.join(get_root(), "data", "common_hanzi.txt"))
+    common_set = build_common_set()
     progress = ProgressReporter(total=len(files), report_every=args.report_every)
     idx = CharIndex()
 
@@ -98,7 +98,7 @@ def cmd_rare(args):
         print(f"未找到图片于 {target}")
         return 1
 
-    common_set = build_common_set(table_path=os.path.join(get_root(), "data", "common_hanzi.txt"))
+    common_set = build_common_set()
     font_path = args.font or "/System/Library/Fonts/STHeiti Medium.ttc"
     font = ImageFont.truetype(font_path, 22) if os.path.exists(font_path) else None
 
