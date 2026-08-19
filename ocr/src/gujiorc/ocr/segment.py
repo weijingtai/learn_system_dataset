@@ -187,6 +187,7 @@ def segment_page_chars(
                 id=f"{page.page}c{seq:04d}",
                 box=sb,
                 char=char,
+                orig_char=char,   # 原始识别文本（永不覆盖）
                 conf=line.conf,
                 parent=line.id,
                 status="pending",

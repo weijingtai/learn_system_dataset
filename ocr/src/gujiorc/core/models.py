@@ -39,13 +39,23 @@ def parse_box(box: dict[str, float] | tuple | list) -> dict[str, float]:
 
 @dataclass
 class CharBox:
-    """单字框（最细粒度）。"""
+    """单字框（最细粒度）。
+
+    数据铁律：原始 OCR 识别结果永不覆盖销毁。
+    - orig_char       识别/录入的原始文本（OCR 或 manual 录入，只增不改）
+    - char            当前规范字符（展示/导出用）＝ orig_char 或其映射结果
+    - mapping         若 char 由 orig_char 转化而来，记录来源与目标
+                       {target, from, source: opencc_simp|glyph_group|manual, ts}
+    除人工显式「改正」外，所有自动转化（繁简归一/分组映射）都不改 orig_char，
+    只写 char + mapping，保证可回退。
+    """
     id: str                       # {book}_{page}_{seq}
     box: dict[str, float]         # {x,y,w,h}
     level: str = "char"
     parent: str | None = None     # 父框(行/列) ID
     angle: float = 0.0            # 旋转角(度)，0=正直，逆时针为正
-    char: str = ""                # 识别字；未识别为空
+    char: str = ""                # 当前规范字（展示/导出用）
+    orig_char: str = ""           # 原始 OCR 识别文本（永不覆盖）
     conf: float = 0.0             # OCR 置信度
     source: str = "ocr"           # ocr | manual
     status: str = STATUS_PENDING
@@ -53,7 +63,41 @@ class CharBox:
     rare_reason: str | None = None  # RARE_* 之一
     glyph: dict[str, Any] | None = None  # 拆解结果 {"radical","parts","note"}
     sample_img: str | None = None  # 生僻字截图路径（M10_）
+    mapping: dict[str, Any] | None = None  # 转化记录 {target, from, source, ts}
     extra: dict[str, Any] = field(default_factory=dict)  # 任意扩展
+
+    def set_char(self, new_char: str, mapping_source: str = "manual"):
+        """设置当前规范字，同时保留原始字并记录映射。
+
+        - 若当前 char 等于原始 orig_char（第一次改动），则先填 orig_char
+        - 记录 mapping: 从旧char → 新char，来源 manual/opencc_simp/glyph_group
+        """
+        if not self.orig_char and self.char:
+            self.orig_char = self.char
+        old = self.char
+        self.char = new_char
+        self.mapping = {
+            "target": new_char,
+            "from": old,
+            "source": mapping_source,
+            "ts": _now_iso(),
+        }
+        if mapping_source == "manual":
+            self.status = STATUS_CORRECTED
+
+    def normalize_from_orig(self, mapping_source: str = "opencc_simp"):
+        """由 orig_char 派生当前 char（如繁简归一）；不改 orig_char。"""
+        if not self.orig_char:
+            return
+        old = self.char
+        if old == self.orig_char:
+            return  # 尚无映射
+        self.mapping = {
+            "target": self.char,
+            "from": self.orig_char,
+            "source": mapping_source,
+            "ts": _now_iso(),
+        }
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -62,7 +106,15 @@ class CharBox:
     def from_dict(cls, d: dict) -> "CharBox":
         d = dict(d)
         d["box"] = parse_box(d["box"])
+        # 向后兼容：旧数据无 orig_char → 用 char 兜底
+        if not d.get("orig_char") and d.get("char"):
+            d["orig_char"] = d["char"]
         return cls(**d)
+
+
+def _now_iso() -> str:
+    from datetime import datetime
+    return datetime.now().isoformat(timespec="seconds")
 
 
 @dataclass

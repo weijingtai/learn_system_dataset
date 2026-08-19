@@ -108,3 +108,33 @@ def resolve_char(groups: list[GlyphGroup], char_id: str) -> str | None:
         if g.status == "defined" and g.char and char_id in g.samples:
             return g.char
     return None
+
+
+def apply_groups_to_page(groups: list[GlyphGroup], page) -> int:
+    """把已定义分组应用到一页：组内字框 char 映射为组目标字，orig_char 保留。
+
+    set_char(source='glyph_group') 会记录 mapping: {from, target, source, ts},
+    不清除原始识别 orig_char。返回映射的字框数。
+    """
+    mapped = 0
+    for ch in page.chars:
+        target = resolve_char(groups, ch.id)
+        if target and ch.char != target:
+            # 保留 orig_char 并记录映射（group 来源）
+            ch.set_char(target, mapping_source="glyph_group")
+            mapped += 1
+    return mapped
+
+
+def mapping_summary(groups: list[GlyphGroup]) -> list[dict]:
+    """汇总分组映射：每个已定义组的 {组名, 源字符(去重), 目标字, 样本数}。"""
+    summary = []
+    for g in groups:
+        if g.status == "defined" and g.char:
+            summary.append({
+                "group_id": g.id,
+                "name": g.name,
+                "target_char": g.char,
+                "sample_count": len(g.samples),
+            })
+    return summary

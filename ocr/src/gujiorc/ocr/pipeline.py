@@ -66,6 +66,7 @@ def image_to_page(
             id=f"{page}c{i:04d}",
             box=box,
             char=txt,          # PaddleOCR 输出的行文本
+            orig_char=txt,     # 原始识别文本（永不覆盖）
             conf=float(score),
             status=STATUS_PENDING,
             is_rare=rare,

@@ -197,6 +197,69 @@ def cmd_dups(args):
     return 0
 
 
+def cmd_fix(args):
+    """改正识别错误/异体字（manual 映射）。保留 orig_char + 记录 mapping。
+
+    用法：fix <page> <char_id|'all'> <new_char> [--from-char X]
+    若指定 --from-char，则只改该页中 orig_char 或 char 等于 X 的框。
+    """
+    from gujiorc.core.storage import load_page_json, save_page_json
+
+    pr = load_page_json(args.page)
+    if pr is None:
+        print(f"页面 {args.page} 不存在")
+        return 1
+
+    target_new = args.new_char
+    from_char = args.from_char or ""
+    count = 0
+    matched_id = None if args.match == "all" else args.match
+
+    for ch in pr.chars:
+        # 触发条件：指定了id单改，或 from-char 匹配，或 all
+        hit = False
+        if matched_id:
+            hit = (ch.id == matched_id)
+        elif from_char:
+            hit = (ch.orig_char == from_char or ch.char == from_char)
+        elif args.match == "all":
+            hit = True  # 全页改（慎用，通常需配合 from-char）
+
+        if not hit:
+            continue
+        if ch.orig_char == target_new and ch.char == target_new:
+            continue  # 已一致
+        ch.set_char(target_new, mapping_source="manual")
+        count += 1
+
+    save_page_json(pr)
+    print(f"✅ {args.page} 共改正 {count} 字 →「{target_new}」(orig_char 已保留，映射已记录)")
+    return 0
+
+
+def cmd_show_char(args):
+    """查看某页某字框的原始识别与映射信息。"""
+    from gujiorc.core.storage import load_page_json
+
+    pr = load_page_json(args.page)
+    if pr is None:
+        print(f"页面 {args.page} 不存在")
+        return 1
+    if args.char_id:
+        target = [c for c in pr.chars if c.id == args.char_id]
+    else:
+        target = [c for c in pr.chars if c.orig_char == args.from_char or c.char == args.from_char]
+    if not target:
+        print("未找到匹配字框")
+        return 0
+    for c in target[:10]:
+        m = c.mapping or {}
+        print(f"  {c.id}  orig={c.orig_char!r}  char={c.char!r}  "
+              f"从{m.get('from','-')}→{m.get('target','-')}[{m.get('source','-')}]  "
+              f"rare={c.is_rare}")
+    return 0
+
+
 def cmd_dict(args):
     """生僻字查询/拆解（R8/R9）：查读音/部首/笔画/释义。"""
     from gujiorc.rare.dictionary import query_rare
@@ -292,6 +355,19 @@ def main():
     p_dict = sub.add_parser("dict", help="生僻字查询/拆解")
     p_dict.add_argument("char")
     p_dict.set_defaults(func=cmd_dict)
+
+    p_fix = sub.add_parser("fix", help="改正字（保留orig_char+记录映射）")
+    p_fix.add_argument("page", help="页面（如 page_001）")
+    p_fix.add_argument("match", help="字框ID、all、或--from-char匹配")
+    p_fix.add_argument("new_char", help="改正后的字")
+    p_fix.add_argument("--from-char", default=None, help="按原字/当前字匹配批量改")
+    p_fix.set_defaults(func=cmd_fix)
+
+    p_show = sub.add_parser("show", help="查看字框原始识别与映射")
+    p_show.add_argument("page", help="页面（如 page_001）")
+    p_show.add_argument("--id", dest="char_id", default=None, help="字框ID")
+    p_show.add_argument("--from-char", default=None, help="按字符查")
+    p_show.set_defaults(func=cmd_show_char)
 
     p_g = sub.add_parser("groups", help="生僻字分组归并")
     p_g.add_argument("action", nargs="?", default="list", choices=["list", "create", "add", "define", "remove"],

@@ -173,3 +173,32 @@ def test_charbox_extra():
     assert c.to_dict()["extra"]["band"] == 2
     c2 = CharBox.from_dict(c.to_dict())
     assert c2.extra["band"] == 2
+
+
+# ---------------- 原始识别保留 + 映射 ----------------
+
+def test_orig_char_preserved_on_set():
+    """artificial: 改正后 orig_char 保留，char 更新，mapping 记录。"""
+    c = CharBox(id="x", box={"x": 0, "y": 0, "w": 1, "h": 1}, char="凢", orig_char="凢")
+    c.set_char("凡", mapping_source="manual")
+    assert c.orig_char == "凢"   # 原始识别不丢
+    assert c.char == "凡"         # 当前规范字
+    assert c.mapping["from"] == "凢"
+    assert c.mapping["target"] == "凡"
+    assert c.mapping["source"] == "manual"
+    assert c.status == "corrected"
+
+
+def test_orig_char_backcompat():
+    """旧数据无 orig_char → 用 char 兜底。"""
+    c = CharBox.from_dict({"id": "x", "box": {"x": 0, "y": 0, "w": 1, "h": 1}, "char": "孛"})
+    assert c.orig_char == "孛"
+
+
+def test_mapping_roundtrip_persist():
+    """mapping 经 to_dict/from_dict 后保留。"""
+    c = CharBox(id="x", box={"x": 0, "y": 0, "w": 1, "h": 1}, char="凢", orig_char="凢")
+    c.set_char("凡")
+    c2 = CharBox.from_dict(c.to_dict())
+    assert c2.orig_char == "凢"
+    assert c2.mapping["target"] == "凡"
