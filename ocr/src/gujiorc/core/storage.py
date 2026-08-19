@@ -28,14 +28,24 @@ def save_page_json(page: PageResult) -> Path:
     return path
 
 
-def load_page_json(page: str) -> Optional[PageResult]:
-    """读取一页识别结果 JSON。"""
+def load_page_json(page: str, validate: bool = True) -> Optional[PageResult]:
+    """读取一页识别结果 JSON。validate=True 时先做 schema 校验。"""
     struct = ensure_struct()
     path = struct["data"] / f"{page}.json"
     if not path.exists():
         return None
-    with open(path, encoding="utf-8") as f:
-        return PageResult.from_dict(json.load(f))
+    try:
+        if validate:
+            from .schema import check_json_loadability
+            raw = check_json_loadability(path)
+        else:
+            import json
+            with open(path, encoding="utf-8") as f:
+                raw = json.load(f)
+        return PageResult.from_dict(raw)
+    except Exception as e:
+        # 校验失败给清晰错误，不静默
+        raise ValueError(f"页面 {page} 加载/校验失败: {e}") from e
 
 
 def _atomic_write_json(path: Path, data: dict):
