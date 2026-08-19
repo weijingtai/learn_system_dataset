@@ -25,6 +25,7 @@
    - 禁止 push、禁止合并到 main、禁止 rebase / reset --hard / stash。
    - 提交前跑 `git diff --check`（检查空白错误）。
 6. **不确定就停**：如果实际代码和本任务书描述对不上（比如行号偏移、函数名不同），停下来，把差异写进 `ocr/docs/HANDOFF.md` 的"进行到一半的事"，不要自由发挥。
+7. **读源码只读 `src/` 下的 `.py` 文件本体，用任务书给的完整路径**。`src/**/__pycache__/*.pyc` 是 Python 自动生成的字节码缓存（二进制），**禁止读取、禁止修改、禁止提交**；搜文件时不要用 `dictionary*` 这类通配符去匹配，它会把 `.pyc` 一起匹配进来。已确认事实：`ocr/src/gujiorc/rare/dictionary.py` 是 UTF-8 纯文本源码（约 326 行），`__pycache__/dictionary.cpython-311.pyc` 是它的编译缓存——任务 A 要读的是前者。
 
 ---
 
