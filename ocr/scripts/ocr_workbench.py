@@ -197,6 +197,21 @@ def cmd_dups(args):
     return 0
 
 
+def cmd_dict(args):
+    """生僻字查询/拆解（R8/R9）：查读音/部首/笔画/释义。"""
+    from gujiorc.rare.dictionary import query_rare
+    from gujiorc.core.paths import get_root
+    result = query_rare(args.char, data_dir=str(Path(get_root()) / "data" / "unihan"))
+    print(f"字: {result.get('char')} ({result.get('unicode', '')})")
+    for k, v in result.items():
+        if k in ("char", "unicode"):
+            continue
+        print(f"  {k}: {v}")
+    if not any(k in result for k in ("radical", "strokes", "reading", "definition", "name")):
+        print("  （未找到读音/部首数据——可放置 Unihan 离线库增强，见 data/README.md）")
+    return 0
+
+
 def cmd_groups(args):
     """生僻字分组归并（M12）：展示/创建/添加/定义。"""
     from gujiorc.rare.groups import load_groups, save_groups, create_group, \
@@ -273,6 +288,10 @@ def main():
     p_d = sub.add_parser("dups", help="重复字统计")
     p_d.add_argument("--min-count", type=int, default=2)
     p_d.set_defaults(func=cmd_dups)
+
+    p_dict = sub.add_parser("dict", help="生僻字查询/拆解")
+    p_dict.add_argument("char")
+    p_dict.set_defaults(func=cmd_dict)
 
     p_g = sub.add_parser("groups", help="生僻字分组归并")
     p_g.add_argument("action", nargs="?", default="list", choices=["list", "create", "add", "define", "remove"],
