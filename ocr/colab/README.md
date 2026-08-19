@@ -76,18 +76,18 @@ Colab 端生成的**进度心跳** `logs/progress.json`（每 ≥5% 更新 百�
 
 ## 当前实现进度（2026-08-05 已验证）
 
+**M 系列里程碑全部完成（M1-M7，见 docs/PLANS.md）。**
+
 | 功能 | 状态 | 验证 |
 |---|---|---|
-| PaddleOCR 识别（竖排+区块切分+排序） | ✅ | 《琴堂五星》卷一扉页 6-43s 识别 |
-| 单字切分（PLANS M2，一字一框） | ✅ | 194→152 字框，异常细框占 4.6% |
-| 生僻字判定（字表反向筛选 + 低置信度） | ✅ | 单字粒度，仅 機/長 标 rare |
-| 生僻字红框标记图（生僻红/低置信黄） | ✅ | 逐字圈框 |
-| 生僻字截图（字形样本库） | ✅ | glyph_samples/*.png |
-| 生僻字清单 JSON | ✅ | rare/rare_characters.json |
-| 全字全文索引 + 逐字检索 | ✅ | `query 為` 秒返 8 处，`query 孛` 定位单字 |
-| 生僻字分组归并 | ✅ | groups create/add/define/remove |
-| 进度汇报（progress.json 心跳 + 进度条） | ✅ | ≥5% 间隔输出 |
-| Colab 一键 `full_pipeline`（含单字切分） | ✅ | 本地模拟 OCR_ROOT 跑通 |
+| PaddleOCR 识别（竖排+区块切分+排序） | ✅ M1 | 琴堂五星多页 6-35s/页 |
+| 单字切分（一字一框） | ✅ M2 | 152-286 字/页，细框合并 |
+| 本地 Web UI（查看/编辑/旋转/框选补标） | ✅ M3/M4 | FastAPI+前端，改字保留orig |
+| 生僻字圈划/检索/查询/拆解 | ✅ M5 | red框+SQL查全位+读音部首 |
+| 质量报告+导出+进度汇报+schema校验 | ✅ M6 | report.md + JSON/TXT/TSV/transcript |
+| 原始识别保留(orig_char)+映射记录 | ✅ | 异体字凢→凡可追溯 |
+| 端到端全流程 | ✅ M7 | 识别→切字→圈划→索引→检索→改字→报告 |
+| Colab 一键 full_pipeline | ✅ | OCR_ROOT 通用，进度心跳 |
 
 **可用 CLI 命令清单：**
 ```bash
@@ -96,12 +96,18 @@ PYTHONPATH=src .venv/bin/python scripts/ocr_workbench.py rare <图或目录>    
 PYTHONPATH=src .venv/bin/python scripts/ocr_workbench.py query <字>                    # 查某字全书位置
 PYTHONPATH=src .venv/bin/python scripts/ocr_workbench.py index                        # 重建索引
 PYTHONPATH=src .venv/bin/python scripts/ocr_workbench.py dups                          # 重复字统计
+PYTHONPATH=src .venv/bin/python scripts/ocr_workbench.py dict <字>                     # 生僻字查询/拆解
+PYTHONPATH=src .venv/bin/python scripts/ocr_workbench.py fix <page> <id|all> <新字>   # 改字(保留orig_char)
+PYTHONPATH=src .venv/bin/python scripts/ocr_workbench.py show <page> --from-char 字   # 查看原始识别/映射
+PYTHONPATH=src .venv/bin/python scripts/ocr_workbench.py report --book 书名            # 质量报告
+PYTHONPATH=src .venv/bin/python scripts/ocr_workbench.py export --book 前缀            # 导出(JSON/TXT/TSV/transcript)
 PYTHONPATH=src .venv/bin/python scripts/ocr_workbench.py groups list                   # 分组清单
 PYTHONPATH=src .venv/bin/python scripts/ocr_workbench.py groups create --name "生僻A" --samples id1 id2
 PYTHONPATH=src .venv/bin/python scripts/ocr_workbench.py groups define --id grp_01 --char 機
-```
 
-**待完善（非阻塞，需 Unihan 数据）：** 生僻字查询/拆解（macOS Dictionary + Unihan 离线库），见 `rare/dictionary.py` 与 `data/README.md`。
+# Web UI（编辑/查看/旋转调正/框选补标）
+OCR_ROOT=xxx PYTHONPATH=src .venv/bin/python local/app.py   # 打开 http://localhost:8000
+```
 
 ## 常用字表（生僻字判定）
 
