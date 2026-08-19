@@ -220,6 +220,7 @@ def main():
     p_rare = sub.add_parser("rare", help="生僻字圈划+清单")
     p_rare.add_argument("image", help="图片文件或目录")
     p_rare.add_argument("--gap", type=float, default=40)
+    p_rare.add_argument("--conf", type=float, default=0.6)
     p_rare.add_argument("--font", default=None, help="中文字体路径")
     p_rare.set_defaults(func=cmd_rare)
 

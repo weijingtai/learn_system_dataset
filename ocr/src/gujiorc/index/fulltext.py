@@ -60,14 +60,25 @@ class CharIndex:
             )
         self._conn.commit()
 
-    def query_char(self, target: str) -> list[dict]:
-        """查某字所有出现位置（页+框ID+坐标+状态）。"""
+    def query_char(self, target: str, substring: bool = True) -> list[dict]:
+        """查某字所有出现位置（页+框ID+坐标+状态）。
+
+        当前阶段 char 存整行/列文本（单字切分前），用子串匹配（LIKE）
+        保证能查出包含该字的行；单字切分完成后可改为精确匹配。
+        """
         c = self._conn.cursor()
-        c.execute(
-            "SELECT page, char_id, char, status, box FROM char_index "
-            "WHERE char=? ORDER BY page, char_id",
-            (target,),
-        )
+        if substring:
+            c.execute(
+                "SELECT page, char_id, char, status, box FROM char_index "
+                "WHERE char LIKE ? ORDER BY page, char_id",
+                (f"%{target}%",),
+            )
+        else:
+            c.execute(
+                "SELECT page, char_id, char, status, box FROM char_index "
+                "WHERE char=? ORDER BY page, char_id",
+                (target,),
+            )
         return [dict(r) for r in c.fetchall()]
 
     def duplicates(self, min_count: int = 2) -> list[dict]:
