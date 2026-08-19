@@ -260,6 +260,27 @@ def cmd_show_char(args):
     return 0
 
 
+def cmd_report(args):
+    """生成 OCR 质量报告（M6_）。导出 report.md。"""
+    from gujiorc.core.paths import get_root
+    from gujiorc.core.report import load_all_pages, book_report, render_report_md
+
+    root = Path(get_root())
+    pages = load_all_pages(root / "data")
+    if not pages:
+        print(f"无页面数据于 {root / 'data'}")
+        return 1
+    report = book_report(pages)
+    md = render_report_md(report, book=args.book)
+    out_dir = root / "rare"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    out = out_dir / "report.md"
+    out.write_text(md, encoding="utf-8")
+    print(f"📄 质量报告已生成: {out}")
+    print(md)
+    return 0
+
+
 def cmd_dict(args):
     """生僻字查询/拆解（R8/R9）：查读音/部首/笔画/释义。"""
     from gujiorc.rare.dictionary import query_rare
@@ -368,6 +389,10 @@ def main():
     p_show.add_argument("--id", dest="char_id", default=None, help="字框ID")
     p_show.add_argument("--from-char", default=None, help="按字符查")
     p_show.set_defaults(func=cmd_show_char)
+
+    p_report = sub.add_parser("report", help="生成OCR质量报告")
+    p_report.add_argument("--book", default="", help="书名（用于标题）")
+    p_report.set_defaults(func=cmd_report)
 
     p_g = sub.add_parser("groups", help="生僻字分组归并")
     p_g.add_argument("action", nargs="?", default="list", choices=["list", "create", "add", "define", "remove"],
