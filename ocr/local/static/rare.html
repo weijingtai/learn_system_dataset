@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>生僻字查询</title>
+<style>
+  body { font-family: -apple-system, "PingFang SC", sans-serif; background: #f5f5f7; padding: 20px; }
+  .card { background:#fff; max-width:600px; margin:0 auto; padding:24px; border-radius:12px; box-shadow:0 1px 3px rgba(0,0,0,.1); }
+  .char { font-size:64px; text-align:center; margin:10px 0 20px; }
+  .field { display:flex; padding:8px 0; border-bottom:1px solid #eee; }
+  .field .k { width:90px; color:#888; flex-shrink:0; }
+  .field .v { flex:1; }
+  .back { display:inline-block; margin-top:20px; color:#0071e3; text-decoration:none; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="char" id="char">—</div>
+  <div id="info"><i>加载中…</i></div>
+  <a class="back" href="/">← 返回</a>
+</div>
+<script>
+const c = new URLSearchParams(location.search).get('char') || '';
+document.getElementById('char').textContent = c || '?';
+async function load(){
+  if(!c) return;
+  const r = await fetch('/api/dict/'+encodeURIComponent(c));
+  const d = await r.json();
+  const fields = Object.entries(d).map(([k,v])=>`<div class="field"><div class="k">${k}</div><div class="v">${v}</div></div>`).join('');
+  document.getElementById('info').innerHTML = fields || '<i>未找到该字信息</i>';
+}
+load();
+</script>
+</body>
+</html>

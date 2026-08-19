@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>gujiorc 古籍 OCR 工作台</title>
+<style>
+  body { font-family: -apple-system, "PingFang SC", sans-serif; margin: 0; background: #f5f5f7; }
+  .header { background: #1d1d1f; color: #fff; padding: 12px 20px; display: flex; align-items: center; gap: 16px; }
+  .header h1 { font-size: 18px; margin: 0; font-weight: 600; }
+  .toolbar { background: #fff; padding: 10px 20px; border-bottom: 1px solid #ddd; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  .toolbar select, .toolbar button, .toolbar input { padding: 6px 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; }
+  .toolbar button { background: #0071e3; color: #fff; border: none; cursor: pointer; }
+  .toolbar button:hover { background: #0077ed; }
+  .stats { font-size: 13px; color: #555; }
+  .main { padding: 20px; display: flex; gap: 20px; }
+  .canvas-wrap { flex: 1; overflow: auto; background: #fff; border: 1px solid #ddd; border-radius: 8px; }
+  #stage { position: relative; display: inline-block; }
+  #bg { display: block; max-width: none; }
+  .box { position: absolute; border: 1.5px solid rgba(0,113,227,.8); }
+  .box.rare { border-color: #ff3b30; background: rgba(255,59,48,.08); }
+  .box.lowconf { border-color: #ffcc00; background: rgba(255,204,0,.10); }
+  .box span { position: absolute; font-size: 11px; color: #fff; background: rgba(0,113,227,.85); padding: 1px 3px; border-radius: 2px; white-space: nowrap; transform: translateY(-100%); top: 0; }
+  .box.rare span { background: rgba(255,59,48,.85); }
+  .box.lowconf span { background: rgba(255,204,0,.9); color: #333; }
+  .side { width: 320px; background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 16px; height: fit-content; }
+  .side h3 { margin-top: 0; }
+  .rare-list { max-height: 400px; overflow-y: auto; }
+  .rare-item { padding: 4px 0; border-bottom: 1px solid #eee; cursor: pointer; font-size: 14px; }
+  .rare-item:hover { background: #f0f0f0; }
+  .legend span { display: inline-block; margin-right: 12px; font-size: 13px; }
+  .legend .dot { display: inline-block; width: 12px; height: 12px; border: 2px solid; margin-right: 4px; vertical-align: -2px; }
+</style>
+</head>
+<body>
+<div class="header"><h1>📜 gujiorc 古籍 OCR 工作台</h1></div>
+
+<div class="toolbar">
+  <select id="pageSel"><option>加载中…</option></select>
+  <button onclick="loadPage()">显示</button>
+  <input id="searchBox" placeholder="查某字出现位置" style="width:140px">
+  <button onclick="searchChar()">检索</button>
+  <div class="stats" id="stats"></div>
+  <div class="legend">
+    <span><span class="dot" style="border-color:#0071e3"></span>已识别</span>
+    <span><span class="dot" style="border-color:#ff3b30"></span>生僻字</span>
+    <span><span class="dot" style="border-color:#ffcc00"></span>低置信</span>
+  </div>
+</div>
+
+<div class="main">
+  <div class="canvas-wrap" id="canvasWrap">
+    <div id="stage"></div>
+  </div>
+  <div class="side">
+    <h3>生僻字</h3>
+    <div id="rareList" class="rare-list"><i>选择页面查看</i></div>
+  </div>
+</div>
+
+<script>
+let currentPage = null;
+let charData = [];
+
+async function api(url) {
+  const r = await fetch(url);
+  if (!r.ok) throw new Error((await r.text()).slice(0,100));
+  return r.json();
+}
+
+async function init() {
+  const { pages } = await api('/api/pages');
+  if (!pages.length) { document.getElementById('pageSel').innerHTML='<option>无页面</option>'; return; }
+  const sel = document.getElementById('pageSel');
+  sel.innerHTML = pages.map(p=>`<option>${p}</option>`).join('');
+  await loadPage();
+}
+
+async function loadPage() {
+  const page = document.getElementById('pageSel').value;
+  if (!page) return;
+  currentPage = page;
+  const data = await api(`/api/page/${page}`);
+  charData = data.chars || [];
+  const stage = document.getElementById('stage');
+  stage.innerHTML = '';
+  const img = document.createElement('img');
+  img.id = 'bg';
+  img.src = `/api/image/${page}`;
+  img.onload = () => {
+    stage.style.width = img.naturalWidth + 'px';
+    stage.style.height = img.naturalHeight + 'px';
+  };
+  stage.appendChild(img);
+  drawBoxes();
+  fillStats(data);
+  fillRareList(data);
+}
+
+function drawBoxes() {
+  // 在底图缩放比例下定位（若底图被缩放）
+  const img = document.getElementById('bg');
+  const scaleX = img.naturalWidth ? 1 : 1, scaleY = img.naturalHeight ? 1 : 1;
+  for (const c of charData) {
+    const d = document.createElement('div');
+    d.className = 'box' + (c.is_rare ? (c.rare_reason==='low_conf' ? ' lowconf' : ' rare') : '');
+    d.style.left = c.box.x + 'px';
+    d.style.top = c.box.y + 'px';
+    d.style.width = c.box.w + 'px';
+    d.style.height = c.box.h + 'px';
+    const span = document.createElement('span');
+    span.textContent = c.char || '□';
+    d.appendChild(span);
+    // 生僻字可点击查询
+    if (c.is_rare) {
+      d.style.cursor = 'pointer';
+      d.onclick = () => window.open(`/static/rare.html?char=${encodeURIComponent(c.char||'')}`, '_blank');
+    }
+    document.getElementById('stage').appendChild(d);
+  }
+}
+
+function fillStats(data) {
+  const total = (data.chars||[]).length;
+  const rare = (data.chars||[]).filter(c=>c.is_rare).length;
+  const low = (data.chars||[]).filter(c=>c.rare_reason==='low_conf').length;
+  document.getElementById('stats').textContent = `共 ${total} 字 | 生僻/低置信 ${rare} 字（含低置信 ${low}）`;
+}
+
+function fillRareList(data) {
+  const rare = (data.chars||[]).filter(c=>c.is_rare);
+  const list = document.getElementById('rareList');
+  if (!rare.length) { list.innerHTML='<i>无生僻字</i>'; return; }
+  list.innerHTML = rare.map((c,i)=>`<div class="rare-item" onclick="jumpTo(${i})">${c.char||'□'} <small>conf=${c.conf.toFixed(2)} ${c.rare_reason}</small></div>`).join('');
+}
+
+function jumpTo(i) {
+  const c = charData[i];
+  const wrap = document.getElementById('canvasWrap');
+  wrap.scrollLeft = c.box.x - 100;
+  wrap.scrollTop = c.box.y - 100;
+}
+
+async function searchChar() {
+  const q = document.getElementById('searchBox').value.trim();
+  if (!q) return;
+  // 通过索引接口查（需本地重建索引时自动）
+  try {
+    const res = await api(`/api/search?char=${encodeURIComponent(q)}`);
+    const stage = document.getElementById('stage');
+    // 高亮匹配
+    for (const box of stage.querySelectorAll('.box')) box.style.outline = '';
+    let found = 0;
+    for (let i=0;i<charData.length;i++){
+      if (charData[i].char === q) {
+        const d = stage.children[i+1]; // +1 跳过 img
+        if (d) { d.style.outline = '3px solid #ff2d55'; found++; }
+      }
+    }
+    document.getElementById('stats').textContent += `｜ 检索「${q}」页内 ${found} 处`;
+  } catch(e) { document.getElementById('stats').textContent = '检索失败: '+e.message; }
+}
+
+init();
+</script>
+</body>
+</html>
