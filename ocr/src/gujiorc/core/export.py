@@ -107,3 +107,68 @@ def export_common(pages: list[PageResult], out_dir: str | Path,
         result["transcript"] = p
 
     return result
+
+
+# ---------------- pipeline corpus 导出（manifest.yaml） ----------------
+
+def sha256_file(path: Path) -> str:
+    """计算文件 sha256 十六进制。分块读，不一次载入。"""
+    import hashlib
+
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(1024 * 1024), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def count_unknown(pages: list[PageResult]) -> int:
+    """统计导出后会变成 □ 的字框数（char 为空）。"""
+    return sum(1 for p in pages for c in p.chars if not c.char)
+
+
+def _safe_quote(value: str) -> str:
+    """把普通字符串转成双引号包裹的 YAML 字面量（处理换行/反斜杠）。"""
+    inner = value.replace("\\", "\\\\").replace("\n", "\\n").replace("\r", "\\r")
+    return f'"{inner}"'
+
+
+def export_corpus(
+    pages: list[PageResult],
+    corpus_dir: str | Path,
+    *,
+    book: str,
+    work_title: str,
+    technique_id: str,
+    edition: int = 1,
+    edition_note: str = "",
+    rights_status: str = "public_domain",
+    groups_resolve=None,
+) -> dict[str, Path | int]:
+    """导出为 pipeline/corpus 结构 + manifest.yaml（PLANS §6.1）。"""
+    book_dir = Path(corpus_dir) / technique_id / f"{book}_ed{edition:02d}"
+    (book_dir / "source").mkdir(parents=True, exist_ok=True)
+
+    transcript_path = book_dir / "source" / "transcript_v1.md"
+    transcript_path.write_text(gen_transcript_md(pages, groups_resolve), encoding="utf-8")
+
+    unknown = count_unknown(pages)
+    note = edition_note
+    if unknown and "未识别字形待人工补录" not in note:
+        note = (note + "；" if note else "") + f"该底本存在 {unknown} 个未识别字形待人工补录（导出为 □ 占位）"
+
+    manifest = "\n".join([
+        f'source_id: "src_{book}_ed{edition:02d}"',
+        f'work_title: {_safe_quote(work_title)}',
+        f'edition_note: {_safe_quote(note)}',
+        f'technique_id: "{technique_id}"',
+        f'rights_status: "{rights_status}"',
+        "files:",
+        '  - path: "source/transcript_v1.md"',
+        '    role: "transcript"',
+        f'    sha256: "{sha256_file(transcript_path)}"',
+        "",
+    ])
+    manifest_path = book_dir / "manifest.yaml"
+    manifest_path.write_text(manifest, encoding="utf-8")
+    return {"manifest": manifest_path, "transcript": transcript_path, "unknown": unknown}

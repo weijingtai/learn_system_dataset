@@ -261,10 +261,10 @@ def cmd_show_char(args):
 
 
 def cmd_export(args):
-    """导出识别成果（JSON/TXT/TSV/transcript）。对齐 pipeline·corpus。"""
+    """导出识别成果（JSON/TXT/TSV/transcript / 可选 corpus manifest）。"""
     from gujiorc.core.paths import get_root
     from gujiorc.core.report import load_all_pages
-    from gujiorc.core.export import export_common
+    from gujiorc.core.export import export_common, export_corpus
     from gujiorc.rare.groups import load_groups, resolve_char
 
     root = Path(get_root())
@@ -273,11 +273,32 @@ def cmd_export(args):
         print(f"无页面数据于 {root / 'data'}")
         return 1
 
-    # 分组映射（若已定义组）
     groups = load_groups()
 
     def gr(char_id: str):
         return next((g.char for g in groups if g.status == "defined" and g.char and char_id in g.samples), None)
+
+    if args.corpus_out:
+        for name in ("--work-title", "--technique-id"):
+            if not getattr(args, name.replace("-", "_").replace("--", "")):
+                print(f"corpus 模式需要 {name}")
+                return 1
+        out = export_corpus(
+            pages,
+            args.corpus_out,
+            book=args.book,
+            work_title=args.work_title,
+            technique_id=args.technique_id,
+            edition=args.edition,
+            edition_note=args.edition_note or "",
+            rights_status=args.rights_status or "public_domain",
+            groups_resolve=gr,
+        )
+        print(f"📦 corpus 导出完成 → {args.corpus_out}")
+        print(f"  manifest: {out['manifest']}")
+        print(f"  transcript: {out['transcript']}")
+        print(f"  未知字 {out['unknown']} 个已按 □ 导出")
+        return 0
 
     out_dir = root / "export"
     fmts = tuple(args.formats.split(",")) if args.formats else ("json", "txt", "tsv", "transcript")
@@ -422,10 +443,16 @@ def main():
     p_report.add_argument("--book", default="", help="书名（用于标题）")
     p_report.set_defaults(func=cmd_report)
 
-    p_export = sub.add_parser("export", help="导出识别成果(JSON/TXT/TSV/transcript)")
-    p_export.add_argument("--book", default="book", help="输出文件前缀")
+    p_export = sub.add_parser("export", help="导出识别成果(JSON/TXT/TSV/transcript/corpus)")
+    p_export.add_argument("--book", default="book", help="输出文件前缀/书目ID")
     p_export.add_argument("--formats", default="json,txt,tsv,transcript",
                           help="逗号分隔格式: json,txt,tsv,transcript")
+    p_export.add_argument("--corpus-out", default="", help="pipeline corpus 导出目录（给路径则切 corpus 模式）")
+    p_export.add_argument("--work-title", default="", help="corpus 模式必填：书名原文")
+    p_export.add_argument("--technique-id", default="", help="corpus 模式必填：技法ID")
+    p_export.add_argument("--edition", type=int, default=1, help="版次（目录名 _edNN）")
+    p_export.add_argument("--edition-note", default="", help="版本说明/补充说明")
+    p_export.add_argument("--rights-status", default="public_domain", help="rights_status")
     p_export.set_defaults(func=cmd_export)
 
     p_g = sub.add_parser("groups", help="生僻字分组归并")
