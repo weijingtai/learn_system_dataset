@@ -234,6 +234,16 @@ def cmd_fix(args):
 
     save_page_json(pr)
     print(f"✅ {args.page} 共改正 {count} 字 →「{target_new}」(orig_char 已保留，映射已记录)")
+    try:
+        from gujiorc.core.audit import log_event
+        logged = 0
+        for ch in pr.chars:
+            if ch.mapping and ch.mapping.get("target") == target_new:
+                log_event("fix", actor="cli", page=args.page, char_id=ch.id,
+                          **{"from": ch.mapping.get("from", ""), "to": target_new, "source": "manual"})
+                logged += 1
+    except Exception:
+        pass
     return 0
 
 
@@ -358,6 +368,11 @@ def cmd_groups(args):
         g = create_group(groups, args.name, args.samples or [], args.note or "")
         save_groups(groups)
         print(f"✅ 创建组 {g.id}「{g.name}」(样本 {len(g.samples)} 个)")
+        try:
+            from gujiorc.core.audit import log_event
+            log_event("group_create", actor="cli", group_id=g.id, name=g.name or "")
+        except Exception:
+            pass
     elif args.action == "add":
         if not args.id or not args.samples:
             print("add 需要 --id 和 --samples")
@@ -365,6 +380,11 @@ def cmd_groups(args):
         add_samples(groups, args.id, args.samples)
         save_groups(groups)
         print(f"✅ 组 {args.id} 已添加 {len(args.samples)} 个样本")
+        try:
+            from gujiorc.core.audit import log_event
+            log_event("group_add", actor="cli", group_id=args.id, samples=list(args.samples))
+        except Exception:
+            pass
     elif args.action == "define":
         if not args.id or (args.char is None and args.font is None):
             print("define 需要 --id 和 --char 或 --font")
@@ -372,6 +392,11 @@ def cmd_groups(args):
         define_group(groups, args.id, char=args.char, font=args.font)
         save_groups(groups)
         print(f"✅ 组 {args.id} 已定义 char={args.char or '（沿用）'} font={args.font or '-'}")
+        try:
+            from gujiorc.core.audit import log_event
+            log_event("group_define", actor="cli", group_id=args.id, char=args.char)
+        except Exception:
+            pass
     elif args.action == "remove":
         if not args.id or not args.samples:
             print("remove 需要 --id 和 --samples")
@@ -379,6 +404,11 @@ def cmd_groups(args):
         remove_samples(groups, args.id, args.samples)
         save_groups(groups)
         print(f"✅ 组 {args.id} 已移除 {len(args.samples)} 个样本")
+        try:
+            from gujiorc.core.audit import log_event
+            log_event("group_remove", actor="cli", group_id=args.id, samples=list(args.samples))
+        except Exception:
+            pass
     return 0
 
 
