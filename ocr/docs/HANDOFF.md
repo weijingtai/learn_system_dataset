@@ -119,3 +119,13 @@ full_pipeline('/content/drive/MyDrive/ocr_work/books')
 - 后端代码已全部提交到 learn_system 根仓库（ocr/ 子目录）；**例外**：Web UI Vue 改版三处未提交（见 §7 已知坑末条）。
 - 测试 37 全过。
 - 下一步三选一：① 执行 `docs/TASKS_ENG_GAPS.md` 工程缺口任务书（给执行 agent）；② Colab 实机跑通；③ Web UI 人工验收（先验收再提交 Vue 改版）。
+## 9. 工程缺口执行收尾（2026-08-19）
+
+TASKS_ENG_GAPS.md 四项任务已依序完成并提交：
+
+- A：`scripts/fetch_unihan.py` — Unihan 离线库下载脚本。
+- B：`src/gujiorc/core/export.py` + `scripts/ocr_workbench.py` + `tests/test_export_corpus.py` — corpus manifest 导出。
+- C：`src/gujiorc/core/audit.py` + CLI/Web 写点挂接 + `tests/test_audit.py` — 全局审计日志。
+- D：`experiments/curve_segment.py` + `experiments/CURVE_REPORT.md` — 星盘曲线字原型实验（真实图可用，PaddleOCR 调用在 3.7.0 接口切换到 predict 后卡住，未拿框）。
+
+当前状态：A/B/C/D 已提交，ETL 试算阶段结束。
