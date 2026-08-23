@@ -36,6 +36,34 @@ def is_vertical(box: dict) -> bool:
     return box["h"] > box["w"]
 
 
+# 墨迹二值化参数。不能用固定阈值 `region < 128`：古籍扫描的背面透印字、浅印字
+# 整体灰度落在 176~229 之间，区域内不存在任何像素 < 128，固定阈值会把整行判为
+# 空白（实测《三辰通载》前10页有 139 行因此被整行丢弃，吞掉 493 字）。
+INK_MIN_CONTRAST = 20   # 区域灰度极差低于此值视为无墨迹（实测淡字行极差 ≥23）
+INK_RATIO = 0.5         # 阈值取区域「最暗~最亮」之间的比例位置
+
+
+def _ink_mask(region: np.ndarray) -> np.ndarray:
+    """按区域自身灰度分布二值化，返回墨迹掩码（True = 笔画）。
+
+    用 2/98 分位数而非 min/max 定出暗端与亮端，避免单个噪点把阈值带偏。
+    深墨字（暗端≈0，亮端≈255）算出的阈值≈127，与原固定阈值等价；淡墨字
+    （暗端 210、亮端 255）算出阈值≈232，笔画才能被认出来。
+    """
+    lo = float(np.percentile(region, 2))
+    hi = float(np.percentile(region, 98))
+    if hi - lo < INK_MIN_CONTRAST:
+        return np.zeros(region.shape, dtype=bool)
+    return region < lo + (hi - lo) * INK_RATIO
+
+
+def ink_contrast(region: np.ndarray) -> float:
+    """区域墨色对比度（2/98 分位极差）。淡到接近背景的区域（背面透印）值很小。"""
+    if region.size == 0:
+        return 0.0
+    return float(np.percentile(region, 98)) - float(np.percentile(region, 2))
+
+
 def segment_block(
     gray: np.ndarray,
     box: dict,
@@ -55,7 +83,7 @@ def segment_block(
         return []
 
     region = gray[y0:y1, x0:x1]
-    dark = region < 128  # 暗像素 = 笔画
+    dark = _ink_mask(region)  # 墨迹掩码（按区域自身灰度分布定阈）
 
     if is_vertical(box):
         # 竖排：沿 Y 投影，按字间距切
@@ -123,6 +151,72 @@ def _median(vals: list[float]) -> float:
     return s[n // 2]
 
 
+def _even_split(box: dict, n: int, vertical: bool) -> list[dict]:
+    """把一个块沿阅读方向等分成 n 段。
+
+    投影完全找不到边界时的兜底：识别文字是真的（PaddleOCR 给的是整行文本），
+    只有框的边界没法从像素上定出来，等分是确定性的最优猜测。
+    绝不能因为切不出段就把整行文字丢掉。
+    """
+    if n <= 0:
+        return []
+    pos, size = ("y", "h") if vertical else ("x", "w")
+    step = float(box[size]) / n
+    out = []
+    for i in range(n):
+        b = {k: float(box[k]) for k in ("x", "y", "w", "h")}
+        b[pos] = float(box[pos]) + step * i
+        b[size] = step
+        out.append(b)
+    return out
+
+
+def _align_to_count(boxes: list[dict], n: int, vertical: bool) -> list[dict]:
+    """把切分段数强制对齐到 n（该行识别出的字数）。
+
+    投影段数与识别文字数之间没有任何约束关系：PaddleOCR 给的是**整行文本**，
+    段边界是另算的。「一」「二」「三」这类横笔画字、「宫」「主」这类内部有横向
+    空隙的字，沿 Y 投影会被切成多段（实测「一二三」切出 6 段）。若按位置把第 si
+    段配给第 si 个字，从该字起整列文字全部错位——这正是「字错位」「琅玕重叠」
+    「八一合框」三个症状的同一个根因。
+
+    段多于字：反复合并「边界最弱」的相邻两段，即间隙最小处。字内笔画间隙恒小于
+      字间间隙，所以先被合并的必然是同一个字的笔画。
+    段少于字：反复把跨度最大的段等分为二。投影在那里没能找出边界，几何等分是
+      确定性的最优猜测。
+    """
+    if n <= 0 or not boxes:
+        return []
+    pos, size = ("y", "h") if vertical else ("x", "w")
+    off, off_size = ("x", "w") if vertical else ("y", "h")
+    out = [{k: float(b[k]) for k in ("x", "y", "w", "h")} for b in sorted(boxes, key=lambda b: b[pos])]
+
+    while len(out) > n:
+        gaps = [out[i + 1][pos] - (out[i][pos] + out[i][size]) for i in range(len(out) - 1)]
+        i = int(np.argmin(gaps))
+        a, b = out[i], out[i + 1]
+        end = max(a[pos] + a[size], b[pos] + b[size])
+        a[pos] = min(a[pos], b[pos])
+        a[size] = end - a[pos]
+        # 另一轴取并集（同列宽度一般相同，但检测框可能略有出入）
+        far = max(a[off] + a[off_size], b[off] + b[off_size])
+        a[off] = min(a[off], b[off])
+        a[off_size] = far - a[off]
+        del out[i + 1]
+
+    while len(out) < n:
+        i = max(range(len(out)), key=lambda k: out[k][size])
+        b = out[i]
+        half = b[size] / 2.0
+        second = dict(b)
+        second[pos] = b[pos] + half
+        second[size] = b[size] - half
+        b[size] = half
+        out.insert(i + 1, second)
+
+    return out
+
+
 def symbol_gap_repair(
     image,
     chars: list["CharBox"],
@@ -176,7 +270,7 @@ def symbol_gap_repair(
         sub = gray[col_y0:col_y1, max(0, int(col_x0)): min(img_w, int(col_x1))]
         if sub.size == 0:
             continue
-        dark = sub < 128
+        dark = _ink_mask(sub)  # 同 segment_block：按区域自身灰度分布定阈，淡字也能认出
         density = dark.mean(axis=1)
         blank = density <= density_thresh
 
@@ -254,10 +348,14 @@ def segment_page_chars(
 ) -> int:
     """对 page 中所有 level=line 块做单字切分，生成 CharBox 列表。
 
-    将原始 line 块的 text 按切出的...[truncated]
-
-    将原始 line 块的 text 按切出的字符数拆分填充到每个单字 CharBox，
+    把每个 line 块的整行识别文本逐字落到单字框上：先沿阅读方向投影切段，
+    再把**段数强制对齐到该行字数**，最后按顺序一段配一字。
     更新 page.chars 为真正的单字框，page.lines 保留行级。
+
+    两条不变量（`tests/test_segment_alignment.py` 为其疫苗）：
+    1. 不丢字：每行的每一个识别字都必须落到一个框上。投影切不出段时兜底等分，
+       绝不 `continue` 跳过整行。
+    2. 不错位：框数恒等于字数，第 i 个框就是第 i 个字所在的位置。
 
     返回单字数。
     """
@@ -266,23 +364,30 @@ def segment_page_chars(
     new_chars: list[CharBox] = []
     seq = 0
     for line in page.lines:
-        # 对疑似合框（高度远高于 P90）的块，临时降低 min_gap 再切
-        line_gap = min_gap
-        if line.box["h"] > 45:  # 显式合框: P90~29, 设 45+ 为合框候选
-            line_gap = max(3, min_gap - 15)  # 加大对垂直切分的容忍度
-        seg_boxes = segment_block(gray, line.box, min_gap=line_gap, density_thresh=density_thresh)
-        if not seg_boxes:
+        text_chars = _clean_text(line.text or "")
+        if not text_chars:
             continue
-        # 原行文本（PaddleOCR 的整行识别文本）
-        text = line.text or ""
-        # 文字可能比字符多（含标点/空格），按 seg 数尝试对齐；超出部分留空（false box / 连接笔画）
-        n_seg = len(seg_boxes)
-        text_chars = _clean_text(text)
-        for si, sb in enumerate(seg_boxes):
-            char = ""
-            if si < len(text_chars):
-                char = text_chars[si]
-            # 超出部分不再"挂最后"，留空由 symbol_gap_repair 或人工补
+        vertical = is_vertical(line.box)
+        seg_boxes = segment_block(gray, line.box, min_gap=min_gap, density_thresh=density_thresh)
+        # 切不出段（背面透印字等淡到投影无信号）时兜底等分，绝不丢弃整行文字
+        seg_source = "projection"
+        if not seg_boxes:
+            seg_boxes = _even_split(line.box, len(text_chars), vertical)
+            seg_source = "even_split"
+        # 段数强制对齐到字数：位置配字前必须先保证两者等长，否则整列错位
+        seg_boxes = _align_to_count(seg_boxes, len(text_chars), vertical)
+
+        # 记录该行墨色对比度：淡到接近背景的行多为背面透印的幽灵字，
+        # 保留下来供人工判定，但要可筛出来，不能与正文混为一谈
+        x0 = max(0, int(line.box["x"]))
+        y0 = max(0, int(line.box["y"]))
+        region = gray[y0:int(line.box["y"] + line.box["h"]), x0:int(line.box["x"] + line.box["w"])]
+        contrast = ink_contrast(region)
+
+        for sb, char in zip(seg_boxes, text_chars):
+            extra = {"band": line.extra.get("band", 0), "seg": seg_source}
+            if contrast < 128:
+                extra["faint"] = round(contrast, 1)
             new_chars.append(CharBox(
                 id=f"{page.page}c{seq:04d}",
                 box=sb,
@@ -292,49 +397,11 @@ def segment_page_chars(
                 parent=line.id,
                 status="pending",
                 angle=0.0,
-                extra={"band": line.extra.get("band", 0)},
+                extra=extra,
             ))
             seq += 1
 
     page.chars = new_chars
-    # 后置：超high box 一分为二（PaddleOCR偶尔把2个字包进一个大框）
-    high = _median([c.box["h"] for c in new_chars]) if new_chars else 0
-    if high > 0:
-        split = []
-        for c in new_chars:
-            if c.box["h"] > high * 1.8 and c.char:
-                b = c.box
-                mid = b["y"] + b["h"] * 0.5
-                top = dict(b)
-                top["h"] = mid - top["y"]
-                bot = dict(b)
-                bot["y"] = mid
-                bot["h"] = b["y"] + b["h"] - mid
-                split.append(CharBox(
-                    id=c.id + "_top",
-                    box=top,
-                    char=c.char,
-                    orig_char=c.orig_char,
-                    conf=c.conf,
-                    parent=c.parent,
-                    status=c.status,
-                    angle=c.angle,
-                    extra=dict(c.extra),
-                ))
-                split.append(CharBox(
-                    id=c.id + "_bot",
-                    box=bot,
-                    char="",
-                    orig_char="",
-                    conf=0.0,
-                    parent=c.parent,
-                    status=STATUS_UNRECOGNIZED,
-                    angle=c.angle,
-                    extra=dict(c.extra),
-                ))
-            else:
-                split.append(c)
-        page.chars = split
     # 后置：过滤极小噪声框（宽<8 且 高<8 且 无字内容 → PaddleOCR检测的连接笔画假框）
     filtered = []
     for c in page.chars:

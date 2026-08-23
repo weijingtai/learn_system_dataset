@@ -111,22 +111,31 @@ def test_chars_align_with_text_in_reading_order(chars):
 
 @pytest.mark.parametrize("chars", ["一二三", "三口", "身宫主星", "四百八十一"])
 def test_char_box_geometrically_matches_its_own_glyph(chars):
-    """框↔字几何对应：第 i 个字的框必须落在第 i 个字实际占据的 y 区间上。
+    """框↔字几何对应：第 i 个字的框必须落在第 i 个字实际占据的 y 区间内。
 
     这是错位的真正判据。只看内容顺序会漏——「一二三」被切成 6 段时，
     前 3 段内容读出来仍是「一二三」，但「三」的框已经贴到「二」的下半横上。
+
+    判据用「框中心落在该字 em 区间内」而不是「重叠面积过半」：「一」这类字的
+    墨迹只占 em 区间的一小截（36px 的字高里只有 4px 实墨），紧贴笔画的窄框是
+    正确结果，不是错位。同时限制框高不超过一个字距，防止两个字并进一个框。
     """
     page, truth = segment_one_line(chars)
     filled = sorted((c for c in page.chars if c.char), key=lambda c: c.box["y"])
     assert len(filled) == len(truth), (
         f"{chars!r}: 框数 {len(filled)} ≠ 字数 {len(truth)}，无法逐字比对几何位置"
     )
+    pitch = truth[1][0] - truth[0][0] if len(truth) > 1 else (truth[0][1] - truth[0][0])
     for i, (c, (ty0, ty1)) in enumerate(zip(filled, truth)):
         by0, by1 = c.box["y"], c.box["y"] + c.box["h"]
-        overlap = min(by1, ty1) - max(by0, ty0)
-        assert overlap > (ty1 - ty0) * 0.5, (
-            f"{chars!r} 第{i}字 {c.char!r}: 框 y=[{by0:.0f},{by1:.0f}] 与该字真实区间 "
-            f"[{ty0:.0f},{ty1:.0f}] 重叠仅 {overlap:.0f}px —— 框贴到了别的字上（错位）"
+        center = (by0 + by1) / 2
+        assert ty0 <= center <= ty1, (
+            f"{chars!r} 第{i}字 {c.char!r}: 框中心 y={center:.0f} 不在该字真实区间 "
+            f"[{ty0:.0f},{ty1:.0f}] 内 —— 框贴到了别的字上（错位）"
+        )
+        assert c.box["h"] <= pitch, (
+            f"{chars!r} 第{i}字 {c.char!r}: 框高 {c.box['h']:.0f} 超过一个字距 "
+            f"{pitch:.0f} —— 多个字被并进一个框"
         )
 
 
