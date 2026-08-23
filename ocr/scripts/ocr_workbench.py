@@ -35,6 +35,30 @@ def _img_files(target: Path) -> list[Path]:
     return files
 
 
+def _load_image_for_ocr(path: Path, bleed_thresh: int, page: str):
+    """读图并抹除背面透印字，返回喂给识别/切分/补扫的同一个数组。
+
+    抹除比例异常大时告警：说明这本书的真墨本身就淡（淡印本/褪色本），
+    默认阈值会连正文一起抹掉，此时要调低 --bleed-thresh 或用 0 关掉。
+    """
+    from PIL import Image
+    import numpy as np
+    from gujiorc.ocr.preprocess import MIN_KEPT_INK, suppress_bleed_through
+
+    with Image.open(path) as im:
+        arr = np.array(im.convert("RGB"))
+    if bleed_thresh <= 0:
+        return arr
+    out, stats = suppress_bleed_through(arr, thresh=bleed_thresh)
+    print(f"  [{page}] 抹除背面透印 {stats['erased'] * 100:.2f}% 像素"
+          f"（残留真墨 {stats['kept_ink'] * 100:.2f}%）", file=sys.stderr)
+    if stats["kept_ink"] < MIN_KEPT_INK:
+        print(f"  [{page}] ⚠ 抹除后几乎没有墨迹残留 —— 本书可能是淡印本/褪色本，"
+              f"默认阈值会连正文一起抹掉。请调低 --bleed-thresh 或设 0 关闭",
+              file=sys.stderr)
+    return out
+
+
 def cmd_run(args):
     from gujiorc.core.paths import get_root
     from gujiorc.core.progress import ProgressReporter
@@ -43,6 +67,7 @@ def cmd_run(args):
     from gujiorc.core.storage import save_page_json
     from gujiorc.index.fulltext import CharIndex
     from gujiorc.rare.detector import detect_rare_chars, build_common_set
+    from gujiorc.core.anomaly import assess_layout, register_anomaly
 
     target = Path(args.image)
     files = _img_files(target)
@@ -58,25 +83,45 @@ def cmd_run(args):
     for i, f in enumerate(files):
         page = f"page_{i + 1:03d}"
         try:
+            # 抹除背面透印字（薄纸古籍）。必须在识别前做：幽灵笔画会和真笔画落进
+            # 同一个检测框，连真字的识别一起拖垮。处理后的数组同时喂给识别、切分、
+            # 补扫三处，保证三者看到的是同一张图。
+            src = _load_image_for_ocr(f, args.bleed_thresh, page)
             page_result = image_to_page(
-                str(f), page=page,
+                src, page=page,
                 image_path=str(f),
                 gap_thresh=args.gap,
                 conf_thresh=args.conf,
             )
+            page_result.extra["bleed_thresh"] = args.bleed_thresh
             # 单字切分（PLANS M2）：整行块 → 单字框
             if args.segment:
-                n_chars = segment_page_chars(str(f), page_result, min_gap=args.gap)
+                n_chars = segment_page_chars(src, page_result, min_gap=args.gap)
                 print(f"  [{page}] 单字切分 {n_chars} 字", file=sys.stderr)
                 # Stage-2 符号合框漏扫：补全被遗漏的字
                 from gujiorc.ocr.segment import symbol_gap_repair
-                repaired = symbol_gap_repair(str(f), page_result.chars)
+                repaired = symbol_gap_repair(src, page_result.chars)
                 added = len(repaired) - n_chars
                 if added:
                     print(f"  [{page}] 补扫 {added} 个遗漏框（标记为未识别）", file=sys.stderr)
                 page_result.chars = repaired
             # 生僻字判定（按单字精度）
             detect_rare_chars(page_result, common_set, conf_thresh=args.conf)
+            # 异常版面登记：星盘/环形等非行列排布页，识别结果基本是垃圾，
+            # 必须登记交人工处理，不能静默进入语料。查看：workbench anomalies
+            hit = assess_layout(page_result)
+            if hit:
+                register_anomaly(
+                    page=page,
+                    image=str(f),
+                    layout_type=hit["layout_type"],
+                    det_box_count=len(page_result.lines),
+                    rec_texts_sample=[(x.text or "") for x in page_result.lines[:8]],
+                    note="识别结果可能不可用，需人工处理",
+                    extra={"signals": hit["signals"], "metrics": hit["metrics"]},
+                )
+                print(f"  [{page}] ⚠ 异常版面已登记（{hit['layout_type']}，"
+                      f"信号 {'/'.join(hit['signals'])}）— 需人工处理", file=sys.stderr)
             # 存 JSON
             save_page_json(page_result)
             # 索引
@@ -346,8 +391,20 @@ def cmd_anomalies(args):
     if not items:
         print("暂无异常记录")
         return 0
+    print(f"共 {len(items)} 条异常版面登记（需人工处理）：\n")
     for it in items:
-        print(f"[{it['ts']}] {it['page']} | {it['layout_type']} | 框={it['det_box_count']} | {it['note']}")
+        ex = it.get("extra") or {}
+        m = ex.get("metrics") or {}
+        print(f"[{it['ts']}] {it['page']}  {it['layout_type']}  框={it['det_box_count']}")
+        if ex.get("signals"):
+            print(f"    命中信号: {', '.join(ex['signals'])}")
+        if m.get("mean_conf") is not None:
+            print(f"    均置信={m.get('mean_conf')} 低置信行={m.get('low_conf_ratio')} "
+                  f"单字行={m.get('single_char_ratio')} 横排框={m.get('horizontal_ratio')}")
+        sample = [t for t in (it.get("rec_texts_sample") or []) if t][:5]
+        if sample:
+            print(f"    识别样本: {' / '.join(sample)}")
+        print(f"    图: {it['image']}")
     return 0
 
 
@@ -454,6 +511,8 @@ def _print_groups(groups):
 
 
 def main():
+    from gujiorc.ocr.preprocess import DEFAULT_BLEED_THRESH
+
     parser = argparse.ArgumentParser(description="古籍 OCR 工作台 (gujiorc)")
     parser.add_argument("--root", help="OCR_ROOT（数据根目录）")
     sub = parser.add_subparsers(dest="cmd", required=True)
@@ -464,6 +523,11 @@ def main():
     p_run.add_argument("--conf", type=float, default=0.6)
     p_run.add_argument("--segment", action="store_true", help="单字切分（竖排列→单字框）")
     p_run.add_argument("--report-every", type=float, default=5.0)
+    p_run.add_argument(
+        "--bleed-thresh", type=int, default=DEFAULT_BLEED_THRESH,
+        help=f"抹除背面透印字的灰度阈值，亮于此值的像素推成纯白（默认 {DEFAULT_BLEED_THRESH}，"
+             "0=关闭）。薄纸古籍背面的字会透到正面被误识别；淡印本/褪色本请调低或关闭",
+    )
     p_run.set_defaults(func=cmd_run)
 
     p_rare = sub.add_parser("rare", help="生僻字圈划+清单")
