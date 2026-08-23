@@ -144,8 +144,8 @@ def export_corpus(
     edition_note: str = "",
     rights_status: str = "public_domain",
     groups_resolve=None,
-) -> dict[str, Path | int]:
-    """导出为 pipeline/corpus 结构 + manifest.yaml（PLANS §6.1）。"""
+) -> dict[str, Path]:
+    """导出为 pipeline corpus 目录 + manifest.yaml（PLANS §6.1）。"""
     book_dir = Path(corpus_dir) / technique_id / f"{book}_ed{edition:02d}"
     (book_dir / "source").mkdir(parents=True, exist_ok=True)
 

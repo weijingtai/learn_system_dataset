@@ -7,7 +7,7 @@ from pathlib import Path
 DEFAULTS = {
     # OCR
     "ocr": {
-        "gap_thresh": 40,          # 区块切分阈值（OCR框y间隙）
+        "gap_thresh": 20,          # 区块切分阈值（OCR框y间隙）v2 修复标点合框
         "col_gap_thresh": 30,      # 列聚合阈值
         "conf_thresh": 0.6,        # 低置信度阈值
     },

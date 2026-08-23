@@ -66,8 +66,15 @@ def cmd_run(args):
             )
             # 单字切分（PLANS M2）：整行块 → 单字框
             if args.segment:
-                n_chars = segment_page_chars(str(f), page_result)
+                n_chars = segment_page_chars(str(f), page_result, min_gap=args.gap)
                 print(f"  [{page}] 单字切分 {n_chars} 字", file=sys.stderr)
+                # Stage-2 符号合框漏扫：补全被遗漏的字
+                from gujiorc.ocr.segment import symbol_gap_repair
+                repaired = symbol_gap_repair(str(f), page_result.chars)
+                added = len(repaired) - n_chars
+                if added:
+                    print(f"  [{page}] 补扫 {added} 个遗漏框（标记为未识别）", file=sys.stderr)
+                page_result.chars = repaired
             # 生僻字判定（按单字精度）
             detect_rare_chars(page_result, common_set, conf_thresh=args.conf)
             # 存 JSON
@@ -319,6 +326,31 @@ def cmd_export(args):
     return 0
 
 
+def cmd_json2db(args):
+    """把 data/*.json 导入 SQLite 数据库（book.db，可 --db 指定路径）。"""
+    from gujiorc.core.library import import_json_to_sqlite
+    from gujiorc.core.paths import get_output_dir
+
+    data_dir = Path(get_output_dir()) / "data"
+    db = args.db or str(get_output_dir() / "book.db")
+    stats = import_json_to_sqlite(data_dir, db, book=args.book or "book")
+    print(f"✅ JSON 已导入 SQLite: {db}")
+    print(f"   页 {stats['pages']} | 单字索引 {stats['chars']} | 生僻字 {stats['rare']}")
+    return 0
+
+
+def cmd_anomalies(args):
+    """查看异常版面登记（Anomaly log）。"""
+    from gujiorc.core.anomaly import list_anomalies
+    items = list_anomalies(page=args.page, last=args.last or 0)
+    if not items:
+        print("暂无异常记录")
+        return 0
+    for it in items:
+        print(f"[{it['ts']}] {it['page']} | {it['layout_type']} | 框={it['det_box_count']} | {it['note']}")
+    return 0
+
+
 def cmd_report(args):
     """生成 OCR 质量报告（M6_）。导出 report.md。"""
     from gujiorc.core.paths import get_root
@@ -495,6 +527,16 @@ def main():
     p_g.add_argument("--font", help="TTF 字体名（define）")
     p_g.add_argument("--note", help="备注")
     p_g.set_defaults(func=cmd_groups)
+
+    p_a = sub.add_parser("anomalies", help="查看异常版面登记（星盘/环形图等）")
+    p_a.add_argument("--page", default="", help="只看某页")
+    p_a.add_argument("--last", type=int, default=0, help="最近N条")
+    p_a.set_defaults(func=cmd_anomalies)
+
+    p_j = sub.add_parser("json2db", help="把 data/*.json 导入 SQLite 数据库")
+    p_j.add_argument("--db", default="", help="DB 目标路径（默认 {输出根}/book.db）")
+    p_j.add_argument("--book", default="book", help="书目 ID（写入 pages.book / char_index.book）")
+    p_j.set_defaults(func=cmd_json2db)
 
     args = parser.parse_args()
     if args.root:

@@ -38,6 +38,15 @@ def image_to_page(
     polys = res["rec_polys"]
     scores = res["rec_scores"]
 
+    # ── 修复：PaddleOCR 竖排时 rec_texts 与 rec_polys 对应错位 ──
+    # 按框顶边 y_min 排序（竖排阅读顺序 = 从上到下），重排 texts/scores
+    def _y0(poly):
+        return float(np.min(poly[:, 1]))
+    order = sorted(range(len(polys)), key=lambda i: _y0(polys[i]))
+    texts = [texts[i] for i in order]
+    polys = [polys[i] for i in order]
+    scores = [scores[i] for i in order]
+
     # 图像尺寸
     if hasattr(image, "shape"):
         height, width = image.shape[:2]

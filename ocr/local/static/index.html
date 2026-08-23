@@ -13,12 +13,12 @@
   .main { display: flex; gap: 0; height: calc(100vh - 110px); }
   .canvas-wrap { flex: 1; overflow: auto; background: #888; position: relative; }
   #stage { position: relative; display: inline-block; min-width: 100%; }
-  #bg { display: block; min-width: 100%; user-select: none; }
+  #bg { display: block; width: 100%; height: auto; user-select: none; }
   .box { position: absolute; border: 1.5px solid #0071e3; cursor: pointer; }
   .box.rare { border-color: #ff3b30; background: rgba(255,59,48,.06); }
   .box.lowconf { border-color: #ffcc00; background: rgba(255,204,0,.08); }
   .box.fix { border-color: #34c759; }
-  .box.selected { outline: 3px solid #0071e3; outline-offset: 1px; z-index: 2; }
+  .box.selected { outline: 3px solid #ff9500; outline-offset: 1px; z-index: 2; }
   .box span { position: absolute; top: 0; left: 0; transform: translateY(-100%); font-size: 11px; line-height: 1.2; color: #fff; background: rgba(0,113,227,.85); padding: 1px 3px; border-radius: 2px; white-space: nowrap; }
   .box.rare span { background: rgba(255,59,48,.85); }
   .box.lowconf span { background: rgba(255,204,0,.92); color: #333; }
@@ -28,6 +28,12 @@
   .side h4 { margin: 8px 0 4px; font-size: 12px; color: #666; }
   .v-line { margin: 0 6px; color: #ccc; }
   .mono { font-family: ui-monospace, Menlo, monospace; }
+  .vpage { display: flex; flex-direction: row-reverse; gap: 8px; height: 100%; overflow-x: auto; overflow-y: hidden; padding: 4px; background: #faf8f5; border-radius: 4px; }
+  .vcol { writing-mode: vertical-rl; font-size: 15px; line-height: 1.8; letter-spacing: 2px; color: #1d1d1f; flex-shrink: 0; padding: 2px 4px; border-radius: 3px; }
+  .vchar { cursor: pointer; padding: 1px 2px; border-radius: 2px; }
+  .vchar:hover { background: rgba(0,113,227,.12); }
+  .vchar.active { background: #ff9500; color: #fff; }
+  .vchar.rare { color: #c00; font-weight: 600; }
 </style>
 </head>
 <body>
@@ -45,6 +51,8 @@
     <el-select v-model="curPage" placeholder="选页面" size="small" style="width:160px" @change="loadPage">
       <el-option v-for="p in pages" :key="p" :label="p" :value="p"/>
     </el-select>
+    <el-button size="small" @click="prevPage" :disabled="!pages.length || pages.indexOf(curPage) <= 0">上一页</el-button>
+    <el-button size="small" @click="nextPage" :disabled="!pages.length || pages.indexOf(curPage) >= pages.length - 1">下一页</el-button>
     <el-input v-model="searchChar" placeholder="查某字全书位置" size="small" style="width:140px"
               clearable @keyup.enter="doSearch">
       <template #append><el-button @click="doSearch">检索</el-button></template>
@@ -77,7 +85,7 @@
         <div v-for="c in chars" :key="c.id"
              :data-id="c.id"
              :class="['box', c.is_rare ? (c.rare_reason=='low_conf'?'lowconf':'rare') : '', c.id==selId?'selected':'', c.status=='corrected'?'fix':'']"
-             :style="{left:c.box.x+'px', top:c.box.y+'px', width:c.box.w+'px', height:c.box.h+'px'}"
+             :style="{left: S(c.box.x), top: S(c.box.y), width: S(c.box.w), height: S(c.box.h)}"
              @click="selectChar(c, $event)"
              @dblclick="lookup(c)">
           <span>{{ boxLabel(c) }}</span>
@@ -91,6 +99,39 @@
         <h3>旋转预览</h3>
         <div style="text-align:center"><img :src="rotSrc" v-if="selected" style="max-width:220px;border:1px solid #ddd;background:#000"/>
           <span v-else style="color:#aaa;font-size:12px">点击一个框查看旋转效果</span></div>
+      </div>
+      <div class="panel" style="flex:1;overflow:auto">
+        <h3>竖排译文</h3>
+        <div class="vpage">
+          <div v-for="col in columns" :key="col.id" class="vcol">
+            <span v-for="c in col.chars"
+                  :key="c.id"
+                  class="vchar"
+                  :class="{ active: c.id === selId, rare: c.is_rare }"
+                  @click="selectCharById(c.id)">
+              {{ c.char || '□' }}
+            </span>
+          </div>
+        </div>
+      </div>
+      <div class="panel">
+        <h3>框内裁切（4x放大）</h3>
+        <div style="text-align:center"><img :src="cropSrc" v-if="selected" style="max-width:260px;border:1px solid #ddd;background:#000"/><span v-else style="color:#aaa;font-size:12px">点击框查看裁切</span></div>
+      </div>
+      <div class="panel">
+        <h3>选中框详情</h3>
+        <div v-if="selected" style="font-size:13px;line-height:1.8">
+          <div><b>编号:</b> {{ selected.id }}</div>
+          <div><b>原始识别:</b> {{ selected.orig_char || '□' }}</div>
+          <div><b>当前字:</b> {{ selected.char || '□' }}</div>
+          <div><b>置信度:</b> {{ selected.conf.toFixed(2) }}</div>
+          <div><b>生僻:</b> {{ selected.is_rare ? '是 (' + (selected.rare_reason||'') + ')' : '否' }}</div>
+          <div><b>框坐标:</b> x={{ selected.box.x.toFixed(0) }} y={{ selected.box.y.toFixed(0) }} w={{ selected.box.w.toFixed(0) }} h={{ selected.box.h.toFixed(0) }}</div>
+          <div><b>来源:</b> {{ selected.source }}</div>
+          <div><b>状态:</b> {{ selected.status }}</div>
+          <div v-if="selected.mapping"><b>映射:</b> {{ selected.mapping.from || '' }} → {{ selected.mapping.target || '' }} ({{ selected.mapping.source || '' }})</div>
+        </div>
+        <div v-else style="color:#aaa;font-size:12px">点击画布上的框查看详情</div>
       </div>
       <div class="panel" style="flex:1;overflow:auto">
         <h3>生僻字 ({{ rareList.length }})</h3>
@@ -118,11 +159,12 @@ const { createApp } = Vue;
 createApp({
   data() {
     return {
-      pages: [], curPage: '', chars: [], rareList: [],
+      pages: [], curPage: '', chars: [], rareList: [], columns: [],
       selId: null, selInfo: '无',
-      rotateList: {}, angle: 0, rotSrc: '',
+      rotateList: {}, angle: 0, rotSrc: '', cropSrc: '',
       fixTo: '', searchChar: '', lastSearch: '', searchHits: 0,
       drawMode: false, drawStart: null, rawScale: 1,
+      scale: 1,
       stats: '',
       stageW: 0, stageH: 0, srcW: 0, srcH: 0,
     };
@@ -144,21 +186,38 @@ createApp({
       this.pages = pages;
       if (pages.length) { this.curPage = pages[0]; await this.loadPage(); }
     },
+    prevPage() {
+      const idx = this.pages.indexOf(this.curPage);
+      if (idx > 0) { this.curPage = this.pages[idx - 1]; this.loadPage(); }
+    },
+    nextPage() {
+      const idx = this.pages.indexOf(this.curPage);
+      if (idx < this.pages.length - 1) { this.curPage = this.pages[idx + 1]; this.loadPage(); }
+    },
     async loadPage() {
       if (!this.curPage) return;
       const data = await this.api(`/api/page/${this.curPage}`);
       this.chars = data.chars || [];
       this.srcW = data.width; this.srcH = data.height;
-      this.selId = null; this.selInfo = '无'; this.rotSrc = '';
+      this.selId = null; this.selInfo = '无'; this.rotSrc = ''; this.cropSrc = '';
       this.stats = `共 ${this.chars.length} 字 · 生僻 ${this.chars.filter(c=>c.is_rare).length}`;
       this.rareList = this.chars.filter(c => c.is_rare);
-      this.$nextTick(() => { if (this.$refs.img) this.onImgLoad(); });
+      this.buildColumns();
+      this.$nextTick(() => { if (this.$refs.bgimg) this.onImgLoad(); });
     },
     onImgLoad() {
       const img = this.$refs.bgimg;
       if (!img) return;
-      this.stageW = img.naturalWidth || this.srcW;
-      this.stageH = img.naturalHeight || this.srcH;
+      const dispW = img.clientWidth || 0;
+      const natW = img.naturalWidth || this.srcW || 0;
+      this.scale = (dispW > 0 && natW > 0) ? (dispW / natW) : 1;
+      const natH = img.naturalHeight || this.srcH || 0;
+      this.stageW = natW || this.srcW || 0;
+      this.stageH = natH || (this.srcW ? Math.round(natW * this.srcH / this.srcW) : 0);
+    },
+    S(px) {
+      const v = Number(px) || 0;
+      return Math.round(v * this.scale) + 'px';
     },
     boxLabel(c) {
       let l = c.char || '□';
@@ -169,6 +228,14 @@ createApp({
       if (ev) ev.stopPropagation();
       this.selId = c.id; this.selInfo = `${c.id} ${c.orig_char||'-'}→${c.char||'-'}`;
       this.angle = this.rotateList[c.id] || 0;
+      this.showRotate();
+    },
+    selectCharById(id) {
+      this.selId = id;
+      const c = (this.chars || []).find(x => x.id === id);
+      if (!c) return;
+      this.selInfo = `${c.id} ${c.orig_char||'-'}→${c.char||'-'}`;
+      this.angle = this.rotateList[id] || 0;
       this.showRotate();
     },
     onAngleChange() {
@@ -183,6 +250,7 @@ createApp({
     showRotate() {
       if (!this.selected) return;
       this.rotSrc = `/api/page/${this.curPage}/char/${this.selId}/rotate?angle=${this.angle}`;
+      this.cropSrc = `/api/page/${this.curPage}/char/${this.selId}/rotate?angle=0`;
     },
     async doFix() {
       if (!this.selected) { alert('先点选一个框'); return; }
@@ -225,7 +293,8 @@ createApp({
     async lookup(c) {
       if (c.char) {
         const d = await this.api(`/api/dict/${encodeURIComponent(c.char)}`);
-        this.$alert(`${Object.entries(d).map(([k,v])=>`${k}: ${v}`).join('\n')}`, `生僻字 ${c.char||''}`, {pre-wrap:true});
+        const lines = Object.entries(d).map(function(e){ return e[0] + ': ' + e[1]; }).join('\n');
+        this.$alert(lines, '生僻字 ' + (c.char || ''), {preWrap: true});
       }
     },
     async doSearch() {
@@ -245,9 +314,27 @@ createApp({
       const c = this.chars.find(x => x.id === row.id);
       if (c) {
         this.selId = c.id;
-        document.getElementById('canvasWrap').scrollLeft = c.box.x - 150;
-        document.getElementById('canvasWrap').scrollTop = c.box.y - 150;
+        document.getElementById('canvasWrap').scrollLeft = Math.round(c.box.x * this.scale) - 150;
+        document.getElementById('canvasWrap').scrollTop = Math.round(c.box.y * this.scale) - 150;
       }
+    },
+    buildColumns() {
+      const list = (this.chars || []).slice().sort((a, b) => (a.box.x || 0) - (b.box.x || 0));
+      const cols = [];
+      const TOL = 90;
+      let cur = null;
+      for (const c of list) {
+        const x = c.box.x || 0;
+        if (!cur || Math.abs(x - cur.x) > TOL) {
+          cur = { id: 'col_' + cols.length, x, chars: [] };
+          cols.push(cur);
+        }
+        cur.chars.push(c);
+      }
+      for (const col of cols) {
+        col.chars.sort((a, b) => (a.box.y || 0) - (b.box.y || 0));
+      }
+      this.columns = cols;
     },
   },
   mounted() { this.init(); },

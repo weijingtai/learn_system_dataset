@@ -22,12 +22,18 @@ else:
 
 
 def make_page_result(image_path: Path):
-    """将一张图经 det 后转成与项目对齐的 OCR 结果。"""
+    """将一张图经新版 PaddleOCR predict() 转成框与文字列表。"""
     if PaddleOCR is None:
         raise RuntimeError(f"PaddleOCR 不可用（{_paddle_import_error}）。")
     ocr = PaddleOCR(lang="ch")
-    res = ocr.ocr(str(image_path), det=True, rec=True)
-    return res
+    res = ocr.predict(str(image_path))
+    if not res:
+        return [], []
+    item = res[0]
+    polys = [np.asarray(p, dtype=np.int32).reshape(-1, 2).tolist() for p in item.get("rec_polys", [])]
+    texts = [str(t) for t in item.get("rec_texts", [])]
+    scores = [float(s) for s in item.get("rec_scores", [])]
+    return list(zip(polys, texts, scores)), texts
 
 
 def summarize_result(image_path: Path) -> dict:

@@ -31,8 +31,8 @@ def create_app(ocr_root: str | None = None) -> FastAPI:
     app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 
     @app.get("/", response_class=HTMLResponse)
-    def index():
-        return static_dir.joinpath("index.html").read_text(encoding="utf-8")
+    def index() -> HTMLResponse:
+        return HTMLResponse(static_dir.joinpath("index.html").read_text(encoding="utf-8"))
 
     @app.get("/api/pages")
     def list_pages():
@@ -119,6 +119,12 @@ def create_app(ocr_root: str | None = None) -> FastAPI:
         log_event("segment_new", actor="web", page=page, char_id=new_id,
                   box={k: float(box[k]) for k in ("x", "y", "w", "h")})
         return {"ok": True, "id": new_id}
+
+    @app.get("/api/anomalies")
+    def list_anomalies(page: str = "", last: int = 0):
+        from gujiorc.core.anomaly import list_anomalies as _list
+        items = _list(page=page or None, last=last or 0)
+        return {"items": items, "count": len(items)}
 
     @app.get("/api/page/{page}/char/{char_id}/rotate")
     def rotate_preview(page: str, char_id: str, angle: float = 0):
