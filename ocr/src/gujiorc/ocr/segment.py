@@ -71,9 +71,16 @@ def segment_block(
     min_gap: int = 3,
     density_thresh: float = 0.02,
 ) -> list[dict]:
-    """把一个文本块切成单字 box（像素坐标，含 pad）。
+    """把一个文本块沿阅读方向切成「墨迹段」（像素坐标）。
 
-    返回单字 box 列表 [{x,y,w,h}]，按阅读方向排序（竖排：从上到下）。
+    返回投影找出的连续墨迹段 [{x,y,w,h}]，按阅读方向排序（竖排：从上到下）。
+
+    注意：**一段不等于一个字**。「二」「三」这类字的每一横都是独立的一段。
+    段合并成字由调用方的 `_align_to_count()` 依据该行识别出的字数来做——
+    只有知道字数才能判断某个间隙是字内笔画间隙还是字间间隙。
+    曾有一版在这里用「段高 < 4px 就并进上一段」的启发式自行合并，结果把
+    page_006 页码「四八二」里 3px 的「二」上横并进了「八」，见
+    `tests/test_segment_alignment.py::test_thin_stroke_not_merged_into_previous_char`。
     """
     x, y, w, h = int(box["x"]), int(box["y"]), int(box["w"]), int(box["h"])
     img_h, img_w = gray.shape[:2]
@@ -97,7 +104,7 @@ def segment_block(
             "w": float(x1 - x0),
             "h": float(g1 - g0),
         })
-        return _merge_thin_segments(boxes)
+        return boxes
     else:
         # 横排：水平投影切
         row_density = dark.mean(axis=0)
@@ -116,31 +123,7 @@ def segment_block(
                 "w": float(g1 - g0),
                 "h": float(cy1 - cy0),
             })
-        return _merge_thin_segments(boxes)
-
-
-def _merge_thin_segments(boxes: list[dict], min_h_ratio: float = 0.45, min_h_floor: float = 4.0) -> list[dict]:
-    """合并「过细」的字框到相邻框。
-
-    竖排/横排中，个别字笔画稀疏（如「一」「丨」）或切分过度会产生异常细的框。
-    高度 h 远小于正常字形。取所有高度中位数作为典型字高，把 < 0.45×中位数
-    且 < 4px 的段合并到上一段（竖排向上，横排向左），保留 ≥4px 的有效字框。
-    4px 阈值覆盖「一」「.」『.」等小符号/笔画，防止细字被吃掉。
-    """
-    if len(boxes) < 2:
         return boxes
-    median_h = _median([b["h"] for b in boxes])
-    if median_h <= 0:
-        return boxes
-    merged = []
-    for b in boxes:
-        if b["h"] < median_h * min_h_ratio and b["h"] < min_h_floor and merged:
-            # 合并到上一段：扩展其 y 范围（竖排同列 w 相同，取并集高度）
-            prev = merged[-1]
-            prev["h"] = (max(prev["y"] + prev["h"], b["y"] + b["h"])) - prev["y"]
-        else:
-            merged.append(dict(b))
-    return merged
 
 
 def _median(vals: list[float]) -> float:
