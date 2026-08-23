@@ -129,3 +129,25 @@ TASKS_ENG_GAPS.md 四项任务已依序完成并提交：
 - D：`experiments/curve_segment.py` + `experiments/CURVE_REPORT.md` — 星盘曲线字原型实验（真实图可用，PaddleOCR 调用在 3.7.0 接口切换到 predict 后卡住，未拿框）。
 
 当前状态：A/B/C/D 已提交，ETL 试算阶段结束。
+
+## 10. 单字切分识别质量修复（2026-08-22）
+
+《三辰通载》前10页实测暴露两条根因，已修复并全量验收（详见
+`../tasks/codex-docs-knowledge-compilation.md` 与 `../HANDOFF_OCR_FIXES.md` §七）：
+
+1. **硬编码二值化阈值** `region < 128` 对古籍背面透印字/浅印字失效（灰度
+   176~229，区域内无任何像素 <128）→ 投影返回 0 段 → 整行文字静默丢弃。
+   实测 139 行、493 字。改为 `_ink_mask()` 按区域 2/98 分位数自适应定阈。
+2. **投影段按位置配字** `char = text_chars[si]`。PaddleOCR 给整行文本，段边界
+   另算，两者数量无约束（「一二三」切出 6 段），从失配处起整列后移。改为
+   `_align_to_count()` 配字前把段数强制对齐到字数；切不出段时 `_even_split()` 兜底。
+
+验收：段数≠字数的行 360/727 → **0**；净丢字 575/3287 (17.5%) → **0**；
+测试 48 → **64 passed**。契约测试 `tests/test_segment_alignment.py` 永久保留。
+
+**§7 已知坑第末条（Web UI Vue 改版未提交）已失效**：该改版连同修复已提交
+（`5537418`、`9e4d943`），Vue3 + Element Plus 前端已用 Chrome headless 截图验收，
+竖排译文面板正常渲染。
+
+**遗留（R7）**：`segment_block` 横排分支 `sub` 用原始灰度而非墨迹掩码、
+`sub.mean(axis=0)` 取错轴，横排块框高恒为垃圾值。竖排主路径不受影响。

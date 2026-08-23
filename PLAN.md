@@ -27,3 +27,9 @@
 - [ ] 编写实施计划并开始校验器与编译器实现。
 
 当前 Tag 线优先制作 `official_starter_clear` 第一版官方基础包、TechniqueProfile 和 Preview Catalog；随后用它作为 TagStyleCompiler MVP 的 golden input。不得直接启动 `TagStyleEditor`、Marketplace 或用户 Dart/Flutter 插件实施。pipeline 线仍按 `PIPELINE_REVIEW_v1.md` 继续补依赖、环境检查和确定性校验器。
+
+### OCR 线（ocr/ 子目录，与上表并行）
+- [x] 修复单字切分「不丢字/不错位」两条根因并建立契约测试（2026-08-22）
+- [ ] R7 `segment_block` 横排分支墨迹掩码与取轴错误
+- [ ] 清掉 `_find_gaps` 未被使用的 `min_gap` 死参
+- [ ] 收紧 `tests/test_segment.py` 的宽松断言（`>= 2` 类）
