@@ -28,7 +28,9 @@
   .side h4 { margin: 8px 0 4px; font-size: 12px; color: #666; }
   .v-line { margin: 0 6px; color: #ccc; }
   .mono { font-family: ui-monospace, Menlo, monospace; }
-  .vpage { display: flex; flex-direction: row-reverse; gap: 8px; height: 100%; overflow-x: auto; overflow-y: hidden; padding: 4px; background: #faf8f5; border-radius: 4px; }
+  /* 竖排面板：列高由内容决定（一列可有 30+ 字），不能锁 height:100% 再 hidden
+     ——那样超出面板高度的字会被裁掉且无法滚到。交给父级 .panel 的 overflow:auto 滚动。 */
+  .vpage { display: flex; flex-direction: row-reverse; gap: 8px; align-items: flex-start; min-height: 100%; overflow-x: auto; padding: 4px; background: #faf8f5; border-radius: 4px; }
   .vcol { writing-mode: vertical-rl; font-size: 15px; line-height: 1.8; letter-spacing: 2px; color: #1d1d1f; flex-shrink: 0; padding: 2px 4px; border-radius: 3px; }
   .vchar { cursor: pointer; padding: 1px 2px; border-radius: 2px; }
   .vchar:hover { background: rgba(0,113,227,.12); }
