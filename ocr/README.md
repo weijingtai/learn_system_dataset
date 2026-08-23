@@ -45,8 +45,20 @@ PYTHONPATH=src python scripts/ocr_workbench.py run --segment <图片或目录>
 - `--gap` 区块切分阈值（默认 40px）
 - `--conf` OCR 置信度阈值（默认 0.6）
 - `--report-every N` 每隔 N 秒汇报一次进度
+- `--bleed-thresh` **抹除背面透印字**的灰度阈值（默认 110，`0` 关闭）
 
 输出在 `$OCR_ROOT/data/`，每页一个 `page_*.json`。
+
+**背面透印字（bleed-through）**：薄纸影印本背面的字会透到正面，OCR 会一视同仁地
+检测+识别它们。后果不只是正文混进背面内容——幽灵笔画和真笔画落进同一个检测框，
+**连真字的识别一起被拖垮**（实测「卷第七」被读成「卷第七吧」）。
+`run` 默认在识别前把亮于 `--bleed-thresh` 的像素推成纯白，整块抹掉透印。
+《三辰通载》前10页实测：幽灵字框 531→0，正常页均置信度 0.69~0.96 → 全部 0.95~0.97。
+
+阈值 110 取自真墨（墨迹灰度 32~88）与透印（116~240）之间的空隙。
+**淡印本/褪色本必须调低或用 `0` 关闭**，否则会连正文一起抹掉——每页会打印
+「残留真墨 x%」，低于 1% 时告警（正常页实测 5.0%~12.3%）。
+Web UI 显示的仍是原图，所以透印肉眼可见但不再被当成内容。
 
 ### 2) 生僻字圈划 + 清单
 
@@ -110,23 +122,38 @@ corpus 模式下会在目标目录生成：
 
 ### 7) 查看异常版面（星盘图/环形图等非横竖排）
 
-识别结果手动登记 + 查询：
+星盘、环形图这类**非行列版面**的字沿弧线或放射方向排布，矩形检测框贴合不了，
+识别结果基本不可用。`run` 会**自动判定并登记**这类页，交人工处理，不让垃圾识别
+静默进入语料。
+
+判定用多信号投票（至少 2 项命中才登记，避免正常页被个别噪声误报）：
+
+| 信号 | 阈值 | 正常竖排页实测 | 盘面页实测(page_010) |
+|---|---|---|---|
+| `low_conf_lines` 低置信行占比 | >20% | 0~2.0% | 45.4% |
+| `many_single_char_boxes` 单字行占比 | >15% | 0~6.1% | 28.6% |
+| `mixed_orientation` 横排框占比 | >7% | 0~3.0% | 12.6% |
+| `low_mean_conf` 全页均置信 | <0.80 | 0.95~0.97 | 0.63 |
+
+一个字都没识别出的页登记为 `no_text`（可能是空白页，也可能是未处理的纯图页，
+需人工确认一眼）。
 
 ```bash
-# 登记（示例，由识别脚本自动调用，也可手工）
+# 查看（登记由 run 自动完成）
+PYTHONPATH=src python scripts/ocr_workbench.py anomalies
+PYTHONPATH=src python scripts/ocr_workbench.py anomalies --page page_010 --last 20
+
+# 也可手工登记
 PYTHONPATH=src python -c "
 from gujiorc.core.anomaly import register_anomaly
 register_anomaly(page='page_003', image='star_chart.png',
                  layout_type='star_chart', det_box_count=206,
                  note='圆弧排布，识别乱序')
 "
-
-# 查看
-PYTHONPATH=src python scripts/ocr_workbench.py anomalies
-PYTHONPATH=src python scripts/ocr_workbench.py anomalies --page page_003 --last 20
 ```
 
-登记文件：`$OCR_ROOT/logs/anomalies.jsonl`（append-only）。
+登记文件：`$OCR_ROOT/logs/anomalies.jsonl`（append-only）。判定阈值在
+`src/gujiorc/core/anomaly.py` 顶部，Web 端 `GET /api/anomalies`。
 
 ### 8) 查看审计日志
 
