@@ -89,7 +89,7 @@ def content_chars(page: PageResult) -> str:
 
 # ── 缺陷 A：切过头导致错位 ──────────────────────────────────────────────
 
-@pytest.mark.parametrize("chars", ["一二三", "三口", "身宫主星", "四百八十一"])
+@pytest.mark.parametrize("chars", ["一二三", "三口", "身宫主星", "四百八十一", "四八二", "八二", "二"])
 def test_segment_count_matches_text_length(chars):
     """横笔画字不得被切成多个字框：有内容的字框数必须等于行文本字数。"""
     page, _ = segment_one_line(chars)
@@ -100,7 +100,7 @@ def test_segment_count_matches_text_length(chars):
     )
 
 
-@pytest.mark.parametrize("chars", ["一二三", "三口", "身宫主星", "四百八十一"])
+@pytest.mark.parametrize("chars", ["一二三", "三口", "身宫主星", "四百八十一", "四八二", "八二", "二"])
 def test_chars_align_with_text_in_reading_order(chars):
     """字框内容必须与行文本逐字对齐，不得后移、重复或顶掉前字。"""
     page, _ = segment_one_line(chars)
@@ -109,7 +109,7 @@ def test_chars_align_with_text_in_reading_order(chars):
     )
 
 
-@pytest.mark.parametrize("chars", ["一二三", "三口", "身宫主星", "四百八十一"])
+@pytest.mark.parametrize("chars", ["一二三", "三口", "身宫主星", "四百八十一", "四八二", "八二", "二"])
 def test_char_box_geometrically_matches_its_own_glyph(chars):
     """框↔字几何对应：第 i 个字的框必须落在第 i 个字实际占据的 y 区间内。
 
@@ -191,4 +191,53 @@ def test_no_char_lost_across_mixed_lines():
     assert len(filled) == len(expected), (
         f"全页期望 {len(expected)} 字，实得 {len(filled)} 字（净丢失 "
         f"{len(expected) - len(filled)} 字）"
+    )
+
+
+# ── 缺陷 C：细横笔画被并进上一个字（page_006 页码「四八二」）─────────────
+
+def build_bars(bars: list[tuple[int, int]], width: int = 44, pad: int = 10):
+    """按给定的 (y起, 高) 列表画横条，返回 (灰度图, 覆盖全部条的 line box)。
+
+    不用字体渲染而是直接画条：真实缺陷依赖「二」两横一个 3px 一个 4px 的不对称
+    （`_merge_thin_segments` 的 4.0 绝对下限使 3px 被并、4px 不被并，于是段数刚好
+    等于字数，对齐层无从察觉），字体渲染出的笔画高度不可控，复现不出来。
+    """
+    top = bars[0][0] - pad
+    bot = bars[-1][0] + bars[-1][1] + pad
+    img = np.full((bot + pad, width + 2 * pad), 255, dtype=np.uint8)
+    for y, h in bars:
+        img[y:y + h, pad:pad + width] = 30
+    box = {"x": float(pad - 2), "y": float(top), "w": float(width + 4), "h": float(bot - top)}
+    return img, box
+
+
+def test_thin_stroke_not_merged_into_previous_char():
+    """细横笔画不得被并进上一个字：page_006 页码「四八二」的真实几何。
+
+    投影正确切出 4 段（四16px / 八15px / 二上横3px / 二下横4px），但
+    `_merge_thin_segments` 把 3px 的「二上横」无条件并进**上一段**（八），
+    于是「八」的框涨到 h=32 吞掉二的上横，「二」只剩下横 h=4，看上去像「一」。
+    段数被并成 3 恰好等于字数，对齐层察觉不到，必须在切分层修。
+    """
+    #            四            八            二上          二下
+    bars = [(1251, 16), (1280, 15), (1309, 3), (1320, 4)]
+    gray, box = build_bars(bars)
+    line = LineBox(id="page_006l0075", box=box, text="四八二", conf=0.9, extra={"band": 0})
+    page = PageResult(page="page_006", image="synthetic.png",
+                      width=int(gray.shape[1]), height=int(gray.shape[0]), lines=[line])
+    segment_page_chars(Image.fromarray(gray), page)
+    got = sorted(page.chars, key=lambda c: c.box["y"])
+    assert len(got) == 3, f"应得 3 个字框，实得 {len(got)}"
+    # 每个字的实际墨迹范围：二 = 上下两横合起来
+    ink = {"四": (1251, 1267), "八": (1280, 1295), "二": (1309, 1324)}
+    for c in got:
+        i0, i1 = ink[c.char]
+        b0, b1 = c.box["y"], c.box["y"] + c.box["h"]
+        assert i0 - 3 <= b0 and b1 <= i1 + 3, (
+            f"{c.char!r} 的框 y=[{b0:.0f},{b1:.0f}] 超出该字墨迹范围 [{i0},{i1}]"
+            f" —— 吞掉了相邻字的笔画"
+        )
+    assert got[2].box["h"] >= 10, (
+        f"「二」的框高只有 {got[2].box['h']:.0f}px，只框到了一横（另一横被上一个字吞了）"
     )
