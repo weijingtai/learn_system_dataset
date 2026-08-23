@@ -160,3 +160,45 @@ OCR_ROOT=data_work PYTHONPATH=src python experiments/curve_segment.py \
 
 目前 page_010 已被 `assess_layout()` 判为 `irregular_layout` 并登记到
 `logs/anomalies.jsonl`，垃圾识别不会静默进入语料。这是当前的止损位。
+
+---
+
+## 7. 在 Web UI 里并排比对（复现步骤）
+
+```bash
+cd ocr
+EXPROOT=/tmp/curve_root && mkdir -p "$EXPROOT"
+
+# 跑实验并把择优结果写成独立的一份页数据（不碰生产数据）
+OCR_ROOT=data_work PYTHONPATH=src .venv/bin/python experiments/curve_segment.py \
+  data_work/sanche_pages/page_010.png --page page_010 \
+  --out /tmp/p010_curve.png --table /tmp/p010_curve.csv --write-page "$EXPROOT"
+
+# 起两个实例：8000=生产结果，8001=实验结果
+OCR_ROOT=data_work PYTHONPATH=src .venv/bin/python local/app.py &
+OCR_ROOT="$EXPROOT" OCR_WEB_PORT=8001 PYTHONPATH=src .venv/bin/python local/app.py &
+
+# 浏览器并排开两个标签
+open "http://127.0.0.1:8000/?page=page_010"   # 生产
+open "http://127.0.0.1:8001/?page=page_010"   # 实验
+```
+
+实验那份页数据严守数据铁律：`orig_char` 保留**生产管线的识别**永不覆盖，`char` 放
+择优结果，改动写进 `mapping`（含旋转角与来源假设），`extra.curve_exp` 记下
+0°/择优的字与置信度、环号、极角。所以 Web UI 的框标注直接显示
+`实验结果 ≈ 原识别`（如 `荆州≈建`、`永興軍路≈房`、`三河≈四`），逐字可查可回退。
+
+两边的对照读数：
+
+| | 生产（8000） | 实验（8001） |
+|---|---|---|
+| 字框 / 有字 | 359 / 356 | 356 / 355 |
+| 均置信度 | 0.678 | **0.874** |
+| 生僻字标记 | 148 | **51** |
+| 改动标记 (`corrected`) | 0 | **231** |
+
+⚠ **这张表是本报告最需要警惕的地方**：置信度涨了、生僻字标记少了，两个数字都朝
+「更好」的方向动，但 §4 已证明这是幻觉造成的假象——模型把认不出的字换成了它认得的
+常用字和地名，所以「生僻」自然变少、置信自然变高。**不要用这两个指标判优劣。**
+打开 8001 的竖排译文面板通读一遍就很清楚：读出来是一串貌似合理的宋代地名，
+而不是这一页真正的内容。

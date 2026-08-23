@@ -150,6 +150,67 @@ def batch_recognize(rec, crops: list[np.ndarray], batch: int = 64) -> list[tuple
     return out
 
 
+def write_page_for_web(page: str, out_root: str, image: str, shape, boxes, rows, zero_label: str):
+    """把择优结果写成 Web UI 能读的页 JSON，落到独立的 OCR_ROOT（不碰生产数据）。
+
+    严守数据铁律：`orig_char` 保留**生产管线的原始识别**永不覆盖，`char` 放实验的
+    择优结果，改动写进 `mapping`（含旋转角与来源假设），可逐字回退比对。
+    被改动的字标 `status=corrected`，认不出的标 `unrecognized`。
+    """
+    import os
+    from datetime import datetime, timezone
+    prev_root = os.environ.get("OCR_ROOT")
+    os.environ["OCR_ROOT"] = out_root
+    try:
+        # 延迟 import：paths 模块在 import 时读 OCR_ROOT
+        import importlib
+        from gujiorc.core import paths as _paths
+        importlib.reload(_paths)
+        from gujiorc.core.models import (
+            CharBox, PageResult, STATUS_CORRECTED, STATUS_PENDING, STATUS_UNRECOGNIZED,
+        )
+        from gujiorc.core.storage import save_page_json
+        from gujiorc.rare.detector import build_common_set, detect_rare_chars
+
+        bx = {b["id"]: b for b in boxes}
+        ts = datetime.now(timezone.utc).isoformat(timespec="seconds")
+        chars = []
+        for r in rows:
+            b = bx[r["id"]]
+            changed = r["best_char"] != r["orig_char"]
+            chars.append(CharBox(
+                id=r["id"], box=dict(b["box"]),
+                char=r["best_char"],
+                orig_char=r["orig_char"],        # 生产管线的识别，永不覆盖
+                conf=r["best_conf"],
+                status=(STATUS_UNRECOGNIZED if not r["best_char"]
+                        else STATUS_CORRECTED if changed else STATUS_PENDING),
+                mapping=({"target": r["best_char"], "from": r["orig_char"],
+                          "source": f"curve_exp:{r['best_label']}", "ts": ts}
+                         if changed else None),
+                angle=0.0,
+                extra={"curve_exp": {
+                    "best_label": r["best_label"], "best_conf": round(r["best_conf"], 3),
+                    "zero_char": r["zero_char"], "zero_conf": round(r["zero_conf"], 3),
+                    "orig_conf": round(r["orig_conf"], 3),
+                    "ring": r["ring"], "theta": round(r["theta"], 1),
+                }},
+            ))
+        pr = PageResult(page=page, image=str(image), width=int(shape[1]), height=int(shape[0]),
+                        chars=chars, lines=[],
+                        extra={"source": "curve_segment experiment", "zero_label": zero_label})
+        detect_rare_chars(pr, build_common_set())
+        save_page_json(pr)
+        print(f"\n实验结果页已写入 {out_root}/data/{page}.json（Web UI 可读）")
+        print(f"  起第二个 Web 实例对比：")
+        print(f"  OCR_ROOT={out_root} OCR_WEB_PORT=8001 PYTHONPATH=src .venv/bin/python local/app.py")
+    finally:
+        if prev_root is None:
+            os.environ.pop("OCR_ROOT", None)
+        else:
+            os.environ["OCR_ROOT"] = prev_root
+
+
 # ── 主流程 ──────────────────────────────────────────────────────────────
 
 def load_boxes(page: str) -> list[dict]:
@@ -170,6 +231,8 @@ def main() -> int:
     ap.add_argument("--table", default="", help="对比表 CSV 输出路径（可选）")
     ap.add_argument("--limit", type=int, default=0, help="只处理前 N 个字（调试用）")
     ap.add_argument("--no-bleed", action="store_true", help="不做背面透印抹除")
+    ap.add_argument("--write-page", default="",
+                    help="把择优结果写成页 JSON 到指定 OCR_ROOT（独立目录，供 Web UI 对比）")
     args = ap.parse_args()
 
     img_path = Path(args.image)
@@ -354,6 +417,10 @@ def main() -> int:
             w = csv.DictWriter(f, fieldnames=list(rows[0].keys()))
             w.writeheader(); w.writerows(rows)
         print(f"\n完整对比表已写入 {args.table}")
+
+    if args.write_page:
+        write_page_for_web(args.page, args.write_page, args.image, rgb.shape, boxes, rows,
+                           variants[0][0])
 
     # 标注图：绿=择优与原识别一致，橙=内容变了，红=择优也认不出
     from PIL import ImageDraw, ImageFont

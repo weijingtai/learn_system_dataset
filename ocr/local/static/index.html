@@ -186,7 +186,11 @@ createApp({
     async init() {
       const { pages } = await this.api('/api/pages');
       this.pages = pages;
-      if (pages.length) { this.curPage = pages[0]; await this.loadPage(); }
+      if (!pages.length) return;
+      // 支持 ?page=page_010 直接定位（并排比对两套数据时省去手动选页）
+      const want = new URLSearchParams(location.search).get('page');
+      this.curPage = pages.includes(want) ? want : pages[0];
+      await this.loadPage();
     },
     prevPage() {
       const idx = this.pages.indexOf(this.curPage);

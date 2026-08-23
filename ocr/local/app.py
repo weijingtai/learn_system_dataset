@@ -166,5 +166,7 @@ def create_app(ocr_root: str | None = None) -> FastAPI:
 if __name__ == "__main__":
     import uvicorn
     root = os.environ.get("OCR_ROOT")
+    # 端口可配：并排比对两套数据（如生产结果 vs 实验结果）需要同时起两个实例
+    port = int(os.environ.get("OCR_WEB_PORT", "8000"))
     app = create_app(root)
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+    uvicorn.run(app, host="127.0.0.1", port=port)
