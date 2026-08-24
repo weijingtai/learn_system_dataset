@@ -322,13 +322,20 @@ page_001「三辰通載」列的框↔字错位，问「这个功能你看一下
 
 | 文件 | 改动 |
 |---|---|
-| `src/gujiorc/core/edit.py` | **新增**。merge/split/delete/update/create/reflow/undo-redo + diagnose_page，全纯函数 |
-| `local/app.py` | 新增 10 个 `edit/*` 端点。改动前压撤销栈、改完即存、返回整页 chars |
-| `local/static/index.html` | 349 → 709 行。橡皮筋多选、合并/拆分/删除/改字、⌘Z、诊断面板 |
+| `src/gujiorc/core/edit.py` | **新增**。merge/split/delete/update/create/reflow/undo-redo + diagnose_page，全纯函数；后拆出 `snapshot_chars`/`push_snapshot`（见 9.4.1） |
+| `local/app.py` | 新增 10 个 `edit/*` 端点。改动前抓快照、**操作成功后**才落撤销栈、改完即存、返回整页 chars |
+| `local/static/index.html` | 349 → 709 行。橡皮筋多选、合并/拆分/删除/改字、⌘Z、诊断面板（含按 kind 汇总的「修法」一句话提示 `adviceOf`） |
 | `src/gujiorc/core/models.py` | `set_char` 的 corrected 判定改 `startswith("manual")`；**`from_dict` 的 orig_char 兜底改判「键是否存在」（见 9.5）** |
 | `src/gujiorc/core/audit.py` | `ACTIONS` 增补 7 个编辑动作 |
 
 撤销栈落盘 `logs/edit_history/{page}.json`，刷新页面/重启服务后仍可 Cmd+Z。
+
+### 9.4.1 途中修掉的撤销栈瑕疵（已修）
+
+原实现「先 push_history 再执行操作」，被闸门拒绝的请求（reflow 框数≠字数）也会在撤销栈
+留一格相同状态——用户按一次 Cmd+Z 毫无反应。修法：`edit.py` 拆出 `snapshot_chars`（改动前抓）
+与 `push_snapshot`（成功后才落栈），HTTP 六端点改为成功才落栈；`push_history` 保留为组合（兼容）。
+`test_rejected_request_leaves_no_undo_entry` 钉死。HTTP 验收 19/19（含三次撤销=原状字段级）。
 
 ### 9.5 途中挖出的数据铁律漏洞（已修，值得记住）
 
@@ -344,9 +351,10 @@ page_001「三辰通載」列的框↔字错位，问「这个功能你看一下
 
 | 指标 | 结果 |
 |---|---|
-| `pytest tests/ -q` | **152 passed**（原 86 + edit 48 + web_edit 18）|
+| `pytest tests/ -q` | **153 passed**（原 86 + edit 48 + web_edit 19）|
 | CDP 黑盒交互（真实鼠标/键盘） | **14 / 14** |
 | 界面端到端三步修复 | **11 / 11**，该列 三/辰/通/載 各归其位 |
+| HTTP 层手工验收清单等价流程 | **19 / 19**（三步修复 + 撤销/重做往返 + 闸门 + 诊断复查，隔离副本）|
 | 拆出框的 `orig_char` | `""`（如实为空，UI 上显示「原始识别: □」）|
 | page_001 诊断行数 | 4 → **3**（修好的那行不再报警）|
 
@@ -355,6 +363,5 @@ page_001「三辰通載」列的框↔字错位，问「这个功能你看一下
 ### 9.7 遗留
 
 - CDP 黑盒脚本未入库，建议落到 `tests/test_web_ui_cdp.py` 并在无 Chrome 时 skip
-- 诊断面板缺按 kind 汇总的「修法」一句话提示（长行会摊出 20+ 个 flag 标签）
 - 三步修复仍需逐列手工；是否做「半自动候选建议」待定
 - 三个阈值（1.6/0.25/0.6）只在这 10 页标定过
