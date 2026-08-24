@@ -19,15 +19,36 @@
   .box.lowconf { border-color: #ffcc00; background: rgba(255,204,0,.08); }
   .box.fix { border-color: #34c759; }
   .box.selected { outline: 3px solid #ff9500; outline-offset: 1px; z-index: 2; }
+  /* 紫色 = 被诊断判定为疑似错位的框 */
+  .box.flagged { border-color: #af52de; box-shadow: 0 0 0 2px rgba(175,82,222,.35); }
   .box span { position: absolute; top: 0; left: 0; transform: translateY(-100%); font-size: 11px; line-height: 1.2; color: #fff; background: rgba(0,113,227,.85); padding: 1px 3px; border-radius: 2px; white-space: nowrap; }
   .box.rare span { background: rgba(255,59,48,.85); }
   .box.lowconf span { background: rgba(255,204,0,.92); color: #333; }
-  .side { width: 360px; background: #fff; border-left: 1px solid #e5e5ea; display: flex; flex-direction: column; }
+  /* 橡皮筋：select 模式拖拽选框 / create 模式拉新框的过程指示 */
+  .rubber { position: absolute; border: 1.5px dashed #ff9500; background: rgba(255,149,0,.08); z-index: 9; pointer-events: none; }
+  /* 切线：split 模式的红色切线，白色描边保证在深色底图上可见 */
+  .cutline { position: absolute; background: #ff3b30; box-shadow: 0 0 0 1px rgba(255,255,255,.85); z-index: 8; pointer-events: none; }
+  #stage.mode-create { cursor: crosshair; }
+  /* split 模式下所有事件必须落到 stage 上，框不能抢事件 */
+  #stage.mode-split { cursor: row-resize; }
+  #stage.mode-split .box { pointer-events: none; }
+  .side { width: 380px; background: #fff; border-left: 1px solid #e5e5ea; display: flex; flex-direction: column; }
   .side .panel { padding: 12px 16px; border-bottom: 1px solid #f0f0f2; }
   .side h3 { margin: 0 0 8px; font-size: 14px; }
   .side h4 { margin: 8px 0 4px; font-size: 12px; color: #666; }
   .v-line { margin: 0 6px; color: #ccc; }
   .mono { font-family: ui-monospace, Menlo, monospace; }
+  /* 颜色图例：新加的紫色/橙色不解释没人看得懂 */
+  .legend { font-size: 11px; color: #666; display: inline-flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .legend i { display: inline-block; width: 10px; height: 10px; border: 2px solid #0071e3; border-radius: 2px; margin-right: 3px; vertical-align: -1px; }
+  .saved-at { font-size: 12px; color: #34c759; }
+  /* 诊断面板的行条目 */
+  .issue { padding: 4px 6px; border-radius: 4px; cursor: pointer; font-size: 13px; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; line-height: 1.6; }
+  .issue:hover { background: #f5f5f7; }
+  .issue.active { background: #efe9ff; }
+  .issue-text { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  /* 逐框表格里 shifted 的行标红——它装的不是自己位置上的字 */
+  .row-shifted { color: #c00; font-weight: 600; }
   /* 竖排面板：列高由内容决定（一列可有 30+ 字），不能锁 height:100% 再 hidden
      ——那样超出面板高度的字会被裁掉且无法滚到。交给父级 .panel 的 overflow:auto 滚动。 */
   .vpage { display: flex; flex-direction: row-reverse; gap: 8px; align-items: flex-start; min-height: 100%; overflow-x: auto; padding: 4px; background: #faf8f5; border-radius: 4px; }
@@ -60,43 +81,105 @@
       <template #append><el-button @click="doSearch">检索</el-button></template>
     </el-input>
     <span style="font-size:12px;color:#999">检索「{{ lastSearch }}」全书 {{ searchHits }} 处</span>
+    <span class="legend">
+      <span><i style="border-color:#0071e3"></i>正常</span>
+      <span><i style="border-color:#ffcc00"></i>低置信</span>
+      <span><i style="border-color:#ff3b30"></i>生僻</span>
+      <span><i style="border-color:#34c759"></i>已改正</span>
+      <span><i style="border-color:#af52de"></i>疑似错位</span>
+      <span><i style="border-color:#ff9500"></i>选中</span>
+    </span>
   </div>
 
   <!-- 编辑栏 -->
   <div class="toolbar" style="border-top:0">
-    <b style="font-size:13px">编辑:</b>
+    <el-radio-group :model-value="mode" size="small" @change="setMode">
+      <el-radio-button label="select">选择</el-radio-button>
+      <el-radio-button label="create">补标(N)</el-radio-button>
+      <el-radio-button label="split">拆分(S)</el-radio-button>
+    </el-radio-group>
+    <span class="v-line">|</span>
+    <el-button size="small" @click="doUndo" :disabled="!hist.undo">撤销({{ hist.undo }})</el-button>
+    <el-button size="small" @click="doRedo" :disabled="!hist.redo">重做({{ hist.redo }})</el-button>
+    <span class="v-line">|</span>
+    <el-button size="small" type="warning" plain @click="doMerge" :disabled="selIds.length<2">合并(M)</el-button>
+    <el-button size="small" type="warning" plain @click="doSplitN(2)" :disabled="selIds.length!==1">等分2份</el-button>
+    <el-button size="small" type="danger" plain @click="doDelete" :disabled="!selIds.length">删除(Del)</el-button>
+    <el-button size="small" type="success" plain @click="doReflow" :disabled="!selIds.length">按行重灌(R)</el-button>
+    <span class="v-line">|</span>
+    <el-input v-model="fixTo" placeholder="改字/多框按序灌字" size="small" style="width:150px"
+              @keyup.enter="doApplyChar">
+      <template #append><el-button @click="doApplyChar" :disabled="!selIds.length">应用</el-button></template>
+    </el-input>
+    <span class="v-line">|</span>
     <el-button size="small" type="primary" @click="nudgeAngle(-1)" :disabled="!selected">◄ 左旋</el-button>
     <el-button size="small" type="primary" @click="nudgeAngle(1)" :disabled="!selected">右旋 ►</el-button>
-    <el-slider v-model="angle" :min="-45" :max="45" :step="1" style="width:160px" :disabled="!selected"
+    <el-slider v-model="angle" :min="-45" :max="45" :step="1" style="width:120px" :disabled="!selected"
                @change="onAngleChange" />
     <span class="mono" style="font-size:12px;color:#666">{{ angle }}°</span>
-    <span class="v-line">|</span>
-    <el-input v-model="fixTo" placeholder="改为(空=重新识别)" size="small" style="width:120px"
-              @keyup.enter="doFix" @keyup.delete="doFix">
-      <template #append><el-button @click="doFix" :disabled="!selected">改字</el-button></template>
-    </el-input>
-    <el-switch v-model="drawMode" active-text="框选补标" @change="toggleDraw" />
+    <div style="flex:1"></div>
+    <span v-if="savedAt" class="saved-at">✓ 已保存 {{ savedAt }}</span>
     <span style="font-size:12px;color:#999">选中: {{ selInfo }}</span>
   </div>
 
   <div class="main">
     <!-- 画布 -->
-    <div class="canvas-wrap" id="canvasWrap" @click="onCanvasClick">
-      <div id="stage" ref="stage">
-        <img id="bg" ref="bgimg" :src="bgSrc" @load="onImgLoad"/>
+    <div class="canvas-wrap" id="canvasWrap">
+      <div id="stage" ref="stage" :class="'mode-'+mode"
+           @mousedown="onStageDown" @contextmenu.prevent>
+        <img id="bg" ref="bgimg" :src="bgSrc" draggable="false" @load="onImgLoad" @dragstart.prevent/>
         <div v-for="c in chars" :key="c.id"
              :data-id="c.id"
-             :class="['box', c.is_rare ? (c.rare_reason=='low_conf'?'lowconf':'rare') : '', c.id==selId?'selected':'', c.status=='corrected'?'fix':'']"
+             :class="['box', c.is_rare ? (c.rare_reason=='low_conf'?'lowconf':'rare') : '', selIds.includes(c.id)?'selected':'', c.status=='corrected'?'fix':'', flaggedSet.has(c.id)?'flagged':'']"
              :style="{left: S(c.box.x), top: S(c.box.y), width: S(c.box.w), height: S(c.box.h)}"
-             @click="selectChar(c, $event)"
+             @mousedown.stop="selectChar(c, $event)"
              @dblclick="lookup(c)">
           <span>{{ boxLabel(c) }}</span>
         </div>
+        <div v-if="drag && drag.moved" class="rubber" :style="rubberStyle"></div>
+        <div v-if="cutLineStyle" class="cutline" :style="cutLineStyle"></div>
       </div>
     </div>
 
     <!-- 侧栏 -->
     <div class="side">
+      <div class="panel">
+        <h3>疑似错位行 ({{ misaligned.length }})</h3>
+        <div v-if="!misaligned.length" style="color:#aaa;font-size:12px">未发现疑似错位行</div>
+        <div v-for="it in misaligned" :key="it.line_id"
+             class="issue" :class="{active: curIssue && curIssue.line_id===it.line_id}"
+             @click="openIssue(it)">
+          <span class="issue-text mono">{{ it.text }}</span>
+          <el-tag v-for="(f,i) in issueBadges(it)" :key="i" size="small"
+                  :type="f.kind==='over'?'danger':(f.kind==='drift'?'warning':'info')"
+                  effect="plain">{{ f.label }}</el-tag>
+        </div>
+        <template v-if="curIssue">
+          <h4>第 {{ curIssue.boxes.length }} 框 / {{ curIssue.text.length }} 字 · 字位 {{ curIssue.pitch }}px</h4>
+          <div style="font-size:12px;color:#666;line-height:1.7;margin-bottom:6px">{{ adviceOf(curIssue) }}</div>
+          <el-table :data="curIssue.boxes" size="small" max-height="240"
+                    :row-class-name="r => r.row.shifted ? 'row-shifted' : ''">
+            <el-table-column label="现字" width="46">
+              <template #default="{row}">{{ row.char || '□' }}</template>
+            </el-table-column>
+            <el-table-column label="应为" width="46">
+              <template #default="{row}">{{ row.expect_char || '□' }}</template>
+            </el-table-column>
+            <el-table-column label="落/序" width="62">
+              <template #default="{row}">{{ row.slot }}/{{ row.index }}</template>
+            </el-table-column>
+            <el-table-column label="偏移" width="64">
+              <template #default="{row}">{{ row.drift > 0 ? '+' : '' }}{{ row.drift }}</template>
+            </el-table-column>
+            <el-table-column label="跨" width="44">
+              <template #default="{row}">{{ row.spans }}</template>
+            </el-table-column>
+            <el-table-column label="id">
+              <template #default="{row}"><span class="mono" style="font-size:11px">{{ row.id.slice(-4) }}</span></template>
+            </el-table-column>
+          </el-table>
+        </template>
+      </div>
       <div class="panel">
         <h3>旋转预览</h3>
         <div style="text-align:center"><img :src="rotSrc" v-if="selected" style="max-width:220px;border:1px solid #ddd;background:#000"/>
@@ -109,7 +192,7 @@
             <span v-for="c in col.chars"
                   :key="c.id"
                   class="vchar"
-                  :class="{ active: c.id === selId, rare: c.is_rare }"
+                  :class="{ active: selIds.includes(c.id), rare: c.is_rare }"
                   @click="selectCharById(c.id)">
               {{ c.char || '□' }}
             </span>
@@ -132,8 +215,10 @@
           <div><b>来源:</b> {{ selected.source }}</div>
           <div><b>状态:</b> {{ selected.status }}</div>
           <div v-if="selected.mapping"><b>映射:</b> {{ selected.mapping.from || '' }} → {{ selected.mapping.target || '' }} ({{ selected.mapping.source || '' }})</div>
+          <div v-if="selIds.length > 1" style="color:#ff9500"><b>多选:</b> 已选 {{ selIds.length }} 个框</div>
         </div>
-        <div v-else style="color:#aaa;font-size:12px">点击画布上的框查看详情</div>
+        <div v-else-if="selIds.length > 1" style="font-size:13px;color:#ff9500">已选 {{ selIds.length }} 个框，可合并/重灌/删除</div>
+        <div v-else style="color:#aaa;font-size:12px">点击画布上的框查看详情；拖拽可框选多个</div>
       </div>
       <div class="panel" style="flex:1;overflow:auto">
         <h3>生僻字 ({{ rareList.length }})</h3>
@@ -162,10 +247,17 @@ createApp({
   data() {
     return {
       pages: [], curPage: '', chars: [], rareList: [], columns: [],
-      selId: null, selInfo: '无',
+      // 多选状态：selIds 是唯一真源；primaryId 供右侧旋转/裁切预览用（单框才有意义）
+      selIds: [], primaryId: null, anchorIdx: null,
+      // 撤销栈深度（服务端落盘），保存时间指示
+      hist: { undo: 0, redo: 0 }, savedAt: '',
       rotateList: {}, angle: 0, rotSrc: '', cropSrc: '',
       fixTo: '', searchChar: '', lastSearch: '', searchHits: 0,
-      drawMode: false, drawStart: null, rawScale: 1,
+      // 三态互斥模式 + 过程状态
+      mode: 'select',       // select | create | split
+      drag: null,           // 拖拽过程 {x0,y0,x1,y1,append,moved}（源坐标）
+      cutAt: null,          // split 模式下的切线位置（源坐标）
+      misaligned: [], curIssue: null,
       scale: 1,
       stats: '',
       stageW: 0, stageH: 0, srcW: 0, srcH: 0,
@@ -174,14 +266,86 @@ createApp({
   computed: {
     bgSrc() { return this.curPage ? `/api/image/${this.curPage}` : ''; },
     selected() {
-      return this.chars.find(c => c.id === this.selId) || null;
+      return this.chars.find(c => c.id === this.primaryId) || null;
+    },
+    selInfo() {
+      if (!this.selIds.length) return '无';
+      if (this.selIds.length === 1) {
+        const c = this.chars.find(x => x.id === this.selIds[0]);
+        return c ? `${c.id} ${c.orig_char||'-'}→${c.char||'-'}` : '';
+      }
+      return `已选 ${this.selIds.length} 个`;
+    },
+    // 所有诊断报警涉及的框 id 集合，画布上画紫色
+    flaggedSet() {
+      const s = new Set();
+      for (const it of this.misaligned) for (const f of it.flags) s.add(f.id);
+      return s;
+    },
+    rubberStyle() {
+      if (!this.drag || !this.drag.moved) return {};
+      const d = this.drag;
+      return {
+        left: this.S(Math.min(d.x0, d.x1)), top: this.S(Math.min(d.y0, d.y1)),
+        width: this.S(Math.abs(d.x1-d.x0)), height: this.S(Math.abs(d.y1-d.y0)),
+      };
+    },
+    // split 模式的红色切线：竖排框画横线、横排框画竖线
+    cutLineStyle() {
+      const b = this.selected && this.selected.box;
+      if (!b || this.cutAt == null) return null;
+      if (b.h >= b.w) return { left: this.S(b.x), top: (this.cutAt*this.scale-1)+'px', width: this.S(b.w), height: '2px' };
+      return { left: (this.cutAt*this.scale-1)+'px', top: this.S(b.y), width: '2px', height: this.S(b.h) };
     },
   },
   methods: {
     async api(url, opts) {
       const r = await fetch(url, opts);
-      if (!r.ok) { const t = await r.text(); throw new Error(t.slice(0,120)); }
+      if (!r.ok) {
+        const t = await r.text();
+        let msg = t;
+        try { msg = JSON.parse(t).detail || t; } catch {}
+        // 放宽到 400：reflow 的闸门消息自带下一步该怎么做，截断了用户就无从下手
+        throw new Error(String(msg).slice(0, 400));
+      }
       return r.json();
+    },
+    async post(op, body) {
+      return this.api(`/api/page/${this.curPage}/edit/${op}`, {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify(body || {}),
+      });
+    },
+    // 编辑请求统一出口：成功 → 整页替换；失败 → 错误消息原文弹出
+    async postEdit(op, body) {
+      try {
+        const resp = await this.post(op, body);
+        await this.applyChars(resp);
+        return resp;
+      } catch (e) { this.fail(e); return null; }
+    },
+    fail(e) {
+      this.$message.error({ message: e.message || String(e), duration: 6000, showClose: true });
+    },
+    warn(msg) { this.$message.warning({ message: msg, duration: 4000, showClose: true }); },
+    // 整页 chars 替换收口：所有编辑端点都返回整页，前端不必算增量
+    async applyChars(resp) {
+      if (resp.chars) this.chars = resp.chars;
+      if (resp.history) this.hist = resp.history;
+      this.savedAt = new Date().toTimeString().slice(0, 8);
+      const alive = new Set(this.chars.map(c => c.id));
+      this.selIds = this.selIds.filter(id => alive.has(id));
+      if (this.primaryId && !alive.has(this.primaryId)) {
+        this.primaryId = this.selIds[this.selIds.length-1] || null;
+      }
+      if (this.primaryId) this.afterSelect();
+      this.rebuild();
+      await this.loadMisaligned();
+    },
+    rebuild() {
+      this.stats = `共 ${this.chars.length} 字 · 生僻 ${this.chars.filter(c=>c.is_rare).length} · 疑似错位 ${this.misaligned.length} 行`;
+      this.rareList = this.chars.filter(c => c.is_rare);
+      this.buildColumns();
     },
     async init() {
       const { pages } = await this.api('/api/pages');
@@ -205,11 +369,20 @@ createApp({
       const data = await this.api(`/api/page/${this.curPage}`);
       this.chars = data.chars || [];
       this.srcW = data.width; this.srcH = data.height;
-      this.selId = null; this.selInfo = '无'; this.rotSrc = ''; this.cropSrc = '';
-      this.stats = `共 ${this.chars.length} 字 · 生僻 ${this.chars.filter(c=>c.is_rare).length}`;
-      this.rareList = this.chars.filter(c => c.is_rare);
-      this.buildColumns();
+      this.selIds = []; this.primaryId = null; this.anchorIdx = null;
+      this.rotSrc = ''; this.cropSrc = ''; this.cutAt = null;
+      this.mode = 'select'; this.curIssue = null; this.savedAt = '';
+      this.hist = await this.api(`/api/page/${this.curPage}/edit/history`).catch(() => ({undo:0, redo:0}));
+      await this.loadMisaligned();
+      this.rebuild();
       this.$nextTick(() => { if (this.$refs.bgimg) this.onImgLoad(); });
+    },
+    async loadMisaligned() {
+      try {
+        const r = await this.api(`/api/page/${this.curPage}/misaligned`);
+        this.misaligned = r.items || [];
+      } catch { this.misaligned = []; }
+      this.stats = `共 ${this.chars.length} 字 · 生僻 ${this.chars.filter(c=>c.is_rare).length} · 疑似错位 ${this.misaligned.length} 行`;
     },
     onImgLoad() {
       const img = this.$refs.bgimg;
@@ -225,76 +398,259 @@ createApp({
       const v = Number(px) || 0;
       return Math.round(v * this.scale) + 'px';
     },
+    // 显示像素 → 源坐标。所有鼠标坐标入库前必须过这里，
+    // 否则 scale != 1 时补标/拆分位置全错（旧版 segment-new 的既有 bug）。
+    toSrc(px) { return px / this.scale; },
+    pt(ev) {
+      const rect = this.$refs.stage.getBoundingClientRect();
+      return { x: this.toSrc(ev.clientX - rect.left), y: this.toSrc(ev.clientY - rect.top) };
+    },
     boxLabel(c) {
       let l = c.char || '□';
       if (c.mapping && c.mapping.from && c.mapping.from !== c.char) l += `≈${c.mapping.from}`;
       return l;
     },
-    selectChar(c, ev) {
-      if (ev) ev.stopPropagation();
-      this.selId = c.id; this.selInfo = `${c.id} ${c.orig_char||'-'}→${c.char||'-'}`;
-      this.angle = this.rotateList[c.id] || 0;
+
+    // ── 选择 ──────────────────────────────────────────────────────
+    afterSelect() {
+      this.angle = this.rotateList[this.primaryId] || 0;
       this.showRotate();
+    },
+    selectChar(c, ev) {
+      if (this.mode !== 'select') return;
+      const i = this.chars.findIndex(x => x.id === c.id);
+      if (ev.metaKey || ev.ctrlKey) {
+        // Cmd/Ctrl = 切换该框
+        const k = this.selIds.indexOf(c.id);
+        if (k >= 0) this.selIds.splice(k, 1); else this.selIds.push(c.id);
+      } else if (ev.shiftKey && this.anchorIdx != null) {
+        // Shift = 从锚点到当前的范围选（页内数组顺序即阅读序）
+        const j = i;
+        const lo = Math.min(this.anchorIdx, j), hi = Math.max(this.anchorIdx, j);
+        this.selIds = this.chars.slice(lo, hi + 1).map(x => x.id);
+      } else {
+        this.selIds = [c.id];
+      }
+      this.primaryId = c.id; this.anchorIdx = i; this.curIssue = null;
+      this.afterSelect();
     },
     selectCharById(id) {
-      this.selId = id;
-      const c = (this.chars || []).find(x => x.id === id);
-      if (!c) return;
-      this.selInfo = `${c.id} ${c.orig_char||'-'}→${c.char||'-'}`;
-      this.angle = this.rotateList[id] || 0;
-      this.showRotate();
+      this.selIds = [id]; this.primaryId = id; this.curIssue = null;
+      this.anchorIdx = this.chars.findIndex(x => x.id === id);
+      this.afterSelect();
     },
+
+    // ── stage 拖拽（mousedown 在 stage 上开始，move/up 常驻 window）──
+    onStageDown(ev) {
+      if (ev.button !== 0) return;
+      ev.preventDefault();   // 阻止浏览器原生图片拖动/文本选择
+      const p = this.pt(ev);
+      if (this.mode === 'split') { this.updateCut(p); return; }
+      this.drag = { x0:p.x, y0:p.y, x1:p.x, y1:p.y,
+                    append: ev.metaKey||ev.ctrlKey||ev.shiftKey, moved:false };
+    },
+    onStageMove(ev) {
+      if (this.mode === 'split') { this.updateCut(this.pt(ev)); return; }
+      if (!this.drag) return;
+      const p = this.pt(ev);
+      // 位移阈值用显示坐标 3px，换算回源坐标比较
+      if (Math.abs(p.x-this.drag.x0)*this.scale > 3 || Math.abs(p.y-this.drag.y0)*this.scale > 3) this.drag.moved = true;
+      this.drag.x1 = p.x; this.drag.y1 = p.y;
+    },
+    onStageUp(ev) {
+      if (this.mode === 'split') { this.commitCut(); return; }
+      const d = this.drag;
+      if (!d) return;
+      this.drag = null;
+      if (this.mode === 'create') {
+        // create：拖一次即建框，太小的不算
+        const x = Math.min(d.x0,d.x1), y = Math.min(d.y0,d.y1);
+        const w = Math.abs(d.x1-d.x0), h = Math.abs(d.y1-d.y0);
+        if (w > 4 && h > 4) this.createAt({x,y,w,h});
+        else this.mode = 'select';
+        return;
+      }
+      // select：橡皮筋相交选（相交而非包含：竖排框细长，包含很难框中）
+      if (!d.moved) {
+        // 点空白：无修饰键则清空选择
+        if (!d.append) { this.selIds = []; this.primaryId = null; this.curIssue = null; }
+        return;
+      }
+      const rx = Math.min(d.x0,d.x1), ry = Math.min(d.y0,d.y1);
+      const rw = Math.abs(d.x1-d.x0), rh = Math.abs(d.y1-d.y0);
+      const hit = this.chars
+        .filter(c => c.box.x < rx+rw && c.box.x+c.box.w > rx && c.box.y < ry+rh && c.box.y+c.box.h > ry)
+        .map(c => c.id);
+      if (d.append) hit.forEach(id => { if (!this.selIds.includes(id)) this.selIds.push(id); });
+      else this.selIds = hit;
+      if (hit.length) { this.primaryId = hit[hit.length-1]; this.afterSelect(); }
+    },
+    updateCut(p) {
+      const b = this.selected && this.selected.box;
+      if (!b) return;
+      const vertical = b.h >= b.w;
+      const v = vertical ? p.y : p.x;
+      const lo = vertical ? b.y : b.x;
+      const hi = lo + (vertical ? b.h : b.w);
+      this.cutAt = (v > lo && v < hi) ? v : null;
+    },
+    async commitCut() {
+      if (this.cutAt == null || !this.primaryId) return;
+      const at = Math.round(this.cutAt * 10) / 10;
+      const r = await this.postEdit('split', { id: this.primaryId, at: [at] });
+      if (r) { this.cutAt = null; this.mode = 'select'; }
+    },
+
+    // ── 编辑动作 ──────────────────────────────────────────────────
+    async doMerge() {
+      if (this.selIds.length < 2) return this.warn('合并至少需要选中 2 个框（拖拽或 Cmd 点选）');
+      const r = await this.postEdit('merge', { ids: [...this.selIds] });
+      if (r) { this.selIds = [r.id]; this.primaryId = r.id; this.afterSelect(); }
+    },
+    async doSplitN(n) {
+      if (this.selIds.length !== 1) return this.warn('等分拆分前请先恰好选中一个框');
+      const r = await this.postEdit('split', { id: this.selIds[0], n });
+      if (r) { this.selIds = r.ids; this.primaryId = r.ids[0]; this.afterSelect(); }
+    },
+    async doDelete() {
+      if (!this.selIds.length) return;
+      const n = this.selIds.length;
+      const r = await this.postEdit('delete', { ids: [...this.selIds] });
+      if (r) this.$message.success(`已删除 ${n} 个框（可撤销）`);
+    },
+    async doReflow() {
+      if (!this.selIds.length) return this.warn('先选中要重灌的框');
+      // 不传 text：后端取这批框所属行的识别文本（那是对的，错的只是几何）
+      await this.postEdit('reflow', { ids: [...this.selIds] });
+    },
+    async doApplyChar() {
+      const txt = (this.fixTo || '').trim();
+      if (!txt) return;
+      const n = this.selIds.length;
+      // 按码点数：古籍常见扩展 B 区汉字占两个 UTF-16 code unit
+      const cnt = [...txt].length;
+      if (n === 1) {
+        if (await this.postEdit('update', { id: this.selIds[0], char: txt })) {
+          this.fixTo = ''; this.$message.success(`已改正 → ${txt}`);
+        }
+      } else if (cnt === n) {
+        // N 个框 + 恰好 N 个字 → 按阅读序重灌
+        if (await this.postEdit('reflow', { ids: [...this.selIds], text: txt })) this.fixTo = '';
+      } else {
+        this.warn(`选了 ${n} 个框，却给了 ${cnt} 个字`);
+      }
+    },
+    async createAt(box) {
+      const r = await this.postEdit('create', {
+        box: { x: Math.round(box.x), y: Math.round(box.y), w: Math.round(box.w), h: Math.round(box.h) },
+      });
+      if (r) {
+        this.$message.success(`已补标 ${r.id}`);
+        this.mode = 'select';
+        this.selIds = [r.id]; this.primaryId = r.id; this.afterSelect();
+      }
+    },
+    async doUndo() {
+      try { await this.applyChars(await this.post('undo')); }
+      catch (e) { this.fail(e); }
+    },
+    async doRedo() {
+      try { await this.applyChars(await this.post('redo')); }
+      catch (e) { this.fail(e); }
+    },
+
+    // ── 模式切换 ──────────────────────────────────────────────────
+    setMode(m) {
+      if (m === this.mode) m = 'select';
+      if (m === 'split') {
+        if (this.selIds.length !== 1) return this.warn('拆分前请先恰好选中一个框（点选或框选）');
+        this.cutAt = null;
+      }
+      this.mode = m;
+    },
+
+    // ── 键盘 ──────────────────────────────────────────────────────
+    onKey(ev) {
+      const t = ev.target;
+      const tag = (t.tagName || '').toUpperCase();
+      // 焦点在输入控件里时快捷键一律让路，否则打字会误触编辑
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || t.isContentEditable) return;
+      const k = (ev.key || '').toLowerCase();
+      const mod = ev.metaKey || ev.ctrlKey;
+      if (mod && k === 'z') {
+        ev.preventDefault();   // 不然浏览器自带的输入撤销会插手
+        if (ev.shiftKey) this.doRedo(); else this.doUndo();
+      } else if (k === 'm') this.doMerge();
+      else if (k === 's') this.setMode('split');
+      else if (k === 'n') this.setMode('create');
+      else if (k === 'r') this.doReflow();
+      else if (k === 'delete' || k === 'backspace') { ev.preventDefault(); this.doDelete(); }
+      else if (k === 'escape') {
+        this.mode = 'select'; this.cutAt = null;
+        this.selIds = []; this.primaryId = null; this.curIssue = null;
+      }
+    },
+
+    // ── 诊断面板 ──────────────────────────────────────────────────
+    openIssue(it) {
+      this.curIssue = it;
+      this.selIds = it.boxes.map(b => b.id);
+      const firstShifted = it.boxes.find(b => b.shifted);
+      this.primaryId = (firstShifted || it.boxes[0] || {}).id || null;
+      this.locateXY(it.box.x, it.box.y);
+    },
+    // 每个 (kind,id) 只出一个徽标，避免同框三信号刷屏
+    issueBadges(it) {
+      const seen = new Set(), out = [];
+      for (const f of it.flags) {
+        if (seen.has(f.kind + f.id)) continue;
+        seen.add(f.kind + f.id);
+        out.push({ kind: f.kind, id: f.id,
+                   label: f.kind === 'over' ? '跨' : (f.kind === 'thin' ? '细' : '移') });
+      }
+      return out;
+    },
+    // 把 flags 翻成人话：该并的并、该拆的拆，最后重灌
+    adviceOf(it) {
+      const order = {};
+      it.boxes.forEach((b, i) => { order[b.id] = i + 1; });
+      const seg = [];
+      for (const f of it.flags) {
+        const no = order[f.id];
+        if (no == null || seg.some(s => s.startsWith(`第 ${no} 框`))) continue;
+        if (f.kind === 'over') seg.push(`第 ${no} 框跨多个字位 → 「拆分」`);
+        else if (f.kind === 'thin') seg.push(`第 ${no} 框偏小（疑似单笔画）→ 与相邻框「合并」`);
+        else if (f.kind === 'drift') seg.push(`第 ${no} 框移位 → 修好几何后「重灌」`);
+      }
+      seg.push(`几何修到恰好 ${it.text.length} 个框后全选本行点「重灌」`);
+      return seg.join('；') + '。';
+    },
+
+    // ── 定位 ──────────────────────────────────────────────────────
+    locateXY(x, y) {
+      const wrap = document.getElementById('canvasWrap');
+      wrap.scrollLeft = Math.round(x * this.scale) - 150;
+      wrap.scrollTop = Math.round(y * this.scale) - 150;
+    },
+    locateRow(row) {
+      const c = this.chars.find(x => x.id === row.id);
+      if (c) { this.selectCharById(c.id); this.locateXY(c.box.x, c.box.y); }
+    },
+
+    // ── 保留功能 ──────────────────────────────────────────────────
     onAngleChange() {
-      if (this.selected) { this.rotateList[this.selId] = this.angle; this.showRotate(); }
+      if (this.selected) { this.rotateList[this.primaryId] = this.angle; this.showRotate(); }
     },
     nudgeAngle(dir) {
       if (!this.selected) return;
       this.angle += dir;
-      this.rotateList[this.selId] = this.angle;
+      this.rotateList[this.primaryId] = this.angle;
       this.showRotate();
     },
     showRotate() {
-      if (!this.selected) return;
-      this.rotSrc = `/api/page/${this.curPage}/char/${this.selId}/rotate?angle=${this.angle}`;
-      this.cropSrc = `/api/page/${this.curPage}/char/${this.selId}/rotate?angle=0`;
-    },
-    async doFix() {
-      if (!this.selected) { alert('先点选一个框'); return; }
-      const c = this.selected;
-      const newChar = (this.fixTo || '').trim();
-      if (!newChar) { alert('输入改正后的字，或按删除键重识别'); return; }
-      const r = await this.api(`/api/page/${this.curPage}/fix`, {
-        method: 'POST', headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({char_id:c.id, new_char:newChar}),
-      });
-      c.char = newChar;
-      c.mapping = {from:c.orig_char||c.char, target:newChar, source:'manual'};
-      c.status = 'corrected';
-      this.fixTo = '';
-      this.$message.success(`已改正 → ${newChar}（原始 ${c.orig_char} 保留）`);
-    },
-    toggleDraw() {
-      if (!this.drawMode) { this.drawStart = null; }
-    },
-    async onCanvasClick(ev) {
-      if (this.drawMode) {
-        const rect = this.$refs.stage.getBoundingClientRect();
-        const x = ev.clientX - rect.left, y = ev.clientY - rect.top;
-        if (!this.drawStart) { this.drawStart = {x, y}; return; }
-        const {x:sx, y:sy} = this.drawStart;
-        const w = Math.abs(x-sx), h = Math.abs(y-sy);
-        this.drawStart = null; this.drawMode = false;
-        if (w>4 && h>4) {
-          const r = await this.api(`/api/page/${this.curPage}/segment-new`, {
-            method:'POST', headers:{'Content-Type':'application/json'},
-            body: JSON.stringify({box:{x:Math.min(sx,x), y:Math.min(sy,y), w, h}}),
-          });
-          this.$message.success(`已补标 ${r.id}`);
-          await this.loadPage();
-        }
-      } else {
-        this.selId = null; this.selInfo='无'; this.rotSrc='';
-      }
+      if (!this.selected) { this.rotSrc = ''; this.cropSrc = ''; return; }
+      this.rotSrc = `/api/page/${this.curPage}/char/${this.primaryId}/rotate?angle=${this.angle}`;
+      this.cropSrc = `/api/page/${this.curPage}/char/${this.primaryId}/rotate?angle=0`;
     },
     async lookup(c) {
       if (c.char) {
@@ -316,14 +672,6 @@ createApp({
         });
       });
     },
-    locateRow(row) {
-      const c = this.chars.find(x => x.id === row.id);
-      if (c) {
-        this.selId = c.id;
-        document.getElementById('canvasWrap').scrollLeft = Math.round(c.box.x * this.scale) - 150;
-        document.getElementById('canvasWrap').scrollTop = Math.round(c.box.y * this.scale) - 150;
-      }
-    },
     buildColumns() {
       const list = (this.chars || []).slice().sort((a, b) => (a.box.x || 0) - (b.box.x || 0));
       const cols = [];
@@ -343,7 +691,18 @@ createApp({
       this.columns = cols;
     },
   },
-  mounted() { this.init(); },
+  mounted() {
+    document.addEventListener('keydown', this.onKey);
+    // move/up 常驻 window：鼠标移出画布也不丢事件
+    window.addEventListener('mousemove', this.onStageMove);
+    window.addEventListener('mouseup', this.onStageUp);
+    this.init();
+  },
+  beforeUnmount() {
+    document.removeEventListener('keydown', this.onKey);
+    window.removeEventListener('mousemove', this.onStageMove);
+    window.removeEventListener('mouseup', this.onStageUp);
+  },
 }).use(ElementPlus).mount('#app');
 </script>
 </body>

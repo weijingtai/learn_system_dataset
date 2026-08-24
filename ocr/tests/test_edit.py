@@ -481,3 +481,45 @@ def test_diagnose_ignores_single_char_lines():
     pr.lines[0].text = "三"
     pr.chars = pr.chars[:1]
     assert edit.diagnose_page(pr) == []
+
+
+# ---------------- 未识别框的诚实性（存盘往返不得伪造原始识别）----------------
+
+def test_empty_orig_char_survives_roundtrip_not_backfilled_from_char():
+    """拆出来的框如实标「未识别」，人工填字后**不得**把人工填的字冒充成 OCR 原始识别。
+
+    `CharBox.from_dict` 有一条向后兼容兜底（旧数据无 orig_char → 用 char 顶上）。
+    它必须只对「字段缺失」生效，不能对「字段存在但故意为空」生效——否则
+    split 出的空框一旦被 reflow/改字填上，存盘再读就变成「OCR 原本就认得这个字」，
+    审计链上再也分不清哪个字是机器认的、哪个是人填的。
+    """
+    from gujiorc.core.models import CharBox
+    c = CharBox(id="page_001c0035", box={"x": 0, "y": 0, "w": 10, "h": 10})
+    c.set_char("通", mapping_source="manual:reflow")
+    assert c.orig_char == ""                       # 内存里就该是空
+    back = CharBox.from_dict(c.to_dict())
+    assert back.orig_char == "", "存盘往返把人工填的字冒充成了原始识别"
+    assert back.char == "通"
+    assert back.mapping["from"] == ""              # 原本什么都没认出来
+
+
+def test_legacy_dict_without_orig_char_still_backfills():
+    """向后兼容不能丢：真正的旧数据（根本没有 orig_char 这个键）仍要用 char 兜底。"""
+    from gujiorc.core.models import CharBox
+    legacy = {"id": "page_001c0000", "box": {"x": 0, "y": 0, "w": 10, "h": 10}, "char": "三"}
+    assert CharBox.from_dict(legacy).orig_char == "三"
+
+
+def test_split_then_reflow_keeps_orig_char_empty_through_storage(tmp_path):
+    """整条链路（拆分 → 重灌 → 存盘 → 读回）都不得伪造 orig_char。"""
+    from gujiorc.core.storage import load_page_json, save_page_json
+    pr = sanche_page()
+    parts = edit.split_box(pr, "page_001c0003", n=2)
+    assert [p.orig_char for p in parts] == ["", ""]
+    edit.merge_boxes(pr, ["page_001c0000", "page_001c0001"])
+    edit.reflow(pr, [c.id for c in pr.chars])
+    save_page_json(pr)
+    got = {c.id: c for c in load_page_json("page_001").chars}
+    for p in parts:
+        assert got[p.id].char in ("通", "載")
+        assert got[p.id].orig_char == "", f"{p.id} 的原始识别被人工填的字覆盖了"

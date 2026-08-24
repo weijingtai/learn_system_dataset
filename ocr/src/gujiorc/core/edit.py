@@ -341,18 +341,33 @@ def _save_hist(page: str, hist: dict[str, list]):
     tmp.replace(p)
 
 
+def snapshot_chars(pr: PageResult) -> list[dict]:
+    """当前 chars 的完整快照。改动**之前**抓，操作成功后才交给 `push_snapshot` 落栈。"""
+    return [c.to_dict() for c in pr.chars]
+
+
+def push_snapshot(page: str, snap: list[dict]) -> None:
+    """把改动前的快照压入撤销栈，并作废 redo 分支。
+
+    抓快照与落栈分两步，是为了让 HTTP 层能「操作成功才落栈」：
+    被闸门拒绝的请求（如 reflow 框数≠字数）没有发生任何改动，
+    不该在撤销栈里留一格相同状态——那会让用户按一次 Cmd+Z 毫无反应。
+    """
+    hist = _load_hist(page)
+    hist["undo"].append(snap)
+    if len(hist["undo"]) > HISTORY_LIMIT:
+        hist["undo"] = hist["undo"][-HISTORY_LIMIT:]
+    hist["redo"] = []
+    _save_hist(page, hist)
+
+
 def push_history(pr: PageResult):
     """在改动**之前**调用，把当前 chars 压入撤销栈，并作废 redo 分支。
 
     作废 redo 是必须的：撤销后又做了别的编辑，原来的重做目标已经不在这条
     历史线上了，重放会得到一个从未存在过的状态。
     """
-    hist = _load_hist(pr.page)
-    hist["undo"].append([c.to_dict() for c in pr.chars])
-    if len(hist["undo"]) > HISTORY_LIMIT:
-        hist["undo"] = hist["undo"][-HISTORY_LIMIT:]
-    hist["redo"] = []
-    _save_hist(pr.page, hist)
+    push_snapshot(pr.page, snapshot_chars(pr))
 
 
 def undo(pr: PageResult) -> PageResult:

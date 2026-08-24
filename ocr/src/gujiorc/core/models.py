@@ -108,8 +108,12 @@ class CharBox:
     def from_dict(cls, d: dict) -> "CharBox":
         d = dict(d)
         d["box"] = parse_box(d["box"])
-        # 向后兼容：旧数据无 orig_char → 用 char 兜底
-        if not d.get("orig_char") and d.get("char"):
+        # 向后兼容：旧数据**根本没有** orig_char 这个键 → 用 char 兜底。
+        # 必须判「键缺失」而非「值为空」：`to_dict()` 走 asdict，新数据一定带这个键，
+        # 所以空字符串是**故意**的——那是 split 拆出来、OCR 确实什么都没认出来的框
+        # （见 core/edit.py）。若对空值也兜底，这类框一旦被人工填字，存盘再读就变成
+        # 「OCR 原本就认得这个字」，审计链上再也分不清机器认的和人填的。
+        if "orig_char" not in d and d.get("char"):
             d["orig_char"] = d["char"]
         return cls(**d)
 
