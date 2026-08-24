@@ -12,7 +12,9 @@ from pathlib import Path
 from .paths import get_root, ensure_struct
 
 ACTIONS = {"fix", "segment_new", "rotate", "verify",
-           "group_create", "group_add", "group_define", "group_remove", "export"}
+           "group_create", "group_add", "group_define", "group_remove", "export",
+           # Web UI 人工校对编辑（core/edit.py）
+           "merge", "split", "delete", "update", "reflow", "undo", "redo"}
 
 
 def log_event(action: str, *, actor: str, page: str = "",

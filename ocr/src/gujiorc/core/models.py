@@ -82,7 +82,9 @@ class CharBox:
             "source": mapping_source,
             "ts": _now_iso(),
         }
-        if mapping_source == "manual":
+        # 前缀匹配而非全等：人工编辑有多种细分来源（manual:merge / manual:reflow
+        # 等，见 core/edit.py），它们同样是人工改正，都该标 corrected。
+        if mapping_source.startswith("manual"):
             self.status = STATUS_CORRECTED
 
     def normalize_from_orig(self, mapping_source: str = "opencc_simp"):
