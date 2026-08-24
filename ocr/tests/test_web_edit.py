@@ -226,6 +226,19 @@ def test_reflow_does_not_touch_data_when_rejected(client):
     assert editable_snapshot(root) == before
 
 
+def test_rejected_request_leaves_no_undo_entry(client):
+    """被闸门拒绝的请求不得在撤销栈留「空一格」——
+    否则用户按一次 Cmd+Z 毫无反应，再按一次才真正回退，撤销像坏了。"""
+    c, _ = client
+    r = c.post(f"/api/page/{PAGE}/edit/reflow",
+               json={"ids": [f"{PAGE}c0000", f"{PAGE}c0001"], "text": "三辰通載"})
+    assert r.status_code == 400
+    assert c.get(f"/api/page/{PAGE}/edit/history").json() == {"undo": 0, "redo": 0}
+    # 合法操作照常压栈
+    c.post(f"/api/page/{PAGE}/edit/delete", json={"ids": [f"{PAGE}c0002"]})
+    assert c.get(f"/api/page/{PAGE}/edit/history").json()["undo"] == 1
+
+
 # ---------------- 第 5 点：整条修复链走 HTTP ----------------
 
 def test_three_step_repair_of_the_sanche_column(client):
