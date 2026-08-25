@@ -380,3 +380,88 @@ def test_ocr_crop_engine_down_returns_503_with_hint(client, monkeypatch):
     r = c.post(f"/api/page/{PAGE}/ocr-crop",
                json={"box": {"x": 0, "y": 0, "w": 50, "h": 50}})
     assert r.status_code == 503 and "paddleocr" in r.json()["detail"]
+
+
+# ── 标点不匹配诊断（punct_gap）────────────────────────────────────────
+# 构造：行文本含标点 "通載。"（3字），但只有2个框（句号被并入前一个框）
+# 诊断应报告 punct_gap 而非静默跳过
+
+PAGE_PUNCT = "page_punct"
+
+
+def build_punct_page() -> PageResult:
+    chars = [
+        CharBox(id=f"{PAGE_PUNCT}c0000", box={"x": 100, "y": 100, "w": 40, "h": 80},
+                char="通", orig_char="通", conf=1.0),
+        # 句号被并入「載」的框——框偏大（包含了句号的墨迹空间）
+        CharBox(id=f"{PAGE_PUNCT}c0001", box={"x": 100, "y": 185, "w": 40, "h": 80},
+                char="載", orig_char="載", conf=1.0),
+    ]
+    line = LineBox(id=f"{PAGE_PUNCT}L0",
+                   box={"x": 100, "y": 100, "w": 40, "h": 165},
+                   text="通載。", conf=1.0)
+    return PageResult(page=PAGE_PUNCT, image="p1.png", width=400, height=600,
+                      chars=chars, lines=[line])
+
+
+@pytest.fixture
+def punct_client(tmp_path, monkeypatch):
+    monkeypatch.setenv("OCR_ROOT", str(tmp_path))
+    monkeypatch.delenv("OCR_OUTPUT_DIR", raising=False)
+    monkeypatch.delenv("OCR_SOURCE_DIR", raising=False)
+    from gujiorc.core.storage import save_page_json
+    from gujiorc.rare.detector import build_common_set, detect_rare_chars
+    pr = build_punct_page()
+    detect_rare_chars(pr, build_common_set())
+    save_page_json(pr)
+    import app as web_app
+    return TestClient(web_app.create_app(str(tmp_path)))
+
+
+def test_punct_gap_detected_when_period_missing(punct_client):
+    c = punct_client
+    r = c.get(f"/api/page/{PAGE_PUNCT}/misaligned")
+    assert r.status_code == 200
+    items = r.json()["items"]
+    assert len(items) == 1
+    it = items[0]
+    assert it["text"] == "通載。"
+    # 应报告 punct_gap 信号
+    assert any(f["kind"] == "punct_gap" for f in it["flags"])
+    # 不应有 over/drift 信号（那是字错位，不是标点问题）
+    assert not any(f["kind"] in ("over", "drift") for f in it["flags"])
+
+
+def test_punct_gap_not_triggered_when_no_punctuation(client):
+    """不含标点的行即使框数≠字数也不应报 punct_gap。"""
+    c, _ = client
+    # build_page() 的行 "三辰通載" 不含标点，4字4框，不应有 punct_gap
+    r = c.get(f"/api/page/{PAGE}/misaligned")
+    assert r.status_code == 200
+    for it in r.json()["items"]:
+        assert not any(f["kind"] == "punct_gap" for f in it["flags"])
+
+
+def test_punct_gap_not_triggered_when_boxes_match(punct_client):
+    """含标点但框数 == 字数时不应报 punct_gap。"""
+    c = punct_client
+    from gujiorc.core.storage import save_page_json
+    from gujiorc.rare.detector import build_common_set, detect_rare_chars
+    chars = [
+        CharBox(id=f"{PAGE_PUNCT}c0000", box={"x": 100, "y": 100, "w": 40, "h": 40},
+                char="通", orig_char="通", conf=1.0),
+        CharBox(id=f"{PAGE_PUNCT}c0001", box={"x": 100, "y": 145, "w": 40, "h": 40},
+                char="載", orig_char="載", conf=1.0),
+        CharBox(id=f"{PAGE_PUNCT}c0002", box={"x": 100, "y": 190, "w": 40, "h": 15},
+                char="。", orig_char="。", conf=0.9),
+    ]
+    line = LineBox(id=f"{PAGE_PUNCT}L0",
+                   box={"x": 100, "y": 100, "w": 40, "h": 105},
+                   text="通載。", conf=1.0)
+    pr = PageResult(page=PAGE_PUNCT, image="p1.png", width=400, height=600,
+                    chars=chars, lines=[line])
+    detect_rare_chars(pr, build_common_set())
+    save_page_json(pr)
+    r = c.get(f"/api/page/{PAGE_PUNCT}/misaligned")
+    assert r.status_code == 200
+    assert r.json()["count"] == 0  # 无诊断问题

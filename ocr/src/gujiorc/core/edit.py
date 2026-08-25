@@ -24,8 +24,17 @@ merge/split 会删掉源框，所以它们把源框的**完整快照**写进新�
 from __future__ import annotations
 
 import json
+import re
 from datetime import datetime, timezone
 from typing import Any, Iterable, Optional
+
+# 常见中日韩标点（全角+半角），用于诊断中标点不匹配的判定
+_PUNCT_RE = re.compile(r'[。，、；：！？「」『』（）【】《》—…·\-,.:;!?\'\"()\[\]]')
+
+
+def _is_punctuation(c: str) -> bool:
+    """判断单个字符是否为标点符号。"""
+    return bool(_PUNCT_RE.match(c))
 
 from .models import (
     CharBox, PageResult, STATUS_CORRECTED, STATUS_PENDING, STATUS_UNRECOGNIZED,
@@ -429,6 +438,20 @@ def diagnose_page(pr: PageResult) -> list[dict[str, Any]]:
             and c.box["y"] + c.box["h"] <= lb["y"] + lb["h"] + 2
         ]
         if len(inside) != n:
+            # 标点不匹配：行文本含标点但框数与字数不等，可能是标点被并入相邻框
+            punct_count = sum(1 for c in text if _is_punctuation(c))
+            if punct_count > 0 and abs(len(inside) - n) <= punct_count:
+                issues.append({
+                    "line_id": line.id, "text": text, "box": dict(lb),
+                    "pitch": 0, "vertical": vertical,
+                    "flags": [{"kind": "punct_gap", "id": "",
+                               "note": f"行含 {punct_count} 个标点，框数 {len(inside)} ≠ 字数 {n}，"
+                                       f"标点可能被并入相邻框或缺失"}],
+                    "boxes": [{"id": c.id, "char": c.char, "orig_char": c.orig_char,
+                               "expect_char": "", "index": i + 1, "slot": 0,
+                               "shifted": False, "size": 0, "spans": 0, "drift": 0}
+                              for i, c in enumerate(inside)],
+                })
             continue
         ordered = reading_order(inside, vertical)
         pitch = float(lb[size]) / n

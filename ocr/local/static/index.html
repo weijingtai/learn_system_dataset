@@ -825,8 +825,8 @@ createApp({
       for (const f of it.flags) {
         if (seen.has(f.kind + f.id)) continue;
         seen.add(f.kind + f.id);
-        out.push({ kind: f.kind, id: f.id,
-                   label: f.kind === 'over' ? '跨' : (f.kind === 'thin' ? '细' : '移') });
+        const labels = { over: '跨', thin: '细', drift: '移', punct_gap: '标' };
+        out.push({ kind: f.kind, id: f.id, label: labels[f.kind] || f.kind });
       }
       return out;
     },
@@ -836,6 +836,10 @@ createApp({
       it.boxes.forEach((b, i) => { order[b.id] = i + 1; });
       const seg = [];
       for (const f of it.flags) {
+        if (f.kind === 'punct_gap') {
+          seg.push(`标点可能被并入相邻框或缺失 → 逐框检查标点位置`);
+          continue;
+        }
         const no = order[f.id];
         if (no == null || seg.some(s => s.startsWith(`第 ${no} 框`))) continue;
         if (f.kind === 'over') seg.push(`第 ${no} 框跨多个字位 → 「拆分」`);
