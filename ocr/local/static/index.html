@@ -26,6 +26,18 @@
   .box.lowconf span { background: rgba(255,204,0,.92); color: #333; }
   /* 橡皮筋：select 模式拖拽选框 / create 模式拉新框的过程指示 */
   .rubber { position: absolute; border: 1.5px dashed #ff9500; background: rgba(255,149,0,.08); z-index: 9; pointer-events: none; }
+  /* resize 过程的临时边界（松手才提交） */
+  .resizing { position: absolute; border: 2px dashed #ff9500; background: rgba(255,149,0,.06); z-index: 9; pointer-events: none; }
+  /* 微调手柄：四角四边，固定显示尺寸不随 scale 变化 */
+  .handle { position: absolute; width: 9px; height: 9px; background: #ff9500; border: 1.5px solid #fff; border-radius: 2px; z-index: 3; }
+  .h-nw { left:-5px; top:-5px; cursor:nwse-resize; }
+  .h-n  { left:calc(50% - 4.5px); top:-5px; cursor:ns-resize; }
+  .h-ne { right:-5px; top:-5px; cursor:nesw-resize; }
+  .h-e  { right:-5px; top:calc(50% - 4.5px); cursor:ew-resize; }
+  .h-se { right:-5px; bottom:-5px; cursor:nwse-resize; }
+  .h-s  { left:calc(50% - 4.5px); bottom:-5px; cursor:ns-resize; }
+  .h-sw { left:-5px; bottom:-5px; cursor:nesw-resize; }
+  .h-w  { left:-5px; top:calc(50% - 4.5px); cursor:ew-resize; }
   /* 切线：split 模式的红色切线，白色描边保证在深色底图上可见 */
   .cutline { position: absolute; background: #ff3b30; box-shadow: 0 0 0 1px rgba(255,255,255,.85); z-index: 8; pointer-events: none; }
   #stage.mode-create { cursor: crosshair; }
@@ -98,6 +110,7 @@
       <el-radio-button label="create">补标(N)</el-radio-button>
       <el-radio-button label="split">拆分(S)</el-radio-button>
     </el-radio-group>
+    <el-switch v-model="showBoxes" size="small" active-text="显示框" style="margin-left:4px" />
     <span class="v-line">|</span>
     <el-button size="small" @click="doUndo" :disabled="!hist.undo">撤销({{ hist.undo }})</el-button>
     <el-button size="small" @click="doRedo" :disabled="!hist.redo">重做({{ hist.redo }})</el-button>
@@ -114,6 +127,7 @@
           <el-dropdown-item v-for="k in [2,3,4,5,6]" :key="k" :command="k">
             等分 {{ k }} 份{{ splitHint(k) }}
           </el-dropdown-item>
+          <el-dropdown-item command="custom" divided>自定义份数…</el-dropdown-item>
         </el-dropdown-menu>
       </template>
     </el-dropdown>
@@ -142,15 +156,24 @@
            @mousedown="onStageDown" @contextmenu.prevent>
         <img id="bg" ref="bgimg" :src="bgSrc" draggable="false" @load="onImgLoad" @dragstart.prevent/>
         <div v-for="c in chars" :key="c.id"
+             v-show="showBoxes"
              :data-id="c.id"
              :class="['box', c.is_rare ? (c.rare_reason=='low_conf'?'lowconf':'rare') : '', selIds.includes(c.id)?'selected':'', c.status=='corrected'?'fix':'', flaggedSet.has(c.id)?'flagged':'']"
              :style="{left: S(c.box.x), top: S(c.box.y), width: S(c.box.w), height: S(c.box.h)}"
              @mousedown.stop="selectChar(c, $event)"
              @dblclick="lookup(c)">
           <span>{{ boxLabel(c) }}</span>
+          <!-- 微调手柄：仅单选且在选择模式下出现，四角四边拖拽改框 -->
+          <template v-if="showBoxes && mode==='select' && selIds.length===1 && c.id===primaryId">
+            <span v-for="hd in handles" :key="hd" :class="'handle h-'+hd"
+                  @mousedown.stop.prevent="startResize(c, hd, $event)"></span>
+          </template>
         </div>
-        <div v-if="drag && drag.moved" class="rubber" :style="rubberStyle"></div>
-        <div v-if="cutLineStyle" class="cutline" :style="cutLineStyle"></div>
+        <div v-if="showBoxes && drag && drag.moved" class="rubber" :style="rubberStyle"></div>
+        <div v-if="showBoxes && cutLineStyle" class="cutline" :style="cutLineStyle"></div>
+        <!-- resize 过程的临时边界：不直接改数据，松手才提交 update -->
+        <div v-if="resizeStyle" class="resizing"
+             :style="{left:S(resizeStyle.x), top:S(resizeStyle.y), width:S(resizeStyle.w), height:S(resizeStyle.h)}"></div>
       </div>
     </div>
 
@@ -270,6 +293,10 @@ createApp({
       mode: 'select',       // select | create | split
       drag: null,           // 拖拽过程 {x0,y0,x1,y1,append,moved}（源坐标）
       cutAt: null,          // split 模式下的切线位置（源坐标）
+      showBoxes: true,      // 一键显示/隐藏所有框（看干净底图用）
+      resize: null,         // 微调过程 {id, handle, orig, x0, y0}（源坐标）
+      rCurX: 0, rCurY: 0,   // 微调时的鼠标当前位置（源坐标，独立字段保证 computed 响应）
+      handles: ['nw','n','ne','e','se','s','sw','w'],
       misaligned: [], curIssue: null,
       scale: 1,
       stats: '',
@@ -309,6 +336,21 @@ createApp({
       if (!b || this.cutAt == null) return null;
       if (b.h >= b.w) return { left: this.S(b.x), top: (this.cutAt*this.scale-1)+'px', width: this.S(b.w), height: '2px' };
       return { left: (this.cutAt*this.scale-1)+'px', top: this.S(b.y), width: '2px', height: this.S(b.h) };
+    },
+    // 微调中的新框几何（源坐标）。钳制最小尺寸 ≈ 4 显示像素，防拖成负宽高。
+    resizeStyle() {
+      if (!this.resize) return null;
+      const o = this.resize.orig, hd = this.resize.handle;
+      const dx = this.rCurX - this.resize.x0, dy = this.rCurY - this.resize.y0;
+      let x = o.x, y = o.y, w = o.w, h = o.h;
+      if (hd.includes('e')) w = o.w + dx;
+      if (hd.includes('w')) { x = o.x + dx; w = o.w - dx; }
+      if (hd.includes('s')) h = o.h + dy;
+      if (hd.includes('n')) { y = o.y + dy; h = o.h - dy; }
+      const MIN = 4 / Math.max(this.scale, 0.01);
+      if (w < MIN) { if (hd.includes('w')) x = o.x + o.w - MIN; w = MIN; }
+      if (h < MIN) { if (hd.includes('n')) y = o.y + o.h - MIN; h = MIN; }
+      return { x, y, w, h };
     },
   },
   methods: {
@@ -385,6 +427,7 @@ createApp({
       this.selIds = []; this.primaryId = null; this.anchorIdx = null;
       this.rotSrc = ''; this.cropSrc = ''; this.cutAt = null;
       this.mode = 'select'; this.curIssue = null; this.savedAt = '';
+      this.resize = null; this.drag = null;
       this.hist = await this.api(`/api/page/${this.curPage}/edit/history`).catch(() => ({undo:0, redo:0}));
       await this.loadMisaligned();
       this.rebuild();
@@ -463,6 +506,11 @@ createApp({
                     append: ev.metaKey||ev.ctrlKey||ev.shiftKey, moved:false };
     },
     onStageMove(ev) {
+      if (this.resize) {
+        const p = this.pt(ev);
+        this.rCurX = p.x; this.rCurY = p.y;
+        return;
+      }
       if (this.mode === 'split') { this.updateCut(this.pt(ev)); return; }
       if (!this.drag) return;
       const p = this.pt(ev);
@@ -471,6 +519,7 @@ createApp({
       this.drag.x1 = p.x; this.drag.y1 = p.y;
     },
     onStageUp(ev) {
+      if (this.resize) { this.commitResize(); return; }
       if (this.mode === 'split') { this.commitCut(); return; }
       const d = this.drag;
       if (!d) return;
@@ -514,6 +563,26 @@ createApp({
       if (r) { this.cutAt = null; this.mode = 'select'; }
     },
 
+    // ── 框微调（resize 手柄）───────────────────────────────────────
+    startResize(c, hd, ev) {
+      ev.preventDefault();
+      const p = this.pt(ev);
+      this.resize = { id: c.id, handle: hd, orig: { ...c.box }, x0: p.x, y0: p.y };
+      this.rCurX = p.x; this.rCurY = p.y;
+    },
+    async commitResize() {
+      const nb = this.resizeStyle;
+      const id = this.resize && this.resize.id;
+      this.resize = null;
+      if (!nb || !id) return;
+      // 走既有 update 端点改几何；成功由 applyChars 整页刷新，失败弹原文
+      await this.postEdit('update', {
+        id,
+        box: { x: Math.round(nb.x*10)/10, y: Math.round(nb.y*10)/10,
+               w: Math.round(nb.w*10)/10, h: Math.round(nb.h*10)/10 },
+      });
+    },
+
     // ── 编辑动作 ──────────────────────────────────────────────────
     async doMerge() {
       if (this.selIds.length < 2) return this.warn('合并至少需要选中 2 个框（拖拽或 Cmd 点选）');
@@ -522,6 +591,17 @@ createApp({
     },
     async doSplitN(n) {
       if (this.selIds.length !== 1) return this.warn('等分拆分前请先恰好选中一个框');
+      if (n === 'custom') {
+        // 一个框里装了几个字就等分成几份；上限 50 防手滑把整列拆成面条
+        try {
+          const { value } = await this.$prompt('该框内装了几个字就等分成几份（2~50）',
+                                               '自定义等分份数',
+                                               { inputValue: '3', inputPattern: /^\s*\d+\s*$/,
+                                                 inputErrorMessage: '请输入整数' });
+          n = parseInt(value, 10);
+          if (!(n >= 2 && n <= 50)) return this.warn('份数须在 2~50 之间');
+        } catch { return; }   // 用户取消
+      }
       const r = await this.postEdit('split', { id: this.selIds[0], n });
       if (r) { this.selIds = r.ids; this.primaryId = r.ids[0]; this.afterSelect(); }
     },
@@ -612,7 +692,7 @@ createApp({
       else if (k === 'r') this.doReflow();
       else if (k === 'delete' || k === 'backspace') { ev.preventDefault(); this.doDelete(); }
       else if (k === 'escape') {
-        this.mode = 'select'; this.cutAt = null;
+        this.mode = 'select'; this.cutAt = null; this.resize = null;
         this.selIds = []; this.primaryId = null; this.curIssue = null;
       }
     },
