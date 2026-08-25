@@ -105,3 +105,47 @@ def ocr_to_text(image, gap_thresh=40, col_gap_thresh=30) -> str:
     res = raw[0]
     items, band_ids, _ = split_bands_by_ocr_boxes(res, gap_thresh)
     return sort_vertical_by_bands(items, band_ids, col_gap_thresh)
+
+
+def recognize_crop_text(image) -> dict:
+    """局部裁剪区域的识别（工作台补标/重识别用）。
+
+    与整页不同：裁剪块通常只有一两个竖排字列，不需要区块切分，
+    直接 det+rec 后按古籍阅读序拼接——列间从右到左、列内从上到下；
+    列归属按检测框中心 x 聚类（间距超过平均字高即视为换列）。
+    返回 {"text", "lines": [{text, score}], "score"}。
+    """
+    engine = PaddleOcrEngine()
+    raw = engine.recognize(image)
+    if not raw or not raw[0]:
+        return {"text": "", "lines": [], "score": 0.0}
+    res = raw[0]
+    entries = []
+    for txt, poly, sc in zip(res["rec_texts"], res["rec_polys"], res["rec_scores"]):
+        xs = [float(p[0]) for p in poly]
+        ys = [float(p[1]) for p in poly]
+        entries.append({
+            "text": txt, "score": float(sc),
+            "cx": float(np.mean(xs)), "cy": float(np.mean(ys)),
+            "h": max(ys) - min(ys),
+        })
+    if not entries:
+        return {"text": "", "lines": [], "score": 0.0}
+
+    avg_h = float(np.mean([e["h"] for e in entries])) or 1.0
+    entries.sort(key=lambda e: -e["cx"])          # 右边的列先读
+    cols: list[list[dict]] = [[entries[0]]]
+    for e in entries[1:]:
+        if abs(e["cx"] - cols[-1][-1]["cx"]) > avg_h:
+            cols.append([e])
+        else:
+            cols[-1].append(e)
+
+    ordered = []
+    for col in cols:
+        ordered.extend(sorted(col, key=lambda e: e["cy"]))
+    return {
+        "text": "".join(e["text"] for e in ordered),
+        "lines": [{"text": e["text"], "score": round(e["score"], 4)} for e in ordered],
+        "score": round(float(np.mean([e["score"] for e in ordered])), 4),
+    }

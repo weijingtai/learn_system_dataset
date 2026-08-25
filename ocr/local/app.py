@@ -49,6 +49,11 @@ def create_app(ocr_root: str | None = None) -> FastAPI:
     @app.get("/api/image/{page}")
     def get_image(page: str):
         from fastapi.responses import FileResponse
+        img_path = _image_path(page)
+        return FileResponse(str(img_path))
+
+    def _image_path(page: str) -> Path:
+        """解析页面底图的磁盘路径（get_image 与 ocr-crop 共用）。"""
         pr = load_page_json(page)
         if pr is None or not pr.image:
             raise HTTPException(404, "无底图")
@@ -58,7 +63,7 @@ def create_app(ocr_root: str | None = None) -> FastAPI:
             img_path = cand if cand.exists() else None
         if not img_path:
             raise HTTPException(404, f"底图不存在: {pr.image}")
-        return FileResponse(str(img_path))
+        return img_path
 
     @app.get("/api/dict/{char}")
     def get_dict(char: str):
@@ -329,6 +334,59 @@ def create_app(ocr_root: str | None = None) -> FastAPI:
         crop.save(tmp.name)
         log_event("rotate", actor="web", page=page, char_id=char_id, angle=angle)
         return FileResponse(tmp.name, media_type="image/png")
+
+    @app.post("/api/page/{page}/ocr-crop")
+    def ocr_crop(page: str, req: dict):
+        """局部重识别：对指定区域（包围盒或若干字框的并集包围盒）跑一次 OCR。
+
+        请求二选一：{x,y,w,h} 源图坐标；或 {ids:[char_id,...]} 取这些框的包围盒。
+        首次调用要加载 PaddleOCR 模型，可能耗时数十秒，前端需有 loading 提示。
+        """
+        from gujiorc.core.audit import log_event
+        from gujiorc.core.storage import load_page_json
+        import numpy as np
+        from PIL import Image
+
+        pr = load_page_json(page)
+        if pr is None:
+            raise HTTPException(404, f"页面 {page} 不存在")
+        ids = req.get("ids")
+        if ids:
+            sel = [c for c in pr.chars if c.id in set(ids)]
+            if not sel:
+                raise HTTPException(404, "所选字框均不存在")
+            x0 = min(c.box["x"] for c in sel)
+            y0 = min(c.box["y"] for c in sel)
+            x1 = max(c.box["x"] + c.box["w"] for c in sel)
+            y1 = max(c.box["y"] + c.box["h"] for c in sel)
+            box = {"x": x0, "y": y0, "w": x1 - x0, "h": y1 - y0}
+        else:
+            box = req.get("box")
+        if not box or not all(k in box for k in ("x", "y", "w", "h")):
+            raise HTTPException(400, "需要 box:{x,y,w,h} 或 ids:[...]")
+
+        img_path = _image_path(page)
+        img = Image.open(img_path).convert("RGB")
+        x0 = max(0, int(box["x"]))
+        y0 = max(0, int(box["y"]))
+        x1 = min(img.width, int(box["x"] + box["w"]))
+        y1 = min(img.height, int(box["y"] + box["h"]))
+        if x1 - x0 < 2 or y1 - y0 < 2:
+            raise HTTPException(400, "裁剪区域过小")
+        crop = np.asarray(img.crop((x0, y0, x1, y1)))
+
+        try:
+            from gujiorc.ocr.engine import recognize_crop_text
+            out = recognize_crop_text(crop)
+        except ImportError as e:
+            raise HTTPException(503, f"OCR 引擎未安装：{e}")
+        except Exception as e:
+            raise HTTPException(500, f"识别失败：{e}")
+
+        log_event("ocr_crop", actor="web", page=page,
+                  box={"x": x0, "y": y0, "w": x1 - x0, "h": y1 - y0},
+                  text=out["text"], score=out["score"])
+        return out
 
     return app
 

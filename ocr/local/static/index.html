@@ -29,15 +29,23 @@
   /* resize 过程的临时边界（松手才提交） */
   .resizing { position: absolute; border: 2px dashed #ff9500; background: rgba(255,149,0,.06); z-index: 9; pointer-events: none; }
   /* 微调手柄：四角四边，固定显示尺寸不随 scale 变化 */
-  .handle { position: absolute; width: 9px; height: 9px; background: #ff9500; border: 1.5px solid #fff; border-radius: 2px; z-index: 3; }
-  .h-nw { left:-5px; top:-5px; cursor:nwse-resize; }
-  .h-n  { left:calc(50% - 4.5px); top:-5px; cursor:ns-resize; }
-  .h-ne { right:-5px; top:-5px; cursor:nesw-resize; }
-  .h-e  { right:-5px; top:calc(50% - 4.5px); cursor:ew-resize; }
-  .h-se { right:-5px; bottom:-5px; cursor:nwse-resize; }
-  .h-s  { left:calc(50% - 4.5px); bottom:-5px; cursor:ns-resize; }
-  .h-sw { left:-5px; bottom:-5px; cursor:nesw-resize; }
-  .h-w  { left:-5px; top:calc(50% - 4.5px); cursor:ew-resize; }
+  /* 手柄视觉 9px，但命中区扩到 20px——古籍框边细长，9px 太难点中 */
+  .handle { position: absolute; width: 20px; height: 20px; background: transparent; z-index: 3; }
+  .handle::before { content: ''; position: absolute; inset: 5px; background: #ff9500;
+                    border: 1.5px solid #fff; border-radius: 2px; }
+  /* 放大镜：split 模式跟随鼠标的圆形放大视图，帮助对准笔画间隙下刀 */
+  .magnifier { position: absolute; width: 150px; height: 150px; border-radius: 50%;
+               border: 2px solid #ff3b30; box-shadow: 0 2px 14px rgba(0,0,0,.5), inset 0 0 0 1px rgba(255,255,255,.6);
+               background-repeat: no-repeat; background-color: #111;
+               z-index: 30; pointer-events: none; }
+  .h-nw { left:-10px; top:-10px; cursor:nwse-resize; }
+  .h-n  { left:calc(50% - 10px); top:-10px; cursor:ns-resize; }
+  .h-ne { right:-10px; top:-10px; cursor:nesw-resize; }
+  .h-e  { right:-10px; top:calc(50% - 10px); cursor:ew-resize; }
+  .h-se { right:-10px; bottom:-10px; cursor:nwse-resize; }
+  .h-s  { left:calc(50% - 10px); bottom:-10px; cursor:ns-resize; }
+  .h-sw { left:-10px; bottom:-10px; cursor:nesw-resize; }
+  .h-w  { left:-10px; top:calc(50% - 10px); cursor:ew-resize; }
   /* 切线：split 模式的红色切线，白色描边保证在深色底图上可见 */
   .cutline { position: absolute; background: #ff3b30; box-shadow: 0 0 0 1px rgba(255,255,255,.85); z-index: 8; pointer-events: none; }
   #stage.mode-create { cursor: crosshair; }
@@ -115,7 +123,8 @@
     <el-button size="small" @click="doUndo" :disabled="!hist.undo">撤销({{ hist.undo }})</el-button>
     <el-button size="small" @click="doRedo" :disabled="!hist.redo">重做({{ hist.redo }})</el-button>
     <span class="v-line">|</span>
-    <el-button size="small" type="warning" plain @click="doMerge" :disabled="selIds.length<2">合并(M)</el-button>
+    <el-button size="small" type="warning" title="先拖拽框选或 Cmd 点选 2 个以上相邻框，再点这里（快捷键 M）"
+               @click="doMerge" :disabled="selIds.length<2">合并(M)</el-button>
     <!-- 等分拆分：一个框里可能并进了两三个甚至五六个字，主按钮快捷等分2份，下拉选更多份数 -->
     <el-dropdown split-button type="warning" plain size="small"
                  :disabled="selIds.length!==1"
@@ -133,6 +142,8 @@
     </el-dropdown>
     <el-button size="small" type="danger" plain @click="doDelete" :disabled="!selIds.length">删除(Del)</el-button>
     <el-button size="small" type="success" plain @click="doReflow" :disabled="!selIds.length">按行重灌(R)</el-button>
+    <el-button size="small" type="primary" plain title="对选中框的区域重跑 OCR，识别结果确认后灌回"
+               @click="recognizeSel" :disabled="!selIds.length">重识别</el-button>
     <span class="v-line">|</span>
     <el-input v-model="fixTo" placeholder="改字/多框按序灌字" size="small" style="width:150px"
               @keyup.enter="doApplyChar">
@@ -153,7 +164,7 @@
     <!-- 画布 -->
     <div class="canvas-wrap" id="canvasWrap">
       <div id="stage" ref="stage" :class="'mode-'+mode"
-           @mousedown="onStageDown" @contextmenu.prevent>
+           @mousedown="onStageDown" @mousemove="trackMag" @mouseleave="mag=null" @contextmenu.prevent>
         <img id="bg" ref="bgimg" :src="bgSrc" draggable="false" @load="onImgLoad" @dragstart.prevent/>
         <div v-for="c in chars" :key="c.id"
              v-show="showBoxes"
@@ -161,6 +172,8 @@
              :class="['box', c.is_rare ? (c.rare_reason=='low_conf'?'lowconf':'rare') : '', selIds.includes(c.id)?'selected':'', c.status=='corrected'?'fix':'', flaggedSet.has(c.id)?'flagged':'']"
              :style="{left: S(c.box.x), top: S(c.box.y), width: S(c.box.w), height: S(c.box.h)}"
              @mousedown.stop="selectChar(c, $event)"
+             @mousemove.stop="hoverCursor(c, $event)"
+             @mouseleave="clearCursor($event)"
              @dblclick="lookup(c)">
           <span>{{ boxLabel(c) }}</span>
           <!-- 微调手柄：仅单选且在选择模式下出现，四角四边拖拽改框 -->
@@ -174,6 +187,8 @@
         <!-- resize 过程的临时边界：不直接改数据，松手才提交 update -->
         <div v-if="resizeStyle" class="resizing"
              :style="{left:S(resizeStyle.x), top:S(resizeStyle.y), width:S(resizeStyle.w), height:S(resizeStyle.h)}"></div>
+        <!-- 拆分模式的放大镜：跟随鼠标，3x 放大光标附近的笔画 -->
+        <div v-if="mode==='split' && mag" class="magnifier" :style="magStyle"></div>
       </div>
     </div>
 
@@ -297,6 +312,7 @@ createApp({
       resize: null,         // 微调过程 {id, handle, orig, x0, y0}（源坐标）
       rCurX: 0, rCurY: 0,   // 微调时的鼠标当前位置（源坐标，独立字段保证 computed 响应）
       handles: ['nw','n','ne','e','se','s','sw','w'],
+      mag: null,            // 放大镜 {vx, vy} 鼠标相对 stage 的显示坐标（仅 split 模式）
       misaligned: [], curIssue: null,
       scale: 1,
       stats: '',
@@ -351,6 +367,19 @@ createApp({
       if (w < MIN) { if (hd.includes('w')) x = o.x + o.w - MIN; w = MIN; }
       if (h < MIN) { if (hd.includes('n')) y = o.y + o.h - MIN; h = MIN; }
       return { x, y, w, h };
+    },
+    // 放大镜样式：3x 放大的底图铺在圆里，光标处对准圆心；悬在鼠标上方防挡视线
+    magStyle() {
+      if (!this.mag) return {};
+      const Z = 3, D = 150;
+      return {
+        left: (this.mag.vx - D / 2) + 'px',
+        top: (this.mag.vy - D - 20) + 'px',
+        width: D + 'px', height: D + 'px',
+        backgroundImage: `url(${this.bgSrc})`,
+        backgroundSize: `${this.srcW * this.scale * Z}px ${this.srcH * this.scale * Z}px`,
+        backgroundPosition: `${-(this.mag.vx * Z - D / 2)}px ${-(this.mag.vy * Z - D / 2)}px`,
+      };
     },
   },
   methods: {
@@ -474,6 +503,12 @@ createApp({
     },
     selectChar(c, ev) {
       if (this.mode !== 'select') return;
+      // 已单选的框：按住边缘/角落直接进入微调，不必精确点到小手柄上
+      if (this.selIds.length === 1 && this.selIds[0] === c.id
+          && !ev.metaKey && !ev.ctrlKey && !ev.shiftKey) {
+        const e = this.edgeHandleOf(c, ev);
+        if (e) return this.startResize(c, e, ev);
+      }
       const i = this.chars.findIndex(x => x.id === c.id);
       if (ev.metaKey || ev.ctrlKey) {
         // Cmd/Ctrl = 切换该框
@@ -497,6 +532,11 @@ createApp({
     },
 
     // ── stage 拖拽（mousedown 在 stage 上开始，move/up 常驻 window）──
+    trackMag(ev) {
+      if (this.mode !== 'split') return;
+      const rect = this.$refs.stage.getBoundingClientRect();
+      this.mag = { vx: ev.clientX - rect.left, vy: ev.clientY - rect.top };
+    },
     onStageDown(ev) {
       if (ev.button !== 0) return;
       ev.preventDefault();   // 阻止浏览器原生图片拖动/文本选择
@@ -564,6 +604,32 @@ createApp({
     },
 
     // ── 框微调（resize 手柄）───────────────────────────────────────
+    // 光标落在框边缘多宽算「边缘」：显示像素 8px，但小框按边长 1/4 封顶，
+    // 否则极小的框整个都被判成边缘，点都点不中
+    edgeHandleOf(c, ev) {
+      const r = ev.currentTarget.getBoundingClientRect();
+      const E = Math.min(8, r.width / 4, r.height / 4);
+      const x = ev.clientX - r.left, y = ev.clientY - r.top;
+      const L = x <= E, R = x >= r.width - E, T = y <= E, B = y >= r.height - E;
+      if (L && T) return 'nw';
+      if (R && T) return 'ne';
+      if (L && B) return 'sw';
+      if (R && B) return 'se';
+      if (L) return 'w';
+      if (R) return 'e';
+      if (T) return 'n';
+      if (B) return 's';
+      return null;
+    },
+    hoverCursor(c, ev) {
+      // 只对「当前可微调的框」（单选中者）做方位光标反馈，其余框保持 pointer
+      if (!(this.mode === 'select' && this.selIds.length === 1 && this.selIds[0] === c.id)) return;
+      const e = this.edgeHandleOf(c, ev);
+      ev.currentTarget.style.cursor = e ? `${e}-resize` : '';
+    },
+    clearCursor(ev) {
+      ev.currentTarget.style.cursor = '';
+    },
     startResize(c, hd, ev) {
       ev.preventDefault();
       const p = this.pt(ev);
@@ -654,7 +720,54 @@ createApp({
         this.$message.success(`已补标 ${r.id}`);
         this.mode = 'select';
         this.selIds = [r.id]; this.primaryId = r.id; this.afterSelect();
+        // 画完框顺手识别框内文字，省得对着字形手敲
+        await this.recognizeSel();
       }
+    },
+
+    // ── 局部重识别 ────────────────────────────────────────────────
+    // 对选中框的包围盒重跑 OCR → 弹窗预填结果供修改 → 确认后走既有灌字链路。
+    // 首次调用要等 PaddleOCR 模型加载（可能几十秒），给常驻 loading 提示。
+    async recognizeSel() {
+      if (!this.selIds.length) return;
+      const loading = this.$message({ message: '正在识别…（首次调用需加载模型，请稍候）',
+                                      type: 'info', duration: 0, showClose: true });
+      let r;
+      try {
+        r = await this.api(`/api/page/${this.curPage}/ocr-crop`, {
+          method: 'POST', headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ ids: [...this.selIds] }),
+        });
+      } catch (e) { loading.close(); return this.fail(e); }
+      loading.close();
+      let txt;
+      try {
+        ({ value: txt } = await this.$prompt(
+          `识别置信度 ${r.score}（可直接修改再确认）`, 'OCR 识别结果',
+          { inputValue: r.text || '', inputType: 'textarea',
+            inputPlaceholder: '识别为空可手动填写' }));
+      } catch { return; }   // 用户取消
+      await this.applyRecognized((txt || '').trim());
+    },
+    // 把确认后的识别文本灌进当前选择；多字单框时提供「自动等分+按序灌入」捷径
+    async applyRecognized(txt) {
+      if (!txt) return this.warn('识别结果为空且未填写');
+      const n = this.selIds.length, cnt = [...txt].length;
+      if (cnt === n) { this.fixTo = txt; return this.doApplyChar(); }
+      if (n === 1 && cnt > 1) {
+        try {
+          await this.$confirm(`识别出 ${cnt} 个字，但当前只有 1 个框。\n是否自动等分成 ${cnt} 份并按序灌入？`,
+                              '多字自动拆分',
+                              { confirmButtonText: '等分并灌字', cancelButtonText: '取消',
+                                type: 'info' });
+        } catch { return; }
+        const r = await this.postEdit('split', { id: this.selIds[0], n: cnt });
+        if (!r) return;
+        this.selIds = [...r.ids]; this.primaryId = r.ids[0]; this.afterSelect();
+        await this.postEdit('reflow', { ids: [...r.ids], text: txt });
+        return;
+      }
+      this.warn(`选了 ${n} 个框，识别出 ${cnt} 个字，数量不一致；请调整后再试`);
     },
     async doUndo() {
       try { await this.applyChars(await this.post('undo')); }
@@ -673,6 +786,7 @@ createApp({
         this.cutAt = null;
       }
       this.mode = m;
+      this.mag = null;
     },
 
     // ── 键盘 ──────────────────────────────────────────────────────
@@ -692,7 +806,7 @@ createApp({
       else if (k === 'r') this.doReflow();
       else if (k === 'delete' || k === 'backspace') { ev.preventDefault(); this.doDelete(); }
       else if (k === 'escape') {
-        this.mode = 'select'; this.cutAt = null; this.resize = null;
+        this.mode = 'select'; this.cutAt = null; this.resize = null; this.mag = null;
         this.selIds = []; this.primaryId = null; this.curIssue = null;
       }
     },

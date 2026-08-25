@@ -304,3 +304,79 @@ def test_edit_with_unknown_box_id_returns_404(client):
     c, _ = client
     assert c.post(f"/api/page/{PAGE}/edit/delete",
                   json={"ids": ["nope"]}).status_code == 404
+
+
+# ── 局部重识别 /ocr-crop ──────────────────────────────────────────────
+# 引擎用 fake 顶替（不真跑 PaddleOCR 模型），只验端点的参数处理、
+# 裁剪路径解析和阅读序拼接。识别质量本身归引擎管，不归端点管。
+
+class _FakeOcr:
+    """返回固定两字结果的假引擎：竖排「通」「載」，cx 相同 → 同列按 y 序。"""
+
+    def ocr(self, img):
+        return [{
+            "rec_texts": ["通", "載"],
+            "rec_polys": [
+                [[10.0, 0.0], [30.0, 0.0], [30.0, 40.0], [10.0, 40.0]],
+                [[10.0, 50.0], [30.0, 50.0], [30.0, 90.0], [10.0, 90.0]],
+            ],
+            "rec_scores": [0.9, 0.8],
+        }]
+
+
+@pytest.fixture
+def page_with_image(client, monkeypatch):
+    """在 books/ 里放一张真实小图，让裁剪真的走 PIL。"""
+    c, root = client
+    from gujiorc.core.paths import get_source_dir
+    from PIL import Image
+    img_path = get_source_dir() / "p1.png"
+    Image.new("RGB", (1203, 1654), (255, 255, 255)).save(img_path)
+    monkeypatch.setattr("gujiorc.ocr.engine.PaddleOcrEngine.get",
+                        classmethod(lambda cls: _FakeOcr()))
+    return c
+
+
+def test_ocr_crop_by_ids_reads_boxes_and_orders_vertically(page_with_image):
+    r = page_with_image.post(f"/api/page/{PAGE}/ocr-crop",
+                             json={"ids": [f"{PAGE}c0002", f"{PAGE}c0003"]})
+    assert r.status_code == 200
+    out = r.json()
+    # 两框 cx 相同聚成一列，列内从上到下 → 通在前載在后
+    assert out["text"] == "通載"
+    assert out["lines"][0]["text"] == "通"
+    assert abs(out["score"] - 0.85) < 1e-6
+
+
+def test_ocr_crop_by_explicit_box(page_with_image):
+    r = page_with_image.post(f"/api/page/{PAGE}/ocr-crop",
+                             json={"box": {"x": 1061, "y": 263, "w": 88, "h": 267}})
+    assert r.status_code == 200 and r.json()["text"] == "通載"
+
+
+def test_ocr_crop_requires_box_or_ids(page_with_image):
+    assert page_with_image.post(f"/api/page/{PAGE}/ocr-crop", json={}).status_code == 400
+
+
+def test_ocr_crop_on_missing_page_returns_404(page_with_image):
+    assert page_with_image.post("/api/page/page_999/ocr-crop",
+                                json={"ids": ["x"]}).status_code == 404
+
+
+def test_ocr_crop_unknown_ids_returns_404(page_with_image):
+    r = page_with_image.post(f"/api/page/{PAGE}/ocr-crop", json={"ids": ["nope"]})
+    assert r.status_code == 404
+
+
+def test_ocr_crop_engine_down_returns_503_with_hint(client, monkeypatch):
+    c, root = client
+    from gujiorc.core.paths import get_source_dir
+    from PIL import Image
+    Image.new("RGB", (100, 100), (255, 255, 255)).save(get_source_dir() / "p1.png")
+
+    def _boom(cls):
+        raise ImportError("paddleocr is not installed")
+    monkeypatch.setattr("gujiorc.ocr.engine.PaddleOcrEngine.get", classmethod(_boom))
+    r = c.post(f"/api/page/{PAGE}/ocr-crop",
+               json={"box": {"x": 0, "y": 0, "w": 50, "h": 50}})
+    assert r.status_code == 503 and "paddleocr" in r.json()["detail"]
