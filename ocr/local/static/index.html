@@ -103,7 +103,20 @@
     <el-button size="small" @click="doRedo" :disabled="!hist.redo">重做({{ hist.redo }})</el-button>
     <span class="v-line">|</span>
     <el-button size="small" type="warning" plain @click="doMerge" :disabled="selIds.length<2">合并(M)</el-button>
-    <el-button size="small" type="warning" plain @click="doSplitN(2)" :disabled="selIds.length!==1">等分2份</el-button>
+    <!-- 等分拆分：一个框里可能并进了两三个甚至五六个字，主按钮快捷等分2份，下拉选更多份数 -->
+    <el-dropdown split-button type="warning" plain size="small"
+                 :disabled="selIds.length!==1"
+                 @click="doSplitN(2)" @command="doSplitN"
+                 style="margin-left:10px">
+      等分2份
+      <template #dropdown>
+        <el-dropdown-menu>
+          <el-dropdown-item v-for="k in [2,3,4,5,6]" :key="k" :command="k">
+            等分 {{ k }} 份{{ splitHint(k) }}
+          </el-dropdown-item>
+        </el-dropdown-menu>
+      </template>
+    </el-dropdown>
     <el-button size="small" type="danger" plain @click="doDelete" :disabled="!selIds.length">删除(Del)</el-button>
     <el-button size="small" type="success" plain @click="doReflow" :disabled="!selIds.length">按行重灌(R)</el-button>
     <span class="v-line">|</span>
@@ -511,6 +524,19 @@ createApp({
       if (this.selIds.length !== 1) return this.warn('等分拆分前请先恰好选中一个框');
       const r = await this.postEdit('split', { id: this.selIds[0], n });
       if (r) { this.selIds = r.ids; this.primaryId = r.ids[0]; this.afterSelect(); }
+    },
+    // 诊断联动：选中框被报「跨多字位」且 spans 恰好等于该份数时，在下拉项旁给提示——
+    // spans 是按几何估的「这个框里装了几个字」，等分它正是该走的拆法
+    splitHint(k) {
+      if (this.selIds.length !== 1) return '';
+      for (const it of this.misaligned) {
+        const row = it.boxes.find(b => b.id === this.selIds[0]);
+        if (row && row.spans === k
+            && it.flags.some(f => f.kind === 'over' && f.id === row.id)) {
+          return ` ← 诊断：此框疑似装了 ${k} 个字`;
+        }
+      }
+      return '';
     },
     async doDelete() {
       if (!this.selIds.length) return;
