@@ -37,7 +37,10 @@
   .magnifier { position: absolute; width: 150px; height: 150px; border-radius: 50%;
                border: 2px solid #ff3b30; box-shadow: 0 2px 14px rgba(0,0,0,.5), inset 0 0 0 1px rgba(255,255,255,.6);
                background-repeat: no-repeat; background-color: #111;
-               z-index: 30; pointer-events: none; }
+               overflow: hidden; z-index: 30; pointer-events: none; }
+  /* 放大镜中的边线：resize 时标记正在修正的那条框边，亮青色+黑晕在深色底图上可见 */
+  .edge-line { position: absolute; background: #00e5ff; box-shadow: 0 0 0 1px rgba(0,0,0,.85);
+               z-index: 10; pointer-events: none; }
   .h-nw { left:-10px; top:-10px; cursor:nwse-resize; }
   .h-n  { left:calc(50% - 10px); top:-10px; cursor:ns-resize; }
   .h-ne { right:-10px; top:-10px; cursor:nesw-resize; }
@@ -187,8 +190,11 @@
         <!-- resize 过程的临时边界：不直接改数据，松手才提交 update -->
         <div v-if="resizeStyle" class="resizing"
              :style="{left:S(resizeStyle.x), top:S(resizeStyle.y), width:S(resizeStyle.w), height:S(resizeStyle.h)}"></div>
-        <!-- 拆分模式的放大镜：跟随鼠标，3x 放大光标附近的笔画 -->
-        <div v-if="mode==='split' && mag" class="magnifier" :style="magStyle"></div>
+        <!-- 放大镜：split 下刀瞄准 / resize 缩小对齐，跟随鼠标 3x 放大光标附近笔画 -->
+        <div v-if="mag && (mode==='split' || resize)" class="magnifier" :style="magStyle">
+          <!-- resize 时标记正在修正的那条框边线 -->
+          <div v-if="resize && magEdgeStyle" class="edge-line" :style="magEdgeStyle"></div>
+        </div>
       </div>
     </div>
 
@@ -369,6 +375,23 @@ createApp({
       return { x, y, w, h };
     },
     // 放大镜样式：3x 放大的底图铺在圆里，光标处对准圆心；悬在鼠标上方防挡视线
+    magEdgeStyle() {
+      // resize 时在放大镜里画出「正在被修正/缩小的那条框边」位置
+      // 源坐标 → 放大镜像素：与 magStyle 同源逻辑 ((src*scale) - magV)*Z + D/2
+      if (!this.resize || !this.mag) return null;
+      const nb = this.resizeStyle;      // 源坐标新框几何
+      if (!nb) return null;
+      const Z = 3, D = 150;
+      const vx = this.mag.vx, vy = this.mag.vy;
+      const toX = sx => (sx * this.scale - vx) * Z + D / 2;
+      const toY = sy => (sy * this.scale - vy) * Z + D / 2;
+      const hd = this.resize.handle;
+      if (hd.includes('e')) { const X = toX(nb.x + nb.w); return { left: (X - 1) + 'px', top: '0px', width: '2px', height: D + 'px' }; }
+      if (hd.includes('w')) { const X = toX(nb.x);         return { left: (X - 1) + 'px', top: '0px', width: '2px', height: D + 'px' }; }
+      if (hd.includes('s')) { const Y = toY(nb.y + nb.h); return { left: '0px', top: (Y - 1) + 'px', height: '2px', width: D + 'px' }; }
+      if (hd.includes('n')) { const Y = toY(nb.y);         return { left: '0px', top: (Y - 1) + 'px', height: '2px', width: D + 'px' }; }
+      return null;
+    },
     magStyle() {
       if (!this.mag) return {};
       const Z = 3, D = 150;
@@ -533,7 +556,8 @@ createApp({
 
     // ── stage 拖拽（mousedown 在 stage 上开始，move/up 常驻 window）──
     trackMag(ev) {
-      if (this.mode !== 'split') return;
+      // split(下刀瞄准) 或 resize(缩小对齐) 都跟随鼠标显示放大镜
+      if (this.mode !== 'split' && !this.resize) return;
       const rect = this.$refs.stage.getBoundingClientRect();
       this.mag = { vx: ev.clientX - rect.left, vy: ev.clientY - rect.top };
     },
@@ -546,7 +570,9 @@ createApp({
                     append: ev.metaKey||ev.ctrlKey||ev.shiftKey, moved:false };
     },
     onStageMove(ev) {
+      // resize 时鼠标可能在框上被 .stop 挡住 stage.trackMag，这里统一更新放大镜位置
       if (this.resize) {
+        if (this.mode !== 'split') this.trackMag(ev);
         const p = this.pt(ev);
         this.rCurX = p.x; this.rCurY = p.y;
         return;
