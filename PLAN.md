@@ -5,6 +5,8 @@
 ## Learn System 系统集成主线
 
 - [x] 确认并记录 Learn System 最终目标、端到端运行方式、现有工具成熟度和缺口。
+- [x] 审计《穷通宝鉴》现有拆书数据，并形成 `pipeline/DATASET_ACCEPTANCE_STANDARD.md` 验收草案；当前结论为 `NOT_READY`。
+- [ ] 修复《穷通宝鉴》约 7.5% 源文漏编与八字 concept mentions 为 0 的两项假绿问题。
 - [ ] 定义第一条八字纵切的 KnowledgePack、FactSet、ApplicabilityRule、SourceAnchor 和 Annotation 契约。
 - [ ] 打通一页扫描件到 `SourceSpan → OCR 字框 → PDF/PNG` 的无损证据链。
 - [ ] 泛化 taskgen，移除八字/《穷通宝鉴》硬编码，并建立非八字 fixture。

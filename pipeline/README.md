@@ -24,6 +24,7 @@ pipeline/
 - `RAG_GUIDE.md`：检索系统的构建规格——**M-RAG1（L1+L2）已上线**，`python3 rag/query.py locate "..."` 可用；L3 与 EvidenceBundle 未开工。运行任何脚本前先装依赖：`pip install -r requirements.txt`，自检 `python3 -c "import yaml, opencc"`；
 - `OPERATOR_MANUAL.md`：**写给人的**管理手册——一本典籍从找书到成品的十步、未知问题四步法、可信书源清单、档案系统（registry/）用法。
 - `TASKGEN_HANDOFF.md`：**任务包生成器平台化（P0–P3）的交接文档**——要动 `tools/lib/taskgen.py` 或三个下游 gen 工具、或新增技法时必读；含架构、回归门禁用法、已知坑。
+- `DATASET_ACCEPTANCE_STANDARD.md`：**整本书到发布数据集的验收草案**——定义全书覆盖、证据锚点、内容分层、确定性盘面匹配、专家签发和发布门禁；单个 unit PASS 不代表数据集可投入 APP。
 
 ## 怎么用（现在只有一个命令）
 
