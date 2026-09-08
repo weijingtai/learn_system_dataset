@@ -26,3 +26,7 @@ SQLite 表计数：`ge_ju_patterns=496`、`ge_ju_rules=496`、`ge_ju_categories=
 ## 使用边界
 
 迁移快照可用于复查历史界面、条件数据和数据库行为。它不能替代 Work/Edition/SourceSpan/Evidence/Assertion/ReviewDecision/ReleaseBundle 的目标链路；尤其旧 `notes` 不是 Annotation 或 UserNote，空版本表也不是版本审计。后续改造必须保留此证据基线，并从获批知识重新编译发布物，而非手改 ReleaseBundle。
+
+## 源目录清理
+
+2026-09-08，在两次独立逐文件核验、SQLite `integrity_check`、规格复审、文档质审和 Learn System 快照提交完成后，原始 `companion_system` 目录按用户授权删除。删除后复核：原路径不存在；目标目录为 184 files / 76 dirs，机器本地 `android/local.properties` 仍存在；SQLite SHA-256 仍为上述值且完整性为 `ok`。源父仓库显示 175 个受 Git 跟踪文件被删除，未在该仓库提交；完整原样快照可由 Learn System 提交 `4ca1a73` 恢复。
