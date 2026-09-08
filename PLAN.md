@@ -1,6 +1,20 @@
 # PLAN
 
-更新时间：2026-07-11
+更新时间：2026-09-08
+
+## Learn System 系统集成主线
+
+- [x] 确认并记录 Learn System 最终目标、端到端运行方式、现有工具成熟度和缺口。
+- [ ] 定义第一条八字纵切的 KnowledgePack、FactSet、ApplicabilityRule、SourceAnchor 和 Annotation 契约。
+- [ ] 打通一页扫描件到 `SourceSpan → OCR 字框 → PDF/PNG` 的无损证据链。
+- [ ] 泛化 taskgen，移除八字/《穷通宝鉴》硬编码，并建立非八字 fixture。
+- [ ] 修复完整 span ID 索引和 `concept → assertion → evidence` 查询链。
+- [ ] 实现发布级 KnowledgeReleaseCompiler、ReleaseManifest、validator 和只读 AppKnowledgeAdapter。
+- [ ] 用 `丙日干 + 亥月` FactSet 验收“十月丙火”全部相关主张召回、原文展示与扫描定位。
+- [ ] 实现锚定到词条/主张/原句/扫描区域的私人及公开 Annotation 最小模型。
+- [ ] 在首条纵切通过后，扩展十干十二月、十神、格局和其他术数 FactSet Profile。
+
+## 既有知识编译与 Tag 计划
 
 - [x] 保存术数文献知识编译与学习系统讨论草案。
 - [x] 将 `learn_system` 初始化为独立 Git 工作区。

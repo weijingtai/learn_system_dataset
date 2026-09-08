@@ -1,5 +1,7 @@
 # learn_system 仓库地图
 
+> **项目最终目标与现状总入口：[`LEARN_SYSTEM_TARGET.md`](LEARN_SYSTEM_TARGET.md)**。新接手者先阅读该文件，理解从古籍扫描、OCR、知识编译、KnowledgePack、排盘匹配、扫描追溯到注解社区的完整目标，再进入各子目录。
+
 > 2026-07-11 重组：文档按两条并行工作线拆分，**两区文档不得互混**。新文件落位规则：先问"这是关于 Marks/Tag 的，还是关于书籍知识编译/产品的？"
 
 ```text
@@ -9,6 +11,7 @@ pipeline/            知识编译实际工作区（任务包、units、校验器
 raw_books/           原书扫描（只读证据）
 docs/superpowers/    历史 specs/plans 位置——Tag 相关已迁至 tag_system/specs/，旧混合计划仅存指针
 AGENTS.md / PLAN.md / HANDOFF.md / SOLO_WORKPLAN.md   跨区协调文件（保留根目录）
+LEARN_SYSTEM_TARGET.md                               全系统最终目标、端到端运行方式、工具成熟度与缺口
 ```
 
 共享权威：产品决策登记表（D-001–D-022）位于 `knowledge_system/METAPHYSICS_KNOWLEDGE_COMPILATION_WORKFLOW_v1.2.md` §0.2。
