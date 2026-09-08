@@ -1,7 +1,9 @@
 # Pipeline 数据集验收标准（草案）
 
-状态：`DRAFT_FOR_REVIEW`  
-适用范围：非 OCR 与 OCR 书源进入 Learn System 后，从固定原始版本到可发布数据集的完整流水线。  
+状态：`DRAFT_FOR_REVIEW`
+
+适用范围：非 OCR 与 OCR 书源进入 Learn System 后，从固定原始版本到可发布数据集的完整流水线。
+
 暂不包含：Embedding、Tag UI、社交与注解实现。
 
 ## 1. 为什么需要独立验收
