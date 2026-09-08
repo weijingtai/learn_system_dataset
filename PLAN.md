@@ -6,7 +6,10 @@
 
 - [x] 确认并记录 Learn System 最终目标、端到端运行方式、现有工具成熟度和缺口。
 - [x] 审计《穷通宝鉴》现有拆书数据，并形成 `pipeline/DATASET_ACCEPTANCE_STANDARD.md` 验收草案；当前结论为 `NOT_READY`。
+- [x] 将七政四余 `companion_system` 原样迁入通用独立项目 `pattern_knowledge_workbench/`，建立 README、领域词汇、扩展计划、缺口分析和待办。
 - [ ] 修复《穷通宝鉴》约 7.5% 源文漏编与八字 concept mentions 为 0 的两项假绿问题。
+- [ ] 修复工作台启动覆盖数据库、保存即 verified、无版本审计和 AI 候选绕过审核的 P0 风险。
+- [ ] 将工作台从七政硬编码演进为 `TechniqueProfile`，七政作为首个 profile，随后接入八字、紫微、大六壬和奇门。
 - [ ] 定义第一条八字纵切的 KnowledgePack、FactSet、ApplicabilityRule、SourceAnchor 和 Annotation 契约。
 - [ ] 打通一页扫描件到 `SourceSpan → OCR 字框 → PDF/PNG` 的无损证据链。
 - [ ] 泛化 taskgen，移除八字/《穷通宝鉴》硬编码，并建立非八字 fixture。

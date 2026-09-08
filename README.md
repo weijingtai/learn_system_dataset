@@ -8,6 +8,7 @@
 tag_system/          Marks/Tag 系统（设计已收敛，准备开工）→ 入口 tag_system/README.md
 knowledge_system/    书籍知识编译＋产品母稿＋市场验证（已开工）→ 入口 knowledge_system/README.md
 pipeline/            知识编译实际工作区（任务包、units、校验器）→ AI 必读 pipeline/AGENT_GUIDE.md
+pattern_knowledge_workbench/  多术数格局知识审核与发布工作台（七政四余为首个迁移 profile）
 raw_books/           原书扫描（只读证据）
 docs/superpowers/    历史 specs/plans 位置——Tag 相关已迁至 tag_system/specs/，旧混合计划仅存指针
 AGENTS.md / PLAN.md / HANDOFF.md / SOLO_WORKPLAN.md   跨区协调文件（保留根目录）

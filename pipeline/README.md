@@ -21,10 +21,11 @@ pipeline/
 
 - `AGENT_GUIDE.md`：六条铁律＋工作循环＋修错查表——**所有 AI agent 必读的入门**；
 - `HANDBOOK.md`：各工位详细规程、通过/不通过样例、文本类型判定、大部头书籍分批策略、容错分级、升级人工格式——**AI 干活时对照的完整规范**；
-- `RAG_GUIDE.md`：检索系统的构建规格——**M-RAG1（L1+L2）已上线**，`python3 rag/query.py locate "..."` 可用；L3 与 EvidenceBundle 未开工。运行任何脚本前先装依赖：`pip install -r requirements.txt`，自检 `python3 -c "import yaml, opencc"`；
+- `RAG_GUIDE.md`：检索系统的构建规格——M-RAG1（L1+L2）原型脚本可运行，`python3 rag/query.py locate "..."` 可用于开发定位；**数据集级检索仍为 `NOT_READY`**，八字完整 span→mentions 映射为 0 的假绿问题见 `TODO.md`。L3 与 EvidenceBundle 未开工。运行任何脚本前先装依赖：`pip install -r requirements.txt`，自检 `python3 -c "import yaml, opencc"`；
 - `OPERATOR_MANUAL.md`：**写给人的**管理手册——一本典籍从找书到成品的十步、未知问题四步法、可信书源清单、档案系统（registry/）用法。
 - `TASKGEN_HANDOFF.md`：**任务包生成器平台化（P0–P3）的交接文档**——要动 `tools/lib/taskgen.py` 或三个下游 gen 工具、或新增技法时必读；含架构、回归门禁用法、已知坑。
 - `DATASET_ACCEPTANCE_STANDARD.md`：**整本书到发布数据集的验收草案**——定义全书覆盖、证据锚点、内容分层、确定性盘面匹配、专家签发和发布门禁；单个 unit PASS 不代表数据集可投入 APP。
+- `TODO.md`：**当前可执行阻断清单**——先修复《穷通宝鉴》漏编与八字概念索引假绿，再进入规则匹配和正式发布。
 
 ## 怎么用（现在只有一个命令）
 
