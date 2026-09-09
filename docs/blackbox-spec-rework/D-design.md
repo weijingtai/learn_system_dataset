@@ -380,8 +380,12 @@
   - 为 `SourceAssetPack` 定义至少两档内容级别（如 `full_scan` / `derived_page_images_only` /
     `reference_and_hash_only`），并写明各档下客户端高亮功能的可用性。
   - 在 `§21` 或 ReleasePolicy 中写明首纵切采用哪一档。
-  - 注意：现有 10 页 PNG（10M）**未被 .gitignore 忽略**，说明「派生页图」可入仓、「源书」不可，
-    这条既成事实可以直接作为规则依据。
+  - **勘误（2026-09-08 复核）**：本条原写「现有 10 页 PNG 未被 .gitignore 忽略，可作为规则依据」，
+    **该依据不成立**——`ocr/.gitignore:9` 有 `data_work/`，实测 `git ls-files ocr/data_work/sanche_pages`
+    返回 0，页图从未入仓。正确结论是：源书与派生页图**当前都不在 Git 中**，
+    首纵切 SourceAsset 只存在于本机工作目录。处理方式以
+    `openspec/legacy-storage-transition.md` §6 为准（缺素材报 `BLOCKED_SOURCE_ASSET_MISSING`，
+    不得创建空文件、替代图片或伪造哈希使验收变绿）。
 - **判据**：
   ```bash
   grep -c "Object Store\|不进 Git\|派生页图" openspec/learn-system-blackbox-architecture.md  # >= 2

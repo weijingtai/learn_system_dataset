@@ -9,6 +9,15 @@
 > 结论：**不通过**。规格骨架正确，但缺少拆解 tasks 所必需的可判定性、粒度定义与素材裁定。
 > 本节全部结清前，不得启动 M1-M8 任何 Module 的实现任务。
 
+### RN 决议落地后新产生的耦合（R1 复核 2026-09-08 追加，3 条）
+
+> 这三条不是原 40 条的重复，是 7 项架构决议写入规格**之后**才出现的内部不一致。
+> 均已逐条验证存在。建议与第一批返工一并处理。
+
+- [ ] 修复: `openspec/learn-system-blackbox-architecture.md:388（§20 第 8 条）` 与 `:318（§16 SourceAssetPack）` 冲突：完成标准仍写「PublicationPackage 同时包含结构化知识、**原始资料**及其关系」，而新增的 `reference_and_hash_only` 档只携带引用、SHA-256、页标识和权利说明，并不携带原始资料本身；该档下第 8 条是算满足还是算不满足，规格未答 ｜ 通过标准: §20 第 8 条改写为按 SourceAssetPack 档位分别表述（例如：`full_scan`/`derived_page_images_only` 视为满足，`reference_and_hash_only` 需同时提供可解析该引用的本地或受权后端才视为满足），且 `grep -n "原始资料" openspec/learn-system-blackbox-architecture.md` 的每一处都能对应到一个明确档位
+- [ ] 修复: `openspec/learn-system-blackbox-architecture.md:§2 原则 7` 与 `:83（§4 KnowledgeEntry 字段）` 冲突加剧：原则 7 仍写「不复用旧 ID」，而 D-05 决议已引入 `concept_id`、`pattern_id`、`entry_id`、`subject_entity_id` 与「身份迁移状态」——若 Pattern 每次 Revision 换 `pattern_id`，`subject_entity_id` 即刻断链，KnowledgeEntry 无法稳定指向其主体。**D-01（entity_id / artifact_revision_id 拆分）由「应做」升级为「必须先于其余 D 类完成」** ｜ 通过标准: 见 `docs/blackbox-spec-rework/D-design.md` D-01 判据；追加一条 `grep -A3 "原则 7\|^7\. 任何修改" openspec/learn-system-blackbox-architecture.md | grep -q "artifact_revision_id"`
+- [ ] 修复: `openspec/learn-system-blackbox-architecture.md:108（§5 Review Console）` 要求「人工决定始终归属发起该队列的 ProcessingRun、StepRun 和 Stage」，且 §14 定义了 M3/M4/M6/M7 四种人工模式，但 `§7` 的 `execute(StepRequest)→StepResult` 仍是单次同步语义、无挂起态——StepRun 无法表达「正在等人」。注意 `:331` 已经在 Ledger 故障场景用了「挂起 StepRun」这一措辞，说明该概念已被隐式引入却从未定义。**D-03（StepRun 生命周期状态机）由「应做」升级为「Review Console 的前置」** ｜ 通过标准: 见 `docs/blackbox-spec-rework/D-design.md` D-03 判据；追加 `grep -c "awaiting_human" openspec/learn-system-blackbox-architecture.md` >= 1，且 §17:331 的「挂起」改为引用该状态机的正式术语
+
 ### 执行入口（2026-09-08 转译 v1）
 
 **不要直接照本节的 40 条开工**——它们是「要求」，不是「怎么做」。
