@@ -1,11 +1,11 @@
 # HANDOFF
 
-更新时间：2026-09-09（T-02 返工通过，待用户确认前缀）
+更新时间：2026-09-09（T-02 已验收，六类 ID 已写入 README）
 当前分支/worktree：`codex/docs/knowledge-compilation`；独立仓库 `/Users/jingtaiwei/Git/Public/learn_system`
-刚完成：T-02 返工提交 `376e78c` 已独立验收。补充 Green checks 全部通过，T-02/T-02b PASS，全局保持 17 FAIL，无新增失败；Standards 与 Spec 双轴复核均 `APPROVED`。StagePackage 已使用稳定 `pkg_...` 逻辑身份，物理版本另用 `rev_...`，`<stage>` 已冻结为 m1–m8。
-进行到一半的事（精确到文件和章节）：T-02 技术工作全部结束，只剩用户确认 `art_/rev_/prun_/srun_/pkg_/rel_ + 32hex` 六类前缀。业务代码、OCR、Schema 和依赖没有修改。
-下一步（第一件事）：取得用户前缀确认，随后把 T-02 标记 `ACCEPTED`，并开始准备 D-02 的 BDD/TDD/ACT/Prompt 工作包。
-已知的坑：D-02 在 T-02 `ACCEPTED` 前继续阻塞。全局 17 FAIL 属其他 T 类未完成项。首纵切 10 页 PNG 被 Git 忽略，其他 clone 不可恢复，开工前必须登记到本地 Object Store。
+刚完成：用户确认 `art_/rev_/prun_/srun_/pkg_/rel_ + 32hex` 六类格式。根 README 已增加每个前缀的对象含义、稳定性和换号规则；架构 §8.1 已从“提案”更新为“确认并冻结”；T-02 验收与总 TODO 已标记 `ACCEPTED`。
+进行到一半的事（精确到文件和章节）：D-02 的 D-03/T-02 前置依赖均已满足，但标准工作包尚未制作。业务代码、OCR、Schema 和依赖没有修改。
+下一步（第一件事）：主 Agent 准备 D-02 的 README、BDD、TDD、ACT、Executor Prompt 和 Acceptance，并通过 ACT 四查；不亲自实现 Schema。
+已知的坑：全局 17 FAIL 属其他 T 类未完成项。D-02 必须同时表达逻辑 ID 与不可变 Revision，尤其 StagePackage ArtifactRef 同时携带 `stage_package_id` 和 `artifact_revision_id`。首纵切 10 页 PNG 被 Git 忽略，其他 clone 不可恢复，开工前必须登记到本地 Object Store。
 
 ---
 2026-07-11（Claude/Cowork）：仓库文档已按并行线拆分——Tag 文档全部迁至 `tag_system/`（原 docs/superpowers/specs/ 下两份 Tag 规格已移至 tag_system/specs/），知识编译与产品母稿迁至 `knowledge_system/`。仓库地图见根 README.md。本文件中旧路径引用以新位置为准。

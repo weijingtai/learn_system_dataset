@@ -17,7 +17,7 @@ SPEC=openspec/learn-system-blackbox-architecture.md
 for s in 'src_<work>_ed<NN>' 'ss_<work>_ed<NN>_p<NNNN>_s<NN>' 'ku_<technique>_<6位数字>' 'as_<technique>_<6位数字>' 'pr_<technique>_<6位数字>' 'co_shared_<domain>_NN' 'co_<technique>_<6位数字>' 'hg_<4位数字>'; do rg -Fq "$s" "$SPEC" || exit 1; done
 for s in 'art_<32hex>' 'rev_<32hex>' 'prun_<32hex>' 'srun_<32hex>' 'pkg_<stage>_<32hex>' 'rel_<32hex>'; do rg -Fq "$s" "$SPEC" || exit 1; done
 rg -q 'Schema.*[Vv]ersion.*Revision|Schema 版本.*Revision' "$SPEC"
-rg -q '待用户确认|提案' "$SPEC"
+rg -q '已由用户.*确认并冻结|已确认' "$SPEC"
 rg -q 'uuid\.uuid4\(\)\.hex|UUIDv4' "$SPEC"
 rg -q 'StagePackage.*逻辑身份|逻辑身份.*StagePackage' "$SPEC"
 rg -q 'm1.*m8|m1`.*`m2`.*`m3`.*`m4`.*`m5`.*`m6`.*`m7`.*`m8' "$SPEC"

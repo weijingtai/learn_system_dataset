@@ -1,6 +1,6 @@
 # T-02 主 Agent 验收清单
 
-状态：`BLOCKED`（返工提交 `376e78c` 已通过；仅待用户确认前缀）
+状态：`ACCEPTED`（2026-09-09）
 
 ## Scope
 
@@ -20,7 +20,7 @@
 
 ## Proposal and semantics
 
-- [x] 六类新格式全部标为待用户确认
+- [x] 六类新格式在执行阶段标为待确认，用户确认后已冻结
 - [x] ProcessingRun 未复用 `pr_`
 - [x] Artifact logical ID 与 Revision ID 分离
 - [x] StagePackage logical ID 与 Revision ID 分离
@@ -37,7 +37,7 @@
 - [x] 补充语义门禁通过
 - [x] 规格符合性审查通过
 - [x] 质量审查通过
-- [ ] 用户确认或修改六类新 ID 前缀
+- [x] 用户确认六类新 ID 前缀（2026-09-09）
 
 ## 第一轮阻断发现
 
@@ -53,4 +53,4 @@
 - 门禁：补充 Green checks 全通过；T-02/T-02b PASS；全局保持 17 FAIL，无新增失败；`git diff --check` 通过。
 - 双轴独立复核：Standards `APPROVED`；Spec `APPROVED`。
 
-最终结论：返工完成并通过技术验收。六类提案尚未获得用户确认，因此 T-02 暂不标记 `ACCEPTED`，D-02 继续 `BLOCKED`。
+最终结论：返工完成、技术验收通过、六类前缀已获用户确认，T-02 标记为 `ACCEPTED`。D-02 的该项前置阻塞已解除。

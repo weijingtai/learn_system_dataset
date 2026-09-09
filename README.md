@@ -10,6 +10,21 @@
 
 > **Subagent 工作监控：[`docs/blackbox-spec-rework/SUBAGENT_TODO.md`](docs/blackbox-spec-rework/SUBAGENT_TODO.md)**。所有大项及其 BDD、TDD、ACT、Prompt、执行、验收小项在此勾选；准出规则见 [`openspec/subagent-delivery-gate.md`](openspec/subagent-delivery-gate.md)。
 
+## 黑箱核心 ID 快速说明
+
+以下六类前缀已于 2026-09-09 确认。它们用于追踪“哪个对象、哪次修订、哪次运行、哪个阶段包、哪次发布”，不是用户身份或鉴权 ID。完整约束以 [`openspec/learn-system-blackbox-architecture.md`](openspec/learn-system-blackbox-architecture.md) §8.1 为准。
+
+| 前缀 | 代表什么 | 稳定与新建规则 |
+|---|---|---|
+| `art_<32hex>` | **Artifact**：一份制品的逻辑身份，例如同一份 OCR 结果、校订结果或知识结果的“对象本身” | 内容修订时保留同一个 `artifact_id`；对象语义改变或成为全新制品时才新建 |
+| `rev_<32hex>` | **Artifact Revision**：某份制品一次不可变的实际内容快照 | 每次封存、修正或重新生成内容都必须新建 `artifact_revision_id`；旧 Revision 永久保留 |
+| `prun_<32hex>` | **ProcessingRun**：一次完整处理运行的身份，用来汇总该次运行下的阶段和 StepRun | 每次重新发起处理都新建；使用 `prun_` 而不是 `pr_`，避免与 Proposition ID 冲突 |
+| `srun_<32hex>` | **StepRun**：一个 EditionPart 在某个阶段中的一次具体任务运行 | 每次任务重跑都新建 `step_run_id`；旧运行不覆盖，通过取代关系追踪 |
+| `pkg_<stage>_<32hex>` | **StagePackage**：某阶段输出包的逻辑身份；`<stage>` 只允许 `m1`–`m8` | 同一阶段包修订时保留 `stage_package_id`，每个实际版本另配一个新的 `rev_...` |
+| `rel_<32hex>` | **Release**：一次正式发布的数据集身份，用于让客户端、索引和追溯信息指向同一发布 | 每次新发布都新建 `release_id`；已发布记录不得原地改写 |
+
+`<32hex>` 是由 UUIDv4 生成的 32 位小写十六进制字符串。最重要的区别是：`art_` 与 `pkg_` 表示可跨修订保持的逻辑对象，`rev_` 表示绝不修改、绝不复用的具体内容版本。例如一个阶段包应同时携带 `pkg_m3_<32hex>` 和 `rev_<32hex>`。
+
 > 2026-07-11 重组：文档按两条并行工作线拆分，**两区文档不得互混**。新文件落位规则：先问"这是关于 Marks/Tag 的，还是关于书籍知识编译/产品的？"
 
 ```text

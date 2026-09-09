@@ -45,7 +45,7 @@
   - [x] PLAN/HANDOFF 与证据归档
   - [x] 主 Agent 标记 `ACCEPTED`
 
-- [ ] T-02：完整标识格式转录与新增前缀确认（状态：`BLOCKED`；仅待用户确认前缀）
+- [x] T-02：完整标识格式转录与新增前缀确认（状态：`ACCEPTED`）
   - [x] 权威照抄源已定位
   - [x] README/范围/依赖/禁止项
   - [x] BDD 场景
@@ -54,7 +54,7 @@
   - [x] Executor Prompt
   - [x] Acceptance 清单
   - [x] `wjt-react` 四查判定 `READY`
-  - [ ] 用户确认新增对象 ID 前缀
+  - [x] 用户确认新增对象 ID 前缀（2026-09-09）
   - [x] 用户已派发执行 Agent
   - [x] 执行 Agent 第一轮提交 `6e317cc` 与证据
   - [x] 修复 StagePackage 逻辑身份／物理 Revision 冲突（`376e78c`）
@@ -62,11 +62,11 @@
   - [x] 主 Agent 规格审查
   - [x] 主 Agent 质量审查
   - [x] PLAN/HANDOFF 同步
-  - [ ] 主 Agent 标记 `ACCEPTED`
+  - [x] 主 Agent 标记 `ACCEPTED`
 
-- [ ] D-02：冻结 L0 四个机器 Schema（状态：`BLOCKED`，依赖 D-03、T-02）
-  - [ ] D-03 已 `ACCEPTED`
-  - [ ] T-02 已 `ACCEPTED`
+- [ ] D-02：冻结 L0 四个机器 Schema（状态：`BACKLOG`；前置依赖已满足）
+  - [x] D-03 已 `ACCEPTED`
+  - [x] T-02 已 `ACCEPTED`
   - [ ] README/范围/依赖/禁止项
   - [ ] BDD 场景
   - [ ] TDD 正反 fixture 与 round-trip 门禁
