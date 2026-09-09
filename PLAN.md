@@ -115,6 +115,8 @@ RE→T-11 + D-18；RF→D-14~D-17 + T-12/T-13；RG→D-19。**覆盖完整，无
 
 - [x] 调研单人单机条件下可直接复用的免费开源框架；候选组合与自研边界见 `docs/research/2026-09-08-open-source-framework-options.md`，尚待确认后写入正式 OpenSpec。
 - [x] 明确当前不实现登录鉴权；只保留固定返回 `local_owner` 的 `ActorProvider` 接口，未来可替换线上身份适配器。业务对象稳定 ID 不属于登录身份系统，仍按 D-01 处理。
+- [x] 确认 OCR 参数化设计：现有中国传统竖排古籍 OCR/FastAPI/Vue 保持主链，不引入 Kraken；每个 Edition 使用经代表页校准、人工验收和冻结的版本化 `OCRProfile`。设计见 `openspec/ocr-profile-parameterization.md`。
+- [ ] 在黑箱 R1 规格复审通过后，以最薄实现让现有 OCR `run` 路径读取并封存 `OCRProfile`；不得借机重写算法、增加调参 UI 或接入第二引擎。
 - [ ] 完成 `openspec/learn-system-blackbox-architecture.md` 的 R1 返工并复审；PLAN 只增补映射，不重写或删除既有未完成项。
 - [x] 确认并记录 Learn System 最终目标、端到端运行方式、现有工具成熟度和缺口。
 - [x] 审计《穷通宝鉴》现有拆书数据，并形成 `pipeline/DATASET_ACCEPTANCE_STANDARD.md` 验收草案；当前结论为 `NOT_READY`。

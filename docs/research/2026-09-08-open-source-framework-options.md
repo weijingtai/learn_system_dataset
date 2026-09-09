@@ -11,7 +11,7 @@
 1. **工作流：Prefect OSS**，只作为 `Local Orchestrator` 的实现适配器；Learn System 的 StepRun 状态和 Artifact Ledger 仍是权威记录。
 2. **元数据：SQLite + SQLAlchemy + Alembic**；Flutter 继续用 Drift 读查询投影，不直接写权威 Ledger。
 3. **大文件：先实现极薄的 SHA-256 本地 CAS；DVC 只作可选的数据快照/备份工具，不作 Ledger 或运行时 Blob API。**
-4. **OCR：保留现有 PaddleOCR + FastAPI/Vue 校订链；把 Kraken 作为古籍版面与识别的可插拔对照引擎。**
+4. **OCR：保留现有、已经针对中国传统竖排古籍调优的 PaddleOCR + FastAPI/Vue 校订链；不引入第二 OCR 引擎。按 Edition 使用版本化 `OCRProfile`。**
 5. **人工审核：暂不引入 Label Studio 作为正式 Review Console。** 它可用于制作 OCR/分类金标集，但不能替代跨阶段审核、Revision、回退和发布签发。
 6. **契约与质量：JSON Schema 2020-12 + `jsonschema`；API 边界用 Pydantic；发布表格再加 Frictionless。领域一致性和证据链仍需自研校验器。
 7. **全文检索：首版使用 SQLite FTS5；** 古汉语以 trigram/字面检索起步，再按 fixture 评估自定义中文 tokenizer。暂不引入独立搜索服务。
@@ -67,13 +67,13 @@ Dagster 同样是 Apache-2.0，并明确定位为 data assets 的编排与观察
 
 | 候选 | 许可证 | 建议用途 |
 |---|---|---|
-| **PaddleOCR** | Apache-2.0 | 保持主引擎。已有代码、中文模型和竖排修复资产最多；官方支持 PDF/图像到 JSON/Markdown 与 100+ 语言 |
-| **Kraken** | Apache-2.0 | 作为可替换对照引擎/训练实验。专门面向历史、非拉丁材料，支持从右至左、双向与从上到下文字、reading order、ALTO/PageXML、词框和字符 cuts |
+| **现有 PaddleOCR 管线** | Apache-2.0 | **当前唯一主引擎**。已有中国传统竖排古籍的参数、修复、测试和人工校订工具，优先复用这些真实资产 |
+| Kraken | Apache-2.0 | 已评估但当前不采用。它面向多类历史文献，并不能证明比现有、已经针对本项目中国古籍样本调优的管线更合适 |
 | eScriptorium | MIT | 暂缓。其历史文档标注/训练能力强，但会引入另一套完整 Web 工作台和部署栈，和现有 M2 UI 重叠 |
 
-来源：[PaddleOCR official repository](https://github.com/PaddlePaddle/PaddleOCR)、[Kraken official repository](https://github.com/mittagessen/kraken)、[Kraken ATR pipeline](https://github.com/mittagessen/kraken/blob/main/docs/introduction_to_atr.rst)、[eScriptorium repository](https://gitlab.com/scripta/escriptorium)
+来源：[PaddleOCR official repository](https://github.com/PaddlePaddle/PaddleOCR)、[Kraken official repository](https://github.com/mittagessen/kraken)、[eScriptorium repository](https://gitlab.com/scripta/escriptorium)
 
-仍需自研：Paddle/Kraken 统一结果 adapter、古籍版面类型、字框坐标归一化、人工校订 Revision、异常页终态、证据 anchor 与原始扫描哈希。OCR 框架只生成候选，不能完成 M2 Gate。
+仍需补齐：版本化 `OCRProfile`、古籍版面类型、字框坐标归一化、人工校订 Revision、异常页终态、证据 anchor 与原始扫描哈希。OCR 框架只生成候选，不能完成 M2 Gate。
 
 ### 5. 人工审核与标注 UI
 
@@ -134,7 +134,7 @@ BagIt 不替代 Learn System ReleaseManifest；RO-Crate 不替代领域 Schema�
 
 1. 先落 JSON Schema、SQLite/SQLAlchemy/Alembic、SHA-256 CAS 和固定 `local_owner` ActorProvider。
 2. 用 Prefect 做一个 `EditionPart: M1 → awaiting_human → resume → M2 Gate` 纵切，验证状态映射；不要先迁完整 M1-M8。
-3. 保留现有 PaddleOCR/UI，增加 OCR adapter 接口；用同一页分别跑 PaddleOCR/Kraken，只以真实字框金标决定是否扩大 Kraken。
+3. 保留现有 PaddleOCR/UI，先把已存在的命令行参数和必要硬编码收敛成版本化 `OCRProfile`；不做自动寻参或第二引擎。
 4. 正式审核继续改现有 Flutter；仅在金标制作明显拖慢时独立试用 Label Studio。
 5. M8 先生成 SQLite FTS5 + BagIt + RO-Crate；随后加入 JSON-LD/RDFLib/SHACL 与 round-trip Gate。
 6. DVC、Frictionless、Parquet 都是外围工具，按真实数据规模启用，不进入 L0 核心契约。
@@ -145,7 +145,7 @@ BagIt 不替代 Learn System ReleaseManifest；RO-Crate 不替代领域 Schema�
 |---|---|
 | Prefect 的调度、重试、暂停、恢复与运行观察 | `EditionPart` Gate、StepRun 权威状态映射、失效传播 |
 | SQLite/SQLAlchemy/Alembic 的存储与迁移 | Artifact/Revision/ReviewDecision/Lineage 领域表 |
-| PaddleOCR/Kraken 的版面和识别候选 | 古籍校订、证据坐标、异常终态、质量门禁 |
+| 现有 PaddleOCR 管线的版面和识别候选 | OCRProfile、古籍校订、证据坐标、异常终态、质量门禁 |
 | Label Studio 的通用金标标注 | 跨 M2-M7 的 Review Console |
 | JSON Schema/jsonschema/Frictionless 的结构验证 | 语义正确性、证据忠实度、规则可执行性、G1-G7 |
 | SQLite FTS5 的倒排索引 | Concept/Pattern/School/FactSet 查询契约 |

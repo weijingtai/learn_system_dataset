@@ -214,6 +214,8 @@ M2 同时覆盖扫描识别与电子文本清洗，不能遗漏人工校订。
 
 扫描来源必须保留：原始扫描、拆页、OCR 原始 JSON、字框、置信度、校订 Revision、异常页、质量报告和完整审计日志。现有 FastAPI + Vue OCR 校对工具属于本 Module。
 
+扫描识别必须使用版本化 `OCRProfile`，按 Edition 绑定并允许 EditionPart 在版式显著不同时覆盖。每个 Profile 先以代表页校准、人工验收并冻结 Revision，批量 StepRun 只读取该冻结 Revision；引擎置信度不得冒充人工抽样得到的实际正确率。当前继续使用现有 `ocr/` 引擎和 FastAPI + Vue，不引入第二 OCR 引擎或新调参 UI。字段、校准、追溯和最少代码边界见 `openspec/ocr-profile-parameterization.md`。
+
 EPUB/TXT 必须检查编码、乱码、替换字符、PUA、控制字符、水印、广告、页眉页脚、重复章节、缺失章节和异常字段。任何清理必须生成 `RawText`、`CleanedTextRevision`、`DeterministicPatchSet` 和 `SanitizationReport`，不得静默删除。
 
 M2 Gate 通过前，该 EditionPart 的校对和清洗任务必须全部完成。异常页必须进入显式终态，不能因暂未处理而被计为完成。

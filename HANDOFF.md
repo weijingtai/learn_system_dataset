@@ -1,10 +1,10 @@
 # HANDOFF
 
-更新时间：2026-09-08（开源框架调研与本地身份边界确认后）
+更新时间：2026-09-08（OCRProfile 参数化设计确认后）
 当前分支/worktree：`codex/docs/knowledge-compilation`；独立仓库 `/Users/jingtaiwei/Git/Public/learn_system`
-刚完成：用户确认当前为单人单机，不实现登录鉴权，只保留固定 `local_owner` 的 `ActorProvider` 接口；已完成免费开源框架调研，记录 Prefect、SQLite/SQLAlchemy/Alembic、PaddleOCR/Kraken、JSON Schema、SQLite FTS5、JSON-LD/SHACL、BagIt/RO-Crate 等候选及自研边界。用户复核通过七项架构决议；RN-1 已闭合，RN-2/RN-3 分别映射 D-01/D-03。
+刚完成：用户确认现有中国传统竖排古籍 OCR/FastAPI/Vue 保持主链，不引入 Kraken；已写 `openspec/ocr-profile-parameterization.md`，规定每个 Edition 使用代表页校准、人工验收并冻结的版本化 OCRProfile，首版只做 YAML 参数映射、Schema 校验和运行留痕。当前不实现登录鉴权，只保留固定 `local_owner` 的 ActorProvider。
 进行到一半的事（精确到文件和章节）：规格仍为 `REVIEW_FAILED_R1`；RN-2、RN-3 和其余 R1 返工未完成。T 判据仍为 19 FAIL / 1 PASS。迁移只是决议，尚未执行；业务代码未修改。
-下一步（第一件事）：用户确认开源候选采用范围后写入正式 OpenSpec；返工仍严格执行 `D-01 → D-03 → D-02`，ACT 01/02/03、T-11、D-16 仅在无共享写路径时并行。
+下一步（第一件事）：请用户复核 OCRProfile 书面规格；通过后，返工仍严格执行 `D-01 → D-03 → D-02`。OCRProfile 实现必须等黑箱 R1 复审通过，且只做薄参数层。
 已知的坑：D-02 原排序早于 D-03 会冻结一个没有合法状态枚举的 StepResult Schema，已改为 D-03 之后。首纵切 10 页 PNG 被 Git 忽略，其他 clone 不可恢复，开工前必须登记到本地 Object Store。
 
 ---
