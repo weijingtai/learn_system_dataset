@@ -36,6 +36,7 @@ tests_first:
   - StagePackage 缺 lineage、transformation 缺 operation、嵌套 ArtifactRef 非法、顶层未知字段四个反例必须失败
   - qtbj fixture 必须读取真实 manifest 校对 source_id 并做 YAML-JSON round-trip
 steps:
+  - 运行 python3 -m venv .venv；禁止 --user、--break-system-packages 或 Homebrew 全局安装
   - 仅新增 check-jsonschema>=0.38,<0.39 依赖，不重排或升级其他依赖
   - 写 fixture 与红灯 verify.sh，保存失败摘要
   - 按 README 精确字段表写 artifact_ref.schema.json，并在其 $defs 集中定义全部核心 ID 与状态枚举
@@ -44,7 +45,8 @@ steps:
   - 跑 ACT01 门禁直至全绿
   - 检查允许路径并提交
 verification:
-  - python3 -m pip install -r pipeline/requirements.txt
+  - python3 -m venv .venv
+  - .venv/bin/python -m pip install -r pipeline/requirements.txt
   - bash openspec/schemas/verify.sh
   - git diff --check
 commit_message: 'feat: add artifact package contracts'

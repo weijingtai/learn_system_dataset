@@ -15,7 +15,8 @@
 ## Required commands
 
 ```bash
-python3 -m pip install -r pipeline/requirements.txt
+python3 -m venv .venv
+.venv/bin/python -m pip install -r pipeline/requirements.txt
 bash openspec/schemas/verify.sh
 git diff --check
 ```
@@ -80,3 +81,4 @@ rg -n 'artifact_ref.schema.json|step_request.schema.json|step_result.schema.json
 - round-trip 必须实际生成临时 JSON 并再次校验，不能只做 YAML parse。
 - `qtbj_manifest_binding` 必须实际读取真实 manifest，不能把两边期望值都硬编码在脚本里。
 - 不允许 `|| true` 吞掉有效 fixture 的失败。
+- `verify.sh` 必须调用仓库根 `.venv/bin/check-jsonschema` 与 `.venv/bin/python`；缺失时给出创建 `.venv` 的明确错误并退出非零，不得回退到系统 PATH。

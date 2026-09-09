@@ -11,6 +11,7 @@
 
 ## Red-Green evidence
 
+- [ ] 使用仓库 `.venv`，未修改系统、用户或 Homebrew Python 环境
 - [ ] ACT01 Schema 缺失时门禁先失败，随后通过
 - [ ] ACT02 Schema 缺失时门禁先失败，随后通过
 - [ ] invalid fixture 真正返回非零，未被 `|| true` 假吞

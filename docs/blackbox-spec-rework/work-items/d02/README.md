@@ -14,6 +14,8 @@
 
 依赖批准：`check-jsonschema>=0.38,<0.39` 已由主 Agent 按 `openspec/subagent-delivery-gate.md` 批准，仅用于四份 L0 Schema 的离线验证，替代自研校验器。无法安装或无法离线解析本地 `$ref` 时必须停止；不得回退为自研引擎。
 
+执行环境决议：使用仓库根目录 `.venv`。禁止全局 pip、`--user`、`--break-system-packages` 和 Homebrew 全局安装。创建命令固定为 `python3 -m venv .venv`，依赖安装固定为 `.venv/bin/python -m pip install -r pipeline/requirements.txt`；`.venv/` 已加入 `.gitignore`，不得提交。
+
 ## Authority and dependencies
 
 - `docs/blackbox-spec-rework/D-design.md` D-02
@@ -140,6 +142,7 @@
 - 不修改 `pipeline/corpus/bazi/qtbj_ed01/manifest.yaml`。
 - 不修改工作包、PLAN、HANDOFF、TODO 或现有 `verify-T.sh`。
 - 不用远程 `$ref`，所有 Schema 必须离线验证。
+- 不修改系统 Python、用户 site-packages 或 Homebrew 环境；所有 Python/CLI 调用使用仓库 `.venv/bin/`。
 
 ## Stop conditions
 
