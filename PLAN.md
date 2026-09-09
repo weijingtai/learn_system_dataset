@@ -36,7 +36,7 @@
 
 **2026-09-08 初始基线**：`bash docs/blackbox-spec-rework/verify-T.sh` → 19 FAIL / 1 PASS。每完成一条 T 类，FAIL 减一。
 
-**当前第一执行序列**：`D-01`、`D-03`、`T-02` 已验收；D-02 的 BDD/TDD/两份 ACT/Prompt/Acceptance 已通过转译审查 R2，状态 `READY`。下一步由用户派发 `docs/blackbox-spec-rework/work-items/d02/PROMPT.md`，主 Agent 不编写 Schema 实现。ACT 01/02/03、T-11、D-16 与该序列无共享写路径时可并行，但均须先达到工作包 `READY`。
+**当前第一执行序列**：`D-01`、`D-03`、`T-02`、`D-02` 已验收。下一步先准备 R0 依赖解锁工作包，严格按 `ACT 03 → ACT 04` 执行；因既有 `ai_core` 传递依赖冲突，ACT 03 只做引用与精确差异检查，待 ACT 04 移除全部内网依赖后，对两项合并执行 `flutter pub get`、`flutter analyze` 与 `flutter test` 准出门禁。随后再分别准备并执行 ACT 01、ACT 02 的真实 Red→Green 工作包。主 Agent 只制作规格、BDD、TDD、ACT、Prompt 并独立验收，不编写业务实现。
 
 **7 项架构决议已由用户于 2026-09-08 批准**：单机 Ledger 本地进程；Pattern 是 Concept 的可规则识别子类、KnowledgeEntry 是发布视图；EditionPart 优先按卷；现有工作台提升为 Review Console；校订事实/corpus 迁移、派生索引重跑、旧知识库冻结；原件进入本地 Object Store 且分发受 ReleasePolicy 控制；工作台 AI 聊天剥离并在未来由 M4 Model Adapter 取代。旧存储和旧路径的权威说明见 `openspec/legacy-storage-transition.md`。
 
@@ -55,7 +55,7 @@ RE→T-11 + D-18；RF→D-14~D-17 + T-12/T-13；RG→D-19。**覆盖完整，无
 ### RA 身份与内核契约（L0，阻断其余全部条目）
 
 - [x] 修复: `openspec/learn-system-blackbox-architecture.md:§2 原则7` 把「版本 ID」与「业务身份 ID」混为一谈，导致返工时历史 ReviewDecision 失去指向对象、发版后下游注解集体断锚 ｜ 通过标准: 规格中出现 `entity_id`（跨 Revision 稳定、要求复用）与 `artifact_revision_id`（不可复用）两类标识的定义，原则7 改为只约束后者，并声明 ReviewDecision / EvidenceLink / Annotation 一律锚定 `entity_id` ｜ 依据：§2 原则 7、§8.1「标识与修订语义」
-- [ ] 修复: `openspec/learn-system-blackbox-architecture.md:§7,§8` StepRequest/StepResult/Package 信封只有「至少包含」的散文，无字段全集与机器可读 schema，任何 Module 任务连输入都无法定义 ｜ 通过标准: 提交 `openspec/schemas/` 下 ArtifactRef、StepRequest、StepResult、StagePackage 四个 schema 文件；并用现有 `pipeline/corpus/bazi/qtbj_ed01/manifest.yaml` 构造 round-trip 示例通过校验
+- [x] 修复: `openspec/learn-system-blackbox-architecture.md:§7,§8` StepRequest/StepResult/Package 信封只有「至少包含」的散文，无字段全集与机器可读 schema，任何 Module 任务连输入都无法定义 ｜ 通过标准: 提交 `openspec/schemas/` 下 ArtifactRef、StepRequest、StepResult、StagePackage 四个 schema 文件；并用现有 `pipeline/corpus/bazi/qtbj_ed01/manifest.yaml` 构造 round-trip 示例通过校验
 - [ ] 修复: `openspec/learn-system-blackbox-architecture.md:§4,§8,§13,§14` 状态枚举散落且不成集（全文只有孤立的 `not_captured`），且未声明与 `pipeline/schemas/core/SCHEMA.md` v0.2 已冻结的 7 个内容状态、9 个错误码的关系 ｜ 通过标准: 规格含四张枚举全集表（Artifact status / Stage-StepRun status / ReviewDecision 类型 / failure 分类），取值为英文小写下划线，每条标注与 SCHEMA.md v0.2 的关系（沿用 / 扩展 / 取代 / 冲突待裁）
 - [x] 修复: `openspec/learn-system-blackbox-architecture.md:§7` 单次同步 `execute()` 语义无法表达 M2 校对、M3 分歧裁决、M4 人工队列、M6 工作台四处长时人工阶段，且 `StepResult.status` 无取值集合 ｜ 通过标准: 规格含 StepRun 生命周期状态机（至少 running / awaiting_human / suspended / succeeded / failed / superseded），挂起态定义 resume_token、人工事件写回接口与超时策略 ｜ 依据：§7.1 定义跨人工队列的单一 StepRun、冻结输入、`resume_token`、事件写回与提醒式 deadline；§8.2 穷举六状态及合法迁移
 - [x] 修复: `openspec/learn-system-blackbox-architecture.md:§17` Artifact Ledger 未定义访问接口与进程模型，而其三个消费者跨语言（pipeline=Python、`ocr/local/app.py`=FastAPI、工作台=Flutter/Dart），M6 任务在此裁定前无法给出可实现接口 ｜ 通过标准: 规格写明进程模型（库内调用 / 本地服务 / 文件协议三选一）、并发写入与锁策略，并逐一说明三个消费者的接入方式

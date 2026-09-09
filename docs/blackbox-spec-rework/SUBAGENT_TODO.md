@@ -64,7 +64,7 @@
   - [x] PLAN/HANDOFF 同步
   - [x] 主 Agent 标记 `ACCEPTED`
 
-- [ ] D-02：冻结 L0 四个机器 Schema（状态：`READY`；等待用户派发）
+- [x] D-02：冻结 L0 四个机器 Schema（状态：`ACCEPTED`）
   - [x] D-03 已 `ACCEPTED`
   - [x] T-02 已 `ACCEPTED`
   - [x] README/范围/依赖/禁止项
@@ -74,12 +74,12 @@
   - [x] Executor Prompt
   - [x] Acceptance 清单
   - [x] `wjt-react` R2 判定 `READY`
-  - [ ] 派发执行 Agent
-  - [ ] 执行 Agent 提交与证据
-  - [ ] 主 Agent 规格审查
-  - [ ] 主 Agent 质量审查
-  - [ ] PLAN/HANDOFF 同步
-  - [ ] 主 Agent 标记 `ACCEPTED`
+  - [x] 派发执行 Agent
+  - [x] 执行 Agent 提交与证据（`08fe789` / `fa69901`）
+  - [x] 主 Agent 规格审查
+  - [x] 主 Agent 质量审查
+  - [x] PLAN/HANDOFF 同步
+  - [x] 主 Agent 标记 `ACCEPTED`
 
 ## G2 R0 工作台数据安全 ACT
 
