@@ -14,9 +14,6 @@ import 'package:companion_system/pages/dialogs/rule_dialog.dart'
 import 'package:companion_system/pages/settings_page.dart';
 import 'package:companion_system/pages/dialogs/ai_recognition_dialog.dart'
     show AiRecognitionDialog;
-import 'package:ai_core/widgets/ai_chat_view.dart';
-import 'package:companion_system/providers/ai_chat_controller.dart'
-    show AiChatController;
 
 // ── 列定义（顺序即默认显示顺序）────────────────────────────────────────────
 
@@ -285,55 +282,34 @@ class _RuleListPageState extends State<RuleListPage> {
           ),
         ],
       ),
-      endDrawer: Drawer(
+      endDrawer: const Drawer(
         width: 480,
         child: SafeArea(
-          child: Consumer<AiChatController>(
-            builder: (ctx, controller, _) {
-              if (!controller.isInitialized) {
-                if (controller.error != null) {
-                  return Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.error_outline,
-                            color: Colors.red, size: 48),
-                        const SizedBox(height: 16),
-                        SelectableText(
-                          controller.error!,
-                          style:
-                              const TextStyle(color: Colors.red, fontSize: 13),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 8),
-                        const Text(
-                          '请检查 API Key 和 Base URL 配置。',
-                          style: TextStyle(color: Colors.grey),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
-                    ),
-                  );
-                }
-                return const Center(child: CircularProgressIndicator());
-              }
-              final persona = controller.persona;
-              final sessionUuid = controller.sessionUuid;
-              if (persona == null || sessionUuid == null) {
-                return const Center(child: Text('配置错误，请检查 API Key 和模型设置。'));
-              }
-              return AiChatView(
-                key: ValueKey(controller.refreshKey),
-                persona: persona,
-                sessionUuid: sessionUuid,
-                db: controller.db,
-                aiService: controller.aiService,
-                history: controller.history,
-                welcomeMessage: '您好！我是格局助手。\n\n'
-                    '您可以查看 AI 识别记录，也可以直接提问。',
-              );
-            },
+          child: Center(
+            child: Padding(
+              padding: EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.info_outline,
+                    color: Colors.deepPurple,
+                    size: 48,
+                  ),
+                  SizedBox(height: 16),
+                  Text(
+                    'AI 对话功能已剥离',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  SizedBox(height: 12),
+                  Text(
+                    '工作台前端直连大模型旁路已移除。\n相关模型能力已收敛至 M4 知识编译流水线。',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.grey, fontSize: 14, height: 1.5),
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
       ),

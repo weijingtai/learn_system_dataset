@@ -3,7 +3,6 @@ library;
 
 import 'package:flutter/foundation.dart';
 import 'package:companion_system/database/drift_database.dart';
-import 'package:drift/drift.dart';
 
 class DBProvider extends ChangeNotifier {
   static final DBProvider _instance = DBProvider._internal();

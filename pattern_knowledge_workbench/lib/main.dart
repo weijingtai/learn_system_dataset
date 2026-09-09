@@ -23,7 +23,7 @@ void main() {
         ChangeNotifierProvider<SettingsProvider>(
           create: (ctx) => SettingsProvider()..load(),
         ),
-        // AiChatController 依赖 SettingsProvider，使用 ProxyProvider 自动跟随配置变化
+        // 无害化的 AiChatController 挂载（ai_core 已剥离）
         ChangeNotifierProxyProvider<SettingsProvider, AiChatController>(
           create: (_) => AiChatController(),
           update: (_, settings, controller) {

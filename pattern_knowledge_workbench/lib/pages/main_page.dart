@@ -2,9 +2,6 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:companion_system/database/drift_database.dart';
-import 'package:companion_system/providers/rule_provider.dart';
 import 'package:companion_system/pages/rule_list_page.dart';
 import 'package:companion_system/pages/pattern_management_page.dart';
 import 'package:companion_system/pages/school_management_page.dart';
