@@ -15,6 +15,8 @@
 4. 不向 `main`/`master` 合并、rebase 或 push；合并只由人类执行。
 5. 会话结束前提交所有改动，并更新 `HANDOFF.md` 和 `PLAN.md`。
 
+   受限执行 Agent 例外：当已审查的 ACT 明确禁止执行 Agent 修改 `PLAN.md`、`HANDOFF.md` 或总 TODO 时，执行 Agent 以最终证据报告完成交接，不得违反 ACT；上述协调文档由主 Agent 在独立验收后统一更新。
+
 ## 会话启动协议
 
 依次阅读 `AGENTS.md`、`HANDOFF.md`、`PLAN.md`，从 `PLAN.md` 第一项未完成任务继续，不重做已完成任务。

@@ -1,0 +1,51 @@
+task_id: blackbox-d02/01
+title: ArtifactRef 与 StagePackage 契约
+duration: 45-60m
+depends_on: []
+scope:
+  read:
+    - AGENTS.md
+    - openspec/learn-system-blackbox-architecture.md
+    - pipeline/corpus/bazi/qtbj_ed01/manifest.yaml
+    - docs/blackbox-spec-rework/work-items/d02/README.md
+    - docs/blackbox-spec-rework/work-items/d02/BDD.md
+    - docs/blackbox-spec-rework/work-items/d02/TDD.md
+  write:
+    - pipeline/requirements.txt
+    - openspec/schemas/artifact_ref.schema.json
+    - openspec/schemas/stage_package.schema.json
+    - openspec/schemas/examples/artifact_ref.valid.yaml
+    - openspec/schemas/examples/artifact_ref.stage_package.valid.yaml
+    - openspec/schemas/examples/artifact_ref.invalid_mixed_ids.yaml
+    - openspec/schemas/examples/artifact_ref.invalid_missing_logical_id.yaml
+    - openspec/schemas/examples/artifact_ref.invalid_unknown_field.yaml
+    - openspec/schemas/examples/qtbj_ed01.m1.stage_package.valid.yaml
+    - openspec/schemas/examples/stage_package.invalid_stage_mismatch.yaml
+    - openspec/schemas/examples/stage_package.invalid_missing_lineage.yaml
+    - openspec/schemas/examples/stage_package.invalid_transformation.yaml
+    - openspec/schemas/examples/stage_package.invalid_nested_ref.yaml
+    - openspec/schemas/examples/stage_package.invalid_unknown_field.yaml
+    - openspec/schemas/verify.sh
+tests_first:
+  - 先写全部 ACT01 fixture 和 verify.sh；Schema 文件不存在时运行，期望非零且错误明确指向缺失 Schema
+  - ArtifactRef 正例必须覆盖 artifact 与 stage_package 两个分支
+  - 混合 artifact_id/stage_package_id 反例必须失败
+  - artifact 与 stage_package 两个分支缺少各自逻辑 ID 的反例必须失败
+  - ArtifactRef 未知字段反例必须失败
+  - StagePackage stage 与 pkg 前缀不一致反例必须失败
+  - StagePackage 缺 lineage、transformation 缺 operation、嵌套 ArtifactRef 非法、顶层未知字段四个反例必须失败
+  - qtbj fixture 必须读取真实 manifest 校对 source_id 并做 YAML-JSON round-trip
+steps:
+  - 仅新增 check-jsonschema>=0.38,<0.39 依赖，不重排或升级其他依赖
+  - 写 fixture 与红灯 verify.sh，保存失败摘要
+  - 按 README 精确字段表写 artifact_ref.schema.json，并在其 $defs 集中定义全部核心 ID 与状态枚举
+  - 按 README 精确字段表写 stage_package.schema.json，并用八个 if/then 绑定 stage 与 package ID；lineage 必须含最小 transformation 结构
+  - 在 verify.sh 加结构断言：StagePackage required 精确齐全，所有闭合嵌套对象拒绝未知字段，仅 payload/counts 可扩展
+  - 跑 ACT01 门禁直至全绿
+  - 检查允许路径并提交
+verification:
+  - python3 -m pip install -r pipeline/requirements.txt
+  - bash openspec/schemas/verify.sh
+  - git diff --check
+commit_message: 'feat: add artifact package contracts'
+on_fail: 不开始 ACT02；不得放宽 Schema 或删除反例，报告阻断

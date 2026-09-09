@@ -36,7 +36,7 @@
 
 **2026-09-08 初始基线**：`bash docs/blackbox-spec-rework/verify-T.sh` → 19 FAIL / 1 PASS。每完成一条 T 类，FAIL 减一。
 
-**当前第一执行序列**：`D-01`、`D-03`、`T-02` 已验收；用户已确认 `art_/rev_/prun_/srun_/pkg_/rel_` 六类前缀。下一项是把 D-02 准备为 BDD/TDD/ACT/Prompt 工作包，不由主 Agent 编写实现。ACT 01/02/03、T-11、D-16 与该序列无共享写路径时可并行，但均须先达到工作包 `READY`。
+**当前第一执行序列**：`D-01`、`D-03`、`T-02` 已验收；D-02 的 BDD/TDD/两份 ACT/Prompt/Acceptance 已通过转译审查 R2，状态 `READY`。下一步由用户派发 `docs/blackbox-spec-rework/work-items/d02/PROMPT.md`，主 Agent 不编写 Schema 实现。ACT 01/02/03、T-11、D-16 与该序列无共享写路径时可并行，但均须先达到工作包 `READY`。
 
 **7 项架构决议已由用户于 2026-09-08 批准**：单机 Ledger 本地进程；Pattern 是 Concept 的可规则识别子类、KnowledgeEntry 是发布视图；EditionPart 优先按卷；现有工作台提升为 Review Console；校订事实/corpus 迁移、派生索引重跑、旧知识库冻结；原件进入本地 Object Store 且分发受 ReleasePolicy 控制；工作台 AI 聊天剥离并在未来由 M4 Model Adapter 取代。旧存储和旧路径的权威说明见 `openspec/legacy-storage-transition.md`。
 

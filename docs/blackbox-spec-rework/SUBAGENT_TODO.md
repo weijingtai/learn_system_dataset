@@ -64,16 +64,16 @@
   - [x] PLAN/HANDOFF 同步
   - [x] 主 Agent 标记 `ACCEPTED`
 
-- [ ] D-02：冻结 L0 四个机器 Schema（状态：`BACKLOG`；前置依赖已满足）
+- [ ] D-02：冻结 L0 四个机器 Schema（状态：`READY`；等待用户派发）
   - [x] D-03 已 `ACCEPTED`
   - [x] T-02 已 `ACCEPTED`
-  - [ ] README/范围/依赖/禁止项
-  - [ ] BDD 场景
-  - [ ] TDD 正反 fixture 与 round-trip 门禁
-  - [ ] ACT 拆分及依赖顺序
-  - [ ] Executor Prompt
-  - [ ] Acceptance 清单
-  - [ ] `wjt-react` 判定 READY
+  - [x] README/范围/依赖/禁止项
+  - [x] BDD 场景
+  - [x] TDD 正反 fixture 与 round-trip 门禁
+  - [x] ACT 拆分及依赖顺序
+  - [x] Executor Prompt
+  - [x] Acceptance 清单
+  - [x] `wjt-react` R2 判定 `READY`
   - [ ] 派发执行 Agent
   - [ ] 执行 Agent 提交与证据
   - [ ] 主 Agent 规格审查

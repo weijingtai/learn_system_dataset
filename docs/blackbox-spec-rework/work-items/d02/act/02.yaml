@@ -1,0 +1,61 @@
+task_id: blackbox-d02/02
+title: StepRequest 与 StepResult 契约及架构接线
+duration: 45-60m
+depends_on:
+  - blackbox-d02/01
+scope:
+  read:
+    - AGENTS.md
+    - openspec/learn-system-blackbox-architecture.md
+    - openspec/schemas/artifact_ref.schema.json
+    - openspec/schemas/stage_package.schema.json
+    - openspec/schemas/verify.sh
+    - docs/blackbox-spec-rework/work-items/d02/README.md
+    - docs/blackbox-spec-rework/work-items/d02/BDD.md
+    - docs/blackbox-spec-rework/work-items/d02/TDD.md
+  write:
+    - openspec/schemas/step_request.schema.json
+    - openspec/schemas/step_result.schema.json
+    - openspec/schemas/examples/step_request.empty_inputs.valid.yaml
+    - openspec/schemas/examples/step_request.invalid_missing_inputs.yaml
+    - openspec/schemas/examples/step_request.invalid_latest.yaml
+    - openspec/schemas/examples/step_request.supersedes.valid.yaml
+    - openspec/schemas/examples/step_request.invalid_supersedes.yaml
+    - openspec/schemas/examples/step_request.invalid_unknown_field.yaml
+    - openspec/schemas/examples/step_result.awaiting_human.valid.yaml
+    - openspec/schemas/examples/step_result.invalid_missing_resume_token.yaml
+    - openspec/schemas/examples/step_result.invalid_missing_pending_queue.yaml
+    - openspec/schemas/examples/step_result.invalid_stale_token.yaml
+    - openspec/schemas/examples/step_result.invalid_failed_without_evidence.yaml
+    - openspec/schemas/examples/step_result.invalid_unknown_field.yaml
+    - openspec/schemas/verify.sh
+    - openspec/learn-system-blackbox-architecture.md
+tests_first:
+  - 先写 Step fixture 并登记 verify.sh；Schema 缺失时期望非零
+  - 空 input_artifact_ids 正例必须通过，省略字段或使用 latest 必须失败
+  - supersedes_step_run_id 合法正例通过，非法前缀失败
+  - awaiting_human 正例必须带 token 与队列；缺 token 反例必须失败
+  - awaiting_human 缺 pending_queue_artifact_ids 反例必须失败
+  - 非 awaiting_human 状态携带 token 或待处理队列必须失败
+  - failed 且 failure_artifact_ids 为空必须失败
+  - StepRequest 与 StepResult 顶层未知字段必须失败
+steps:
+  - 写 Step fixture 与红灯验证并保存失败摘要
+  - 按 README 精确字段表写 step_request.schema.json
+  - 按 README 精确字段表写 step_result.schema.json 及条件约束
+  - 扩展 verify.sh 的标准库结构断言，精确核对状态全集、minimum、uniqueItems 和四份 additionalProperties
+  - 在架构 §7/§8 登记四份 Schema、版本 1.0.0 和唯一验证命令
+  - 跑完整 D02 与全局回归门禁
+  - 核对允许路径并提交
+verification:
+  - bash openspec/schemas/verify.sh
+  - git diff --check
+  - test "$(find openspec/schemas -maxdepth 1 -name '*.schema.json' | wc -l | tr -d ' ')" = 4
+  - rg -n 'artifact_ref.schema.json|step_request.schema.json|step_result.schema.json|stage_package.schema.json|openspec/schemas/verify.sh' openspec/learn-system-blackbox-architecture.md
+  - >-
+    output=$(bash docs/blackbox-spec-rework/verify-T.sh 2>&1); code=$?;
+    count=$(printf '%s\n' "$output" | sed -n 's/^FAIL 合计: \([0-9][0-9]*\)$/\1/p');
+    test "$(printf '%s\n' "$output" | grep -c '^FAIL 合计: ')" -eq 1;
+    test -n "$count"; test "$code" -eq "$count"; test "$count" -le 17
+commit_message: 'feat: freeze l0 step contracts'
+on_fail: 不修改 ACT01 已通过契约，不放宽状态条件；报告阻断

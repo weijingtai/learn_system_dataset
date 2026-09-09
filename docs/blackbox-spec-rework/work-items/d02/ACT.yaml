@@ -1,0 +1,19 @@
+task_id: blackbox-d02-l0-contracts
+mode: sequential_two_commit_execution
+status: READY
+goal: 按顺序执行 act/01.yaml 与 act/02.yaml，冻结四个 L0 JSON Schema
+depends_on:
+  - D-01: ACCEPTED
+  - D-03: ACCEPTED
+  - T-02: ACCEPTED
+acts:
+  - id: blackbox-d02/01
+    file: docs/blackbox-spec-rework/work-items/d02/act/01.yaml
+  - id: blackbox-d02/02
+    file: docs/blackbox-spec-rework/work-items/d02/act/02.yaml
+    depends_on: blackbox-d02/01
+forbidden:
+  - 并行执行两个 ACT
+  - 合并成一个提交
+  - 修改工作包或验收标准
+on_fail: 停止在失败 ACT，不开始下一 ACT；报告原始错误、已改文件和最后通过门禁
