@@ -45,7 +45,7 @@
   - [x] PLAN/HANDOFF 与证据归档
   - [x] 主 Agent 标记 `ACCEPTED`
 
-- [ ] T-02：完整标识格式转录与新增前缀确认（状态：`READY`）
+- [ ] T-02：完整标识格式转录与新增前缀确认（状态：`REVIEWING`；第一轮需返工）
   - [x] 权威照抄源已定位
   - [x] README/范围/依赖/禁止项
   - [x] BDD 场景
@@ -55,8 +55,10 @@
   - [x] Acceptance 清单
   - [x] `wjt-react` 四查判定 `READY`
   - [ ] 用户确认新增对象 ID 前缀
-  - [ ] 派发执行 Agent
-  - [ ] 执行 Agent 提交与证据
+  - [x] 用户已派发执行 Agent
+  - [x] 执行 Agent 第一轮提交 `6e317cc` 与证据
+  - [ ] 修复 StagePackage 逻辑身份／物理 Revision 冲突
+  - [ ] 冻结 `<stage>` 为 `m1`–`m8` 闭集
   - [ ] 主 Agent 规格审查
   - [ ] 主 Agent 质量审查
   - [ ] PLAN/HANDOFF 同步

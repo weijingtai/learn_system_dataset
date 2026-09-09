@@ -1,11 +1,11 @@
 # HANDOFF
 
-更新时间：2026-09-09（G0 启用；D-03 验收；T-02 READY）
+更新时间：2026-09-09（T-02 第一轮验收需返工）
 当前分支/worktree：`codex/docs/knowledge-compilation`；独立仓库 `/Users/jingtaiwei/Git/Public/learn_system`
-刚完成：用户确认启用 `openspec/subagent-delivery-gate.md`，G0 已标为 `ACCEPTED`。已为 D-03 补齐追溯 BDD/TDD/ACT/Prompt，核对提交 `b0022d4` 的三文件范围并完成规格与质量审查，结论 `ACCEPTED`。已为 T-02 建立六件套工作包并通过 ACT 四查，状态 `READY`。
-进行到一半的事（精确到文件和章节）：T-02 尚未派发；其 Executor Prompt 位于 `docs/blackbox-spec-rework/work-items/t02/PROMPT.md`。提案前缀为 `art_/rev_/prun_/srun_/pkg_/rel_ + 32hex`，执行者只能作为“待用户确认”写入 §8.1。规格整体仍为 `REVIEW_FAILED_R1`；业务代码、OCR、Schema 和验收脚本没有修改。
-下一步（第一件事）：用户把 T-02 Prompt 交给执行 Agent；Agent 返回 commit 与证据后，由主 Agent 按 `ACCEPTANCE.md` 验收，再请用户确认六类前缀。两者完成后才准备 D-02 工作包。
-已知的坑：D-02 明确依赖 §8.1 完整 ID 格式，故 T-02 未 `ACCEPTED` 前必须保持阻塞。全局 `verify-T.sh` 当前基线为 18 FAIL / 2 PASS，不能要求 T-02 清掉与其无关的失败。首纵切 10 页 PNG 被 Git 忽略，其他 clone 不可恢复，开工前必须登记到本地 Object Store。
+刚完成：独立核对 T-02 第一轮提交 `6e317cc0ddac36935fc2f34f5507ebc8cf1213a5`。范围、八类冻结格式、六类提案存在性、版本轴及机器门禁通过，T-02b 已转绿，全局由 18 降至 17 FAIL。规格/质量审查发现两项阻断，故未验收。
+进行到一半的事（精确到文件和章节）：架构规格 :210 要求 StagePackage 物理修订使用 `artifact_revision_id=rev_...`，但 :249/:261 又把 `pkg_...` 定义为物理修订；同时 `<stage>` 没有闭集。已扩充 T-02 的 BDD/TDD/Acceptance 并新增 `REWORK_PROMPT.md`。业务代码、OCR、Schema 和依赖没有修改。
+下一步（第一件事）：将 `docs/blackbox-spec-rework/work-items/t02/REWORK_PROMPT.md` 交给同一或另一执行 Agent。返工提交回来后，重跑补充门禁；通过后再由用户确认六类前缀并验收 T-02。
+已知的坑：建议保留六个前缀本身，但 `pkg_...` 必须是 StagePackage 逻辑身份，物理版本另用 `rev_...`；`<stage>` 应冻结为 m1–m8。D-02 在 T-02 `ACCEPTED` 前继续阻塞。首纵切 10 页 PNG 被 Git 忽略，其他 clone 不可恢复，开工前必须登记到本地 Object Store。
 
 ---
 2026-07-11（Claude/Cowork）：仓库文档已按并行线拆分——Tag 文档全部迁至 `tag_system/`（原 docs/superpowers/specs/ 下两份 Tag 规格已移至 tag_system/specs/），知识编译与产品母稿迁至 `knowledge_system/`。仓库地图见根 README.md。本文件中旧路径引用以新位置为准。

@@ -19,6 +19,10 @@ for s in 'art_<32hex>' 'rev_<32hex>' 'prun_<32hex>' 'srun_<32hex>' 'pkg_<stage>_
 rg -q 'Schema.*[Vv]ersion.*Revision|Schema 版本.*Revision' "$SPEC"
 rg -q '待用户确认|提案' "$SPEC"
 rg -q 'uuid\.uuid4\(\)\.hex|UUIDv4' "$SPEC"
+rg -q 'StagePackage.*逻辑身份|逻辑身份.*StagePackage' "$SPEC"
+rg -q 'm1.*m8|m1`.*`m2`.*`m3`.*`m4`.*`m5`.*`m6`.*`m7`.*`m8' "$SPEC"
+! rg -q 'pkg_<stage>_<32hex>.*物理修订|Content Revision.*pkg_<stage>_<32hex>' "$SPEC"
+rg -q 'ArtifactRef.*pkg_<stage>_<32hex>.*rev_<32hex>|ArtifactRef.*stage_package_id.*artifact_revision_id' "$SPEC"
 git diff --check
 ```
 
@@ -31,4 +35,6 @@ git diff --check
 - `Artifact` 与 `Artifact Revision` 是两种 ID，不得合并。
 - 六类新格式显著标为待确认，不进入冻结表。
 - 文档明确拒绝 `pr_` 复用于 ProcessingRun。
+- `pkg_...` 是 StagePackage 的逻辑身份；每个物理版本另用 `rev_...`。
+- `<stage>` 冻结为 `m1` 至 `m8`，能直接生成确定性正则。
 - 本任务未产生代码、Schema、fixture 或依赖变更。

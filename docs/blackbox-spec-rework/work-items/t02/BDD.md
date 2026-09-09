@@ -27,3 +27,11 @@ Given 六类新 ID 尚未获用户确认，Then架构只把它们标为提案，
 ## B7 最小依赖
 
 Given 单人单机目标，Then新稳定段可由语言标准库生成，不要求数据库服务、身份系统或新第三方包。
+
+## B8 StagePackage 双标识
+
+Given 同一个 StagePackage 被修正，When 表达修正前后的两个版本，Then `stage_package_id`（`pkg_...`）保持不变，每个版本分别取得新的 `artifact_revision_id`（`rev_...`），ArtifactRef 同时携带两者。
+
+## B9 Stage 闭集
+
+Given D-02 需要生成确定性 ID 正则，When 解析 `pkg_<stage>_<32hex>`，Then `<stage>` 只能取 `m1` 至 `m8`；其他值必须判为非法。
