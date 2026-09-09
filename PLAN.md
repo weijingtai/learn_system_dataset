@@ -34,7 +34,7 @@
 | `docs/blackbox-spec-rework/D-design.md` | 19 条设计型，含约束边界、判据、已否决方案、执行顺序 | 较强模型 |
 | `docs/blackbox-spec-rework/verify-T.sh` | T 类机器判据，退出码 = FAIL 数 | — |
 
-**当前基线**：`bash docs/blackbox-spec-rework/verify-T.sh` → 19 FAIL / 1 PASS。每完成一条 T 类，FAIL 减一。
+**2026-09-08 初始基线**：`bash docs/blackbox-spec-rework/verify-T.sh` → 19 FAIL / 1 PASS。每完成一条 T 类，FAIL 减一。
 
 **当前第一执行序列**：严格执行 `D-01 → D-03 → D-02`；ACT 01/02/03、T-11、D-16 与该序列无共享写路径时可并行。
 

@@ -20,7 +20,8 @@
 - **约束边界**：
   - `entity_id`：跨 Revision 稳定的业务身份，**要求复用**。适用于 Pattern / Assertion / SourceSpan /
     Concept / SchoolView / KnowledgeEntry 等领域对象。
-  - `artifact_revision_id`：物理修订标识，**禁止复用**。适用于 Artifact / StagePackage / StepRun。
+  - `artifact_revision_id`：物理修订标识，**禁止复用**。适用于 Artifact / StagePackage。
+  - `step_run_id`：StepRun 自身的运行标识；每次重跑都新建 StepRun 并取得新的 `step_run_id`。
   - 原则 7 改为只约束后者，措辞必须明确到不会被再次误读。
   - ReviewDecision、EvidenceLink、下游 Annotation 一律锚定 `entity_id`。
 - **判据**：

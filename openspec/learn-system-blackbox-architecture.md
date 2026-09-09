@@ -186,13 +186,15 @@ Package 封存后不可修改。修正产生新的 Package Revision。
 
 ### 8.1 标识与修订语义
 
-`entity_id` 表示跨 Revision 稳定、必须复用的业务身份。Pattern、Assertion、SourceSpan、Concept、SchoolView、KnowledgeEntry 等领域对象均使用稳定 `entity_id`；具体 Contract 可以使用 `pattern_id`、`concept_id`、`entry_id` 等领域化字段名，但它们必须遵守同一 `entity_id` 语义，不得因内容修订而换号。
+`entity_id` 表示跨 Revision 稳定、必须复用的业务身份。Pattern、Assertion、SourceSpan、Concept、SchoolView、KnowledgeEntry 等领域对象均使用稳定 `entity_id`；具体 Contract 可以使用 `pattern_id`、`concept_id`、`entry_id`、`ocr_profile_id` 等领域化字段名，但它们必须遵守同一 `entity_id` 语义，不得因内容修订而换号。
 
-`artifact_revision_id` 表示一次不可变物理修订。Artifact、StagePackage 等物理修订每次封存或修正都必须创建新的 `artifact_revision_id`，旧修订永久保留，且任何新修订不得复用既有 `artifact_revision_id`。
+`artifact_revision_id` 表示一次不可变物理修订。Artifact、StagePackage 等物理修订每次封存或修正都必须创建新的 `artifact_revision_id`，旧修订永久保留，且任何新修订不得复用既有 `artifact_revision_id`；领域化字段 `ocr_profile_revision_id` 遵守同一 `artifact_revision_id` 语义。
+
+§7 的 `input_artifact_ids`、`configuration_artifact_id` 与 `output_artifact_ids` 都必须引用已冻结的 `artifact_revision_id`；执行方只能按这些精确修订读取或返回 Artifact，绝不能把它们解析为对象的“最新版本”。
 
 StepRun 自身使用 `step_run_id`，不使用 `artifact_revision_id` 充当运行身份。每次重跑都创建新的 StepRun 和新的 `step_run_id`；该次运行产生的 Artifact 仍按上一段取得各自的 `artifact_revision_id`。
 
-ReviewDecision、EvidenceLink 与下游 Annotation 一律锚定目标对象的 `entity_id`，并可同时附带具体 `artifact_revision_id`，以重现作出决定、建立证据关系或创建注解时所见的内容。不得只锚定物理修订，也不得以 `stable_key` 绕过 `entity_id`。
+ReviewDecision 与 EvidenceLink 必须同时记录目标对象的 `entity_id`，以及作出决定或建立证据关系时所见的 `artifact_revision_id`。下游 Annotation 以目标对象的 `entity_id` 为主锚，并必须记录创建时所见的 `artifact_revision_id`。两部分缺一即不能重现当时内容；不得只锚定物理修订，也不得以 `stable_key` 绕过 `entity_id`。
 
 对象删除后，其 `entity_id` 永久退役；对象合并或拆分时，新对象必须取得新的 `entity_id`，不得把任一旧 `entity_id` 复用于语义已经改变的新对象。旧身份到新身份的迁移关系由后续 `IdentityMigrationMap` 表达。
 
