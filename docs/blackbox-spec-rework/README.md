@@ -36,32 +36,31 @@ T 类的答案分别来自：
 | PLAN.md 处置 | **只增补不重写**，未勾选项零删除 | 审查结论，见 D-16 |
 | 门禁命名 | 全规格只允许出现 G1–G7，不得新造门禁名 | `DATASET_ACCEPTANCE_STANDARD.md` §4 |
 
-## ⚠ 还需要你拍板的（拍板前对应条目不得开工）
+## 已拍板的 7 项（2026-09-08）
 
-| # | 问题 | 在哪 | 为什么不能由执行者决定 |
+| # | 问题 | 决议 | 后续状态 |
 |---|---|---|---|
-| 1 | Ledger 进程模型：库内调用 / 本地服务 / 文件协议 | D-04 | 三个消费者跨 Python / FastAPI / Flutter，是长期架构选择 |
-| 2 | Pattern、Concept、KnowledgeEntry 三者关系 | D-05 | 产品级建模决策，决定 M4/M6/M7/M8 的主键对象 |
-| 3 | `EditionPart` 取卷 / 册 / 篇 / 页区间 | D-09 | 取决于《三辰通载》实际版式，需人看过书 |
-| 4 | M3/M4 人工队列归属：扩 M6 还是新建工具 | D-12 | 影响工具数量与职责边界 |
-| 5 | 五处既有存储：迁移 / 重跑 / 冻结 | D-17 | 涉及是否丢弃既有劳动成果 |
-| 6 | 版权边界：源 PDF 放哪、APP 是否最终要能打开原书 | D-19 | 产品与版权判断 |
-| 7 | 工作台 AI 聊天：剥离还是抽象保留 | `act/04.yaml` | 范围决策，见下方异议 |
+| 1 | Ledger 进程模型 | 单机本地进程；统一客户端；单写入者 + WAL | 已写回规格，待实现 |
+| 2 | Pattern、Concept、KnowledgeEntry | Pattern 是 Concept 的可规则识别子类；KnowledgeEntry 是发布聚合视图 | 已写回规格，待补齐 R1 全部契约 |
+| 3 | `EditionPart` | 优先按卷；无卷时用连续页区间 | 已写回规格，待实现 |
+| 4 | M3/M4 人工队列 | 复用并提升现有工作台为跨阶段 Review Console | 已写回规格，待实现 |
+| 5 | 既有存储 | 校订事实和 corpus 迁移；派生索引重跑；旧 units/工作台库冻结 | 详见 `openspec/legacy-storage-transition.md` |
+| 6 | 版权边界 | 原件放本地 Object Store；APP具备打开能力；是否随包下发由 ReleasePolicy 决定 | 已写回规格，待实现 |
+| 7 | 工作台 AI 聊天 | 从 Review Console 剥离；未来只经 M4 Model Adapter 接入 | ACT 04 已解除拍板阻塞，待执行 |
 
-## 转译者异议（两条，按协议提出而非擅自处理）
+## 转译者异议的裁定
 
-**异议 1 — R0 第 3 条的通过标准不可达。**
+**异议 1 — 已裁定。**
 原文写「`grep -c '192.168' pubspec.yaml` 返回 0」。经核对：`enumeration` 全仓 `*.dart` 引用数为 **0**（可直接删，已转译为 ACT 03）；
 但 `ai_core` 有 **8 处 import**，分布在 `lib/providers/ai_chat_controller.dart`（6 处）、
 `lib/pages/chat_page.dart`、`lib/pages/rule_list_page.dart`，直接删会导致工作台编译不过。
-该标准只有在「剥离 AI 聊天」这一选项下才可达；若选「抽象保留」，`ai_core` 仍需留在 pubspec，
-判据须改为「`lib/` 下 `package:ai_core` 引用收敛到 1 个文件」。
-**本转译未修改验收标准**，只在 `act/04.yaml` 标注冲突并上报。
+用户已于 2026-09-08 选择「剥离 AI 聊天」。因此原验收标准可达，ACT 04 在 ACT 03 完成后可执行；
+未来模型能力只通过 M4 Model Adapter 和已留痕 CandidatePackage 接入。
 
-**异议 2 — R1 审查后新发现的第 39、40 条（RG 组）不在原四角色报告中。**
+**异议 2 — 已纳入。**
 转译时核对 `.gitignore` 才发现：仓库明令「版权源书不进公开仓」，`*.pdf` 与 `raw_books/**/*.pdf` 均被忽略，
 而首纵切源 PDF 实测 **247M**。这与 `§9`／`§16`／`§20.8`／`LEARN_SYSTEM_TARGET.md:140` 四处冲突。
-已作为 RG 组补入 PLAN.md 并转译为 D-19。若你认为该组超出本轮范围，请明示，我会移出。
+已作为 RG 组补入 PLAN.md，并按用户批准的三层存储与 ReleasePolicy 方案写入正式规格。
 
 ## 怎么验
 

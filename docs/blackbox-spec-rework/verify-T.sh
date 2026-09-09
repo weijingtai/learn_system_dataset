@@ -52,7 +52,7 @@ chk T-13b "无节被标最终规范"          "0"    "$(c '^状态：最终规�
 echo
 echo "=== D 类前置(仅提示，不计入退出码) ==="
 printf '  entity_id 拆分:        %s 处\n' "$(c 'entity_id')"
-printf '  KnowledgeEntry 归位:   %s 处 (当前应为 0)\n' "$(c 'KnowledgeEntry')"
+printf '  KnowledgeEntry 归位:   %s 处 (目标 >=3)\n' "$(c 'KnowledgeEntry')"
 printf '  EditionPart 定义:      %s 处\n' "$(c 'EditionPart')"
 printf '  失效传播改写:          残留「M3 至 M6 全部失效」%s 处 (目标 0)\n' "$(c 'M3 至 M6 全部失效')"
 printf '  §20 判据脚本:          %s\n' "$([ -f openspec/acceptance/run_all.sh ] && echo 存在 || echo 缺失)"

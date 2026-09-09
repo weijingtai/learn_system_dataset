@@ -1,11 +1,11 @@
 # HANDOFF
 
-更新时间：2026-09-08（R1 返工转译 v1 后）
+更新时间：2026-09-08（七项架构决议落盘后）
 当前分支/worktree：`codex/docs/knowledge-compilation`；独立仓库 `/Users/jingtaiwei/Git/Public/learn_system`
-刚完成：R1 的 38 条返工项及新增 RG 版权边界 2 条，已转译为 `docs/blackbox-spec-rework/` 下 4 个 ACT、13 条转录类和 19 条设计类指令；提交 `f241c83`。首纵切已裁定为七政《三辰通载三十卷》影宋鈔本 10 页、字框级证据、复用现有工作台、496 条空 rule 不作输入。
-进行到一半的事（精确到文件和章节）：规格仍为 `REVIEW_FAILED_R1`；40 条要求尚未返工。`bash docs/blackbox-spec-rework/verify-T.sh` 基线实测 19 FAIL / 1 PASS。业务实现未开始。
-下一步（第一件事）：执行不需拍板的第 1 轮：ACT 01/02/03、T-11、D-16；PLAN 只增补映射，不重写、不删除既有未完成项。
-已知的坑：仍有 7 个拍板点：Ledger 进程模型、Pattern/Concept/KnowledgeEntry 关系、EditionPart 单位、M3/M4 人工队列归属、五处旧存储处置、版权边界、工作台 AI 去留。ACT 04 在 AI 去留裁定前禁止开工；R0-3 原 `grep 192.168 == 0` 标准在“抽象保留 AI”路径不可达。
+刚完成：用户批准 7 项架构决议并写回规格：Ledger 本地进程、三对象关系、按卷 EditionPart、统一 Review Console、旧存储分类处置、三层版权存储、剥离工作台 AI 聊天。新增 `openspec/legacy-storage-transition.md`，并由根 AGENTS/README 强制引导后续 Agent 阅读。
+进行到一半的事（精确到文件和章节）：规格仍为 `REVIEW_FAILED_R1`，其余 R1 返工未完成；T 判据仍为 19 FAIL / 1 PASS。迁移只是决议，尚未执行；业务代码未修改。
+下一步（第一件事）：请用户复核本次规格与旧路径迁移地图；确认后继续第 1 轮 ACT 01/02/03、T-11、D-16。
+已知的坑：`ocr/data_work/index.db` 经源码复核是可重建索引，最终方案改为迁移页面 JSON/校订/审计事实并重建索引；首纵切 10 页 PNG 位于仓库工作目录但被 Git 忽略，其他 clone 不可恢复，开工前必须登记到本地 Object Store。
 
 ---
 2026-07-11（Claude/Cowork）：仓库文档已按并行线拆分——Tag 文档全部迁至 `tag_system/`（原 docs/superpowers/specs/ 下两份 Tag 规格已移至 tag_system/specs/），知识编译与产品母稿迁至 `knowledge_system/`。仓库地图见根 README.md。本文件中旧路径引用以新位置为准。
