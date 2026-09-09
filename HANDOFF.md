@@ -1,11 +1,11 @@
 # HANDOFF
 
-更新时间：2026-09-09（D-03 StepRun 生命周期状态机完成）
+更新时间：2026-09-09（Subagent 工作包准出制度建立）
 当前分支/worktree：`codex/docs/knowledge-compilation`；独立仓库 `/Users/jingtaiwei/Git/Public/learn_system`
-刚完成：D-03 已在 `openspec/learn-system-blackbox-architecture.md` §7.1、§8.2 与 §17 落地：StepRun 采用 `running / awaiting_human / suspended / succeeded / failed / superseded` 六状态和封闭迁移表；一次 StepRun 承载一个 EditionPart 的一个阶段任务及其整个人工队列；人工决定作为同一 StepRun 的不可变事件写回；`awaiting_human` 定义了绑定运行与状态版本的单次 `resume_token`、冻结输入、队列引用、事件写回和无自动失败的 deadline；Artifact Revision 另有五状态及封闭迁移表，并明确与七个内容成熟度状态正交；Ledger 故障改用可持久对账的 `suspended` / `recovery` 语义。PLAN 的 RN-3 与 RA D-03 已勾选并附依据，RA 的四张枚举全集表仍未勾选。
-进行到一半的事（精确到文件和章节）：规格仍为 `REVIEW_FAILED_R1`；D-02 与其他 R1 返工均未完成，所有 T 类条目仍未完成。迁移只是决议，尚未执行；业务代码、OCR、Schema、验证脚本与验收标准均未修改。
-下一步（第一件事）：严格执行 D-02（冻结 L0 机器 Schema）。
-已知的坑：StepRun 的终态不可改写；重跑新建运行并用 `supersedes_step_run_id` 关联。`awaiting_human` 只表示等待人工队列，基础设施不可用或操作者主动暂停必须使用 `suspended`。RA 的“四张枚举全集表”仍缺 ReviewDecision / failure 与 SCHEMA 关系，须留给 T-03；`verify-T.sh` 仍会因未完成 T 项按预期失败。首纵切 10 页 PNG 被 Git 忽略，其他 clone 不可恢复，开工前必须登记到本地 Object Store。
+刚完成：用户明确主 Agent 不再亲自实现，只负责把工作项准备为规格、BDD、TDD、ACT、Executor Prompt 和 Acceptance 包，再验收其他 AI Agent 的提交。已新增 `openspec/subagent-delivery-gate.md` 与 `docs/blackbox-spec-rework/SUBAGENT_TODO.md`，按大项/小项跟踪全部执行 Agent 工作；只有主 Agent 核对原始证据后才能勾选完成。
+进行到一半的事（精确到文件和章节）：D-03 已由执行代理提交 `b0022d4`，但在新制度下仍处于 `REVIEWING`，尚未补齐 BDD/TDD/ACT 对照和最终验收。规格仍为 `REVIEW_FAILED_R1`；业务代码、OCR、Schema 和验收脚本没有在本轮修改。
+下一步（第一件事）：请用户复核 Subagent 准出书面规格；通过后先补齐并验收 D-03 工作包，再准备 T-02 工作包。T-02 完成并确认新增对象 ID 前缀后，才能生成 D-02 的 READY 工作包。
+已知的坑：旧执行顺序写成 `D-01 → D-03 → D-02`，但 D-02 明确依赖 §8.1 完整 ID 格式，而 T-02b 仍 FAIL，存在隐式循环依赖；真实顺序必须插入 T-02。首纵切 10 页 PNG 被 Git 忽略，其他 clone 不可恢复，开工前必须登记到本地 Object Store。
 
 ---
 2026-07-11（Claude/Cowork）：仓库文档已按并行线拆分——Tag 文档全部迁至 `tag_system/`（原 docs/superpowers/specs/ 下两份 Tag 规格已移至 tag_system/specs/），知识编译与产品母稿迁至 `knowledge_system/`。仓库地图见根 README.md。本文件中旧路径引用以新位置为准。

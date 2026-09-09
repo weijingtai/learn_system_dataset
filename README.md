@@ -8,6 +8,8 @@
 
 > **OCR 参数化：[`openspec/ocr-profile-parameterization.md`](openspec/ocr-profile-parameterization.md)**。现有中国传统竖排古籍 OCR 与校订 UI 保持不变；每个 Edition 通过版本化 `OCRProfile` 校准、冻结并留痕。
 
+> **Subagent 工作监控：[`docs/blackbox-spec-rework/SUBAGENT_TODO.md`](docs/blackbox-spec-rework/SUBAGENT_TODO.md)**。所有大项及其 BDD、TDD、ACT、Prompt、执行、验收小项在此勾选；准出规则见 [`openspec/subagent-delivery-gate.md`](openspec/subagent-delivery-gate.md)。
+
 > 2026-07-11 重组：文档按两条并行工作线拆分，**两区文档不得互混**。新文件落位规则：先问"这是关于 Marks/Tag 的，还是关于书籍知识编译/产品的？"
 
 ```text

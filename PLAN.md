@@ -113,6 +113,9 @@ RE→T-11 + D-18；RF→D-14~D-17 + T-12/T-13；RG→D-19。**覆盖完整，无
 
 ## Learn System 系统集成主线
 
+- [x] 确认主 Agent 的工作边界：只负责规格、BDD、TDD、ACT、Executor Prompt 和独立验收，不代替执行 Agent 编写业务实现。准出规范见 `openspec/subagent-delivery-gate.md`，总进度见 `docs/blackbox-spec-rework/SUBAGENT_TODO.md`。
+- [ ] 复核并启用 `openspec/subagent-delivery-gate.md`；启用后所有新派发任务必须先达到 `READY`。
+- [ ] 修正内核执行依赖为 `D-03 验收 → T-02 完成及新增前缀确认 → D-02`；T-02 未完成前不得冻结 L0 Schema。
 - [x] 调研单人单机条件下可直接复用的免费开源框架；候选组合与自研边界见 `docs/research/2026-09-08-open-source-framework-options.md`，尚待确认后写入正式 OpenSpec。
 - [x] 明确当前不实现登录鉴权；只保留固定返回 `local_owner` 的 `ActorProvider` 接口，未来可替换线上身份适配器。业务对象稳定 ID 不属于登录身份系统，仍按 D-01 处理。
 - [x] 确认 OCR 参数化设计：现有中国传统竖排古籍 OCR/FastAPI/Vue 保持主链，不引入 Kraken；每个 Edition 使用经代表页校准、人工验收和冻结的版本化 `OCRProfile`。设计见 `openspec/ocr-profile-parameterization.md`。
