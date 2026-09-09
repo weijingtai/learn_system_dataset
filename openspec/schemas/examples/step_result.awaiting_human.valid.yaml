@@ -1,0 +1,12 @@
+schema_version: "1.0.0"
+processing_run_id: prun_00000000000000000000000000000001
+step_run_id: srun_00000000000000000000000000000001
+status_version: 1
+status: awaiting_human
+output_artifact_ids: []
+validation_report_ids: []
+log_artifact_ids: []
+failure_artifact_ids: []
+resume_token: tok_00000000000000000000000000000001_secret
+pending_queue_artifact_ids:
+  - rev_00000000000000000000000000000001

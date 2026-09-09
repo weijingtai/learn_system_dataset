@@ -167,6 +167,10 @@ execute(StepRequest) → StepResult
 - `log_artifact_ids`
 - `failure_artifact_ids`
 
+`StepRequest` 与 `StepResult` 的机器契约由以下 JSON Schema（Draft 2020-12，`schema_version: "1.0.0"`）冻结：
+- `openspec/schemas/step_request.schema.json`
+- `openspec/schemas/step_result.schema.json`
+
 Module 只能读取请求中明确冻结的 Artifact，不得读取上游工作目录中的“最新文件”。
 
 ### 7.1 StepRun 生命周期与人工恢复
@@ -200,6 +204,14 @@ failures      本次及此前失败记录引用
 ```
 
 Package 封存后不可修改。修正产生新的 Package Revision。
+StagePackage 与制品引用的机器契约由以下 JSON Schema（Draft 2020-12，`schema_version: "1.0.0"`）冻结：
+- `openspec/schemas/stage_package.schema.json`
+- `openspec/schemas/artifact_ref.schema.json`
+
+四份 L0 机器契约的唯一验证命令为：
+```bash
+bash openspec/schemas/verify.sh
+```
 
 ### 8.1 标识与版本规范
 

@@ -1,0 +1,124 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "StepResult",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "$ref": "artifact_ref.schema.json#/$defs/schemaVersion"
+    },
+    "processing_run_id": {
+      "$ref": "artifact_ref.schema.json#/$defs/processingRunId"
+    },
+    "step_run_id": {
+      "$ref": "artifact_ref.schema.json#/$defs/stepRunId"
+    },
+    "status_version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "status": {
+      "$ref": "artifact_ref.schema.json#/$defs/stepRunStatus"
+    },
+    "output_artifact_ids": {
+      "type": "array",
+      "items": {
+        "$ref": "artifact_ref.schema.json#/$defs/artifactRevisionId"
+      },
+      "uniqueItems": true
+    },
+    "validation_report_ids": {
+      "type": "array",
+      "items": {
+        "$ref": "artifact_ref.schema.json#/$defs/artifactRevisionId"
+      },
+      "uniqueItems": true
+    },
+    "log_artifact_ids": {
+      "type": "array",
+      "items": {
+        "$ref": "artifact_ref.schema.json#/$defs/artifactRevisionId"
+      },
+      "uniqueItems": true
+    },
+    "failure_artifact_ids": {
+      "type": "array",
+      "items": {
+        "$ref": "artifact_ref.schema.json#/$defs/artifactRevisionId"
+      },
+      "uniqueItems": true
+    },
+    "resume_token": {
+      "type": "string",
+      "minLength": 32
+    },
+    "pending_queue_artifact_ids": {
+      "type": "array",
+      "items": {
+        "$ref": "artifact_ref.schema.json#/$defs/artifactRevisionId"
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    }
+  },
+  "required": [
+    "schema_version",
+    "processing_run_id",
+    "step_run_id",
+    "status_version",
+    "status",
+    "output_artifact_ids",
+    "validation_report_ids",
+    "log_artifact_ids",
+    "failure_artifact_ids"
+  ],
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "awaiting_human"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "resume_token",
+          "pending_queue_artifact_ids"
+        ]
+      },
+      "else": {
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "resume_token"
+              ]
+            },
+            {
+              "required": [
+                "pending_queue_artifact_ids"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "failed"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "failure_artifact_ids": {
+            "minItems": 1
+          }
+        }
+      }
+    }
+  ]
+}

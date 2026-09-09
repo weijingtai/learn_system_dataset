@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "StepRequest",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "$ref": "artifact_ref.schema.json#/$defs/schemaVersion"
+    },
+    "processing_run_id": {
+      "$ref": "artifact_ref.schema.json#/$defs/processingRunId"
+    },
+    "step_run_id": {
+      "$ref": "artifact_ref.schema.json#/$defs/stepRunId"
+    },
+    "input_artifact_ids": {
+      "type": "array",
+      "items": {
+        "$ref": "artifact_ref.schema.json#/$defs/artifactRevisionId"
+      },
+      "uniqueItems": true
+    },
+    "technique_profile_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "configuration_artifact_id": {
+      "$ref": "artifact_ref.schema.json#/$defs/artifactRevisionId"
+    },
+    "supersedes_step_run_id": {
+      "$ref": "artifact_ref.schema.json#/$defs/stepRunId"
+    }
+  },
+  "required": [
+    "schema_version",
+    "processing_run_id",
+    "step_run_id",
+    "input_artifact_ids",
+    "technique_profile_id",
+    "configuration_artifact_id"
+  ]
+}

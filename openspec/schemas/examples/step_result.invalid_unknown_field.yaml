@@ -1,0 +1,10 @@
+schema_version: "1.0.0"
+processing_run_id: prun_00000000000000000000000000000001
+step_run_id: srun_00000000000000000000000000000001
+status_version: 1
+status: running
+output_artifact_ids: []
+validation_report_ids: []
+log_artifact_ids: []
+failure_artifact_ids: []
+unknown_field: invalid_data

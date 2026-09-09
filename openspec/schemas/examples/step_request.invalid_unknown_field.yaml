@@ -1,0 +1,7 @@
+schema_version: "1.0.0"
+processing_run_id: prun_00000000000000000000000000000001
+step_run_id: srun_00000000000000000000000000000001
+input_artifact_ids: []
+technique_profile_id: bazi_default
+configuration_artifact_id: rev_00000000000000000000000000000001
+unknown_field: invalid_data
