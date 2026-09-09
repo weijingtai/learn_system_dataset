@@ -145,7 +145,7 @@ ReleaseRun 读取既有 `CanonicalKnowledgeSnapshot` 与本次新增的一个或
 
 ## 7. 统一 Module Interface
 
-所有加工 Module 使用同一外部 Interface：
+所有加工 Module 使用同一外部 Interface；调用可以在一个 StepRun 内跨越执行、等待人工与恢复，不承诺单次同步返回最终结果：
 
 ```text
 execute(StepRequest) → StepResult
@@ -168,6 +168,23 @@ execute(StepRequest) → StepResult
 - `failure_artifact_ids`
 
 Module 只能读取请求中明确冻结的 Artifact，不得读取上游工作目录中的“最新文件”。
+
+### 7.1 StepRun 生命周期与人工恢复
+
+一次 `StepRun` / `execute` 只覆盖一个 EditionPart 的一个阶段任务，以及该任务衍生的整个人工队列；不得为队列中的每条人工决定另建 StepRun。每条人工决定作为不可变事件写入 Artifact Ledger，并归属原 `processing_run_id`、`step_run_id` 和 Stage。一个阶段可以包含多个此类任务，只有该 EditionPart 在该阶段的全部任务都达到 `succeeded`，Stage Gate 才能通过。
+
+StepRun 创建后从 `running` 开始。当任务需要人工处理时，进入 `awaiting_human` 并持久化以下恢复上下文：
+
+- 不透明、单次使用的 `resume_token`，同时绑定该 `step_run_id` 与当前 `status_version`；成功恢复后立即作废；
+- 本次 StepRequest 最初冻结的全部输入 `artifact_revision_id`；
+- 待处理队列的 Artifact Revision 引用；
+- 已明确写回且归属该 StepRun 的不可变人工事件 Artifact Revision 引用。
+
+`resume_token` 只是本地状态机的防重放恢复凭据，不是登录、会话或鉴权 token。`record_human_event(step_run_id, resume_token, event_artifact_revision_id)` 先校验绑定关系并把不可变人工事件写入 Ledger；事件登记本身不消费 token。队列处理完成后，调用 `resume(step_run_id, resume_token)` 原子消费 token，并按 §8.2 的合法迁移把 StepRun 恢复为 `running`。恢复执行只读取最初冻结的输入 Revision 和通过该接口明确写回的事件 Artifact，不读取工作目录中的“最新文件”，也不通过外部轮询发现人工结果。
+
+单人单机模式默认没有自动超时。实现可以登记 `deadline` 用于提醒，但超过 deadline 不得自动把 StepRun 标为 `failed`，也不得清空或丢弃待处理队列；操作者可以显式把 `awaiting_human` 转为 `suspended`。
+
+`suspended` 表示操作者主动暂停，或基础设施暂不可用；它不是等待业务人工决定的 `awaiting_human`。恢复前必须保留冻结输入、队列引用和已写入事件，并按 §8.2 的迁移重新进入 `running`。
 
 ## 8. Package 公共结构
 
@@ -197,6 +214,56 @@ StepRun 自身使用 `step_run_id`，不使用 `artifact_revision_id` 充当运�
 ReviewDecision 与 EvidenceLink 必须同时记录目标对象的 `entity_id`，以及作出决定或建立证据关系时所见的 `artifact_revision_id`。下游 Annotation 以目标对象的 `entity_id` 为主锚，并必须记录创建时所见的 `artifact_revision_id`。两部分缺一即不能重现当时内容；不得只锚定物理修订，也不得以 `stable_key` 绕过 `entity_id`。
 
 对象删除后，其 `entity_id` 永久退役；对象合并或拆分时，新对象必须取得新的 `entity_id`，不得把任一旧 `entity_id` 复用于语义已经改变的新对象。旧身份到新身份的迁移关系由后续 `IdentityMigrationMap` 表达。
+
+### 8.2 Artifact 与 StepRun 状态全集
+
+以下是 Artifact Revision 自身的完整状态集合，描述该物理修订是否可被运行消费；表外取值无效。
+
+| Artifact status | 含义 |
+|---|---|
+| `draft` | 正在写入，内容尚未封存，任何 StepRun 都不得消费或引用为冻结输入。 |
+| `sealed` | 内容已封存为不可变 Revision，可以被精确引用并作为运行输入。 |
+| `quarantined` | 封存前验证失败；保留内容与证据供诊断，但不得被运行消费。 |
+| `invalidated` | 原先已封存的 Revision 因上游变化而失效；历史仍保留，但新运行不得消费。 |
+| `superseded` | 已被更新的 Artifact Revision 取代；历史重放仍可精确读取，新运行不得把它当作当前输入。 |
+
+Artifact status 的合法迁移全集如下；未列出的迁移一律非法：
+
+| 当前状态 | 可迁移至 |
+|---|---|
+| `draft` | `sealed`、`quarantined` |
+| `sealed` | `invalidated`、`superseded` |
+| `quarantined` | `superseded` |
+| `invalidated` | `superseded` |
+| `superseded` | 无，终态 |
+
+修正 Artifact 必须新建 Artifact Revision 和新的 `artifact_revision_id`，不得把旧 Revision 改回 `draft` 或 `sealed`。
+
+以下是 StepRun 自身的完整状态集合，描述一次阶段任务的执行生命周期；表外取值无效。
+
+| StepRun status | 含义 |
+|---|---|
+| `running` | 正在执行、校验或持久化该阶段任务。 |
+| `awaiting_human` | 计算暂停，正在等待该 StepRun 的人工队列事件通过 §7.1 接口写回。 |
+| `suspended` | 操作者主动暂停，或基础设施暂不可用；不表示正在等待业务人工决定。 |
+| `succeeded` | 该阶段任务及其整个人工队列已完成并通过输出 Contract；终态。 |
+| `failed` | 该阶段任务已明确失败，失败记录已封存；终态。 |
+| `superseded` | 未完成的旧运行已被新 StepRun 取代，不再接收输出；终态。 |
+
+StepRun status 的合法迁移全集如下；未列出的迁移一律非法：
+
+| 当前状态 | 可迁移至 |
+|---|---|
+| `running` | `awaiting_human`、`suspended`、`succeeded`、`failed`、`superseded` |
+| `awaiting_human` | `running`、`suspended`、`failed`、`superseded` |
+| `suspended` | `running`、`failed`、`superseded` |
+| `succeeded` | 无，终态 |
+| `failed` | 无，终态 |
+| `superseded` | 无，终态 |
+
+重跑永远创建新的 StepRun 和新的 `step_run_id`，新运行以 `supersedes_step_run_id` 指向被取代的运行，不得清空、复用或篡改旧运行。旧运行尚未终结时可以按上表进入 `superseded`；旧运行已经处于 `succeeded`、`failed` 或 `superseded` 时保持原终态，仅由新运行的关联字段表达重跑关系。
+
+Artifact status、StepRun status 与 `pipeline/schemas/core/SCHEMA.md` 的七个“内容成熟度”状态彼此正交：Artifact status 管物理修订的可消费性，StepRun status 管执行生命周期，内容成熟度状态管领域内容的审核/发布成熟程度。三者不得混用、互相取代或推导成同一枚举；本节没有改动那七个内容成熟度状态。
 
 ## 9. M1 Source Intake
 
@@ -344,7 +411,9 @@ Artifact Ledger 使用本地混合存储：
 - 大文件和中间产物按 SHA-256 存入 content-addressed Object Store；
 - 身份、Revision、运行、关系和状态存入 SQLite Metadata Ledger。
 
-Ledger 以单机本地进程提供统一 Interface。Pipeline、OCR FastAPI 和 Flutter Review Console 都通过本地客户端调用该进程，不直接打开 Metadata Ledger。进程默认绑定 loopback 或 Unix domain socket，只允许一个写入者实例；写事务由进程串行化，SQLite 使用 WAL 允许只读查询并发。进程级锁阻止第二个 Ledger 写入者启动。进程不可用时 Module 挂起 StepRun，不回退到直接写库。
+Ledger 以单机本地进程提供统一 Interface。Pipeline、OCR FastAPI 和 Flutter Review Console 都通过本地客户端调用该进程，不直接打开 Metadata Ledger。进程默认绑定 loopback 或 Unix domain socket，只允许一个写入者实例；写事务由进程串行化，SQLite 使用 WAL 允许只读查询并发。进程级锁阻止第二个 Ledger 写入者启动。
+
+Ledger 暂不可用时适用 §8.2 的 `suspended` 语义：Module 立即停止接收或宣称已接收输出，也不回退到直接写库。若 Ledger 当下不可写，就不得声称 `suspended` 已经落盘；服务恢复后，Orchestrator 先读取最后持久状态并对账，再按合法迁移顺序写入 `suspended` 事件及状态、`recovery` 事件，并在允许继续时从 `suspended` 转回 `running`。若最后持久状态已经是终态，则不得改写。每次进入和离开 `suspended` 都必须持久化原因、时间、操作者或基础设施来源，以及冻结输入和待处理队列引用。
 
 当前是单人单机工具，不实现登录、密码、会话、RBAC 或用户身份验证。边界只保留极薄的 `ActorProvider.current_actor()` 接口，本地实现固定返回 `local_owner`，审计事件继续保存 `actor_ref`。未来上线时可替换为 OIDC 等在线身份适配器，不修改领域对象或历史审计记录。这里的操作者身份与 `entity_id`、`artifact_revision_id` 等业务对象标识完全独立；后者不能因当前没有登录系统而省略。
 

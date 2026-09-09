@@ -1,11 +1,11 @@
 # HANDOFF
 
-更新时间：2026-09-09（D-01 身份与修订标识拆分完成）
+更新时间：2026-09-09（D-03 StepRun 生命周期状态机完成）
 当前分支/worktree：`codex/docs/knowledge-compilation`；独立仓库 `/Users/jingtaiwei/Git/Public/learn_system`
-刚完成：D-01 已在 `openspec/learn-system-blackbox-architecture.md` §2 原则 7 与 §8.1 落地并完成质量返工：业务对象及 `ocr_profile_id` 遵守稳定 `entity_id` 语义，物理修订及 `ocr_profile_revision_id` 遵守不可复用的 `artifact_revision_id` 语义；§7 三类 Artifact 引用必须指向冻结修订；StepRun 重跑使用新的 `step_run_id`；ReviewDecision、EvidenceLink、Annotation 同时记录稳定主锚与当时所见修订；D-design 已消除“只约束后者”的指代歧义。PLAN 的 RN-2 与 RA D-01 已勾选并附依据。验证结果：`entity_id` 6 处；原则 7 命中 `artifact_revision_id`；`git diff --check` 通过；`verify-T.sh` 为 18 FAIL / 2 PASS，其中仅 T-02 标题子检查转为 PASS，T-02b 仍为 FAIL；D 提示为 `entity_id=6 / artifact_revision_id=6`。
-进行到一半的事（精确到文件和章节）：规格仍为 `REVIEW_FAILED_R1`；RN-3 和其余 R1 返工未完成。迁移只是决议，尚未执行；业务代码、OCRProfile 规格与 Schema 均未修改。
-下一步（第一件事）：严格执行 D-03（StepRun 生命周期状态机），完成后再执行 D-02（冻结 L0 机器 Schema）。
-已知的坑：StepRun 使用独立 `step_run_id`，不得混入 `artifact_revision_id`；D-02 必须在 D-03 后执行。`verify-T.sh` 的 T-02 目前只是标题子检查假绿，T-02b 仍 FAIL；执行完整 T-02 前必须修正该验证风险。其余未完成 T 项仍会按预期失败，不属于 D-01 失败。首纵切 10 页 PNG 被 Git 忽略，其他 clone 不可恢复，开工前必须登记到本地 Object Store。
+刚完成：D-03 已在 `openspec/learn-system-blackbox-architecture.md` §7.1、§8.2 与 §17 落地：StepRun 采用 `running / awaiting_human / suspended / succeeded / failed / superseded` 六状态和封闭迁移表；一次 StepRun 承载一个 EditionPart 的一个阶段任务及其整个人工队列；人工决定作为同一 StepRun 的不可变事件写回；`awaiting_human` 定义了绑定运行与状态版本的单次 `resume_token`、冻结输入、队列引用、事件写回和无自动失败的 deadline；Artifact Revision 另有五状态及封闭迁移表，并明确与七个内容成熟度状态正交；Ledger 故障改用可持久对账的 `suspended` / `recovery` 语义。PLAN 的 RN-3 与 RA D-03 已勾选并附依据，RA 的四张枚举全集表仍未勾选。
+进行到一半的事（精确到文件和章节）：规格仍为 `REVIEW_FAILED_R1`；D-02 与其他 R1 返工均未完成，所有 T 类条目仍未完成。迁移只是决议，尚未执行；业务代码、OCR、Schema、验证脚本与验收标准均未修改。
+下一步（第一件事）：严格执行 D-02（冻结 L0 机器 Schema）。
+已知的坑：StepRun 的终态不可改写；重跑新建运行并用 `supersedes_step_run_id` 关联。`awaiting_human` 只表示等待人工队列，基础设施不可用或操作者主动暂停必须使用 `suspended`。RA 的“四张枚举全集表”仍缺 ReviewDecision / failure 与 SCHEMA 关系，须留给 T-03；`verify-T.sh` 仍会因未完成 T 项按预期失败。首纵切 10 页 PNG 被 Git 忽略，其他 clone 不可恢复，开工前必须登记到本地 Object Store。
 
 ---
 2026-07-11（Claude/Cowork）：仓库文档已按并行线拆分——Tag 文档全部迁至 `tag_system/`（原 docs/superpowers/specs/ 下两份 Tag 规格已移至 tag_system/specs/），知识编译与产品母稿迁至 `knowledge_system/`。仓库地图见根 README.md。本文件中旧路径引用以新位置为准。
