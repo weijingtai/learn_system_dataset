@@ -14,4 +14,3 @@
 完成后运行 TDD 全部门禁和全局 T 脚本。若照抄源缺失、相互冲突或需要扩大范围，立即停止，不自行设计。提交消息必须为 `docs: define identifier formats`。
 
 最终报告必须包含：commit hash、真实修改文件、Red baseline、Green 原始摘要、八行冻结格式逐行对照结果、仍待用户确认的六个前缀、跳过项与风险。
-

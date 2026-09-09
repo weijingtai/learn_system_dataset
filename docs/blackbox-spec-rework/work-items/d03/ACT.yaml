@@ -25,4 +25,3 @@ steps:
   - 分别给出规格符合性与质量结论
   - 仅当两项均通过时建议 ACCEPTED
 on_fail: 停止并在 ACCEPTANCE.md 记录可机械执行的返工项
-

@@ -32,4 +32,3 @@ git diff --check
 - 六类新格式显著标为待确认，不进入冻结表。
 - 文档明确拒绝 `pr_` 复用于 ProcessingRun。
 - 本任务未产生代码、Schema、fixture 或依赖变更。
-

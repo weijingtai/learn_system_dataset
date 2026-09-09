@@ -31,4 +31,3 @@ Given Artifact 生命周期与内容成熟度同时存在，Then `draft/sealed/.
 ## B8 单机无身份系统
 
 Given 当前为单人单机，Then `resume_token` 仅承担状态机防重放，不引入用户身份、会话或权限设计。
-
