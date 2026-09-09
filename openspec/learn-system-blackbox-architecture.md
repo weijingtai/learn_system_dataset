@@ -207,7 +207,7 @@ Package 封存后不可修改。修正产生新的 Package Revision。
 
 `entity_id` 表示跨 Revision 稳定、必须复用的业务身份。Pattern、Assertion、SourceSpan、Concept、SchoolView、KnowledgeEntry 等领域对象均使用稳定 `entity_id`；具体 Contract 可以使用 `pattern_id`、`concept_id`、`entry_id`、`ocr_profile_id` 等领域化字段名，但它们必须遵守同一 `entity_id` 语义，不得因内容修订而换号。
 
-`artifact_revision_id` 表示一次不可变物理修订。Artifact、StagePackage 等物理修订每次封存或修正都必须创建新的 `artifact_revision_id`，旧修订永久保留，且任何新修订不得复用既有 `artifact_revision_id`；领域化字段 `ocr_profile_revision_id` 遵守同一 `artifact_revision_id` 语义。
+`artifact_revision_id` 表示一次不可变物理修订。Artifact、StagePackage 等对象在每次封存或修正其实际内容时都必须创建新的 `artifact_revision_id`，旧修订永久保留，且任何新修订不得复用既有 `artifact_revision_id`；领域化字段 `ocr_profile_revision_id` 遵守同一 `artifact_revision_id` 语义。
 
 §7 的 `input_artifact_ids`、`configuration_artifact_id` 与 `output_artifact_ids` 都必须引用已冻结的 `artifact_revision_id`；执行方只能按这些精确修订读取或返回 Artifact，绝不能把它们解析为对象的“最新版本”。
 
@@ -246,19 +246,21 @@ ReviewDecision 与 EvidenceLink 必须同时记录目标对象的 `entity_id`，
 | Artifact Revision | `rev_<32hex>` | 物理修订（`artifact_revision_id`） | 不可变物理修订标识，每次封存或修正生成全新修订号 |
 | ProcessingRun | `prun_<32hex>` | 运行身份 | 批处理运行标识；**必须使用 `prun_` 前缀**，严禁使用 `pr_`，避免与既有已冻结命题 ID（`pr_<technique>_<6位数字>`）冲突 |
 | StepRun | `srun_<32hex>` | 运行身份（`step_run_id`） | 管道单步执行标识，每次重跑均分配全新 ID |
-| StagePackage | `pkg_<stage>_<32hex>` | 物理修订 | 阶段包物理封存标识，`<stage>` 为管道阶段（如 m1、m2） |
+| StagePackage | `pkg_<stage>_<32hex>` | 逻辑身份（`stage_package_id`） | 阶段包逻辑身份标识。`<stage>` 明确冻结为 `m1`、`m2`、`m3`、`m4`、`m5`、`m6`、`m7`、`m8` 闭集（其他值非法，不得自行加入基础设施阶段）；修正同一个 StagePackage 时保留 `stage_package_id`，每个不可变版本另取新的 `artifact_revision_id=rev_<32hex>`。StagePackage 的 ArtifactRef 同时携带 `stage_package_id` 与 `artifact_revision_id` |
 | Release | `rel_<32hex>` | 发布版本 | 正式发布版本标识 |
 
 规范约束与非法格式判定：
 1. **身份与 Revision 分离**：`Artifact`（`art_<32hex>`）与 `Artifact Revision`（`rev_<32hex>`）是两种不同性质的标识，严禁合并为一个字段。同一 Artifact 产生新版内容时，`artifact_id` 保持不变，每版获得唯一的 `artifact_revision_id`。
-2. **前缀命名与冲突规避**：ProcessingRun 必须使用 `prun_`。严禁将 `pr_` 复用于 ProcessingRun，否则判为非法。
-3. **非法格式可判定**：缺前缀、十六进制非32位、包含大写字母（必须全小写十六进制 `[0-9a-f]{32}`）、或数字位数不符者，校验器与消费者一律判定为非法标识。
+2. **StagePackage 逻辑身份与修订分离**：`pkg_<stage>_<32hex>` 明确定义为 StagePackage 的逻辑身份（`stage_package_id`），非不可变物理版本载体。修正同一个 StagePackage 时保留 `stage_package_id`，每个不可变版本另取新的 `artifact_revision_id=rev_<32hex>`。明确 StagePackage 的 ArtifactRef 同时携带 `stage_package_id` 与 `artifact_revision_id`。
+3. **Stage 阶段闭集**：`<stage>` 明确冻结为 `m1`、`m2`、`m3`、`m4`、`m5`、`m6`、`m7`、`m8` 闭集；其他值非法，不得自行加入基础设施阶段。
+4. **前缀命名与冲突规避**：ProcessingRun 必须使用 `prun_`。严禁将 `pr_` 复用于 ProcessingRun，否则判为非法。
+5. **非法格式可判定**：缺前缀、十六进制非32位、包含大写字母（必须全小写十六进制 `[0-9a-f]{32}`）、`<stage>` 取值超出 `m1` 至 `m8` 闭集范围、或数字位数不符者，校验器与消费者一律判定为非法标识。
 
 #### 4. 版本轴分离规则（Schema Version 与 Content Revision）
 
 架构确立 **Schema 版本与 content Revision 分离**（Schema Version 与 Content Revision 分离）原则：
 1. **Schema Version（契约版本）**：描述数据结构、校验字段与类型定义的演进（如 v0.1、v0.2、v1.0），由数据规范文档与机器 Schema 定义。
-2. **Content Revision（内容修订）**：描述在特定契约下生成的物理知识实例数据的不可变修订（如 `rev_<32hex>`、`pkg_<stage>_<32hex>`）。
+2. **Content Revision（内容修订）**：描述在特定契约下生成的物理知识实例数据的不可变修订（如 `rev_<32hex>`）。
 3. **独立演进**：两者沿独立维度递增，不强制同号。重新编译、修复知识内容或重跑流水线只需生成新的 Content Revision，无需升级 Schema Version；Schema Version 升级时，历史 Content Revision 仍保留并指向当时的 Schema Version，实现契约升级与内容修订的彻底解耦。
 
 ### 8.2 Artifact 与 StepRun 状态全集
