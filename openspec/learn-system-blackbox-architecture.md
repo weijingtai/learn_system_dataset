@@ -28,7 +28,7 @@ APP 后端、客户端、Mark 渲染、学习笔记、经典讨论和端侧模�
 4. `EditionRun` 归属于一个完整 Edition；阶段推进和 Gate 的最小单位是 `EditionPart`。Edition 只有在其全部 EditionPart 通过时才标记完整。
 5. 多个 Edition 可以并行；同一 Edition 内按 EditionPart 推进，不按单页或 SourceSpan 推进下游阶段。
 6. 每一步产生的业务数据、原始输出、人工决定、失败记录和执行证据必须永久留存。
-7. 任何修改产生新 Revision；不覆盖旧 Artifact，不复用旧 ID。
+7. 任何修改都产生新的不可变物理修订，旧 Artifact 不得覆盖，每次修订的 `artifact_revision_id` 禁止复用；业务对象的 `entity_id` 跨 Revision 稳定且必须复用。不得以 `stable_key` 等旁路字段代替这两类标识的正式语义。
 8. SQLite、文件目录、Graph 和未来其他存储均为 Adapter，不定义领域模型。
 9. Knowledge Graph 与 Lineage Graph 必须同时存在，并可无损投影到 Graph 存储。
 10. 模型输出只能成为候选，不能绕过校验和人工审核进入正式数据集。
@@ -183,6 +183,18 @@ failures      本次及此前失败记录引用
 ```
 
 Package 封存后不可修改。修正产生新的 Package Revision。
+
+### 8.1 标识与修订语义
+
+`entity_id` 表示跨 Revision 稳定、必须复用的业务身份。Pattern、Assertion、SourceSpan、Concept、SchoolView、KnowledgeEntry 等领域对象均使用稳定 `entity_id`；具体 Contract 可以使用 `pattern_id`、`concept_id`、`entry_id` 等领域化字段名，但它们必须遵守同一 `entity_id` 语义，不得因内容修订而换号。
+
+`artifact_revision_id` 表示一次不可变物理修订。Artifact、StagePackage 等物理修订每次封存或修正都必须创建新的 `artifact_revision_id`，旧修订永久保留，且任何新修订不得复用既有 `artifact_revision_id`。
+
+StepRun 自身使用 `step_run_id`，不使用 `artifact_revision_id` 充当运行身份。每次重跑都创建新的 StepRun 和新的 `step_run_id`；该次运行产生的 Artifact 仍按上一段取得各自的 `artifact_revision_id`。
+
+ReviewDecision、EvidenceLink 与下游 Annotation 一律锚定目标对象的 `entity_id`，并可同时附带具体 `artifact_revision_id`，以重现作出决定、建立证据关系或创建注解时所见的内容。不得只锚定物理修订，也不得以 `stable_key` 绕过 `entity_id`。
+
+对象删除后，其 `entity_id` 永久退役；对象合并或拆分时，新对象必须取得新的 `entity_id`，不得把任一旧 `entity_id` 复用于语义已经改变的新对象。旧身份到新身份的迁移关系由后续 `IdentityMigrationMap` 表达。
 
 ## 9. M1 Source Intake
 

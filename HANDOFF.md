@@ -1,11 +1,11 @@
 # HANDOFF
 
-更新时间：2026-09-08（OCRProfile 参数化设计确认后）
+更新时间：2026-09-09（D-01 身份与修订标识拆分完成）
 当前分支/worktree：`codex/docs/knowledge-compilation`；独立仓库 `/Users/jingtaiwei/Git/Public/learn_system`
-刚完成：用户确认现有中国传统竖排古籍 OCR/FastAPI/Vue 保持主链，不引入 Kraken；已写 `openspec/ocr-profile-parameterization.md`，规定每个 Edition 使用代表页校准、人工验收并冻结的版本化 OCRProfile，首版只做 YAML 参数映射、Schema 校验和运行留痕。当前不实现登录鉴权，只保留固定 `local_owner` 的 ActorProvider。
-进行到一半的事（精确到文件和章节）：规格仍为 `REVIEW_FAILED_R1`；RN-2、RN-3 和其余 R1 返工未完成。T 判据仍为 19 FAIL / 1 PASS。迁移只是决议，尚未执行；业务代码未修改。
-下一步（第一件事）：请用户复核 OCRProfile 书面规格；通过后，返工仍严格执行 `D-01 → D-03 → D-02`。OCRProfile 实现必须等黑箱 R1 复审通过，且只做薄参数层。
-已知的坑：D-02 原排序早于 D-03 会冻结一个没有合法状态枚举的 StepResult Schema，已改为 D-03 之后。首纵切 10 页 PNG 被 Git 忽略，其他 clone 不可恢复，开工前必须登记到本地 Object Store。
+刚完成：D-01 已在 `openspec/learn-system-blackbox-architecture.md` §2 原则 7 与 §8.1 落地：业务对象 `entity_id` 跨 Revision 稳定复用，物理修订 `artifact_revision_id` 每次新建且禁止复用，StepRun 重跑使用新的 `step_run_id`；ReviewDecision、EvidenceLink、Annotation 锚定 `entity_id`。PLAN 的 RN-2 与 RA D-01 已勾选并附依据。验证结果：`entity_id` 6 处；原则 7 命中 `artifact_revision_id`；`git diff --check` 通过；`verify-T.sh` 为 18 FAIL / 2 PASS，T-02 已转 PASS，D 提示为 `entity_id=6 / artifact_revision_id=5`。
+进行到一半的事（精确到文件和章节）：规格仍为 `REVIEW_FAILED_R1`；RN-3 和其余 R1 返工未完成。迁移只是决议，尚未执行；业务代码、OCRProfile 规格与 Schema 均未修改。
+下一步（第一件事）：严格执行 D-03（StepRun 生命周期状态机），完成后再执行 D-02（冻结 L0 机器 Schema）。
+已知的坑：StepRun 使用独立 `step_run_id`，不得混入 `artifact_revision_id`；D-02 必须在 D-03 后执行。`verify-T.sh` 中未完成的 T 项仍会按预期失败，不属于 D-01 失败。首纵切 10 页 PNG 被 Git 忽略，其他 clone 不可恢复，开工前必须登记到本地 Object Store。
 
 ---
 2026-07-11（Claude/Cowork）：仓库文档已按并行线拆分——Tag 文档全部迁至 `tag_system/`（原 docs/superpowers/specs/ 下两份 Tag 规格已移至 tag_system/specs/），知识编译与产品母稿迁至 `knowledge_system/`。仓库地图见根 README.md。本文件中旧路径引用以新位置为准。
