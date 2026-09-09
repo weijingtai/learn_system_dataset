@@ -4,6 +4,7 @@
 
 ## Learn System 系统集成主线
 
+- [ ] 用户复核并确认 `openspec/learn-system-blackbox-architecture.md`；确认后按差距矩阵重写本节为 M1-M8、Artifact Ledger、Orchestrator、Contract Registry 的实施计划。
 - [x] 确认并记录 Learn System 最终目标、端到端运行方式、现有工具成熟度和缺口。
 - [x] 审计《穷通宝鉴》现有拆书数据，并形成 `pipeline/DATASET_ACCEPTANCE_STANDARD.md` 验收草案；当前结论为 `NOT_READY`。
 - [x] 将七政四余 `companion_system` 原样迁入通用独立项目 `pattern_knowledge_workbench/`，建立 README、领域词汇、扩展计划、缺口分析和待办。

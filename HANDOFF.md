@@ -2,9 +2,9 @@
 
 更新时间：2026-09-08
 当前分支/worktree：`codex/docs/knowledge-compilation`；独立仓库 `/Users/jingtaiwei/Git/Public/learn_system`
-刚完成：使用 GPT-5.6 Sol 审计《穷通宝鉴》并新增 `pipeline/DATASET_ACCEPTANCE_STANDARD.md` 与 `pipeline/TODO.md`；使用 Terra Medium 代理将七政四余 `companion_system` 完整复制为根级独立项目 `pattern_knowledge_workbench/`。两轮核验确认复制瞬间的 179 files、1,827,975 bytes、逐文件 SHA-256 和 SQLite 完全一致；初次记录的 84 dirs 含八个无内容 SwiftPM 临时空目录，清理后源/目标均为 76 dirs。原样快照提交为 `4ca1a73`，通用文档提交为 `6c20013`；原始 `companion_system` 已在最终核验后按用户授权删除，删除后目标 184 files / 76 dirs、SQLite integrity `ok`。
-进行到一半的事（精确到文件和章节）：工作台仍是七政硬编码原型，尚未实施新领域模型。`pipeline/tools/gen_outline.py` 仍漏掉带正文的二级总论；`pipeline/rag/build_index.py` 仍无法解析 glossary 完整 span ID；工作台 `lib/database/drift_database.dart` 启动覆盖本地库，编辑/AI 流程可直接设 verified，版本历史未写入。
-下一步（第一件事）：先修复《穷通宝鉴》约 7.5% 源文漏编和八字 concept mentions 为 0；工作台并行首项是停止启动覆盖数据库并建立 Candidate→ReviewDecision 状态门。
+刚完成：在多轮用户确认后形成 Learn System 黑箱内部架构规格 `openspec/learn-system-blackbox-architecture.md`，明确八个加工 Module、三个基础设施 Module、EditionRun/ReleaseRun、整书阶段 Gate、全过程 Artifact Ledger、M2 校订、M3 混合语义切分、M4 多模型交叉复核、增量多版本汇编和 Graph 无损投影；新增根 `CONTEXT.md` 固化核心领域词汇。此前的《穷通宝鉴》审计、七政工作台迁移及源目录清理结论继续有效。
+进行到一半的事（精确到文件和章节）：黑箱架构规格状态为 `REVIEW_REQUIRED`，尚待用户复核；根 `PLAN.md` 尚未按规格中的差距矩阵机械重写为实施计划。业务实现未开始。`pipeline/tools/gen_outline.py` 仍漏掉带正文的二级总论；`pipeline/rag/build_index.py` 仍无法解析 glossary 完整 span ID；工作台 `lib/database/drift_database.dart` 仍有启动覆盖本地库、保存即 verified 和版本历史未写入等风险。
+下一步（第一件事）：请用户复核 `openspec/learn-system-blackbox-architecture.md`；确认后读取 `writing-plans` skill，把规格第 19 节差距矩阵拆成根 `PLAN.md` 的可执行阶段任务和验收门禁。
 已知的坑：工作台 496 rules 全无 original_text/assertion/brief/explanation/notes，verified=0、versions=0；404 条有 conditions、486 条有 chapter。`School` 混合书籍与流派，`pattern_id + school_id` 唯一键不能表达多书多主张；私有内网依赖会阻断干净环境构建。OCR corpus 仍无扫描/字框 anchor；ReleaseBundle、APP Adapter 和注解共享系统尚无实现；`Embedding-AI` 明确后置。
 
 ---
