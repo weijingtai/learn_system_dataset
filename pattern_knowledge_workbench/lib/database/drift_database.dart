@@ -25,9 +25,10 @@ class AppDatabase extends _$AppDatabase {
                   databaseDirectory: () async {
                     final docsDir = await getApplicationDocumentsDirectory();
                     final dbFile = File(p.join(docsDir.path, 'ge_ju_database.sqlite'));
-                    // 每次启动从 assets 覆盖，保持初始数据完整
-                    final data = await rootBundle.load('assets/ge_ju_database.sqlite');
-                    await dbFile.writeAsBytes(data.buffer.asUint8List());
+                    if (!await dbFile.exists()) {
+                      final data = await rootBundle.load('assets/ge_ju_database.sqlite');
+                      await dbFile.writeAsBytes(data.buffer.asUint8List());
+                    }
                     return docsDir;
                   },
                 ),
