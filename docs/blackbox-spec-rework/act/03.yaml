@@ -1,0 +1,62 @@
+# ACT 03 — 删除未使用的内网依赖 enumeration
+# 来源: PLAN.md「黑箱架构规格 R1 审查返工项」R0 第 3 条(前半)
+# 性质: 实现型(纯机械)。执行者可为最便宜模型。
+# 依赖: 无
+
+TASK_ID: "workbench-r0/03"
+LANG: "Dart 3.x / Flutter"
+
+SCOPE:
+  WRITE:
+    - "pattern_knowledge_workbench/pubspec.yaml"
+  READ:
+    - "pattern_knowledge_workbench/pubspec.yaml"        # 现状: 第 63-66 行 enumeration 的 git 依赖
+  FORBIDDEN_PATHS: ["pattern_knowledge_workbench/lib/", "pattern_knowledge_workbench/test/"]
+
+CONTEXT:
+  DOMAIN: "工作台依赖清理"
+  FINDING: |
+    已核实 enumeration 在全仓 *.dart 中引用数为 0(命令见 VERIFICATION 第 1 条)。
+    它是一个纯粹的死依赖，删除不影响任何代码。
+    注意: 同文件中的 ai_core 有 8 处 import，不在本任务范围，禁止一并删除(见 ACT 04)。
+  STRATEGY: "只删 enumeration 这一个依赖块，其余一字不动。"
+
+DEPENDENCY_ALLOWANCE:
+  IMPORTS: []
+  EXTERNAL_LIBS: []
+
+SIGNATURE: |
+  # pubspec.yaml 中删除这 4 行(dependencies 段内):
+  #   enumeration:
+  #     git:
+  #       url: http://192.168.0.165:3000/xuan/enumeration.git
+  # 保留 ai_core 的两处(dependencies 与 dependency_overrides)不动。
+
+GUARDRAILS:
+  PROHIBITED:
+    - "删除或改动 ai_core 的任何一处(dependencies 第 59-62 行 / dependency_overrides 第 86-89 行)"
+    - "改动 flutter_ai_toolkit(^0.9.1，是 pub.dev 公开包，不是内网依赖)"
+    - "顺手升级其他依赖版本"
+    - "运行 flutter pub upgrade(只允许 pub get)"
+
+TESTS_FIRST:
+  FILE: "无(依赖清理，由 VERIFICATION 命令判定)"
+  EXEC: "cd pattern_knowledge_workbench && flutter pub get"
+  CASES:
+    - "删除前先跑一次引用核查命令，确认输出为 0，否则立即停止上报"
+  RITUAL: "先跑核查命令留存输出 -> 再删 -> 再跑 pub get 与 analyze"
+
+PROTOCOL:
+  ACTIONS: "只编辑 pubspec.yaml"
+  COMMIT: "chore(workbench): 删除零引用的内网依赖 enumeration ｜ TASK_ID workbench-r0/03"
+  REPORT: "结束仅回复 wjt-handoff 确认行"
+
+ON_FAIL:
+  MAX_ATTEMPTS: 2
+  THEN: "停止并汇报——若引用核查非 0，说明前提已变，需回到转译者重新判定"
+
+VERIFICATION:
+  - "cd pattern_knowledge_workbench && grep -rn 'enumeration' --include='*.dart' . | grep -v '^./build/' | wc -l   # 删除前后均须为 0"
+  - "grep -c 'enumeration.git' pattern_knowledge_workbench/pubspec.yaml    # 期望 0"
+  - "grep -c '192.168' pattern_knowledge_workbench/pubspec.yaml            # 期望 2(仅剩 ai_core 两处，由 ACT 04 处理)"
+  - "cd pattern_knowledge_workbench && flutter pub get && flutter analyze --no-fatal-infos"

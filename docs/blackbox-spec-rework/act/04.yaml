@@ -1,0 +1,66 @@
+# ACT 04 — 解除 ai_core 内网依赖(抽 Gateway + 可降级)
+# 来源: PLAN.md「黑箱架构规格 R1 审查返工项」R0 第 3 条(后半)
+# 性质: 半设计型。**需较强模型执行**，不可交最便宜模型。
+# 依赖: DEPENDS_ON workbench-r0/03(先删干净 enumeration，避免两个变量混在一起)
+# ⚠ 开工前必须先看本文件的 BLOCKED_ON — 有一个范围问题需用户拍板。
+
+TASK_ID: "workbench-r0/04"
+LANG: "Dart 3.x / Flutter"
+
+BLOCKED_ON:
+  QUESTION: |
+    工作台内的 AI 聊天功能(ai_core 提供)要保留还是剥离？
+    这不是技术选择，是范围决策，必须由用户拍板后才能开工。
+  WHY_IT_MATTERS: |
+    规格 §14 规定 M6 只做审核与签发，模型调用属于 M4；§2 原则 10 规定模型输出只能成为候选。
+    而工作台现在的 AI 是"直接生成规则并保存"(ACT 02 正在禁掉它的自动 verified)。
+    因此"剥离"与黑箱架构方向一致，"保留"则需要把它降级为纯咨询、不产出可保存数据。
+  OPTIONS:
+    A_剥离:
+      动作: "删除 lib/pages/chat_page.dart、lib/providers/ai_chat_controller.dart、
+             rule_list_page.dart 中的 AiChatView 嵌入(第 326 行附近)与相关 import，
+             main.dart 第 8/26-28 行的 Provider 挂载；随后删 pubspec 中 ai_core 两处。"
+      代价: "工作台失去 AI 辅助；已有对话历史无法在本工具内查看。"
+      收益: "内网依赖归零，干净环境可构建；与规格 §14 一致；改动范围明确可验证。"
+    B_保留但抽象:
+      动作: "新建 lib/ai/ai_gateway.dart 抽象接口，把 8 处 ai_core import 收敛到
+             lib/ai/impl_xuan.dart 单文件；提供 lib/ai/impl_null.dart 降级实现；
+             用 --dart-define=AI_BACKEND=null|xuan 选择。pubspec 中 ai_core 改为可选。"
+      代价: "Dart 无原生可选依赖，pubspec 里 ai_core 仍需存在(或拆子 package)，
+             『grep 192.168 == 0』这一原通过标准在本选项下不可达，需改判据。"
+      收益: "保留功能；为将来接 M4 模型 Adapter 留 seam。"
+  DEFAULT_IF_NO_ANSWER: "不得自行选择。停止并上报。"
+
+SCOPE:
+  WRITE: "待 BLOCKED_ON 决议后由转译者补全，禁止执行者自行扩大"
+  READ:
+    - "pattern_knowledge_workbench/lib/providers/ai_chat_controller.dart"   # 6 处 ai_core import
+    - "pattern_knowledge_workbench/lib/pages/chat_page.dart"                # AiChatView 使用点第 75 行
+    - "pattern_knowledge_workbench/lib/pages/rule_list_page.dart"           # 第 17-19 行 import、第 326 行嵌入
+    - "pattern_knowledge_workbench/lib/main.dart"                           # 第 8、26-28 行 Provider 挂载
+    - "pattern_knowledge_workbench/pubspec.yaml"                            # 第 59-62、86-89 行
+    - "openspec/learn-system-blackbox-architecture.md"                      # §2 原则 10、§14
+
+CONTEXT:
+  MEASURED_FACTS: |
+    ai_core 引用点实测 8 处，分布在 3 个文件：
+      lib/providers/ai_chat_controller.dart  6 处(ai_database / chat_message_model /
+                                                 resolved_persona / ai_service_impl /
+                                                 chat_persistence_service / llm_service)
+      lib/pages/chat_page.dart               1 处(widgets/ai_chat_view)
+      lib/pages/rule_list_page.dart          1 处(widgets/ai_chat_view)
+    flutter_ai_toolkit ^0.9.1 是 pub.dev 公开包，不受影响，不要动。
+  转译者异议: |
+    PLAN.md R0 第 3 条原写的通过标准是「grep -c '192.168' pubspec.yaml 返回 0」。
+    经核对，该标准在选项 B 下不可达(ai_core 仍需留在 pubspec)。
+    本 ACT 不擅自修改验收标准，改为在此标注冲突并上报，由用户在选 A/B 时一并裁定。
+
+ON_FAIL:
+  MAX_ATTEMPTS: 0
+  THEN: "本 ACT 在 BLOCKED_ON 决议前不得开工。直接上报。"
+
+VERIFICATION:
+  - "(选项 A) grep -c '192.168' pattern_knowledge_workbench/pubspec.yaml  # 期望 0"
+  - "(选项 A) grep -rc 'package:ai_core' pattern_knowledge_workbench/lib/ | grep -v ':0' | wc -l  # 期望 0"
+  - "(选项 B) grep -rl 'package:ai_core' pattern_knowledge_workbench/lib/ | wc -l  # 期望 1(仅 impl_xuan.dart)"
+  - "(两选项通用) cd pattern_knowledge_workbench && flutter analyze --no-fatal-infos && flutter test"

@@ -1,0 +1,77 @@
+# ACT 02 — 消除「保存即 verified」
+# 来源: PLAN.md「黑箱架构规格 R1 审查返工项」R0 第 2 条
+# 性质: 实现型(代码)。执行者可为便宜模型。
+# 依赖: 无(可与 ACT 01 并行)
+
+TASK_ID: "workbench-r0/02"
+LANG: "Dart 3.x / Flutter (drift 2.30.1)"
+
+SCOPE:
+  WRITE:
+    - "pattern_knowledge_workbench/lib/pages/rule_list_page.dart"
+    - "pattern_knowledge_workbench/test/verified_gate_test.dart"          # 新建
+  READ:
+    - "pattern_knowledge_workbench/lib/database/tables.dart"              # 第 61 行: isVerified 默认已是 false，无需改表
+    - "pattern_knowledge_workbench/lib/pages/rule_list_page.dart"         # 现状: 1202(人工保存)、1802(AI 产物保存)、1386/1390(已有的显式勾选通道)
+    - "pattern_knowledge_workbench/GAP_ANALYSIS.md"                       # 「已验证的高风险行为」一节
+    - "openspec/learn-system-blackbox-architecture.md"                    # §2 原则 10、§14(模型输出只能成为候选)
+  FORBIDDEN_PATHS: ["pattern_knowledge_workbench/lib/database/", "pattern_knowledge_workbench/assets/"]
+
+CONTEXT:
+  DOMAIN: "七政格局工作台的规则保存路径"
+  CURRENT_DEFECT: |
+    两处保存路径无条件把规则置为已核验：
+      rule_list_page.dart:1202  人工编辑保存时      isVerified: const Value(true)
+      rule_list_page.dart:1802  AI 生成条件保存时    isVerified: const Value(true)
+    后者尤其严重：模型输出直接成为 verified 数据，绕过一切审核。
+    这违反规格 §2 原则 10「模型输出只能成为候选，不能绕过校验和人工审核进入正式数据集」。
+    注意 tables.dart:61 的列默认值已经是 false，属正确，不要改表结构。
+  STRATEGY: |
+    1) 两处保存一律不再写 isVerified(删除该字段的写入)，让其保持原值/默认 false。
+    2) 保留 1386/1390 已存在的显式勾选通道作为唯一置 true 的入口。
+    3) AI 路径(1802)额外要求：保存后 isVerified 必须为 false，即使该行此前为 true
+       ——AI 改动内容后，旧的人工核验结论不再成立，必须显式降级。
+
+DEPENDENCY_ALLOWANCE:
+  IMPORTS: ["package:drift/drift.dart"]
+  EXTERNAL_LIBS: []
+
+SIGNATURE: |
+  // 位置 1: rule_list_page.dart:~1202 人工编辑保存
+  // 删除 `isVerified: const Value(true),` 这一行。其余字段与 updatedAt 保持不变。
+
+  // 位置 2: rule_list_page.dart:~1802 AI 条件保存
+  // 把 `isVerified: const Value(true),` 改为 `isVerified: const Value(false),`
+  // 语义：AI 修改过内容 -> 强制回落为未核验，等待人工在 1386/1390 通道显式勾选。
+
+GUARDRAILS:
+  PROHIBITED:
+    - "改动 tables.dart 或任何 drift 表定义/迁移(列默认值已正确)"
+    - "删除 1386/1390 的显式勾选通道(那是唯一合法的置 true 入口，必须保留)"
+    - "把 isVerified 改成 nullable 或引入新的三态字段(本轮不扩语义，留给规格 RA 组的状态枚举统一处理)"
+    - "顺手修改同文件内与 isVerified 无关的 UI 逻辑"
+
+TESTS_FIRST:
+  FILE: "pattern_knowledge_workbench/test/verified_gate_test.dart"
+  EXEC: "cd pattern_knowledge_workbench && flutter test test/verified_gate_test.dart"
+  CASES:
+    - "新建规则并保存后 isVerified == false(当前必红)"
+    - "对一条 isVerified==false 的规则做人工编辑保存后，仍为 false(当前必红)"
+    - "对一条 isVerified==true 的规则走 AI 条件保存后，降级为 false(当前必红)"
+    - "通过 1386/1390 的显式勾选通道置 true 后，读回为 true(保护现有正确通道不被误删)"
+  RITUAL: "先提交红测试(commit 'test: 保存不得自动置 verified(红)')，再改实现，同一测试变绿"
+
+PROTOCOL:
+  ACTIONS: "只编辑 SCOPE.WRITE 内文件；每步自跑 TESTS_FIRST.EXEC"
+  COMMIT: "fix(workbench): 保存与 AI 产物不再自动置 verified ｜ TASK_ID workbench-r0/02"
+  REPORT: "结束仅回复 wjt-handoff 确认行，不输出代码正文"
+
+ON_FAIL:
+  MAX_ATTEMPTS: 3
+  THEN: "失败尝试写入 PLAN.md 踩坑记录 -> 停止 -> 汇报卡点(文件:行 + 报错摘要)"
+
+VERIFICATION:
+  - "cd pattern_knowledge_workbench && flutter test test/verified_gate_test.dart"
+  - "grep -c 'isVerified: const Value(true)' pattern_knowledge_workbench/lib/pages/rule_list_page.dart   # 期望 0"
+  - "grep -c 'isVerified' pattern_knowledge_workbench/lib/pages/rule_list_page.dart                      # 期望 >=3(1386/1390 通道与 AI 降级仍在)"
+  - "git diff --stat 仅含 SCOPE.WRITE 内文件"

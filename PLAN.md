@@ -9,6 +9,38 @@
 > 结论：**不通过**。规格骨架正确，但缺少拆解 tasks 所必需的可判定性、粒度定义与素材裁定。
 > 本节全部结清前，不得启动 M1-M8 任何 Module 的实现任务。
 
+### 执行入口（2026-09-08 转译 v1）
+
+**不要直接照本节的 40 条开工**——它们是「要求」，不是「怎么做」。
+已转译为可直接执行的指令，见 `docs/blackbox-spec-rework/`：
+
+| 文件 | 内容 | 执行者要求 |
+|---|---|---|
+| `docs/blackbox-spec-rework/README.md` | 入口、已定事项、待拍板清单、转译者异议 | 先读这个 |
+| `docs/blackbox-spec-rework/act/01.yaml` | R0-1 本地库不再被启动覆盖 | 便宜模型 |
+| `docs/blackbox-spec-rework/act/02.yaml` | R0-2 保存与 AI 产物不再自动 verified | 便宜模型 |
+| `docs/blackbox-spec-rework/act/03.yaml` | R0-3 前半：删零引用的 enumeration | 最便宜模型 |
+| `docs/blackbox-spec-rework/act/04.yaml` | R0-3 后半：ai_core 去留 ⚠ 需拍板后开工 | 较强模型 |
+| `docs/blackbox-spec-rework/T-transcribe.md` | RA/RB/RD/RE/RF 中 13 条转录型，答案已在既有文档，给了精确坐标 | 中等模型 |
+| `docs/blackbox-spec-rework/D-design.md` | 19 条设计型，含约束边界、判据、已否决方案、执行顺序 | 较强模型 |
+| `docs/blackbox-spec-rework/verify-T.sh` | T 类机器判据，退出码 = FAIL 数 | — |
+
+**当前基线**：`bash docs/blackbox-spec-rework/verify-T.sh` → 19 FAIL / 1 PASS。每完成一条 T 类，FAIL 减一。
+
+**最短路径**：第 1 轮的 5 项（ACT 01/02/03 + T-11 + D-16）不依赖任何拍板，可立即开工。
+
+**待用户拍板 7 项**（拍板前对应条目不得开工）：Ledger 进程模型(D-04)、Pattern/Concept/KnowledgeEntry 关系(D-05)、
+EditionPart 单位(D-09)、M3/M4 队列归属(D-12)、五处存储处置(D-17)、版权边界(D-19)、工作台 AI 去留(act/04)。
+
+**转译覆盖对照 v1**：R0→ACT 01/02/03/04（含 1 条异议）；RA→D-01~D-04 + T-02/T-03；
+RB→D-05~D-08 + T-01/T-06/T-07/T-08；RC→D-09~D-13 + T-09/T-10；RD→T-04/T-05 + D-08；
+RE→T-11 + D-18；RF→D-14~D-17 + T-12/T-13；RG→D-19。**覆盖完整，无遗漏条目。**
+
+**转译者异议 2 条**（见 README）：① R0-3 原通过标准 `grep 192.168 == 0` 在「抽象保留」选项下不可达，
+已标注冲突未擅改验收标准；② RG 组为转译时新发现（`.gitignore` 禁版权源书入仓 vs 规格 §9/§16/§20.8 要求原始文件），
+若超出本轮范围请明示。
+
+
 ### R0 零号批次（不依赖任何前置，可立即开工）
 
 - [ ] 修复: `pattern_knowledge_workbench/lib/database/drift_database.dart:28-29` 启动时用 asset SQLite 覆盖本地库，人工校订与审计历史被静默销毁，直接否定规格 §20 第 2、3 条 ｜ 通过标准: `grep -c "rootBundle.load('assets/ge_ju_database.sqlite')" lib/database/drift_database.dart` 返回 0；且新增 widget test「写入本地库 → 重启 → 数据仍在」由红转绿

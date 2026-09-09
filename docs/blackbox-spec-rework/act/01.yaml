@@ -1,0 +1,78 @@
+# ACT 01 — 消除「启动覆盖本地库」
+# 来源: PLAN.md「黑箱架构规格 R1 审查返工项」R0 第 1 条
+# 性质: 实现型(代码)。执行者可为便宜模型。
+
+TASK_ID: "workbench-r0/01"
+LANG: "Dart 3.x / Flutter (drift 2.30.1)"
+
+SCOPE:
+  WRITE:
+    - "pattern_knowledge_workbench/lib/database/drift_database.dart"
+    - "pattern_knowledge_workbench/test/database_persistence_test.dart"   # 新建
+  READ:
+    - "pattern_knowledge_workbench/lib/database/tables.dart"              # 表定义与默认值
+    - "pattern_knowledge_workbench/lib/database/drift_database.dart"      # 现状: 第 25-32 行 databaseDirectory 回调
+    - "pattern_knowledge_workbench/GAP_ANALYSIS.md"                       # 「已验证的高风险行为」一节
+    - "openspec/learn-system-blackbox-architecture.md"                    # §20 第 2、3 条(本缺陷否定的条款)
+  FORBIDDEN_PATHS: ["pattern_knowledge_workbench/assets/", "lib/pages/"]
+
+CONTEXT:
+  DOMAIN: "七政格局工作台的本地 SQLite 初始化"
+  CURRENT_DEFECT: |
+    drift_database.dart:25-32 的 databaseDirectory 回调里，每次启动都无条件执行
+      final data = await rootBundle.load('assets/ge_ju_database.sqlite');
+      await dbFile.writeAsBytes(data.buffer.asUint8List());
+    即用打包 asset 覆盖用户文档目录的库。后果：本地校订、审核决定与版本历史被静默销毁。
+    这直接否定规格 §20 第 2 条(历史失败不被覆盖)与第 3 条(人工决定记录)。
+  STRATEGY: |
+    改为「仅当目标文件不存在时才从 asset 播种(seed)」。已存在则原样使用，交给 drift 的
+    migration 机制处理 schema 升级(schemaVersion 已为 3，onUpgrade 已实现，不要动)。
+
+DEPENDENCY_ALLOWANCE:
+  IMPORTS: ["dart:io", "package:flutter/services.dart", "package:path_provider/path_provider.dart", "package:path/path.dart", "package:drift/drift.dart", "package:drift_flutter/drift_flutter.dart"]
+  EXTERNAL_LIBS: []          # 空 = 禁止新增任何 pub 依赖
+
+SIGNATURE: |
+  // drift_database.dart 内，替换现有 databaseDirectory 回调体。
+  // 语义：文件不存在 -> 从 asset 播种；已存在 -> 原样返回，不得写入。
+  databaseDirectory: () async {
+    final docsDir = await getApplicationDocumentsDirectory();
+    final dbFile = File(p.join(docsDir.path, 'ge_ju_database.sqlite'));
+    if (!await dbFile.exists()) {
+      final data = await rootBundle.load('assets/ge_ju_database.sqlite');
+      await dbFile.writeAsBytes(data.buffer.asUint8List());
+    }
+    return docsDir;
+  }
+
+GUARDRAILS:
+  PROHIBITED:
+    - "删除或改写 migration / schemaVersion(值为 3)与 onUpgrade 内的任何 SQL"
+    - "改动 assets/ge_ju_database.sqlite 本身"
+    - "新增『强制重置』入口而不加二次确认(本轮不做重置功能，只做不覆盖)"
+    - "把播种逻辑挪到 main.dart 或 provider 里绕过本文件"
+
+TESTS_FIRST:
+  FILE: "pattern_knowledge_workbench/test/database_persistence_test.dart"
+  EXEC: "cd pattern_knowledge_workbench && flutter test test/database_persistence_test.dart"
+  CASES:
+    - "目标文件不存在时：初始化后文件被创建，且行数等于 asset 中的 496"
+    - "目标文件已存在且含一条本地新增 rule：再次初始化后该条仍在(核心回归，当前必红)"
+    - "目标文件已存在且某条 rule 的 original_text 被本地改过：再次初始化后改动仍在"
+    - "目标文件已存在时：初始化过程中不得发生对该文件的写操作(用文件 mtime 或只读目录断言)"
+  RITUAL: "先提交红测试(commit 'test: 本地库不得被启动覆盖(红)')，再改实现，同一测试变绿"
+
+PROTOCOL:
+  ACTIONS: "只编辑 SCOPE.WRITE 内文件；每步自跑 TESTS_FIRST.EXEC"
+  COMMIT: "fix(workbench): 本地库改为仅在缺失时播种，不再启动覆盖 ｜ TASK_ID workbench-r0/01"
+  REPORT: "结束仅回复 wjt-handoff 确认行，不输出代码正文"
+
+ON_FAIL:
+  MAX_ATTEMPTS: 3
+  THEN: "失败尝试写入 PLAN.md 踩坑记录 -> 停止 -> 汇报卡点(文件:行 + 报错摘要)"
+
+VERIFICATION:
+  - "cd pattern_knowledge_workbench && flutter test test/database_persistence_test.dart"
+  - "grep -c \"await dbFile.writeAsBytes\" pattern_knowledge_workbench/lib/database/drift_database.dart  # 期望 1，且位于 if(!exists) 分支内"
+  - "grep -A2 'if (!await dbFile.exists())' pattern_knowledge_workbench/lib/database/drift_database.dart | grep -q 'rootBundle.load'  # 播种必须在存在性判断内"
+  - "git diff --stat 仅含 SCOPE.WRITE 内文件"
