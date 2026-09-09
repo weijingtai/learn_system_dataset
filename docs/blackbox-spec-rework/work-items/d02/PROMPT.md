@@ -18,4 +18,3 @@
 ACT01 提交消息：`feat: add artifact package contracts`。ACT02 提交消息：`feat: freeze l0 step contracts`。
 
 最终报告必须包含：两个 commit hash、每个 commit 的真实修改文件、两个 Red 证据、`verify.sh` 完整 PASS 标签摘要、全局 T 基线前后、跳过项、依赖安装结果和剩余风险。若有任何命令未运行，必须说明原因，不得汇报“全部通过”。
-
