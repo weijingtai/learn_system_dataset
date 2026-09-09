@@ -10,12 +10,12 @@
 
 ## 1. 系统边界
 
-Learn System 是单机运行、全过程留痕的知识编译工具。它接收原始资料，完成识别、校验、整理和人工审核，最终输出供 APP 后端接收的数据集与原始资料包。
+Learn System 是单机运行、全过程留痕的知识编译工具。它接收原始资料，完成识别、校验、整理和人工审核，最终输出供 APP 后端接收的数据集与符合 ReleasePolicy 的 SourceAssetPack。
 
 ```text
 原始资料
 → Learn System 黑箱［识别 + 校验 + 整理］
-→ PublicationPackage［结构化数据 + 原始数据 + 二者关系］
+→ PublicationPackage［结构化数据 + SourceAssetPack + 二者关系］
 ```
 
 APP 后端、客户端、Mark 渲染、学习笔记、经典讨论和端侧模型均在黑箱之外。黑箱只负责在输出中提供它们需要的稳定数据、查询契约和注解锚点。
@@ -385,7 +385,7 @@ Ledger 以单机本地进程提供统一 Interface。Pipeline、OCR FastAPI 和 
 5. 新 Edition 可单独增量加入同一 Work，不要求收齐其他版本，也不改旧身份。
 6. Pattern 名称、规则、解释和出处可逐项补全；`not_captured` 不被误判为不存在。
 7. 当前七政格局数据可作为官方 Candidate 输入；用户 Pattern 仅保留未来 Adapter seam。
-8. PublicationPackage 同时包含结构化知识、原始资料及其关系。
+8. PublicationPackage 同时包含结构化知识、符合 ReleasePolicy 的 SourceAssetPack 及其关系。`reference_and_hash_only` 必须包含可由本地 Object Store 或受权后端解析的受控引用、SHA-256、页标识、权利说明和完整 Evidence 映射才满足本条；不要求携带原始文件字节。引用不可解析时验收失败。
 9. 移动端数据与 GraphProjectionPack 来自同一 Canonical Snapshot，Graph 往返无损。
 10. 更换 OCR、模型、索引或存储 Adapter 不改变相邻 Module 的 Interface。
 

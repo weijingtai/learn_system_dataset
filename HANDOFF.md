@@ -1,11 +1,11 @@
 # HANDOFF
 
-更新时间：2026-09-08（七项架构决议落盘后）
+更新时间：2026-09-08（R1 复核与 RN 排序后）
 当前分支/worktree：`codex/docs/knowledge-compilation`；独立仓库 `/Users/jingtaiwei/Git/Public/learn_system`
-刚完成：用户批准 7 项架构决议并写回规格：Ledger 本地进程、三对象关系、按卷 EditionPart、统一 Review Console、旧存储分类处置、三层版权存储、剥离工作台 AI 聊天。新增 `openspec/legacy-storage-transition.md`，并由根 AGENTS/README 强制引导后续 Agent 阅读。
-进行到一半的事（精确到文件和章节）：规格仍为 `REVIEW_FAILED_R1`，其余 R1 返工未完成；T 判据仍为 19 FAIL / 1 PASS。迁移只是决议，尚未执行；业务代码未修改。
-下一步（第一件事）：请用户复核本次规格与旧路径迁移地图；确认后继续第 1 轮 ACT 01/02/03、T-11、D-16。
-已知的坑：`ocr/data_work/index.db` 经源码复核是可重建索引，最终方案改为迁移页面 JSON/校订/审计事实并重建索引；首纵切 10 页 PNG 位于仓库工作目录但被 Git 忽略，其他 clone 不可恢复，开工前必须登记到本地 Object Store。
+刚完成：用户复核通过七项架构决议；复核新增 RN-1～RN-3。RN-1 已闭合，明确 `reference_and_hash_only` 必须可由本地 Object Store 或受权后端解析；RN-2/RN-3 分别映射 D-01/D-03。
+进行到一半的事（精确到文件和章节）：规格仍为 `REVIEW_FAILED_R1`；RN-2、RN-3 和其余 R1 返工未完成。T 判据仍为 19 FAIL / 1 PASS。迁移只是决议，尚未执行；业务代码未修改。
+下一步（第一件事）：严格执行 `D-01 → D-03 → D-02`；ACT 01/02/03、T-11、D-16 仅在无共享写路径时并行。
+已知的坑：D-02 原排序早于 D-03 会冻结一个没有合法状态枚举的 StepResult Schema，已改为 D-03 之后。首纵切 10 页 PNG 被 Git 忽略，其他 clone 不可恢复，开工前必须登记到本地 Object Store。
 
 ---
 2026-07-11（Claude/Cowork）：仓库文档已按并行线拆分——Tag 文档全部迁至 `tag_system/`（原 docs/superpowers/specs/ 下两份 Tag 规格已移至 tag_system/specs/），知识编译与产品母稿迁至 `knowledge_system/`。仓库地图见根 README.md。本文件中旧路径引用以新位置为准。

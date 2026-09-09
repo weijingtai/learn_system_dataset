@@ -37,6 +37,7 @@
 ## D-02 ｜ 冻结 L0 内核契约（阻断其余全部条目）
 
 - **返工项**：RA 组第 2 条 ｜ **落点**：新建 `openspec/schemas/` 四个文件 + `§7 §8` 引用它们
+- **依赖**：DEPENDS_ON D-01、D-03；Schema 必须吸收稳定身份规则和完整 StepRun 状态机后再冻结。
 - **约束边界**：
   - 四个 schema：`ArtifactRef`、`StepRequest`、`StepResult`、`StagePackage`。
   - `StepRequest` 至少含 `§7` 已列五项，`StepResult` 至少含 `§7` 已列五项，只可增不可减。
@@ -398,16 +399,20 @@
 ## 执行顺序（依赖已排好，照此推进即可）
 
 ```
-第 1 轮（无依赖，可并行）
+第 1 轮 A（严格顺序，规格内核阻断）
+  D-01    entity_id / artifact_revision_id 拆分
+  D-03    StepRun 生命周期与 awaiting_human
+  D-02    冻结机器 Schema（必须吸收 D-01 与 D-03）
+
+第 1 轮 B（与 1A 无共享写路径时可并行）
   ACT 01  本地库不再被覆盖
   ACT 02  保存不再自动 verified
   ACT 03  删 enumeration
   T-11    §19 差距表修正（纯事实搬运）
   D-16    PLAN.md 映射表（防止后续丢项）
 
-第 2 轮（拍板后开工）
+第 2 轮
   已拍板：D-04 / D-05 / D-09 / D-12 / D-17 / D-19 / ACT 04
-  D-01 → D-02 → D-03            内核契约链，严格按序
   T-02 T-03                     依赖 D-02/D-03 的产出
 
 第 3 轮

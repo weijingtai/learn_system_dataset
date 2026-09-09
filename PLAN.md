@@ -14,7 +14,7 @@
 > 这三条不是原 40 条的重复，是 7 项架构决议写入规格**之后**才出现的内部不一致。
 > 均已逐条验证存在。建议与第一批返工一并处理。
 
-- [ ] 修复: `openspec/learn-system-blackbox-architecture.md:388（§20 第 8 条）` 与 `:318（§16 SourceAssetPack）` 冲突：完成标准仍写「PublicationPackage 同时包含结构化知识、**原始资料**及其关系」，而新增的 `reference_and_hash_only` 档只携带引用、SHA-256、页标识和权利说明，并不携带原始资料本身；该档下第 8 条是算满足还是算不满足，规格未答 ｜ 通过标准: §20 第 8 条改写为按 SourceAssetPack 档位分别表述（例如：`full_scan`/`derived_page_images_only` 视为满足，`reference_and_hash_only` 需同时提供可解析该引用的本地或受权后端才视为满足），且 `grep -n "原始资料" openspec/learn-system-blackbox-architecture.md` 的每一处都能对应到一个明确档位
+- [x] 修复: `openspec/learn-system-blackbox-architecture.md:388（§20 第 8 条）` 与 `:318（§16 SourceAssetPack）` 冲突：完成标准仍写「PublicationPackage 同时包含结构化知识、**原始资料**及其关系」，而新增的 `reference_and_hash_only` 档只携带引用、SHA-256、页标识和权利说明，并不携带原始资料本身；该档下第 8 条是算满足还是算不满足，规格未答 ｜ 通过标准: §20 第 8 条改写为按 SourceAssetPack 档位分别表述（例如：`full_scan`/`derived_page_images_only` 视为满足，`reference_and_hash_only` 需同时提供可解析该引用的本地或受权后端才视为满足），且 `grep -n "原始资料" openspec/learn-system-blackbox-architecture.md` 的每一处都能对应到一个明确档位
 - [ ] 修复: `openspec/learn-system-blackbox-architecture.md:§2 原则 7` 与 `:83（§4 KnowledgeEntry 字段）` 冲突加剧：原则 7 仍写「不复用旧 ID」，而 D-05 决议已引入 `concept_id`、`pattern_id`、`entry_id`、`subject_entity_id` 与「身份迁移状态」——若 Pattern 每次 Revision 换 `pattern_id`，`subject_entity_id` 即刻断链，KnowledgeEntry 无法稳定指向其主体。**D-01（entity_id / artifact_revision_id 拆分）由「应做」升级为「必须先于其余 D 类完成」** ｜ 通过标准: 见 `docs/blackbox-spec-rework/D-design.md` D-01 判据；追加一条 `grep -A3 "原则 7\|^7\. 任何修改" openspec/learn-system-blackbox-architecture.md | grep -q "artifact_revision_id"`
 - [ ] 修复: `openspec/learn-system-blackbox-architecture.md:108（§5 Review Console）` 要求「人工决定始终归属发起该队列的 ProcessingRun、StepRun 和 Stage」，且 §14 定义了 M3/M4/M6/M7 四种人工模式，但 `§7` 的 `execute(StepRequest)→StepResult` 仍是单次同步语义、无挂起态——StepRun 无法表达「正在等人」。注意 `:331` 已经在 Ledger 故障场景用了「挂起 StepRun」这一措辞，说明该概念已被隐式引入却从未定义。**D-03（StepRun 生命周期状态机）由「应做」升级为「Review Console 的前置」** ｜ 通过标准: 见 `docs/blackbox-spec-rework/D-design.md` D-03 判据；追加 `grep -c "awaiting_human" openspec/learn-system-blackbox-architecture.md` >= 1，且 §17:331 的「挂起」改为引用该状态机的正式术语
 
@@ -36,7 +36,7 @@
 
 **当前基线**：`bash docs/blackbox-spec-rework/verify-T.sh` → 19 FAIL / 1 PASS。每完成一条 T 类，FAIL 减一。
 
-**最短路径**：第 1 轮的 5 项（ACT 01/02/03 + T-11 + D-16）不依赖任何拍板，可立即开工。
+**当前第一执行序列**：严格执行 `D-01 → D-03 → D-02`；ACT 01/02/03、T-11、D-16 与该序列无共享写路径时可并行。
 
 **7 项架构决议已由用户于 2026-09-08 批准**：单机 Ledger 本地进程；Pattern 是 Concept 的可规则识别子类、KnowledgeEntry 是发布视图；EditionPart 优先按卷；现有工作台提升为 Review Console；校订事实/corpus 迁移、派生索引重跑、旧知识库冻结；原件进入本地 Object Store 且分发受 ReleasePolicy 控制；工作台 AI 聊天剥离并在未来由 M4 Model Adapter 取代。旧存储和旧路径的权威说明见 `openspec/legacy-storage-transition.md`。
 
@@ -45,7 +45,6 @@ RB→D-05~D-08 + T-01/T-06/T-07/T-08；RC→D-09~D-13 + T-09/T-10；RD→T-04/T-
 RE→T-11 + D-18；RF→D-14~D-17 + T-12/T-13；RG→D-19。**覆盖完整，无遗漏条目。**
 
 **转译者异议已裁定**（见 README）：① 工作台 AI 聊天选择剥离，R0-3 原通过标准恢复可达；② RG 版权与存储边界正式纳入本轮，采用 Git / 本地 Object Store / PublicationPackage 三层方案。
-
 
 ### R0 零号批次（不依赖任何前置，可立即开工）
 
