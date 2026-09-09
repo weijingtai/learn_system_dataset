@@ -22,7 +22,7 @@
     Concept / SchoolView / KnowledgeEntry 等领域对象。
   - `artifact_revision_id`：物理修订标识，**禁止复用**。适用于 Artifact / StagePackage。
   - `step_run_id`：StepRun 自身的运行标识；每次重跑都新建 StepRun 并取得新的 `step_run_id`。
-  - 原则 7 改为只约束后者，措辞必须明确到不会被再次误读。
+  - 原则 7 的不可复用约束只适用于 `artifact_revision_id`，同时明确 `entity_id` 必须跨 Revision 复用，措辞必须明确到不会被再次误读。
   - ReviewDecision、EvidenceLink、下游 Annotation 一律锚定 `entity_id`。
 - **判据**：
   ```bash
