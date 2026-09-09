@@ -330,6 +330,8 @@ Artifact Ledger 使用本地混合存储：
 
 Ledger 以单机本地进程提供统一 Interface。Pipeline、OCR FastAPI 和 Flutter Review Console 都通过本地客户端调用该进程，不直接打开 Metadata Ledger。进程默认绑定 loopback 或 Unix domain socket，只允许一个写入者实例；写事务由进程串行化，SQLite 使用 WAL 允许只读查询并发。进程级锁阻止第二个 Ledger 写入者启动。进程不可用时 Module 挂起 StepRun，不回退到直接写库。
 
+当前是单人单机工具，不实现登录、密码、会话、RBAC 或用户身份验证。边界只保留极薄的 `ActorProvider.current_actor()` 接口，本地实现固定返回 `local_owner`，审计事件继续保存 `actor_ref`。未来上线时可替换为 OIDC 等在线身份适配器，不修改领域对象或历史审计记录。这里的操作者身份与 `entity_id`、`artifact_revision_id` 等业务对象标识完全独立；后者不能因当前没有登录系统而省略。
+
 本地 Object Store 保存受版权限制的原件和大体积中间产物，不进入 Git。Git、Object Store 与 PublicationPackage 的职责，以及旧存储的迁移/重跑/冻结决议，以 `openspec/legacy-storage-transition.md` 为准。
 
 每个 Artifact 至少记录类型、Schema、哈希、大小、ProcessingRun、StepRun、生产 Module/版本、输入 Artifact、配置、校验报告、时间、状态和权利范围。相同内容物理去重，但逻辑引用和生产关系分别保留。
@@ -392,6 +394,7 @@ Ledger 以单机本地进程提供统一 Interface。Pipeline、OCR FastAPI 和 
 ## 21. 非目标
 
 - 微服务、消息队列和分布式调度；
+- 当前版本的注册、登录、密码、会话、RBAC 和多用户身份验证；仅保留 `ActorProvider` 接口；
 - APP 后端、客户端、Mark UI 或社交功能实现；
 - 用户 Pattern 编辑器和发布流程；
 - Embedding、向量检索和端侧语言模型；

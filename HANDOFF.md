@@ -1,10 +1,10 @@
 # HANDOFF
 
-更新时间：2026-09-08（R1 复核与 RN 排序后）
+更新时间：2026-09-08（开源框架调研与本地身份边界确认后）
 当前分支/worktree：`codex/docs/knowledge-compilation`；独立仓库 `/Users/jingtaiwei/Git/Public/learn_system`
-刚完成：用户复核通过七项架构决议；复核新增 RN-1～RN-3。RN-1 已闭合，明确 `reference_and_hash_only` 必须可由本地 Object Store 或受权后端解析；RN-2/RN-3 分别映射 D-01/D-03。
+刚完成：用户确认当前为单人单机，不实现登录鉴权，只保留固定 `local_owner` 的 `ActorProvider` 接口；已完成免费开源框架调研，记录 Prefect、SQLite/SQLAlchemy/Alembic、PaddleOCR/Kraken、JSON Schema、SQLite FTS5、JSON-LD/SHACL、BagIt/RO-Crate 等候选及自研边界。用户复核通过七项架构决议；RN-1 已闭合，RN-2/RN-3 分别映射 D-01/D-03。
 进行到一半的事（精确到文件和章节）：规格仍为 `REVIEW_FAILED_R1`；RN-2、RN-3 和其余 R1 返工未完成。T 判据仍为 19 FAIL / 1 PASS。迁移只是决议，尚未执行；业务代码未修改。
-下一步（第一件事）：严格执行 `D-01 → D-03 → D-02`；ACT 01/02/03、T-11、D-16 仅在无共享写路径时并行。
+下一步（第一件事）：用户确认开源候选采用范围后写入正式 OpenSpec；返工仍严格执行 `D-01 → D-03 → D-02`，ACT 01/02/03、T-11、D-16 仅在无共享写路径时并行。
 已知的坑：D-02 原排序早于 D-03 会冻结一个没有合法状态枚举的 StepResult Schema，已改为 D-03 之后。首纵切 10 页 PNG 被 Git 忽略，其他 clone 不可恢复，开工前必须登记到本地 Object Store。
 
 ---

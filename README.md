@@ -4,6 +4,8 @@
 
 > **旧存储与旧路径：[`openspec/legacy-storage-transition.md`](openspec/legacy-storage-transition.md)**。修改 OCR、Pipeline、工作台的存储、导入、导出或索引代码前先读；旧路径仍在源码中不代表迁移已完成。
 
+> **免费开源框架候选：[`docs/research/2026-09-08-open-source-framework-options.md`](docs/research/2026-09-08-open-source-framework-options.md)**。这是单人单机条件下的选型调研，不是已生效的架构规范；采用范围须经确认后再进入 OpenSpec。
+
 > 2026-07-11 重组：文档按两条并行工作线拆分，**两区文档不得互混**。新文件落位规则：先问"这是关于 Marks/Tag 的，还是关于书籍知识编译/产品的？"
 
 ```text
