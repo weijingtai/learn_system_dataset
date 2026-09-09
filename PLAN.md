@@ -48,7 +48,7 @@
 
 - [ ] 修复: `openspec/learn-system-blackbox-architecture.md:§13,§16` 未吸收 `pipeline/DATASET_ACCEPTANCE_STANDARD.md:38-99` 已定稿的三级消费级别（INTERNAL_DEMO / DEV_SEARCH / PUBLIC_RELEASE）与 G1-G7 一票否决门禁，该文档要求「编译器必须显式接收目标级别并 fail-closed」，而 §16 的 M8 输入不含此参数 ｜ 通过标准: 消费级别列为 M8 显式输入参数，§16 写明各级别准入状态门槛（引用 G7），§13 的 Validator 清单逐条对应 G1-G6 并指出哪些在 M5、哪些延到 M8；全规格不新造门禁名
 - [ ] 修复: `openspec/learn-system-blackbox-architecture.md:§14` 仍只写「专家签发」单一动作，未吸收 `knowledge_system/METAPHYSICS_KNOWLEDGE_COMPILATION_WORKFLOW_v1.2.md:248-259` 已定稿的「禁止用一个 expert_verified 覆盖所有含义」与八类审核拆分 ｜ 通过标准: 八类审核（来源忠实度 / 版本校勘 / 流派归属 / 解释质量 / 案例真实性 / 现实效度 / 安全 / 权利）落为 ReviewDecision 子类型枚举，与 RA 状态枚举表合并处理
-- [ ] 修复: `openspec/learn-system-blackbox-architecture.md:§11,§19` 证据等级未裁定——`LEARN_SYSTEM_TARGET.md:140` 明确「纯文本引用只能算开发级证据」，而 §11 允许电子来源仅回到 EPUB offset，现有 `ku_bazi_000046` 全部走 offset 路径，M3/M5 任务会在「offset 够」与「必须字框」之间反复返工 ｜ 通过标准: 规格给出 `evidence_level` 枚举（至少 offset 级 / 字框级）、各级可发布性结论，并写入 M5 validator 判定条件与首纵切验收接受档位
+- [ ] 修复: `openspec/learn-system-blackbox-architecture.md:§11,§19` 证据等级未裁定——`LEARN_SYSTEM_TARGET.md:140` 明确「纯文本引用只能算开发级证据」，而 §11 允许电子来源仅回到 EPUB offset，现有 `ku_bazi_000046` 全部走 offset 路径，M3/M5 任务会在「offset 够」与「必须字框」之间反复返工 ｜ 通过标准: 规格给出 `evidence_level` 枚举（至少 offset 级 / 字框级）、各级可发布性结论，并写入 M5 validator 判定条件与首纵切验收接受档位；**首纵切档位已由用户裁定为「字框级」**，本条只需补枚举与 validator 条件
 
 ### RE 差距表本身失真（§19 三行低估、十二项遗漏）
 
@@ -61,12 +61,18 @@
 ### RF 规划前置（不解决则拆出的 tasks 无法验收）
 
 - [ ] 修复: `openspec/learn-system-blackbox-architecture.md:§19,§20,§21` 全文无任何分期、优先级或 MVP 表述，§19 十二行全「缺」、§20 十条全为终态；而 `LEARN_SYSTEM_TARGET.md:278-296` 已确认第一阶段是一条纵切，该纵切横跨 §19 的 8 行，不独占任何一行——按差距表逐行拆将得到 12 条并行 epic，各推进 30% 时纵切仍为 0 ｜ 通过标准: 规格新增「实施分期与首个纵切」一节，§19 每行标注 {首纵切内 / 首纵切后 / 本阶段暂缓} 之一，且标为「首纵切内」的不超过 4 行
+- [x] 裁定（2026-09-08 用户）：首纵切改用**七政《三辰通载三十卷》影宋鈔本**。三元组 = `technique_id=qizheng` + `Work=三辰通载三十卷` + `Edition=影宋鈔本` + `SourceAsset=ocr/data_work/sanche_pages/page_001..010.png`（派生页图，已在仓库）+ 源 PDF 外部引用（247M，按 `.gitignore` 策略不入仓，见 RG 组）。连带确定：`evidence_level=字框级`；M6 复用现有七政工作台原型；496 条空 rule 不作为纵切输入，知识从原文重新抽取。**遗留子项**见下条。
 - [ ] 修复: `openspec/learn-system-blackbox-architecture.md:§4` 与 `LEARN_SYSTEM_TARGET.md:289`、`PLAN.md` 首纵切术数冲突，且素材物理不存在——`raw_books/` 全仓仅 2 个文件（`bazi/qiongtongbaojian/穷通宝鉴.epub`、`qimendunjia/yanbodiaosou.md`），无任何八字扫描件；唯一扫描物料是七政《三辰通载》10 页 PNG，其源 PDF 位于 `$HOME/Downloads/`（见 `ocr/run_sanche10.sh:14`）不在仓库、无哈希登记，违反 §9；而七政侧 496 条 rule 知识字段全空。即「八字有文无图、七政有图无文」，`LEARN_SYSTEM_TARGET.md:292` 的高亮终点当前对两者皆不可达 ｜ 通过标准: 裁定并写入规格一组三元组 `technique_id + Work/Edition + SourceAsset 仓库内路径`，该路径真实存在且可计算哈希；若选择需新引入的扫描件，则「取得并登记该扫描件」成为首纵切第 1 号任务
 - [ ] 修复: 缺最小可跑 fixture Edition，导致 §20 第 1/2/4/9 条无验收宿主，且第一批 tasks 写不出「跑哪条命令算过」 ｜ 通过标准: 建立 `pipeline/corpus/_fixture/mini_ed01`（≤3 页、≤5 batch），在无内网、无 GPU、无外部模型 API 条件下可跑完 M1→M6，并被 §19/§20 引用为统一验收宿主
 - [ ] 修复: `PLAN.md:7` 提议「按差距矩阵重写本节」，但差距表覆盖不到本文件现有 26 条未完成项中的至少 6 条（pipeline 环境检查、四本手册状态回写、《烟波钓叟歌》扩批模板、奇门试点材料、奇门金标集、旧 APP 迁移策略）及整条 Tag 线与 OCR 线，规格 §21 也未将其列为非目标，重写将静默丢失；另有 5 处重复登记（KnowledgeReleaseCompiler 见 `PLAN.md:18` / `pipeline/TODO.md` / `pattern_knowledge_workbench/TODO.md` / `LEARN_SYSTEM_TARGET.md:258`）会漂移成第 6 处 ｜ 通过标准: PLAN.md 只做增补与映射不做替换；新增「差距行 ↔ 既有条目 ↔ owner 文件」映射表，§19 每行有归属，现有未完成项被删除数量为 0 且每条标注 mapped / superseded-by / out-of-scope，重复项收敛到唯一 owner 文件
 - [ ] 修复: `openspec/learn-system-blackbox-architecture.md:§17,§19` 未对既有五处存储给出处置结论，Ledger 落地后将全部返工，且违反 §2 原则2「Module 不直接读取或修改其他 Module 的数据库」 ｜ 通过标准: 对 `ocr/data_work/index.db`、`pipeline/units/`（139 单元）、`pipeline/rag/index.sqlite`、`pipeline/corpus/`、`pattern_knowledge_workbench/assets/ge_ju_database.sqlite`（496 rules）每处给出 {迁移 / 重跑 / 冻结为历史快照} 三选一结论
 - [ ] 修复: `openspec/learn-system-blackbox-architecture.md:§19` 行序为 M1→M8→三个基础设施，恰是真实依赖拓扑的逆序（L0 内核契约 → Artifact Ledger → Local Orchestrator / Contract Registry → M1-M8），执行者自上而下开工时 Ledger 尚不存在，M1 必然自造 ID 与 manifest 约定后返工 ｜ 通过标准: §19 增「层级」列标出 L0/L1/L2/Module 四层，或按拓扑重排行序，并显式标注三个基础设施为前置层
 - [ ] 修复: `openspec/learn-system-blackbox-architecture.md` 全文 21 节仅 §2 带「已确认原则」标签，其余以确定语气陈述，违反 `AGENTS.md:39`「明确区分已确认设计 / 讨论候选 / 待验证假设 / 最终规范」；§16 的「建议一个 Technique 一个 Release」混入正文，读者无法判断其对 task 是否有约束力 ｜ 通过标准: §3-§18 每节带状态标签，`grep -c "^状态：" openspec/learn-system-blackbox-architecture.md` ≥ 16，且「建议」类表述归入「讨论候选」或升格为规范
+
+### RG 版权与存储边界（R1 审查后追加，新发现）
+
+- [ ] 修复: `openspec/learn-system-blackbox-architecture.md:§9,§16,§17,§20.8` 与 `.gitignore:3-12` 冲突：仓库策略明令「版权源书不进公开仓，只提取转录文本与派生产物」（`*.pdf` / `raw_books/**/*.pdf` 均被忽略），而 §9 要求 M1 输出「原始文件及哈希」、§16 含 `SourceAssetPack`、§20.8 要求发布物「同时包含原始资料」、`LEARN_SYSTEM_TARGET.md:140` 要求「客户端最终应能打开原始扫描件」；首纵切源 PDF 实测 247M，物理与法律上均不可入仓 ｜ 通过标准: 规格明确区分三层存储边界——Git 仓库（转录与派生产物）/ 本地 Object Store（§17，含受版权限制的原件，不进 Git）/ PublicationPackage（对外分发物）；并规定 SourceAsset 在源书不可分发时的登记形态（外部路径引用 + SHA-256 + 页数 + 页图派生物清单），使 §9 的「原始文件及哈希」可在不入仓的前提下满足
+- [ ] 修复: `openspec/learn-system-blackbox-architecture.md:§16 SourceAssetPack` 未定义版权受限来源的降级形态，导致 `LEARN_SYSTEM_TARGET.md:140`「打开原始扫描件并高亮」这一终点在首纵切上无法交付 ｜ 通过标准: §16 为 SourceAssetPack 定义至少两档内容级别（full_scan / derived_page_images_only / reference_and_hash_only）及各档下客户端高亮功能的可用性结论，并在 §21 或 ReleasePolicy 中写明首纵切采用哪一档
 
 ## Learn System 系统集成主线
 
