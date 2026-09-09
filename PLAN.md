@@ -36,7 +36,7 @@
 
 **2026-09-08 初始基线**：`bash docs/blackbox-spec-rework/verify-T.sh` → 19 FAIL / 1 PASS。每完成一条 T 类，FAIL 减一。
 
-**当前第一执行序列**：`D-01`、`D-03` 已验收；T-02 第一轮提交 `6e317cc` 的结构门禁通过，但 StagePackage 身份语义与 `<stage>` 闭集审查失败。当前顺序为 `T-02 最小返工 → 用户确认新 ID 前缀 → T-02 验收 → D-02 工作包`。ACT 01/02/03、T-11、D-16 与该序列无共享写路径时可并行，但均须先达到工作包 `READY`。
+**当前第一执行序列**：`D-01`、`D-03` 已验收；T-02 返工提交 `376e78c` 已通过机器、规格和质量审查。当前只待用户确认 `art_/rev_/prun_/srun_/pkg_/rel_` 六类前缀，随后即可标记 T-02 `ACCEPTED` 并准备 D-02 工作包。ACT 01/02/03、T-11、D-16 与该序列无共享写路径时可并行，但均须先达到工作包 `READY`。
 
 **7 项架构决议已由用户于 2026-09-08 批准**：单机 Ledger 本地进程；Pattern 是 Concept 的可规则识别子类、KnowledgeEntry 是发布视图；EditionPart 优先按卷；现有工作台提升为 Review Console；校订事实/corpus 迁移、派生索引重跑、旧知识库冻结；原件进入本地 Object Store 且分发受 ReleasePolicy 控制；工作台 AI 聊天剥离并在未来由 M4 Model Adapter 取代。旧存储和旧路径的权威说明见 `openspec/legacy-storage-transition.md`。
 
@@ -117,7 +117,7 @@ RE→T-11 + D-18；RF→D-14~D-17 + T-12/T-13；RG→D-19。**覆盖完整，无
 - [x] 复核并启用 `openspec/subagent-delivery-gate.md`；所有新派发任务必须先达到 `READY`。
 - [x] 完成 D-03 追溯工作包和独立验收；证据见 `docs/blackbox-spec-rework/work-items/d03/ACCEPTANCE.md`。
 - [x] 将 T-02 准备到 `READY`；工作包与可直接派发 Prompt 见 `docs/blackbox-spec-rework/work-items/t02/`。
-- [ ] 完成 T-02 最小返工，确认新增对象 ID 前缀并完成主 Agent 验收；第一轮 `6e317cc` 已令 T-02b 转绿，但 StagePackage 的 `pkg_`/`rev_` 语义冲突及 `<stage>` 未闭集，返工 Prompt 见 `docs/blackbox-spec-rework/work-items/t02/REWORK_PROMPT.md`。在此之前不得冻结 D-02 的 L0 Schema。
+- [ ] 用户确认 T-02 的六类新增前缀；返工 `376e78c` 已解决 StagePackage 的 `pkg_`/`rev_` 语义冲突并冻结 `<stage>=m1–m8`，全部技术验收通过。用户确认前不得冻结 D-02 的 L0 Schema。
 - [x] 调研单人单机条件下可直接复用的免费开源框架；候选组合与自研边界见 `docs/research/2026-09-08-open-source-framework-options.md`，尚待确认后写入正式 OpenSpec。
 - [x] 明确当前不实现登录鉴权；只保留固定返回 `local_owner` 的 `ActorProvider` 接口，未来可替换线上身份适配器。业务对象稳定 ID 不属于登录身份系统，仍按 D-01 处理。
 - [x] 确认 OCR 参数化设计：现有中国传统竖排古籍 OCR/FastAPI/Vue 保持主链，不引入 Kraken；每个 Edition 使用经代表页校准、人工验收和冻结的版本化 `OCRProfile`。设计见 `openspec/ocr-profile-parameterization.md`。

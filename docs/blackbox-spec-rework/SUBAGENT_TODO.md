@@ -45,7 +45,7 @@
   - [x] PLAN/HANDOFF 与证据归档
   - [x] 主 Agent 标记 `ACCEPTED`
 
-- [ ] T-02：完整标识格式转录与新增前缀确认（状态：`REVIEWING`；第一轮需返工）
+- [ ] T-02：完整标识格式转录与新增前缀确认（状态：`BLOCKED`；仅待用户确认前缀）
   - [x] 权威照抄源已定位
   - [x] README/范围/依赖/禁止项
   - [x] BDD 场景
@@ -57,11 +57,11 @@
   - [ ] 用户确认新增对象 ID 前缀
   - [x] 用户已派发执行 Agent
   - [x] 执行 Agent 第一轮提交 `6e317cc` 与证据
-  - [ ] 修复 StagePackage 逻辑身份／物理 Revision 冲突
-  - [ ] 冻结 `<stage>` 为 `m1`–`m8` 闭集
-  - [ ] 主 Agent 规格审查
-  - [ ] 主 Agent 质量审查
-  - [ ] PLAN/HANDOFF 同步
+  - [x] 修复 StagePackage 逻辑身份／物理 Revision 冲突（`376e78c`）
+  - [x] 冻结 `<stage>` 为 `m1`–`m8` 闭集
+  - [x] 主 Agent 规格审查
+  - [x] 主 Agent 质量审查
+  - [x] PLAN/HANDOFF 同步
   - [ ] 主 Agent 标记 `ACCEPTED`
 
 - [ ] D-02：冻结 L0 四个机器 Schema（状态：`BLOCKED`，依赖 D-03、T-02）
