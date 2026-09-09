@@ -1,6 +1,6 @@
 # PLAN
 
-更新时间：2026-09-08（R1 审查后）
+更新时间：2026-09-09（Subagent 交付闸门启用）
 
 ## 黑箱架构规格 R1 审查返工项（阻断进入 tasks 阶段）
 
@@ -36,7 +36,7 @@
 
 **2026-09-08 初始基线**：`bash docs/blackbox-spec-rework/verify-T.sh` → 19 FAIL / 1 PASS。每完成一条 T 类，FAIL 减一。
 
-**当前第一执行序列**：严格执行 `D-01 → D-03 → D-02`；ACT 01/02/03、T-11、D-16 与该序列无共享写路径时可并行。
+**当前第一执行序列**：`D-01`、`D-03` 已验收；下一项为 `T-02 执行 → 用户确认新 ID 前缀 → T-02 验收 → D-02 工作包`。ACT 01/02/03、T-11、D-16 与该序列无共享写路径时可并行，但均须先达到工作包 `READY`。
 
 **7 项架构决议已由用户于 2026-09-08 批准**：单机 Ledger 本地进程；Pattern 是 Concept 的可规则识别子类、KnowledgeEntry 是发布视图；EditionPart 优先按卷；现有工作台提升为 Review Console；校订事实/corpus 迁移、派生索引重跑、旧知识库冻结；原件进入本地 Object Store 且分发受 ReleasePolicy 控制；工作台 AI 聊天剥离并在未来由 M4 Model Adapter 取代。旧存储和旧路径的权威说明见 `openspec/legacy-storage-transition.md`。
 
@@ -114,8 +114,10 @@ RE→T-11 + D-18；RF→D-14~D-17 + T-12/T-13；RG→D-19。**覆盖完整，无
 ## Learn System 系统集成主线
 
 - [x] 确认主 Agent 的工作边界：只负责规格、BDD、TDD、ACT、Executor Prompt 和独立验收，不代替执行 Agent 编写业务实现。准出规范见 `openspec/subagent-delivery-gate.md`，总进度见 `docs/blackbox-spec-rework/SUBAGENT_TODO.md`。
-- [ ] 复核并启用 `openspec/subagent-delivery-gate.md`；启用后所有新派发任务必须先达到 `READY`。
-- [ ] 修正内核执行依赖为 `D-03 验收 → T-02 完成及新增前缀确认 → D-02`；T-02 未完成前不得冻结 L0 Schema。
+- [x] 复核并启用 `openspec/subagent-delivery-gate.md`；所有新派发任务必须先达到 `READY`。
+- [x] 完成 D-03 追溯工作包和独立验收；证据见 `docs/blackbox-spec-rework/work-items/d03/ACCEPTANCE.md`。
+- [x] 将 T-02 准备到 `READY`；工作包与可直接派发 Prompt 见 `docs/blackbox-spec-rework/work-items/t02/`。
+- [ ] 执行 T-02，确认新增对象 ID 前缀并完成主 Agent 验收；在此之前不得冻结 D-02 的 L0 Schema。
 - [x] 调研单人单机条件下可直接复用的免费开源框架；候选组合与自研边界见 `docs/research/2026-09-08-open-source-framework-options.md`，尚待确认后写入正式 OpenSpec。
 - [x] 明确当前不实现登录鉴权；只保留固定返回 `local_owner` 的 `ActorProvider` 接口，未来可替换线上身份适配器。业务对象稳定 ID 不属于登录身份系统，仍按 D-01 处理。
 - [x] 确认 OCR 参数化设计：现有中国传统竖排古籍 OCR/FastAPI/Vue 保持主链，不引入 Kraken；每个 Edition 使用经代表页校准、人工验收和冻结的版本化 `OCRProfile`。设计见 `openspec/ocr-profile-parameterization.md`。

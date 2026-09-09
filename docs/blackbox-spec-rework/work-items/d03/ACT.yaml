@@ -1,0 +1,28 @@
+task_id: blackbox-d03-retrospective-review
+mode: review_only
+status: REVIEWING
+goal: 验证提交 b0022d4 是否满足 D-03，禁止实现或修补
+depends_on:
+  - D-01: ACCEPTED
+scope:
+  read:
+    - openspec/learn-system-blackbox-architecture.md
+    - docs/blackbox-spec-rework/D-design.md
+    - docs/blackbox-spec-rework/work-items/d03/BDD.md
+    - docs/blackbox-spec-rework/work-items/d03/TDD.md
+    - PLAN.md
+    - HANDOFF.md
+  write:
+    - docs/blackbox-spec-rework/work-items/d03/ACCEPTANCE.md
+forbidden:
+  - 修改架构规格或业务代码
+  - 放宽判据
+  - 将关键词命中当作语义通过
+steps:
+  - 核对 b0022d4 的真实文件范围
+  - 运行 TDD 自动判据并保存摘要
+  - 逐项验证八个 BDD 场景
+  - 分别给出规格符合性与质量结论
+  - 仅当两项均通过时建议 ACCEPTED
+on_fail: 停止并在 ACCEPTANCE.md 记录可机械执行的返工项
+

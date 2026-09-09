@@ -1,0 +1,44 @@
+task_id: blackbox-t02-id-transcription
+mode: documentation_change
+status: READY
+goal: 原样转录冻结 ID，并写入六类待用户确认的新 ID 提案
+depends_on:
+  - D-01: ACCEPTED
+scope:
+  read:
+    - docs/blackbox-spec-rework/T-transcribe.md
+    - pipeline/schemas/core/SCHEMA.md
+    - knowledge_system/CROSS_TECHNIQUE_ONTOLOGY.md
+    - openspec/learn-system-blackbox-architecture.md
+    - openspec/subagent-delivery-gate.md
+    - docs/blackbox-spec-rework/work-items/t02/README.md
+    - docs/blackbox-spec-rework/work-items/t02/BDD.md
+    - docs/blackbox-spec-rework/work-items/t02/TDD.md
+  write:
+    - openspec/learn-system-blackbox-architecture.md
+forbidden:
+  - 修改冻结 ID 格式或位数
+  - 修改任何工作包、计划、交接或验收脚本
+  - 创建代码、Schema、fixture 或依赖
+  - 将新前缀标成已确认
+steps:
+  - 运行并记录 Red baseline
+  - 定位实际术语规范文件并核对三类概念 ID
+  - 在架构 §8.1 转录八类冻结格式及各自真实来源
+  - 添加六类新 ID 提案，明确 32hex 生成规则与 prun_ 避冲突理由
+  - 明确 Schema version 与 content Revision 分离
+  - 运行 Green checks 与全局脚本
+  - 只提交允许文件
+verification:
+  - docs/blackbox-spec-rework/work-items/t02/TDD.md 中全部 Green checks
+  - T-02b 由 FAIL 变为 PASS
+  - git diff --check
+on_fail: 停止，不扩大范围；报告缺失照抄源、冲突、失败命令与建议决策
+commit_message: 'docs: define identifier formats'
+report:
+  - commit hash
+  - changed files
+  - red baseline summary
+  - green evidence summary
+  - frozen rows comparison
+  - unresolved decisions

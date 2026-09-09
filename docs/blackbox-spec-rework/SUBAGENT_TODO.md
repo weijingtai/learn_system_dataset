@@ -13,15 +13,15 @@
 
 ## G0 工作包治理
 
-- [ ] G0：建立并启用 Subagent 准出制度（状态：`PREPARING`）
+- [x] G0：建立并启用 Subagent 准出制度（状态：`ACCEPTED`）
   - [x] 规定主 Agent 与执行 Agent 职责边界
   - [x] 规定标准工作包目录
   - [x] 规定 BDD、TDD、ACT、Prompt、Acceptance 六类文档
   - [x] 规定 READY 准出条件
   - [x] 规定执行后的两阶段审查
   - [x] 建立本监控表
-  - [ ] 用户复核书面规格
-  - [ ] 将状态更新为 `ACCEPTED`
+  - [x] 用户复核书面规格（2026-09-09：确认）
+  - [x] 将状态更新为 `ACCEPTED`
 
 ## G1 规格内核严格序列
 
@@ -33,27 +33,27 @@
   - [x] 质量审查通过
   - [x] PLAN/HANDOFF 已同步
 
-- [ ] D-03：StepRun 生命周期状态机（状态：`REVIEWING`）
+- [x] D-03：StepRun 生命周期状态机（状态：`ACCEPTED`）
   - [x] 执行提交 `b0022d4`
-  - [ ] 补制 BDD 验收场景
-  - [ ] 补制 TDD/机器判据
-  - [ ] 补制 ACT 范围对照
-  - [ ] 核对执行提交未越界
-  - [ ] 重跑全部判据
-  - [ ] 规格符合性审查
-  - [ ] 质量审查
-  - [ ] PLAN/HANDOFF 与证据归档
-  - [ ] 主 Agent 标记 `ACCEPTED`
+  - [x] 补制 BDD 验收场景
+  - [x] 补制 TDD/机器判据
+  - [x] 补制 ACT 范围对照
+  - [x] 核对执行提交未越界
+  - [x] 重跑全部判据
+  - [x] 规格符合性审查
+  - [x] 质量审查
+  - [x] PLAN/HANDOFF 与证据归档
+  - [x] 主 Agent 标记 `ACCEPTED`
 
-- [ ] T-02：完整标识格式转录与新增前缀确认（状态：`PREPARING`）
+- [ ] T-02：完整标识格式转录与新增前缀确认（状态：`READY`）
   - [x] 权威照抄源已定位
-  - [ ] README/范围/依赖/禁止项
-  - [ ] BDD 场景
-  - [ ] TDD 正反 fixture 与判据
-  - [ ] ACT.yaml
-  - [ ] Executor Prompt
-  - [ ] Acceptance 清单
-  - [ ] `wjt-react` 判定 READY
+  - [x] README/范围/依赖/禁止项
+  - [x] BDD 场景
+  - [x] TDD 正反判据（纯文档任务，无数据 fixture）
+  - [x] ACT.yaml
+  - [x] Executor Prompt
+  - [x] Acceptance 清单
+  - [x] `wjt-react` 四查判定 `READY`
   - [ ] 用户确认新增对象 ID 前缀
   - [ ] 派发执行 Agent
   - [ ] 执行 Agent 提交与证据
