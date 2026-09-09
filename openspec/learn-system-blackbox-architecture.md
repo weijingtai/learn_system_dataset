@@ -201,7 +201,9 @@ failures      本次及此前失败记录引用
 
 Package 封存后不可修改。修正产生新的 Package Revision。
 
-### 8.1 标识与修订语义
+### 8.1 标识与版本规范
+
+#### 1. 标识语义（业务身份与物理修订分离）
 
 `entity_id` 表示跨 Revision 稳定、必须复用的业务身份。Pattern、Assertion、SourceSpan、Concept、SchoolView、KnowledgeEntry 等领域对象均使用稳定 `entity_id`；具体 Contract 可以使用 `pattern_id`、`concept_id`、`entry_id`、`ocr_profile_id` 等领域化字段名，但它们必须遵守同一 `entity_id` 语义，不得因内容修订而换号。
 
@@ -214,6 +216,50 @@ StepRun 自身使用 `step_run_id`，不使用 `artifact_revision_id` 充当运�
 ReviewDecision 与 EvidenceLink 必须同时记录目标对象的 `entity_id`，以及作出决定或建立证据关系时所见的 `artifact_revision_id`。下游 Annotation 以目标对象的 `entity_id` 为主锚，并必须记录创建时所见的 `artifact_revision_id`。两部分缺一即不能重现当时内容；不得只锚定物理修订，也不得以 `stable_key` 绕过 `entity_id`。
 
 对象删除后，其 `entity_id` 永久退役；对象合并或拆分时，新对象必须取得新的 `entity_id`，不得把任一旧 `entity_id` 复用于语义已经改变的新对象。旧身份到新身份的迁移关系由后续 `IdentityMigrationMap` 表达。
+
+#### 2. 已冻结标识格式（原样沿用）
+
+既有系统已冻结八类标识格式，本规范原样沿用，不修改前缀、分隔符或数字位数：
+
+| 对象 | 标识格式 | 权威出处 | 说明 |
+|---|---|---|---|
+| 来源（Source） | `src_<work>_ed<NN>` | 沿用 `pipeline/schemas/core/SCHEMA.md` v0.2 §1 | 作品底本来源标识，`<work>` 为作品简称，`<NN>` 为两位底本版次编号 |
+| 原文片段（SourceSpan） | `ss_<work>_ed<NN>_p<NNNN>_s<NN>` | 沿用 `pipeline/schemas/core/SCHEMA.md` v0.2 §2 | 原文证据切片，含作品、版次、4位页码及2位句子序号 |
+| 知识单元（KnowledgeUnit） | `ku_<technique>_<6位数字>` | 沿用 `pipeline/schemas/core/SCHEMA.md` v0.2 §3 | 技法知识单元，`<technique>` 为技法代号，后接6位定长数字编号 |
+| 主张（Assertion） | `as_<technique>_<6位数字>` | 沿用 `pipeline/schemas/core/SCHEMA.md` v0.2 §4 | 知识主张，`<technique>` 为技法代号，后接6位定长数字编号 |
+| 命题（Proposition） | `pr_<technique>_<6位数字>` | 沿用 `pipeline/schemas/core/SCHEMA.md` v0.2 §4 | 原子命题，`<technique>` 为技法代号，后接6位定长数字编号 |
+| 共享概念（Shared Canon Concept） | `co_shared_<domain>_NN` | 沿用 `knowledge_system/CROSS_TECHNIQUE_ONTOLOGY.md` §二 L1 | 跨技法共享源数据概念（如天干、地支、五行等闭集），不隶属单一技法 |
+| 技法概念（Technique-Private Concept） | `co_<technique>_<6位数字>` | 沿用 `knowledge_system/CROSS_TECHNIQUE_ONTOLOGY.md` §二 L3 | 技法独有概念（如八字十神、奇门门宫），后接6位定长数字编号 |
+| 同形字面锚（Homograph Surface Anchor） | `hg_<4位数字>` | 沿用 `knowledge_system/CROSS_TECHNIQUE_ONTOLOGY.md` §二 L2 | 跨技法同形异义词字面共享锚，后接4位定长数字编号 |
+
+注：上述八行格式分别来自 `pipeline/schemas/core/SCHEMA.md` v0.2 与 `knowledge_system/CROSS_TECHNIQUE_ONTOLOGY.md`，执行方必须严格维持原样，不得擅自合并、重命名或变动位数。
+
+#### 3. 新对象标识提案（待用户确认）
+
+为黑箱架构新引入的核心对象定义标识格式。为遵循单人单机最小依赖原则，统一使用 Python 标准库 `uuid.uuid4().hex`（UUIDv4，32位全小写十六进制字符串）作为无状态稳定段，无需引入中心化发号器、数据库自增序列或外部第三方包。
+
+以下六类新对象标识格式当前均为**提案，待用户确认**，尚未冻结，执行者无权擅自冻结；D-02 机器 Schema 保持阻塞，待用户拍板后方可生效：
+
+| 对象 | 提案格式 | 语义归属 | 说明与防冲突理由 |
+|---|---|---|---|
+| Artifact | `art_<32hex>` | 逻辑身份（`artifact_id`） | 知识制品逻辑对象身份，多次修订保持稳定 |
+| Artifact Revision | `rev_<32hex>` | 物理修订（`artifact_revision_id`） | 不可变物理修订标识，每次封存或修正生成全新修订号 |
+| ProcessingRun | `prun_<32hex>` | 运行身份 | 批处理运行标识；**必须使用 `prun_` 前缀**，严禁使用 `pr_`，避免与既有已冻结命题 ID（`pr_<technique>_<6位数字>`）冲突 |
+| StepRun | `srun_<32hex>` | 运行身份（`step_run_id`） | 管道单步执行标识，每次重跑均分配全新 ID |
+| StagePackage | `pkg_<stage>_<32hex>` | 物理修订 | 阶段包物理封存标识，`<stage>` 为管道阶段（如 m1、m2） |
+| Release | `rel_<32hex>` | 发布版本 | 正式发布版本标识 |
+
+规范约束与非法格式判定：
+1. **身份与 Revision 分离**：`Artifact`（`art_<32hex>`）与 `Artifact Revision`（`rev_<32hex>`）是两种不同性质的标识，严禁合并为一个字段。同一 Artifact 产生新版内容时，`artifact_id` 保持不变，每版获得唯一的 `artifact_revision_id`。
+2. **前缀命名与冲突规避**：ProcessingRun 必须使用 `prun_`。严禁将 `pr_` 复用于 ProcessingRun，否则判为非法。
+3. **非法格式可判定**：缺前缀、十六进制非32位、包含大写字母（必须全小写十六进制 `[0-9a-f]{32}`）、或数字位数不符者，校验器与消费者一律判定为非法标识。
+
+#### 4. 版本轴分离规则（Schema Version 与 Content Revision）
+
+架构确立 **Schema 版本与 content Revision 分离**（Schema Version 与 Content Revision 分离）原则：
+1. **Schema Version（契约版本）**：描述数据结构、校验字段与类型定义的演进（如 v0.1、v0.2、v1.0），由数据规范文档与机器 Schema 定义。
+2. **Content Revision（内容修订）**：描述在特定契约下生成的物理知识实例数据的不可变修订（如 `rev_<32hex>`、`pkg_<stage>_<32hex>`）。
+3. **独立演进**：两者沿独立维度递增，不强制同号。重新编译、修复知识内容或重跑流水线只需生成新的 Content Revision，无需升级 Schema Version；Schema Version 升级时，历史 Content Revision 仍保留并指向当时的 Schema Version，实现契约升级与内容修订的彻底解耦。
 
 ### 8.2 Artifact 与 StepRun 状态全集
 
