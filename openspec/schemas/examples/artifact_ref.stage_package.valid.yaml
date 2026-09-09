@@ -1,0 +1,5 @@
+schema_version: "1.0.0"
+artifact_kind: stage_package
+stage_package_id: pkg_m1_0123456789abcdef0123456789abcdef
+artifact_revision_id: rev_0123456789abcdef0123456789abcdef
+artifact_type: stage_package

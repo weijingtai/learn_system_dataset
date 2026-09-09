@@ -1,0 +1,129 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ArtifactRef",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "$ref": "#/$defs/schemaVersion"
+    },
+    "artifact_kind": {
+      "type": "string",
+      "enum": [
+        "artifact",
+        "stage_package"
+      ]
+    },
+    "artifact_id": {
+      "$ref": "#/$defs/artifactId"
+    },
+    "stage_package_id": {
+      "$ref": "#/$defs/stagePackageId"
+    },
+    "artifact_revision_id": {
+      "$ref": "#/$defs/artifactRevisionId"
+    },
+    "artifact_type": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]*$"
+    }
+  },
+  "required": [
+    "schema_version",
+    "artifact_kind",
+    "artifact_revision_id",
+    "artifact_type"
+  ],
+  "oneOf": [
+    {
+      "properties": {
+        "artifact_kind": {
+          "const": "artifact"
+        }
+      },
+      "required": [
+        "artifact_id"
+      ],
+      "not": {
+        "required": [
+          "stage_package_id"
+        ]
+      }
+    },
+    {
+      "properties": {
+        "artifact_kind": {
+          "const": "stage_package"
+        }
+      },
+      "required": [
+        "stage_package_id"
+      ],
+      "not": {
+        "required": [
+          "artifact_id"
+        ]
+      }
+    }
+  ],
+  "$defs": {
+    "schemaVersion": {
+      "type": "string",
+      "const": "1.0.0"
+    },
+    "artifactId": {
+      "type": "string",
+      "pattern": "^art_[0-9a-f]{32}$"
+    },
+    "artifactRevisionId": {
+      "type": "string",
+      "pattern": "^rev_[0-9a-f]{32}$"
+    },
+    "processingRunId": {
+      "type": "string",
+      "pattern": "^prun_[0-9a-f]{32}$"
+    },
+    "stepRunId": {
+      "type": "string",
+      "pattern": "^srun_[0-9a-f]{32}$"
+    },
+    "stagePackageId": {
+      "type": "string",
+      "pattern": "^pkg_m[1-8]_[0-9a-f]{32}$"
+    },
+    "stage": {
+      "type": "string",
+      "enum": [
+        "m1",
+        "m2",
+        "m3",
+        "m4",
+        "m5",
+        "m6",
+        "m7",
+        "m8"
+      ]
+    },
+    "artifactStatus": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "sealed",
+        "quarantined",
+        "invalidated",
+        "superseded"
+      ]
+    },
+    "stepRunStatus": {
+      "type": "string",
+      "enum": [
+        "running",
+        "awaiting_human",
+        "suspended",
+        "succeeded",
+        "failed",
+        "superseded"
+      ]
+    }
+  }
+}

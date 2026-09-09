@@ -1,0 +1,304 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "StagePackage",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "$ref": "artifact_ref.schema.json#/$defs/schemaVersion"
+    },
+    "stage_package_id": {
+      "$ref": "artifact_ref.schema.json#/$defs/stagePackageId"
+    },
+    "artifact_revision_id": {
+      "$ref": "artifact_ref.schema.json#/$defs/artifactRevisionId"
+    },
+    "stage": {
+      "$ref": "artifact_ref.schema.json#/$defs/stage"
+    },
+    "status": {
+      "$ref": "artifact_ref.schema.json#/$defs/artifactStatus"
+    },
+    "payload": {
+      "type": "object"
+    },
+    "manifest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "processing_run_id",
+        "step_run_id",
+        "input_artifacts",
+        "output_artifacts",
+        "counts",
+        "content_sha256"
+      ],
+      "properties": {
+        "schema_version": {
+          "$ref": "artifact_ref.schema.json#/$defs/schemaVersion"
+        },
+        "processing_run_id": {
+          "$ref": "artifact_ref.schema.json#/$defs/processingRunId"
+        },
+        "step_run_id": {
+          "$ref": "artifact_ref.schema.json#/$defs/stepRunId"
+        },
+        "input_artifacts": {
+          "type": "array",
+          "items": {
+            "$ref": "artifact_ref.schema.json"
+          }
+        },
+        "output_artifacts": {
+          "type": "array",
+          "items": {
+            "$ref": "artifact_ref.schema.json"
+          }
+        },
+        "counts": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "content_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "validation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "passed",
+        "report_artifacts"
+      ],
+      "properties": {
+        "passed": {
+          "type": "boolean"
+        },
+        "report_artifacts": {
+          "type": "array",
+          "items": {
+            "$ref": "artifact_ref.schema.json"
+          }
+        }
+      }
+    },
+    "lineage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "upstream_artifacts",
+        "transformations"
+      ],
+      "properties": {
+        "upstream_artifacts": {
+          "type": "array",
+          "items": {
+            "$ref": "artifact_ref.schema.json"
+          }
+        },
+        "transformations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "operation",
+              "step_run_id",
+              "configuration_artifact_revision_id",
+              "input_artifact_revision_ids",
+              "output_artifact_revision_ids"
+            ],
+            "properties": {
+              "operation": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9_]*$"
+              },
+              "step_run_id": {
+                "$ref": "artifact_ref.schema.json#/$defs/stepRunId"
+              },
+              "configuration_artifact_revision_id": {
+                "$ref": "artifact_ref.schema.json#/$defs/artifactRevisionId"
+              },
+              "input_artifact_revision_ids": {
+                "type": "array",
+                "items": {
+                  "$ref": "artifact_ref.schema.json#/$defs/artifactRevisionId"
+                },
+                "uniqueItems": true
+              },
+              "output_artifact_revision_ids": {
+                "type": "array",
+                "items": {
+                  "$ref": "artifact_ref.schema.json#/$defs/artifactRevisionId"
+                },
+                "minItems": 1,
+                "uniqueItems": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "logs": {
+      "type": "array",
+      "items": {
+        "$ref": "artifact_ref.schema.json"
+      }
+    },
+    "failures": {
+      "type": "array",
+      "items": {
+        "$ref": "artifact_ref.schema.json"
+      }
+    }
+  },
+  "required": [
+    "schema_version",
+    "stage_package_id",
+    "artifact_revision_id",
+    "stage",
+    "status",
+    "payload",
+    "manifest",
+    "validation",
+    "lineage",
+    "logs",
+    "failures"
+  ],
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "stage": {
+            "const": "m1"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "stage_package_id": {
+            "pattern": "^pkg_m1_[0-9a-f]{32}$"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "stage": {
+            "const": "m2"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "stage_package_id": {
+            "pattern": "^pkg_m2_[0-9a-f]{32}$"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "stage": {
+            "const": "m3"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "stage_package_id": {
+            "pattern": "^pkg_m3_[0-9a-f]{32}$"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "stage": {
+            "const": "m4"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "stage_package_id": {
+            "pattern": "^pkg_m4_[0-9a-f]{32}$"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "stage": {
+            "const": "m5"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "stage_package_id": {
+            "pattern": "^pkg_m5_[0-9a-f]{32}$"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "stage": {
+            "const": "m6"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "stage_package_id": {
+            "pattern": "^pkg_m6_[0-9a-f]{32}$"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "stage": {
+            "const": "m7"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "stage_package_id": {
+            "pattern": "^pkg_m7_[0-9a-f]{32}$"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "stage": {
+            "const": "m8"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "stage_package_id": {
+            "pattern": "^pkg_m8_[0-9a-f]{32}$"
+          }
+        }
+      }
+    }
+  ]
+}

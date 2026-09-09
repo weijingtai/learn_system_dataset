@@ -1,0 +1,27 @@
+schema_version: "1.0.0"
+stage_package_id: pkg_m1_00000000000000000000000000000001
+artifact_revision_id: rev_00000000000000000000000000000001
+stage: m1
+status: sealed
+payload: {}
+manifest:
+  schema_version: "1.0.0"
+  processing_run_id: prun_00000000000000000000000000000001
+  step_run_id: srun_00000000000000000000000000000001
+  input_artifacts: []
+  output_artifacts: []
+  counts: {}
+  content_sha256: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+validation:
+  passed: true
+  report_artifacts: []
+lineage:
+  upstream_artifacts: []
+  transformations:
+    - step_run_id: srun_00000000000000000000000000000001
+      configuration_artifact_revision_id: rev_00000000000000000000000000000099
+      input_artifact_revision_ids: []
+      output_artifact_revision_ids:
+        - rev_00000000000000000000000000000002
+logs: []
+failures: []

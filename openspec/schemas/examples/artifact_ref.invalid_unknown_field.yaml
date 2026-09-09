@@ -1,0 +1,6 @@
+schema_version: "1.0.0"
+artifact_kind: artifact
+artifact_id: art_0123456789abcdef0123456789abcdef
+artifact_revision_id: rev_0123456789abcdef0123456789abcdef
+artifact_type: raw_ebook
+unknown_field: invalid_data
