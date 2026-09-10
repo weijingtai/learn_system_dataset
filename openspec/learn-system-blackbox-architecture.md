@@ -606,6 +606,30 @@ PublicationPackage
 
 GraphProjectionPack 与移动端数据必须来自同一 CanonicalKnowledgeSnapshot，并共享 `release_id`、`canonical_hash`、实体 ID 和关系 ID。
 
+### 16.2 KnowledgePack 与 PublicationPackage 双向映射表
+
+黑箱架构规格以多子包组合的 `PublicationPackage`（特别是其中的结构化知识主体 `KnowledgeDataPack`）正式取代早期草案中单一扁平的 `KnowledgePack` 概念。
+
+为消除历史协作歧义，早期草案（`LEARN_SYSTEM_TARGET.md §9`）建议的 KnowledgePack 目录项与现行黑箱架构子包及规约的双向对应关系如下：
+
+| 早期 KnowledgePack 目录建议 (`TARGET.md §9`) | 现行黑箱架构落点 (`PublicationPackage` 子包 / 规约) |
+|---|---|
+| `release-manifest` | `ReleaseManifest`（发布清单与元数据摘要） |
+| `schema` | `KnowledgeDataPack`（及 Contract Registry 对应模式定义） |
+| `concepts` | `KnowledgeDataPack`（概念定义及术语体系） |
+| `entries` | `KnowledgeDataPack`（知识条目 KnowledgeEntry 集合） |
+| `assertions` | `KnowledgeDataPack`（结构化主张 Assertion 集合） |
+| `applicability-rules` | `RuleIndexPack`（与 `KnowledgeDataPack` 中的适用规则） |
+| `school-views` | `KnowledgeDataPack`（各流派分歧与立场视图） |
+| `evidence-links` | `EvidenceMapPack`（证据链接与跨层关联） |
+| `source-spans` | `EvidenceMapPack`（与 `KnowledgeDataPack` 中的原文片段引用） |
+| `source-anchors` | `EvidenceMapPack`（底本物理位置证据锚点，必须随包发布） |
+| `scan-assets-or-references` | `SourceAssetPack`（扫描图或受控引用） |
+| `exact-search-index` | `SearchIndexPack`（精确检索索引） |
+| `fulltext-index` | `SearchIndexPack`（全文检索索引） |
+| `optional-vector-index` | 本期不产出（依据 §21 非目标） |
+| `query-contract` | `RuleIndexPack` 与 `SearchIndexPack`（查询契约与接口定义） |
+
 ## 17. Artifact Ledger
 
 Artifact Ledger 使用本地混合存储：
