@@ -581,7 +581,9 @@ M5 是确定性校验，不使用模型替代规则判断，也不修改 Candida
 
 G1–G6 的强制语义检查不得以标题或代号替代：Validator 必须核对原始资料、转录、patch、unit 与输出的**全链哈希**，并按确定性 patch/revision 重放；核对每条 source/technique/revision 一致性、适用域与冲突；逐 source/technique 验收；确保规则输出**全部且仅返回适用规则**，并逐项报告已满足、缺失、例外；最后执行风险簇全检。任一断言缺失、冲突未裁决或重放不一致均 fail-closed。
 
-Python 标准库 `tokenize` 不用于古文语义提取。规则使用结构化 AST/YAML/JSON 表达，不执行用户或模型生成的 Python 代码。
+M5 依据 G6 专门执行「规则对 FactSet 可执行性」与 AST 结构完整性校验，确保所有规则条件均可由对应 FactSet 确定性求解。M5 仅作为验证工位，不负责生产任何 Tag 标记字段（Tag 字段仅由 M4/M6 等知识抽取与编校工位生产并供给）。
+
+Python 标准库 `tokenize` 不用于古文语义提取。禁止使用任何可执行或模型生成的 Python 规则；规则必须使用纯声明式结构化 AST/YAML/JSON 表达。
 
 ## 14. M6 Review & Curation 与 Review Console
 
@@ -645,6 +647,8 @@ PublicationPackage
 ├── EvidenceMapPack
 ├── SourceAssetPack
 ├── GraphProjectionPack
+├── TechniqueProfilePack
+├── QueryContractPack
 ├── ReleaseManifest
 └── ValidationReport
 ```
@@ -678,6 +682,26 @@ PublicationPackage
 客户端必须具备按 SourceAsset 引用打开原书的能力，但每个 Release 是否携带原图由 ReleasePolicy 决定。首纵切为内部验收包，采用 `derived_page_images_only`；它不自动取得公开分发权。
 
 GraphProjectionPack 与移动端数据必须来自同一 CanonicalKnowledgeSnapshot，并共享 `release_id`、`canonical_hash`、实体 ID 和关系 ID。
+
+`TechniqueProfilePack` 承载各术数领域确定性事实结构与规则语法标准，消除跨技法匹配歧义：
+
+- **FactSet Profile**：针对不同术数体系定义专用事实切片 Profile，包括八字 `BaziFactSet`、七政 `QizhengFactSet`、紫微 `ZiweiFactSet`、奇门 `QimenFactSet`、六壬 `LiuRenFactSet`；依 2026-09-08 用户裁定，首纵切内部验收包采用 `QizhengFactSet`；
+- **事实字段与枚举**：严格列出各 Profile 允许的事实键名、数据类型及闭集枚举值，禁止非受控字段参与确定性匹配；
+- **operator 集合**：规范规则条件所允许的确定性比较与集合操作符全集（如 `eq`、`neq`、`in`、`not_in`、`gt`、`gte`、`lt`、`lte`、`all`、`any`、`none`）；
+- **AST schema 版本**：定义规则 AST 的结构化模式版本（如 `ast_schema_version: "1.0"`），规则纯声明式表达，**禁止使用任何可执行或模型生成的 Python 规则**。
+
+`QueryContractPack` 规范发布包对外暴露的确定性只读查询契约与客户端调用接口，定义四个核心接口及兼容声明：
+
+- **`getEntry(entry_id)`**：按稳定实体标识获取对应 `KnowledgeEntry` 条目及其主张和上下文；
+- **`getSourceSpan(span_id)`**：按片段标识获取底层 `SourceSpan` 原文、校勘与定位引用；
+- **`searchKnowledge(query, filters)`**：执行跨条目/术语的精确与全文知识检索；
+- **`matchFacts(fact_set)`**：输入版本化 FactSet，执行确定性规则匹配并返回全部且仅返回适用规则，明确报告已满足条件、缺失条件与触发例外；任一条件不全或例外成立时不得输出肯定判断；
+- **向后兼容声明**：明确规定查询契约接口必须保持向后兼容演进，客户端只依赖稳定接口契约，不直接绑定底层文件存储形式。
+
+`RuleIndexPack` 承载确定性适用规则索引：
+
+- **Profile 版本声明**：`RuleIndexPack` 中每条规则必须显式声明其所依据的 `Profile 版本`（如 `profile_version: "qizheng_v1.0"`）及 `AST schema 版本`；
+- **规则纯声明式结构**：所有适用规则必须使用纯声明式的 `结构化 AST/YAML/JSON` 表达，禁止包含任何动态 Python 逻辑或自由文本代码块。
 
 ### 16.2 KnowledgePack 与 PublicationPackage 双向映射表
 

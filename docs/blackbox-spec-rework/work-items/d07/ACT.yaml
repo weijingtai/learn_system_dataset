@@ -1,0 +1,27 @@
+task_id: d07-technique-profile-and-query-contract
+mode: documentation_rework
+status: READY
+goal: 在黑箱架构规格中完整定义 TechniqueProfilePack 与 QueryContractPack 规约并加固语义门禁
+execution: strictly_serial
+write:
+  - openspec/learn-system-blackbox-architecture.md
+  - docs/blackbox-spec-rework/verify-T.sh
+  - docs/blackbox-spec-rework/work-items/d07/README.md
+  - docs/blackbox-spec-rework/work-items/d07/BDD.md
+  - docs/blackbox-spec-rework/work-items/d07/TDD.md
+  - docs/blackbox-spec-rework/work-items/d07/ACT.yaml
+  - docs/blackbox-spec-rework/work-items/d07/PROMPT.md
+  - docs/blackbox-spec-rework/work-items/d07/ACCEPTANCE.md
+forbidden:
+  - 修改业务代码、Schema、数据库或 fixture
+  - 修改 PLAN.md、HANDOFF.md、SUBAGENT_TODO.md
+  - 触碰 docs/annotation-community/ 或 openspec/annotation-community/
+  - 规则使用可执行 Python
+  - M5 声明为 Tag 字段生产工位
+verification:
+  - 先在 verify-T.sh 加门禁确认旧规格必报 FAIL（Red）
+  - 修改规格后 verify-T.sh 全绿（Green）
+  - 执行负向变异（删接口/删字段）确认必报 FAIL
+  - git diff --check 通过
+on_fail: 立即停止，恢复变异，分析阻断根因并报告
+commit_policy: 单独 Conventional Commit（如 feat(spec): define TechniqueProfilePack and QueryContractPack (D-07)）

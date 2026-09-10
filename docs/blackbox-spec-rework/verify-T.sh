@@ -77,6 +77,48 @@ evidence_ok=$(printf '%s\n' "$evidence" | awk '
   }')
 chk T-06s "§16 证据链七项精确有序且闭合" "1" "$evidence_ok"
 
+# D-07 语义门禁：TechniqueProfilePack 与 QueryContractPack
+sec16=$(sed -n '/^## 16[. ]/,/^## 17[. ]/p' "$SPEC")
+sec13=$(sed -n '/^## 13[. ]/,/^## 14[. ]/p' "$SPEC")
+
+if printf '%s\n' "$sec16" | grep -Fq 'TechniqueProfilePack' \
+  && printf '%s\n' "$sec16" | grep -Fq 'QueryContractPack'; then
+  printf 'PASS  D-07s PublicationPackage contains TechniqueProfilePack and QueryContractPack\n'
+else
+  printf 'FAIL  D-07s PublicationPackage missing TechniqueProfilePack or QueryContractPack\n'; FAILED=$((FAILED+1))
+fi
+
+for query_iface in 'getEntry' 'getSourceSpan' 'searchKnowledge' 'matchFacts'; do
+  if printf '%s\n' "$sec16" | grep -Fq "$query_iface"; then
+    printf 'PASS  D-07s QueryContractPack interface: %s\n' "$query_iface"
+  else
+    printf 'FAIL  D-07s QueryContractPack missing interface: %s\n' "$query_iface"; FAILED=$((FAILED+1))
+  fi
+done
+
+for tp_elem in 'FactSet Profile' 'operator 集合' 'AST schema 版本' 'Profile 版本'; do
+  if printf '%s\n' "$sec16" | grep -Fq "$tp_elem"; then
+    printf 'PASS  D-07s TechniqueProfile element: %s\n' "$tp_elem"
+  else
+    printf 'FAIL  D-07s TechniqueProfile missing element: %s\n' "$tp_elem"; FAILED=$((FAILED+1))
+  fi
+done
+
+if grep -Eq '禁止.*(可执行|模型生成).*Python' "$SPEC" \
+  && grep -Fq '结构化 AST/YAML/JSON' "$SPEC"; then
+  printf 'PASS  D-07s rules require declarative AST and forbid executable Python\n'
+else
+  printf 'FAIL  D-07s rules declarative AST or Python ban missing\n'; FAILED=$((FAILED+1))
+fi
+
+if printf '%s\n' "$sec13" | grep -Fq 'FactSet' \
+  && printf '%s\n' "$sec13" | grep -Fq '可执行性' \
+  && printf '%s\n' "$sec13" | grep -Fq 'G6'; then
+  printf 'PASS  D-07s M5 verifies FactSet rule executability under G6\n'
+else
+  printf 'FAIL  D-07s M5 missing FactSet rule executability under G6\n'; FAILED=$((FAILED+1))
+fi
+
 dmiss=0; for d in concepts entries assertions applicability-rules school-views evidence-links source-spans source-anchors query-contract; do
   grep -q "$d" "$SPEC" 2>/dev/null || dmiss=$((dmiss+1)); done
 chk T-07 "KnowledgePack 映射表(缺失)" "0"   "$dmiss"
