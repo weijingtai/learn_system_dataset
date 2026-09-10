@@ -579,6 +579,8 @@ M5 是确定性校验，不使用模型替代规则判断，也不修改 Candida
 
 输出 `ValidationPackage`，包含通过项、失败项、警告、断裂关系、返工任务和 Validator 版本。严重错误、失败任务和待修任务均为零后，M5 Gate 才能通过。
 
+G1–G6 的强制语义检查不得以标题或代号替代：Validator 必须核对原始资料、转录、patch、unit 与输出的**全链哈希**，并按确定性 patch/revision 重放；核对每条 source/technique/revision 一致性、适用域与冲突；逐 source/technique 验收；确保规则输出**全部且仅返回适用规则**，并逐项报告已满足、缺失、例外；最后执行风险簇全检。任一断言缺失、冲突未裁决或重放不一致均 fail-closed。
+
 Python 标准库 `tokenize` 不用于古文语义提取。规则使用结构化 AST/YAML/JSON 表达，不执行用户或模型生成的 Python 代码。
 
 ## 14. M6 Review & Curation 与 Review Console
@@ -646,6 +648,8 @@ PublicationPackage
 ├── ReleaseManifest
 └── ValidationReport
 ```
+
+`ReleaseManifest` 必须包含规则与证据的完整哈希、Schema/Profile 版本、来源与 revision 对账、最低 APP 版本及消费级别。编译器必须拒绝 `source_release=dev` 进入任何 `PUBLIC_RELEASE`，不得用降级或客户端过滤绕过该拒绝。
 
 建议一个 Technique 一个 Release，一个 Edition 一个 SourceAssetPack。每个子包、索引和编译报告都是独立 Artifact，不得只保留最终压缩包。
 

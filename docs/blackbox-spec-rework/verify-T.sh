@@ -31,6 +31,28 @@ gmiss=0; for g in G1 G2 G3 G4 G5 G6 G7; do grep -q "$g" "$SPEC" 2>/dev/null || g
 chk T-04 "G1-G7 已接线(缺失数)"      "0"    "$gmiss"
 chk T-04b "三级消费级别已写入"       ">=3"  "$(c 'INTERNAL_DEMO\|DEV_SEARCH\|PUBLIC_RELEASE')"
 chk T-04c "fail-closed 已声明"       ">=1"  "$(c 'fail-closed')"
+
+# G3 R1 semantic gate: headings/keywords alone are insufficient. Each
+# authoritative obligation must occur in the section that owns it.
+sec13=$(sed -n '/^## 13[. ]/,/^## 14[. ]/p' "$SPEC")
+sec16=$(sed -n '/^## 16[. ]/,/^## 17[. ]/p' "$SPEC")
+for obligation in \
+  '全链哈希' '确定性.*patch.*revision' 'source.*technique.*revision.*一致' \
+  '适用域.*冲突' '逐 source.*technique' '全部且仅返回适用规则' \
+  '已满足.*缺失.*例外' '风险簇全检'; do
+  if printf '%s\n' "$sec13$sec16" | grep -Eiq "$obligation"; then
+    printf 'PASS  T-04s  semantic obligation: %s\n' "$obligation"
+  else
+    printf 'FAIL  T-04s  semantic obligation missing: %s\n' "$obligation"; FAILED=$((FAILED+1))
+  fi
+done
+for obligation in 'ReleaseManifest' '最低 APP 版本' 'source_release=dev'; do
+  if printf '%s\n' "$sec16" | grep -Fq "$obligation"; then
+    printf 'PASS  T-04s  §16 obligation: %s\n' "$obligation"
+  else
+    printf 'FAIL  T-04s  §16 obligation missing: %s\n' "$obligation"; FAILED=$((FAILED+1))
+  fi
+done
 chk T-05 "evidence_level 两档"       ">=2"  "$(c 'offset_level\|glyphbox_level')"
 chk T-06 "EvidenceMapPack 有说明"    ">=2"  "$(c 'EvidenceMapPack')"
 
