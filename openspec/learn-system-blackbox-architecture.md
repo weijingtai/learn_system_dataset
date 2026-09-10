@@ -495,6 +495,28 @@ M5 是确定性校验，不使用模型替代规则判断，也不修改 Candida
 
 通用 Validator 检查 Schema、ID、哈希、引用、原文逐字一致性、证据范围、内容分层、血缘和状态。TechniqueProfile Validator 检查事实字段、枚举、规则 AST、必要/加强/破坏/例外条件和规则可执行性。
 
+### 13.1 硬门禁对接与 Validator 工位分配（G1–G7）
+
+依据 `DATASET_ACCEPTANCE_STANDARD.md §4`，M5 与下游 M8 严格承接 G1–G7 一票否决硬门禁体系。全规格只允许出现 `G1`、`G2`、`G3`、`G4`、`G5`、`G6`、`G7` 这七个门禁代号，禁止自创新门禁代号。Validator 清单逐条对接门禁要求并明确标注执行工位：
+
+- **G1 来源与可重放性**：**M5 执行**（raw/transcript/patch/unit 哈希匹配、无未决字符、重放一致性）；
+- **G2 全书覆盖**：**M5 执行**（含正文 section 100% 覆盖、无重叠重复、拼接还原一致性、expected/actual 计数对账）；
+- **G3 身份、引用与证据锚点**：**M5 执行**（全局稳定 ID 无重复、无悬空引用、source offset 与 quote hash 锚点对账、evidence 范围校验、direct proposition 忠实性；OCR 扫描页/图像哈希/字框范围）；
+- **G4 内容分层**：**M5 执行**（命例入 Case 层、注文/异文/校勘入独立 editorial layer、条件/例外结构化、`school_ids` 不留空）；
+- **G5 概念与检索**：**M5 执行**（confirmed concept 声明引用/mentions/assertions/evidence 100% 对账、candidate concept 不得进入 release、检索正负例校验）；
+- **G6 盘面确定性匹配**：**M5 执行**（规则可执行性、FactSet AST/条件完整性）+ **延至 M8 执行**（RuleIndexPack 与 SearchIndexPack 索引产出后复验）；
+- **G7 状态、审查与发布**：**延至 M8 执行**。
+
+| 门禁代号与名称 | 执行工位 | 校验内容与判定标准 |
+|---|---|---|
+| G1 来源与可重放性 | M5 执行 | raw/transcript/patch/unit 哈希匹配、PUA 乱码与未决字符为 0、重放一致性。 |
+| G2 全书覆盖 | M5 执行 | 含正文 section 100% 覆盖（不得因标题层级静默排除）、无重叠重复、拼接还原一致性、expected/actual 计数对账。 |
+| G3 身份、引用与证据锚点 | M5 执行 | 全局稳定 ID 无重复、无悬空引用、source offset 与 quote hash 锚点对账、evidence 范围校验在所声明 span 内、direct proposition 忠实性；OCR 扫描页/图像哈希/字框范围。 |
+| G4 内容分层 | M5 执行 | 命例入 Case 层（不得当作通则 assertion）、注文/异文/校勘入独立 editorial layer、条件/例外结构化、`school_ids` 不留空。 |
+| G5 概念与检索 | M5 执行 | confirmed concept 声明引用/mentions/assertions/evidence 100% 对账、candidate concept 不得进入 release、检索正负例校验。 |
+| G6 盘面确定性匹配 | M5 执行 + 延至 M8 执行 | M5 执行（规则可执行性、FactSet AST/条件完整性，任一条件不全不得输出肯定判断）+ 延至 M8 执行（RuleIndexPack 与 SearchIndexPack 索引产出后复验）。 |
+| G7 状态、审查与发布 | 延至 M8 执行 | 延至 M8 执行（消费级别准入、ReleaseManifest 完备性、无机器态泄漏、专家签发核验）。 |
+
 输出 `ValidationPackage`，包含通过项、失败项、警告、断裂关系、返工任务和 Validator 版本。严重错误、失败任务和待修任务均为零后，M5 Gate 才能通过。
 
 Python 标准库 `tokenize` 不用于古文语义提取。规则使用结构化 AST/YAML/JSON 表达，不执行用户或模型生成的 Python 代码。
@@ -526,7 +548,26 @@ M7 保留同名异义、异名同义、多套规则、不同流派和相反结�
 
 ## 16. M8 Dataset Compilation
 
-M8 冻结 CanonicalKnowledgeSnapshot Revision、发布范围、TechniqueProfile 和 ReleasePolicy，编译：
+M8 冻结以下输入项：
+1. CanonicalKnowledgeSnapshot Revision；
+2. 发布范围；
+3. TechniqueProfile；
+4. ReleasePolicy；
+5. **消费级别（Consumption Level）**：显式输入参数，取值限定为 `INTERNAL_DEMO` / `DEV_SEARCH` / `PUBLIC_RELEASE`。
+
+> **编译器必须显式接收目标级别，并以 fail-closed 方式拒绝不满足条件的数据。不得由 APP 自行解释或绕过状态。**
+
+### 16.1 各消费级别的准入状态门槛
+
+依据 `DATASET_ACCEPTANCE_STANDARD.md §3` 与 `§4-G7`，编译器根据目标消费级别执行状态准入门槛过滤与硬门禁校验：
+
+| 消费级别 | 准入状态门槛与发布约束（直接引用 G7 规则） | 允许用途 |
+|---|---|---|
+| `INTERNAL_DEMO` | 可展示 `machine_*`，但必须隔离并加水印；用于内部查看原句、调试定位；已知缺陷必须披露，不得声称全书完备或权威。 | 内部查看原句、调试定位 |
+| `DEV_SEARCH` | 可判断内容至少为 `cross_model_reviewed`，否则只能作为原文候选展示；用于隔离的开发检索与接口联调；全源覆盖、引用图、索引正负例及 release/hash 一致性必须通过；未复核内容不得作为确定判断。 | 隔离的开发检索与接口联调 |
+| `PUBLIC_RELEASE` | 所有可查询 assertions 必须为 `expert_verified`；机器态记录不得泄漏；用于正式 APP、用户查询与模型上下文；所有硬门禁通过，不得包含 candidate 或 dev 数据。 | 正式 APP、用户查询与模型上下文 |
+
+M8 编译：
 
 ```text
 PublicationPackage
