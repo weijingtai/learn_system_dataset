@@ -8,10 +8,12 @@
 ## 注解社区线：跨 Agent 数据契约（2026-09-10）
 
 - [x] 补充 `docs/annotation-community/BOOK_ASSET_DELIVERY_CONTRACT_DRAFT.md`：影印/PDF/EPUB/TXT 原件与阅读材料、对象存储/Firestore 分工、统一生成交付格式、A-01～A-06 回执；仅草案。
-- [ ] 上游确认资产交付 A-01～A-06，确保下游不再二次 OCR、拆章、重编码或重分块。
+- [x] 收到并核对 `UPSTREAM_DATA_CONTRACT_REPLY.md`；A-02/A-06 仅接受方向，其余需修改/补证。消费端修订与分工见 `CONSUMER_ALIGNMENT_RESPONSE.md`，未把回执视为交付通过。
+- [ ] 按协调回复共同冻结 A-01～A-06 的档位/文件/上传协议与真实样例，确保下游不再二次 OCR、拆章、重编码或重分块。
 
 - [x] 整理服务端数据结构协作草案：`docs/annotation-community/SERVER_DATA_CONTRACT_DRAFT.md`，包含上游书目/正文/版本消费要求、UGC 结构、REST/Drift/通知边界和 U-01～U-09 回执表；状态仅为讨论草案。
-- [ ] 收到上游 Agent 的真实 Schema、生成代码和样例包回执，对齐书目 ID、选区、版本与迁移契约。
+- [x] 接收上游 U-01～U-09 核对意见并抽查原始代码/权威政策；修订跨块 ranges、完整阅读正文、哈希与档位边界。
+- [ ] 上游交付真实共同 Schema、D-06 选区/迁移、原生来源发布政策差异与各格式样例；U-09 仍为 UNAVAILABLE，不宣称书籍已可直接生产导入。
 - [x] 用户确认私人笔记本期支持端到端同步，并允许云备份；源码调查与接入提案见 `docs/annotation-community/PRIVATE_NOTES_STORAGE_DRAFT.md`。
 - [x] 用户授权三位 Terra 调研存储、社交通知和客户端模块；S-01～S-05 已由源码调查回答，见 `MODULE_REUSE_AUDIT.md`，无需等待已离场开发 Agent。调查不等于生产接通。
 - [x] 整理 `CLIENT_SERVER_DESIGN_DETAIL_DRAFT.md`：保存/发布/并发、删除/备份、Markdown 图片、两入口互动、业务命令与装配、分段验收；更新冷启动范围。

@@ -4,6 +4,8 @@
 
 本文件是 `SERVER_DATA_CONTRACT_DRAFT.md` 的资产补充协议。用户明确要求原件、电子书及阅读数据的格式在生成前对齐，避免到 APP 服务端再写格式转换或重新处理。本轮不评估版权；已有权利元数据可原样携带，不以新增版权讨论阻断本次契约协调。
 
+上游已提供 [核对回执](UPSTREAM_DATA_CONTRACT_REPLY.md)，消费侧处理见 [协调回复](CONSUMER_ALIGNMENT_RESPONSE.md)。以下已修正原件档位、文件承载与跨块映射；仍未共同冻结或交付全格式真实包。
+
 ## 1. 双方应确认的目标
 
 **上游按共同交付 Schema 生成一次，服务端验证并直接装载。**
@@ -23,19 +25,21 @@
 | 收集到的原始 PDF、影印图片、EPUB、TXT | 保留原始字节，按 SHA-256 标识不可变对象 | SourceAsset 身份、版本归属、文件类型、大小、哈希、存储引用 |
 | 上游生成的扫描页图、缩略图 | 独立派生对象；保留来源与变换记录 | page_id、原书页序/页标、尺寸、旋转、资源引用 |
 | EPUB 内图片等阅读资源 | 上游一次提取并登记为对象（本期阅读所需的资源） | 原 EPUB 内路径到 asset_id 的映射 |
-| 可选择、可注解的正文 | 原件另存；标准化阅读文本按共同结构随包交付 | 阅读单元、TextBlock、顺序、修订、正文及哈希；大块使用同 Schema 的分片引用 |
+| 可选择、可注解的正文 | 原件另存；冻结阅读文本按共同结构随包交付 | 阅读单元、TextBlock、顺序、修订、正文及哈希；物理分片不改变逻辑 block_id、正文或选区 |
 | 目录与原文位置映射 | 版本化清单/JSONL 原样留档 | 分页查询的目录与锚点映射投影 |
 | 原始 OCR 中间数据 | 保留在上游；仅交付阅读或证据定位需要的部分 | 不把模型中间产物作为客户端书籍正文 |
 
 候选对象键：`library/objects/sha256/<前2位>/<64位sha256>`；包清单可位于 `library/releases/<release_id>/<manifest_hash>/manifest.json`。同字节可物理复用，同名不同字节不能覆盖；业务 SourceAsset 身份不因去重而合并。最终键规范由双方冻结。
 
-候选集合为 `library_releases`、`library_works`、`library_editions`、`library_asset_revisions`、`library_reading_units`、`library_text_blocks`、`library_source_mappings`。业务 ID 与 release/revision 均保留；投影键必须区分版本，不能用 entity_id 单独覆盖旧版。共同的记录分片上限由 A-04 确认，在生成端执行，服务端不临时重分块。
+候选集合为 `library_releases`、`library_works`、`library_editions`、`library_asset_revisions`、`library_reading_units`、`library_text_blocks`、`library_pages`、`library_source_mappings`。业务 ID 与 release/revision 均保留；投影键必须区分版本，不能用 entity_id 单独覆盖旧版。共同的记录分片上限由 A-04 确认，在生成端执行，服务端不临时重分块；传输分片与逻辑阅读块独立。
 
 现有 `functions-py/xuan/handlers/media.py` 处理的是 `playground_media/{userId}/{uploadSessionId}/...`，并有用户媒体孤儿清理逻辑。复用其存储 SDK、配置和部署方式；书籍资产使用独立路径、登记与保留规则，不能直接混入帖子附件集合或套用孤儿清理条件。
 
 ## 3. 每种输入需要交付什么
 
-| 输入格式 | 必交原件 | 上游同时交付的阅读材料 | 定位规则 |
+原件要求以 `source_content_level` 对应的 ReleasePolicy 档位和能力为准，与 `packaged/already_stored` 传输方式独立。下表描述完整原件可浏览且可选区定位的交付目标；仅派生页图或 reference_and_hash_only 档不强制补成完整原件档，但必须明确能力缺失。原生 EPUB/TXT 的档位名称与正式发布规则需共同修订，不能套用扫描字框门槛后伪造通过。
+
+| 输入格式 | 声明 original_view 时所需原件 | 上游同时交付的阅读材料 | 定位规则 |
 |---|---|---|---|
 | 影印图片集 | 原始图片逐文件保留 | 页序清单、阅读用页图、OCR/校订后 TextBlock、字/行到页图映射 | page_id 为稳定页身份；文件名、显示页码不是身份 |
 | 扫描 PDF | 原 PDF | PDF 页序清单、阅读用页图、OCR/校订正文与坐标映射 | PDF 页索引、原书印刷页标分开；PDF 页到派生图变换明确 |
@@ -45,11 +49,11 @@
 
 EPUB 的逐字内容、图片说明、脚注等转换覆盖范围由 A-03 确认；本期统一阅读视图不宣称完整复刻 EPUB 的样式和交互。若要按原 EPUB 排版直接阅读，可保留原件入口并后续选择阅读器，但不能因此省略统一注解定位所需的正文与映射。
 
-只有原图没有 OCR/校订文本时，可具备原件浏览能力，但不满足本期“选择原句并注解”的完整交付。清单显式声明 `capabilities`：`original_view`, `text_read`, `text_select`, `source_locate`，各取 `available / unavailable` 并给缺失原因；不能由文件扩展名推断能力。资产登记可成功，缺能力的原句注解验收仍为阻断。
+只有原图没有 OCR/校订文本时，可具备原件浏览能力，但不满足本期“选择原句并注解”的完整交付。清单显式声明 `capabilities`：`original_view`, `derived_view`, `text_read`, `text_select`, `source_locate`，各取 `available / unavailable` 并给缺失原因；派生页图不冒充原件，不能由文件扩展名推断能力。资产登记可成功，缺能力的原句注解验收仍为阻断。正式发布同时满足有效的上游门禁；能力声明不替代 PUBLIC_RELEASE 审核。
 
 ## 4. 统一交付包与记录
 
-这是 PublicationPackage 的消费交付布局提案，不新增与之竞争的发布包。下列文件应由既有 SourceAssetPack / EvidenceMapPack / KnowledgeDataPack 等承接；最终承载点需上游回执。
+这是 PublicationPackage 的消费交付布局提案，不新增与之竞争的发布包。下列文件应由既有 SourceAssetPack / EvidenceMapPack / KnowledgeDataPack 等承接；最终承载点需上游回执。该目录仅为阅读装载视图，不是完整 PublicationPackage；知识实体、规则查询、流派视图、校验报告和依赖子包必须由 manifest 引用并验证闭合。
 
 ```text
 <release-package>/
@@ -60,15 +64,21 @@ EPUB 的逐字内容、图片说明、脚注等转换覆盖范围由 A-03 确认
     asset_revisions.jsonl
     reading_units.jsonl
     text_blocks.jsonl
+    pages.jsonl
+    navigation.jsonl
+    reading_resources.jsonl
+    source_spans.jsonl
+    source_anchors.jsonl
     source_mappings.jsonl
     knowledge_source_links.jsonl
     identity_migrations.jsonl
   objects/sha256/<前2位>/<完整sha256>
 ```
 
-- 清单至少包含 `delivery_schema_version`, `release_id`, `canonical_hash`, `files[]`、对象及记录数量、能力声明；每个文件记录 `relative_path`, `media_type`, `size_bytes`, `sha256`, `record_kind?`, `record_count?`。
+- 清单至少包含 `delivery_schema_version`, 上游 Schema 版本引用、`release_id`, `canonical_hash`, `files[]`、对象及记录数量、能力声明、发布级别、校验报告和依赖子包引用；每个文件记录 `relative_path`, `media_type`, `size_bytes`, `sha256`, `record_kind?`, `record_count?`。manifest_hash 为最终清单字节摘要，放外层交付描述，不放进自身。canonical_hash 依上游确定算法，不能与文件哈希混用。
+- `pages` 对有物理页/页图的格式必需，EPUB/TXT 不造伪页；`navigation` 可由 ReadingUnit 等价承载，但必须显式声明。`reading_resources` 覆盖声明阅读范围的图片/脚注等资源关系。SourceSpan/Anchor/知识实体若已在其他子包，则给出确定文件和精确版本引用，不重复生产或遗漏。零记录与不适用均需清单声明，不靠缺文件猜含义。
 - JSONL 为候选统一装载格式，UTF-8，一行一个对象；上游若已有等效正式格式，应在 A-04 提出共同采用，避免额外转换链。此处尚非批准上游整体改格式。
-- 清单内对象采用 `packaged`（提供包内相对路径）或 `already_stored`（提供可核验既存对象引用）两种交付方式；仅给第三方网站链接不是已存储原件。需要下载的来源由上游采集步骤处理并留 provenance。
+- 实际交付对象采用 `packaged`（提供包内相对路径）或 `already_stored`（提供可核验既存对象引用）两种方式。reference_and_hash_only 档的来源描述不冒充已就绪 object_ref；仅给第三方网站链接不是已存储原件。需要交付的来源由上游采集步骤处理并留 provenance；声明 original_view 时必须通过后端原件可获取性核验。
 - 所有清单路径必须在包内、无父目录逃逸；对象引用必须与实际字节哈希相符。文件已上传但未登记、记录已导入但对象未就绪，都不能激活 Release。
 
 ### 4.1 AssetRevision 最小字段提案
@@ -79,7 +89,7 @@ EPUB 的逐字内容、图片说明、脚注等转换覆盖范围由 A-03 确认
 | `role` | `original / page_image / thumbnail / embedded_resource / reading_text` |
 | `media_type`, `size_bytes`, `sha256` | 对实际存储字节计算；`size_bytes` 非负整数 |
 | `original_filename` | 可读名称，不参与身份或排序 |
-| `object_ref` | packaged 相对路径或 already_stored 逻辑对象引用，不存过期签名 URL |
+| `object_ref` | 实际可交付对象必填 packaged 相对路径或 already_stored 逻辑对象引用，不存过期签名 URL；仅引用档允许缺失，但必须标明不可获取原因且 original_view 不可用，除非后端已验证受控解析器可取 |
 | `derived_from[]`, `transform_ref?` | 派生对象指向精确来源修订与变换记录；原件为空数组 |
 | `provenance` | 来源类别、取得时间、可选原 URL/来源说明；来源 URL 不是下载时的唯一依赖 |
 | `format_metadata` | PDF 页数；图片宽高/方向；TXT 编码；EPUB 阅读顺序清单引用等按格式定义 |
@@ -118,6 +128,6 @@ EPUB 的逐字内容、图片说明、脚注等转换覆盖范围由 A-03 确认
 
 对每项回复 `ACCEPT / CHANGE / UNAVAILABLE`，附生成代码/Schema/真实样例路径。可写入主草案约定的 `UPSTREAM_DATA_CONTRACT_REPLY.md`，分别保留 U 系列和 A 系列回执。
 
-**完成标准：每一种声称支持的输入，都能从上游输出直接装载、下载原件、显示有序正文并保存准确选区，服务端和客户端均未执行第二次内容加工。** 缺少某种输入样例时仅声明该格式未验收，不阻断其他格式单独完成，也不声称全格式已通。
+**完成标准：每一种声称支持的格式/能力组合，都能从上游输出直接装载，并兑现其声明的原件或派生物访问、正文与准确选区；服务端和客户端均未执行第二次内容加工。** 完整阅读注解场景必须具有 text_read/text_select/source_locate；声明 original_view 还必须能取到原件。缺少某种输入样例时仅声明该格式未验收，不阻断其他格式单独完成，也不声称全格式已通。
 
-下一步由用户把本文件与主草案一起交给数据生成 Agent。双方先冻结共同输出格式，再安排上游生成与下游装载代码；本文件不代表已经联系对方、完成桶部署或迁移旧资料。
+上游回执已收到；下一步按消费端协调回复共同冻结政策、字段/文件映射与真实样例，再安排上游生成和下游装载代码。本文件不代表完成桶部署、生产联调或迁移旧资料。

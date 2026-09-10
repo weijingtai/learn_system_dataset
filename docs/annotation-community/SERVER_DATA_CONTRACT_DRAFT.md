@@ -6,6 +6,8 @@
 
 配套：[模块复用调查与证据](MODULE_REUSE_AUDIT.md)、[客户端与服务端接入细化](CLIENT_SERVER_DESIGN_DETAIL_DRAFT.md)。书籍 U/A 协议仍待上游；存储、社交与通知已由新 Terra Agent 调研，不等待原开发者。
 
+上游 [核对回执](UPSTREAM_DATA_CONTRACT_REPLY.md) 已收到；U/A 系列尚未共同冻结。消费侧接受的修改及下一次交付要求见 [协调回复](CONSUMER_ALIGNMENT_RESPONSE.md)。本稿已修正跨块选区及阅读正文覆盖要求，未修改上游正式发布政策。
+
 ## 1. 请上游 Agent 先完成的回执
 
 1. 阅读 §2–§5，以及 [原件与阅读资产直接入库协议](BOOK_ASSET_DELIVERY_CONTRACT_DRAFT.md)，对 §9 的 U-01～U-09 和资产协议 A-01～A-06 逐项回复 `ACCEPT`、`CHANGE` 或 `UNAVAILABLE`。
@@ -50,7 +52,7 @@ Firestore 存可索引的元数据、关系、权限和内容记录；大文件�
 | Work | `work_id`, `title`；作者、别名、语言可选 | 稳定作品身份；未知元数据用明确缺失状态，不臆造 |
 | Edition | `edition_id`, `work_id`, `label`, `artifact_revision_id`, `release_id`, `rights_ref` | 底本与一次数字修订分开；ID 是否映射既有 Source |
 | ReadingUnit | `unit_id`, `edition_id`, `parent_unit_id?`, `kind`, `title`, `order_key` | 面向阅读的卷/章结构；不能直接假定等于 Gate 的 EditionPart |
-| TextBlock | `block_id`, `edition_id`, `unit_id`, `artifact_revision_id`, `release_id`, `text`, `text_hash`, `order_key` | 可稳定排序并精确选择的正文范围；block 与 SourceSpan 的映射、Unicode 计数规则 |
+| TextBlock | `block_id`, `edition_id`, `unit_id`, `artifact_revision_id`, `release_id`, `text`, `text_hash`, `order_key` | 覆盖声明的完整阅读正文，不只覆盖已有知识片段；block 与 SourceSpan 多对多范围映射；传输分片不改变逻辑块或选区 |
 | SourceSpan | `entity_id`, `edition_id`, `artifact_revision_id`, `release_id`, `block_ranges`, `source_anchor_refs` | 原句证据切片与阅读块允许不同粒度；不能依据显示行号猜 ID |
 | SourceAnchor / SourceAsset | 身份、修订、页身份、资源哈希、坐标/文本映射、尺寸/旋转、权利和资源档位 | 引用可解析时才承诺打开原书；本期不新增任意圈画 |
 | KnowledgeReference | 类型、稳定 `entity_id`, `artifact_revision_id`, `release_id`, `technique_id` | KnowledgeEntry/Assertion 到 SourceSpan 的显式关系及基数 |
@@ -84,7 +86,11 @@ Work、Edition、ReadingUnit、TextBlock 的字段名和 ID 格式尚未由本�
 | `source_anchor_refs` | 引用数组 | 可选扫描位置；不可解析时显示明确状态 |
 | `created_at` | 服务端 UTC 时间 | 创建记录，不替代发布版本 |
 
-`selector` 提案：`text_block_id`, `text_hash`, `offset_unit`, `start`, `end`, `exact`, `prefix`, `suffix`。区间为 `[start,end)`，建议 Unicode code point；Dart UTF-16 下标必须显式换算，不能直接上传。规范化规则、跨块选区表示和原文逐字一致性由 U-04/U-05 联合冻结。保留权威原文，不私自繁简转换或去标点。
+`selector` 修订提案：`offset_unit: unicode_code_point` 与有序 `ranges[]`；每段含 `block_id`, `artifact_revision_id`, `text_hash`, `start`, `end`，可附 `exact`, `prefix`, `suffix` 核验信息。单块也是一段，区间为 `[start,end)`；Dart UTF-16 下标必须显式换算，不能直接上传。跨块各段固定精确修订与阅读顺序，不跨 Edition 混拼，不省略连续范围中间的完整块；段间结构分隔符如何表示由 U-04/U-05 联合冻结。
+
+上游与消费端均建议 text_hash 为冻结 text 的 UTF-8 字节 SHA-256，不增 BOM，不二次繁简转换/去标点/Unicode 规范化；Python/Dart 的补充平面字符、组合字符与跨块样例仍须共同验证。旧 ingest_epub 的清洗偏移没有原件映射，不能直接复用。
+
+无语义 SourceSpan 的完整阅读正文也需可注解。现有 target_type 白名单尚不足以证明覆盖此场景，需 D-06 增加合法结构锚点/阅读块目标或等价表示；不伪造 SourceSpan，不由消费端单方面扩充正式白名单。
 
 解析结果另存 `AnchorResolution`：`anchor_ref_id`, `target_release_id`, `state`, `resolved_targets`, `migration_map_ref`, `resolver_version`, `reason`。候选状态：`unchanged / migrated / merged / split / retired / needs_review / unavailable`。
 
@@ -150,6 +156,7 @@ OpenAPI 覆盖身份要求、请求/响应、错误、枚举、空值、分页�
 ## 8. 已知接入依赖与验收边界
 
 - D-06 的 AnchorContractPack / IdentityMigrationMap 尚待联合冻结；现有 ID 规则不能替代选区和迁移规则。
+- 上游现行 PUBLIC_RELEASE 强制 glyphbox_level/OcrPage，与原生 EPUB/TXT 精确原件范围分支存在政策冲突；待共同修订规则及验证器前，相关开发样例不能升格生产包。知识规则与流派联动仍依赖 D-07/D-08，阅读契约不替代它们。
 - `notification/docs/integration-guide.md` 指出业务正文拉取、补拉及具体适配缺口；不可把“存在端口”当作推送已通。指南关于 ReceiptRejected 存在矛盾，当前 `ack_pipeline.dart` 是整批停止并报告，冻结前需通知维护者确认。
 - 现有旧 Firestore 通知 Repository 已弃用；不要恢复该路径来伪装已完成。
 - 已有 Social 的点踩/分享/订阅部分只是展示或本地状态，须逐项映射现有真实服务端能力。
@@ -158,6 +165,8 @@ OpenAPI 覆盖身份要求、请求/响应、错误、枚举、空值、分页�
 联合验收必须证明：导入失败不换当前包；历史 Revision 可定位；重复引文不误绑；拆分不自动猜；私密草稿和草稿关联不泄漏；公开后编辑不提前公开；收回后正文/历史/分享/附件都拒绝新访问；评论与通知事件同成败；重试不重复互动或通知；接收落盘失败不 ACK；两个入口查询相同内容；Drift 重启可恢复私人保存。
 
 ## 9. 上游待回执表
+
+本表为原始核验编号；已收到的逐项结论保留在 UPSTREAM_DATA_CONTRACT_REPLY.md。U-01～U-08 为 CHANGE，U-09 为 UNAVAILABLE，下一步按 CONSUMER_ALIGNMENT_RESPONSE.md 交付具体 Schema/政策差异/真实样例，不重复询问是否同意方向。
 
 | 编号 | 要确认的事项 | 当前消费侧建议/未决点 |
 |---|---|---|

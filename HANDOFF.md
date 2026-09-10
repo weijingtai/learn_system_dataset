@@ -13,11 +13,12 @@
 
 更新时间：2026-09-10
 当前分支/worktree：`codex/docs/knowledge-compilation`；`/Users/jingtaiwei/Git/Public/learn_system`
-刚完成：三位 Terra 只读调研存储、社交通知、客户端/Repository，主 Agent 核对关键代码；新增 `docs/annotation-community/MODULE_REUSE_AUDIT.md` 与 `CLIENT_SERVER_DESIGN_DETAIL_DRAFT.md`，同步私人存储、主数据草案和冷启动文档。
-进行到一半的事（精确到文件和章节）：书籍主草案 §9 U-01～U-09 与资产稿 §6 A-01～A-06 等上游；非书籍部分已形成接入细化但未冻结。自动保存 2 秒、回收站 30 天、图片本期/通用附件后置均为候选，不冒充用户已批准。本轮不写业务实现或机器 Schema。
-下一步（第一件事）：审阅接入细化稿；补齐密钥恢复/设备授权协议与候选默认值，再冻结正式规格/OpenAPI/工作包。书籍回执独立推进；不再等待已离场的 storage/social/notification 开发 Agent。
+刚完成：收到 `docs/annotation-community/UPSTREAM_DATA_CONTRACT_REPLY.md` 并抽查政策/EPUB 清洗/旧 unit ID 生成；新增 `CONSUMER_ALIGNMENT_RESPONSE.md`，修订主数据与资产草案的多段选区、原件档位、文件承载、哈希和完整正文要求。此前三路 Terra 调查与接入细化仍有效。
+进行到一半的事（精确到文件和章节）：上游回执不是生产交付，U-01～U-08 为 CHANGE，U-09 为 UNAVAILABLE；消费端协调回复 §4 列五类下一步交付物。非书籍设计已细化但未冻结；自动保存 2 秒、回收站 30 天、图片范围均为候选。本轮不写业务实现或机器 Schema。
+下一步（第一件事）：将消费端协调回复交给上游，完成原生 EPUB/TXT 的发布政策差异、共同 Schema、D-06 与真实样例；消费端负责上传/装载具体 API 与映射。密钥恢复/设备授权和候选默认值并行定案；不再等待已离场 storage/social/notification 开发 Agent。
 私人存储新发现：有真实 Firestore/RTDB row SDK 和 generic upsert，但当前 RecordOutboxMapper 明文 JSON 不能用于私人正文；云 blob 生产适配、长期备份和跨设备密钥恢复未见完整实现。IM guard 当前未比较传入设备 ID/指纹，不能直接当笔记授权证明。
 已知的坑：Notification 管线有实现，生产业务接线不足；ReceiptRejected 是停止整批并报告；旧通知查重非原子且不适用多收件人。notebook 保存覆盖旧 committed，内存降级仍返回成功，不可当永久修订库。既有 OpenAPI 有 operation headers 非规范结构，字段断言测试不代表合规。D-06 未冻结；收回只能阻止后续访问，公共媒体不能发绕过 ACL 的永久 URL。
+书籍新增边界：权威架构 PUBLIC_RELEASE 当前强制 glyphbox_level/OcrPage，原生来源分支尚未获批；不能由消费稿绕过。旧 EPUB 去空格/重组换行无原件映射、旧 unit 按排序重编号；两者不能直接作稳定生产锚点。原件档位、运输方式、capability 与正式发布门禁分开。
 
 ## G3 线原交接
 
