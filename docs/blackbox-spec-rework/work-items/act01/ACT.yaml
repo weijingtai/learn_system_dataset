@@ -1,0 +1,38 @@
+task_id: workbench-r0/01
+title: 消除启动覆盖本地库缺陷
+duration: 30-45m
+status: READY
+depends_on:
+  - workbench-r0-dep-unlock: ACCEPTED
+scope:
+  read:
+    - pattern_knowledge_workbench/lib/database/tables.dart
+    - pattern_knowledge_workbench/lib/database/drift_database.dart
+    - pattern_knowledge_workbench/GAP_ANALYSIS.md
+    - openspec/learn-system-blackbox-architecture.md
+  write:
+    - pattern_knowledge_workbench/lib/database/drift_database.dart
+    - pattern_knowledge_workbench/test/database_persistence_test.dart
+forbidden:
+  - 修改 migration / schemaVersion 与 onUpgrade 内的 SQL
+  - 改动 assets/ge_ju_database.sqlite 本身
+  - 修改 pattern_knowledge_workbench/assets/ 或 lib/pages/
+  - 引入新的 pub 依赖
+steps:
+  - 编写 pattern_knowledge_workbench/test/database_persistence_test.dart
+  - 运行 flutter test test/database_persistence_test.dart 证明测试在当前代码下失败（Red）
+  - 提交红灯测试：test(workbench): 本地库不得被启动覆盖(红) ｜ TASK_ID workbench-r0/01
+  - 在 lib/database/drift_database.dart 中将播种包裹在 if (!await dbFile.exists()) 分支内
+  - 运行 flutter test test/database_persistence_test.dart 验证转绿（Green）
+  - 运行静态分析与全套测试：flutter analyze --no-fatal-infos && flutter test
+  - 运行全局脚本验证无退化：bash docs/blackbox-spec-rework/verify-T.sh
+  - 确认 git diff --check
+  - 提交绿灯实现：fix(workbench): 本地库改为仅在缺失时播种，不再启动覆盖 ｜ TASK_ID workbench-r0/01
+verification:
+  - cd pattern_knowledge_workbench && flutter test test/database_persistence_test.dart
+  - grep -c "await dbFile.writeAsBytes" pattern_knowledge_workbench/lib/database/drift_database.dart
+  - grep -A2 'if (!await dbFile.exists())' pattern_knowledge_workbench/lib/database/drift_database.dart | grep -q 'rootBundle.load'
+  - cd pattern_knowledge_workbench && flutter analyze --no-fatal-infos
+  - cd pattern_knowledge_workbench && flutter test
+  - git diff --check
+on_fail: 停止；保留测试报错现场并上报，不得擅自绕过测试

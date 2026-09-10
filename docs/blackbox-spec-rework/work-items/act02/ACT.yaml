@@ -1,0 +1,38 @@
+task_id: workbench-r0/02
+title: 消除保存即 verified 缺陷
+duration: 30-45m
+status: READY
+depends_on:
+  - workbench-r0/01: ACCEPTED
+scope:
+  read:
+    - pattern_knowledge_workbench/lib/database/tables.dart
+    - pattern_knowledge_workbench/lib/pages/rule_list_page.dart
+    - pattern_knowledge_workbench/GAP_ANALYSIS.md
+    - openspec/learn-system-blackbox-architecture.md
+  write:
+    - pattern_knowledge_workbench/lib/pages/rule_list_page.dart
+    - pattern_knowledge_workbench/test/verified_gate_test.dart
+forbidden:
+  - 改动 tables.dart 或任何 drift 表定义
+  - 删除或破坏显式勾选通道（1362/1366 行）
+  - 修改与 isVerified 无关的 UI 逻辑
+  - 修改 pattern_knowledge_workbench/lib/database/ 或 assets/
+steps:
+  - 编写 pattern_knowledge_workbench/test/verified_gate_test.dart
+  - 运行 flutter test test/verified_gate_test.dart 证明测试在当前代码下失败（Red）
+  - 提交红灯测试：test(workbench): 保存不得自动置 verified(红) ｜ TASK_ID workbench-r0/02
+  - 在 lib/pages/rule_list_page.dart 中删除人工保存的 isVerified: const Value(true)，将 AI 条件保存改为 isVerified: const Value(false)
+  - 运行 flutter test test/verified_gate_test.dart 验证转绿（Green）
+  - 运行静态分析与全套测试：flutter analyze --no-fatal-infos && flutter test
+  - 运行全局脚本验证无退化：bash docs/blackbox-spec-rework/verify-T.sh
+  - 确认 git diff --check
+  - 提交绿灯实现：fix(workbench): 保存与 AI 产物不再自动置 verified ｜ TASK_ID workbench-r0/02
+verification:
+  - cd pattern_knowledge_workbench && flutter test test/verified_gate_test.dart
+  - test $(grep -c 'isVerified: const Value(true)' pattern_knowledge_workbench/lib/pages/rule_list_page.dart) -eq 0
+  - test $(grep -c 'isVerified' pattern_knowledge_workbench/lib/pages/rule_list_page.dart) -ge 3
+  - cd pattern_knowledge_workbench && flutter analyze --no-fatal-infos
+  - cd pattern_knowledge_workbench && flutter test
+  - git diff --check
+on_fail: 停止；保留测试报错现场并上报，不得擅自绕过测试

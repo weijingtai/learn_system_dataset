@@ -48,9 +48,9 @@ RE→T-11 + D-18；RF→D-14~D-17 + T-12/T-13；RG→D-19。**覆盖完整，无
 
 ### R0 零号批次（不依赖任何前置，可立即开工）
 
-- [ ] 修复: `pattern_knowledge_workbench/lib/database/drift_database.dart:28-29` 启动时用 asset SQLite 覆盖本地库，人工校订与审计历史被静默销毁，直接否定规格 §20 第 2、3 条 ｜ 通过标准: `grep -c "rootBundle.load('assets/ge_ju_database.sqlite')" lib/database/drift_database.dart` 返回 0；且新增 widget test「写入本地库 → 重启 → 数据仍在」由红转绿
-- [ ] 修复: `pattern_knowledge_workbench/lib/pages/rule_list_page.dart:1202,1802` 规则保存与 AI 产物直接写 `isVerified: const Value(true)`，绕过审核状态机 ｜ 通过标准: `grep -c "isVerified: const Value(true)" lib/pages/rule_list_page.dart` 返回 0；AI 产物落入 candidate 态的测试转绿
-- [ ] 修复: `pattern_knowledge_workbench/pubspec.yaml:62,66,86` 依赖私有内网 Git `192.168.0.165:3000`，干净环境无法构建，导致后续任何验收命令在他人机器不可执行 ｜ 通过标准: `grep -c "192.168" pattern_knowledge_workbench/pubspec.yaml` 返回 0，且干净容器内 `flutter pub get` 成功
+- [x] 修复: `pattern_knowledge_workbench/lib/database/drift_database.dart:28-29` 启动时用 asset SQLite 覆盖本地库，人工校订与审计历史被静默销毁，直接否定规格 §20 第 2、3 条 ｜ 通过标准: `grep -c "rootBundle.load('assets/ge_ju_database.sqlite')" lib/database/drift_database.dart` 返回 0；且新增 widget test「写入本地库 → 重启 → 数据仍在」由红转绿
+- [x] 修复: `pattern_knowledge_workbench/lib/pages/rule_list_page.dart:1202,1802` 规则保存与 AI 产物直接写 `isVerified: const Value(true)`，绕过审核状态机 ｜ 通过标准: `grep -c "isVerified: const Value(true)" lib/pages/rule_list_page.dart` 返回 0；AI 产物落入 candidate 态的测试转绿
+- [x] 修复: `pattern_knowledge_workbench/pubspec.yaml:62,66,86` 依赖私有内网 Git `192.168.0.165:3000`，干净环境无法构建，导致后续任何验收命令在他人机器不可执行 ｜ 通过标准: `grep -c "192.168" pattern_knowledge_workbench/pubspec.yaml` 返回 0，且干净容器内 `flutter pub get` 成功
 
 ### RA 身份与内核契约（L0，阻断其余全部条目）
 

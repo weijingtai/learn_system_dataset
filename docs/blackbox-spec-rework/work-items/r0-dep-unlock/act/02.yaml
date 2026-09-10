@@ -1,0 +1,62 @@
+task_id: workbench-r0/04
+title: 剥离 ai_core 聊天旁路与内网依赖
+duration: 30-45m
+depends_on:
+  - workbench-r0/03
+scope:
+  read:
+    - pattern_knowledge_workbench/lib/providers/ai_chat_controller.dart
+    - pattern_knowledge_workbench/lib/pages/chat_page.dart
+    - pattern_knowledge_workbench/lib/pages/rule_list_page.dart
+    - pattern_knowledge_workbench/lib/main.dart
+    - pattern_knowledge_workbench/pubspec.yaml
+    - pattern_knowledge_workbench/lib/pages/main_page.dart
+    - pattern_knowledge_workbench/lib/providers/db_provider.dart
+    - pattern_knowledge_workbench/lib/pages/dialogs/ai_recognition_dialog.dart
+  write:
+    - pattern_knowledge_workbench/lib/pages/chat_page.dart
+    - pattern_knowledge_workbench/lib/providers/ai_chat_controller.dart
+    - pattern_knowledge_workbench/lib/pages/rule_list_page.dart
+    - pattern_knowledge_workbench/lib/main.dart
+    - pattern_knowledge_workbench/pubspec.yaml
+    # 用户 2026-09-09 正式授权的最小范围扩展：仅用于清除历史 unused_import 以满足 0 warning 门禁
+    - pattern_knowledge_workbench/lib/pages/main_page.dart
+    - pattern_knowledge_workbench/lib/providers/db_provider.dart
+    # 依赖移除后由 flutter pub get 自动更新/生成的锁文件与平台插件注册文件（证明无人工手改）
+    - pattern_knowledge_workbench/pubspec.lock
+    - pattern_knowledge_workbench/macos/Flutter/GeneratedPluginRegistrant.swift
+    - pattern_knowledge_workbench/linux/flutter/generated_plugin_registrant.cc
+    - pattern_knowledge_workbench/linux/flutter/generated_plugins.cmake
+    - pattern_knowledge_workbench/windows/flutter/generated_plugin_registrant.cc
+    - pattern_knowledge_workbench/windows/flutter/generated_plugins.cmake
+forbidden:
+  - 引入任何未批准的第三方 pub 依赖或临时 Mock 包
+  - 修改 pattern_knowledge_workbench/lib/database/ 或 assets/
+  - 修改 main_page.dart 或 db_provider.dart 中除指定 unused_import 以外的任何代码
+  - 修改或消除既有的 11 条 info 级 avoid_print 提示（门禁仅断言 0 warning，退出码 0）
+  - 手动修改平台 generated plugin 文件
+steps:
+  - 在 pattern_knowledge_workbench/pubspec.yaml 中删除 dependencies 下的 ai_core（4 行）与 dependency_overrides 下的 ai_core（4 行）
+  - 修改 pattern_knowledge_workbench/lib/pages/chat_page.dart：删除 package:ai_core 导入与 AiChatView，替换为纯静态占位说明页面（提示功能已剥离至 M4 流水线）
+  - 修改 pattern_knowledge_workbench/lib/providers/ai_chat_controller.dart：彻底删除 package:ai_core 的 6 处导入；仅保留不依赖外部库的最小安全适配控制器（支持 isInitialized=false 与 recognizeCondition 占位），确保其他未改动页面（如 ai_recognition_dialog.dart）可正常编译
+  - 修改 pattern_knowledge_workbench/lib/pages/rule_list_page.dart：删除 package:ai_core 导入与 Drawer 中的 AiChatView 嵌入，替换为说明视图或安全占位
+  - 修改 pattern_knowledge_workbench/lib/main.dart：适配无害化的 AiChatController 挂载
+  - 正式最小范围扩展处理：
+    - main_page.dart：仅删除 3 处 unused_import（provider, drift_database, rule_provider），严禁修改其他代码
+    - db_provider.dart：仅删除 1 处 unused_import（drift/drift.dart），严禁修改其他代码
+  - 运行依赖求解：cd pattern_knowledge_workbench && flutter pub get
+  - 运行静态代码分析：cd pattern_knowledge_workbench && flutter analyze --no-fatal-infos
+  - 运行已有单元测试：cd pattern_knowledge_workbench && flutter test
+  - 确认自动生成的 pubspec.lock 与各平台 generated plugin 文件完全由 flutter pub get 产生且无人工手工修改
+  - 运行全局回归验证：bash docs/blackbox-spec-rework/verify-T.sh
+  - 确认 git diff --check
+  - 独立提交 commit 2
+commit_message: "refactor(workbench): 剥离 ai_core 聊天旁路与内网依赖 ｜ TASK_ID workbench-r0/04"
+verification:
+  - test $(grep -c '192.168' pattern_knowledge_workbench/pubspec.yaml) -eq 0
+  - test $(grep -rc 'package:ai_core' pattern_knowledge_workbench/lib/ | grep -v ':0' | wc -l) -eq 0
+  - cd pattern_knowledge_workbench && flutter pub get
+  - cd pattern_knowledge_workbench && flutter analyze --no-fatal-infos
+  - cd pattern_knowledge_workbench && flutter test
+  - git diff --check
+on_fail: 停止；若 analyze 或 test 报错，保留错误现场并上报，不得擅自加回内网依赖

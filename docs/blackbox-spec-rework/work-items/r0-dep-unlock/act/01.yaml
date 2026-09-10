@@ -1,0 +1,27 @@
+task_id: workbench-r0/03
+title: 删除零引用的内网依赖 enumeration
+duration: 15-20m
+depends_on: []
+scope:
+  read:
+    - pattern_knowledge_workbench/pubspec.yaml
+  write:
+    - pattern_knowledge_workbench/pubspec.yaml
+forbidden:
+  - 删除或修改 ai_core 的依赖声明（留待 ACT 02 处理）
+  - 修改其他公开依赖的版本号
+  - 运行 flutter pub upgrade
+steps:
+  - 确认 pattern_knowledge_workbench/ 全仓 *.dart 中 enumeration 引用数为 0
+  - 在 pattern_knowledge_workbench/pubspec.yaml 的 dependencies 中删除 enumeration 依赖声明块（4 行）
+  - 运行 ACT 01 门禁：test $(grep -c 'enumeration.git' pattern_knowledge_workbench/pubspec.yaml) -eq 0
+  - 运行 192.168 计数检查：test $(grep -c '192.168' pattern_knowledge_workbench/pubspec.yaml) -eq 2
+  - git diff --check 检查
+  - 独立提交 commit 1
+commit_message: "chore(workbench): 删除零引用的内网依赖 enumeration ｜ TASK_ID workbench-r0/03"
+verification:
+  - test $(grep -rn 'enumeration' --include='*.dart' pattern_knowledge_workbench/ | grep -v '^pattern_knowledge_workbench/build/' | wc -l) -eq 0
+  - test $(grep -c 'enumeration.git' pattern_knowledge_workbench/pubspec.yaml) -eq 0
+  - test $(grep -c '192.168' pattern_knowledge_workbench/pubspec.yaml) -eq 2
+  - git diff --check
+on_fail: 停止；若引用数不为 0 则必须上报，不执行删除

@@ -1,0 +1,17 @@
+task_id: workbench-r0-dep-unlock
+mode: sequential_two_commit_execution
+status: READY
+goal: 清除工作台 enumeration 与 ai_core 私有内网依赖并剥离 AI 聊天旁路
+depends_on: []
+acts:
+  - id: workbench-r0/03
+    file: docs/blackbox-spec-rework/work-items/r0-dep-unlock/act/01.yaml
+  - id: workbench-r0/04
+    file: docs/blackbox-spec-rework/work-items/r0-dep-unlock/act/02.yaml
+    depends_on: workbench-r0/03
+forbidden:
+  - 并行执行两个子 ACT
+  - 合并成一个提交
+  - 引入替代的内网依赖或假 Mock 包
+  - 修改工作台数据库定义或资产文件
+on_fail: 停止在失败子 ACT，不开始下一 ACT；报告原始错误、已改文件与最后通过门禁

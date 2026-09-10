@@ -83,66 +83,63 @@
 
 ## G2 R0 工作台数据安全 ACT
 
-- [ ] ACT-01：启动时不覆盖本地数据库（状态：`BACKLOG`）
-  - [ ] README/范围/依赖/禁止项
-  - [ ] BDD 场景
-  - [ ] TDD 正反用例与精确命令
-  - [ ] ACT.yaml（含 SCOPE、ON_FAIL、VERIFICATION）
-  - [ ] Executor Prompt
-  - [ ] Acceptance 清单
-  - [ ] `wjt-react` 判定 READY
-  - [ ] 派发执行 Agent
-  - [ ] 执行提交与原始证据
-  - [ ] 主 Agent 规格审查
-  - [ ] 主 Agent 质量审查
-  - [ ] PLAN/HANDOFF 同步
-  - [ ] 主 Agent 标记 `ACCEPTED`
+- [x] ACT-01：启动时不覆盖本地数据库（状态：`ACCEPTED`）
+  - [x] README/范围/依赖/禁止项
+  - [x] BDD 场景
+  - [x] TDD 正反用例与精确命令
+  - [x] ACT.yaml（含 SCOPE、ON_FAIL、VERIFICATION）
+  - [x] Executor Prompt
+  - [x] Acceptance 清单
+  - [x] `wjt-react` 判定 READY
+  - [x] 派发执行 Agent
+  - [x] 执行提交与原始证据（`f7ffd2f` / `3d6cfd2`）
+  - [x] 主 Agent 规格审查
+  - [x] 主 Agent 质量审查
+  - [x] PLAN/HANDOFF 同步
+  - [x] 主 Agent 标记 `ACCEPTED`
+- [x] ACT-02：保存与 AI 产物不再自动 verified（状态：`ACCEPTED`）
+  - [x] README/范围/依赖/禁止项
+  - [x] BDD 场景
+  - [x] TDD 正反用例与精确命令
+  - [x] ACT.yaml（含 SCOPE、ON_FAIL、VERIFICATION）
+  - [x] Executor Prompt
+  - [x] Acceptance 清单
+  - [x] `wjt-react` 判定 READY
+  - [x] 派发执行 Agent
+  - [x] 执行提交与原始证据（`424dc9a` / `54c0497`）
+  - [x] 主 Agent 规格审查
+  - [x] 主 Agent 质量审查
+  - [x] PLAN/HANDOFF 同步
+  - [x] 主 Agent 标记 `ACCEPTED`
+- [x] ACT-03：删除零引用 enumeration 依赖（状态：`ACCEPTED`）
+  - [x] README/范围/依赖/禁止项
+  - [x] BDD 场景
+  - [x] TDD 正反用例与精确命令
+  - [x] ACT.yaml（含 SCOPE、ON_FAIL、VERIFICATION）
+  - [x] Executor Prompt
+  - [x] Acceptance 清单
+  - [x] `wjt-react` 判定 READY
+  - [x] 派发执行 Agent
+  - [x] 执行提交与原始证据（`ffda853`）
+  - [x] 主 Agent 规格审查
+  - [x] 主 Agent 质量审查
+  - [x] PLAN/HANDOFF 同步
+  - [x] 主 Agent 标记 `ACCEPTED`
 
-- [ ] ACT-02：保存与 AI 产物不再自动 verified（状态：`BACKLOG`）
-  - [ ] README/范围/依赖/禁止项
-  - [ ] BDD 场景
-  - [ ] TDD 正反用例与精确命令
-  - [ ] ACT.yaml（含 SCOPE、ON_FAIL、VERIFICATION）
-  - [ ] Executor Prompt
-  - [ ] Acceptance 清单
-  - [ ] `wjt-react` 判定 READY
-  - [ ] 派发执行 Agent
-  - [ ] 执行提交与原始证据
-  - [ ] 主 Agent 规格审查
-  - [ ] 主 Agent 质量审查
-  - [ ] PLAN/HANDOFF 同步
-  - [ ] 主 Agent 标记 `ACCEPTED`
-
-- [ ] ACT-03：删除零引用 enumeration 依赖（状态：`BACKLOG`）
-  - [ ] README/范围/依赖/禁止项
-  - [ ] BDD 场景
-  - [ ] TDD 正反用例与精确命令
-  - [ ] ACT.yaml（含 SCOPE、ON_FAIL、VERIFICATION）
-  - [ ] Executor Prompt
-  - [ ] Acceptance 清单
-  - [ ] `wjt-react` 判定 READY
-  - [ ] 派发执行 Agent
-  - [ ] 执行提交与原始证据
-  - [ ] 主 Agent 规格审查
-  - [ ] 主 Agent 质量审查
-  - [ ] PLAN/HANDOFF 同步
-  - [ ] 主 Agent 标记 `ACCEPTED`
-
-- [ ] ACT-04：剥离 ai_core 聊天旁路（状态：`BACKLOG`，依赖 ACT-03）
-  - [ ] README/范围/依赖/禁止项
-  - [ ] BDD 场景
-  - [ ] TDD 正反用例与精确命令
-  - [ ] ACT.yaml（含 SCOPE、ON_FAIL、VERIFICATION）
-  - [ ] Executor Prompt
-  - [ ] Acceptance 清单
-  - [ ] `wjt-react` 判定 READY
-  - [ ] 派发执行 Agent
-  - [ ] 执行提交与原始证据
-  - [ ] 主 Agent 规格审查
-  - [ ] 主 Agent 质量审查
-  - [ ] PLAN/HANDOFF 同步
-  - [ ] 主 Agent 标记 `ACCEPTED`
-
+- [x] ACT-04：剥离 ai_core 聊天旁路（状态：`ACCEPTED`）
+  - [x] README/范围/依赖/禁止项
+  - [x] BDD 场景
+  - [x] TDD 正反用例与精确命令
+  - [x] ACT.yaml（含 SCOPE、ON_FAIL、VERIFICATION）
+  - [x] Executor Prompt
+  - [x] Acceptance 清单
+  - [x] `wjt-react` 判定 READY
+  - [x] 派发执行 Agent
+  - [x] 执行提交与原始证据（`2e11932`）
+  - [x] 主 Agent 规格审查
+  - [x] 主 Agent 质量审查
+  - [x] PLAN/HANDOFF 同步
+  - [x] 主 Agent 标记 `ACCEPTED`
 
 ## G3 其余 T 类转录任务
 
