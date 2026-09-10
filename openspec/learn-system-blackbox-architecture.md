@@ -440,6 +440,20 @@ EPUB/TXT 必须检查编码、乱码、替换字符、PUA、控制字符、水�
 
 M2 Gate 通过前，该 EditionPart 的校对和清洗任务必须全部完成。异常页必须进入显式终态，不能因暂未处理而被计为完成。
 
+### 10.1 异常页终态枚举与 M2 Gate 放行规则
+
+异常页必须显式归入以下三种终态枚举之一，严禁将任何异常页静默跳过或绕过 Gate：
+
+1. `manually_transcribed`（人工转录完成）：由人工校订介入完成文本录入与校准，具备完整文本与对应元数据；
+2. `known_unrecognizable`（已知客观不可识别）：如纯图无文字页、手绘盘面页或严重残卷（现状证据见 `ocr/data_work/logs/anomalies.jsonl` 中登记的 page_002 无文本、page_010 盘面页），**必须附理由与证据 Artifact，严禁裸标**；
+3. `deferred`（暂缓处理/未决）：暂未处理或等待后续工具链支持（如弧线字切分原型 `ocr/experiments/curve_segment.py` 尚未完成生产化接入），保持未决状态。
+
+**M2 Gate 放行与阻断规则**：
+- `manually_transcribed` 与 `known_unrecognizable` 允许 M2 Gate 放行；
+- `deferred` 严格阻断 M2 Gate 通过，禁止进入 M3；
+- **规则声明**：此放行规则与 `§6.1「失败为零」`原则不冲突，因为「客观不可识别」属于已受控登记的输入边界局限，不是加工流程执行失败；
+- 严禁将任何异常页静默跳过或绕过 Gate。
+
 ## 11. M3 Corpus Compilation
 
 M3 把校订结果组织成可引用语料，不再静默纠正文义：
