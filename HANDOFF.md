@@ -1,5 +1,14 @@
 # HANDOFF
 
+## 注解社区 v1.1 补充复核（优先于下方 R1 就绪结论）
+
+更新时间：2026-09-10
+当前分支/worktree：`codex/docs/knowledge-compilation`；`/Users/jingtaiwei/Git/Public/learn_system`
+刚完成：读取用户贴出的四角色报告，核实提交 9e6793a 与校验 FAIL 0；新增 `openspec/annotation-community/REVIEW_R2_FOLLOWUP.md`，指出五项仍开放的语义缺口。
+进行到一半的事（精确到文件和章节）：DESIGN §2.1/§6 投递 ID 映射、§4.4 reaction 排序/权限并发、§7.2 修订 hash、§4.3/§7.4 幂等恢复仍未修订，不能称只剩用户确认前缀。
+下一步（第一件事）：按 R2-01～05 补齐关联 NC 的协议与反例；NC-001 环境调查及不依赖这些字段的 BDD 准备可继续。
+已知的坑：notifier deliveryId 为不透明 HMAC，不能改成业务 dlv_；取消 reaction 删除序号高水位未定义；14 天 TTL 不能替代崩溃恢复；hash 漏 binding/selector；并发必须区分合法提交顺序。本轮未改原 R1 报告或业务代码。
+
 ## 注解社区线四份文档 R1 审查与补全
 
 更新时间：2026-09-10（环境日期）

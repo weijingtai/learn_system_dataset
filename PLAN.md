@@ -1,5 +1,10 @@
 # PLAN
 
+## 注解社区 v1.1 补充复核
+
+- [x] 核实用户转来的 R1 报告与提交 9e6793a，重跑 verify.sh 为 0；补充语义复核见 `openspec/annotation-community/REVIEW_R2_FOLLOWUP.md`。
+- [ ] 处理 R2-01～05：业务通知/notifier ID 映射、reaction 排序元数据、命令崩溃恢复、修订 hash 完整性、权限事务提交顺序；分别挂靠 NC-002/003/004/007/009/011/012/013/014，不将结构检查通过当作关闭依据。
+
 ## 上下游生产交付核对回执
 
 - [x] 核对 SERVER/BOOK_ASSET 两份消费草案与当前输出、Schema 和生成代码；U-01～U-09、A-01～A-06 回执见 `docs/annotation-community/UPSTREAM_DATA_CONTRACT_REPLY.md`。结论：方向兼容，尚无可直接生产交付包。
