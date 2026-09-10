@@ -1,10 +1,14 @@
 task_id: d07-technique-profile-and-query-contract
 mode: documentation_rework
-status: READY
-goal: 在黑箱架构规格中完整定义 TechniqueProfilePack 与 QueryContractPack 规约并加固语义门禁
+stage: G3-R2
+status: IMPLEMENTED_AWAITING_REVIEW
+goal: 把 D-07 门禁改为 TechniqueProfilePack / QueryContractPack / RuleIndexPack 三份契约的专属块解析，禁止 §16 跨块代偿，并同步六件套
 execution: strictly_serial
+depends_on:
+  - T-06: ACCEPTED
+  - T-13: ACCEPTED
+  - G3-REVIEW-R2: REWORK_REQUIRED
 write:
-  - openspec/learn-system-blackbox-architecture.md
   - docs/blackbox-spec-rework/verify-T.sh
   - docs/blackbox-spec-rework/work-items/d07/README.md
   - docs/blackbox-spec-rework/work-items/d07/BDD.md
@@ -12,16 +16,32 @@ write:
   - docs/blackbox-spec-rework/work-items/d07/ACT.yaml
   - docs/blackbox-spec-rework/work-items/d07/PROMPT.md
   - docs/blackbox-spec-rework/work-items/d07/ACCEPTANCE.md
+read_only:
+  - openspec/learn-system-blackbox-architecture.md
 forbidden:
-  - 修改业务代码、Schema、数据库或 fixture
-  - 修改 PLAN.md、HANDOFF.md、SUBAGENT_TODO.md
-  - 触碰 docs/annotation-community/ 或 openspec/annotation-community/
-  - 规则使用可执行 Python
-  - M5 声明为 Tag 字段生产工位
+  - 修改规格正文、业务代码、Schema、数据库、fixture 或依赖
+  - 修改 PLAN.md、HANDOFF.md、SUBAGENT_TODO.md 或 G3 总 ACCEPTANCE.md
+  - 改动、压缩或删除既有正确语义以迁就门禁
+  - 通过放宽断言、忽略错误、固定返回码或只数关键词取得绿色结果
+  - 把临时变异文件写入仓库；变异只允许在 /tmp 副本上进行
+  - 将状态写为 ACCEPTED、合并、推送或启动 G4
+steps:
+  - 记录起点（分支、HEAD、git status、git diff --check、正常规格门禁）
+  - 在 /tmp 副本建立 Red baseline，确认三个变异在加固前均返回 0（假绿）
+  - 将 verify-T.sh 的 D-07 段替换为按导语锚点切片的三块专属断言，并在锚点缺失或歧义时 FAIL
+  - 运行 bash docs/blackbox-spec-rework/verify-T.sh 确认正常规格退出 0、FAIL 合计 0
+  - 逐一重跑三个强制变异，确认各自非零退出，且只触发对应断言
+  - 更新六件套（README/BDD/TDD/ACT/PROMPT/ACCEPTANCE）并记录证据
+  - 运行 git diff --check 与 git status --short，独立提交
 verification:
-  - 先在 verify-T.sh 加门禁确认旧规格必报 FAIL（Red）
-  - 修改规格后 verify-T.sh 全绿（Green）
-  - 执行负向变异（删接口/删字段）确认必报 FAIL
-  - git diff --check 通过
-on_fail: 立即停止，恢复变异，分析阻断根因并报告
-commit_policy: 单独 Conventional Commit（如 feat(spec): define TechniqueProfilePack and QueryContractPack (D-07)）
+  - bash docs/blackbox-spec-rework/verify-T.sh 退出码 0 且 FAIL 合计 0
+  - d07-1 / d07-2 / d07-3 三个变异加固前退出 0、加固后非零退出
+  - ReleaseManifest 中「Schema/Profile 版本」文字不能使 RuleIndexPack 门禁通过
+  - git diff --check 退出 0
+on_fail: 立即停止，不扩大范围；报告失败命令、精确冲突与建议决策
+commit_message: 'fix: harden D-07 package-specific gates'
+report:
+  - commit hash 与变更文件清单
+  - 正常规格门禁退出码与 FAIL 合计
+  - 三个变异的加固前后退出码
+  - git diff --check 与 git status --short 摘要

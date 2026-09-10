@@ -77,46 +77,101 @@ evidence_ok=$(printf '%s\n' "$evidence" | awk '
   }')
 chk T-06s "§16 证据链七项精确有序且闭合" "1" "$evidence_ok"
 
-# D-07 语义门禁：TechniqueProfilePack 与 QueryContractPack
-sec16=$(sed -n '/^## 16[. ]/,/^## 17[. ]/p' "$SPEC")
+# D-07 语义门禁：TechniqueProfilePack / QueryContractPack / RuleIndexPack 三份契约
+# 必须各自在专属段内闭合。§16 其余文字（如 ReleaseManifest 的「Schema/Profile 版本」）
+# 不得跨块代偿，因此先按专属段导语切片，再逐块断言，而不是对整节做关键词 grep。
 sec13=$(sed -n '/^## 13[. ]/,/^## 14[. ]/p' "$SPEC")
 
-if printf '%s\n' "$sec16" | grep -Fq 'TechniqueProfilePack' \
-  && printf '%s\n' "$sec16" | grep -Fq 'QueryContractPack'; then
-  printf 'PASS  D-07s PublicationPackage contains TechniqueProfilePack and QueryContractPack\n'
+tp_anchor='承载各术数领域确定性事实结构与规则语法标准'
+qc_anchor='规范发布包对外暴露的确定性只读查询契约'
+ri_anchor='承载确定性适用规则索引'
+
+d07_blocks=$(awk -v tp="$tp_anchor" -v qc="$qc_anchor" -v ri="$ri_anchor" '
+  /^#/ { cur = "" }
+  index($0, tp) > 0 { cur = "TP" }
+  index($0, qc) > 0 { cur = "QC" }
+  index($0, ri) > 0 { cur = "RI" }
+  cur != "" { print cur "\t" $0 }
+' "$SPEC")
+
+d07_block() { printf '%s\n' "$d07_blocks" | awk -F'\t' -v k="$1" '$1 == k { sub(/^[^\t]*\t/, ""); print }'; }
+d07_f() { printf '%s\n' "$1" | grep -Fq "$2"; }
+d07_e() { printf '%s\n' "$1" | grep -Eq "$2"; }
+
+for d07_pair in "TP:$tp_anchor" "QC:$qc_anchor" "RI:$ri_anchor"; do
+  d07_key=${d07_pair%%:*}; d07_anchor=${d07_pair#*:}
+  if [ -n "$(d07_block "$d07_key" | grep -v '^$')" ] && [ "$(grep -Fc "$d07_anchor" "$SPEC")" = "1" ]; then
+    printf 'PASS  D-07s %s dedicated block located\n' "$d07_key"
+  else
+    printf 'FAIL  D-07s %s dedicated block missing or ambiguous\n' "$d07_key"; FAILED=$((FAILED+1))
+  fi
+done
+
+d07_tp=$(d07_block TP); d07_qc=$(d07_block QC); d07_ri=$(d07_block RI)
+
+for tp_elem in 'FactSet Profile' 'operator 集合' 'AST schema 版本'; do
+  if d07_f "$d07_tp" "$tp_elem"; then
+    printf 'PASS  D-07s TechniqueProfilePack element: %s\n' "$tp_elem"
+  else
+    printf 'FAIL  D-07s TechniqueProfilePack missing element: %s\n' "$tp_elem"; FAILED=$((FAILED+1))
+  fi
+done
+
+if d07_f "$d07_tp" '事实字段与枚举' && d07_f "$d07_tp" '闭集枚举' \
+  && ! d07_e "$d07_tp" '客户端自由猜测|不列.*事实字段|由客户端.*猜|无需列出.*枚举'; then
+  printf 'PASS  D-07s TechniqueProfilePack mandates fact fields and closed enum values\n'
 else
-  printf 'FAIL  D-07s PublicationPackage missing TechniqueProfilePack or QueryContractPack\n'; FAILED=$((FAILED+1))
+  printf 'FAIL  D-07s TechniqueProfilePack fact fields / closed enums missing or negated\n'; FAILED=$((FAILED+1))
+fi
+
+if d07_e "$d07_tp" '禁止.*(可执行|模型生成).*Python'; then
+  printf 'PASS  D-07s TechniqueProfilePack forbids executable or model-generated Python\n'
+else
+  printf 'FAIL  D-07s TechniqueProfilePack Python ban missing\n'; FAILED=$((FAILED+1))
 fi
 
 for query_iface in 'getEntry' 'getSourceSpan' 'searchKnowledge' 'matchFacts'; do
-  if printf '%s\n' "$sec16" | grep -Fq "$query_iface"; then
+  if d07_f "$d07_qc" "$query_iface"; then
     printf 'PASS  D-07s QueryContractPack interface: %s\n' "$query_iface"
   else
     printf 'FAIL  D-07s QueryContractPack missing interface: %s\n' "$query_iface"; FAILED=$((FAILED+1))
   fi
 done
 
-for tp_elem in 'FactSet Profile' 'operator 集合' 'AST schema 版本' 'Profile 版本'; do
-  if printf '%s\n' "$sec16" | grep -Fq "$tp_elem"; then
-    printf 'PASS  D-07s TechniqueProfile element: %s\n' "$tp_elem"
-  else
-    printf 'FAIL  D-07s TechniqueProfile missing element: %s\n' "$tp_elem"; FAILED=$((FAILED+1))
-  fi
-done
-
-if grep -Eq '禁止.*(可执行|模型生成).*Python' "$SPEC" \
-  && grep -Fq '结构化 AST/YAML/JSON' "$SPEC"; then
-  printf 'PASS  D-07s rules require declarative AST and forbid executable Python\n'
+if d07_f "$d07_qc" '向后兼容'; then
+  printf 'PASS  D-07s QueryContractPack declares backward compatibility\n'
 else
-  printf 'FAIL  D-07s rules declarative AST or Python ban missing\n'; FAILED=$((FAILED+1))
+  printf 'FAIL  D-07s QueryContractPack missing backward compatibility\n'; FAILED=$((FAILED+1))
+fi
+
+if d07_f "$d07_ri" '每条规则' && d07_f "$d07_ri" '显式声明' \
+  && d07_f "$d07_ri" 'profile_version' && d07_f "$d07_ri" 'AST schema 版本'; then
+  printf 'PASS  D-07s RuleIndexPack binds every rule to profile_version and AST schema version\n'
+else
+  printf 'FAIL  D-07s RuleIndexPack per-rule profile_version / AST schema version missing\n'; FAILED=$((FAILED+1))
+fi
+
+if d07_f "$d07_ri" '结构化 AST/YAML/JSON'; then
+  printf 'PASS  D-07s RuleIndexPack keeps rules declarative AST/YAML/JSON\n'
+else
+  printf 'FAIL  D-07s RuleIndexPack rules not declarative AST/YAML/JSON\n'; FAILED=$((FAILED+1))
 fi
 
 if printf '%s\n' "$sec13" | grep -Fq 'FactSet' \
   && printf '%s\n' "$sec13" | grep -Fq '可执行性' \
-  && printf '%s\n' "$sec13" | grep -Fq 'G6'; then
-  printf 'PASS  D-07s M5 verifies FactSet rule executability under G6\n'
+  && printf '%s\n' "$sec13" | grep -Fq 'G6' \
+  && printf '%s\n' "$sec13" | grep -Fq '不负责生产'; then
+  printf 'PASS  D-07s M5 verifies FactSet executability under G6 and produces no contract\n'
 else
-  printf 'FAIL  D-07s M5 missing FactSet rule executability under G6\n'; FAILED=$((FAILED+1))
+  printf 'FAIL  D-07s M5 FactSet executability or non-producer boundary missing\n'; FAILED=$((FAILED+1))
+fi
+
+sec16=$(sed -n '/^## 16[. ]/,/^## 17[. ]/p' "$SPEC")
+if printf '%s\n' "$sec16" | grep -Fq 'TechniqueProfilePack' \
+  && printf '%s\n' "$sec16" | grep -Fq 'QueryContractPack'; then
+  printf 'PASS  D-07s PublicationPackage lists TechniqueProfilePack and QueryContractPack\n'
+else
+  printf 'FAIL  D-07s PublicationPackage missing TechniqueProfilePack or QueryContractPack\n'; FAILED=$((FAILED+1))
 fi
 
 # T-07 语义门禁：§16.2 KnowledgePack 双向映射表精确解析
