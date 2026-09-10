@@ -1175,7 +1175,6 @@ class _HoverableRowState extends State<_HoverableRow> {
         explanation:
             Value(_dExplanation.isEmpty ? null : _dExplanation),
         notes: Value(_dNotes.isEmpty ? null : _dNotes),
-        isVerified: const Value(true),
         updatedAt: Value(DateTime.now()),
       ),
     );
@@ -1775,7 +1774,7 @@ class _AiCellState extends State<_AiCell> {
             widget.rule.id,
             GeJuRulesCompanion(
               conditions: Value(result.conditionsJson),
-              isVerified: const Value(true),
+              isVerified: const Value(false),
               updatedAt: Value(DateTime.now()),
             ),
           );
