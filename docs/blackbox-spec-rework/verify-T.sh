@@ -174,8 +174,71 @@ if printf '%s\n' "$sec162" | grep -Eq '取代.*KnowledgePack'; then
 else
   printf 'FAIL  T-07s §16.2 缺失KnowledgePack取代声明\n'; FAILED=$((FAILED+1))
 fi
-chk T-08 "Tag 三接口已承接"          ">=3"  "$(c 'MarkContentBinding\|EvidenceBundle\|盘面概念字典')"
-chk T-08b "Tag 五字段已写入"          ">=3"  "$(c 'omen_carrying\|condition_affordance\|school_variance_display')"
+
+# T-08 语义门禁：Tag 三接口、五字段、M5 生产者排除及 G4 命名空间
+sec163=$(sed -n '/^### 16\.3 /,/^## 17/p' "$SPEC")
+sec01=$(sed -n '/^## 1\.[[:space:]]/,/^## 2\.[[:space:]]/p' "$SPEC")
+
+# 1. 三接口承接与“不含规则 DSL”
+for tag_iface in '最小盘面概念字典' 'MarkContentBinding' 'EvidenceBundle'; do
+  if printf '%s\n' "$sec163" | grep -Fq "$tag_iface" && printf '%s\n' "$sec01" | grep -Fq "$tag_iface"; then
+    printf 'PASS  T-08s Tag interface present in §1 and §16.3: %s\n' "$tag_iface"
+  else
+    printf 'FAIL  T-08s Tag interface missing: %s\n' "$tag_iface"; FAILED=$((FAILED+1))
+  fi
+done
+
+if printf '%s\n' "$sec163" | grep -Fq '不含规则 DSL' && printf '%s\n' "$sec01" | grep -Fq '不含规则 DSL'; then
+  printf 'PASS  T-08s concept dictionary preserves rule DSL restriction\n'
+else
+  printf 'FAIL  T-08s concept dictionary missing rule DSL restriction\n'; FAILED=$((FAILED+1))
+fi
+
+# 2. Tag 侧 G4 命名空间消歧
+if printf '%s\n' "$sec01" | grep -Eq 'TAG_SYSTEM_DESIGN\.md §12\.2.*G4' \
+  && printf '%s\n' "$sec163" | grep -Eq 'TAG_SYSTEM_DESIGN\.md §12\.2.*G4' \
+  && ! printf '%s\n' "$sec163" | grep -Eq '解除.*（G4）'; then
+  printf 'PASS  T-08s Tag G4 namespaced to TAG_SYSTEM_DESIGN.md §12.2\n'
+else
+  printf 'FAIL  T-08s Tag G4 missing TAG_SYSTEM_DESIGN.md namespace\n'; FAILED=$((FAILED+1))
+fi
+
+# 3. §16.3.2 字段表格解析与 M5 生产者排除
+t08_table_res=$(printf '%s\n' "$sec163" | awk -F'|' '
+  BEGIN {
+    f["omen_carrying"]=1
+    f["condition_affordance"]=1
+    f["school_variance_display"]=1
+    f["concept_id"]=1
+    f["是否改变当前判断"]=1
+  }
+  /^\|/ && $0 !~ /^\|---/ && $0 !~ /字段名.*语义定义/ {
+    name=$2
+    prod=$4
+    pack=$5
+    gsub(/[`[:space:]]/, "", name)
+    if (name in f) {
+      seen[name]++
+      # M5 绝对不得出现在生产 Module 列
+      if (prod ~ /M5/) m5_producer[name]=prod
+    }
+  }
+  END {
+    err=""
+    for (k in f) {
+      if (seen[k] != 1) err=err k "出现" seen[k] "次; "
+      if (k in m5_producer) err=err k "生产列包含M5(" m5_producer[k] "); "
+    }
+    if (err == "") print "OK"
+    else print err
+  }
+')
+
+if [ "$t08_table_res" = "OK" ]; then
+  printf 'PASS  T-08s §16.3 table 5 fields present and M5 excluded from producers\n'
+else
+  printf 'FAIL  T-08s §16.3 table issue: %s\n' "$t08_table_res"; FAILED=$((FAILED+1))
+fi
 
 qmiss=0; for q in RunStatus StageProgress PendingQueue BlockingReasons ReworkImpact ThroughputEstimate; do
   grep -q "$q" "$SPEC" 2>/dev/null || qmiss=$((qmiss+1)); done
