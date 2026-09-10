@@ -143,6 +143,8 @@
 
 ## G3 其余 T 类转录任务
 
+- [x] G3 R2 冷启动返工执行契约：`work-items/g3-r2/COLD_START_PROMPT.md`（含读集、写范围、顺序、10 个变异、停手条件和交付证据）
+
 - [x] T-01：术语三层模型写入 M4（状态：`ACCEPTED`）
   - [x] README/范围/依赖/禁止项
   - [x] BDD 场景

@@ -52,7 +52,7 @@
   - T-08：Tag 三接口与五字段承接、Tag G4 命名空间化、排除 M5 生产者身份（提交 `045a0ab`）
   - G3 R2 结论：D-07/T-07/T-08 回退为 `REWORK_REQUIRED_R2`，详见 `docs/blackbox-spec-rework/reviews/G3-REVIEW-R2.md`。
 进行到一半的事（精确到文件和章节）：T-04/T-06/T-11/T-13 保持通过；D-07/T-07/T-08 正文基本正确，但门禁和六件套需 R2 返工。
-下一步（第一件事）：按 `docs/blackbox-spec-rework/reviews/G3-REVIEW-R2.md` 先修 D-07，再串行 T-07 → T-08，完成后重新总验收。
+下一步（第一件事）：把 `docs/blackbox-spec-rework/work-items/g3-r2/COLD_START_PROMPT.md` 原样派发；执行 Agent 先修 D-07，再串行 T-07 → T-08，完成后重新总验收。
 已知的坑：全量 `verify-T.sh` 当前仍是 0 FAIL，但错误 Profile 归属、双重 Package 归属、错误字段 owner/package 仍可骗绿；不得启动 G4。
 
 ---
