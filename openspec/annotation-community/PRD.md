@@ -1,6 +1,6 @@
 # 笔记、原句注解与讨论系统 PRD
 
-版本：1.1；日期：2026-09-10（R1 四角色审查后修订）。
+版本：1.2；日期：2026-09-10（R2 五项协议修订；待独立复核）。
 状态：`APPROVED_DESIGN`（四分类：已确认设计）；执行状态：`NOT_STARTED`。
 用户已确认功能方向、默认规则及 R1 审查提出的三项产品决策，并要求产出开发文档；这不表示实现、外部协议或生产验收已完成。审查缺陷登记见 [REVIEW_R1](REVIEW_R1.md)。
 
@@ -54,19 +54,19 @@
 | R-01 | NC-005, NC-010 | 编辑/预览双态渲染契约、无书籍可编辑 | NC-001（渲染器版本） |
 | R-02 | NC-004, NC-005 | 编辑态转移表（Design §3 表）、NoteRevision 行数 | NC-002 |
 | R-03 | NC-006 | Undo 归组规则（Design §3.1 表）、canUndo/canRedo | NC-005（撤销栈归属裁定） |
-| R-04 | NC-004, NC-007 | content_hash（Design §7.1）、parent_ids、restored_from | NC-002 |
+| R-04 | NC-004, NC-007 | 完整修订 content_hash（Design §7.2）、parent_ids、restored_from | NC-002 |
 | R-05 | NC-009, NC-010 | publish_state × lifecycle × moderation 白名单、错误 code | NC-002, NC-003 |
 | R-06 | NC-022 | AnchorRef selector、AnchorResolution.state | NC-020b |
 | R-07 | NC-023 | 同一 thread_id/comment_id 的服务端记录 | NC-020b |
 | R-08 | NC-011 | Comment.status 枚举、depth、(created_at,id) 游标 | NC-002 |
-| R-09 | NC-012 | viewer_reaction、client_seq 胜负规则、计数 | NC-002, NC-003 |
+| R-09 | NC-012 | viewer_reaction、服务器 version/If-Match、取消保留版本、计数 | NC-002, NC-003 |
 | R-10 | NC-012 | 收藏/分享/mention 三元组；关系与举报走宿主适配 | NC-001 |
-| R-11 | NC-013, NC-014 | Delivery.delivery_state、(event_id,recipient_id) 派生 doc ID、deliveryId 去重 | NC-002, NC-003 |
+| R-11 | NC-013, NC-014 | NotificationRecord.delivery_state、业务 notification_id 与不透明 notifier_delivery_id 一对多、分别去重 | NC-002, NC-003 |
 | R-12 | NC-007, NC-016 | 分支 parent_ids、序列化密文无明文断言 | NC-015 |
 | R-13 | NC-017, NC-018 | BackupManifest.completeness、恢复材料重建证据 | NC-015 |
 | R-14 | NC-019 | lifecycle 转移、pending_op、清理后云端 404 | NC-015 |
 | R-15 | NC-008, NC-025 | 限额边界表、票据 TTL、跨账号取票据被拒 | NC-003, NC-025 |
-| R-16 | NC-010, NC-014 | pending_op 队列项、幂等键 TTL ≥ 离线窗口 | NC-003 |
+| R-16 | NC-010, NC-014 | pending_op 队列、持久 command_id、同事务可恢复结果、超期不重放新写入 | NC-003 |
 | R-17 | NC-021 | 导入态转移、release 固定查询 | NC-020b |
 | R-18 | NC-001, NC-003 | INTEGRATION_BASELINE 必填项、OpenAPI 验证器非零退出 | NC-001 |
 | R-19 | NC-023 | 原型链路的服务端存储与投递记录 | NC-020b |
@@ -255,6 +255,7 @@ R-20 此前分散在 11 个任务中「顺带断言」，无专属所有者；�
 |---|---|---|---|
 | 2026-09-10 | v1.0 初稿：R-01～R-20、F-01～F-05、E-BOOK/CRYPTO/WIRING | — | 用户连续决议 |
 | 2026-09-10 | v1.1 R1 四角色审查修订：新增 §3.1 断言点索引、§4.1 无障碍基线、§5.1 确认规范、§6.1～6.6 界面状态定义、旅程 6～9；§8 依赖表加承接任务并新增 E-NOTIFIER/E-BLOB/E-DEDUP | R-01～R-20 全部；新增 NC-025 | [REVIEW_R1](REVIEW_R1.md) |
+| 2026-09-10 | v1.2 R2-01～05：通知身份分层、赞踩服务器版本、命令崩溃恢复、完整修订 hash、权限提交顺序；产品范围与 F-01 后置不变 | R-04/05/08/09/11/16/20 | [R2 复核清单](REVIEW_R2_CHECKLIST.md) |
 | 2026-09-10 | 决策：无障碍本期承诺完整基线，不申请豁免（继承 D-012） | §4.1 | 用户确认 |
 | 2026-09-10 | 决策：恢复材料支持事后重新导出，需设备已授权 + 本地二次验证 | §6 旅程 7 | 用户确认 |
 | 2026-09-10 | 决策：内容失效对他人统一文案，不区分原因 | §6.2、R-20 | 用户确认 |

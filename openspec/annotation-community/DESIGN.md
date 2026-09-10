@@ -1,6 +1,6 @@
 # 笔记、原句注解与讨论系统 Design
 
-版本：1.1；2026-09-10（R1 四角色审查后修订）。状态：`APPROVED_DESIGN`；执行状态：`NOT_STARTED`。
+版本：1.2；2026-09-10（R2 五项协议修订；待独立复核）。状态：`APPROVED_DESIGN`；执行状态：`NOT_STARTED`。
 产品依据：[PRD](PRD.md)；执行顺序 [Plans](PLANS.md)；审查缺陷登记 [REVIEW_R1](REVIEW_R1.md)。本设计确定模块与业务规则；§10 的外部契约未冻结，相关任务不能越过依赖。接口名称/目录为本期工程设计，不表示已有实现。执行范围由 [Tasks](TASKS.md) 与工作包控制。
 
 ## 1. 架构与职责（覆盖 R-18）
@@ -45,16 +45,16 @@ UGC 使用不透明稳定 ID，生成器沿用既有 UUID 能力；不占用上�
 | Thread | id, subject_kind, canonical_subject_key | 两入口共用；同主体原子去重，跨 Edition 不按同文自动合并 |
 | Comment | id, thread_id, root_id?, reply_to_id?, depth(0/1), author_id, current_revision_id, observed_publication_id?, status`(visible/deleted/hidden)`, version | 回复必须同 thread/root；允许回复楼内对象但不增加深度 |
 | CommentRevision | id, comment_id, body, mentions, parent_id?, created_at | 编辑留痕；删除/审核不能通过历史接口泄漏正文 |
-| Reaction | target_type, target_id, actor_id, value`(like/dislike)`, client_seq, version | 同目标同账号唯一；**取消即删除该行**，API 统一以 `viewer_reaction: like\|dislike\|null` 表达，不引入第三个枚举值；`client_seq` 单调递增用于乱序重试判定 |
+| Reaction | target_type, target_id, actor_id, value`(like/dislike/null)`, version | 同目标同账号唯一；取消保留 value=null 的状态行与单调服务器 version，仅移除活跃关系/计数投影；排序见 §4.4 |
 | Bookmark / ShareLink | actor_id + target；share_id + target + revoked_at | 收藏个人可见；分享仅定位，不授予额外读取权 |
 | BackupManifest | backup_id, scope, protocol_version, encrypted_manifest_ref, object_refs, completeness, key_epoch | 外层最少元数据；完整依赖就绪后可恢复；密钥协议由 NC-015 冻结 |
-| Delivery | delivery_id, event_id, recipient_id, target, delivery_state`(created/dispatching/delivered/failed/abandoned)`, attempt_count | event+recipient 唯一；ACK ID 与业务事件 ID 分开 |
+| NotificationRecord | notification_id, event_id, recipient_id, target, delivery_state`(created/dispatching/delivered/failed/abandoned)`, attempt_count | event+recipient 唯一的业务通知；与 notifier 每设备/用途投递一对多，见 §6.2 |
 
-内容 hash 按固定版本编码后的标题/Markdown/引用/附件/mention 计算，不对原书文字再做规范化；具体 canonical 编码在 NC-002 定义并给跨端 fixture。NoteRevision 恢复旧内容仍产生新 ID，即使正文 hash 与历史相同。
+内容 hash 按固定版本编码后的标题/Markdown/引用/附件/mention 计算，不对原书文字再做规范化；canonical 编码见 §7.2，NC-002 将其落实为 Schema 与跨端 fixture。NoteRevision 恢复旧内容仍产生新 ID，即使正文 hash 与历史相同。
 
 ### 2.1 UGC 标识格式（需用户确认后冻结）
 
-沿用仓库既有范式（[learn-system-blackbox-architecture](../learn-system-blackbox-architecture.md) §8.1 第 3 节：新对象标识格式须由用户确认并冻结，且给出非法格式可判定规则）。本期新增 15 类对象的前缀如下，与上游 `art_/rev_/rel_/pr_/prun_` 全部不冲突：
+本表只约束本系统拥有的业务 ID，不约束外部服务的不透明标识；黑箱 §8.1 的历史 ID 决议不扩大为外部 ID 的格式规则。本期新增 15 类对象的前缀如下，与上游 `art_/rev_/rel_/pr_/prun_` 全部不冲突：
 
 | 对象 | 前缀 | 完整形式 |
 |---|---|---|
@@ -72,7 +72,7 @@ UGC 使用不透明稳定 ID，生成器沿用既有 UUID 能力；不占用上�
 | Bookmark | `bmk_` | `bmk_<32 hex>` |
 | ShareLink | `shr_` | `shr_<32 hex>` |
 | BackupManifest | `bkm_` | `bkm_<32 hex>` |
-| Delivery | `dlv_` | `dlv_<32 hex>` |
+| NotificationRecord（仅业务记录） | `dlv_` | `dlv_<32 hex>`；绝不是 notifier deliveryId |
 
 非法格式判定（每条须有 fixture 负例）：① 前缀不在上表；② hex 段长度 ≠ 32；③ 含大写或非 hex 字符；④ 使用上游保留前缀 `art_/rev_/rel_/pr_/prun_`；⑤ 前缀与所在集合不匹配（例如 `thread_id` 字段收到 `cmt_` 开头的值）。
 
@@ -99,7 +99,7 @@ UGC 使用不透明稳定 ID，生成器沿用既有 UUID 能力；不占用上�
 
 ## 3. 本地保存、撤销与历史（覆盖 R-02, R-03, R-04, R-12）
 
-编辑会话保存 `EditorSnapshot(text, selection, composing, attachmentRefs, mentionRefs)`。
+编辑会话保存 `EditorSnapshot(title, text, selection, composing, attachmentRefs, mentionRefs, bindings, changeSummary)`。
 
 **撤销栈归属（本版裁定，消除「复用平台栈」与「新增 adapter」的冲突）：** 采用方案 (b)——`editor_history_adapter` 持有唯一真源栈，Flutter 平台 `UndoHistory` 在编辑器内被显式禁用（`TextField.undoController` 接管），避免双栈同时响应同一按键。adapter 对外暴露 `canUndo / canRedo / undoCount / redoCount`，界面按钮与快捷键调用同一入口。格式/图片/@ 操作用薄命令适配维护整体快照，不自建另一套富文本引擎。「不双撤销」的可观察断言：按下一次 Ctrl+Z，`undoCount` 增加 1 且文本仅回退一个 undo 单元。
 
@@ -170,13 +170,13 @@ UGC 使用不透明稳定 ID，生成器沿用既有 UUID 能力；不占用上�
 
 ### 4.3 操作、前置条件与原子边界
 
-「原子」在本设计中**只指同一个 Firestore 事务内的写入**。跨对象存储、跨服务的部分一律为补偿型，须显式声明中间态可见性——现有 `functions-py/xuan/idempotency.py` 的注释已写明业务写入「刻意放在事务外」（因 Firestore 可能重跑事务回调），因此不能笼统声称四写同事务。
+「原子」只指同一个 Firestore 事务。社区写命令按 §7.4 新增 command_service：鉴权读取、业务写入、outbox 与命令终态结果同事务提交。既有 with_idempotency 的 claim → 事务外 fn → result 包装不能提供该保证，不用于这些社区命令；不要求改写其他旧业务。对象上传与推送均在事务外。下表所有服务器写命令的事务内列均隐含命令账本终态写入。
 
 | 操作 | 前置条件 | 事务内（原子） | 事务外（补偿/顺序） | 中间态可见性 |
 |---|---|---|---|---|
 | publish/update | 本人、lifecycle=active、选定修订已保存、图片对象已全部上传完成、更新符合公共 ETag | 发布记录 + 当前指针 + 公共绑定 + outbox 事件 | 对象上传在事务**之前**完成并校验；失败的孤儿对象由清理任务回收 | 对象已存在但指针未提交时，对象不可经任何公共入口访问（无指针即无 ACL 授权） |
 | withdraw | 本人、当前版本一致 | 关闭 ContentAccess + 提升 `ContentAccess.version` + outbox 事件 | 索引清理、缓存失效 | 索引清理未完成时读路径仍以 ContentAccess 为准，异步清理不作为 ACL 唯一防线 |
-| comment/reply | 主题可读可写、未受拉黑限制、root/target 合法 | 读 `ContentAccess.version` + 写 comment + revision + 计数 + outbox | 幂等记录写入在事务外（沿用既有 `with_idempotency` 结构） | 见 §4.4 并发裁定 |
+| comment/reply | 主题可读可写、未受拉黑限制、root/target 合法 | 读 `ContentAccess.version` + 写 comment + revision + 计数 + outbox | —（无事务外 result 回填） | 见 §4.4 并发裁定 |
 | edit/delete comment | 作者或既有审核权限、版本一致 | 新修订或墓碑 + 计数 | — | 删除后保留回复结构，不恢复被隐藏正文 |
 | trash | 本人；曾公开需服务器**已确认**收回（`publish_state=withdrawn`） | lifecycle→trashed + trash 事件 | tombstone 传播、设备同步 | 服务端未确认前客户端 `pending_op=trash_pending`，显示「正在停止公开」 |
 | restore | 本人、在 30 天内、lifecycle=trashed（`purge_pending` 拒绝） | lifecycle→active + 恢复事件 | — | 保持 private，不自动重新公开；moderation 不变 |
@@ -184,9 +184,10 @@ UGC 使用不透明稳定 ID，生成器沿用既有 UUID 能力；不占用上�
 
 ### 4.4 并发裁定（本版写死，不留二选一）
 
-- **收回 vs 评论**：withdraw 在事务中提升 `ContentAccess.version`；comment 事务以该 version 为前置读。冲突方一律失败，返回 `409 conflict.access_version`，客户端保留草稿并进入 PRD 旅程 9 的待处理队列。评论**不**先成功再随内容隐藏。
-- **快速赞踩**：客户端维护单调递增 `client_seq` 并随幂等键上报；服务端仅接受 `client_seq > last_applied_seq`，否则不改值并返回当前状态。示例：连发 `like(seq=1)`、`none(seq=2)` 后，`seq=1` 的重试在 `seq=2` 之后到达，最终 `viewer_reaction=null`、计数不变，且该重试的响应体反映最终状态而非 like。
-- 设备时钟不参与任何跨设备或跨请求胜负判定（§2 已定），并发裁定只用服务端 version 与 `client_seq`。
+- **收回 vs 评论（R2-05）**：comment 请求携带 `expected_access_version`，事务读取当前 ContentAccess 并先鉴权。收回先提交时，评论事务（含自动重跑）看到不可访问，返回 `404 not_found.content`，不写评论/事件。若仍可访问但版本不匹配，返回 `409 conflict.access_version` 并保留草稿。评论先提交则正常成功；随后收回可以成功并隐藏整个主题。迟到的成功响应只证明曾提交，客户端重新读取当前权限，不把它当作仍公开的证明。事务竞争本身不强制产生 409，重跑后的权限与版本决定结果。通知发送和正文读取再次检查当前权限。
+- **快速赞踩（R2-02）**：用服务器 `Reaction.version` 与请求 `If-Match`，不使用设备序号。不存在的状态读取为 value=null/version=0；首次有效设置创建状态，之后每个实际值变更 version+1，取消也保留该版本。相同值不增版本、不重复改计数。所有写入通过 §7.4 command_id 去重；新命令的旧 If-Match 返回 `412 conflict.version`。两设备从同一版本提交不同值，只有一个成功，另一个刷新状态后由用户明确决定是否重新操作，不自动覆盖胜者。
+- 同设备同目标串行持久队列；只合并尚未发送的意图，已发送命令必须先恢复结果再发送后续意图，后续使用返回版本。重启恢复 command_id 与待办，不从零生成序号。like(v0) 成功到 v1 → cancel(v1) 成功到 v2 → 重放旧 like 命令只取得其原始 applied_version=1，不能重写状态；客户端不得用 v1 响应覆盖已知 v2，必要时 GET 当前状态。恢复同一旧命令和新命令携带旧版本是不同场景。
+- 设备时间不判胜负。永久清理目标后保留拒绝重建所需的目标墓碑；不能因清掉 Reaction 行而允许旧命令复活目标。命令去重元数据保留规则见 §7.4。
 
 只读权限：本人可看私人完整历史；其他人仅看当前仍公开且审核允许的发布历史。收回或隐藏后，正文、历史、附件、分享、关联列表和通知正文均重新检查 ContentAccess。拉黑沿用双向互动限制，不声称阻止截图或账号外持有。
 
@@ -216,12 +217,12 @@ UGC 使用不透明稳定 ID，生成器沿用既有 UUID 能力；不占用上�
 
 @ 以三元组 `(user_id, start_offset, length)` 持久化，同时记录创建时的 `display_name`。保存时逐条校验 `markdown.substring(start, start+length) == "@" + display_name_at_creation`，**不相等即解除该条 mention 关系**（部分删除、改字、整段删除都落入这一条判定）；同一昵称出现多处时按各自 offset 独立判定，删一处不影响另一处。手打普通 @ 文本不自动变为收件人。只有新增的有效 mention 才产生事件，重复保存相同 mention 不反复提醒。「无效 mention」在 fixture 中至少覆盖四类：user_id 不存在、账号已注销、已被目标拉黑、文本不再匹配。
 
-通知：业务事务 outbox → `(event_id,recipient_id)` 投递记录 → 持久投递尝试 → Notification 接收管线。投递记录的 doc ID 必须由 `(event_id, recipient_id)` **确定性派生**（例如 `sha256(event_id + "/" + recipient_id)` 的前 32 hex），并以 create-if-absent 写入；并发双写第二次返回 already-exists。禁止照抄既有 `notifications.py` 的「先 query 查重 + 随机 doc ID」写法，那不是并发幂等实现。作者/回复对象/@ 重叠合并；不通知自己；按拉黑、当前权限与偏好过滤。赞站内通知，系统提醒按偏好；踩、收藏、分享默认无作者通知。公共发布中的 @ 同样检查权限；私人保存永不触发。
+通知：业务事务 outbox → `(event_id,recipient_id)` 投递记录 → 持久投递尝试 → Notification 接收管线。投递记录的 doc ID 必须由 `(event_id, recipient_id)` **确定性派生**（`"dlv_" + SHA256_hex(E([event_id, recipient_id]))[:32]`（E 见 §7.2）），并以 create-if-absent 写入；并发双写第二次返回 already-exists。禁止照抄既有 `notifications.py` 的「先 query 查重 + 随机 doc ID」写法，那不是并发幂等实现。作者/回复对象/@ 重叠合并；不通知自己；按拉黑、当前权限与偏好过滤。赞站内通知，系统提醒按偏好；踩、收藏、分享默认无作者通知。公共发布中的 @ 同样检查权限；私人保存永不触发。
 
 ### 6.1 投递语义（本版显式声明）
 
 - **Firestore trigger 为 at-least-once**（`functions-py/xuan/handlers/notifications.py` 已如此自述），**外部推送为 at-least-once**（`xuan-server/notifier/docs/OPENSPEC-PUSH-CELL.md` 已冻结「⛔ 永不声称 exactly-once」）。本设计中的「原子」仅指投递记录终态在同一事务内写入一次，**不构成端到端 exactly-once**。
-- 用户可见的重复由**客户端按 `deliveryId` 去重**兜住，去重表保留窗口 **7 天**，与上游冻结口径一致。`notification` 包当前**尚未实现** `dedup_retention_ms`，该实现与其裁剪逻辑属 NC-014 必测项，并作为 E-DEDUP 依赖登记。
+- 传输重复由**客户端按原样 `deliveryId` 去重**兜住；业务通知列表另以 `notification_id` 唯一 upsert，跨设备/用途重投不增加业务条目，去重表保留窗口 **7 天**，与上游冻结口径一致。`notification` 包当前**尚未实现** `dedup_retention_ms`，该实现与其裁剪逻辑属 NC-014 必测项，并作为 E-DEDUP 依赖登记。
 - ACK 被拒可能导致重复推送，属 at-least-once 允许行为，不视为缺陷。
 
 ### 6.2 notifier 与本系统的契约边界
@@ -231,6 +232,14 @@ UGC 使用不透明稳定 ID，生成器沿用既有 UUID 能力；不占用上�
 - `/receipts`（ACK）与 relay backfill 属 notifier 契约，本系统**只引用不复制**，不并入 3.1 那一份。
 - `ReceiptRejected` 的 HTTP 映射由 notifier 冻结：`/receipts` **整批原子**，任一 id 校验失败则整批 4xx，且上游已答复「你无法区分具体原因」。因此 NC-013 不再承担「明确 ReceiptRejected 的 HTTP 映射」，改为在 NC-014 记录并遵守上游既有口径。`notification/lib/src/ack/ack_pipeline.dart` 当前「整批结束并报告、不拆批探测」的行为与该口径一致。
 - **拉正文（body）与 cursor 补拉端点上游明确不提供**，必须由本系统在 `functions-py` 侧实现，归属 NC-013，并写入 3.1 那一份 OpenAPI。
+
+### 6.2.1 业务通知与传输 ID 桥接（R2-01）
+
+- `notification_id`（本系统 dlv_）标识 event+recipient；`notifier_delivery_id` 保存 notifier 的原始 `deliveryId`，其 HMAC 输入含 eventId/deviceId/channelPurpose，生成权、格式和 ACK 校验均归 notifier。禁止加前缀、截断、重算或把 event_id 当 ACK ID。
+- 一条业务记录对应零至多个设备/用途的 deliveryId。桥接记录包含 notification_id、notifier_delivery_id、接收账号、设备与用途；只由可信服务接入写入。客户端不能声明所属账号或通过猜 ID 取得正文。
+- 正文端点接受原始 notifier_delivery_id，由服务端可信映射解析到业务记录，再校验登录接收人、设备归属及当前内容 ACL；业务 cursor 补拉与已读使用 notification_id，不伪造传输 ID。补拉不产生不存在的 ACK。
+- **接入前置**：现有 OpenAPI 证明 deliveryId 不透明，但尚未证明业务侧能取得可信映射。NC-013 必须提交真实入站/投递关联路径与契约证据，验证重复、重试及设备/用途映射。若现接口不暴露关联，记录所需上游扩展并阻断对应通知工作包；不得假设 HMAC 可解码、客户端回传即可信或 notifier 已返回映射。此处不改写 notifier 权威契约。
+- 接收时原子持久化本次传输去重记录及业务 notification_id upsert，再 ACK 原始 ID；同一业务通知已存在也不能漏 ACK 新传输 ID。已持久的重复传输允许再次 ACK。当前传输落盘失败不 ACK、不推进游标；失权时落盘无正文的不可访问结果后依既有管线 ACK。ACK 与已读分离。
 
 ### 6.3 通知合并与静音
 
@@ -253,17 +262,17 @@ Tooltip 原型在独立运行宿主中接真实 REST：来源摘要 → 注解/�
 |---|---|---|
 | content publish/update/withdraw/trash/restore | ID、选定公共快照/资源、Idempotency-Key、更新时 If-Match | publication/access/version；版本失败保留私人稿，禁止静默覆盖 |
 | content list/detail/history/bindings | 当前身份、目标、sort、cursor、limit | 仅当前可读发布记录；每页受 ACL |
-| thread/comment create/edit/delete | thread/root/reply_to、正文、mentions、observed publication；编辑前置版本 | 评论/墓碑、ETag、权威计数 |
-| reaction/bookmark set | target、最终 value 或布尔状态、幂等键 | 当前状态与计数；幂等同键异载荷冲突 |
+| thread/comment create/edit/delete | thread/root/reply_to、正文、mentions、observed publication；编辑前置版本、创建时 expected_access_version、command_id | 评论/墓碑、ETag、权威计数 |
+| reaction/bookmark set | target、最终 value 或布尔状态、command_id；reaction 必带 If-Match | 原始命令结果含 applied_version；当前状态另读；同键异载荷冲突 |
 | share create/resolve/report | 目标、原因（举报） | 受 ACL 定位或报告结果，不含永久正文权限 |
 | backup begin/complete/download/delete | 认证 scope、不透明对象/备份 ID、密文 hash/大小/依赖 | 上传会话、完整状态、授权密文下载或清理任务 |
-| notification body/backfill/read（**本系统实现，进 3.1 契约**） | delivery ID、游标 | 当前接收人投递正文与结果；上游 notifier 明确不提供这两个端点 |
+| notification body/backfill/read（**本系统实现，进 3.1 契约**） | body: notifier_delivery_id；backfill/read: notification_id、游标 | 当前接收人投递正文与结果；上游 notifier 明确不提供这两个端点 |
 | notification receipt/ACK（**notifier 契约，3.0.3，只引用不复制**） | ACK 批次 | 整批原子，任一 id 失败则整批 4xx；不在本系统 OpenAPI 中重定义 |
 | library import/validate/activate/query/resolve | release/manifest/hash、对象集合、固定修订 | 导入状态、报告、固定版阅读数据或明确不可用原因 |
 
-每次重试保持同一键；用户新动作新键。快速赞踩按 §4.4 的 `client_seq` 裁定，旧重试不得压过新选择。API 验证 Firebase UID 映射 app_user_id/scope，不能信任客户端 owner/path，也不能假设几种 ID 相等。
+每次重试保持同一键；用户新动作新键。快速赞踩按 §4.4 的服务器 version 与持久命令裁定，旧重试不得压过新选择。API 验证 Firebase UID 映射 app_user_id/scope，不能信任客户端 owner/path，也不能假设几种 ID 相等。
 
-**幂等键 TTL：14 天**，且必须 ≥ 客户端离线待提交操作的最长保留窗口。既有 `functions-py/xuan/idempotency.py` 默认 `ttl_minutes=60`，超期记录被删除并「当作不存在」——直接与 R-16（离线保留待发布/收回/评论）冲突：离线超过一小时后的重试会被当作全新请求重放，造成重复发布与重复计数，违反 R-09。本期社区资源必须显式传入 14 天 TTL，不得沿用 60 分钟默认值。超过 TTL 的同键重放视为新请求；客户端在待提交操作超过 14 天时必须重新征求用户确认而不是静默重放。`payload_hash` 的规范编码与 §7.1 的 canonical 编码同源。
+**命令完整结果保留 14 天，命令身份不随 TTL 失效。** `Idempotency-Key` 与持久 `command_id` 一一相同，按认证账号与操作域隔离；不得在 14 天后当新请求执行。恢复、精简账本与过期处理见 §7.4。payload_hash 使用 §7.2 的 E 编码、独立域 `nccmd/v1\n`，覆盖操作/目标/版本前置条件/全部请求语义，排除 token 和传输时间。
 
 ### 7.1 工程限额与边界闭合语义
 
@@ -281,23 +290,21 @@ Tooltip 原型在独立运行宿主中接真实 REST：来源摘要 → 注解/�
 
 NC-002 的 fixture 必须包含「4,000 个 4 字节 emoji 的评论」这一用例，期望通过；其 UTF-8 字节数 16000、UTF-16 长度 8000 均不得成为拒绝理由。原书 JSONL 分片上限独立由书籍共同契约确定。
 
-### 7.2 content_hash 的 canonical 编码（冻结）
+### 7.2 完整修订 content_hash（R2-04；nchash/v2）
 
-```
-LP(x) = <x 的 UTF-8 字节长度，十进制> + "\n" + x
-hash  = SHA256_hex(
-          "nchash/v1\n"
-        + LP(title)
-        + LP(markdown)
-        + LP(join(sorted(attachment_ids), ","))
-        + LP(join(sorted(mention_user_ids), ","))
-        )
-```
+`content_hash = SHA256_hex(UTF8("nchash/v2\n") + E(snapshot))`，输出小写 hex。snapshot 是 Schema 解码后的完整可编辑语义投影：title、markdown、attachment_refs、mentions、bindings、change_summary。附件包括稳定 ID/版本/内容摘要及可编辑 alt/说明；mention 包括 user_id、创建时 display_name、start_offset、length；binding 包括 relation、target_kind/target_ref 和原始 AnchorRef 的固定身份、context、完整 selector。禁止只取 ID 集合。各对象的字段全集由 NC-002 Schema 约束，新增可编辑语义字段必须纳入投影并评估编码版本。
 
-- 排序为 ASCII 字节序升序；空集合编码为 `LP("")`；缺省字段与空字符串等价。
-- 不对原书文字做任何规范化（不去空格、不繁简转换、不 Unicode 归一化）。
-- 版本标签 `nchash/v1` 变更即视为破坏性变更，须走 PRD §9 变更记录。
-- **fixture 必须有消费者**：`SPEC/fixtures/community/content_hash_cases.json` 同时被 `SERVER/tests/test_community_hash_parity.py` 与 `CLIENT/test/contracts/content_hash_parity_test.dart` 读取，逐条断言 `expected_hash` 字面量。SERVER 仓已有 `tests/test_hashing_parity.py` 可对齐风格。
+E 为长度前缀递归字节编码，避免依赖语言 JSON 的键序或转义方式：
+
+- null → ASCII `n;`；布尔 → `b0;` / `b1;`。
+- 整数 → `i` + 无前导零的十进制 ASCII + `;`，零只为 0；范围限定 ±(2^53−1)，拒绝浮点/NaN/Infinity。
+- 字符串 → `s` + UTF-8 字节数的十进制 ASCII + `:` + 原始 UTF-8 字节；拒绝孤立 surrogate，不做 Unicode、空白或繁简归一化。
+- 数组 → `a` + 元素数量 + `:` + 每项 E，保持数组顺序；对象 → `o` + 键数量 + `:` + 按键的 UTF-8 无符号字节序排序后依次拼 E(key)、E(value)。键只能是字符串，重复键拒绝。例如 E({"x":null}) 的 ASCII 为 `o1:s1:xn;`。
+- 可选字段先按 Schema 补明确默认值（title/markdown/change_summary 空串，三类数组空数组）；其他缺失与 null 不擅自等价，未知字段拒绝。坐标等上游未冻结类型不得随意转成浮点或字符串纳入，须先经 NC-020b 与 NC-002 补充共同类型/编码与成对 fixture，之前不宣称原句 hash 已可互通。
+
+revision ID、parents、created_at、restored_from、同步进度、备份状态和 AnchorResolution 派生迁移结果不在语义投影。普通保存仅与当前头的完整投影比较去重；恢复/合并是显式操作，即使 hash 相同也创建新修订，不能跨历史按 hash 折叠。编辑快照与 Undo 必须携带这些可编辑结构字段。
+
+旧 nchash/v1 不可用来证明完整修订相等；尚未实现，无线上数据迁移声明。如遇旧缓存，先从完整字段计算 v2，不跨版本直接比较。NC-002 产出 `SPEC/fixtures/community/content_hash_cases.json`；`SERVER/tests/test_community_hash_parity.py` 与 `CLIENT/test/contracts/content_hash_parity_test.dart` 同读字面 expected_hash 和 expected_canonical_hex。必须覆盖仅改 binding/selector/mention 位置/图片 alt/修改说明、对象键重排、数组换序、同步进度、恢复同文；预期值不能在测试中调用被测编码器生成。
 
 ### 7.3 错误目录
 
@@ -312,11 +319,13 @@ DESIGN 不再给出「403 或 404」这类二选一。每个场景固定唯一 H
 | 目标不存在或已失效 | 404 | `not_found.<resource>` | — |
 | If-Match 不匹配 | 412 | `conflict.version` | `current_version` |
 | 幂等同键异载荷 | 409 | `conflict.idempotency` | `original_request_hash` |
-| 权限版本竞争（收回 vs 评论） | 409 | `conflict.access_version` | `current_access_version` |
+| 当前仍可访问但 expected_access_version 不匹配 | 409 | `conflict.access_version` | `current_access_version` |
 | 非法生命周期转移 | 409 | `conflict.lifecycle` | `current_state` |
 | 输入错误 | 400 | `invalid_argument.<field>` | `field` |
 | 体积超限 | 413 | `too_large.<field>` | `limit` |
 | 限流 | 429 | `rate_limited` | `retry_after_seconds` |
+| 已知命令结果精简且无法恢复完整响应 | 410 | `command.result_expired` | 已知 outcome / 资源 ID / applied_version，无正文 |
+| 命令恢复服务暂时无法确定结果 | 503 | `command.status_unavailable` | 禁止自动换键重放 |
 | 暂时不可用 | 503 | `unavailable` | — |
 
 `conflict.idempotency` 沿用 SERVER 仓 `tests/test_playground_rest_writes.py` 的既有命名，属显式继承而非重新发明。**403 与 404 的边界规则**：调用方已被证明拥有该资源的读权限时用 403（暴露存在性不构成泄漏），否则一律 404。
@@ -330,9 +339,18 @@ DESIGN 不再给出「403 或 404」这类二选一。每个场景固定唯一 H
 | Firestore trigger | at-least-once | 消费侧按 `event_id` 幂等 |
 | 外部推送 | at-least-once | 客户端按 `deliveryId` 去重，保留 7 天 |
 | publish 跨对象存储 + Firestore | **非原子**：先上传对象并校验 → 再事务提交指针 | 孤儿对象由清理任务回收；未提交指针的对象无任何公共入口可访问 |
-| 幂等键 | TTL 14 天，超期同键视为新请求 | 客户端超期前重新确认 |
-| 评论/发布事务 | 事务内四写见 §4.3；幂等记录在事务外 | 事务重跑不得重复执行业务写入 |
+| 命令账本 | 完整结果保留 14 天；最小身份/结果持续保留 | 旧键返回既有结果或 result_expired，绝不变新写入 |
+| 评论/发布/互动写命令 | 业务记录、计数、outbox、命令结果同事务 | 事务回调纯数据库操作；重跑不执行外部副作用 |
 | 备份激活 | 全部密文对象存在且 hash 匹配后才原子激活 manifest | 部分上传保持上一份完整备份不变 |
+
+**命令恢复协议（R2-03，NC-009 实现，NC-011/012 复用）：**
+
+1. 客户端首次入队持久化随机 command_id、完整请求及 payload_hash；断网、重启、响应丢失保持原键。服务器作用域由认证账号和操作域推导；同键异载荷为 409 conflict.idempotency。
+2. Firestore 同一事务先读取命令账本与全部权限/版本前置数据，再写业务记录、计数、outbox 和终态结果。新对象 ID 在事务重跑前固定，事务回调不上传、不推送。不持久化“claim 后再执行”的 running 状态；上传准备属独立会话，未到业务提交不算命令成功。
+3. 提交前崩溃＝无业务/终态；同键可重试。提交后响应前崩溃＝账本已有终态；同键恢复原结果，不再次写业务/事件。权限或版本拒绝也记录可恢复的拒绝终态，用户在刷新后发起的新动作才使用新键。
+4. 完整终态响应保留 14 天，之后精简为不可自动 TTL 删除的最小账本（拒绝终态还保留 HTTP/code 与必要非敏感错误字段）：作用域、command_id、payload_hash、outcome、资源 ID、applied_version。最小账本不含正文；仅在关联账号永久销毁且旧身份已不可认证后清理，禁止仅按时间删除去重身份。可恢复则返回原最小结果，不能恢复完整响应则 410 command.result_expired；均不重新执行。服务异常返回 503 command.status_unavailable，不假装首次请求。
+5. NC-003 定义认证的 `GET /v1/community/commands/{command_id}?operation=<域>`，返回 committed/rejected 的最小结果，未见记录返回 `404 not_found.command`。查无记录不等于操作最终不可能提交，只允许同键重试，不依据一次查询换新键。超过 14 天的待办先查询对账；不以用户确认代替结果核实。
+6. 重放结果是原始 applied_version，不承诺当前状态。账本结果不返回历史正文，资源详情另行当前 ACL 查询；客户端按版本防止迟到响应回滚 UI。取消本地待办不撤销已发送命令，应先核实结果。永久目标墓碑与命令账本共同防复活。
 
 错误目录见 §7.3，为唯一权威；私有备份涉及密码学字段的精确类型由 NC-015 补齐后经 NC-017 进 OpenAPI。限流阈值与 `retry_after_seconds` 的实值由 NC-003 填入，未填实值前 `429` 不可测，不得写入验收。
 
@@ -369,7 +387,7 @@ selector 候选为有序 ranges，每段固定 block_id/artifact_revision_id/tex
 | 性能 | 保存落盘 p95 < 120 ms（1 MiB 文档）；列表首屏 p95 < 400 ms；编辑器输入不掉帧（16.7 ms 预算）；预览渐进渲染首屏 < 1 s | NC-004/005/010 |
 | 数据规模 | 单笔记修订上限 10,000；单 thread 评论上限 50,000（超出只读并提示）；单账号笔记数不设硬上限但列表必须分页；导入批大小 500 条/批 | NC-004/011/021 |
 | 并发量级 | 并发用例固定 N=10：10 个并发赞踩后计数等于最终状态导出的唯一值；2 个并发评论 + 1 个收回的三方竞争 | NC-009/011/012 |
-| 可用性 | 幂等键 TTL 14 天（§7）；重试退避 1s/2s/4s/8s 上限 5 次；`429` 阈值由 NC-003 填实值后方可测 | NC-003/010 |
+| 可用性 | 完整命令结果保留 14 天、去重身份持续保留（§7.4）；重试退避 1s/2s/4s/8s 上限 5 次；`429` 阈值由 NC-003 填实值后方可测 | NC-003/010 |
 | 通知 | 投递记录创建到首次推送尝试 p95 < 5 s；补拉游标不回退 | NC-013 |
 
 ### 9.2 「离线」在测试中的制造方式

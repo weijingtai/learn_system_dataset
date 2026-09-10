@@ -3,7 +3,8 @@
 ## 注解社区 v1.1 补充复核
 
 - [x] 核实用户转来的 R1 报告与提交 9e6793a，重跑 verify.sh 为 0；补充语义复核见 `openspec/annotation-community/REVIEW_R2_FOLLOWUP.md`。
-- [ ] 处理 R2-01～05：业务通知/notifier ID 映射、reaction 排序元数据、命令崩溃恢复、修订 hash 完整性、权限事务提交顺序；分别挂靠 NC-002/003/004/007/009/011/012/013/014，不将结构检查通过当作关闭依据。
+- [x] R2-01～05 协议修订写回四份 v1.2 文档，并补对应 NC 反例与简短复核清单。
+- [ ] 按 `openspec/annotation-community/REVIEW_R2_CHECKLIST.md` 独立复核五项修订；当前 DOC_REVISED_PENDING_REVIEW，结构检查不等于语义或实现验收。
 
 ## 上下游生产交付核对回执
 

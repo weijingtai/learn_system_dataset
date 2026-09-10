@@ -8,7 +8,7 @@
 
 **Tech Stack:** Flutter、flutter_markdown_plus、Drift、现有 Repository/Storage；Python Firebase Functions、Firestore、对象存储；REST/OpenAPI 3.1/Swagger。
 
-版本：1.1；2026-09-10（R1 四角色审查后修订）。状态：`APPROVED_DESIGN`；执行状态：`NOT_STARTED`，尚非执行包 READY。
+版本：1.2；2026-09-10（R2 五项协议修订；待独立复核）。状态：`APPROVED_DESIGN`；执行状态：`NOT_STARTED`，尚非执行包 READY。
 依据：[PRD](PRD.md)、[Design](DESIGN.md)、[Tasks](TASKS.md)；准出规则：[工作包门禁](../subagent-delivery-gate.md)；审查缺陷登记：[REVIEW_R1](REVIEW_R1.md)。
 
 ## 1. 目录与文件职责
@@ -111,10 +111,14 @@ Tasks 中 NC-xxx 是有范围和验收点的工作项；体积较大时拆为多
 - 完整键盘方案：明确 F-01，保持 BACKLOG，不在本期新增更多快捷键设计。**无障碍不在 F-01 范围内**，PRD §4.1 的 A11Y-01～09 是本期承诺项。
 - 生产 BlobGateway 未交付：公共图片链路保持 BLOCKED，禁止 import `InMemoryFirebaseBlobGateway` 充当生产实现；独立笔记与纯文本发布不受影响。
 - notifier 契约版本裂口：ACK/relay 只引用 3.0.3 权威文档，不并入本系统 3.1 契约；拉正文与补拉端点由本系统实现。
-- 幂等键 TTL 与离线窗口冲突：既有默认 60 分钟，社区资源必须显式传 14 天，否则 R-16 与 R-09 互相违反。
+- R2-03：社区命令由 NC-009 新增同事务 command_service 与查询路由，NC-011/012 复用；完整结果 14 天后仅精简、不清去重身份。不得以调高旧包装器 TTL 替代崩溃恢复。NC-009 白名单包含 command_service.py、community_commands.py、test_community_commands.py 及命令集合注册。
 
 ## 7. 交付与完成
 
 最终交付包括 Flutter 功能包/可运行验收宿主、Python handlers 与存储规则/索引、生产 BlobGateway、本系统 3.1 OpenAPI/Swagger（notifier 3.0.3 只引用）、迁移与配置说明、BDD/TDD/ACT、真实链路证据和使用说明。所有 R-01～R-20 在 Tasks 有映射且在 PRD §3.1 有断言点；F 项独立后续登记，不混入本期通过率。
 
 任务状态由主 Agent 更新；跨仓库提交各自保留，记录对应版本组合，禁止主 Agent 擅自合并到 main/master。本设计文档输出完成不等于业务开发完成。
+
+## 8. R2 修订的执行约束
+
+五项修订以 [Design](DESIGN.md) §4.4/§6.2.1/§7.2/§7.4 为准，具体反例已进入 NC-002/003/004/009/011/012/013/014；NC-007 的历史恢复也消费 v2 规则。先完成契约与成对 fixture，再执行依赖任务。通知可信映射缺证只阻断 NC-013/014 对应链路，书籍类型未冻结只阻断对应原句契约；不得凭本轮文档检查将任何任务升级为 READY 或 ACCEPTED。独立复核入口：[五项复核清单](REVIEW_R2_CHECKLIST.md)。

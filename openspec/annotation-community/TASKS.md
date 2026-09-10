@@ -1,6 +1,6 @@
 # 笔记、原句注解与讨论 Tasks
 
-版本：1.1；2026-09-10（R1 四角色审查后修订）。状态：`APPROVED_DESIGN`；执行状态：`NOT_STARTED`。
+版本：1.2；2026-09-10（R2 五项协议修订；待独立复核）。状态：`APPROVED_DESIGN`；执行状态：`NOT_STARTED`。
 权威需求：[PRD](PRD.md)，技术依据：[Design](DESIGN.md)，根路径与执行门禁：[Plans](PLANS.md)，审查缺陷登记：[REVIEW_R1](REVIEW_R1.md)。下面路径使用 Plans §1 的精确根路径标记；标为「新增」的路径是任务产物，不声称当前文件存在。
 
 **状态枚举直接引用 [工作包门禁](../subagent-delivery-gate.md) §7 的七值枚举**（`BACKLOG / PREPARING / READY / DISPATCHED / REVIEWING / ACCEPTED / BLOCKED`），本文件不再自造释义。总表「初始状态」是登记时的取值；**流转中的当前状态以仓库唯一监控表 [`SUBAGENT_TODO.md`](../../docs/blackbox-spec-rework/SUBAGENT_TODO.md) 为准**，NC-001～NC-025 须在该表登记「NC 注解社区线」章节后方可开始流转，避免两处状态源并存。
@@ -68,10 +68,10 @@ NC-019 可先准备本地回收站子 ACT，但完整清理验收等待备份协
 
 ### NC-002：模型与固定行为契约
 
-- [ ] **先取得用户对 [Design §2.1](DESIGN.md) 的 UGC ID 前缀确认**（沿用仓库既有「新对象标识格式由用户确认并冻结」范式）。未确认前本任务保持 `PREPARING`，不得进入 `READY`。
-- [ ] 新增 `SPEC/contracts/community-models.md` 与 `SPEC/contracts/state-machines.md`，覆盖 Note/Revision/Publication/ContentAccess/Comment/Reaction/Delivery 的字段归属，以及八台状态机（编辑态、发布态、生命周期、审核态、客户端 `pending_op`、投递态、导入态、锚点解析）的**完整转移表**：每条边标注触发事件、前置条件、目标态与失败错误码；含 §4.1 的状态组合白名单与非法转移期望。
+- [ ] **先取得用户对 [Design §2.1](DESIGN.md) 的 UGC ID 前缀确认**（仅本系统拥有的业务 ID；notifier 原始 ID 不适用此前缀表）。未确认前本任务保持 `PREPARING`，不得进入 `READY`。
+- [ ] 新增 `SPEC/contracts/community-models.md` 与 `SPEC/contracts/state-machines.md`，覆盖 Note/Revision/Publication/ContentAccess/Comment/Reaction/NotificationRecord/NotifierDeliveryBinding/CommandRecord 的字段归属，以及八台状态机（编辑态、发布态、生命周期、审核态、客户端 `pending_op`、投递态、导入态、锚点解析）的**完整转移表**：每条边标注触发事件、前置条件、目标态与失败错误码；含 §4.1 的状态组合白名单与非法转移期望。
 - [ ] **机器 Schema 落位沿用仓库既有范式**（不另造一套）：新增 `openspec/schemas/community_note.schema.json` 等，正反例放 `openspec/schemas/examples/`，命名 `<obj>.valid.yaml` / `<obj>.invalid_<reason>.yaml`，并在 `openspec/schemas/verify.sh` 追加成对判据（正例必须通过、负例必须失败）。跨端 fixture 另放 `SPEC/fixtures/community/`。
-- [ ] 冻结 [Design §7.2](DESIGN.md) 的 content_hash canonical 编码，产出 `SPEC/fixtures/community/content_hash_cases.json`，并**同时指定两个消费者**：`SERVER/tests/test_community_hash_parity.py` 与 `CLIENT/test/contracts/content_hash_parity_test.dart`，逐条断言 `expected_hash` 字面量。fixture 不得只有生产者无消费者。
+- [ ] 冻结 [Design §7.2](DESIGN.md) 的 content_hash canonical 编码，产出 `SPEC/fixtures/community/content_hash_cases.json`，并**同时指定两个消费者**：`SERVER/tests/test_community_hash_parity.py` 与 `CLIENT/test/contracts/content_hash_parity_test.dart`，逐条断言 `expected_hash` 字面量。fixture 不得只有生产者无消费者。按 nchash/v2 同时断言 expected_canonical_hex；仅改 binding/selector/mention offset/图片 alt/change_summary 必须不同，对象键序/同步进度不改变 hash；恢复同文另建修订。
 - [ ] 冻结 [Design §7.1](DESIGN.md) 的限额边界闭合语义与计量口径，产出恰好等于/超一个单位的成对 fixture；必须含「4,000 个 4 字节 emoji 的评论」用例（期望通过）与 `limit=101`（期望 400）。
 - [ ] Fixture 至少含：私改未发布、恢复同文新修订、两个并发 parent、跨楼非法 reply、超限内容、四类无效 mention（user_id 不存在 / 账号已注销 / 已被拉黑 / 文本不再匹配）、五类非法 ID 格式（含 `rev_` 误用作 NoteRevision）。每条写清完整期望记录或错误 code，不写「验证失败即可」。
 - [ ] 新增 `SPEC/tools/validate_fixtures.py`。红条件：任一 fixture 缺 `expected` 字段、或出现未登记在 `state-machines.md` 枚举表中的状态值、或 ID 不符合 §2.1 前缀规则。
@@ -82,7 +82,7 @@ NC-019 可先准备本地回收站子 ACT，但完整清理验收等待备份协
 - [ ] 修改 `REST/openapi/openapi.yaml`，新增社区公共资源/命令/错误/分页/ETag/幂等；请求头一律用 `in: header` 的 header parameters。**该文件由四个任务串行写入：NC-003 → NC-013 → NC-017 → NC-021**，后继任务以前一个产出为基线重跑契约测试。密码学/书籍扩展在 NC-017/021 合并至同一入口，不伪造已冻结字段。
 - [ ] **写入白名单必须包含既有的 `REST/test/openapi_validation_test.dart`**：该文件现有 8 处断言（第 147/148/161/217-218/239-240/292/307 行附近）正好**要求** operation 级 `headers:` 存在，修正结构必然弄红。README 记录改前基线（当前 `dart test` 退出码与用例数），ACT 中把「迁移 8 处断言到 `in: header`」作为独立步骤，以便区分既有失败与本任务新增失败。
 - [ ] 落地 [Design §7.3](DESIGN.md) 的**错误目录**：每个场景唯一 HTTP 状态码 + 唯一 `code` + Problem Details 附加字段；不得保留「403 或 404」这类二选一。`conflict.idempotency` 沿用 SERVER 仓 `tests/test_playground_rest_writes.py` 的既有命名。限流阈值与 `retry_after_seconds` 填实值，未填实值前 `429` 不写入验收。
-- [ ] 幂等键 TTL 写入契约为 **14 天**（≥ 客户端离线保留窗口）；不得沿用既有 `xuan/idempotency.py` 的 60 分钟默认值，否则 R-16 与 R-09 互相违反。
+- [ ] 按 Design §7.4 定义 command_id=Idempotency-Key、操作域、payload_hash、命令查询端点与恢复错误。完整结果保留 14 天，精简账本持续去重；超期同键绝不新建业务。reaction If-Match、expected_access_version、原始 applied_version 与当前状态读取分别建 Schema/HTTP 正反例。
 - [ ] 新增 `REST/test/community_openapi_contract_test.dart` 与 `REST/tool/validate_openapi`；验证器名称/版本/安装方式/离线失败行为取自 NC-001 的实值，**不由本任务执行 Agent 选型**。Swagger UI 读取同一 3.1 契约；notifier 的 3.0.3 契约只引用不复制。
 - [ ] Red fixture 包含：operation 级 `headers:`、缺必填、非法状态、同键异载荷、412，以及**一份故意非法的 3.1 文档（验证器必须返回非零退出码）**——这一条专为防止再写一个 yaml 字段检查器充数。Green 用真实解析器验证。
 - [ ] 运行 `dart test test/community_openapi_contract_test.dart` 与 `tool/validate_openapi openapi/openapi.yaml`，均退出 0；两者需本任务实际创建，不能假称现已可运行。
@@ -95,7 +95,7 @@ NC-019 可先准备本地回收站子 ACT，但完整清理验收等待备份协
 - [ ] 新增 `CLIENT/lib/src/domain/note.dart`、`note_revision.dart`、`persistence/note_database.dart`、`note_repository.dart`；在 `test/persistence/note_repository_test.dart` 建失败用例后实现事务保存与待同步记录。
 - [ ] 覆盖首次/无变化保存、连续两版本、附件引用、磁盘失败回滚（回滚后编辑态为 `save_failed` 且无半个 head/outbox）、文件库关闭重开、账号切换旧回调隔离；本地超限（1 MiB + 1 B）抛 `NoteSizeLimitExceeded` 且缓冲保留、不生成修订。禁止照搬 notebook 覆盖 committed 或内存模式报成功。
 - [ ] 冻结 outbox **外层** schema（与加密无关的信封头），声明「信封内容由 NC-016 填充」；或在 README 中改为直接依赖 NC-015 的冻结产物。二选一必须写明，不能带着未决依赖派发。
-- [ ] 消费 NC-002 的 `content_hash_cases.json`，新增 `CLIENT/test/contracts/content_hash_parity_test.dart` 断言 `expected_hash` 字面量（R-04「相同内容不重复建版本」的唯一 oracle）。
+- [ ] 消费 NC-002 的 `content_hash_cases.json`，新增 `CLIENT/test/contracts/content_hash_parity_test.dart` 断言 `expected_hash` 字面量；普通保存以完整语义投影去重，显式恢复/合并不按 hash 折叠。
 - [ ] 运行 `flutter test test/persistence/note_repository_test.dart`；期望真文件重开后版本与引用不丢，失败不产生半个 head/outbox，不只测内存 Fake。
 
 ### NC-005：Markdown 编辑、预览和保存状态
@@ -153,12 +153,12 @@ R1 核验发现的独立缺口：`STORAGE/firebase/lib/media/blob_gateway_fireba
 - [ ] **新增 `SERVER/tests/test_community_acl_sweep.py`：R-20 的唯一系统扫描所有者**（此前 R-20 分散在 11 个任务里顺带断言、无专属命令）。参数化 6 入口（正文 / 历史 / 附件 / 分享 / 关联列表 / 通知正文）× 3 失效原因（withdrawn / trashed / hidden）= 18 条，每条断言状态码 + `code` + 响应体不含正文任意 20 字连续片段，且四种失效原因**共用同一响应、不含可区分字段**（PRD §6.2 决策）。
 - [ ] 实现 [Design §4.1](DESIGN.md) 的状态组合白名单与非法转移期望（`409 conflict.lifecycle`），含 `withdrawn → published` 允许、`purge_pending` 下 restore 拒绝、`hidden` 内容 restore 后仍 hidden。
 - [ ] Firestore 安全规则测试（此前有交付物无所有者）：规则文件路径取自 NC-001，命令形如 `firebase emulators:exec --only firestore '<规则测试命令>'`，作为本任务的第二条验证命令。
-- [ ] 实现选定快照发布、更新、收回、当前权限查询。**原子边界按 [Design §4.3](DESIGN.md)**：事务内只含发布记录 + 当前指针 + 公共绑定 + outbox；对象上传在事务**之前**完成并校验，孤儿由清理任务回收；不得笼统声称跨对象存储原子。既有 `xuan/idempotency.py` 注释明写业务写入「刻意放在事务外」，实现必须与该结构兼容而不是假装四写同事务。
-- [ ] **原子性的真实证据定义**：必须有「在第 2 写与第 3 写之间注入异常」的用例，断言无半持久状态或存在补偿记录；仅顺序写多个 doc 后断言最终状态不算通过。
-- [ ] 并发裁定按 [Design §4.4](DESIGN.md) 写死：withdraw 提升 `ContentAccess.version`，comment 以该 version 前置读，冲突方返回 `409 conflict.access_version`，客户端保留草稿。并发用例 N 固定为 10（2 个并发评论 + 1 个收回的三方竞争另计）。
+- [ ] 实现选定快照发布、更新、收回、当前权限查询。**原子边界按 [Design §4.3](DESIGN.md)**：事务内包含发布记录 + 当前指针 + 公共绑定 + outbox + command 终态结果；对象上传在事务**之前**完成并校验，孤儿由清理任务回收；不得笼统声称跨对象存储原子。社区命令新增事务级 command_service，不套用既有 claim/fn/result 包装器；不修改其他旧业务幂等路径。
+- [ ] **R2-03 命令恢复**：新增 `SERVER/xuan/community/command_service.py`、`xuan/handlers/community_commands.py`、`tests/test_community_commands.py`，纳入写入白名单和命令集合清理注册；实现 Design §7.4。Firestore Emulator 注入提交前异常、提交后响应前中断、响应丢失、结果 14 天后精简，再以同键重试；断言只有一个业务对象/事件、计数正确、可恢复 applied_version，异载荷 409。捕获业务、outbox、账本原始记录；不接受补偿记录替代同事务原子性。
+- [ ] **R2-05 提交顺序**：受控屏障分别强制 withdraw 先提交与 comment 先提交，含 Firestore 回调重跑。前者评论 404 not_found.content 且零评论/事件；后者评论可成功，随后 withdraw 成功并隐藏主题。仍可访问且 expected_access_version 过时才 409；迟到评论成功不恢复公开 UI，通知正文重新鉴权。2 评论 + 1 收回另做三方竞争。
 - [ ] 先测私改不公开、旧 ETag、同键重试/异载荷、他人操作拒绝、收回与写评论并发。
 - [ ] 可观测性断言（此前无所有者）：捕获 log sink，断言日志不含 fixture 中的标题与正文子串、不含密钥或完整敏感路径。
-- [ ] 运行 `python3 -m pytest tests/test_community_publications.py tests/test_community_acl_sweep.py -q`（需 Emulator）；原始 HTTP 测试按 [Design §7.3](DESIGN.md) 的错误目录断言**唯一** code，不接受 `assert status in (403, 404)` 这类二选一；直接服务函数成功不等于 REST 已通。
+- [ ] 运行 `python3 -m pytest tests/test_community_publications.py tests/test_community_acl_sweep.py tests/test_community_commands.py -q`（需 Emulator）；原始 HTTP 测试按 [Design §7.3](DESIGN.md) 的错误目录断言**唯一** code，不接受 `assert status in (403, 404)` 这类二选一；直接服务函数成功不等于 REST 已通。
 
 ### NC-010：列表、详情与发布页面
 
@@ -173,20 +173,20 @@ R1 核验发现的独立缺口：`STORAGE/firebase/lib/media/blob_gateway_fireba
 ### NC-011：两级评论、排序与修改历史
 
 - [ ] 新增 `SERVER/xuan/community/discussion_service.py`、`xuan/handlers/community_comments.py`、`tests/test_community_comments.py`；新增 `CLIENT/lib/src/community/discussion_controller.dart`、`discussion_panel.dart`、`test/community/discussion_test.dart`。
-- [ ] 复用 replies 的 depth/root 校验思路；新事务同时检查主题 ACL、root/target 与版本，写 comment/revision/outbox。一级可最新/最早，楼内正序，各层独立稳定游标。
+- [ ] 复用 replies 的 depth/root 校验思路；新事务同时检查主题 ACL、root/target 与版本，通过 NC-009 command_service 同事务写 comment/revision/计数/outbox/命令终态。一级可最新/最早，楼内正序，各层独立稳定游标。
 - [ ] 排序 tie-break 按 `(created_at, id)`，`id` 以 **UTF-8 字节序升序**比较（跨端游标稳定性的唯一依据）；一级默认 20 条、楼内默认展开 5 条，加载更多时已有内容与滚动位置不跳动。
-- [ ] 测跨 thread/root 拒绝、回复楼内仍 depth1、删除 root 留墓碑（`Comment.status = deleted`）/已有回复但禁止新回复、编辑不改 created_at、收回并发返回 `409 conflict.access_version`、评论正文 4,000 与 4,001 code points 的成对边界（含 4 字节 emoji 用例）。
+- [ ] 测跨 thread/root 拒绝、回复楼内仍 depth1、删除 root 留墓碑（`Comment.status = deleted`）/已有回复但禁止新回复、编辑不改 created_at、收回并发按 Design §4.4 两种提交顺序及仍可读旧版本分别断言、评论正文 4,000 与 4,001 code points 的成对边界（含 4 字节 emoji 用例）。
 - [ ] 讨论区空态区分「还没有人评论，来写第一条」与「该内容不接受新评论」（已收回 / root 已删除）。
 - [ ] 写入白名单含 `SERVER/tests/conftest.py`（仅追加 `COLLECTIONS` 键）。运行 `python3 -m pytest tests/test_community_comments.py -q`（需 Emulator）、`flutter test test/community/discussion_test.dart`。
 
 ### NC-012：互动、关系与结构化 mention
 
 - [ ] 新增 `SERVER/xuan/handlers/community_interactions.py`、`tests/test_community_interactions.py`；新增 `CLIENT/lib/src/community/interaction_controller.dart`、`mention_adapter.dart`、`social_navigation_adapter.dart`、`test/community/interactions_test.dart`。
-- [ ] 赞踩按 [Design §4.4](DESIGN.md) 的 `client_seq` 裁定：服务端仅接受 `client_seq > last_applied_seq`，否则不改值并返回当前状态。API 统一以 `viewer_reaction: like|dislike|null` 表达，取消即删除该行，不引入第三个枚举值。
+- [ ] **R2-02**：赞踩采用服务器 version + If-Match + NC-009 command_service，API viewer_reaction 为 like/dislike/null；取消只清活跃关系/计数，保留 null 状态行版本。新命令携带旧版本为 412；已执行命令重放返回原 applied_version，当前状态另读。客户端持久串行队列、重启恢复和迟到版本防回滚均需实现。
 - [ ] @ 按 [Design §6](DESIGN.md) 的三元组 `(user_id, start_offset, length)` + 创建时 `display_name` 持久化，保存时逐条校验子串是否仍等于 `"@" + display_name_at_creation`，不相等即解除该条关系；同昵称多处按各自 offset 独立判定。
 - [ ] 收藏私有；分享解析检查当前权限，并提供分享链接管理与撤销（PRD §6.6）。资料/关注/私信/举报/拉黑调用已有能力，不添加排盘反馈；举报提交后给出受理确认并在举报者视图折叠该内容。
 - [ ] `social` 的可复用面已核实为**部分成立**（`mention/` 是注入式真端口，其余导出多为 `plaza_*` UI 组件），注入点逐个取自 NC-001，缺端口则本任务新增适配。
-- [ ] 基准断言：连发 `like(seq=1)`、`none(seq=2)`，`seq=1` 的重试在 `seq=2` 之后到达，最终 `viewer_reaction=null`、计数不变，且该重试的响应体反映最终状态而非 like。并发用例 N 固定为 10。
+- [ ] 基准反例：like(v0) → v1、cancel(v1) → v2、旧 like 同键重放后数据库仍 null/v2，UI 不被旧 v1 响应覆盖；重启后新动作使用读取版本；两设备同基线不同意图一个成功一个 412，禁止自动换版本抢写。另测未执行旧键/旧版本、相同值不重复计数、10 个并发操作、目标 purge 后旧命令不复活。
 - [ ] 测快速切换的乱序/重试、两账号计数、失权目标、空候选、名字重复但 ID 不同、四类无效 mention；**关系与互动的业务结果**必须走实际宿主注入，不接受本地翻转/mock 关系——但单测中注入可控 `ApiClient` 网络故障来模拟离线是允许的（[Design §9.2](DESIGN.md)），两者不冲突。
 - [ ] 运行 `python3 -m pytest tests/test_community_interactions.py -q`、`flutter test test/community/interactions_test.dart`。
 
@@ -196,7 +196,7 @@ R1 核验发现的独立缺口：`STORAGE/firebase/lib/media/blob_gateway_fireba
 
 - [ ] 新增 `SERVER/xuan/community/notification_dispatch.py`、`xuan/handlers/community_deliveries.py`、`tests/test_community_deliveries.py`；扩展 NC-003 的同一 3.1 OpenAPI（串行顺序见 [Plans §1.2](PLANS.md)），接入既有 outbox 触发入口；写入白名单含 `SERVER/tests/conftest.py`（仅追加 `COLLECTIONS` 键）。
 - [ ] **实现上游 notifier 明确不提供的两个端点**：通知正文拉取与 cursor 补拉（`OPENSPEC-PUSH-CELL` 已答复「⛔ notifier 给不出这个端点…请向上游业务子系统要」）。ACK/`/receipts` 属 notifier 的 3.0.3 契约，**只引用不复制**，本任务不在 3.1 契约中重定义。
-- [ ] 投递记录 doc ID 由 `(event_id, recipient_id)` **确定性派生**（如 `sha256(event_id + "/" + recipient_id)` 前 32 hex），create-if-absent 写入，并发双写第二次返回 already-exists。**禁止照抄既有 `notifications.py` 的「先 query 查重 + 随机 doc ID」**——那是既有代码里最省事也最容易蒙混的写法，不是并发幂等实现。
+- [ ] **R2-01**：业务 NotificationRecord.notification_id 按 Design §6 的 E 编码确定性生成 dlv_ ID，以 create-if-absent 去重；notifier_delivery_id 是上游原始不透明 deliveryId，严禁重命名/重算为业务 ID。实现 event+recipient → 多设备/用途投递的可信映射、账号/设备/当前 ACL 校验；NC-013 工作包必须附真实映射来源与契约证据，缺接口时登记上游扩展和失败停点，不允许构造 Fake 映射宣称接通。
 - [ ] 显式声明并测试 at-least-once 语义（[Design §6.1](DESIGN.md)）：Firestore trigger 与外部推送均为 at-least-once，「原子」仅指投递记录终态写入一次；不得在任何文档或注释中声称 exactly-once。
 - [ ] 推送重试状态与记录创建分离；`delivery_state` 走 `created / dispatching / delivered / failed / abandoned` 五态，退避 1s/2s/4s/8s 上限 5 次。评论/回复/@ 去重，无自通知；赞站内、偏好控制系统提醒，踩/收藏/分享不通知。
 - [ ] 按 [Design §6.3](DESIGN.md) 实现聚合（默认 10 分钟窗口，@ 与直接回复不参与合并）与按内容静音（静音后该内容新评论不通知，但 @ 我的仍送达）。
@@ -207,7 +207,7 @@ R1 核验发现的独立缺口：`STORAGE/firebase/lib/media/blob_gateway_fireba
 ### NC-014：Notification 生产适配与回跳
 
 - [ ] 新增 `CLIENT/lib/src/notifications/community_notification_adapters.dart`、`notification_target_router.dart`、`test/notifications/community_notifications_test.dart`。**范围提醒（R1 修正，原估算严重偏低）**：`notification` 包文档明写「本包⛔不含任何具体 adapter」「你必须实现的 8 个端口」，本任务需实现全部 8 个端口的适配，不是 2 个 dart 文件；`BackfillSource` 与 `MessageBodyFetcher` 对应的服务端端点由 NC-013 提供。
-- [ ] **实现 `deliveryId` 客户端去重表与 7 天裁剪窗口**（E-DEDUP）：`notification` 包当前尚未实现 `dedup_retention_ms`。外部推送为 at-least-once，用户可见的重复必须由这一层兜住。
+- [ ] **实现原始 `deliveryId` 客户端去重表与 7 天裁剪窗口**（E-DEDUP）；业务列表另按 notification_id 唯一 upsert。测试同事件两设备、同设备不同用途各自原样 ACK；业务已存在仍须持久当前传输后 ACK 新 ID；落盘失败不 ACK/不推进游标。业务补拉不制造传输 ID 或无来源 ACK，越权 deliveryId 拉正文拒绝。
 - [ ] 回跳挂靠哪一套 notification 表现层由 NC-001 指定（`social/lib/src/notification/notification_center_page.dart` 与 `notification/lib/src/notification_page.dart` 并存）。
 - [ ] 使用同一持久接收管线处理实时/唤醒/补拉；落盘失败不 ACK、不推进 cursor；ReceiptRejected 整批终止并可观察，不任意重试 4xx，也不拆批探测（与 `ack_pipeline.dart` 既有行为一致）。
 - [ ] **「落盘失败不 ACK」的真实证据定义**：必须有 fake 返回**失败**的分支，断言 cursor 未推进且 ACK 未发出；用一个永远返回 `DeliveryPersisted()` 的 fake 不算通过（接入指南正警告这一点）。
@@ -222,7 +222,7 @@ R1 核验发现的独立缺口：`STORAGE/firebase/lib/media/blob_gateway_fireba
 - [ ] 明确密钥生成/保存/授权新设备/全旧设备丢失恢复/吊销/epoch/密码改变；认证绑定 scope、设备 ID、指纹、有效期。不得仅凭现有 guard 返回 authorized 放行。
 - [ ] **本任务是从零设计密码学协议，不是「复用」**：R1 核验确认 `xuan-storage/p2p/lib/device_key_store.dart` 只有单设备 Ed25519 身份种子（`_loadOrCreateIdentity/sign/verify/_fingerprintOf`），加密侧只有 `AesGcmBlobCipher`，**无 escrow、助记词、社会恢复或密钥分片任何原语**。Plans §3 的 30–60 分钟 ACT 粒度对本任务不适用，须按协议设计单独排期。
 - [ ] 明确恢复材料的**产品形态**并落到 PRD 旅程 7（用户已确认：**支持事后重新导出**，需当前设备已授权 + 本地生物识别或设备密码二次验证）；含回填验证、未通过不启用备份、后果说明页不可跳过、截图与云剪贴板风险提示。
-- [ ] 明确不可恢复失败行为（输入错误只提示「恢复材料不正确」，不提示错在第几位）、tombstone 保留窗口与离线重入、备份开关/删除/清理窗口、幂等键 TTL 与离线保留窗口的关系。
+- [ ] 明确不可恢复失败行为（输入错误只提示「恢复材料不正确」，不提示错在第几位）、tombstone 保留窗口与离线重入、备份开关/删除/清理窗口、备份命令对 Design §7.4 账本恢复/结果精简规则的遵循。
 - [ ] 「全部旧设备丢失」定义为**可执行步骤序列**供 NC-018 直接消费，例如：在设备 B 全新安装 → 清空 keychain 与应用数据 → 仅输入用户保存的恢复材料 → 期望能解密备份中 `nrev_3` 的正文与 `img_1`。
 - [ ] 新增 `SPEC/tools/check_private_sync_protocol.py`。红条件：协议文档缺上述任一小节、或正反样例缺 `expected` 字段、或出现 `TBD`/`待定` 占位。运行该脚本退出 0。
 - [ ] 以攻击/故障场景审查并经主 Agent 接受后解锁 NC-016～019；不能用一句「复用 E2EE」通过。
