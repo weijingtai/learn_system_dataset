@@ -20,6 +20,11 @@ Learn System 是单机运行、全过程留痕的知识编译工具。它接收�
 
 APP 后端、客户端、Mark 渲染、学习笔记、经典讨论和端侧模型均在黑箱之外。黑箱只负责在输出中提供它们需要的稳定数据、查询契约和注解锚点。
 
+黑箱编译器通过 `PublicationPackage` 向外部 Tag 系统承接三个核心接口：
+1. `最小盘面概念字典`：规模约 100–200 个概念，由 `KnowledgeDataPack` 供给，仅包含稳定 `concept_id` + 名称 + 基础类象，**严格声明不含规则 DSL**，用以解除 G4 依赖倒挂；
+2. `MarkContentBinding` 内容供给：由 `KnowledgeDataPack` 与 `RuleIndexPack` 供给，为 UI 标记提供内容与分歧数据；
+3. `EvidenceBundle` 服务：由 `EvidenceMapPack` 供给，为解盘与证据高亮提供底层的无损证据链切片。
+
 ## 2. 已确认原则
 
 1. 所有处理均在单机完成，不建设微服务或消息队列。
@@ -629,6 +634,41 @@ GraphProjectionPack 与移动端数据必须来自同一 CanonicalKnowledgeSnaps
 | `fulltext-index` | `SearchIndexPack`（全文检索索引） |
 | `optional-vector-index` | 本期不产出（依据 §21 非目标） |
 | `query-contract` | `RuleIndexPack` 与 `SearchIndexPack`（查询契约与接口定义） |
+
+### 16.3 Tag 标记系统耦合接口与字段承接
+
+依据 `tag_system/README.md:30-32` 与 `tag_system/TAG_SYSTEM_DESIGN.md`（§0.3、§2.1、§6、§12.2），外部 Tag 系统是黑箱知识产物的核心消费端之一。为解除跨系统概念与规则倒挂（G4），黑箱编译器通过 `PublicationPackage` 规范化承接外部 Tag 系统的三个唯一耦合接口及五个关键字段：
+
+#### 16.3.1 三个耦合接口规范与供给子包
+
+1. **`最小盘面概念字典`**：
+   - **供给子包**：由 `KnowledgeDataPack` 供给；
+   - **规模与范围**：规模控制在约 100–200 个概念（覆盖十天干、十二地支、九星、八门、八神等盘面基础元素），仅包含稳定 ID（`concept_id`）、名称与基础类象；
+   - **硬限制约束**：**严格声明不含规则 DSL**，用以解除 G4 依赖倒挂。规则 DSL 属于后续阶段的 RuntimeFeature 范围，不在最小概念字典中承载。
+2. **`MarkContentBinding` 内容供给**：
+   - **供给子包**：由 `KnowledgeDataPack` 与 `RuleIndexPack` 供给；
+   - **承接说明**：为 UI 标记提供内容与分歧数据，包括吉凶定性、条件槽位可供性与流派分歧展示。
+3. **`EvidenceBundle` 服务**：
+   - **供给子包**：由 `EvidenceMapPack` 供给；
+   - **承接说明**：为 AI 解盘与端侧证据高亮提供底层的无损证据链切片，确保标记内容能溯源至底本原页与字框坐标。
+
+#### 16.3.2 五个关键字段归属与约束
+
+明确五个关键字段归属与约束：
+
+- `omen_carrying`（吉凶承载性）：指示该标记是否承载吉凶定性，由 M4/M5 生产，归入 `KnowledgeDataPack`；
+- `condition_affordance`（条件可供性）：指示该标记可承载的条件槽位，由 M4/M5 结构化生产，归入 `RuleIndexPack` 与 `KnowledgeDataPack`；
+- `school_variance_display`（流派分歧展示）：指示各流派对此标记的不同定性或观点分歧，由 M4/M6 审核产出，归入 `KnowledgeDataPack`；
+- `concept_id`（概念标识）：全局稳定的概念 ID，由 M4 术语判层确定，归入 `KnowledgeDataPack`；
+- 「是否改变当前判断」：明确规定属于 `MarkContentBinding` 的核心内容状态字段，必须由知识层（M4/M7/M6）通过判定状态供给，**UI 不得猜测**。
+
+| 字段名 | 语义定义 | 生产 Module | 归属子包 | 消费与架构约束 |
+|---|---|---|---|---|
+| `omen_carrying` | 吉凶承载性：指示该标记是否承载吉凶定性 | M4 / M5 | `KnowledgeDataPack` | 满足吉凶标定标准（`canonical` / `none`），严禁 UI 自行推导吉凶 |
+| `condition_affordance` | 条件可供性：指示该标记可承载的条件槽位 | M4 / M5 | `RuleIndexPack` 与 `KnowledgeDataPack` | 结构化输出条件依赖；当 `omen_carrying=canonical` 时必填 |
+| `school_variance_display` | 流派分歧展示：指示各流派对此标记的不同定性或观点分歧 | M4 / M6 | `KnowledgeDataPack` | 存在流派分歧的知识点强制展示多流派对照，严禁单一流派静默覆盖 |
+| `concept_id` | 概念标识：全局稳定的概念 ID | M4 | `KnowledgeDataPack` | 术语判层产出的稳定概念 ID，盘面语义物种必须绑定 |
+| 是否改变当前判断 | 指示分歧是否导致格局或断语定性翻转 | M4 / M7 / M6 | `KnowledgeDataPack`（`MarkContentBinding`） | 核心内容状态字段，必须由知识层通过判定状态与 ReviewDecision 供给，**UI 不得猜测** |
 
 ## 17. Artifact Ledger
 
