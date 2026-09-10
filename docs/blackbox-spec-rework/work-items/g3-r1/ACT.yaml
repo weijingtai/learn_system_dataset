@@ -1,0 +1,46 @@
+task_id: blackbox-g3-r1-rework
+mode: documentation_rework
+status: READY
+goal: 依次修复 G3 R1 的六项语义缺陷并完成 D-07 前置
+execution: strictly_serial
+acts:
+  - id: 01-t04
+    depends_on: []
+    write: [openspec/learn-system-blackbox-architecture.md, docs/blackbox-spec-rework/work-items/t04/TDD.md, docs/blackbox-spec-rework/work-items/t04/ACT.yaml, docs/blackbox-spec-rework/work-items/t04/ACCEPTANCE.md, docs/blackbox-spec-rework/verify-T.sh]
+    action: 补全 G1-G7 权威语义；先加固门禁变红，再修规格转绿
+  - id: 02-t06
+    depends_on: [01-t04]
+    write: [openspec/learn-system-blackbox-architecture.md, docs/blackbox-spec-rework/work-items/t06/TDD.md, docs/blackbox-spec-rework/work-items/t06/ACT.yaml, docs/blackbox-spec-rework/work-items/t06/ACCEPTANCE.md, docs/blackbox-spec-rework/verify-T.sh]
+    action: 修复有序完整证据链并加入顺序敏感门禁
+  - id: 03-t11
+    depends_on: [02-t06]
+    write: [openspec/learn-system-blackbox-architecture.md, docs/blackbox-spec-rework/work-items/t11/TDD.md, docs/blackbox-spec-rework/work-items/t11/ACT.yaml, docs/blackbox-spec-rework/work-items/t11/ACCEPTANCE.md, docs/blackbox-spec-rework/verify-T.sh]
+    action: 重新核对 HEAD 后修正差距表与二元判据
+  - id: 04-t13
+    depends_on: [03-t11]
+    write: [openspec/learn-system-blackbox-architecture.md, docs/blackbox-spec-rework/work-items/t13/TDD.md, docs/blackbox-spec-rework/work-items/t13/ACT.yaml, docs/blackbox-spec-rework/work-items/t13/ACCEPTANCE.md, docs/blackbox-spec-rework/verify-T.sh]
+    action: 精确校验章节状态映射和 §16 局部候选标签
+  - id: 05-d07
+    depends_on: [04-t13]
+    write: [openspec/learn-system-blackbox-architecture.md, docs/blackbox-spec-rework/work-items/d07/, docs/blackbox-spec-rework/verify-T.sh]
+    action: 建立并执行 D-07 六件套，冻结 TechniqueProfilePack 与 QueryContractPack
+  - id: 06-t07
+    depends_on: [05-d07]
+    write: [openspec/learn-system-blackbox-architecture.md, docs/blackbox-spec-rework/work-items/t07/TDD.md, docs/blackbox-spec-rework/work-items/t07/ACT.yaml, docs/blackbox-spec-rework/work-items/t07/ACCEPTANCE.md, docs/blackbox-spec-rework/verify-T.sh]
+    action: 将 query-contract 唯一映射到 QueryContractPack，并严格解析 15 项表格
+  - id: 07-t08
+    depends_on: [06-t07]
+    write: [openspec/learn-system-blackbox-architecture.md, docs/blackbox-spec-rework/work-items/t08/TDD.md, docs/blackbox-spec-rework/work-items/t08/ACT.yaml, docs/blackbox-spec-rework/work-items/t08/ACCEPTANCE.md, docs/blackbox-spec-rework/verify-T.sh]
+    action: 修正 Tag 接线、排除 M5 生产者身份并区分两个 G4 命名空间
+forbidden:
+  - 修改业务代码、Schema、数据库或 fixture
+  - 修改 PLAN.md、HANDOFF.md、SUBAGENT_TODO.md
+  - 并行执行任意两个 act
+  - 只用关键词数量作为通过依据
+verification:
+  - 每项先红后绿，且至少一个负向变异重新变红
+  - git diff --check
+  - bash docs/blackbox-spec-rework/verify-T.sh
+on_fail: 停止当前 act，提交前不得扩大范围；报告失败命令、原始输出和阻断原因
+commit_policy: 每个 act 单独 Conventional Commit
+
