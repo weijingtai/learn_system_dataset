@@ -1,30 +1,49 @@
 # T-07 主 Agent 验收清单
 
-状态：`BLOCKED`（R1，等待 D-07）
+状态：`ACCEPTED`（R1 返工完成）
 
 ## 1. Scope and Commits
 
-- [x] 提交只修改 `openspec/learn-system-blackbox-architecture.md`（提交 `4bda4a8`，+24）
+- [x] 仅修改授权文件（`openspec/learn-system-blackbox-architecture.md`、`docs/blackbox-spec-rework/verify-T.sh` 及 `work-items/t07/`）
 - [x] 未触碰任何代码、JSON Schema、测试用例或数据库文件
-- [x] 未修改工作包文档、TODO.md、PLAN.md、HANDOFF.md 或 `verify-T.sh`
-- [x] 提交消息严格为 `docs: map KnowledgePack directories to PublicationPackage artifacts`
+- [x] 未触碰并发修改中的注解系统文件
+- [x] 提交消息符合规范
 
 ## 2. KnowledgePack Mapping Table Verification
 
-- [x] 14/15 个目录条目全量覆盖，无任何遗漏（`concepts`, `entries`, `assertions`, `applicability-rules`, `school-views`, `evidence-links`, `source-spans`, `source-anchors`, `query-contract` 等）
-- [x] 表中无空行，所有项均有明确归属
-- [x] `optional-vector-index` 显式标注「本期不产出（依据 §21）」
-- [x] 包含明确的 KnowledgePack 取代声明（`PublicationPackage` / `KnowledgeDataPack` 取代旧概念）
+- [x] §16.2 包含全部 15 个早期目录条目，逐项严格映射，无任何遗漏且无空行
+- [x] 每个条目在第一列各出现且仅出现一次（数据行总数严格为 15）
+- [x] `query-contract` 唯一归属 `QueryContractPack`，严禁归入 `RuleIndexPack` 或 `SearchIndexPack`
+- [x] `optional-vector-index` 保留非目标声明（依据 §21）
+- [x] 包含明确的 KnowledgePack 取代声明（`PublicationPackage` / `KnowledgeDataPack` 正式取代早期草案）
 
 ## 3. Evidence and Regression
 
-- [x] `docs/blackbox-spec-rework/work-items/t07/TDD.md` 中的全部 Green checks 通过
-- [x] `bash docs/blackbox-spec-rework/verify-T.sh` 退出码由 8 严格降为 7
-- [x] `T-07` 由 FAIL 转为 PASS
-- [x] `git diff --check` 通过
-- [x] 主 Agent 规格审查通过
-- [x] 主 Agent 质量审查通过
-- [x] `SUBAGENT_TODO.md` 与 `PLAN.md` 对应项同步更新
-- [x] 主 Agent 标记 `ACCEPTED`
+### Red 阶段证据
+```text
+FAIL  T-07s §16.2 映射表不合规: query-contract未归属QueryContractPack; query-contract错归IndexPack;
+PASS  T-07s §16.2 包含KnowledgePack取代声明
+FAIL 合计: 1
+退出码: 1
+```
 
-最终结论：`BLOCKED`。T-07 依赖尚未完成的 D-07，且 query-contract 当前归属错误；返工项见 `../../reviews/G3-REVIEW-R1.md`。
+### Green 阶段证据
+```text
+PASS  T-07s §16.2 映射表15项唯一且query-contract正确归属QueryContractPack
+PASS  T-07s §16.2 包含KnowledgePack取代声明
+FAIL 合计: 0
+退出码: 0
+```
+
+### 负向变异测试证据
+```text
+Mutation 1 (wrong mapping) exit code: 1
+Mutation 2 (missing row) exit code: 1
+Mutation 3 (missing replacement statement) exit code: 1
+Restored exit code: 0
+ALL 3 T-07 MUTATIONS SUCCESSFULLY FAILED AND RESTORED!
+```
+
+- [x] `git diff --check` 通过
+- [x] 主 Agent 规格审查与质量审查通过
+- [x] 主 Agent 标记 `ACCEPTED`

@@ -725,7 +725,7 @@ GraphProjectionPack 与移动端数据必须来自同一 CanonicalKnowledgeSnaps
 | `exact-search-index` | `SearchIndexPack`（精确检索索引） |
 | `fulltext-index` | `SearchIndexPack`（全文检索索引） |
 | `optional-vector-index` | 本期不产出（依据 §21 非目标） |
-| `query-contract` | `RuleIndexPack` 与 `SearchIndexPack`（查询契约与接口定义） |
+| `query-contract` | `QueryContractPack`（查询契约与接口定义） |
 
 ### 16.3 Tag 标记系统耦合接口与字段承接
 

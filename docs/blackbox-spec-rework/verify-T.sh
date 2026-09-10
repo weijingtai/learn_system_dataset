@@ -119,9 +119,61 @@ else
   printf 'FAIL  D-07s M5 missing FactSet rule executability under G6\n'; FAILED=$((FAILED+1))
 fi
 
-dmiss=0; for d in concepts entries assertions applicability-rules school-views evidence-links source-spans source-anchors query-contract; do
-  grep -q "$d" "$SPEC" 2>/dev/null || dmiss=$((dmiss+1)); done
-chk T-07 "KnowledgePack 映射表(缺失)" "0"   "$dmiss"
+# T-07 语义门禁：§16.2 KnowledgePack 双向映射表精确解析
+sec162=$(sed -n '/^### 16\.2 /,/^### 16\.3 /p' "$SPEC")
+t07_errs=$(printf '%s\n' "$sec162" | awk -F'|' '
+  BEGIN {
+    wanted["release-manifest"]=1
+    wanted["schema"]=1
+    wanted["concepts"]=1
+    wanted["entries"]=1
+    wanted["assertions"]=1
+    wanted["applicability-rules"]=1
+    wanted["school-views"]=1
+    wanted["evidence-links"]=1
+    wanted["source-spans"]=1
+    wanted["source-anchors"]=1
+    wanted["scan-assets-or-references"]=1
+    wanted["exact-search-index"]=1
+    wanted["fulltext-index"]=1
+    wanted["optional-vector-index"]=1
+    wanted["query-contract"]=1
+  }
+  /^\|/ && $0 !~ /^\|---/ && $0 !~ /早期.*目录/ {
+    c1=$2
+    c2=$3
+    gsub(/[`[:space:]]/, "", c1)
+    if (c1 in wanted) {
+      seen[c1]++
+      target[c1]=c2
+    }
+    total++
+  }
+  END {
+    err=""
+    if (total != 15) err=err "行数!=15(" total "); "
+    for (k in wanted) {
+      if (seen[k] != 1) err=err k "=" seen[k] "; "
+    }
+    if (target["query-contract"] !~ /QueryContractPack/) err=err "query-contract未归属QueryContractPack; "
+    if (target["query-contract"] ~ /RuleIndexPack|SearchIndexPack/) err=err "query-contract错归IndexPack; "
+    if (target["optional-vector-index"] !~ /本期不产出.*§21/) err=err "optional-vector-index缺非目标; "
+    if (err == "") print "OK"
+    else print err
+  }
+')
+
+if [ "$t07_errs" = "OK" ]; then
+  printf 'PASS  T-07s §16.2 映射表15项唯一且query-contract正确归属QueryContractPack\n'
+else
+  printf 'FAIL  T-07s §16.2 映射表不合规: %s\n' "$t07_errs"; FAILED=$((FAILED+1))
+fi
+
+if printf '%s\n' "$sec162" | grep -Eq '取代.*KnowledgePack'; then
+  printf 'PASS  T-07s §16.2 包含KnowledgePack取代声明\n'
+else
+  printf 'FAIL  T-07s §16.2 缺失KnowledgePack取代声明\n'; FAILED=$((FAILED+1))
+fi
 chk T-08 "Tag 三接口已承接"          ">=3"  "$(c 'MarkContentBinding\|EvidenceBundle\|盘面概念字典')"
 chk T-08b "Tag 五字段已写入"          ">=3"  "$(c 'omen_carrying\|condition_affordance\|school_variance_display')"
 

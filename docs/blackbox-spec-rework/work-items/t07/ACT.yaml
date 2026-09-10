@@ -1,45 +1,47 @@
 task_id: blackbox-t07-knowledgepack-mapping
-mode: documentation_change
-status: READY
-goal: 在架构规格 §16 写入 KnowledgePack ↔ PublicationPackage 双向映射表及取代声明
+mode: documentation_rework
+status: ACCEPTED
+goal: 在架构规格 §16.2 修正 KnowledgePack ↔ PublicationPackage 双向映射表，将 query-contract 唯一映射至 QueryContractPack，并通过严格结构化解析门禁
 depends_on:
-  - T-06: ACCEPTED
+  - D-07: ACCEPTED
 scope:
   read:
     - docs/blackbox-spec-rework/T-transcribe.md
     - LEARN_SYSTEM_TARGET.md
     - openspec/learn-system-blackbox-architecture.md
     - openspec/subagent-delivery-gate.md
+    - docs/blackbox-spec-rework/reviews/G3-REVIEW-R1.md
     - docs/blackbox-spec-rework/work-items/t07/README.md
     - docs/blackbox-spec-rework/work-items/t07/BDD.md
     - docs/blackbox-spec-rework/work-items/t07/TDD.md
   write:
     - openspec/learn-system-blackbox-architecture.md
+    - docs/blackbox-spec-rework/verify-T.sh
+    - docs/blackbox-spec-rework/work-items/t07/TDD.md
+    - docs/blackbox-spec-rework/work-items/t07/ACT.yaml
+    - docs/blackbox-spec-rework/work-items/t07/ACCEPTANCE.md
 forbidden:
-  - 遗漏 TARGET §9 中 14/15 个目录条目中的任何一项
-  - 在映射表中留空行（无归宿项须写明「本期不产出（依据 §21）」）
-  - 修改任何工作包、计划、交接或验收脚本
-  - 创建代码、Schema、fixture 或引入外部依赖
+  - 遗漏 TARGET §9 中 15 个目录条目中的任何一项
+  - 在映射表中留空行
+  - 将 query-contract 映射至 IndexPack 或除 QueryContractPack 之外的子包
+  - 仅用全文关键词统计代替表格解析
+  - 修改任何代码、Schema 或非授权文件
 steps:
-  - 运行并记录 Red baseline（verify-T.sh 8 FAIL，T-07 为 FAIL）
-  - 核对 LEARN_SYSTEM_TARGET.md §9 权威源
-  - 在 openspec/learn-system-blackbox-architecture.md §16 M8 末尾增加 16.2 小节「KnowledgePack 与 PublicationPackage 双向映射表」
-  - 写入完整的两列表格，涵盖全部 15 个条目并标注归属子包或非目标说明
-  - 写入概念取代声明（PublicationPackage / KnowledgeDataPack 取代旧 KnowledgePack）
-  - 运行 docs/blackbox-spec-rework/work-items/t07/TDD.md 中的 Green checks
-  - 运行 bash docs/blackbox-spec-rework/verify-T.sh 验证 FAIL 数降至 7（T-07 为 PASS）
-  - 运行 git diff --check
-  - 提交修改，提交消息为：'docs: map KnowledgePack directories to PublicationPackage artifacts'
+  - 加固 verify-T.sh 中 T-07 判据为 §16.2 表格逐行解析，确认旧规格为红（Red：退出码 1）
+  - 修改 openspec/learn-system-blackbox-architecture.md §16.2，将 query-contract 映射修正为 QueryContractPack
+  - 运行 bash docs/blackbox-spec-rework/verify-T.sh 验证转绿（Green：退出码 0）
+  - 执行 3 组负向变异测试，确认错误映射、删行、缺取代声明均能触发 FAIL
+  - 运行 git diff --check 确保格式合规
+  - 独立提交并记录验收证据
 verification:
-  - docs/blackbox-spec-rework/work-items/t07/TDD.md 中全部 Green checks 通过
-  - bash docs/blackbox-spec-rework/verify-T.sh 退出码为 7（T-07 为 PASS）
+  - bash docs/blackbox-spec-rework/verify-T.sh 退出码为 0
+  - 负向变异全部非零退出
   - git diff --check 通过
 on_fail: 停止，不扩大范围；报告缺失照抄源、冲突、失败命令与建议决策
-commit_message: 'docs: map KnowledgePack directories to PublicationPackage artifacts'
+commit_message: 'fix(spec): map query-contract to QueryContractPack and enforce §16.2 table gate (T-07)'
 report:
   - commit hash
   - changed files
   - red baseline summary
   - green evidence summary
-  - mapping table verification
-  - remaining verify-T failures count
+  - mutation evidence summary
