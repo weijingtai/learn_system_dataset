@@ -1,0 +1,47 @@
+task_id: blackbox-t01-ontology-three-tiers
+mode: documentation_change
+status: READY
+goal: 将跨技法术语三层模型（L1/L2/L3）及三步判层规则写入 M4，并在 §5 Contract Registry 登记冻结输入
+depends_on:
+  - T-02: ACCEPTED
+  - T-03: ACCEPTED
+scope:
+  read:
+    - docs/blackbox-spec-rework/T-transcribe.md
+    - knowledge_system/CROSS_TECHNIQUE_ONTOLOGY.md
+    - openspec/learn-system-blackbox-architecture.md
+    - openspec/subagent-delivery-gate.md
+    - docs/blackbox-spec-rework/work-items/t01/README.md
+    - docs/blackbox-spec-rework/work-items/t01/BDD.md
+    - docs/blackbox-spec-rework/work-items/t01/TDD.md
+  write:
+    - openspec/learn-system-blackbox-architecture.md
+forbidden:
+  - 重新设计或修改 ID 规则（co_shared_、hg_、co_<technique>_）
+  - 将三层模型压缩或删减
+  - 将 L1 描述为模型辅助（必须声明为确定性免模型匹配）
+  - 允许 L2 裸绑字面（必须声明绑定带技法义项）
+  - 修改任何工作包、计划、交接或验收脚本
+  - 创建代码、Schema、fixture 或引入外部依赖
+steps:
+  - 运行并记录 Red baseline（verify-T.sh 14 FAIL，T-01 为 FAIL）
+  - 核对 knowledge_system/CROSS_TECHNIQUE_ONTOLOGY.md §二 与 §三 权威源
+  - 在 openspec/learn-system-blackbox-architecture.md §5 基础设施段补充 schemas/shared/canon 与 schemas/shared/homographs 冻结输入声明
+  - 在 openspec/learn-system-blackbox-architecture.md §12 M4 知识抽取前插入「术语判层前置步骤（三层模型）」，详细定义 L1/L2/L3 及其确定性规则与禁令
+  - 运行 docs/blackbox-spec-rework/work-items/t01/TDD.md 中的 Green checks
+  - 运行 bash docs/blackbox-spec-rework/verify-T.sh 验证 FAIL 数由 14 降至 13（T-01 为 PASS）
+  - 运行 git diff --check
+  - 提交修改，提交消息为：'docs: integrate three-tier terminology model into M4'
+verification:
+  - docs/blackbox-spec-rework/work-items/t01/TDD.md 中全部 Green checks 通过
+  - bash docs/blackbox-spec-rework/verify-T.sh 退出码为 13（T-01 为 PASS）
+  - git diff --check 通过
+on_fail: 停止，不扩大范围；报告缺失照抄源、冲突、失败命令与建议决策
+commit_message: 'docs: integrate three-tier terminology model into M4'
+report:
+  - commit hash
+  - changed files
+  - red baseline summary
+  - green evidence summary
+  - 3-tier terminology verification
+  - remaining verify-T failures count

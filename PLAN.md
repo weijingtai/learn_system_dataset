@@ -36,6 +36,8 @@
 
 **2026-09-08 初始基线**：`bash docs/blackbox-spec-rework/verify-T.sh` → 19 FAIL / 1 PASS。每完成一条 T 类，FAIL 减一。
 
+**2026-09-09 G3 交叉验收 R1**：机器门禁已到 0 FAIL，但语义审查结论为 6 通过 / 6 返工或阻断。通过：T-01/T-03/T-05/T-09/T-10/T-12；返工：T-04/T-06/T-11/T-13；阻断：T-07/T-08（先完成 D-07）。证据见 `docs/blackbox-spec-rework/reviews/G3-REVIEW-R1.md`。
+
 **当前第一执行序列**：`D-01`、`D-03`、`T-02`、`D-02` 已验收。下一步先准备 R0 依赖解锁工作包，严格按 `ACT 03 → ACT 04` 执行；因既有 `ai_core` 传递依赖冲突，ACT 03 只做引用与精确差异检查，待 ACT 04 移除全部内网依赖后，对两项合并执行 `flutter pub get`、`flutter analyze` 与 `flutter test` 准出门禁。随后再分别准备并执行 ACT 01、ACT 02 的真实 Red→Green 工作包。主 Agent 只制作规格、BDD、TDD、ACT、Prompt 并独立验收，不编写业务实现。
 
 **7 项架构决议已由用户于 2026-09-08 批准**：单机 Ledger 本地进程；Pattern 是 Concept 的可规则识别子类、KnowledgeEntry 是发布视图；EditionPart 优先按卷；现有工作台提升为 Review Console；校订事实/corpus 迁移、派生索引重跑、旧知识库冻结；原件进入本地 Object Store 且分发受 ReleasePolicy 控制；工作台 AI 聊天剥离并在未来由 M4 Model Adapter 取代。旧存储和旧路径的权威说明见 `openspec/legacy-storage-transition.md`。
@@ -56,7 +58,7 @@ RE→T-11 + D-18；RF→D-14~D-17 + T-12/T-13；RG→D-19。**覆盖完整，无
 
 - [x] 修复: `openspec/learn-system-blackbox-architecture.md:§2 原则7` 把「版本 ID」与「业务身份 ID」混为一谈，导致返工时历史 ReviewDecision 失去指向对象、发版后下游注解集体断锚 ｜ 通过标准: 规格中出现 `entity_id`（跨 Revision 稳定、要求复用）与 `artifact_revision_id`（不可复用）两类标识的定义，原则7 改为只约束后者，并声明 ReviewDecision / EvidenceLink / Annotation 一律锚定 `entity_id` ｜ 依据：§2 原则 7、§8.1「标识与修订语义」
 - [x] 修复: `openspec/learn-system-blackbox-architecture.md:§7,§8` StepRequest/StepResult/Package 信封只有「至少包含」的散文，无字段全集与机器可读 schema，任何 Module 任务连输入都无法定义 ｜ 通过标准: 提交 `openspec/schemas/` 下 ArtifactRef、StepRequest、StepResult、StagePackage 四个 schema 文件；并用现有 `pipeline/corpus/bazi/qtbj_ed01/manifest.yaml` 构造 round-trip 示例通过校验
-- [ ] 修复: `openspec/learn-system-blackbox-architecture.md:§4,§8,§13,§14` 状态枚举散落且不成集（全文只有孤立的 `not_captured`），且未声明与 `pipeline/schemas/core/SCHEMA.md` v0.2 已冻结的 7 个内容状态、9 个错误码的关系 ｜ 通过标准: 规格含四张枚举全集表（Artifact status / Stage-StepRun status / ReviewDecision 类型 / failure 分类），取值为英文小写下划线，每条标注与 SCHEMA.md v0.2 的关系（沿用 / 扩展 / 取代 / 冲突待裁）
+- [x] 修复: `openspec/learn-system-blackbox-architecture.md:§4,§8,§13,§14` 状态枚举散落且不成集（全文只有孤立的 `not_captured`），且未声明与 `pipeline/schemas/core/SCHEMA.md` v0.2 已冻结的 7 个内容状态、9 个错误码的关系 ｜ 通过标准: 规格含四张枚举全集表（Artifact status / Stage-StepRun status / ReviewDecision 类型 / failure 分类），取值为英文小写下划线，每条标注与 SCHEMA.md v0.2 的关系（沿用 / 扩展 / 取代 / 冲突待裁）
 - [x] 修复: `openspec/learn-system-blackbox-architecture.md:§7` 单次同步 `execute()` 语义无法表达 M2 校对、M3 分歧裁决、M4 人工队列、M6 工作台四处长时人工阶段，且 `StepResult.status` 无取值集合 ｜ 通过标准: 规格含 StepRun 生命周期状态机（至少 running / awaiting_human / suspended / succeeded / failed / superseded），挂起态定义 resume_token、人工事件写回接口与超时策略 ｜ 依据：§7.1 定义跨人工队列的单一 StepRun、冻结输入、`resume_token`、事件写回与提醒式 deadline；§8.2 穷举六状态及合法迁移
 - [x] 修复: `openspec/learn-system-blackbox-architecture.md:§17` Artifact Ledger 未定义访问接口与进程模型，而其三个消费者跨语言（pipeline=Python、`ocr/local/app.py`=FastAPI、工作台=Flutter/Dart），M6 任务在此裁定前无法给出可实现接口 ｜ 通过标准: 规格写明进程模型（库内调用 / 本地服务 / 文件协议三选一）、并发写入与锁策略，并逐一说明三个消费者的接入方式
 
@@ -69,7 +71,7 @@ RE→T-11 + D-18；RF→D-14~D-17 + T-12/T-13；RG→D-19。**覆盖完整，无
 - [ ] 修复: `openspec/learn-system-blackbox-architecture.md:§12,§18` 流派只以裸词 School 出现，无 SchoolView 对象、无 school_id 命名空间、无「该分歧是否改变当前判断」字段，与 `knowledge_system/METAPHYSICS_KNOWLEDGE_COMPILATION_WORKFLOW_v1.2.md:263` 及 `tag_system/TAG_SYSTEM_DESIGN.md:299-307` 已定稿内容冲突 ｜ 通过标准: 规格定义 SchoolView 对象（school_id、主张归属、冲突组 ID、changes_current_judgment）与 SchoolViewPack 子包；§14 增列「流派归属审核」为独立 ReviewDecision 类型
 - [ ] 修复: `openspec/learn-system-blackbox-architecture.md:§16` EvidenceMapPack 只有名字无内容，SourceAnchor 仅在 §11（M3 内部）出现，客户端拿到扫描图不知高亮哪块 ｜ 通过标准: §16 写出 `EvidenceLink → Assertion → SourceSpan → SourceAnchor → OcrPage/字框坐标 → SourceAsset 页标识` 完整链路，坐标系与 SourceAssetPack 页图像素尺寸同源可换算，并列为 ValidationReport 的 fail-closed 检查项
 - [ ] 修复: `openspec/learn-system-blackbox-architecture.md:§1,§16` 仓库已声明知识区与 Tag 区唯一允许的三个耦合接口（盘面概念字典、MarkContentBinding、EvidenceBundle，见 `README.md:20`、`tag_system/README.md:29-33`），§16 八个子包无一承接 ｜ 通过标准: §16 给出承载点，逐项写出 MarkContentBinding 所需 concept_id / omen_carrying / condition_affordance / school_variance_display / changes_current_judgment 五字段的来源 Module 与 Package；或在 §21 明确本期不产出
-- [ ] 修复: `openspec/learn-system-blackbox-architecture.md:§12` 未吸收 `knowledge_system/CROSS_TECHNIQUE_ONTOLOGY.md:19-66` 已定稿的术语三层模型（L1 闭集 / L2 同形异义 / L3 技法私有）与三步判层，按现规格写 M4 任务会重演该文档已判定的缺陷 ｜ 通过标准: §12 写入三步判层为 M4 强制前置步骤并声明 L1 为确定性免模型路径；§5 Contract Registry 登记 `schemas/shared/canon`、`schemas/shared/homographs` 为 M4 冻结输入
+- [x] 修复: `openspec/learn-system-blackbox-architecture.md:§12` 未吸收 `knowledge_system/CROSS_TECHNIQUE_ONTOLOGY.md:19-66` 已定稿的术语三层模型（L1 闭集 / L2 同形异义 / L3 技法私有）与三步判层，按现规格写 M4 任务会重演该文档已判定的缺陷 ｜ 通过标准: §12 写入三步判层为 M4 强制前置步骤并声明 L1 为确定性免模型路径；§5 Contract Registry 登记 `schemas/shared/canon`、`schemas/shared/homographs` 为 M4 冻结输入
 
 ### RC Gate 与运行语义（阻断第一条纵切）
 
@@ -84,8 +86,8 @@ RE→T-11 + D-18；RF→D-14~D-17 + T-12/T-13；RG→D-19。**覆盖完整，无
 ### RD 既有已定稿标准未吸收
 
 - [ ] 修复: `openspec/learn-system-blackbox-architecture.md:§13,§16` 未吸收 `pipeline/DATASET_ACCEPTANCE_STANDARD.md:38-99` 已定稿的三级消费级别（INTERNAL_DEMO / DEV_SEARCH / PUBLIC_RELEASE）与 G1-G7 一票否决门禁，该文档要求「编译器必须显式接收目标级别并 fail-closed」，而 §16 的 M8 输入不含此参数 ｜ 通过标准: 消费级别列为 M8 显式输入参数，§16 写明各级别准入状态门槛（引用 G7），§13 的 Validator 清单逐条对应 G1-G6 并指出哪些在 M5、哪些延到 M8；全规格不新造门禁名
-- [ ] 修复: `openspec/learn-system-blackbox-architecture.md:§14` 仍只写「专家签发」单一动作，未吸收 `knowledge_system/METAPHYSICS_KNOWLEDGE_COMPILATION_WORKFLOW_v1.2.md:248-259` 已定稿的「禁止用一个 expert_verified 覆盖所有含义」与八类审核拆分 ｜ 通过标准: 八类审核（来源忠实度 / 版本校勘 / 流派归属 / 解释质量 / 案例真实性 / 现实效度 / 安全 / 权利）落为 ReviewDecision 子类型枚举，与 RA 状态枚举表合并处理
-- [ ] 修复: `openspec/learn-system-blackbox-architecture.md:§11,§19` 证据等级未裁定——`LEARN_SYSTEM_TARGET.md:140` 明确「纯文本引用只能算开发级证据」，而 §11 允许电子来源仅回到 EPUB offset，现有 `ku_bazi_000046` 全部走 offset 路径，M3/M5 任务会在「offset 够」与「必须字框」之间反复返工 ｜ 通过标准: 规格给出 `evidence_level` 枚举（至少 offset 级 / 字框级）、各级可发布性结论，并写入 M5 validator 判定条件与首纵切验收接受档位；**首纵切档位已由用户裁定为「字框级」**，本条只需补枚举与 validator 条件
+- [x] 修复: `openspec/learn-system-blackbox-architecture.md:§14` 仍只写「专家签发」单一动作，未吸收 `knowledge_system/METAPHYSICS_KNOWLEDGE_COMPILATION_WORKFLOW_v1.2.md:248-259` 已定稿的「禁止用一个 expert_verified 覆盖所有含义」与八类审核拆分 ｜ 通过标准: 八类审核（来源忠实度 / 版本校勘 / 流派归属 / 解释质量 / 案例真实性 / 现实效度 / 安全 / 权利）落为 ReviewDecision 子类型枚举，与 RA 状态枚举表合并处理
+- [x] 修复: `openspec/learn-system-blackbox-architecture.md:§11,§19` 证据等级未裁定——`LEARN_SYSTEM_TARGET.md:140` 明确「纯文本引用只能算开发级证据」，而 §11 允许电子来源仅回到 EPUB offset，现有 `ku_bazi_000046` 全部走 offset 路径，M3/M5 任务会在「offset 够」与「必须字框」之间反复返工 ｜ 通过标准: 规格给出 `evidence_level` 枚举（至少 offset 级 / 字框级）、各级可发布性结论，并写入 M5 validator 判定条件与首纵切验收接受档位；**首纵切档位已由用户裁定为「字框级」**，本条只需补枚举与 validator 条件
 
 ### RE 差距表本身失真（§19 三行低估、十二项遗漏）
 
@@ -103,7 +105,7 @@ RE→T-11 + D-18；RF→D-14~D-17 + T-12/T-13；RG→D-19。**覆盖完整，无
 - [ ] 修复: 缺最小可跑 fixture Edition，导致 §20 第 1/2/4/9 条无验收宿主，且第一批 tasks 写不出「跑哪条命令算过」 ｜ 通过标准: 建立 `pipeline/corpus/_fixture/mini_ed01`（≤3 页、≤5 batch），在无内网、无 GPU、无外部模型 API 条件下可跑完 M1→M6，并被 §19/§20 引用为统一验收宿主
 - [ ] 修复: `PLAN.md:7` 提议「按差距矩阵重写本节」，但差距表覆盖不到本文件现有 26 条未完成项中的至少 6 条（pipeline 环境检查、四本手册状态回写、《烟波钓叟歌》扩批模板、奇门试点材料、奇门金标集、旧 APP 迁移策略）及整条 Tag 线与 OCR 线，规格 §21 也未将其列为非目标，重写将静默丢失；另有 5 处重复登记（KnowledgeReleaseCompiler 见 `PLAN.md:18` / `pipeline/TODO.md` / `pattern_knowledge_workbench/TODO.md` / `LEARN_SYSTEM_TARGET.md:258`）会漂移成第 6 处 ｜ 通过标准: PLAN.md 只做增补与映射不做替换；新增「差距行 ↔ 既有条目 ↔ owner 文件」映射表，§19 每行有归属，现有未完成项被删除数量为 0 且每条标注 mapped / superseded-by / out-of-scope，重复项收敛到唯一 owner 文件
 - [x] 修复: `openspec/learn-system-blackbox-architecture.md:§17,§19` 未对既有五处存储给出处置结论，Ledger 落地后将全部返工，且违反 §2 原则2「Module 不直接读取或修改其他 Module 的数据库」 ｜ 通过标准: 对 `ocr/data_work/index.db`、`pipeline/units/`（139 单元）、`pipeline/rag/index.sqlite`、`pipeline/corpus/`、`pattern_knowledge_workbench/assets/ge_ju_database.sqlite`（496 rules）每处给出 {迁移 / 重跑 / 冻结为历史快照} 三选一结论
-- [ ] 修复: `openspec/learn-system-blackbox-architecture.md:§19` 行序为 M1→M8→三个基础设施，恰是真实依赖拓扑的逆序（L0 内核契约 → Artifact Ledger → Local Orchestrator / Contract Registry → M1-M8），执行者自上而下开工时 Ledger 尚不存在，M1 必然自造 ID 与 manifest 约定后返工 ｜ 通过标准: §19 增「层级」列标出 L0/L1/L2/Module 四层，或按拓扑重排行序，并显式标注三个基础设施为前置层
+- [x] 修复: `openspec/learn-system-blackbox-architecture.md:§19` 行序为 M1→M8→三个基础设施，恰是真实依赖拓扑的逆序（L0 内核契约 → Artifact Ledger → Local Orchestrator / Contract Registry → M1-M8），执行者自上而下开工时 Ledger 尚不存在，M1 必然自造 ID 与 manifest 约定后返工 ｜ 通过标准: §19 增「层级」列标出 L0/L1/L2/Module 四层，或按拓扑重排行序，并显式标注三个基础设施为前置层
 - [ ] 修复: `openspec/learn-system-blackbox-architecture.md` 全文 21 节仅 §2 带「已确认原则」标签，其余以确定语气陈述，违反 `AGENTS.md:39`「明确区分已确认设计 / 讨论候选 / 待验证假设 / 最终规范」；§16 的「建议一个 Technique 一个 Release」混入正文，读者无法判断其对 task 是否有约束力 ｜ 通过标准: §3-§18 每节带状态标签，`grep -c "^状态：" openspec/learn-system-blackbox-architecture.md` ≥ 16，且「建议」类表述归入「讨论候选」或升格为规范
 
 ### RG 版权与存储边界（R1 审查后追加，新发现）

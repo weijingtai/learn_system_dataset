@@ -1,0 +1,36 @@
+task_id: blackbox-t09
+name: transcribe-orchestrator-queries
+status: READY
+description: 依据 T-transcribe.md 规范，在 §5 写入 Local Orchestrator 的六项只读查询契约（含五个 PendingQueue 明细），并在 §7 写入进度事件上报约束。
+
+scope:
+  write:
+    - openspec/learn-system-blackbox-architecture.md
+  read:
+    - docs/blackbox-spec-rework/T-transcribe.md
+    - docs/blackbox-spec-rework/verify-T.sh
+
+forbidden:
+  - 严禁少于六项查询契约
+  - 严禁遗漏五个 PendingQueue 队列的任何一个
+  - 严禁将契约描述为未来可扩展
+  - 严禁修改任何代码、JSON Schema、测试或工作包文档
+
+verification:
+  red:
+    command: bash docs/blackbox-spec-rework/verify-T.sh
+    expected_exit: 5
+    expected_contains: "FAIL  T-09   Orchestrator 六项查询(缺失) (期望 0, 实得 6)"
+  green:
+    commands:
+      - for q in RunStatus StageProgress PendingQueue BlockingReasons ReworkImpact ThroughputEstimate; do grep -q "$q" openspec/learn-system-blackbox-architecture.md || exit 1; done
+      - grep -q "M2 异常页与低置信字" openspec/learn-system-blackbox-architecture.md
+      - grep -q "M3 边界分歧" openspec/learn-system-blackbox-architecture.md
+      - grep -q "M4 类别分歧" openspec/learn-system-blackbox-architecture.md
+      - grep -q "M6 待签发" openspec/learn-system-blackbox-architecture.md
+      - grep -q "M7 待裁决" openspec/learn-system-blackbox-architecture.md
+      - grep -q "进度事件" openspec/learn-system-blackbox-architecture.md
+      - git diff --check
+      - bash docs/blackbox-spec-rework/verify-T.sh
+    expected_exit: 4
+    expected_contains: "PASS  T-09   Orchestrator 六项查询(缺失)"

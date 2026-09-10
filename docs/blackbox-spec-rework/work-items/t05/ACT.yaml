@@ -1,0 +1,45 @@
+task_id: blackbox-t05-evidence-level-enums
+mode: documentation_change
+status: READY
+goal: 将 evidence_level 两档枚举（offset_level/glyphbox_level）及发布性约束写入 §11 与 §13
+depends_on:
+  - T-04: ACCEPTED
+scope:
+  read:
+    - docs/blackbox-spec-rework/T-transcribe.md
+    - pipeline/DATASET_ACCEPTANCE_STANDARD.md
+    - LEARN_SYSTEM_TARGET.md
+    - openspec/learn-system-blackbox-architecture.md
+    - openspec/subagent-delivery-gate.md
+    - docs/blackbox-spec-rework/work-items/t05/README.md
+    - docs/blackbox-spec-rework/work-items/t05/BDD.md
+    - docs/blackbox-spec-rework/work-items/t05/TDD.md
+  write:
+    - openspec/learn-system-blackbox-architecture.md
+forbidden:
+  - 自创第三种 evidence_level 取值
+  - 降低 PUBLIC_RELEASE 的无损证据链要求
+  - 修改任何工作包、计划、交接或验收脚本
+  - 创建代码、Schema、fixture 或引入外部依赖
+steps:
+  - 运行并记录 Red baseline（verify-T.sh 10 FAIL，T-05 为 FAIL）
+  - 核对 pipeline/DATASET_ACCEPTANCE_STANDARD.md §4-G3 与 LEARN_SYSTEM_TARGET.md:140 权威源
+  - 在 openspec/learn-system-blackbox-architecture.md §11 M3 末尾新增 11.1「证据级别枚举（evidence_level）与发布约束」
+  - 在 openspec/learn-system-blackbox-architecture.md §13 M5 的 G3 门禁对接描述中追加 evidence_level 判定规则
+  - 运行 docs/blackbox-spec-rework/work-items/t05/TDD.md 中的 Green checks
+  - 运行 bash docs/blackbox-spec-rework/verify-T.sh 验证 FAIL 数降至 9（T-05 为 PASS）
+  - 运行 git diff --check
+  - 提交修改，提交消息为：'docs: define evidence_level enum and release constraints'
+verification:
+  - docs/blackbox-spec-rework/work-items/t05/TDD.md 中全部 Green checks 通过
+  - bash docs/blackbox-spec-rework/verify-T.sh 退出码为 9（T-05 为 PASS）
+  - git diff --check 通过
+on_fail: 停止，不扩大范围；报告缺失照抄源、冲突、失败命令与建议决策
+commit_message: 'docs: define evidence_level enum and release constraints'
+report:
+  - commit hash
+  - changed files
+  - red baseline summary
+  - green evidence summary
+  - evidence_level enum verification
+  - remaining verify-T failures count

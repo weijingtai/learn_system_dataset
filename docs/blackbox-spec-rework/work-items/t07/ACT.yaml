@@ -1,0 +1,45 @@
+task_id: blackbox-t07-knowledgepack-mapping
+mode: documentation_change
+status: READY
+goal: 在架构规格 §16 写入 KnowledgePack ↔ PublicationPackage 双向映射表及取代声明
+depends_on:
+  - T-06: ACCEPTED
+scope:
+  read:
+    - docs/blackbox-spec-rework/T-transcribe.md
+    - LEARN_SYSTEM_TARGET.md
+    - openspec/learn-system-blackbox-architecture.md
+    - openspec/subagent-delivery-gate.md
+    - docs/blackbox-spec-rework/work-items/t07/README.md
+    - docs/blackbox-spec-rework/work-items/t07/BDD.md
+    - docs/blackbox-spec-rework/work-items/t07/TDD.md
+  write:
+    - openspec/learn-system-blackbox-architecture.md
+forbidden:
+  - 遗漏 TARGET §9 中 14/15 个目录条目中的任何一项
+  - 在映射表中留空行（无归宿项须写明「本期不产出（依据 §21）」）
+  - 修改任何工作包、计划、交接或验收脚本
+  - 创建代码、Schema、fixture 或引入外部依赖
+steps:
+  - 运行并记录 Red baseline（verify-T.sh 8 FAIL，T-07 为 FAIL）
+  - 核对 LEARN_SYSTEM_TARGET.md §9 权威源
+  - 在 openspec/learn-system-blackbox-architecture.md §16 M8 末尾增加 16.2 小节「KnowledgePack 与 PublicationPackage 双向映射表」
+  - 写入完整的两列表格，涵盖全部 15 个条目并标注归属子包或非目标说明
+  - 写入概念取代声明（PublicationPackage / KnowledgeDataPack 取代旧 KnowledgePack）
+  - 运行 docs/blackbox-spec-rework/work-items/t07/TDD.md 中的 Green checks
+  - 运行 bash docs/blackbox-spec-rework/verify-T.sh 验证 FAIL 数降至 7（T-07 为 PASS）
+  - 运行 git diff --check
+  - 提交修改，提交消息为：'docs: map KnowledgePack directories to PublicationPackage artifacts'
+verification:
+  - docs/blackbox-spec-rework/work-items/t07/TDD.md 中全部 Green checks 通过
+  - bash docs/blackbox-spec-rework/verify-T.sh 退出码为 7（T-07 为 PASS）
+  - git diff --check 通过
+on_fail: 停止，不扩大范围；报告缺失照抄源、冲突、失败命令与建议决策
+commit_message: 'docs: map KnowledgePack directories to PublicationPackage artifacts'
+report:
+  - commit hash
+  - changed files
+  - red baseline summary
+  - green evidence summary
+  - mapping table verification
+  - remaining verify-T failures count

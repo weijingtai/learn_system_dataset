@@ -1,0 +1,30 @@
+task_id: blackbox-t13
+name: transcribe-section-status-tags
+status: READY
+description: 依据 T-transcribe.md 规范与 AGENTS.md 要求，为 §3 至 §18 逐节添加状态标签（已确认设计 / 讨论候选 / 待验证假设），严禁使用「最终规范」。
+
+scope:
+  write:
+    - openspec/learn-system-blackbox-architecture.md
+  read:
+    - docs/blackbox-spec-rework/T-transcribe.md
+    - docs/blackbox-spec-rework/verify-T.sh
+
+forbidden:
+  - 严禁将任何章节标为最终规范
+  - 严禁遗漏 §3–§18 的任何一节
+  - 严禁修改任何代码、JSON Schema、测试或工作包文档
+
+verification:
+  red:
+    command: bash docs/blackbox-spec-rework/verify-T.sh
+    expected_exit: 1
+    expected_contains: "FAIL  T-13   章节状态标签 (期望 >=16, 实得 1)"
+  green:
+    commands:
+      - test $(grep -c "^状态：" openspec/learn-system-blackbox-architecture.md) -ge 16
+      - test $(grep -c "^状态：最终规范" openspec/learn-system-blackbox-architecture.md) -eq 0
+      - git diff --check
+      - bash docs/blackbox-spec-rework/verify-T.sh
+    expected_exit: 0
+    expected_contains: "FAIL 合计: 0"

@@ -1,0 +1,50 @@
+task_id: blackbox-t03-status-enums
+mode: documentation_change
+status: READY
+goal: 原样转录内容状态 7 值、错误码 9 个、8 类专家审核枚举，保留并衔接 D-03 Artifact 与 StepRun 状态全集
+depends_on:
+  - D-03: ACCEPTED
+  - T-02: ACCEPTED
+scope:
+  read:
+    - docs/blackbox-spec-rework/T-transcribe.md
+    - pipeline/schemas/core/SCHEMA.md
+    - knowledge_system/METAPHYSICS_KNOWLEDGE_COMPILATION_WORKFLOW_v1.2.md
+    - openspec/learn-system-blackbox-architecture.md
+    - openspec/subagent-delivery-gate.md
+    - docs/blackbox-spec-rework/work-items/t03/README.md
+    - docs/blackbox-spec-rework/work-items/t03/BDD.md
+    - docs/blackbox-spec-rework/work-items/t03/TDD.md
+  write:
+    - openspec/learn-system-blackbox-architecture.md
+forbidden:
+  - 将 Artifact status / StepRun status 回退为空表或标注 TODO(D-03)
+  - 修改 7 个内容状态的拼写、增删取值
+  - 修改 9 个错误码的代码或含义
+  - 遗漏或合并 8 类专家审核
+  - 修改任何工作包、计划、交接或验收脚本
+  - 创建代码、Schema、fixture 或引入外部依赖
+steps:
+  - 运行并记录 Red baseline（verify-T.sh 17 FAIL，T-03/T-03b/T-03c 均 FAIL）
+  - 核对 pipeline/schemas/core/SCHEMA.md §5 与 §6 权威源
+  - 核对 knowledge_system/METAPHYSICS_KNOWLEDGE_COMPILATION_WORKFLOW_v1.2.md §3.2
+  - 在 openspec/learn-system-blackbox-architecture.md §8.2 建立状态枚举全集，写入内容状态 7 值、8 类审核决定类型、9 个错误码，保留 D-03 原有的 Artifact 与 StepRun 状态机及迁移表
+  - 明确多轴正交性声明
+  - 运行 docs/blackbox-spec-rework/work-items/t03/TDD.md 中的 Green checks
+  - 运行 bash docs/blackbox-spec-rework/verify-T.sh 验证 FAIL 数降至 14
+  - 运行 git diff --check
+  - 提交修改，提交消息为：'docs: transcribe status enums and review decision types'
+verification:
+  - docs/blackbox-spec-rework/work-items/t03/TDD.md 中全部 Green checks 通过
+  - bash docs/blackbox-spec-rework/verify-T.sh 退出码为 14（T-03, T-03b, T-03c 均 PASS）
+  - git diff --check 通过
+on_fail: 停止，不扩大范围；报告缺失照抄源、冲突、失败命令与建议决策
+commit_message: 'docs: transcribe status enums and review decision types'
+report:
+  - commit hash
+  - changed files
+  - red baseline summary
+  - green evidence summary
+  - 4 enum tables verification
+  - preserved D-03 status check
+  - remaining verify-T failures count

@@ -1,0 +1,49 @@
+task_id: blackbox-t06-evidencemappack-content
+mode: documentation_change
+status: READY
+goal: 在架构规格 §16 PublicationPackage 下补充 EvidenceMapPack 完整证据链与坐标同源可换算说明
+depends_on:
+  - T-05: ACCEPTED
+scope:
+  read:
+    - docs/blackbox-spec-rework/T-transcribe.md
+    - LEARN_SYSTEM_TARGET.md
+    - pipeline/DATASET_ACCEPTANCE_STANDARD.md
+    - openspec/learn-system-blackbox-architecture.md
+    - openspec/subagent-delivery-gate.md
+    - docs/blackbox-spec-rework/work-items/t06/README.md
+    - docs/blackbox-spec-rework/work-items/t06/BDD.md
+    - docs/blackbox-spec-rework/work-items/t06/TDD.md
+  write:
+    - openspec/learn-system-blackbox-architecture.md
+forbidden:
+  - 将 SourceAnchor 仅保留在 M3 内部而不进发布包
+  - 遗漏坐标系同源可换算强约束
+  - 遗漏 fail-closed 门禁检查说明
+  - 修改任何工作包、计划、交接或验收脚本
+  - 创建代码、Schema、fixture 或引入外部依赖
+steps:
+  - 运行并记录 Red baseline（verify-T.sh 9 FAIL，T-06 为 FAIL）
+  - 核对 LEARN_SYSTEM_TARGET.md §6 与 pipeline/DATASET_ACCEPTANCE_STANDARD.md §4-G3 权威源
+  - 在 openspec/learn-system-blackbox-architecture.md §16 PublicationPackage 清单下为 EvidenceMapPack 补充详细内容：
+    1) 完整证据链路（EvidenceLink → Assertion → SourceSpan → SourceAnchor → OcrPage / 字框坐标 → SourceAsset 页标识）
+    2) 明确 SourceAnchor 必须随包发布，严禁留在 M3 内部
+    3) 字框坐标系与 SourceAssetPack 页图像素尺寸同源可换算强约束
+    4) 链路完整性作为 ValidationReport 的 fail-closed 门禁检查项
+  - 运行 docs/blackbox-spec-rework/work-items/t06/TDD.md 中的 Green checks
+  - 运行 bash docs/blackbox-spec-rework/verify-T.sh 验证 FAIL 数降至 8（T-06 为 PASS）
+  - 运行 git diff --check
+  - 提交修改，提交消息为：'docs: define EvidenceMapPack content and lossless evidence chain'
+verification:
+  - docs/blackbox-spec-rework/work-items/t06/TDD.md 中全部 Green checks 通过
+  - bash docs/blackbox-spec-rework/verify-T.sh 退出码为 8（T-06 为 PASS）
+  - git diff --check 通过
+on_fail: 停止，不扩大范围；报告缺失照抄源、冲突、失败命令与建议决策
+commit_message: 'docs: define EvidenceMapPack content and lossless evidence chain'
+report:
+  - commit hash
+  - changed files
+  - red baseline summary
+  - green evidence summary
+  - EvidenceMapPack definition check
+  - remaining verify-T failures count

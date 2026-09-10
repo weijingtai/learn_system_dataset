@@ -1,0 +1,31 @@
+task_id: blackbox-t12
+name: transcribe-construction-topology
+status: READY
+description: 依据 T-transcribe.md 规范，在 §19 增加依赖拓扑图、为差距表格增加「层级」列，并补充「非施工顺序；三个基础设施是前置层」说明。
+
+scope:
+  write:
+    - openspec/learn-system-blackbox-architecture.md
+  read:
+    - docs/blackbox-spec-rework/T-transcribe.md
+    - docs/blackbox-spec-rework/verify-T.sh
+
+forbidden:
+  - 严禁重排现有表格行顺序
+  - 严禁遗漏「非施工顺序，三个基础设施是前置层」说明
+  - 严禁修改任何代码、JSON Schema、测试或工作包文档
+
+verification:
+  red:
+    command: bash docs/blackbox-spec-rework/verify-T.sh
+    expected_exit: 2
+    expected_contains: "FAIL  T-12   §19 施工顺序说明 (期望 >=1, 实得 0)"
+  green:
+    commands:
+      - grep -q "非施工顺序\|前置层" openspec/learn-system-blackbox-architecture.md
+      - grep -q "L1 Artifact Ledger.*LineageGraph" openspec/learn-system-blackbox-architecture.md
+      - grep -q "|.*层级.*|" openspec/learn-system-blackbox-architecture.md
+      - git diff --check
+      - bash docs/blackbox-spec-rework/verify-T.sh
+    expected_exit: 1
+    expected_contains: "PASS  T-12   §19 施工顺序说明"

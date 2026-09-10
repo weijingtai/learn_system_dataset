@@ -1,0 +1,47 @@
+task_id: blackbox-t04-consumption-levels-gates
+mode: documentation_change
+status: READY
+goal: 将三级消费级别与 G1–G7 硬门禁接线写入架构规格 §13 与 §16
+depends_on:
+  - T-03: ACCEPTED
+  - T-01: ACCEPTED
+scope:
+  read:
+    - docs/blackbox-spec-rework/T-transcribe.md
+    - pipeline/DATASET_ACCEPTANCE_STANDARD.md
+    - openspec/learn-system-blackbox-architecture.md
+    - openspec/subagent-delivery-gate.md
+    - docs/blackbox-spec-rework/work-items/t04/README.md
+    - docs/blackbox-spec-rework/work-items/t04/BDD.md
+    - docs/blackbox-spec-rework/work-items/t04/TDD.md
+  write:
+    - openspec/learn-system-blackbox-architecture.md
+forbidden:
+  - 新造门禁代号（全规格只允许出现 G1–G7）
+  - 更改三级消费级别取值（INTERNAL_DEMO、DEV_SEARCH、PUBLIC_RELEASE）
+  - 遗漏 fail-closed 强声明
+  - 修改任何工作包、计划、交接或验收脚本
+  - 创建代码、Schema、fixture 或引入外部依赖
+steps:
+  - 运行并记录 Red baseline（verify-T.sh 13 FAIL，T-04/T-04b/T-04c 均 FAIL）
+  - 核对 pipeline/DATASET_ACCEPTANCE_STANDARD.md §3 与 §4 权威源
+  - 在 openspec/learn-system-blackbox-architecture.md §13 M5 Automatic Validation 扩充 Validator 清单，建立 G1–G6 逐项接线与工位分配表（G1–G5 在 M5，G6 在 M5+M8，G7 在 M8）
+  - 在 openspec/learn-system-blackbox-architecture.md §16 M8 Dataset Compilation 追加显式输入参数「消费级别」及 fail-closed 拒绝约束，并加入各级别准入状态门槛表（对接 G7）
+  - 运行 docs/blackbox-spec-rework/work-items/t04/TDD.md 中的 Green checks
+  - 运行 bash docs/blackbox-spec-rework/verify-T.sh 验证 FAIL 数降至 10（T-04, T-04b, T-04c 均 PASS）
+  - 运行 git diff --check
+  - 提交修改，提交消息为：'docs: connect consumption levels and G1-G7 gates'
+verification:
+  - docs/blackbox-spec-rework/work-items/t04/TDD.md 中全部 Green checks 通过
+  - bash docs/blackbox-spec-rework/verify-T.sh 退出码为 10（T-04, T-04b, T-04c 均 PASS）
+  - git diff --check 通过
+on_fail: 停止，不扩大范围；报告缺失照抄源、冲突、失败命令与建议决策
+commit_message: 'docs: connect consumption levels and G1-G7 gates'
+report:
+  - commit hash
+  - changed files
+  - red baseline summary
+  - green evidence summary
+  - G1-G7 gates verification
+  - 3 consumption levels and fail-closed check
+  - remaining verify-T failures count

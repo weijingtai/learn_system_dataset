@@ -1,17 +1,13 @@
 # HANDOFF
 
-更新时间：2026-09-09（G2 已验收；下一批进入 G3）
+更新时间：2026-09-09（G3 交叉验收 R1：未通过，6 通过 / 6 返工或阻断）
 当前分支/worktree：`codex/docs/knowledge-compilation`；独立仓库 `/Users/jingtaiwei/Git/Public/learn_system`
 刚完成：
-- G2 R0 零号批次已全部完工并由主 Agent 验收标记 `ACCEPTED`：
-  1. ACT-03 (`ffda853`): 删除零引用内网依赖 `enumeration`。
-  2. ACT-04 (`2e11932`): 剥离内网私有 `ai_core` 依赖与聊天旁路，`flutter pub get`、`flutter analyze` (0 warning)、`flutter test` 完全解锁。
-  3. ACT-01 (`f7ffd2f` 红测试, `3d6cfd2` 绿实现): 修复启动时 asset SQLite 覆盖本地数据库，改为缺失时播种。
-  4. ACT-02 (`424dc9a` 红测试, `54c0497` 绿实现): 修复保存与 AI 产物自动置 verified，人工编辑不再静默置 verified，AI 产物强制置 false，保留显式勾选通道。
-- 全局门禁 `bash docs/blackbox-spec-rework/verify-T.sh` 保持 17 FAIL，退出码 17，无退化。
-进行到一半的事（精确到文件和章节）：G3 尚未制作标准工作包；`verify-T.sh` 当前为 17 FAIL / 2 PASS。
-下一步（第一件事）：制作 T-03 六件套，要求保留 D-03 已冻结的 StepRun 状态；随后依次制作 T-01、T-04。三个执行任务均写同一架构规格，必须串行派发。
-已知的坑：T-03 的旧转录说明仍写“Artifact status / StepRun status 只建空表并标注 TODO(D-03)”，但 D-03 已完成，现应接入既有状态全集，禁止回退为空表。T-04 依赖 T-03 的内容状态，必须后执行。
+- G3 十二个 T 类提交已完成第一轮交叉验收；机器门禁为 0 FAIL，但语义验收仅 T-01/T-03/T-05/T-09/T-10/T-12 通过。
+- 详细证据与机械返工项见 `docs/blackbox-spec-rework/reviews/G3-REVIEW-R1.md`。
+进行到一半的事（精确到文件和章节）：T-04/T-06/T-11/T-13 需要返工；T-07/T-08 因 D-07 未完成而阻断。
+下一步（第一件事）：先重制 T-04、T-06、T-11、T-13 返工包；完成 D-07 后再按 T-07 → T-08 顺序返工，最后重验 G3。
+已知的坑：`verify-T.sh` 当前主要检查关键词和数量，0 FAIL 只能证明形式存在，不能证明全文转录、链路顺序、依赖关系和事实时效正确。
 
 ---
 2026-07-11（Claude/Cowork）：仓库文档已按并行线拆分——Tag 文档全部迁至 `tag_system/`（原 docs/superpowers/specs/ 下两份 Tag 规格已移至 tag_system/specs/），知识编译与产品母稿迁至 `knowledge_system/`。仓库地图见根 README.md。本文件中旧路径引用以新位置为准。

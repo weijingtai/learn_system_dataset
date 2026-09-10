@@ -1,0 +1,33 @@
+task_id: blackbox-t10
+name: transcribe-anomaly-page-terminal-states
+status: READY
+description: 依据 T-transcribe.md 规范，在 §10 M2 末尾写入异常页三种终态枚举（manually_transcribed / known_unrecognizable / deferred）及 M2 Gate 放行与阻断规则。
+
+scope:
+  write:
+    - openspec/learn-system-blackbox-architecture.md
+  read:
+    - docs/blackbox-spec-rework/T-transcribe.md
+    - docs/blackbox-spec-rework/verify-T.sh
+
+forbidden:
+  - 严禁允许 deferred 状态放行 M2 Gate
+  - 严禁允许裸标 known_unrecognizable（必须附理由与证据 Artifact）
+  - 严禁静默跳过异常页
+  - 严禁修改任何代码、JSON Schema、测试或工作包文档
+
+verification:
+  red:
+    command: bash docs/blackbox-spec-rework/verify-T.sh
+    expected_exit: 4
+    expected_contains: "FAIL  T-10   异常页终态三值 (期望 >=3, 实得 0)"
+  green:
+    commands:
+      - test $(grep -c "manually_transcribed\|known_unrecognizable\|deferred" openspec/learn-system-blackbox-architecture.md) -ge 3
+      - grep -q "manually_transcribed" openspec/learn-system-blackbox-architecture.md
+      - grep -q "known_unrecognizable" openspec/learn-system-blackbox-architecture.md
+      - grep -q "deferred" openspec/learn-system-blackbox-architecture.md
+      - git diff --check
+      - bash docs/blackbox-spec-rework/verify-T.sh
+    expected_exit: 3
+    expected_contains: "PASS  T-10   异常页终态三值"
