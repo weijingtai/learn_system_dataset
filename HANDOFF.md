@@ -20,14 +20,22 @@
 已知的坑：Notification 管线有实现，生产业务接线不足；ReceiptRejected 是停止整批并报告；旧通知查重非原子且不适用多收件人。notebook 保存覆盖旧 committed，内存降级仍返回成功，不可当永久修订库。既有 OpenAPI 有 operation headers 非规范结构，字段断言测试不代表合规。D-06 未冻结；收回只能阻止后续访问，公共媒体不能发绕过 ACL 的永久 URL。
 书籍新增边界：权威架构 PUBLIC_RELEASE 当前强制 glyphbox_level/OcrPage，原生来源分支尚未获批；不能由消费稿绕过。旧 EPUB 去空格/重组换行无原件映射、旧 unit 按排序重编号；两者不能直接作稳定生产锚点。原件档位、运输方式、capability 与正式发布门禁分开。
 
-## G3 线原交接
+## G3 线交接（已完成全部 7/7 返工并标记 ACCEPTED）
 
-更新时间：2026-09-09（G3 R1 返工完成 4/7，可从 D-07 接力）
+更新时间：2026-09-09
 当前分支/worktree：`codex/docs/knowledge-compilation`；独立仓库 `/Users/jingtaiwei/Git/Public/learn_system`
-刚完成：T-04、T-06、T-11、T-13 已补语义门禁、完成负向变异并由主 Agent 验收；提交见 `docs/blackbox-spec-rework/work-items/g3-r1/ACCEPTANCE.md`。
-进行到一半的事（精确到文件和章节）：G3 R1 为 4/7；D-07、T-07、T-08 尚未执行，工作区无未提交半成品。
-下一步（第一件事）：按 `docs/blackbox-spec-rework/work-items/g3-r1/REMAINING_PROMPT.md` 创建并执行 D-07 六件套；D-07 验收后再串行 T-07 → T-08。
-已知的坑：T-07/T-08 旧提交虽让旧脚本全绿，但依赖 D-07 未冻结，不能恢复 ACCEPTED；总门禁 0 仍不能替代负向变异和语义审查。
+刚完成：G3 R1 全部 7/7 项已完成返工并通过负向变异与独立语义门禁双重验收：
+  - T-04：G1–G7 完整语义门禁与防假绿（提交 `9b6194b` / `b15c25d`）
+  - T-06：完整有序证据链（提交 `3768064`）
+  - T-11：差距表现状事实与二元判据（提交 `6f62189`）
+  - T-13：章节状态映射与 §16 局部候选标签（提交 `e3b1570`）
+  - D-07：TechniqueProfilePack 与 QueryContractPack 规约冻结（提交 `f6be483`）
+  - T-07：§16.2 表格 15 目录严格映射与 query-contract 归属修正（提交 `a62f225`）
+  - T-08：Tag 三接口与五字段承接、Tag G4 命名空间化、排除 M5 生产者身份（提交 `045a0ab`）
+  - G3 R1 验收通过：`docs/blackbox-spec-rework/work-items/g3-r1/ACCEPTANCE.md` 标记 `ACCEPTED`。
+进行到一半的事（精确到文件和章节）：G3 已完全闭环。下一步可承接当前第一执行序列（准备 R0 依赖解锁工作包，严格按 ACT 03 → ACT 04 执行），或承接 G4 其余 D 类任务。
+下一步（第一件事）：按 PLAN 当前第一执行序列推进 R0-3（ACT 03 / ACT 04）依赖解锁工作包。
+已知的坑：全量 `verify-T.sh` 虽保持 0 FAIL，任何新变更仍必须坚持先红后绿与负向变异，严禁仅依靠关键词计数。
 
 ---
 2026-07-11（Claude/Cowork）：仓库文档已按并行线拆分——Tag 文档全部迁至 `tag_system/`（原 docs/superpowers/specs/ 下两份 Tag 规格已移至 tag_system/specs/），知识编译与产品母稿迁至 `knowledge_system/`。仓库地图见根 README.md。本文件中旧路径引用以新位置为准。

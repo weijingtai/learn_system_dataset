@@ -220,7 +220,7 @@
   - [x] PLAN/HANDOFF 同步
   - [x] 主 Agent 标记 `ACCEPTED`
 
-- [ ] T-07：KnowledgePack 双向映射（状态：`BLOCKED`；必须先完成 D-07）
+- [x] T-07：KnowledgePack 双向映射（状态：`ACCEPTED`；R1 返工 `a62f225`）
   - [x] README/范围/依赖/禁止项
   - [x] BDD 场景
   - [x] TDD 正反用例与精确命令
@@ -230,13 +230,13 @@
   - [x] `wjt-react` 判定 READY
   - [x] 派发执行 Agent
   - [x] 执行提交与原始证据（`4bda4a8`）
-  - [ ] 先完成 D-07，再按其冻结契约返工映射
-  - [ ] 主 Agent 规格审查
-  - [ ] 主 Agent 质量审查
-  - [x] PLAN/HANDOFF 同步（R1 阻断）
-  - [ ] 主 Agent 标记 `ACCEPTED`
+  - [x] 先完成 D-07，再按其冻结契约返工映射（`a62f225`）
+  - [x] 主 Agent 规格审查
+  - [x] 主 Agent 质量审查
+  - [x] PLAN/HANDOFF 同步
+  - [x] 主 Agent 标记 `ACCEPTED`
 
-- [ ] T-08：Tag 三个接口承接（状态：`BLOCKED`；必须先完成 D-07，且 R1 接线冲突）
+- [x] T-08：Tag 三个接口承接（状态：`ACCEPTED`；R1 返工 `045a0ab`）
   - [x] README/范围/依赖/禁止项
   - [x] BDD 场景
   - [x] TDD 正反用例与精确命令
@@ -246,11 +246,11 @@
   - [x] `wjt-react` 判定 READY
   - [x] 派发执行 Agent
   - [x] 执行提交与原始证据（`4e13439`）
-  - [ ] 先完成 D-07，再修正 M5/G4 接线并加固门禁
-  - [ ] 主 Agent 规格审查
-  - [ ] 主 Agent 质量审查
-  - [x] PLAN/HANDOFF 同步（R1 阻断）
-  - [ ] 主 Agent 标记 `ACCEPTED`
+  - [x] 先完成 D-07，再修正 M5/G4 接线并加固门禁（`045a0ab`）
+  - [x] 主 Agent 规格审查
+  - [x] 主 Agent 质量审查
+  - [x] PLAN/HANDOFF 同步
+  - [x] 主 Agent 标记 `ACCEPTED`
 
 - [x] T-09：Orchestrator 查询契约（状态：`ACCEPTED`，提交 `d331ca4`）
   - [x] README/范围/依赖/禁止项
@@ -359,20 +359,20 @@
   - [ ] PLAN/HANDOFF 同步
   - [ ] 主 Agent 标记 `ACCEPTED`
 
-- [ ] D-07：TechniqueProfile 与 QueryContract（状态：`BACKLOG`）
-  - [ ] README/范围/依赖/禁止项
-  - [ ] BDD 场景
-  - [ ] TDD 正反用例与精确命令
-  - [ ] ACT.yaml（含 SCOPE、ON_FAIL、VERIFICATION）
-  - [ ] Executor Prompt
-  - [ ] Acceptance 清单
-  - [ ] `wjt-react` 判定 READY
-  - [ ] 派发执行 Agent
-  - [ ] 执行提交与原始证据
-  - [ ] 主 Agent 规格审查
-  - [ ] 主 Agent 质量审查
-  - [ ] PLAN/HANDOFF 同步
-  - [ ] 主 Agent 标记 `ACCEPTED`
+- [x] D-07：TechniqueProfile 与 QueryContract（状态：`ACCEPTED`，提交 `f6be483`）
+  - [x] README/范围/依赖/禁止项
+  - [x] BDD 场景
+  - [x] TDD 正反用例与精确命令
+  - [x] ACT.yaml（含 SCOPE、ON_FAIL、VERIFICATION）
+  - [x] Executor Prompt
+  - [x] Acceptance 清单
+  - [x] `wjt-react` 判定 READY
+  - [x] 派发执行 Agent
+  - [x] 执行提交与原始证据（`f6be483`）
+  - [x] 主 Agent 规格审查
+  - [x] 主 Agent 质量审查
+  - [x] PLAN/HANDOFF 同步
+  - [x] 主 Agent 标记 `ACCEPTED`
 
 - [ ] D-08：SchoolView（状态：`BACKLOG`）
   - [ ] README/范围/依赖/禁止项
