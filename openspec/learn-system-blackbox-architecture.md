@@ -275,9 +275,60 @@ ReviewDecision 与 EvidenceLink 必须同时记录目标对象的 `entity_id`，
 2. **Content Revision（内容修订）**：描述在特定契约下生成的物理知识实例数据的不可变修订（如 `rev_<32hex>`）。
 3. **独立演进**：两者沿独立维度递增，不强制同号。重新编译、修复知识内容或重跑流水线只需生成新的 Content Revision，无需升级 Schema Version；Schema Version 升级时，历史 Content Revision 仍保留并指向当时的 Schema Version，实现契约升级与内容修订的彻底解耦。
 
-### 8.2 Artifact 与 StepRun 状态全集
+### 8.2 状态枚举全集
 
-以下是 Artifact Revision 自身的完整状态集合，描述该物理修订是否可被运行消费；表外取值无效。
+本架构确立多轴正交的状态机与枚举体系：物理制品生命周期（Artifact status）、单步任务执行生命周期（StepRun status）、领域内容成熟度状态（Content Maturity Status）以及专家审核决定类型（ReviewDecision Type）彼此正交，分别管控不同层面的语义，不可混用、互相取代或非法隐式推导。
+
+#### 1. 内容成熟度状态（Content Maturity Status）
+
+以下 7 个内容成熟度状态描述领域知识内容在流水线处理与审核过程中的成熟程度，逐字转录并沿用 `pipeline/schemas/core/SCHEMA.md` v0.2 §5（对应 v1.1.1 §9.4）；表外取值无效：
+
+| 内容成熟度状态（Status） | 中文释义与含义 | 权威出处 |
+|---|---|---|
+| `source_verified` | 原文与出处已核对 | 沿用 `pipeline/schemas/core/SCHEMA.md` v0.2 §5 |
+| `machine_extracted` | 单模型抽取候选 | 沿用 `pipeline/schemas/core/SCHEMA.md` v0.2 §5 |
+| `cross_model_reviewed` | 异构模型交叉复核 | 沿用 `pipeline/schemas/core/SCHEMA.md` v0.2 §5 |
+| `disputed` | 存在冲突 | 沿用 `pipeline/schemas/core/SCHEMA.md` v0.2 §5 |
+| `needs_expert` | 需要专家判断 | 沿用 `pipeline/schemas/core/SCHEMA.md` v0.2 §5 |
+| `expert_verified` | 专家确认（未来） | 沿用 `pipeline/schemas/core/SCHEMA.md` v0.2 §5 |
+| `deprecated` | 已撤回 | 沿用 `pipeline/schemas/core/SCHEMA.md` v0.2 §5 |
+
+#### 2. 专家审核决定类型（ReviewDecision Type）
+
+依据 `knowledge_system/METAPHYSICS_KNOWLEDGE_COMPILATION_WORKFLOW_v1.2.md` §3.2 规定，禁止使用一个 `expert_verified` 覆盖所有审核含义。在 Review Console（M6 及相关人工工位）中，专家审核被细化为 8 个独立的 ReviewDecision 类型枚举；中文仅作释义列，取值一律为小写下划线：
+
+> 表头声明：本表取代 §14 原有的单一『专家签发』动作；依据 v1.2 §3.2 禁止用一个 expert_verified 覆盖所有含义。
+
+| 审核决定类型（ReviewDecision Type，取代 §14 原有的单一『专家签发』动作；依据 v1.2 §3.2 禁止用一个 expert_verified 覆盖所有含义） | 中文释义 | 说明与审核维度 |
+|---|---|---|
+| `review_source_fidelity` | 来源忠实度 | 审核文本与原书/底本切片的一致性，核验是否有误读、漏字或伪造 |
+| `review_edition_collation` | 版本和校勘 | 审核多版本文字异同、异体字、脱文、衍文及底本校订结论 |
+| `review_school_attribution` | 流派归属 | 审核主张、概念与规则所属的术数流派分类，防止静默混派 |
+| `review_explanation_quality` | 解释质量 | 审核白话解释、术理阐述与逻辑推导的准确性与通顺度 |
+| `review_case_authenticity` | 案例真实性 | 审核所引历史案例或验证用例的真实来源、授权记录与推演完整性 |
+| `review_practical_validity` | 现实效度 | 审核现实效度状态与适用边界，严格区分原书记载与现实预测有效性 |
+| `review_safety` | 安全 | 安全审核，阻断欺骗、诱导依赖、高风险断言或违反监管红线的内容 |
+| `review_rights` | 权利 | 权利审核，确认原书、扫描图像、派生产物的版权及分发许可状态 |
+
+#### 3. 校验错误码与失败分类（Failure Error Codes）
+
+以下 9 个错误码为确定性校验程序（M5 Validator 等）的标准输出集合，逐字转录并沿用 `pipeline/schemas/core/SCHEMA.md` v0.2 §6（对应 v1.1.1 §9.7 子集）；表外代码无效：
+
+| 错误码（Code） | 中文释义 | 分类与说明 | 权威出处 |
+|---|---|---|---|
+| `SRC_001` | 来源文件缺失 | 来源校验（Source） | 沿用 `pipeline/schemas/core/SCHEMA.md` v0.2 §6 |
+| `SRC_003` | 哈希不匹配 | 来源校验（Source） | 沿用 `pipeline/schemas/core/SCHEMA.md` v0.2 §6 |
+| `TXT_001` | 引用与原文不一致 | 文本校验（Text） | 沿用 `pipeline/schemas/core/SCHEMA.md` v0.2 §6 |
+| `ID_001` | 编号格式错误 | 标识校验（Identity） | 沿用 `pipeline/schemas/core/SCHEMA.md` v0.2 §6 |
+| `ID_002` | 编号重复 | 标识校验（Identity） | 沿用 `pipeline/schemas/core/SCHEMA.md` v0.2 §6 |
+| `REF_001` | 引用的对象不存在 | 引用校验（Reference） | 沿用 `pipeline/schemas/core/SCHEMA.md` v0.2 §6 |
+| `SCH_001` | 缺少必填字段 | 模式校验（Schema） | 沿用 `pipeline/schemas/core/SCHEMA.md` v0.2 §6 |
+| `SCH_002` | 非法枚举值 | 模式校验（Schema） | 沿用 `pipeline/schemas/core/SCHEMA.md` v0.2 §6 |
+| `SEM_001` | 主张没有任何证据 | 语义校验（Semantic） | 沿用 `pipeline/schemas/core/SCHEMA.md` v0.2 §6 |
+
+#### 4. 制品物理状态与合法迁移（Artifact Status）
+
+以下是 Artifact Revision 自身的完整状态集合（已于 D-03 冻结保留），描述该物理修订是否可被运行消费；表外取值无效。
 
 | Artifact status | 含义 |
 |---|---|
@@ -299,7 +350,9 @@ Artifact status 的合法迁移全集如下；未列出的迁移一律非法：
 
 修正 Artifact 必须新建 Artifact Revision 和新的 `artifact_revision_id`，不得把旧 Revision 改回 `draft` 或 `sealed`。
 
-以下是 StepRun 自身的完整状态集合，描述一次阶段任务的执行生命周期；表外取值无效。
+#### 5. 单步运行状态与合法迁移（StepRun Status）
+
+以下是 StepRun 自身的完整状态集合（已于 D-03 冻结保留），描述一次阶段任务的执行生命周期；表外取值无效。
 
 | StepRun status | 含义 |
 |---|---|
@@ -323,7 +376,15 @@ StepRun status 的合法迁移全集如下；未列出的迁移一律非法：
 
 重跑永远创建新的 StepRun 和新的 `step_run_id`，新运行以 `supersedes_step_run_id` 指向被取代的运行，不得清空、复用或篡改旧运行。旧运行尚未终结时可以按上表进入 `superseded`；旧运行已经处于 `succeeded`、`failed` 或 `superseded` 时保持原终态，仅由新运行的关联字段表达重跑关系。
 
-Artifact status、StepRun status 与 `pipeline/schemas/core/SCHEMA.md` 的七个“内容成熟度”状态彼此正交：Artifact status 管物理修订的可消费性，StepRun status 管执行生命周期，内容成熟度状态管领域内容的审核/发布成熟程度。三者不得混用、互相取代或推导成同一枚举；本节没有改动那七个内容成熟度状态。
+#### 6. 多轴状态正交性声明
+
+架构明确声明多轴状态正交原则：
+1. **制品物理状态（Artifact status）**：管物理修订的可消费性与存活状态（`draft`、`sealed`、`quarantined`、`invalidated`、`superseded`）；
+2. **单步运行状态（StepRun status）**：管单步流水线任务的执行生命周期（`running`、`awaiting_human`、`suspended`、`succeeded`、`failed`、`superseded`）；
+3. **内容成熟度状态（Content Maturity Status）**：管领域知识内容本身的核对、复核、专家审核与废弃进度（`source_verified`、`machine_extracted`、`cross_model_reviewed`、`disputed`、`needs_expert`、`expert_verified`、`deprecated`）；
+4. **审核决定类型（ReviewDecision Type）**：管人工在具体审核维度上作出的裁决类型（`review_source_fidelity` 等 8 类）。
+
+物理制品生命周期、单步任务执行生命周期与领域内容成熟度三者正交，不可混用、互相取代或非法隐式推导。例如：物理状态为 `sealed` 的不可变 Artifact Revision 中，其承载的主张或单元内容成熟度状态完全可以是 `machine_extracted` 或 `disputed`；执行状态为 `succeeded` 的 StepRun 亦可产出包含 `needs_expert` 内容状态的制品。
 
 ## 9. M1 Source Intake
 
