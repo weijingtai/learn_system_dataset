@@ -1,6 +1,6 @@
 # 笔记、原句注解与讨论 Tasks
 
-版本：1.2；2026-09-10（R2 五项协议修订；待独立复核）。状态：`APPROVED_DESIGN`；执行状态：`NOT_STARTED`。
+版本：1.3；2026-09-10（R2 六项返工补全；待独立复核）。状态：`APPROVED_DESIGN`；执行状态：`NOT_STARTED`。
 权威需求：[PRD](PRD.md)，技术依据：[Design](DESIGN.md)，根路径与执行门禁：[Plans](PLANS.md)，审查缺陷登记：[REVIEW_R1](REVIEW_R1.md)。下面路径使用 Plans §1 的精确根路径标记；标为「新增」的路径是任务产物，不声称当前文件存在。
 
 **状态枚举直接引用 [工作包门禁](../subagent-delivery-gate.md) §7 的七值枚举**（`BACKLOG / PREPARING / READY / DISPATCHED / REVIEWING / ACCEPTED / BLOCKED`），本文件不再自造释义。总表「初始状态」是登记时的取值；**流转中的当前状态以仓库唯一监控表 [`SUBAGENT_TODO.md`](../../docs/blackbox-spec-rework/SUBAGENT_TODO.md) 为准**，NC-001～NC-025 须在该表登记「NC 注解社区线」章节后方可开始流转，避免两处状态源并存。
@@ -28,7 +28,7 @@
 | NC-015 | 密钥恢复、设备授权与删除窗口协议 | NC-001 | BACKLOG | BDD 可写，TDD 待协议样例格式确定 | R-12, R-13, R-14, R-20 |
 | NC-025 | **生产 BlobGateway（公共 + 私有）** | NC-001, NC-003 | BACKLOG | BDD 可写，TDD 待 NC-003 | R-15, R-13, R-20 |
 | NC-016 | 私人加密 mapper 与设备同步 | NC-004, NC-015 | BLOCKED | 仅「密文无明文」负向断言可先写 | R-12, R-20 |
-| NC-017 | 生产密文网关与备份清单 | NC-003, NC-015, NC-025 | BLOCKED | 待 NC-015 | R-13, R-20 |
+| NC-017 | 生产密文网关与备份清单 | NC-003, NC-015, NC-025, NC-009 | BLOCKED | 待 NC-015 | R-13, R-20 |
 | NC-018 | 备份设置、进度与恢复 | NC-008, NC-016, NC-017 | BLOCKED | 待 NC-015 | R-12, R-13 |
 | NC-019 | 回收站、恢复、永久清理 | NC-007, NC-009, NC-018 | BLOCKED | 本地回收站子 ACT 可先写 | R-14, R-20 |
 | NC-020a | 消费端书籍契约核对清单 | 无 | BACKLOG | BDD+TDD 均可写（文档扫描型） | R-06, R-07, R-17 |
@@ -67,6 +67,8 @@ NC-019 可先准备本地回收站子 ACT，但完整清理验收等待备份协
 - [ ] 验收：每个端口列真实文件/符号和「已有实现/新增适配」，不把 mock 或内存降级当生产；目录/版本未唯一确定则本任务不通过。运行 `python3 SPEC/tools/check_integration_baseline.py`，退出 0。
 
 ### NC-002：模型与固定行为契约
+
+- [ ] RW-1～3：三类顶层引用集合规范排序/去重后数组换序 hash 不变；仅 change_summary 不同则 hash 不同并新增修订，系统派生摘要不同不影响保存；嵌套合法有序数组换序则 hash 不同。补 CommandRecord 完整/精简/拒绝终态、NotifierDeliveryBinding 可信来源及 command_id 正则正反例；外部不透明 ID 不套本地前缀正则。
 
 - [ ] **先取得用户对 [Design §2.1](DESIGN.md) 的 UGC ID 前缀确认**（仅本系统拥有的业务 ID；notifier 原始 ID 不适用此前缀表）。未确认前本任务保持 `PREPARING`，不得进入 `READY`。
 - [ ] 新增 `SPEC/contracts/community-models.md` 与 `SPEC/contracts/state-machines.md`，覆盖 Note/Revision/Publication/ContentAccess/Comment/Reaction/NotificationRecord/NotifierDeliveryBinding/CommandRecord 的字段归属，以及八台状态机（编辑态、发布态、生命周期、审核态、客户端 `pending_op`、投递态、导入态、锚点解析）的**完整转移表**：每条边标注触发事件、前置条件、目标态与失败错误码；含 §4.1 的状态组合白名单与非法转移期望。
@@ -162,6 +164,8 @@ R1 核验发现的独立缺口：`STORAGE/firebase/lib/media/blob_gateway_fireba
 
 ### NC-010：列表、详情与发布页面
 
+- [ ] **RW-5，客户端命令恢复（Design §7.4）**：发布/更新/收回等公共操作先以账号隔离的 Drift 队列持久化 command_id、operation、payload_hash、请求与状态，再发送。测试真实文件库关闭重开后以原键重试；响应丢失后调用命令查询端点对账，committed/rejected 对应原结果且不新建命令；收到 410 保留最小结果并读取当前资源核实，503 保留待办且只允许原键查询/重试，两者均不换键重放。未发送意图可取消；已发送操作取消只停止本地重试，不能显示服务端已撤销。用 HTTP 请求记录及服务器账本证明无第二次业务写入，迟到响应不得覆盖较新版本；验收加入 publication_flow_test.dart。
+
 - [ ] 新增 `CLIENT/lib/src/community/note_list_page.dart`、`content_detail_page.dart`、`publication_controller.dart`、`community_api.dart` 和 `test/community/publication_flow_test.dart`；在拟新建 `CLIENT/example/` 配置真实测试宿主。
 - [ ] 验收本人草稿/有未发布修改/已公开状态、发布预览固定修订、图片未就绪拒绝发布、离线保留待发操作、版本冲突保留私人稿、服务器确认前不显示成功。
 - [ ] 实现 PRD 旅程 3 的完整发布路径（消除「被拒即死胡同」）：预览页显示每张图的就绪状态与具体原因（上传中 x% / 上传失败 / 文件已丢失）及对应动作；**可就地切换选中的修订**并重算就绪状态；取消预览返回编辑页且未保存内容不丢失；首次发布展示 PRD §5.1 的一次性后果说明；成功页提供「查看公开效果（他人视角）」，断言其渲染内容不含任何未发布修订、未选中图片或私人父链（R-20 的用户自证形式）。
@@ -236,6 +240,8 @@ R1 核验发现的独立缺口：`STORAGE/firebase/lib/media/blob_gateway_fireba
 
 ### NC-017：密文云网关与完整备份
 
+- [ ] **RW-4，依赖 NC-009 command_service，按 Design §7.4 验收**：backup.begin/complete/delete 的会话登记、manifest 激活、清理登记各在对应命令事务中写终态结果；对象传输仍在事务外。分别注入提交后响应前崩溃，原 command_id 重试只产生一个会话/一次激活或一个清理任务与对应事件；14 天结果精简后仍不重复写入，同键异载荷 409、未知状态保留原键。断言完整/精简账本、manifest 与事件实际记录；纳入 test_private_note_backups.py。
+
 - [ ] 新增 `SERVER/xuan/handlers/private_note_backups.py`、`tests/test_private_note_backups.py`；新增 `STORAGE/firebase/lib/media/private_backup_blob_gateway.dart`（**建立在 NC-025 的生产网关之上**，不是又一个内存 fake），补同源 3.1 OpenAPI 中密文上传/完成/下载/删除 Schema（串行顺序见 [Plans §1.2](PLANS.md)）；写入白名单含 `SERVER/tests/conftest.py`（仅追加 `COLLECTIONS` 键）。
 - [ ] 复用 bucket/Auth 基础，限定服务器推导 owner/path；密文对象全部存在/hash 匹配后原子激活完整 manifest。备份集合/路径/清理与 Playground 媒体及 relay 隔离。
 - [ ] 运行 `python3 -m pytest tests/test_private_note_backups.py -q`（需 Emulator）；验收跨账号、路径篡改、部分上传、错 hash、重试幂等、清理失败可重试。**真实上传/下载证据必须另外提供**：真实 bucket 名、对象路径、跨账号取访问被拒的原始 HTTP 响应；内存 BlobGateway 不足。
@@ -250,6 +256,8 @@ R1 核验发现的独立缺口：`STORAGE/firebase/lib/media/blob_gateway_fireba
 - [ ] 运行 `flutter test test/storage/backup_controller_test.dart`；再运行 `flutter test integration_test/private_backup_restore_test.dart -d <NC-001 设备表中的 device_id>`，按 NC-015 给出的可执行步骤序列分别演练「原设备在场」与「全部原设备丢失」。**后者的真实证据定义**：销毁进程与本地密钥存储、仅凭用户保存的恢复材料重建，并记录两次运行的时间戳与设备标识；在同一进程内保留密钥对象后「恢复」不算通过，仅新生成密钥打不开旧数据的测试也不算。
 
 ### NC-019：30 天回收站与永久清理
+
+- [ ] **RW-6，Design §7.4 命令恢复**：服务器 trash/restore/purge 复用 NC-009 command_service；逐项测试提交后响应前中断并原键重试。尤其 purge 提交后、响应前中断，以同键重试只产生一个清理任务与一条 purge 请求事件，不能推进第二次生命周期；后续清理进展事件另按任务阶段去重。客户端重启恢复原键，410/503 不换键，purge_pending 仅表示任务已登记，实际对象清理完成前不显示 purged。纯本地私人 trash/restore 仍使用本地事务，不伪造云命令。覆盖 test_community_purge.py 与 note_trash_test.dart。
 
 - [ ] 新增 `CLIENT/lib/src/history/note_trash_page.dart`、`test/history/note_trash_test.dart`；新增 `SERVER/xuan/community/purge_service.py`、`tests/test_community_purge.py`，接入已冻结删除事件/备份清理。
 - [ ] **30 天的 T0 分两类，边界用例须分别构造**（[Design §4](DESIGN.md)）：曾公开的内容从服务端 trash 事件 `server_time` 起算；从未公开的纯本地笔记从本地持久 trash 事件起算并在首次上线时以服务端时间校正（只推后不提前）。

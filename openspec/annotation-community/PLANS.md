@@ -8,7 +8,7 @@
 
 **Tech Stack:** Flutter、flutter_markdown_plus、Drift、现有 Repository/Storage；Python Firebase Functions、Firestore、对象存储；REST/OpenAPI 3.1/Swagger。
 
-版本：1.2；2026-09-10（R2 五项协议修订；待独立复核）。状态：`APPROVED_DESIGN`；执行状态：`NOT_STARTED`，尚非执行包 READY。
+版本：1.3；2026-09-10（R2 六项返工补全；待独立复核）。状态：`APPROVED_DESIGN`；执行状态：`NOT_STARTED`，尚非执行包 READY。
 依据：[PRD](PRD.md)、[Design](DESIGN.md)、[Tasks](TASKS.md)；准出规则：[工作包门禁](../subagent-delivery-gate.md)；审查缺陷登记：[REVIEW_R1](REVIEW_R1.md)。
 
 ## 1. 目录与文件职责
@@ -122,3 +122,5 @@ Tasks 中 NC-xxx 是有范围和验收点的工作项；体积较大时拆为多
 ## 8. R2 修订的执行约束
 
 五项修订以 [Design](DESIGN.md) §4.4/§6.2.1/§7.2/§7.4 为准，具体反例已进入 NC-002/003/004/009/011/012/013/014；NC-007 的历史恢复也消费 v2 规则。先完成契约与成对 fixture，再执行依赖任务。通知可信映射缺证只阻断 NC-013/014 对应链路，书籍类型未冻结只阻断对应原句契约；不得凭本轮文档检查将任何任务升级为 READY 或 ACCEPTED。独立复核入口：[五项复核清单](REVIEW_R2_CHECKLIST.md)。
+
+RW-1～6 补全：NC-002 冻结集合排序、说明来源、命令/桥接类型及标识反例；NC-010 接客户端持久队列恢复；NC-017 显式依赖 NC-009 并复用命令服务；NC-019 验证删除清理命令恢复。验收顺序为 review_r2_guard.sh → verify.sh → 人工语义复核，脚本通过不等于业务验收。

@@ -1,6 +1,6 @@
 # 笔记、原句注解与讨论系统 Design
 
-版本：1.2；2026-09-10（R2 五项协议修订；待独立复核）。状态：`APPROVED_DESIGN`；执行状态：`NOT_STARTED`。
+版本：1.3；2026-09-10（R2 六项返工补全；待独立复核）。状态：`APPROVED_DESIGN`；执行状态：`NOT_STARTED`。
 产品依据：[PRD](PRD.md)；执行顺序 [Plans](PLANS.md)；审查缺陷登记 [REVIEW_R1](REVIEW_R1.md)。本设计确定模块与业务规则；§10 的外部契约未冻结，相关任务不能越过依赖。接口名称/目录为本期工程设计，不表示已有实现。执行范围由 [Tasks](TASKS.md) 与工作包控制。
 
 ## 1. 架构与职责（覆盖 R-18）
@@ -49,6 +49,8 @@ UGC 使用不透明稳定 ID，生成器沿用既有 UUID 能力；不占用上�
 | Bookmark / ShareLink | actor_id + target；share_id + target + revoked_at | 收藏个人可见；分享仅定位，不授予额外读取权 |
 | BackupManifest | backup_id, scope, protocol_version, encrypted_manifest_ref, object_refs, completeness, key_epoch | 外层最少元数据；完整依赖就绪后可恢复；密钥协议由 NC-015 冻结 |
 | NotificationRecord | notification_id, event_id, recipient_id, target, delivery_state`(created/dispatching/delivered/failed/abandoned)`, attempt_count | event+recipient 唯一的业务通知；与 notifier 每设备/用途投递一对多，见 §6.2 |
+| CommandRecord | owner_scope, operation, command_id, payload_hash, outcome(committed/rejected), resource_ids, applied_version, result_http_status, result_code?, result_fields, committed_at, result_compact_after, result_compacted_at? | (owner_scope, operation, command_id) 唯一；只存终态，与业务/outbox 同事务；精简不删除身份，不含正文；见 §7.4 |
+| NotifierDeliveryBinding | notification_id, notifier_delivery_id, recipient_scope, device_id, channel_purpose, write_source, source_ref, bound_at | notifier_delivery_id 唯一且原样保存；同一业务通知可有多条绑定；服务端可信来源写入，已有绑定冲突拒绝，不接受客户端声明归属；见 §6.2.1 |
 
 内容 hash 按固定版本编码后的标题/Markdown/引用/附件/mention 计算，不对原书文字再做规范化；canonical 编码见 §7.2，NC-002 将其落实为 Schema 与跨端 fixture。NoteRevision 恢复旧内容仍产生新 ID，即使正文 hash 与历史相同。
 
@@ -79,6 +81,14 @@ UGC 使用不透明稳定 ID，生成器沿用既有 UUID 能力；不占用上�
 `nrev_` 与上游 `rev_` 仅差一个字母，属刻意区分：判定 ④ 必须显式覆盖「`rev_` 被误用作 NoteRevision」这一负例。
 
 **冻结状态：待用户确认。** 未确认前 NC-002 不得离开 `PREPARING`。
+
+### 2.1.1 命令与桥接字段类型（RW-3）
+
+`command_id` 格式为 `cmd_` + UUIDv4 去掉连字符后的 32 位小写 hex；正则 `^cmd_[0-9a-f]{12}4[0-9a-f]{3}[89ab][0-9a-f]{15}$`。客户端入队只生成一次，HTTP Idempotency-Key 必须与之逐字相同。合法例 `cmd_00000000000040008000000000000000` 仅用于 fixture；负例包含大写、缺前缀、31/33 位、版本位非 4、variant 位非 8/9/a/b、带连字符，以及 header/body 不同。前六类格式错误为 400 invalid_argument.command_id，header/body 不同为 400 invalid_argument.idempotency_key。它是独立的命令标识，不套用 §2.1 的业务对象前缀表；NotifierDeliveryBinding 没有新增本地 ID 前缀，键为原始 notifier_delivery_id。
+
+CommandRecord：owner_scope 是服务器从认证推导的非空账号作用域字符串；operation 是 NC-003 操作目录中的稳定字符串，禁止任意值，至少登记 content.publish/update/withdraw/trash/restore/purge、comment.create/edit/delete、reaction.set、bookmark.set、share.create/revoke、report.create，以及 backup.begin/complete/delete（点号为名称组成部分，每个操作独立枚举）。payload_hash 为 64 位小写 SHA-256 hex；outcome 仅 committed/rejected，无 running。resource_ids 为按资源角色命名的 ID 对象；applied_version 为非负安全整数或 null（拒绝及无版本资源允许 null），不能以 0 冒充已提交版本。result_http_status 为整数，result_code 为可选错误目录字符串，result_fields 为各 operation 的有类型最小响应，禁止无约束任意 JSON、私人正文或 token。committed_at/result_compact_after/result_compacted_at 为 UTC 时间戳，后者未精简时 null；result_compact_after=committed_at+14 天。未成功命令的 committed_at 指拒绝终态账本提交时间。持久账本禁止客户端直写；完整与精简字段白名单由 NC-002 按操作作成对 Schema，NC-003 与 HTTP 响应同源。
+
+NotifierDeliveryBinding：notification_id 按业务表；notifier_delivery_id 为上游不透明非空字符串，长度约束引用 notifier 契约而非本地 UUID 正则；recipient_scope/device_id/channel_purpose 沿用已认证上游类型。write_source 仅 trusted_ingress/trusted_delivery_callback，source_ref 是指向经验证的服务端关联证据的非空字符串；bound_at 为服务端 UTC 时间戳。这两个来源值是本地允许类别，不表示上游已提供接口；NC-013 仍须冻结实际来源、验证方式及字段映射，缺证阻断，不接受客户端回填。
 
 ### 2.2 状态机总览
 
@@ -294,10 +304,16 @@ NC-002 的 fixture 必须包含「4,000 个 4 字节 emoji 的评论」这一用
 
 `content_hash = SHA256_hex(UTF8("nchash/v2\n") + E(snapshot))`，输出小写 hex。snapshot 是 Schema 解码后的完整可编辑语义投影：title、markdown、attachment_refs、mentions、bindings、change_summary。附件包括稳定 ID/版本/内容摘要及可编辑 alt/说明；mention 包括 user_id、创建时 display_name、start_offset、length；binding 包括 relation、target_kind/target_ref 和原始 AnchorRef 的固定身份、context、完整 selector。禁止只取 ID 集合。各对象的字段全集由 NC-002 Schema 约束，新增可编辑语义字段必须纳入投影并评估编码版本。
 
+先按下列规则规范化 snapshot，再调用 E。E 本身保留输入数组顺序，不能承担业务集合排序。
+
+- 数组规范顺序：attachment_refs 按 `(attachment_id 的 UTF-8 字节, E(完整附件项))` 升序；mentions 按 `(start_offset 数值, length 数值, user_id 的 UTF-8 字节, E(完整 mention 项))` 升序；bindings 按 `E(完整 binding 项)` 的无符号字节序升序。E 作最终平局键，不能依赖语言 sort 的稳定性或插入顺序；完整项指 Schema 补默认值后的语义字段，不含同步状态。attachment_id 是附件稳定 ID 的唯一规范字段名，NC-002 两端统一使用。
+- 这三个顶层数组是无序引用集合，数组换序后 hash 不变；完全相同项去重后编码。不得把同一 ID 的不同语义附件、同一用户的不同 mention 位置、不同 selector 合并。嵌套 selector.ranges 等有序数组保持上游定义的顺序，合法有序数组换序后 hash 改变；非法选区顺序须在 hash 前拒绝。不能递归排序全部数组。图片在正文中的展示顺序由 markdown 中的引用位置决定，移动正文引用会改变 hash。
+- change_summary 是可选的用户填写修改说明，默认空串，保存时原样保留，系统不得在每次自动保存时填入或更新该字段；仅用户修改该说明也属于有效修改，hash 改变并新增修订。系统生成的差异摘要是只读派生展示，不写回 change_summary，不纳入 snapshot。无内容/说明变化的自动保存仍不新增修订。
+
 E 为长度前缀递归字节编码，避免依赖语言 JSON 的键序或转义方式：
 
 - null → ASCII `n;`；布尔 → `b0;` / `b1;`。
-- 整数 → `i` + 无前导零的十进制 ASCII + `;`，零只为 0；范围限定 ±(2^53−1)，拒绝浮点/NaN/Infinity。
+- 整数 → `i` + 无前导零的十进制 ASCII + `;`，负整数用 ASCII `-` 后接绝对值十进制，零只为 0（原始 JSON 数字 -0 拒绝）；范围限定 ±(2^53−1)，拒绝浮点/NaN/Infinity。
 - 字符串 → `s` + UTF-8 字节数的十进制 ASCII + `:` + 原始 UTF-8 字节；拒绝孤立 surrogate，不做 Unicode、空白或繁简归一化。
 - 数组 → `a` + 元素数量 + `:` + 每项 E，保持数组顺序；对象 → `o` + 键数量 + `:` + 按键的 UTF-8 无符号字节序排序后依次拼 E(key)、E(value)。键只能是字符串，重复键拒绝。例如 E({"x":null}) 的 ASCII 为 `o1:s1:xn;`。
 - 可选字段先按 Schema 补明确默认值（title/markdown/change_summary 空串，三类数组空数组）；其他缺失与 null 不擅自等价，未知字段拒绝。坐标等上游未冻结类型不得随意转成浮点或字符串纳入，须先经 NC-020b 与 NC-002 补充共同类型/编码与成对 fixture，之前不宣称原句 hash 已可互通。

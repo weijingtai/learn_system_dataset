@@ -1,6 +1,6 @@
 # R2 五项修订复核入口
 
-日期：2026-09-10。状态：`DOC_REVISED_PENDING_REVIEW`。请只读复核现有 PRD、DESIGN、PLANS、TASKS v1.2，逐项回答“通过/不通过＋文件章节证据＋残余问题”。历史发现保留在 [R2 记录](REVIEW_R2_FOLLOWUP.md)，本清单不代表实现验收通过。
+日期：2026-09-10。状态：`DOC_REVISED_PENDING_REVIEW`。请只读复核现有 PRD、DESIGN、PLANS、TASKS v1.3，逐项回答“通过/不通过＋文件章节证据＋残余问题”。历史发现保留在 [R2 记录](REVIEW_R2_FOLLOWUP.md)，本清单不代表实现验收通过。
 
 | 项 | 检索入口 | 必须反证的场景 |
 |---|---|---|
@@ -13,3 +13,5 @@
 运行 `bash openspec/annotation-community/verify.sh` 与 `git diff --check`，但结构检查通过不能替代上述语义核对。请搜索四份正文是否残留 `client_seq`、取消删除状态行、超期同键视为新请求、幂等结果事务外回填、并发一律 409 等旧要求；历史审查记录中的引用不算现行规范。
 
 此次只修文档。机器 Schema、真实 notifier 映射、Firestore 故障注入、跨端 hash fixture 尚待对应任务交付；不要将文档修订直接标成业务 READY/ACCEPTED。PRD 产品范围、完整键盘方案 F-01 后置及其他上游依赖保持原边界。
+
+本轮复核重点：按 [独立复核报告 §4](REVIEW_R2_RESULT.md) 检查 RW-1～6；先运行 `bash openspec/annotation-community/review_r2_guard.sh`。同时确认顶层集合排序没有误排有序 selector、系统摘要不污染用户说明、备份与删除任务确实消费命令服务；已通过的 R2-01/02/05 做回归核对。

@@ -1,5 +1,14 @@
 # HANDOFF
 
+## 注解社区 v1.3 六项返工
+
+更新时间：2026-09-10
+当前分支/worktree：`codex/docs/knowledge-compilation`；`/Users/jingtaiwei/Git/Public/learn_system`
+刚完成：按审查提交 29c4ba3 补齐 RW-1～6，修订模型/数组规范化与 NC-010/017/019 命令恢复验收。
+进行到一半的事（精确到文件和章节）：正文 v1.3 等待独立语义复核，无业务实现验收声明。
+下一步（第一件事）：按 REVIEW_R2_RESULT.md §4 与 REVIEW_R2_CHECKLIST.md 再次复核。
+已知的坑：review_r2_guard.sh 是存在性守卫；G3 并发改动保持，不纳入本次提交。
+
 ## 注解社区 v1.2 五项协议修订（优先于下方历史结论）
 
 更新时间：2026-09-10

@@ -1,5 +1,10 @@
 # PLAN
 
+## 注解社区 R2 六项返工（v1.3）
+
+- [x] 按 29c4ba3 的 RW-1～6 补充字段、hash 顺序/来源和客户端/备份/清理命令验收。
+- [ ] 独立语义复核 v1.3；以 REVIEW_R2_RESULT.md §4 为判据，不能凭脚本通过升级执行状态。
+
 ## 注解社区 v1.1 补充复核
 
 - [x] 核实用户转来的 R1 报告与提交 9e6793a，重跑 verify.sh 为 0；补充语义复核见 `openspec/annotation-community/REVIEW_R2_FOLLOWUP.md`。
