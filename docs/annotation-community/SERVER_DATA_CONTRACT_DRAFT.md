@@ -4,6 +4,8 @@
 
 用途：交给负责书籍元数据、正文与 PublicationPackage 生成的 Agent 回执。本文不是已冻结 Schema，也不是实施授权；字段为消费侧提案，现有 OpenSpec 的身份与发布语义优先。双方确认后再生成正式 OpenAPI、JSON Schema、BDD 与执行工作包。
 
+配套：[模块复用调查与证据](MODULE_REUSE_AUDIT.md)、[客户端与服务端接入细化](CLIENT_SERVER_DESIGN_DETAIL_DRAFT.md)。书籍 U/A 协议仍待上游；存储、社交与通知已由新 Terra Agent 调研，不等待原开发者。
+
 ## 1. 请上游 Agent 先完成的回执
 
 1. 阅读 §2–§5，以及 [原件与阅读资产直接入库协议](BOOK_ASSET_DELIVERY_CONTRACT_DRAFT.md)，对 §9 的 U-01～U-09 和资产协议 A-01～A-06 逐项回复 `ACCEPT`、`CHANGE` 或 `UNAVAILABLE`。
@@ -99,7 +101,7 @@ Work、Edition、ReadingUnit、TextBlock 的字段名和 ID 格式尚未由本�
 | 逻辑集合 | 主要字段 | 约束 |
 |---|---|---|
 | `community_contents` | `content_id`, `kind: note/annotation`, `author_app_user_id`, `visibility: private/public`, `lifecycle: active/deleted`, `moderation_state: pending/allowed/hidden`, `head_revision_id`, `published_revision_id?`, `concurrency_rev`, 时间 | 容器不存未发布正文；身份由现有服务端认证解析，不信任客户端作者字段 |
-| `community_content_revisions` | `content_revision_id`, `content_id`, `parent_revision_id?`, `title`, `body_format: markdown/plain_text`, `body_inline` 或 `body_ref`, `body_hash`, `editor_id`, `change_summary?`, `created_at`, `restored_from?` | 不可变；每次有效保存新增修订；自动保存可归组展示但不覆盖已持久修订；引用和 @ 随修订保存 |
+| `community_content_revisions` | `content_revision_id`, `content_id`, `parent_revision_ids[]`, `title`, `body_format: markdown/plain_text`, `body_inline` 或 `body_ref`, `body_hash`, `editor_id`, `change_summary?`, `created_at`, `restored_from?` | 不可变；每次有效保存新增修订；普通修订一个 parent，首版为空，并发合并可多个；自动保存可归组展示但不覆盖已持久修订；引用和 @ 随修订保存 |
 | `community_publications` | `publication_id`, `content_id`, `content_revision_id`, `published_at`, `withdrawn_at?` | 记录曾发布事实；允许公众读取仍须当前容器公开且审核允许，不能只检查曾经发布过 |
 | `community_bindings` | `binding_id`, `content_id`, `content_revision_id`, `target_kind`, `target_ref`, `relation` | 草稿关联仅作者可查；公共关联索引从当前发布修订生成，不能提前暴露未发布引用 |
 | `community_anchors` / `community_anchor_resolutions` | §5 字段 | 原始引用与迁移结果分开 |
@@ -182,4 +184,4 @@ OpenAPI 覆盖身份要求、请求/响应、错误、枚举、空值、分页�
 
 外部参考仅用于借鉴，不替代本项目契约：[W3C 文本选区与状态](https://www.w3.org/TR/selectors-states/)、[Notion 发布及撤销链接访问](https://www.notion.com/help/public-pages-and-web-publishing)。
 
-顺序：上游回执 → 对齐数据与锚点，并确认私人存储的 S-01～S-05 接入与恢复语义 → 冻结正式规格/OpenAPI/Drift 映射 → 制作 BDD/TDD/ACT 工作包 → 审查 READY → 分阶段实现与真实链路验收。阅读 UI 与不依赖未决字段的原型讨论可继续；不得先实现互不兼容的两套书籍模型。
+顺序：上游回执 → 对齐数据与锚点，并按模块调查补齐私人存储 S-01～S-05 的设计与恢复语义 → 冻结正式规格/OpenAPI/Drift 映射 → 制作 BDD/TDD/ACT 工作包 → 审查 READY → 分阶段实现与真实链路验收。不依赖书籍字段的接入细化与文档可并行完成；不得先实现互不兼容的两套书籍模型。

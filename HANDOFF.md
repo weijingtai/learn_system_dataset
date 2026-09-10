@@ -13,11 +13,11 @@
 
 更新时间：2026-09-10
 当前分支/worktree：`codex/docs/knowledge-compilation`；`/Users/jingtaiwei/Git/Public/learn_system`
-刚完成：按用户要求写入 `docs/annotation-community/SERVER_DATA_CONTRACT_DRAFT.md`，供书籍元数据生成 Agent 回执；技术基线为 REST/OpenAPI 3.1/Swagger、Python Functions/Firestore、Flutter/Drift 及现有 Social/Notification。
-进行到一半的事（精确到文件和章节）：主草案 §9 U-01～U-09，以及新增 `BOOK_ASSET_DELIVERY_CONTRACT_DRAFT.md` §6 A-01～A-06 等待上游确认；资产稿已明确原件与派生阅读数据、对象存储/Firestore 分工及避免下游二次加工的交付要求。本轮不写业务实现或机器 Schema。
-下一步（第一件事）：用户转交书籍两份草案，收集上游真实字段、各格式样例及共同交付 Schema 回执；私人云同步本期方向已确认，另以 `PRIVATE_NOTES_STORAGE_DRAFT.md` 收集存储 S-01～S-05 回执。
-私人存储新发现：StoragePolicy.private 允许 cloud/LAN/WebRTC，不能据此声称长期备份已实现；旧 S6 文档要求 relay 同步后删除，已读 Firebase BlobGateway 为内存 fake。私人修订建议云端密文，公共发布用独立投影，密钥恢复和真实云网关必须核实。
-已知的坑：D-06 未冻结；通知适配尚需核实，ACK 拒绝行为的接入文档与代码有矛盾；私人内容不是可清理缓存，公开收回不能承诺抹除已离线持有的字节。
+刚完成：三位 Terra 只读调研存储、社交通知、客户端/Repository，主 Agent 核对关键代码；新增 `docs/annotation-community/MODULE_REUSE_AUDIT.md` 与 `CLIENT_SERVER_DESIGN_DETAIL_DRAFT.md`，同步私人存储、主数据草案和冷启动文档。
+进行到一半的事（精确到文件和章节）：书籍主草案 §9 U-01～U-09 与资产稿 §6 A-01～A-06 等上游；非书籍部分已形成接入细化但未冻结。自动保存 2 秒、回收站 30 天、图片本期/通用附件后置均为候选，不冒充用户已批准。本轮不写业务实现或机器 Schema。
+下一步（第一件事）：审阅接入细化稿；补齐密钥恢复/设备授权协议与候选默认值，再冻结正式规格/OpenAPI/工作包。书籍回执独立推进；不再等待已离场的 storage/social/notification 开发 Agent。
+私人存储新发现：有真实 Firestore/RTDB row SDK 和 generic upsert，但当前 RecordOutboxMapper 明文 JSON 不能用于私人正文；云 blob 生产适配、长期备份和跨设备密钥恢复未见完整实现。IM guard 当前未比较传入设备 ID/指纹，不能直接当笔记授权证明。
+已知的坑：Notification 管线有实现，生产业务接线不足；ReceiptRejected 是停止整批并报告；旧通知查重非原子且不适用多收件人。notebook 保存覆盖旧 committed，内存降级仍返回成功，不可当永久修订库。既有 OpenAPI 有 operation headers 非规范结构，字段断言测试不代表合规。D-06 未冻结；收回只能阻止后续访问，公共媒体不能发绕过 ACL 的永久 URL。
 
 ## G3 线原交接
 

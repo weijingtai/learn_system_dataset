@@ -2,7 +2,9 @@
 
 状态：`DRAFT_FOR_STORAGE_REVIEW`；2026-09-10。
 
-用户已确认本期方向：私人笔记支持端到端通信/同步，并允许云端备份；优先复用 xuan-storage。本文记录源码调查与接入提案，不声称备份已可运行。加密备份和恢复细节需与存储维护者对齐。
+用户已确认本期方向：私人笔记支持端到端通信/同步，并允许云端备份；优先复用 xuan-storage。本文记录源码调查与接入提案，不声称备份已可运行。加密备份和恢复细节仍需形成可验证接入协议。
+
+2026-09-10 补充：用户说明原开发 Agent 已离场，已改由 Terra 只读调研并经主 Agent 复核；结果见 [模块复用调查](MODULE_REUSE_AUDIT.md)。下面 S 表保留为接入核验编号，不再等待已离场人员回执。
 
 ## 1. 源码证据与复用范围
 
@@ -13,6 +15,7 @@
 | `core/lib/model/storage_policy.dart` | PrivatePolicy 恒含 cloud，可开 lan/webrtc/manualExport，声明 e2eeOverSse；SharedPolicy 只有 cloud | 复用策略声明，但通道允许不等于自动备份或生产加密链路已实现 |
 | `core/lib/model/storage_policy_registry.dart` | 按 entityType 注册策略，重复注册报错，未知类型拒绝放行 | 私有修订与公共发布投影应注册不同实体类型，不能只在同一类型上切 visibility |
 | `core/lib/core/sync_coordinator.dart` | 按通道协调待同步记录，区分不同通道的进度 | P2P 成功不能代替云备份成功；同一修订保持稳定 ID 去重 |
+| `firebase/lib/persistence_firebase.dart`、`firebase_realtime_remote_gateway.dart` | 存在真实 row 云 SDK；前者有 generic upsert 与 payloadJson pull | 可以复用云基础，但未证明笔记宿主装配；新私有 mapper 先加密，不能直接复用 RecordOutboxMapper 的明文 JSON |
 | `p2p/lib/device_pairing.dart`、`device_key_store.dart` | 设备配对、签名验证、持久设备身份已有实现 | 复用配对能力；同账号授权与设备吊销接入仍须验证，不能把设备签名等同账号授权 |
 | `drift/lib/blob/aes_gcm_blob_cipher.dart` | AES-GCM BlobCipher；注释规定每设备独立 DEK，当前 key version 为 1，轮换未实现 | 可复用加密组件，不把设备落盘密钥直接当跨设备恢复密钥 |
 | `drift/lib/blob/blob_cipher_registry.dart` | 私有 scope 无 cipher 时失败，不回退公开明文 | 新模块遵守失败规则，不在失败后明文上传 |
@@ -50,7 +53,7 @@
 - 检查 row 与 blob 的真实加密边界，不能因为 StoragePolicy 写 e2eeOverSse 就认为所有行已加密；本地整库加密也不由 BlobCipher 自动提供。
 - 验收需真实两设备同步、真实云端上传/下载、重启恢复、断网重试、重复投递、并发分支、账号隔离、私密转公开/收回及可理解的密钥不可恢复状态。纯 Fake 通过不算接通。
 
-## 5. 给存储维护者的回执
+## 5. 存储接入核验与调研结论
 
 | 编号 | 需要确认 | 要求证据 |
 |---|---|---|
@@ -60,4 +63,6 @@
 | S-04 | LAN/WebRTC 同账号配对、设备吊销与平台支持范围 | 身份授权校验、宿主接线和实际平台测试 |
 | S-05 | 云备份设置默认值、暂停/关闭、删除本地是否删除备份 | 既有设置/同步配置契约，避免新建相互冲突的开关 |
 
-请按 `ACCEPT / CHANGE / UNAVAILABLE` 回执，列实际代码与验证证据。本期端到端同步和云备份方向已确认，未决的是实现接入与恢复语义，不再把“是否需要云备份”作为阻断问题。
+核验结果：S-01 有策略/row SDK/同步框架，缺笔记加密 mapper 与宿主装配证据；S-02 缺生产 BlobGateway 和长期备份恢复编排，服务端现有 Playground 媒体生命周期不能代用；S-03 有本地 blob cipher，缺 row 上传加密与跨设备恢复；S-04 有配对和 IM guard，缺笔记同账号授权/吊销完整接线；S-05 有通用启停/软删，缺备份设置与保留契约。逐项证据及主 Agent 的 guard 复核见模块调查稿。
+
+这些缺口作为接入工作项由新执行包承接，不再等待原开发 Agent。本期端到端同步和云备份方向已确认，未决的是实现接入与恢复语义，不再把“是否需要云备份”作为阻断问题。

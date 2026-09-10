@@ -13,7 +13,9 @@
 - [x] 整理服务端数据结构协作草案：`docs/annotation-community/SERVER_DATA_CONTRACT_DRAFT.md`，包含上游书目/正文/版本消费要求、UGC 结构、REST/Drift/通知边界和 U-01～U-09 回执表；状态仅为讨论草案。
 - [ ] 收到上游 Agent 的真实 Schema、生成代码和样例包回执，对齐书目 ID、选区、版本与迁移契约。
 - [x] 用户确认私人笔记本期支持端到端同步，并允许云备份；源码调查与接入提案见 `docs/annotation-community/PRIVATE_NOTES_STORAGE_DRAFT.md`。
-- [ ] 存储维护者回执 S-01～S-05：生产云网关、row/blob 加密边界、密钥恢复、备份与 relay 清理隔离及设置语义。
+- [x] 用户授权三位 Terra 调研存储、社交通知和客户端模块；S-01～S-05 已由源码调查回答，见 `MODULE_REUSE_AUDIT.md`，无需等待已离场开发 Agent。调查不等于生产接通。
+- [x] 整理 `CLIENT_SERVER_DESIGN_DETAIL_DRAFT.md`：保存/发布/并发、删除/备份、Markdown 图片、两入口互动、业务命令与装配、分段验收；更新冷启动范围。
+- [ ] 明确密钥恢复/设备授权协议，审定候选默认值（自动保存、回收站、备份开关、图片范围），按调查缺口冻结存储/社交/通知接线和真实验收。
 - [ ] 对齐后冻结正式规格与 OpenAPI，准备可审查工作包；此前不实施业务代码。
 
 本节为独立讨论线，不取代下方黑箱返工执行序列。
