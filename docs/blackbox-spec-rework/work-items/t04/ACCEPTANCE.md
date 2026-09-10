@@ -1,6 +1,6 @@
 # T-04 主 Agent 验收清单
 
-状态：`REWORK_REQUIRED`（R1，2026-09-09）
+状态：`ACCEPTED`（R1 返工，2026-09-10）
 
 ## 1. Scope and Commits
 
@@ -31,4 +31,4 @@
 - [x] `SUBAGENT_TODO.md` 与 `PLAN.md` 对应项同步更新
 - [x] 主 Agent 标记 `ACCEPTED`
 
-最终结论：`REWORK_REQUIRED`。现有门禁仅证明代号和摘要存在，未证明权威 G1–G7 全文已经接线；返工项见 `../../reviews/G3-REVIEW-R1.md`。
+最终结论：`ACCEPTED`。G1–G7 强制语义已补齐；主 Agent 删除“风险簇全检”语义后门禁退出码为 1，全量规格门禁退出码为 0。
