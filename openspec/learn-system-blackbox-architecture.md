@@ -590,6 +590,12 @@ PublicationPackage
 
 建议一个 Technique 一个 Release，一个 Edition 一个 SourceAssetPack。每个子包、索引和编译报告都是独立 Artifact，不得只保留最终压缩包。
 
+`EvidenceMapPack` 提供从提炼知识到原始物理证据的端到端反向追溯映射与定位定义：
+
+- **完整无损证据链**：逐段写出完整无损证据链：`EvidenceLink → Assertion → SourceSpan → SourceAnchor → OcrPage / 字框坐标 → SourceAsset 页标识`。明确声明：SourceAnchor 作为发布期证据锚点必须随包发布，严禁留在 M3 内部而不进发布包；
+- **坐标系同源可换算强约束**：字框坐标系必须与 `SourceAssetPack` 中对应页图的像素尺寸同源可换算，保证客户端在渲染时能够实现精确高亮与原图叠绘，防止因缩放、旋转或不同切片导致无法定位与渲染；
+- **发布门禁检查**：该链路的完整性与引用闭合性是 `ValidationReport` 的 fail-closed 一票否决检查项；任一证据链断裂或悬空引用直接阻断 PublicationPackage 签发。
+
 `SourceAssetPack` 按权利状态选择内容级别：
 
 - `full_scan`：携带完整原始扫描，仅用于权利已确认允许分发的来源；
