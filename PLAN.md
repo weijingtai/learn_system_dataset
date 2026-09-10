@@ -2,6 +2,9 @@
 
 ## 注解社区线：跨 Agent 数据契约（2026-09-10）
 
+- [x] 补充 `docs/annotation-community/BOOK_ASSET_DELIVERY_CONTRACT_DRAFT.md`：影印/PDF/EPUB/TXT 原件与阅读材料、对象存储/Firestore 分工、统一生成交付格式、A-01～A-06 回执；仅草案。
+- [ ] 上游确认资产交付 A-01～A-06，确保下游不再二次 OCR、拆章、重编码或重分块。
+
 - [x] 整理服务端数据结构协作草案：`docs/annotation-community/SERVER_DATA_CONTRACT_DRAFT.md`，包含上游书目/正文/版本消费要求、UGC 结构、REST/Drift/通知边界和 U-01～U-09 回执表；状态仅为讨论草案。
 - [ ] 收到上游 Agent 的真实 Schema、生成代码和样例包回执，对齐书目 ID、选区、版本与迁移契约。
 - [ ] 用户确认私人笔记云备份/跨设备同步是否本期启用。

@@ -5,8 +5,8 @@
 更新时间：2026-09-10
 当前分支/worktree：`codex/docs/knowledge-compilation`；`/Users/jingtaiwei/Git/Public/learn_system`
 刚完成：按用户要求写入 `docs/annotation-community/SERVER_DATA_CONTRACT_DRAFT.md`，供书籍元数据生成 Agent 回执；技术基线为 REST/OpenAPI 3.1/Swagger、Python Functions/Firestore、Flutter/Drift 及现有 Social/Notification。
-进行到一半的事（精确到文件和章节）：草案 §9 U-01～U-09 等待上游确认；本轮不写业务实现或机器 Schema。
-下一步（第一件事）：用户转交该草案，收集上游真实字段与样例回执；同时确认私人云同步的本期范围。
+进行到一半的事（精确到文件和章节）：主草案 §9 U-01～U-09，以及新增 `BOOK_ASSET_DELIVERY_CONTRACT_DRAFT.md` §6 A-01～A-06 等待上游确认；资产稿已明确原件与派生阅读数据、对象存储/Firestore 分工及避免下游二次加工的交付要求。本轮不写业务实现或机器 Schema。
+下一步（第一件事）：用户转交两份草案，收集上游真实字段、各格式样例及共同交付 Schema 回执；同时确认私人云同步的本期范围。
 已知的坑：D-06 未冻结；通知适配尚需核实，ACK 拒绝行为的接入文档与代码有矛盾；私人内容不是可清理缓存，公开收回不能承诺抹除已离线持有的字节。
 
 ## G3 线原交接
