@@ -55,6 +55,27 @@ for obligation in 'ReleaseManifest' '最低 APP 版本' 'source_release=dev'; do
 done
 chk T-05 "evidence_level 两档"       ">=2"  "$(c 'offset_level\|glyphbox_level')"
 chk T-06 "EvidenceMapPack 有说明"    ">=2"  "$(c 'EvidenceMapPack')"
+evidence=$(sed -n '/`EvidenceMapPack` 提供/,/`SourceAssetPack` 按权利状态/p' "$SPEC")
+# Only numbered chain entries count.  This prevents prose elsewhere in §16
+# (or explanatory repeats after the chain) from satisfying an ordered check.
+evidence_ok=$(printf '%s\n' "$evidence" | awk '
+  BEGIN { n=0; ok=1 }
+  /^[[:space:]]*[1-7]\.[[:space:]]*/ {
+    n++
+    if ($0 ~ /^[[:space:]]*1\.[[:space:]]*`KnowledgeEntry`[[:space:]]*[；。]?[[:space:]]*$/) hit1++
+    else if ($0 ~ /^[[:space:]]*2\.[[:space:]]*`Assertion`[[:space:]]*[；。]?[[:space:]]*$/) hit2++
+    else if ($0 ~ /^[[:space:]]*3\.[[:space:]]*`EvidenceLink`[[:space:]]*[；。]?[[:space:]]*$/) hit3++
+    else if ($0 ~ /^[[:space:]]*4\.[[:space:]]*`SourceSpan`[[:space:]]*[；。]?[[:space:]]*$/) hit4++
+    else if ($0 ~ /^[[:space:]]*5\.[[:space:]]*`SourceAnchor`[[:space:]]*[；。]?[[:space:]]*$/) hit5++
+    else if ($0 ~ /^[[:space:]]*6\.[[:space:]]*`OcrPage \/ 字框坐标`[[:space:]]*[；。]?[[:space:]]*$/) hit6++
+    else if ($0 ~ /^[[:space:]]*7\.[[:space:]]*`SourceAsset 页标识`[[:space:]]*[；。]?[[:space:]]*$/) hit7++
+    else ok=0
+  }
+  END {
+    if (n != 7 || hit1 != 1 || hit2 != 1 || hit3 != 1 || hit4 != 1 || hit5 != 1 || hit6 != 1 || hit7 != 1) ok=0
+    print ok ? 1 : 0
+  }')
+chk T-06s "§16 证据链七项精确有序且闭合" "1" "$evidence_ok"
 
 dmiss=0; for d in concepts entries assertions applicability-rules school-views evidence-links source-spans source-anchors query-contract; do
   grep -q "$d" "$SPEC" 2>/dev/null || dmiss=$((dmiss+1)); done

@@ -655,7 +655,15 @@ PublicationPackage
 
 `EvidenceMapPack` 提供从提炼知识到原始物理证据的端到端反向追溯映射与定位定义：
 
-- **完整无损证据链**：逐段写出完整无损证据链：`EvidenceLink → Assertion → SourceSpan → SourceAnchor → OcrPage / 字框坐标 → SourceAsset 页标识`。明确声明：SourceAnchor 作为发布期证据锚点必须随包发布，严禁留在 M3 内部而不进发布包；
+- **完整无损证据链**：逐段写出并按以下固定顺序闭合（任何缺项、交换或悬空均拒绝）：
+  1. `KnowledgeEntry`；
+  2. `Assertion`；
+  3. `EvidenceLink`；
+  4. `SourceSpan`；
+  5. `SourceAnchor`；
+  6. `OcrPage / 字框坐标`；
+  7. `SourceAsset 页标识`。
+  每个 KnowledgeEntry 必须可追溯到至少一个 Assertion，EvidenceLink 不得绕过 Assertion；明确声明：SourceAnchor 作为发布期证据锚点必须随包发布，严禁留在 M3 内部而不进发布包；
 - **坐标系同源可换算强约束**：字框坐标系必须与 `SourceAssetPack` 中对应页图的像素尺寸同源可换算，保证客户端在渲染时能够实现精确高亮与原图叠绘，防止因缩放、旋转或不同切片导致无法定位与渲染；
 - **发布门禁检查**：该链路的完整性与引用闭合性是 `ValidationReport` 的 fail-closed 一票否决检查项；任一证据链断裂或悬空引用直接阻断 PublicationPackage 签发。
 
