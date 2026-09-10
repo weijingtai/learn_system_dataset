@@ -103,7 +103,7 @@ M1 Source Intake
 
 - `Artifact Ledger`：保存内容、Revision、血缘和运行记录；
 - `Local Orchestrator`：执行阶段状态机、Gate、暂停、恢复和重跑；
-- `Contract Registry`：管理所有 Package Schema、TechniqueProfile 和兼容规则。
+- `Contract Registry`：管理所有 Package Schema、TechniqueProfile 和兼容规则；`schemas/shared/canon` 与 `schemas/shared/homographs` 由其登记并作为 M4 的冻结输入 Artifact。
 
 `Review Console` 是跨人工阶段共用的交互 Interface，不是第九个加工 Module。现有 `pattern_knowledge_workbench` 向该 Interface 演进，分别呈现 M3 边界分歧、M4 提取分歧、M6 正式审核和 M7 汇编提案；人工决定始终归属发起该队列的 ProcessingRun、StepRun 和 Stage。
 
@@ -448,6 +448,33 @@ M3 把校订结果组织成可引用语料，不再静默纠正文义：
 M3 Gate 要求该 EditionPart 内同层 Span 全文覆盖 100%、无缺口、无重叠，拼接结果与该 Part 校订原文一致，未解决语义分歧为零。Edition 级覆盖率是全部 EditionPart 覆盖率的加权合取。
 
 ## 12. M4 Knowledge Extraction
+
+### 12.1 术语判层前置步骤（三层模型）
+
+依据 `knowledge_system/CROSS_TECHNIQUE_ONTOLOGY.md` §二与 §三 规范，在进行模型抽取前，术语识别按「先闭集、后开集」三步判层规则执行前置处理，把机器能确定的交给规则字典，只把真实歧义交给模型或人工：
+
+#### 1. L1 · 共享源数据层（shared canon）
+
+- **存放路径**：`schemas/shared/canon/`，一份全局表，不隶属任何单一技法；由 Contract Registry 登记并作为 M4 的冻结输入 Artifact。
+- **ID 规则**：`co_shared_<domain>_NN`，如 `co_shared_stem_01`（甲）、`co_shared_branch_01`（子）、`co_shared_wuxing_01`（木）。
+- **收录范围**：天干(10)、地支(12)、五行(5)、阴阳(2)、八卦(8)、地支藏干(映射)、十二长生(12)、纳音(60)等穷尽且不增长的闭集；各技法术语表统一引用而非重复定义。
+- **判定机制与效率红利**：**L1 匹配为确定性字典匹配路径，不调用大模型（免模型），零成本直接命中**并绑定 `co_shared_*`，保证零歧义与 100% 准确率，全技法只维护一份。
+
+#### 2. L2 · 同形异义层（homograph with per-technique senses）
+
+- **存放路径**：`schemas/shared/homographs/`，由 Contract Registry 登记并作为 M4 的冻结输入 Artifact。
+- **结构模型**：采用「一词条多义项」模型，覆盖二十八宿、九星、八神、神煞（如驿马）、星曜等字面相同但在各技法中含义与用法不同的词条。
+- **ID 规则**：字面（surface）共享全局锚 `homograph_id=hg_<4位数字>`（或 `hg_NNNN`，如 `hg_0042`）；每个技法下设独立义项，绑定带技法的概念标识 `concept_id=co_<technique>_<6位数字>`（如八字义项 `co_bazi_000042`、大六壬义项 `co_liuren_000042`、七政四余义项 `co_qizheng_000042`）。
+- **判定机制与禁令**：比对命中 homograph 表中的字面时，**必须在正文明确声明：命中时必须按当前技法选择对应义项绑定带技法的 concept_id，绝对禁止裸绑字面**。若在当前语境下无法确定义项，必须记录进入 uncertainties 待人工裁定，从源头杜绝跨技法串义。
+
+#### 3. L3 · 技法独有层（technique-private）
+
+- **存放路径**：维持现存各技法独立术语表，存放于 `schemas/techniques/<technique>/glossary_v0.yaml`。
+- **收录范围**：八字十神/格局/调候、奇门门/宫等只在单一技法中出现的独有词条，留在各自技法表。
+- **ID 规则**：`co_<technique>_<6位数字>`。
+- **判定机制**：未命中 L1 闭集字典且未命中 L2 同形表的字词，判定为技法新词，进入当前技法的新概念候选（`new_concept_candidates`），走后续抽取与审核流程。
+
+### 12.2 知识候选提取
 
 M4 将 SemanticSpan 分别提取为候选：
 
