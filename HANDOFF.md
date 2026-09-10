@@ -1,5 +1,14 @@
 # HANDOFF
 
+## 注解社区线四份文档 R1 审查与补全
+
+更新时间：2026-09-10（环境日期）
+当前分支/worktree：`codex/docs/knowledge-compilation`；`/Users/jingtaiwei/Git/Public/learn_system`
+刚完成：以四个只读角色（OpenSpec 规范、用户体验、BDD/TDD 就绪度、技术契约可行性）并行审查 `openspec/annotation-community/` 的 PRD/DESIGN/PLANS/TASKS v1.0，共 43 条阻断级缺陷（去重后 37 条），全部在 v1.1 中处置；新增 `REVIEW_R1.md` 缺陷台账与 `verify.sh` 结构校验器（FAIL 0）；24 个 NC 任务已登记进唯一监控表 `docs/blackbox-spec-rework/SUBAGENT_TODO.md` 的 G6 节，并新增 NC-025、拆分 NC-020a/b。
+进行到一半的事（精确到文件和章节）：`DESIGN.md` §2.1 的 15 个 UGC ID 前缀标为「需用户确认后冻结」，未确认前 NC-002 不得离开 `PREPARING`；四份文档尚无任何工作包六件套，也无 READY 任务。
+下一步（第一件事）：取得用户对 `DESIGN.md` §2.1 UGC ID 前缀的确认，然后按 `PLANS.md` §5 的首批顺序为 NC-001 生成工作包六件套。
+已知的坑：`xuan-server/functions-py/tests/conftest.py` 强制局域网 Emulator（192.168.0.165），且此前不在任何任务白名单内；`repository-rest-adapter` 既有 `openapi_validation_test.dart` 有 8 处断言要求非法的 operation 级 `headers:`，修正结构必然弄红；`xuan-storage` 的 firebase BlobGateway 自述为内存 fake，生产实现由新增的 NC-025 承接；`xuan-server/notifier` 是文档此前未提及的第 8 个仓库，持有 3.0.3 权威契约，与本系统 3.1 契约必须分开。
+
 ## 上下游生产交付核对
 
 更新时间：2026-09-09（环境日期）

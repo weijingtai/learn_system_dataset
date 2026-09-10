@@ -1,7 +1,7 @@
 # Subagent 工作总监控表
 
 状态：活动监控表
-更新时间：2026-09-09
+更新时间：2026-09-10
 维护者：主 Agent；执行 Agent 不得自行勾选
 
 ## 勾选规则
@@ -536,3 +536,61 @@
   - [ ] 最终质量审查通过
   - [ ] PLAN/HANDOFF 已同步
   - [ ] 用户确认进入实现阶段
+
+
+## G6 NC 注解社区线
+
+任务定义源：`openspec/annotation-community/TASKS.md`；本表持有流转状态，两处不得并存第二套状态源。
+需求与设计：`openspec/annotation-community/{PRD,DESIGN,PLANS}.md`；R1 审查登记：`openspec/annotation-community/REVIEW_R1.md`。
+四份文档已通过 `bash openspec/annotation-community/verify.sh`（FAIL 0）；该脚本只证明文档一致性，不证明业务可用。
+
+### 前置契约（可立即准备六件套）
+
+- [ ] NC-001：客户端位置、宿主、端口装配、设备与后端清单、验证器选型（状态：`BACKLOG`）
+- [ ] NC-002：非书籍模型、ID 前缀、状态机、限额、canonical 编码与 fixture（状态：`BACKLOG`；**须先取得用户对 Design §2.1 的 UGC ID 前缀确认，未确认前不得离开 `PREPARING`**）
+- [ ] NC-003：公共 REST/OpenAPI/Swagger 契约与错误目录（状态：`BACKLOG`）
+- [ ] NC-015：密钥恢复、设备授权与删除窗口协议（状态：`BACKLOG`；从零设计密码学协议，30–60 分钟 ACT 粒度不适用，须单独排期）
+- [ ] NC-020a：消费端书籍契约核对清单（状态：`BACKLOG`）
+- [ ] NC-025：生产 BlobGateway（公共 + 私有）（状态：`BACKLOG`；R1 新增，NC-008/017 的硬前置）
+
+### 本地笔记与编辑器
+
+- [ ] NC-004：Drift 修订与可靠保存（状态：`BACKLOG`）
+- [ ] NC-005：Markdown 编辑预览、状态与撤销栈裁定（状态：`BACKLOG`）
+- [ ] NC-006：Undo/Redo 与 IME/焦点（状态：`BACKLOG`）
+- [ ] NC-007：历史、差异、恢复与冲突处理旅程（状态：`BACKLOG`）
+
+### 图片与公开社区
+
+- [ ] NC-008：本地图片与公共资源适配（状态：`BACKLOG`）
+- [ ] NC-009：发布/更新/收回、权限事务与 ACL 全入口扫描（状态：`BACKLOG`）
+- [ ] NC-010：笔记列表、公开详情与发布 UI（状态：`BACKLOG`）
+- [ ] NC-011：两级评论/回复与编辑删除（状态：`BACKLOG`）
+- [ ] NC-012：赞踩/收藏/分享/@/关系与举报（状态：`BACKLOG`）
+
+### 通知
+
+- [ ] NC-013：事务事件、投递、通知正文与补拉端点（状态：`BACKLOG`）
+- [ ] NC-014：Notification 宿主适配、去重与导航（状态：`BACKLOG`）
+
+### 私人同步、备份与删除
+
+- [ ] NC-016：私人加密 mapper 与设备同步（状态：`BLOCKED`，等 NC-015）
+- [ ] NC-017：生产密文网关与备份清单（状态：`BLOCKED`，等 NC-015/NC-025）
+- [ ] NC-018：备份设置、进度与恢复（状态：`BLOCKED`，等 NC-015）
+- [ ] NC-019：回收站、恢复、永久清理（状态：`BLOCKED`，等 NC-018；本地回收站子 ACT 可先准备）
+
+### 书籍与真实 Tooltip
+
+- [ ] NC-020b：上游书籍政策/Schema/D-06/样例冻结（状态：`BLOCKED`，等上游交付）
+- [ ] NC-021：书籍上传、导入、激活与版本查询（状态：`BLOCKED`）
+- [ ] NC-022：原书阅读、原句注解与锚点解析（状态：`BLOCKED`）
+- [ ] NC-023：真实 Tooltip 原型与入口一致性（状态：`BLOCKED`）
+
+### 总验收
+
+- [ ] NC-024：跨模块真实验收与交接（状态：`BLOCKED`，等全部前置）
+  - [ ] R-01～R-20 全部在 `SPEC/ANNOTATION_COMMUNITY_ACCEPTANCE.md` 有 commit/命令/证据三元组
+  - [ ] 无障碍 A11Y-01～09 逐条给证据
+  - [ ] E-BOOK/E-CRYPTO/E-WIRING/E-NOTIFIER/E-BLOB/E-DEDUP 六项外部依赖状态如实登记，未完成不隐藏
+  - [ ] F-01～F-05 独立后续登记，不混入本期通过率
