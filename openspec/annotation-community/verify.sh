@@ -40,7 +40,7 @@ check(not broken, "相对链接全部可达", "; ".join(broken))
 
 # 2. R-01～R-20 在 PRD 定义且在 TASKS 以完整 ID 出现
 prd_r = set(re.findall(r"^\| (R-\d\d) \|", docs["PRD.md"], re.M))
-check(prd_r == {f"R-{i:02d}" for i in range(1, 21)}, "PRD 定义 R-01～R-20",
+check(prd_r == {f"R-{i:02d}" for i in range(1, 22)}, "PRD 定义 R-01～R-21",
       f"实际 {sorted(prd_r)}")
 tasks_r = set(re.findall(r"R-\d\d", docs["TASKS.md"]))
 missing = sorted(prd_r - tasks_r)

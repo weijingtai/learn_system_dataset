@@ -1,9 +1,9 @@
 # 笔记、原句注解与讨论 Tasks
 
-版本：1.4；2026-09-10（落实 FIX_V1_4 一次性修复说明；待抽查确认）。状态：`APPROVED_DESIGN`；执行状态：`NOT_STARTED`。
+版本：1.5；2026-09-10（新增 R-21 行为事件数据源，见 FIX_V1_5；待抽查确认）。状态：`APPROVED_DESIGN`；执行状态：`NOT_STARTED`。
 权威需求：[PRD](PRD.md)，技术依据：[Design](DESIGN.md)，根路径与执行门禁：[Plans](PLANS.md)，审查缺陷登记：[REVIEW_R1](REVIEW_R1.md)。下面路径使用 Plans §1 的精确根路径标记；标为「新增」的路径是任务产物，不声称当前文件存在。
 
-**状态枚举直接引用 [工作包门禁](../subagent-delivery-gate.md) §7 的七值枚举**（`BACKLOG / PREPARING / READY / DISPATCHED / REVIEWING / ACCEPTED / BLOCKED`），本文件不再自造释义。总表「初始状态」是登记时的取值；**流转中的当前状态以仓库唯一监控表 [`SUBAGENT_TODO.md`](../../docs/blackbox-spec-rework/SUBAGENT_TODO.md) 为准**，NC-001～NC-025 须在该表登记「NC 注解社区线」章节后方可开始流转，避免两处状态源并存。
+**状态枚举直接引用 [工作包门禁](../subagent-delivery-gate.md) §7 的七值枚举**（`BACKLOG / PREPARING / READY / DISPATCHED / REVIEWING / ACCEPTED / BLOCKED`），本文件不再自造释义。总表「初始状态」是登记时的取值；**流转中的当前状态以仓库唯一监控表 [`SUBAGENT_TODO.md`](../../docs/blackbox-spec-rework/SUBAGENT_TODO.md) 为准**，NC-001～NC-026 须在该表登记「NC 注解社区线」章节后方可开始流转，避免两处状态源并存。
 
 所有条目初始未完成。**本文件没有 READY 任务，不能凭自然语言直接派发业务编码。** 一项涉及多仓库时，六件套须拆为有序 ACT，分别限定写入所有权（见 [Plans §1.2](PLANS.md)）；其他 Agent 的改动不得回退。
 
@@ -27,6 +27,7 @@
 | NC-014 | Notification 宿主适配、去重与导航 | NC-010, NC-013 | BACKLOG | 仅 BDD，TDD 待 NC-013 | R-11, R-16 |
 | NC-015 | 密钥恢复、设备授权与删除窗口协议 | NC-001 | BACKLOG | BDD 可写，TDD 待协议样例格式确定 | R-12, R-13, R-14, R-20 |
 | NC-025 | **生产 BlobGateway（公共 + 私有）** | NC-001, NC-003 | BACKLOG | BDD 可写，TDD 待 NC-003 | R-15, R-13, R-20 |
+| NC-026 | 行为事件数据源、假名化与私人笔记元数据上报 | NC-002, NC-003, NC-005, NC-009 | BACKLOG | 仅 BDD，TDD 待 NC-002/003 | R-21 |
 | NC-016 | 私人加密 mapper 与设备同步 | NC-004, NC-015 | BLOCKED | 仅「密文无明文」负向断言可先写 | R-12, R-20 |
 | NC-017 | 生产密文网关与备份清单 | NC-003, NC-015, NC-025, NC-009 | BLOCKED | 待 NC-015 | R-13, R-20 |
 | NC-018 | 备份设置、进度与恢复 | NC-008, NC-016, NC-017 | BLOCKED | 待 NC-015 | R-12, R-13 |
@@ -36,7 +37,7 @@
 | NC-021 | 书籍上传、导入、激活与查询 | NC-003, NC-020b | BLOCKED | 均待上游 | R-17, R-20 |
 | NC-022 | 阅读、原句注解与锚点解析 | NC-004, NC-020b, NC-021 | BLOCKED | 均待上游 | R-06, R-07, R-17 |
 | NC-023 | 真实 Tooltip 原型与入口一致性 | NC-010, NC-012, NC-014, NC-022 | BLOCKED | 均待上游 | R-07, R-19 |
-| NC-024 | 跨模块真实验收与交接 | NC-003, NC-006, NC-007, NC-008, NC-009, NC-010, NC-011, NC-012, NC-013, NC-014, NC-016, NC-018, NC-019, NC-021, NC-022, NC-023, NC-025 | BLOCKED | 待全部前置 | R-01～R-20 |
+| NC-024 | 跨模块真实验收与交接 | NC-003, NC-006, NC-007, NC-008, NC-009, NC-010, NC-011, NC-012, NC-013, NC-014, NC-016, NC-018, NC-019, NC-021, NC-022, NC-023, NC-025, NC-026 | BLOCKED | 待全部前置 | R-01～R-21 |
 
 需求 ID 使用完整形式（不用 `R-09/10/20` 压缩写法），以便 `verify.sh` 的双向闭环断言可机械核对。
 
@@ -52,7 +53,7 @@
 
 ### 1.2 共享文件写入所有权
 
-见 [Plans §1.2](PLANS.md)。特别注意 `SERVER/tests/conftest.py`：它强制 Emulator 主机并硬编码 `COLLECTIONS` 清理清单，此前不在任何任务白名单内，新增社区集合会导致用例互相污染。本版将其纳入 NC-009/011/012/013/017/019/021 的白名单，**仅允许向 `COLLECTIONS` 追加键**。
+见 [Plans §1.2](PLANS.md)。特别注意 `SERVER/tests/conftest.py`：它强制 Emulator 主机并硬编码 `COLLECTIONS` 清理清单，此前不在任何任务白名单内，新增社区集合会导致用例互相污染。本版将其纳入 NC-009/011/012/013/017/019/021/026 的白名单，**仅允许向 `COLLECTIONS` 追加键**。
 
 NC-019 可先准备本地回收站子 ACT，但完整清理验收等待备份协议；NC-020 的协调文档可现在准备，不能越过上游政策冻结。状态解锁须记录证据，不只删除 BLOCKED 字样。
 
@@ -62,8 +63,8 @@ NC-019 可先准备本地回收站子 ACT，但完整清理验收等待备份协
 
 - [ ] 读取现有 SOCIAL/STORAGE/REST/NOTIFICATION 及候选 CLIENT 的 AGENTS、pubspec、导出与真实调用；确认是否已有可复用学习包。当前相邻 learn_system 不是 Flutter 包。
 - [ ] 新增 `SPEC/INTEGRATION_BASELINE.md`，冻结 CLIENT 实际根、包名、Flutter/Dart 版本、各依赖精确范围、宿主初始化/账号/HTTP/存储/IM 导航注入点、各仓库基线提交。若改变拟建目录，回写所有任务路径。
-- [ ] `INTEGRATION_BASELINE.md` 必填项（R1 补入，此前 NC-016/018/023 引用了本任务从未承诺的产物）：① **设备清单表**（device_id、平台、系统版本、是否可作 P2P 对端，至少两台）；② **测试后端表**（project_id、命名空间前缀 `nc_<日期>_<短哈希>`、测试账号 uid ↔ app_user_id 对、凭据注入方式）；③ **Emulator 实值**（`FIRESTORE_EMULATOR_HOST`、`FIREBASE_AUTH_EMULATOR_HOST`、`GCLOUD_PROJECT`）与启动方式；④ 每个外部仓库的当前 HEAD、当前测试基线（退出码 + 用例数）、是否允许写入及精确写入路径；⑤ **OpenAPI 3.1 验证器实值**（名称 + 精确版本 + 安装方式 + 离线失败行为）；⑥ `flutter_markdown_plus` 的选型依据、精确版本范围（workspace 内 pub-cache 现为 1.0.12，但**无任何 pubspec 引用它**，属新依赖）与离线 pub-cache 失败策略；⑦ Firestore 安全规则文件路径；⑧ 通知回跳挂靠哪一套 notification 表现层（`social/lib/src/notification/` 与 `notification/lib/src/` 并存）；⑨ 宿主 notification 是否支持「按内容静音」与「聚合」粒度，不支持则登记为 E-WIRING 缺口。
-- [ ] 新增 `SPEC/tools/check_integration_baseline.py`。红条件：`INTEGRATION_BASELINE.md` 含 `TBD`/`待定`/`?` 占位、或 CLIENT 根路径在文件系统中不存在、或任一端口缺 `文件:符号` 形式、或上述九项必填项任一缺失。
+- [ ] `INTEGRATION_BASELINE.md` 必填项（R1 补入，此前 NC-016/018/023 引用了本任务从未承诺的产物）：① **设备清单表**（device_id、平台、系统版本、是否可作 P2P 对端，至少两台）；② **测试后端表**（project_id、命名空间前缀 `nc_<日期>_<短哈希>`、测试账号 uid ↔ app_user_id 对、凭据注入方式）；③ **Emulator 实值**（`FIRESTORE_EMULATOR_HOST`、`FIREBASE_AUTH_EMULATOR_HOST`、`GCLOUD_PROJECT`）与启动方式；④ 每个外部仓库的当前 HEAD、当前测试基线（退出码 + 用例数）、是否允许写入及精确写入路径；⑤ **OpenAPI 3.1 验证器实值**（名称 + 精确版本 + 安装方式 + 离线失败行为）；⑥ `flutter_markdown_plus` 的选型依据、精确版本范围（workspace 内 pub-cache 现为 1.0.12，但**无任何 pubspec 引用它**，属新依赖）与离线 pub-cache 失败策略；⑦ Firestore 安全规则文件路径；⑧ 通知回跳挂靠哪一套 notification 表现层（`social/lib/src/notification/` 与 `notification/lib/src/` 并存）；⑨ 宿主 notification 是否支持「按内容静音」与「聚合」粒度，不支持则登记为 E-WIRING 缺口；⑩ 宿主账号注销与本人彻底删除账号事件的来源、送达语义（至少一次还是恰好一次）与测试方式，供 NC-026 消费。
+- [ ] 新增 `SPEC/tools/check_integration_baseline.py`。红条件：`INTEGRATION_BASELINE.md` 含 `TBD`/`待定`/`?` 占位、或 CLIENT 根路径在文件系统中不存在、或任一端口缺 `文件:符号` 形式、或上述十项必填项任一缺失。
 - [ ] 验收：每个端口列真实文件/符号和「已有实现/新增适配」，不把 mock 或内存降级当生产；目录/版本未唯一确定则本任务不通过。运行 `python3 SPEC/tools/check_integration_baseline.py`，退出 0。
 
 ### NC-002：模型与固定行为契约
@@ -81,7 +82,7 @@ NC-019 可先准备本地回收站子 ACT，但完整清理验收等待备份协
 
 ### NC-003：公共 API 与 Swagger
 
-- [ ] 修改 `REST/openapi/openapi.yaml`，新增社区公共资源/命令/错误/分页/ETag/幂等；请求头一律用 `in: header` 的 header parameters。**该文件由四个任务串行写入：NC-003 → NC-013 → NC-017 → NC-021**，后继任务以前一个产出为基线重跑契约测试。密码学/书籍扩展在 NC-017/021 合并至同一入口，不伪造已冻结字段。
+- [ ] 修改 `REST/openapi/openapi.yaml`，新增社区公共资源/命令/错误/分页/ETag/幂等；请求头一律用 `in: header` 的 header parameters。**该文件由五个任务串行写入：NC-003 → NC-013 → NC-017 → NC-021 → NC-026**，后继任务以前一个产出为基线重跑契约测试。密码学/书籍扩展在 NC-017/021 合并至同一入口，不伪造已冻结字段。
 - [ ] **写入白名单必须包含既有的 `REST/test/openapi_validation_test.dart`**：该文件现有 8 处断言（第 147/148/161/217-218/239-240/292/307 行附近）正好**要求** operation 级 `headers:` 存在，修正结构必然弄红。README 记录改前基线（当前 `dart test` 退出码与用例数），ACT 中把「迁移 8 处断言到 `in: header`」作为独立步骤，以便区分既有失败与本任务新增失败。
 - [ ] 落地 [Design §7.3](DESIGN.md) 的**错误目录**：每个场景唯一 HTTP 状态码 + 唯一 `code` + Problem Details 附加字段；不得保留「403 或 404」这类二选一。`conflict.idempotency` 沿用 SERVER 仓 `tests/test_playground_rest_writes.py` 的既有命名。限流阈值与 `retry_after_seconds` 填实值，未填实值前 `429` 不写入验收。
 - [ ] 按 Design §7.4 定义 command_id=Idempotency-Key、唯一键 (owner_scope, command_id)、payload_hash（含 operation）、命令查询端点与恢复错误。完整结果保留 14 天，精简账本持续去重；超期同键绝不新建业务。reaction If-Match、expected_access_version、原始 applied_version 与当前状态读取分别建 Schema/HTTP 正反例。
@@ -195,6 +196,17 @@ R1 核验发现的独立缺口：`STORAGE/firebase/lib/media/blob_gateway_fireba
 - [ ] 测快速切换的乱序/重试、两账号计数、失权目标、空候选、名字重复但 ID 不同、四类无效 mention；**关系与互动的业务结果**必须走实际宿主注入，不接受本地翻转/mock 关系——但单测中注入可控 `ApiClient` 网络故障来模拟离线是允许的（[Design §9.2](DESIGN.md)），两者不冲突。
 - [ ] 运行 `python3 -m pytest tests/test_community_interactions.py -q`、`flutter test test/community/interactions_test.dart`。
 
+### NC-026：行为事件数据源与假名化
+
+- [ ] 新增 `SERVER/xuan/community/behavior_events.py`、`xuan/community/pseudonyms.py`、`xuan/handlers/analytics_events.py`、`tests/test_behavior_events.py`；新增 `CLIENT/lib/src/analytics/private_note_metrics.dart`、`test/analytics/private_note_metrics_test.dart`。在同一 3.1 OpenAPI 中增加 `POST /v1/analytics/events`（串行写入排在 NC-021 之后，见 [Plans §1.2](PLANS.md)）。写入白名单含 `SERVER/tests/conftest.py`（仅追加 `COLLECTIONS` 键）与 Firestore 安全规则文件。
+- [ ] 沿用 NC-002 的机器 Schema 范式，为 BehaviorEvent、PseudonymMapping 补正反 Schema：负例逐项覆盖 [Design §11.2](DESIGN.md) 的禁止字段；`bev_`、`psn_` 前缀随 Design §2.1 一并取得用户确认。
+- [ ] **服务端事件**：由 NC-009 的 command_service 在同一事务内追加，event_id 按 Design §11.2 确定性派生。测试：注入「业务写入后、事务提交前」异常，断言既无业务记录也无事件；事务回调重跑与同键重试后事件只有一条；rejected 命令不产生事件；Design §2.1.1 目录中每个 operation 在 committed 后恰有一条同名事件。
+- [ ] **只追加**：Firestore 安全规则测试断言对 BehaviorEvent 的 update 与 delete 均被拒绝；静态扫描断言服务端代码中不存在对该集合的更新或删除调用。
+- [ ] **假名**：断言 actor_pseudonym 由密码学安全随机数生成（同一 account_id 在两个独立测试库中得到不同假名）；事件集合中没有任何字段等于 account_id。
+- [ ] **注销**：模拟宿主注销事件后，断言该账号的 PseudonymMapping 已删除、行为事件条数不变；扫描本系统全部集合，不再有任何字段等于该 account_id（公开内容与评论作者显示为「已注销用户」，Design §11.3 列出的个人记录已删除）；把逐集合处理清单写入工作包 README。注销事件来源取自 NC-001 登记的第⑩项，缺证时本子项保持 BLOCKED，其余子项继续。
+- [ ] **私人笔记元数据（默认上报）**：`private_note.revision_saved` 与 `private_note.session_ended` 只含 Design §11.4 列出的字段；对上报请求的原始字节断言不含 fixture 笔记的标题、正文片段、附件名与 note_id 原值；char_count 按 code point 计数（含一个 4 字节字符的用例）；离线暂存超过 10,000 条时丢弃最旧事件，并在下一条上报事件中带 `dropped_before`；服务端按 event_id 去重，重复上报只存一条。
+- [ ] 运行 `python3 -m pytest tests/test_behavior_events.py -q`（需 Emulator）与 `flutter test test/analytics/private_note_metrics_test.dart`。
+
 ## 5. 通知
 
 ### NC-013：业务投递与服务端通知契约
@@ -306,10 +318,10 @@ R1 核验发现的独立缺口：`STORAGE/firebase/lib/media/blob_gateway_fireba
 
 ### NC-024：全链路验收与交接
 
-- [ ] 新增 `SPEC/ANNOTATION_COMMUNITY_ACCEPTANCE.md`（与 gate §2 的工作包内 `ACCEPTANCE.md` 及未来的 `openspec/acceptance/run_all.sh` 总入口区分命名）、`CLIENT/example/integration_test/notes_full_flow_test.dart`，逐项映射 R-01～R-20 到提交、命令、真实数据与截图/录屏（适用时），不能只记录测试数。
+- [ ] 新增 `SPEC/ANNOTATION_COMMUNITY_ACCEPTANCE.md`（与 gate §2 的工作包内 `ACCEPTANCE.md` 及未来的 `openspec/acceptance/run_all.sh` 总入口区分命名）、`CLIENT/example/integration_test/notes_full_flow_test.dart`，逐项映射 R-01～R-21 到提交、命令、真实数据与截图/录屏（适用时），不能只记录测试数。
 - [ ] 主 Agent 复核所有子包依赖、范围、原始证据与失败路径；检查 Undo/Redo/IME、重启、云恢复、ACL 全入口、并发评论/outbox、双入口和修订迁移。
 - [ ] 无障碍总验收（PRD §4.1）：A11Y-01～09 逐条给证据，含纯键盘走完发布全程、读屏朗读三态与撤销禁用态、320/375/414 × 100%/200% 快照、灰阶下失败态可识别、深浅两模式。
-- [ ] 新增 `SPEC/tools/check_r_coverage.py`。红条件：R-01～R-20 中任一项在 `ANNOTATION_COMMUNITY_ACCEPTANCE.md` 里缺 commit / 命令 / 证据三元组。运行 `python3 SPEC/tools/check_r_coverage.py` 与 `flutter test integration_test/notes_full_flow_test.dart -d <NC-001 设备表中的 device_id>`，均退出 0。
+- [ ] 新增 `SPEC/tools/check_r_coverage.py`。红条件：R-01～R-21 中任一项在 `ANNOTATION_COMMUNITY_ACCEPTANCE.md` 里缺 commit / 命令 / 证据三元组。运行 `python3 SPEC/tools/check_r_coverage.py` 与 `flutter test integration_test/notes_full_flow_test.dart -d <NC-001 设备表中的 device_id>`，均退出 0。
 - [ ] 更新各工作包验收、总表与 `SUBAGENT_TODO.md`；未完成项保持未勾选。输出配置/部署/迁移/恢复说明及准确版本组合，不把 F 项算本期欠交，也不把 E 依赖未完成隐藏掉。
 
 ## 9. 后续版本登记（当前不执行）

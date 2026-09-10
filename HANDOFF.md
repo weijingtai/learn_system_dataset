@@ -1,5 +1,14 @@
 # HANDOFF
 
+## 注解社区 v1.5 同步
+
+更新时间：2026-09-10
+当前分支/worktree：`codex/docs/knowledge-compilation`；`/Users/jingtaiwei/Git/Public/learn_system`
+刚完成：按 FIX_V1_5.md 的 V5-01～11 完成 40 处精确替换，覆盖 9 份文件；新增 R-21、NC-026 和行为事件规范。逐字重放核对通过，LC_ALL=C 下 review_v1_5_guard.sh 与 verify.sh 通过，格式检查通过。
+进行到一半的事（精确到文件和章节）：v1.5 文档已同步，待独立语义抽查；未实现业务代码、采集服务或机器 Schema。
+下一步（第一件事）：按 FIX_V1_5.md 复核；NC-001 工作包及 INTEGRATION_BASELINE.md/JSON 当前仍是 v1.4 九项基线，进入 READY 前须同步新增的第十项“宿主账号注销事件来源、投递与测试”。
+已知的坑：本机守卫须使用 LC_ALL=C 避免中文汇总行的 Bash 变量解析问题；结构守卫通过不代表业务验收通过。G3 并发改动不纳入本次提交；书籍盘点继续暂缓。
+
 ## 注解社区：NC-001 开工准备
 
 更新时间：2026-09-10

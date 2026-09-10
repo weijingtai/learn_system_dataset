@@ -115,7 +115,7 @@ check("review_final_guard.sh" in checklist and "v1.3" not in checklist, "FIX-17 
 
 # FIX-18：版本号与变更记录
 heads = {k: "\n".join(t.splitlines()[:12]) for k, t in four.items()}
-bad = [k for k, h in heads.items() if "版本：1.4" not in h]
+bad = [k for k, h in heads.items() if not re.search(r"版本：1\.[4-9]", h)]
 check(not bad and "v1.4：落实 FIX_V1_4" in section(prd, r"^## 9\. "), "FIX-18 四份文档为 1.4 且 PRD §9 有记录", f"未升版={bad}")
 
 print(f"\nFIX 失败条数：{fails}")

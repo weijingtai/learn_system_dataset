@@ -8,7 +8,7 @@
 
 **Tech Stack:** Flutter、flutter_markdown_plus、Drift、现有 Repository/Storage；Python Firebase Functions、Firestore、对象存储；REST/OpenAPI 3.1/Swagger。
 
-版本：1.4；2026-09-10（落实 FIX_V1_4 一次性修复说明；待抽查确认）。状态：`APPROVED_DESIGN`；执行状态：`NOT_STARTED`，尚非执行包 READY。
+版本：1.5；2026-09-10（新增 R-21 行为事件数据源，见 FIX_V1_5；待抽查确认）。状态：`APPROVED_DESIGN`；执行状态：`NOT_STARTED`，尚非执行包 READY。
 依据：[PRD](PRD.md)、[Design](DESIGN.md)、[Tasks](TASKS.md)；准出规则：[工作包门禁](../subagent-delivery-gate.md)；审查缺陷登记：[REVIEW_R1](REVIEW_R1.md)。
 
 ## 1. 目录与文件职责
@@ -41,9 +41,9 @@ gate §3.2 第 8 条要求 PROMPT 含允许/禁止范围。每个 NC 的 `SCOPE.
 
 | 共享文件 | 写入顺序 | 说明 |
 |---|---|---|
-| `REST/openapi/openapi.yaml` | NC-003 → NC-013 → NC-017 → NC-021 | 唯一 3.1 权威入口；`NOTIFIER/api/openapi.yaml` 全程只读 |
+| `REST/openapi/openapi.yaml` | NC-003 → NC-013 → NC-017 → NC-021 → NC-026 | 唯一 3.1 权威入口；`NOTIFIER/api/openapi.yaml` 全程只读 |
 | `REST/test/openapi_validation_test.dart` | NC-003（唯一） | 该文件现有 8 处断言要求非法的 operation 级 `headers:`，修正结构必然弄红；必须进入 NC-003 白名单并在 README 记录改前基线 |
-| `SERVER/tests/conftest.py` | NC-009 → NC-011 → NC-012 → NC-013 → NC-017 → NC-019 → NC-021 | **仅允许向 `COLLECTIONS` 追加键**，不得修改其他内容。该文件此前不在任何任务白名单内，会导致新增社区集合无法清理、用例互相污染 |
+| `SERVER/tests/conftest.py` | NC-009 → NC-011 → NC-012 → NC-013 → NC-017 → NC-019 → NC-021 → NC-026 | **仅允许向 `COLLECTIONS` 追加键**，不得修改其他内容。该文件此前不在任何任务白名单内，会导致新增社区集合无法清理、用例互相污染 |
 | `SERVER/xuan/config.py`、`SERVER/main.py` | NC-009 → NC-013 → NC-017 → NC-021 | 仅追加路由/配置注册 |
 | `SPEC/contracts/`、`SPEC/fixtures/` | NC-002 → 各消费任务只读 | 消费任务不得修改 fixture 以迁就实现 |
 
@@ -55,7 +55,7 @@ gate §3.2 第 8 条要求 PROMPT 含允许/禁止范围。每个 NC 的 `SCOPE.
 |---|---|---|---|
 | P0 契约与选址 | NC-001～003 | 实际文件映射、依赖版本、非书籍领域契约、OpenAPI | 输入唯一、正反 fixture 明确、真正规范验证通过 |
 | P1 独立本地笔记 | NC-004～007 | Drift 修订、Markdown 编辑、Undo/Redo、历史冲突 | 真文件重启恢复；IME/撤销/自动保存测试；不依赖书籍 |
-| P2 媒体与公开社交 | NC-025, NC-008～012 | 私人图片本地引用、发布权限、页面、评论/互动 | 两账号真实 HTTP；私改不公开；收回不泄漏；计数幂等 |
+| P2 媒体与公开社交 | NC-025, NC-008～012, NC-026 | 私人图片本地引用、发布权限、页面、评论/互动 | 两账号真实 HTTP；私改不公开；收回不泄漏；计数幂等 |
 | P3 通知 | NC-013～014 | outbox/delivery API、Notification 与导航 | 回复/@ 去重、失败补拉、可靠 ACK、点击定位 |
 | P4 同步与备份 | NC-015～019 | 密钥协议先行、P2P/云网关/恢复/删除 | 两设备真实链路及全设备丢失恢复；删除无复活 |
 | P5 书籍与 Tooltip | NC-020a/b～023 | 上游政策/Schema 后接导入、阅读、原句与原型 | 真实样例精准选区、跨版解释、两入口同讨论 |
@@ -115,7 +115,7 @@ Tasks 中 NC-xxx 是有范围和验收点的工作项；体积较大时拆为多
 
 ## 7. 交付与完成
 
-最终交付包括 Flutter 功能包/可运行验收宿主、Python handlers 与存储规则/索引、生产 BlobGateway、本系统 3.1 OpenAPI/Swagger（notifier 3.0.3 只引用）、迁移与配置说明、BDD/TDD/ACT、真实链路证据和使用说明。所有 R-01～R-20 在 Tasks 有映射且在 PRD §3.1 有断言点；F 项独立后续登记，不混入本期通过率。
+最终交付包括 Flutter 功能包/可运行验收宿主、Python handlers 与存储规则/索引、生产 BlobGateway、本系统 3.1 OpenAPI/Swagger（notifier 3.0.3 只引用）、迁移与配置说明、BDD/TDD/ACT、真实链路证据和使用说明。所有 R-01～R-21 在 Tasks 有映射且在 PRD §3.1 有断言点；F 项独立后续登记，不混入本期通过率。
 
 任务状态由主 Agent 更新；跨仓库提交各自保留，记录对应版本组合，禁止主 Agent 擅自合并到 main/master。本设计文档输出完成不等于业务开发完成。
 
@@ -123,4 +123,4 @@ Tasks 中 NC-xxx 是有范围和验收点的工作项；体积较大时拆为多
 
 五项修订以 [Design](DESIGN.md) §4.4/§6.2.1/§7.2/§7.4 为准，具体反例已进入 NC-002/003/004/009/011/012/013/014；NC-007 的历史恢复也消费 v2 规则。先完成契约与成对 fixture，再执行依赖任务。通知可信映射缺证只阻断 NC-013/014 对应链路，书籍类型未冻结只阻断对应原句契约；不得凭本轮文档检查将任何任务升级为 READY 或 ACCEPTED。独立复核入口：[五项复核清单](REVIEW_R2_CHECKLIST.md)。
 
-RW-1～6 补全：NC-002 冻结集合排序、说明来源、命令/桥接类型及标识反例；NC-010 接客户端持久队列恢复；NC-017 显式依赖 NC-009 并复用命令服务；NC-019 验证删除清理命令恢复。v1.4 起验收顺序为 `review_final_guard.sh`（内含 R2、R3 守卫回归）→ `verify.sh` → 按 [一次性修复说明](FIX_V1_4.md) §5 的抽查点确认；脚本通过不等于业务验收。
+RW-1～6 补全：NC-002 冻结集合排序、说明来源、命令/桥接类型及标识反例；NC-010 接客户端持久队列恢复；NC-017 显式依赖 NC-009 并复用命令服务；NC-019 验证删除清理命令恢复。v1.5 起验收顺序为 `review_v1_5_guard.sh`（内含 review_final_guard.sh 及 R2、R3 守卫回归）→ `verify.sh` → 按 [FIX_V1_5](FIX_V1_5.md) §6 的抽查点确认；脚本通过不等于业务验收。

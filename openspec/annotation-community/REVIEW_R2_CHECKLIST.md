@@ -1,6 +1,6 @@
 # R2 五项修订复核入口
 
-日期：2026-09-10。状态：`DOC_REVISED_PENDING_REVIEW`。请只读复核现有 PRD、DESIGN、PLANS、TASKS v1.4，逐项回答“通过/不通过＋文件章节证据＋残余问题”。历史发现保留在 [R2 记录](REVIEW_R2_FOLLOWUP.md)，本清单不代表实现验收通过。
+日期：2026-09-10。状态：`DOC_REVISED_PENDING_REVIEW`。请只读复核现有 PRD、DESIGN、PLANS、TASKS v1.5，逐项回答“通过/不通过＋文件章节证据＋残余问题”。历史发现保留在 [R2 记录](REVIEW_R2_FOLLOWUP.md)，本清单不代表实现验收通过。
 
 | 项 | 检索入口 | 必须反证的场景 |
 |---|---|---|
@@ -14,4 +14,4 @@
 
 此次只修文档。机器 Schema、真实 notifier 映射、Firestore 故障注入、跨端 hash fixture 尚待对应任务交付；不要将文档修订直接标成业务 READY/ACCEPTED。PRD 产品范围、完整键盘方案 F-01 后置及其他上游依赖保持原边界。
 
-本轮复核重点（v1.4）：先运行 `bash openspec/annotation-community/review_final_guard.sh`（内含 R2、R3 守卫回归，必须 0 失败），再按 [一次性修复说明](FIX_V1_4.md) §5 的抽查点逐条确认。修复说明列出的是本线文档层全部已知问题，按其完成判定通过即结束文档复核。
+本轮复核重点（v1.5）：先运行 `bash openspec/annotation-community/review_v1_5_guard.sh`（内含 review_final_guard.sh 及 R2、R3 守卫回归，必须 0 失败），再按 [FIX_V1_5](FIX_V1_5.md) §6 的抽查点逐条确认。修复说明列出的是本线文档层全部已知问题，按其完成判定通过即结束文档复核。

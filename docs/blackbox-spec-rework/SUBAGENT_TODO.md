@@ -563,6 +563,7 @@
 - [ ] NC-015：密钥恢复、设备授权与删除窗口协议（状态：`BACKLOG`；从零设计密码学协议，30–60 分钟 ACT 粒度不适用，须单独排期）
 - [ ] NC-020a：消费端书籍契约核对清单（状态：`BACKLOG`）
 - [ ] NC-025：生产 BlobGateway（公共 + 私有）（状态：`BACKLOG`；R1 新增，NC-008/017 的硬前置）
+- [ ] NC-026：行为事件数据源、假名化与私人笔记元数据上报（状态：`BACKLOG`；v1.5 新增）
 
 ### 本地笔记与编辑器
 
@@ -601,7 +602,7 @@
 ### 总验收
 
 - [ ] NC-024：跨模块真实验收与交接（状态：`BLOCKED`，等全部前置）
-  - [ ] R-01～R-20 全部在 `SPEC/ANNOTATION_COMMUNITY_ACCEPTANCE.md` 有 commit/命令/证据三元组
+  - [ ] R-01～R-21 全部在 `SPEC/ANNOTATION_COMMUNITY_ACCEPTANCE.md` 有 commit/命令/证据三元组
   - [ ] 无障碍 A11Y-01～09 逐条给证据
   - [ ] E-BOOK/E-CRYPTO/E-WIRING/E-NOTIFIER/E-BLOB/E-DEDUP 六项外部依赖状态如实登记，未完成不隐藏
   - [ ] F-01～F-05 独立后续登记，不混入本期通过率

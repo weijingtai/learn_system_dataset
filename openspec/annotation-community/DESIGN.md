@@ -1,6 +1,6 @@
 # 笔记、原句注解与讨论系统 Design
 
-版本：1.4；2026-09-10（落实 FIX_V1_4 一次性修复说明；待抽查确认）。状态：`APPROVED_DESIGN`；执行状态：`NOT_STARTED`。
+版本：1.5；2026-09-10（新增 R-21 行为事件数据源，见 FIX_V1_5；待抽查确认）。状态：`APPROVED_DESIGN`；执行状态：`NOT_STARTED`。
 产品依据：[PRD](PRD.md)；执行顺序 [Plans](PLANS.md)；审查缺陷登记 [REVIEW_R1](REVIEW_R1.md)。本设计确定模块与业务规则；§10 的外部契约未冻结，相关任务不能越过依赖。接口名称/目录为本期工程设计，不表示已有实现。执行范围由 [Tasks](TASKS.md) 与工作包控制。
 
 ## 1. 架构与职责（覆盖 R-18）
@@ -51,12 +51,14 @@ UGC 使用不透明稳定 ID，生成器沿用既有 UUID 能力；不占用上�
 | NotificationRecord | notification_id, event_id, recipient_id, target, delivery_state`(created/dispatching/delivered/failed/abandoned)`, attempt_count | event+recipient 唯一的业务通知；与 notifier 每设备/用途投递一对多，见 §6.2 |
 | CommandRecord | owner_scope, operation, command_id, payload_hash, outcome(committed/rejected), resource_ids, applied_version, result_http_status, result_code?, result_fields, committed_at, result_compact_after, result_compacted_at? | (owner_scope, command_id) 唯一，operation 作为字段保存并纳入 payload_hash，同键不同 operation 按同键异载荷返回 409 conflict.idempotency；只存终态，与业务/outbox 同事务；精简不删除身份，不含正文；见 §7.4 |
 | NotifierDeliveryBinding | notification_id, notifier_delivery_id, recipient_scope, device_id, channel_purpose, write_source, source_ref, bound_at | notifier_delivery_id 唯一且作为字段原样保存，文档 ID 为其 SHA-256 hex（§2.1.1）；同一业务通知可有多条绑定；服务端可信来源写入，已有绑定冲突拒绝，不接受客户端声明归属；见 §6.2.1 |
+| BehaviorEvent | event_id, schema_version, event_type, occurred_at, received_at, actor_pseudonym, object_type?, object_id?, note_ref?, platform, app_version, attributes | 只追加、永久保留、不含任何内容；禁止 update 与 delete；见 §11 |
+| PseudonymMapping | account_id, actor_pseudonym, created_at | 一账号一假名；假名随机生成，不可由账号 ID 推导；账号注销时删除，行为事件保留；见 §11.3 |
 
 内容 hash 按固定版本编码后的标题/Markdown/引用/附件/mention 计算，不对原书文字再做规范化；canonical 编码见 §7.2，NC-002 将其落实为 Schema 与跨端 fixture。NoteRevision 恢复旧内容仍产生新 ID，即使正文 hash 与历史相同。
 
 ### 2.1 UGC 标识格式（需用户确认后冻结）
 
-本表只约束本系统拥有的业务 ID，不约束外部服务的不透明标识；黑箱 §8.1 的历史 ID 决议不扩大为外部 ID 的格式规则。本期新增 15 类对象的前缀如下，与上游 `art_/rev_/rel_/pr_/prun_` 全部不冲突：
+本表只约束本系统拥有的业务 ID，不约束外部服务的不透明标识；黑箱 §8.1 的历史 ID 决议不扩大为外部 ID 的格式规则。本期新增 17 类对象的前缀如下，与上游 `art_/rev_/rel_/pr_/prun_` 全部不冲突：
 
 | 对象 | 前缀 | 完整形式 |
 |---|---|---|
@@ -75,6 +77,8 @@ UGC 使用不透明稳定 ID，生成器沿用既有 UUID 能力；不占用上�
 | ShareLink | `shr_` | `shr_<32 hex>` |
 | BackupManifest | `bkm_` | `bkm_<32 hex>` |
 | NotificationRecord（仅业务记录） | `ntf_` | `ntf_<32 hex>`；绝不是 notifier deliveryId |
+| BehaviorEvent | `bev_` | `bev_<32 hex>` |
+| 行为假名（actor_pseudonym） | `psn_` | `psn_<32 hex>`，随机生成 |
 
 非法格式判定（每条须有 fixture 负例）：① 前缀不在上表；② hex 段长度 ≠ 32；③ 含大写或非 hex 字符；④ 使用上游保留前缀 `art_/rev_/rel_/pr_/prun_`；⑤ 前缀与所在集合不匹配（例如 `thread_id` 字段收到 `cmt_` 开头的值）。
 
@@ -181,7 +185,7 @@ NotifierDeliveryBinding：notification_id 按业务表；notifier_delivery_id �
 
 ### 4.3 操作、前置条件与原子边界
 
-「原子」只指同一个 Firestore 事务。社区写命令按 §7.4 新增 command_service：鉴权读取、业务写入、outbox 与命令终态结果同事务提交。既有 with_idempotency 的 claim → 事务外 fn → result 包装不能提供该保证，不用于这些社区命令；不要求改写其他旧业务。对象上传与推送均在事务外。下表所有服务器写命令的事务内列均隐含命令账本终态写入。
+「原子」只指同一个 Firestore 事务。社区写命令按 §7.4 新增 command_service：鉴权读取、业务写入、outbox 与命令终态结果同事务提交。既有 with_idempotency 的 claim → 事务外 fn → result 包装不能提供该保证，不用于这些社区命令；不要求改写其他旧业务。对象上传与推送均在事务外。下表所有服务器写命令的事务内列均隐含命令账本终态写入与行为事件追加（§11.5）。
 
 | 操作 | 前置条件 | 事务内（原子） | 事务外（补偿/顺序） | 中间态可见性 |
 |---|---|---|---|---|
@@ -358,7 +362,7 @@ DESIGN 不再给出「403 或 404」这类二选一。每个场景固定唯一 H
 | 外部推送 | at-least-once | 客户端按 `deliveryId` 去重，保留 7 天 |
 | publish 跨对象存储 + Firestore | **非原子**：先上传对象并校验 → 再事务提交指针 | 孤儿对象由清理任务回收；未提交指针的对象无任何公共入口可访问 |
 | 命令账本 | 完整结果保留 14 天；最小身份/结果持续保留 | 旧键返回既有结果或 result_expired，绝不变新写入 |
-| 评论/发布/互动写命令 | 业务记录、计数、outbox、命令结果同事务 | 事务回调纯数据库操作；重跑不执行外部副作用 |
+| 评论/发布/互动写命令 | 业务记录、计数、outbox、命令结果、行为事件同事务 | 事务回调纯数据库操作；重跑不执行外部副作用 |
 | 备份激活 | 全部密文对象存在且 hash 匹配后才原子激活 manifest | 部分上传保持上一份完整备份不变 |
 
 **命令恢复协议（R2-03，NC-009 实现，NC-011/012 复用）：**
@@ -388,7 +392,7 @@ selector 候选为有序 ranges，每段固定 block_id/artifact_revision_id/tex
 
 原生 EPUB/TXT 正式发布与当前 glyphbox_level/OcrPage 强制规则冲突，须上游改政策及验证器后方可 PUBLIC_RELEASE。无语义 SourceSpan 正文需合法结构锚点；不伪造 Span。QueryContractPack/SchoolViewPack 不由阅读协议取代。
 
-## 9. 测试与可观测性（覆盖 R-01～R-20）
+## 9. 测试与可观测性（覆盖 R-01～R-21）
 
 - 单元/Widget：保存、Undo/Redo/IME/焦点、版本分支、图片引用、权限状态、两级排序。
 - 契约：Python/Dart 同一 fixture；Schema 正反例；If-Match/幂等/排序游标/格式大小；真实 HTTP 请求而非调用 Fake 方法代替。
@@ -407,6 +411,7 @@ selector 候选为有序 ranges，每段固定 block_id/artifact_revision_id/tex
 | 并发量级 | 并发用例固定 N=10：10 个并发赞踩后计数等于最终状态导出的唯一值；2 个并发评论 + 1 个收回的三方竞争 | NC-009/011/012 |
 | 可用性 | 完整命令结果保留 14 天、去重身份持续保留（§7.4）；重试退避 1s/2s/4s/8s 上限 5 次；`429` 阈值由 NC-003 填实值后方可测 | NC-003/010 |
 | 命令账本规模 | 单条最小账本 ≤ 1 KiB（含索引开销）；年增量 ≈ 日均写命令数 × 365 × 1 KiB。按日均 50 条估算约 18 MiB/账号/年，10 万账号约 1.7 TiB/年，且逐年累加不回收（§7.4 规定仅在账号销毁时清理）。NC-009 上线前须以真实埋点复核该估算并登记存储成本 | NC-009 |
+| 行为事件规模 | 单条事件 ≤ 0.5 KiB；按日均 50 条估算约 9 MiB/账号/年，10 万账号约 870 GiB/年，永久累加。本期存 Firestore；是否迁移到分析仓库由后续数据分析立项决定 | NC-026 |
 | 通知 | 投递记录创建到首次推送尝试 p95 < 5 s；补拉游标不回退 | NC-013 |
 
 ### 9.2 「离线」在测试中的制造方式
@@ -426,7 +431,56 @@ selector 候选为有序 ranges，每段固定 block_id/artifact_revision_id/tex
 | **`notification` 包的 8 个 adapter 与 `dedup_retention_ms`** | E-DEDUP | NC-014 | 通知落盘、去重与回跳；上游文档明写「本包⛔不含任何具体 adapter」「你必须实现的 8 个端口」 |
 | 书籍 Schema/发布规则/D-06/样例 | E-BOOK | NC-020b | 书籍导入/原句与真实关联 Tooltip 验收 |
 | D-07/D-08 知识查询/流派 | E-BOOK | 既有上游任务，由 NC-020a 登记 | 需要该关系的知识入口，不阻断独立笔记 |
+| 宿主账号注销与本人彻底删除账号事件：来源、送达语义与测试方式 | E-WIRING | NC-001 登记，NC-026 消费 | 假名映射删除与业务数据去标识化；缺证时只阻断 NC-026 的注销子项 |
 
 `social` 的复用假设经 R1 核验为**部分成立**：`mention/` 是注入式真端口（只依赖 `persistence_core` 的 `MentionCandidateSource`），`relationship/ safety/ profile/ im/` 目录存在，但 `lib/social.dart` 的导出面绝大多数是 `plaza_*` 页面与 ViewModel，没有抽象的「互动端口」。§1 的「social 提供可复用交互/关系/IM 端口」应理解为：可直接复用的是 `mention` 端口与部分 UI 组件，其余需在 NC-001 逐个确认注入点或新增适配。另 `social/lib/src/notification/notification_center_page.dart` 与 `notification/lib/src/notification_page.dart` 并存，NC-014 的回跳挂在哪一套由 NC-001 指定。
 
 本期完整键盘方案不是阻断项，而是明确未做的后续 F-01。进一步工程方案若改变 PRD 可见性/数据安全/删除语义，须作为显式变更记录；不由执行 Agent 临时决定。
+
+## 11. 行为事件数据源（覆盖 R-21）
+
+### 11.1 定位
+
+`BehaviorEvent` 是统计与数据挖掘的唯一数据源：只追加、永久保留、不含任何内容。它与另外三类记录职责分离，互不替代：命令账本负责防重复执行（§7.4），outbox 负责通知投递（§6），运维日志负责排障（§9）。数据分析不得读取命令账本或 outbox，这两者也不得充当事件表。
+
+### 11.2 字段白名单
+
+| 字段 | 规则 |
+|---|---|
+| event_id | `bev_<32 hex>`。服务端事件为 `"bev_" + SHA256_hex(E([owner_scope, command_id, event_type]))[:32]`（E 见 §7.2），事务回调重跑与同键重试得到同一 ID，以 create-if-absent 写入；客户端上报事件为客户端生成的 UUIDv4 去掉连字符后的 32 位小写 hex，服务端按 event_id 去重 |
+| schema_version | 整数，从 1 开始；字段变化只升版本，不改写历史事件 |
+| event_type | §11.4 目录中的封闭字符串 |
+| occurred_at | 服务端事件为事务提交时的服务器 UTC 时间；客户端事件为设备 UTC 时间 |
+| received_at | 服务器接收时间（UTC），用于校正客户端时钟偏差 |
+| actor_pseudonym | `psn_<32 hex>`，见 §11.3 |
+| object_type、object_id | 公开对象的类型与业务 ID；私人笔记事件两者均为 null |
+| note_ref | 仅私人笔记事件使用：`SHA256_hex(UTF8(actor_pseudonym + "/" + note_id))`，用于按笔记聚合且不暴露 note_id 原值；其他事件为 null |
+| platform、app_version | 宿主提供的平台枚举与版本字符串 |
+| attributes | 按 event_type 定义的有类型小对象，字段全集由 NC-026 的 Schema 冻结，未知字段拒绝；所有客户端事件额外允许可选字段 `dropped_before` |
+
+事件中**禁止出现**（Schema 负例逐项覆盖）：标题、正文、评论文本、修改说明、原文引文与 selector、附件文件名与图片、content_hash 等任何内容指纹、@ 的目标账号、私人笔记的 note_id 原值与绑定目标、account_id、token、IP、设备指纹、精确位置。
+
+### 11.3 假名与账号注销
+
+- `PseudonymMapping` 保存 account_id 到 actor_pseudonym 的对应关系，一账号一假名。actor_pseudonym 在该账号首次产生事件时由密码学安全随机数生成，**禁止由账号 ID 哈希或加密推导**：否则删除映射后，拿账号 ID 重算一遍即可重新关联。
+- 事件表只写 actor_pseudonym，不写 account_id。PseudonymMapping 只有事件写入服务可读，数据分析侧无读取权限。
+- 宿主账号注销，或本人彻底删除账号时，按顺序执行：
+  1. 删除该账号的 PseudonymMapping 记录及其备份副本；
+  2. 本系统业务数据中不再保留该 account_id：本人公开内容与评论的作者字段改为统一的「已注销用户」标识；Reaction、Bookmark、ShareLink、NotificationRecord、NotifierDeliveryBinding、CommandRecord 等以该账号为主体的记录删除；其余含该 account_id 的字段删除或改为注销标识；
+  3. 行为事件保留不动。
+- 第 2 步不能省略：否则事件里的 object_id 可以关联业务表反查出作者，假名化失效。注销事件的来源由 NC-001 登记（§10）。
+
+### 11.4 事件目录
+
+- **服务端事件**：§2.1.1 operation 目录中的每个 operation 在命令 committed 时产生一条同名事件（例如 `comment.create`）；rejected 不产生事件。attributes 只含非内容维度，例如 `reaction.set` 为 `{value, previous_value}`，`content.publish` 为 `{is_republish, image_count}`。
+- **私人笔记元数据事件**（客户端上报，默认开启，隐私政策须写明）：
+  - `private_note.revision_saved`：`{char_count, attachment_count, mention_count, binding_count, is_restore, is_merge}`，char_count 按 Unicode code point 计数；
+  - `private_note.session_ended`：`{edit_duration_seconds, revisions_saved}`。
+  私人笔记事件上报请求的原始字节中不得出现标题、正文片段、附件名或 note_id 原值。
+- **上报端点**：`POST /v1/analytics/events`，进本系统 3.1 契约（OpenAPI 串行写入排在 NC-021 之后）。语义为至少一次，服务端按 event_id 去重。客户端离线时在本地暂存，上限 10,000 条；超出时丢弃最旧的事件，并在下一条上报事件的 attributes 中带 `dropped_before`（已丢弃条数）。
+
+### 11.5 写入与只追加
+
+- 服务端事件与业务记录、计数、outbox、命令终态在同一 Firestore 事务内追加（§4.3、§7.4）：业务提交成功当且仅当事件存在。
+- 只追加：Firestore 安全规则对 BehaviorEvent 集合禁止 update 与 delete，服务端代码不提供更新或删除路径；需要修正时升级 schema_version 并记录新事件，不改写历史。
+- 保留：永久，不设 TTL。
