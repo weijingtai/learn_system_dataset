@@ -109,6 +109,26 @@ V_T07_17="${C_T07_M14_CELL}SearchIndexPack"
 V_MODULE_M2='M2'
 V_MODULE_M4_M5='M4 / M5'
 
+# ---- R4 加固新增案例所需的常量（同样硬编码，禁止推导） ----
+# 控制字符：form-feed (0x0C) 与 vertical-tab (0x0B)。冻结规范化规则**不得**删除它们，
+# 因此把它们插进 Package 名必须让「完整行精确相等」失败。
+CH_FF="$(printf '\f')"
+CH_VT="$(printf '\v')"
+V_TP_FF="TechniqueProfile${CH_FF}Pack"
+V_TP_VT="TechniqueProfile${CH_VT}Pack"
+# d07-27：向 TP 块追加的冲突列表项
+L_D07_27='- **自由字段说明**：客户端可以使用自由字段，不受闭集枚举约束；'
+# d07-28：向 QC 块追加的第五个查询接口
+L_D07_28='- **`getEntry(name)`**：按名称获取条目，作为第五个查询接口；'
+# t07-26：保留正确取代声明后再追加的相反声明
+L_T07_26='但早期单一 KnowledgePack 仍是正式发布结构，以上取代声明不生效。'
+# t08-40：§1 正确 MarkContentBinding 行之后追加的同名错误接口
+L_T08_40='4. `MarkContentBinding` 内容供给：由 `SourceAssetPack` 供给，为 UI 标记提供内容与分歧数据；'
+# t08-41：B3 正确供给行之后追加的非标准标签额外 Package 来源
+L_T08_41='   - **附加来源**：由 `SearchIndexPack` 供给；'
+# t08-42：B1 正确硬限制行之后追加的例外声明
+L_T08_42='   - **例外**：最小盘面概念字典允许直接包含规则 DSL。'
+
 # ============================ 运行期状态 ============================
 CUR_TMP=""
 CASE_MSG=""
@@ -158,12 +178,13 @@ occ_in() {
   }'
 }
 
-# 取一行中第 3 / 4 / 5 个 pipe cell（去首尾空白）
+# 取一行中第 3 / 4 / 5 个 pipe cell（只去除首尾的普通空格与 Tab；
+# form-feed / vertical-tab 属于有效字符，必须保留，不得当空白删掉）
 cell_of() {
   case "$2" in
-    3) printf '%s\n' "$1" | LC_ALL=C awk -F'|' '{ v = $3; gsub(/^[[:space:]]+/, "", v); gsub(/[[:space:]]+$/, "", v); print v }' ;;
-    4) printf '%s\n' "$1" | LC_ALL=C awk -F'|' '{ v = $4; gsub(/^[[:space:]]+/, "", v); gsub(/[[:space:]]+$/, "", v); print v }' ;;
-    5) printf '%s\n' "$1" | LC_ALL=C awk -F'|' '{ v = $5; gsub(/^[[:space:]]+/, "", v); gsub(/[[:space:]]+$/, "", v); print v }' ;;
+    3) printf '%s\n' "$1" | LC_ALL=C awk -F'|' 'function trim(s){ gsub(/^ +/,"",s); gsub(/ +$/,"",s); while (substr(s,1,1)==sprintf("%c",9)) s=substr(s,2); while (length(s)>0 && substr(s,length(s),1)==sprintf("%c",9)) s=substr(s,1,length(s)-1); return s } { print trim($3) }' ;;
+    4) printf '%s\n' "$1" | LC_ALL=C awk -F'|' 'function trim(s){ gsub(/^ +/,"",s); gsub(/ +$/,"",s); while (substr(s,1,1)==sprintf("%c",9)) s=substr(s,2); while (length(s)>0 && substr(s,length(s),1)==sprintf("%c",9)) s=substr(s,1,length(s)-1); return s } { print trim($4) }' ;;
+    5) printf '%s\n' "$1" | LC_ALL=C awk -F'|' 'function trim(s){ gsub(/^ +/,"",s); gsub(/ +$/,"",s); while (substr(s,1,1)==sprintf("%c",9)) s=substr(s,2); while (length(s)>0 && substr(s,length(s),1)==sprintf("%c",9)) s=substr(s,1,length(s)-1); return s } { print trim($5) }' ;;
     *) return 1 ;;
   esac
 }
@@ -324,6 +345,17 @@ apply_case() { # $1 = case id，操作 $CUR_TMP；任一子操作失败即返回
     d07-23) replace_text "$CUR_TMP" "$C_D07_QC_SPAN" 'getSourceSpan' 'WronggetSourceSpan' ;;
     d07-24) replace_text "$CUR_TMP" "$C_D07_QC_SEARCH" 'searchKnowledge' 'WrongsearchKnowledge' ;;
     d07-25) replace_text "$CUR_TMP" "$C_D07_QC_MATCH" 'matchFacts' 'WrongmatchFacts' ;;
+    # ----------------------- D-07（R4 加固 5 例） -----------------------
+    # d07-26：把 TP 的「事实字段与枚举」完整原行移动到 RI 块（全文仍只出现一次）
+    d07-26) del_line "$CUR_TMP" "$C_D07_TP_FIELDS" \
+              && append_line "$CUR_TMP" "$C_D07_RI_VERSION" "$C_D07_TP_FIELDS" ;;
+    # d07-27：TP 块追加冲突列表项
+    d07-27) append_line "$CUR_TMP" "$C_D07_TP_FIELDS" "$L_D07_27" ;;
+    # d07-28：QC 块追加第五个查询接口
+    d07-28) append_line "$CUR_TMP" "$C_D07_QC_MATCH" "$L_D07_28" ;;
+    # d07-29 / d07-30：Package 名中插入 form-feed / vertical-tab
+    d07-29) replace_text "$CUR_TMP" "$C_D07_TP_START" 'TechniqueProfilePack' "$V_TP_FF" ;;
+    d07-30) replace_text "$CUR_TMP" "$C_D07_TP_START" 'TechniqueProfilePack' "$V_TP_VT" ;;
     # ------------------------------- T-07（25） -------------------------------
     t07-01) map_value "$CUR_TMP" "$C_T07_M01" "$V_WRONG_PACK" ;;
     t07-02) map_value "$CUR_TMP" "$C_T07_M02" "$V_WRONG_PACK" ;;
@@ -350,6 +382,9 @@ apply_case() { # $1 = case id，操作 $CUR_TMP；任一子操作失败即返回
     t07-23) replace_text "$CUR_TMP" "$C_T07_REPLACEMENT" '正式取代' '不应正式取代' ;;
     t07-24) del_line "$CUR_TMP" "$C_T07_M02" ;;
     t07-25) dup_line "$CUR_TMP" "$C_T07_M15" ;;
+    # ----------------------- T-07（R4 加固 1 例） -----------------------
+    # t07-26：保留正确取代声明，再追加相反声明
+    t07-26) append_line "$CUR_TMP" "$C_T07_REPLACEMENT" "$L_T07_26" ;;
     # ------------------------------- T-08（39） -------------------------------
     t08-01) field_cell "$CUR_TMP" "$C_T08_R04" module "$V_MODULE_M2" \
               && field_cell "$CUR_TMP" "$C_T08_R04_M2" package "$V_SOURCE_ASSET_PACK" ;;
@@ -396,6 +431,13 @@ apply_case() { # $1 = case id，操作 $CUR_TMP；任一子操作失败即返回
     t08-37) replace_text "$CUR_TMP" "$C_T08_S1_03" 'EvidenceBundle' 'WrongEvidenceBundle' ;;
     t08-38) replace_text "$CUR_TMP" "$C_T08_B1_LIMIT" '不含规则 DSL' '' ;;
     t08-39) replace_text "$CUR_TMP" "$C_T08_B1_LIMIT" 'TAG_SYSTEM_DESIGN.md §12.2' '' ;;
+    # ----------------------- T-08（R4 加固 3 例） -----------------------
+    # t08-40：§1 正确 MarkContentBinding 之后追加同名错误接口
+    t08-40) append_line "$CUR_TMP" "$C_T08_S1_02" "$L_T08_40" ;;
+    # t08-41：B3 正确供给行之后追加非「供给子包」标签的额外 Package 来源
+    t08-41) append_line "$CUR_TMP" "$C_T08_B3_SUPPLY" "$L_T08_41" ;;
+    # t08-42：B1 正确硬限制行之后追加「允许规则 DSL」的例外声明
+    t08-42) append_line "$CUR_TMP" "$C_T08_B1_LIMIT" "$L_T08_42" ;;
     *) return 1 ;;
   esac
 }
@@ -403,33 +445,37 @@ apply_case() { # $1 = case id，操作 $CUR_TMP；任一子操作失败即返回
 # 每例绑定的稳定 FAIL ID（CASES.md 表格最后一列）。两 ID 的用例要求两者都命中。
 case_ids() {
   case "$1" in
-    d07-01|d07-02|d07-04|d07-11|d07-12|d07-13|d07-19) printf 'G3-D07-TP\n' ;;
+    d07-01|d07-02|d07-04|d07-11|d07-12|d07-13|d07-19|d07-26|d07-27|d07-29|d07-30) printf 'G3-D07-TP\n' ;;
     d07-03|d07-06|d07-18|d07-21) printf 'G3-D07-RI\n' ;;
-    d07-05|d07-14|d07-15|d07-16|d07-17|d07-20|d07-22|d07-23|d07-24|d07-25) printf 'G3-D07-QC\n' ;;
+    d07-05|d07-14|d07-15|d07-16|d07-17|d07-20|d07-22|d07-23|d07-24|d07-25|d07-28) printf 'G3-D07-QC\n' ;;
     d07-07|d07-08|d07-09|d07-10) printf 'G3-D07-COMPAT\n' ;;
     t07-01|t07-02|t07-03|t07-04|t07-05|t07-06|t07-07|t07-08|t07-09|t07-10|t07-11|t07-12|t07-13|t07-14|t07-15|t07-16|t07-17|t07-24|t07-25) printf 'G3-T07-MAP\n' ;;
-    t07-18|t07-19|t07-20|t07-21|t07-22|t07-23) printf 'G3-T07-REPLACEMENT\n' ;;
+    t07-18|t07-19|t07-20|t07-21|t07-22|t07-23|t07-26) printf 'G3-T07-REPLACEMENT\n' ;;
     t08-01|t08-02|t08-03|t08-04|t08-05|t08-06|t08-07|t08-08|t08-09|t08-10|t08-11|t08-26|t08-27|t08-29) printf 'G3-T08-TABLE\n' ;;
     t08-12|t08-13|t08-14) printf 'G3-T08-SEC1 G3-T08-BLOCK\n' ;;
     t08-15|t08-16|t08-17|t08-28|t08-35|t08-36|t08-37) printf 'G3-T08-SEC1\n' ;;
     t08-18|t08-19|t08-20|t08-21|t08-22|t08-23) printf 'G3-T08-BLOCK\n' ;;
     t08-24|t08-25|t08-32|t08-33|t08-34) printf 'G3-T08-PROSE\n' ;;
-    t08-30|t08-38) printf 'G3-T08-DSL\n' ;;
+    t08-30|t08-38|t08-42) printf 'G3-T08-DSL\n' ;;
     t08-31|t08-39) printf 'G3-T08-G4\n' ;;
+    t08-40) printf 'G3-T08-SEC1\n' ;;
+    t08-41) printf 'G3-T08-BLOCK\n' ;;
     *) return 1 ;;
   esac
 }
 
 # ============================ 用例执行器 ============================
-# 绑定 FAIL ID 命中判定：只看以 `FAIL` 开头的行；ID 必须是行内的完整片段。
-# （12 个稳定 ID 互不为子串，故 grep -F 足以判定完整 token。）
+# 绑定 FAIL ID 命中判定：必须是完整 token，结构严格为
+#     ^FAIL[[:space:]]+<完整ID>([[:space:]]|$)
+# 因此 `FAIL  G3-D07-QC-BOGUS`、`FAIL XG3-D07-QC`、`FAILURE G3-D07-QC`、
+# `PASS  G3-D07-QC` 以及普通正文中出现的 `G3-D07-QC` 都不算命中。
 ids_hit_all() { # output id...
-  local out="$1" id fails
+  local out="$1" id
   shift
-  fails="$(printf '%s\n' "$out" | LC_ALL=C grep -E '^FAIL')"
   for id in "$@"; do
     [ -n "$id" ] || continue
-    printf '%s\n' "$fails" | LC_ALL=C grep -F -q -- "$id" || return 1
+    printf '%s\n' "$out" \
+      | LC_ALL=C grep -E -q -- '^FAIL[[:space:]]+'"${id}"'([[:space:]]|$)' || return 1
   done
   return 0
 }
@@ -510,10 +556,11 @@ mkfixture() { # path line...
   for l in "$@"; do printf '%s\n' "$l" >> "$p"; done
 }
 
-# normalize：仅删除反引号、星号、空格、Tab、CR；其余字符（含中英文标点、
-# 数字、斜杠、否定词、标识符）全部保留。
+# normalize：仅删除 5 种字节 —— 反引号(96)、星号(42)、普通空格(32)、Tab(9)、CR(13)。
+# 其余一切字节都保留：form-feed(12)、vertical-tab(11)、其他 Unicode 空白、
+# 中英文标点、数字、斜杠、否定词与标识符。不得使用 [[:space:]] 这种宽泛删除。
 norm_str() {
-  printf '%s' "$1" | LC_ALL=C awk '{ s = $0; gsub(/[`*]/, "", s); gsub(/[[:space:]]/, "", s); print s }'
+  printf '%s' "$1" | LC_ALL=C tr -d '\011\015\040\052\140'
 }
 norm_eq() { [ "$(norm_str "$1")" = "$(norm_str "$2")" ]; }
 
@@ -587,6 +634,27 @@ FAIL  G3-T07-MAP  other issue'
   if [ "$CASE_REJECTED" = 1 ]; then ok=1; else ok=0; fi
   st "[3] fake gate 非零且绑定 ID 命中 -> rejected" "$ok"
 
+  # ---- [3b] FAIL ID 必须是完整 token：^FAIL[[:space:]]+<ID>([[:space:]]|$) ----
+  if ids_hit_all 'FAIL  G3-D07-QC-BOGUS  超集伪 ID' 'G3-D07-QC'; then ok=0; else ok=1; fi
+  st "[3] FAIL  G3-D07-QC-BOGUS 不得冒充 G3-D07-QC" "$ok"
+  if ids_hit_all 'FAIL XG3-D07-QC  前缀污染' 'G3-D07-QC'; then ok=0; else ok=1; fi
+  st "[3] FAIL XG3-D07-QC 不得命中" "$ok"
+  if ids_hit_all 'FAILURE G3-D07-QC  非法动词' 'G3-D07-QC'; then ok=0; else ok=1; fi
+  st "[3] FAILURE G3-D07-QC 不得命中" "$ok"
+  if ids_hit_all 'PASS  G3-D07-QC  通过行' 'G3-D07-QC'; then ok=0; else ok=1; fi
+  st "[3] PASS 行上的 G3-D07-QC 不得命中" "$ok"
+  if ids_hit_all '正文提到 G3-D07-QC 但这不是 FAIL 行' 'G3-D07-QC'; then ok=0; else ok=1; fi
+  st "[3] 普通正文中的 G3-D07-QC 不得命中" "$ok"
+  if ids_hit_all 'FAIL  G3-D07-QC  message' 'G3-D07-QC'; then ok=1; else ok=0; fi
+  st "[3] 正确的 FAIL  G3-D07-QC  message 必须命中" "$ok"
+  if ids_hit_all 'FAIL  G3-D07-QC' 'G3-D07-QC'; then ok=1; else ok=0; fi
+  st "[3] ID 位于行尾（无后继空白）也必须命中" "$ok"
+  if ids_hit_all 'FAIL  G3-T08-SEC1  a
+FAIL  G3-T08-BLOCK  b' 'G3-T08-SEC1' 'G3-T08-BLOCK'; then ok=1; else ok=0; fi
+  st "[3] 两行各报一个完整 ID 时双双命中" "$ok"
+  if ids_hit_all 'FAIL  G3-T08-SEC1 G3-T08-BLOCK  同行第二个 ID' 'G3-T08-BLOCK'; then ok=0; else ok=1; fi
+  st "[3] FAIL 行首个 token 之后的 ID 不得命中（结构要求紧随 FAIL）" "$ok"
+
   # ---- [4] 每例独立临时副本，互不影响 ----
   fx3="$(new_tmp)"
   mkfixture "$fx3" 'AAA' 'BBB'
@@ -616,6 +684,18 @@ FAIL  G3-T07-MAP  other issue'
   mkfixture "$fx5" '知识层正式取代早期草案'
   if [ "$(line_count "$fx5" '知识层不得取代早期草案')" = 0 ]; then ok=1; else ok=0; fi
   st "[5] 整行精确比较可识别否定词改动" "$ok"
+
+  # ---- [5b] 冻结规范化只删 5 种字节：form-feed / vertical-tab 必须保留 ----
+  if [ "$(norm_str "A${CH_FF}B")" = "$(norm_str 'AB')" ]; then ok=0; else ok=1; fi
+  st "[5] form-feed 必须保留（不得与无 form-feed 文本相等）" "$ok"
+  if [ "$(norm_str "A${CH_VT}B")" = "$(norm_str 'AB')" ]; then ok=0; else ok=1; fi
+  st "[5] vertical-tab 必须保留" "$ok"
+  if [ "$(printf 'a\tb\vc\fd\re' | LC_ALL=C tr -d '\011\015\040\052\140')" = "ab${CH_VT}c${CH_FF}de" ]; then ok=1; else ok=0; fi
+  st "[5] 只删 Tab/CR/空格/星号/反引号，VT 与 FF 原样保留" "$ok"
+  if norm_eq "TechniqueProfile${CH_FF}Pack" 'TechniqueProfilePack'; then ok=0; else ok=1; fi
+  st "[5] Package 名插入 form-feed 后与原名不等" "$ok"
+  if norm_eq "TechniqueProfile${CH_VT}Pack" 'TechniqueProfilePack'; then ok=0; else ok=1; fi
+  st "[5] Package 名插入 vertical-tab 后与原名不等" "$ok"
 
   # ---- [6] 块解析止于下一同级标题 / #### 16.3.2 ----
   fx6="$(new_tmp)"
@@ -666,10 +746,10 @@ usage() {
 
 main() {
   case "${1:-}" in
-    d07) run_group d07 25 ;;
-    t07) run_group t07 25 ;;
-    t08) run_group t08 39 ;;
-    all) run_group d07 25; run_group t07 25; run_group t08 39 ;;
+    d07) run_group d07 30 ;;
+    t07) run_group t07 26 ;;
+    t08) run_group t08 42 ;;
+    all) run_group d07 30; run_group t07 26; run_group t08 42 ;;
     selftest) run_selftest; return $? ;;
     help|-h|--help) usage; return 0 ;;
     *) usage >&2; return 2 ;;
