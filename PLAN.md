@@ -1,5 +1,10 @@
 # PLAN
 
+## 上下游生产交付核对回执
+
+- [x] 核对 SERVER/BOOK_ASSET 两份消费草案与当前输出、Schema 和生成代码；U-01～U-09、A-01～A-06 回执见 `docs/annotation-community/UPSTREAM_DATA_CONTRACT_REPLY.md`。结论：方向兼容，尚无可直接生产交付包。
+- [ ] 双方确认来源分型发布门禁、原件交付档位、阅读块/选区、修订迁移及共同交付 Schema；承接 D-06/D-07 和既有 U/A 待回执项，不替换原任务。
+
 ## 注解社区线：跨 Agent 数据契约（2026-09-10）
 
 - [x] 补充 `docs/annotation-community/BOOK_ASSET_DELIVERY_CONTRACT_DRAFT.md`：影印/PDF/EPUB/TXT 原件与阅读材料、对象存储/Firestore 分工、统一生成交付格式、A-01～A-06 回执；仅草案。
