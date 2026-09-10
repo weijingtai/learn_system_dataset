@@ -21,7 +21,7 @@
 - 保存编辑历史，作者读取完整历史，公众只读取当前仍允许公开访问的已发布版本。恢复旧版生成新修订。
 - 点赞/点踩、收藏、分享、@、作者资料、关注、举报、拉黑、私信及通知联动属于范围；排盘应验、终局反馈等专属功能排除。
 - 下一版才做原书/Markdown 分屏、Markdown 引用跳转与圈画。当前原句注解必须保存准确位置；基础原句定位不后置。
-- 私人笔记云端备份与跨设备同步是否本期启用：等待用户决策；本地保存不受此决策阻断。
+- 用户已确认本期私人笔记支持端到端同步并允许云备份；沿用 xuan-storage 策略，私有加密修订与公共发布投影分开。具体接入、密钥恢复与备份生命周期见 [私人存储补充草案](PRIVATE_NOTES_STORAGE_DRAFT.md)。
 
 ## 3. 数据所有权与服务端存储分区
 
@@ -94,6 +94,8 @@ Work、Edition、ReadingUnit、TextBlock 的字段名和 ID 格式尚未由本�
 
 以下 `community_*` 名称仅为隔离建议，实际前缀经现有集合注册约定确认。ID 为不透明稳定值；UGC 的 `content_revision_id` 与上游 `artifact_revision_id` 分开。
 
+本节是逻辑数据结构；私人修订在远端的物理形态以 [私人存储补充草案](PRIVATE_NOTES_STORAGE_DRAFT.md) §3 为准，不能按下表直接上传私人标题/正文/引用明文。公共投影使用 shared 策略，私有备份使用 private 策略。
+
 | 逻辑集合 | 主要字段 | 约束 |
 |---|---|---|
 | `community_contents` | `content_id`, `kind: note/annotation`, `author_app_user_id`, `visibility: private/public`, `lifecycle: active/deleted`, `moderation_state: pending/allowed/hidden`, `head_revision_id`, `published_revision_id?`, `concurrency_rev`, 时间 | 容器不存未发布正文；身份由现有服务端认证解析，不信任客户端作者字段 |
@@ -132,7 +134,7 @@ Work、Edition、ReadingUnit、TextBlock 的字段名和 ID 格式尚未由本�
 |---|---|---|
 | 书目/版本/阅读块/知识关系查询 | 固定 Release、分页游标、来源与可用性；禁止返回未激活导入区 | 服务端只读投影；Drift 本地阅读投影 |
 | 锚点创建校验/解析 | AnchorRef、当前解析结果、缺失或歧义原因 | 原始锚点与解析结果分存 |
-| 私人内容创建/保存/历史/恢复 | 内容修订、版本前置条件、幂等键；明确私人 DTO | Drift 持久草稿；是否远端备份待用户决定 |
+| 私人内容创建/保存/历史/恢复 | 内容修订、版本前置条件、幂等键；私人备份使用加密封装 | Drift 持久草稿，接入端到端同步与云备份；加密/恢复协议待存储维护者回执 |
 | 发布/更新发布/收回/删除 | 原子业务命令与权威结果，不接受直接改可见性字段绕过校验 | Python 服务端事务；Drift 操作日志和回填 |
 | 公共内容/关联讨论/发布历史查询 | 仅已发布版本，查询时 ACL，分页 | 公共投影缓存与私人数据隔离 |
 | 评论/楼内回复/编辑/删除 | 同楼校验、版本、结构化 mentions、观察时版本 | 内容+outbox；楼内分页不压成一整条文档 |
@@ -180,4 +182,4 @@ OpenAPI 覆盖身份要求、请求/响应、错误、枚举、空值、分页�
 
 外部参考仅用于借鉴，不替代本项目契约：[W3C 文本选区与状态](https://www.w3.org/TR/selectors-states/)、[Notion 发布及撤销链接访问](https://www.notion.com/help/public-pages-and-web-publishing)。
 
-顺序：上游回执 → 对齐数据与锚点 → 用户确定私人云同步范围 → 冻结正式规格/OpenAPI/Drift 映射 → 制作 BDD/TDD/ACT 工作包 → 审查 READY → 分阶段实现与真实链路验收。阅读 UI 与不依赖未决字段的原型讨论可继续；不得先实现互不兼容的两套书籍模型。
+顺序：上游回执 → 对齐数据与锚点，并确认私人存储的 S-01～S-05 接入与恢复语义 → 冻结正式规格/OpenAPI/Drift 映射 → 制作 BDD/TDD/ACT 工作包 → 审查 READY → 分阶段实现与真实链路验收。阅读 UI 与不依赖未决字段的原型讨论可继续；不得先实现互不兼容的两套书籍模型。
