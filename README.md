@@ -10,6 +10,8 @@
 
 > **Subagent 工作监控：[`docs/blackbox-spec-rework/SUBAGENT_TODO.md`](docs/blackbox-spec-rework/SUBAGENT_TODO.md)**。所有大项及其 BDD、TDD、ACT、Prompt、执行、验收小项在此勾选；准出规则见 [`openspec/subagent-delivery-gate.md`](openspec/subagent-delivery-gate.md)。
 
+> **注解／读书笔记／评论系统冷启动：[`docs/annotation-community/COLD_START_PROMPT.md`](docs/annotation-community/COLD_START_PROMPT.md)**。需要调研或开发私人注解、公开笔记、原句讨论、回复、互动及其 Learn System 数据接入时，将该文件全文交给新 Agent。
+
 ## 黑箱核心 ID 快速说明
 
 以下六类前缀已于 2026-09-09 确认。它们用于追踪“哪个对象、哪次修订、哪次运行、哪个阶段包、哪次发布”，不是用户身份或鉴权 ID。完整约束以 [`openspec/learn-system-blackbox-architecture.md`](openspec/learn-system-blackbox-architecture.md) §8.1 为准。
