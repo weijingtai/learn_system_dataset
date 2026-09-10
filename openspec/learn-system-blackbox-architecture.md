@@ -107,7 +107,18 @@ M1 Source Intake
 基础设施：
 
 - `Artifact Ledger`：保存内容、Revision、血缘和运行记录；
-- `Local Orchestrator`：执行阶段状态机、Gate、暂停、恢复和重跑；
+- `Local Orchestrator`：执行阶段状态机、Gate、暂停、恢复和重跑；对外提供六项只读查询契约（闭集定义）：
+  - `RunStatus`：返回指定 ProcessingRun 的当前宏观生命周期状态（running / awaiting_human / succeeded / failed 等）及总体起止耗时；
+  - `StageProgress`：返回各 Stage（M1–M8）的具体执行进度、已完成任务计数、进行中任务及当前 Stage Gate 达成状态；
+  - `PendingQueue`：返回当前阻断或等待人工干预的待处理队列明细，必须显式列出五个专用队列：
+    1. M2 异常页与低置信字
+    2. M3 边界分歧
+    3. M4 类别分歧
+    4. M6 待签发
+    5. M7 待裁决
+  - `BlockingReasons`：返回当前阻断 Stage Gate 通过的具体原因、失败校验项或未满足的依赖项明细；
+  - `ReworkImpact`：返回若对某历史 Artifact 或阶段发起返工时，将级联波及的下游阶段、衍生 Revision 与受影响队列范围；
+  - `ThroughputEstimate`：返回基于当前算力及历史加工耗时测算出的阶段吞吐与预计剩余处理耗时。
 - `Contract Registry`：管理所有 Package Schema、TechniqueProfile 和兼容规则；`schemas/shared/canon` 与 `schemas/shared/homographs` 由其登记并作为 M4 的冻结输入 Artifact。
 
 `Review Console` 是跨人工阶段共用的交互 Interface，不是第九个加工 Module。现有 `pattern_knowledge_workbench` 向该 Interface 演进，分别呈现 M3 边界分歧、M4 提取分歧、M6 正式审核和 M7 汇编提案；人工决定始终归属发起该队列的 ProcessingRun、StepRun 和 Stage。
@@ -194,6 +205,8 @@ StepRun 创建后从 `running` 开始。当任务需要人工处理时，进入 
 单人单机模式默认没有自动超时。实现可以登记 `deadline` 用于提醒，但超过 deadline 不得自动把 StepRun 标为 `failed`，也不得清空或丢弃待处理队列；操作者可以显式把 `awaiting_human` 转为 `suspended`。
 
 `suspended` 表示操作者主动暂停，或基础设施暂不可用；它不是等待业务人工决定的 `awaiting_human`。恢复前必须保留冻结输入、队列引用和已写入事件，并按 §8.2 的迁移重新进入 `running`。
+
+各 Processing Module 必须在运行中向 Local Orchestrator 实时上报进度事件（Progress Events），否则上述只读查询契约无实时数据来源。
 
 ## 8. Package 公共结构
 
