@@ -1,6 +1,6 @@
 # 笔记与原句注解：客户端、服务端接入细化
 
-状态：`DRAFT_FOR_USER_REVIEW`；2026-09-10。本文把已确认目标转成可审查的交互与接入规则；具体默认值仍为提案，不等于用户已批准，更不代表代码已接通。
+状态：`HISTORICAL_DESIGN_INPUT`；2026-09-10。用户已确认默认规则并补充本期 Undo/Redo、完整键盘设计后置。当前权威需求与设计见 [PRD](../../openspec/annotation-community/PRD.md) 和 [Design](../../openspec/annotation-community/DESIGN.md)。本文保留早期候选表述供追溯，不再据此把已确认默认值视为待决，也不代表代码已接通。
 
 关联：[主数据草案](SERVER_DATA_CONTRACT_DRAFT.md)、[私人存储草案](PRIVATE_NOTES_STORAGE_DRAFT.md)、[书籍资产交付](BOOK_ASSET_DELIVERY_CONTRACT_DRAFT.md)。书籍 U/A 回执仍由上游线处理，本轮不重新定义书籍 ID、选区单位或发布包格式。
 

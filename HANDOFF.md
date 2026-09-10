@@ -13,9 +13,9 @@
 
 更新时间：2026-09-10
 当前分支/worktree：`codex/docs/knowledge-compilation`；`/Users/jingtaiwei/Git/Public/learn_system`
-刚完成：收到 `docs/annotation-community/UPSTREAM_DATA_CONTRACT_REPLY.md` 并抽查政策/EPUB 清洗/旧 unit ID 生成；新增 `CONSUMER_ALIGNMENT_RESPONSE.md`，修订主数据与资产草案的多段选区、原件档位、文件承载、哈希和完整正文要求。此前三路 Terra 调查与接入细化仍有效。
-进行到一半的事（精确到文件和章节）：上游回执不是生产交付，U-01～U-08 为 CHANGE，U-09 为 UNAVAILABLE；消费端协调回复 §4 列五类下一步交付物。非书籍设计已细化但未冻结；自动保存 2 秒、回收站 30 天、图片范围均为候选。本轮不写业务实现或机器 Schema。
-下一步（第一件事）：将消费端协调回复交给上游，完成原生 EPUB/TXT 的发布政策差异、共同 Schema、D-06 与真实样例；消费端负责上传/装载具体 API 与映射。密钥恢复/设备授权和候选默认值并行定案；不再等待已离场 storage/social/notification 开发 Agent。
+刚完成：按用户要求输出 `openspec/annotation-community/PRD.md`、`DESIGN.md`、`PLANS.md`、`TASKS.md`，包含确认默认规则、Undo/Redo、24 个本期工作项及需求/依赖/测试映射；完整键盘方案标为当前缺失且后续 F-01 承接。旧接入细化标为历史输入，冷启动入口更新。
+进行到一半的事（精确到文件和章节）：四份总文档已产出；未生成机器 Schema/OpenAPI 或 READY 六件套，未写业务代码。书籍 U/A 和密钥恢复仍是明确前置任务，不再将自动保存/回收站/图片等已确认默认值称候选。
+下一步（第一件事）：从 TASKS 的 NC-001 准备真实工程/宿主装配基线，再 NC-002 模型契约及本地笔记任务；NC-015 密钥协议与 NC-020 上游共同 Schema 并行准备。CLIENT 拟为 xuan-migration/reading-notes，须 NC-001 确认，现 xuan-migration/learn_system 无 Flutter pubspec，不能误写。
 私人存储新发现：有真实 Firestore/RTDB row SDK 和 generic upsert，但当前 RecordOutboxMapper 明文 JSON 不能用于私人正文；云 blob 生产适配、长期备份和跨设备密钥恢复未见完整实现。IM guard 当前未比较传入设备 ID/指纹，不能直接当笔记授权证明。
 已知的坑：Notification 管线有实现，生产业务接线不足；ReceiptRejected 是停止整批并报告；旧通知查重非原子且不适用多收件人。notebook 保存覆盖旧 committed，内存降级仍返回成功，不可当永久修订库。既有 OpenAPI 有 operation headers 非规范结构，字段断言测试不代表合规。D-06 未冻结；收回只能阻止后续访问，公共媒体不能发绕过 ACL 的永久 URL。
 书籍新增边界：权威架构 PUBLIC_RELEASE 当前强制 glyphbox_level/OcrPage，原生来源分支尚未获批；不能由消费稿绕过。旧 EPUB 去空格/重组换行无原件映射、旧 unit 按排序重编号；两者不能直接作稳定生产锚点。原件档位、运输方式、capability 与正式发布门禁分开。

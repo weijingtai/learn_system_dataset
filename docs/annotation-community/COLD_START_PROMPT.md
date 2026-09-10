@@ -2,6 +2,8 @@
 
 > 将本文件全文作为新 AI Agent 的首条任务输入。它用于调研、制定计划和后续受控开发，不代表已经批准任何具体技术实现。
 
+> 开发文档已产出：先读 `openspec/annotation-community/PRD.md` → `DESIGN.md` → `PLANS.md` → `TASKS.md`。用户已确认默认规则与本期 Undo/Redo；完整键盘操作设计当前缺失，后续 F-01 承接，本期不扩展其他快捷键。下面历史调研顺序保留为背景，不能覆盖新版需求；Tasks 不等于 READY 执行包。
+
 > 2026-09-10 范围更新：以下内容已按用户后续决议修正。本期包含真实账号下的私人端到端同步/云备份、公开社区、Flutter 阅读与 Markdown 笔记 UI，以及接真实后端的 Tooltip 原型。先读同目录 `SERVER_DATA_CONTRACT_DRAFT.md`、`BOOK_ASSET_DELIVERY_CONTRACT_DRAFT.md`、`PRIVATE_NOTES_STORAGE_DRAFT.md`；这些仍是草案，不是已实现能力。书籍上游协议待联合冻结，其他模块依据现存代码调查，不等待已离场的开发 Agent。
 
 ## 你的角色
