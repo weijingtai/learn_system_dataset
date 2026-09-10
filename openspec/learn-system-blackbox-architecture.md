@@ -784,12 +784,12 @@ L0 内核契约(ArtifactRef + §7 接口 + §8 信封)
 
 | 目标 Module | 层级 | 当前实现 | 当前差距 |
 |---|---|---|---|
-| M1 Source Intake | `Module` | `pipeline/runner/ingest_raw.py`、`pipeline/registry/works/`、`tools/ingest_epub.py`、corpus manifest | Work/Edition/SourceAsset/Rights 契约不统一；未进入统一 Ledger；转录不可由记录的 raw+tool 重放 |
+| M1 Source Intake | `Module` | `pipeline/runner/ingest_raw.py`、`pipeline/registry/works/`、`pipeline/tools/ingest_epub.py`、corpus manifest | Work/Edition/SourceAsset/Rights 契约不统一；未进入统一 Ledger；转录不可由记录的 raw+tool 重放 |
 | M2 Digitization & Correction | `Module` | `ocr/`、FastAPI + Vue 校对工具 | 电子文本清洗不足；导出未完整携带扫描、页面 JSON、全部字框、审计和质量包 |
 | M3 Corpus Compilation | `Module` | `pipeline/corpus`、outline、batches、segmentation | 当前 LM 复制文本切分；缺双层 Span、严格 offset、完整 SourceAnchor；已有整书漏编假绿 |
 | M4 Knowledge Extraction | `Module` | concept/assertion/paraphrase 任务 | 多数为机器态；类别仍混杂；跨模型与人工裁决未形成统一 Stage Gate |
 | M5 Automatic Validation | `Module` | `pipeline/validators` | 主要是局部加工校验；无法阻断全书漏编、错误证据范围和零命中假绿 |
-| M6 Review Workbench | `Module` | `pattern_knowledge_workbench` | 七政硬编码；缺来源对照、模型比较、状态机、版本审计和通用 TechniqueProfile；实测数据体全空状态：496 rules，original_text 非空 0，is_verified=1 为 0，ge_ju_versions 0 行，conditions 404，chapter 486 |
+| M6 Review Workbench | `Module` | `pattern_knowledge_workbench` | 七政硬编码；缺来源对照、模型比较、状态机、版本审计和通用 TechniqueProfile；实测数据体：496 rules，其中 `original_text` 非空 0、`is_verified=1` 为 0、`ge_ju_versions` 0 行，`conditions` 非空 404、`chapter` 非空 486 |
 | M7 Incremental Assembly | `Module` | `knowledge_system/` 设计文档 | 缺可执行 Assembler、跨 Edition 对勘、稳定 Pattern 聚合和提案裁决流程 |
 | M8 Dataset Compilation | `Module` | `pipeline/rag` 开发索引 | 缺正式 Dataset Compiler、PublicationPackage、Graph 投影、ReleaseManifest 和发布校验；span→mentions 映射键碰撞：148 span 塌缩为 18 键、6 组碰撞，修好解析后将链到错误页 |
 | Artifact Ledger | `L1` | 无 | 缺 Object Store、Metadata Ledger、Revision 和 Lineage Graph |
@@ -797,14 +797,35 @@ L0 内核契约(ArtifactRef + §7 接口 + §8 信封)
 | Contract Registry | `L2'` | `pipeline/schemas` 零散规范 | 缺完整 Package Schema、Schema 版本、迁移器和 consumes/produces 声明 |
 | 工作台唯一键限制 | `Workbench` | `{patternId, schoolId}` 复合唯一键 | 禁止多书多主张（`grep -n "uniqueKeys" -A3 pattern_knowledge_workbench/lib/database/tables.dart` 必 FAIL） |
 | 流派与书目混部 | `Workbench` | `ge_ju_schools` 表 | 将 book(1) 与 school(2) 混存同表（`sqlite3 <db> "select type,count(*) from ge_ju_schools group by type"` 必 FAIL） |
-| 构建环境私有依赖 | `Workbench` | `pubspec.yaml` | 依赖 192.168 内网包，干净环境不可构建（`grep -c "192.168" pattern_knowledge_workbench/pubspec.yaml` 现已在 R0 排期消除） |
-| 数据状态管理缺陷 | `Workbench` | `drift_database.dart` 与 `rule_list_page.dart` | 启动覆盖本地库 + 保存即 verified（现已在 R0 排期消除） |
-| 测试宿主匮乏 | `Quality` | 仓库测试套件 | 全仓非 OCR 部分仅 1 个 748B 脚手架（`find . -name "test_*.py" -o -name "*_test.dart" | grep -v ocr/ | wc -l` 必 FAIL） |
+| 构建环境私有依赖 | `Workbench` | `pubspec.yaml` | **已由 G2 修复，历史缺口已遏制**：当前不再含 `192.168`；保留此行用于防回退判据（`grep -c "192.168" pattern_knowledge_workbench/pubspec.yaml` 应为 0） |
+| 数据状态管理缺陷 | `Workbench` | `drift_database.dart` 与 `rule_list_page.dart` | **已由 G2 修复，历史缺口已遏制**：当前不再启动覆盖本地库，也不再保存即 verified；保留回归判据（见 `act/01.yaml`、`act/02.yaml` 的 VERIFICATION） |
+| 测试宿主匮乏 | `Quality` | 仓库测试套件 | 当前 tracked 非 OCR 测试为 3 个；`.venv` 不计入统计。仍缺覆盖面与质量门禁（`git ls-files` 统计判据见下） |
 | 测试 Golden 不足 | `Quality` | `pipeline/validators/goldens` | 仅有 bazi/qtbj，无非八字 fixture（`find pipeline/validators/goldens -type f` 必 FAIL） |
 | OCR 横排切分轴 | `Cross-cutting` | `ocr/` 引擎 | R7 横排分支取轴错误（见 `ocr/HANDOFF_OCR_FIXES.md:181-185`） |
 | 语义分层阻塞 | `Cross-cutting` | `pipeline/TODO.md:12-14` | 三项 P0 语义阻断：忠实性门禁缺失、命例/注文/通则分层未实现、条件例外未结构化 |
 
 注：本表行序为盘点顺序，非施工顺序；施工顺序见上方拓扑，三个基础设施是前置层。
+
+### 19.0 当前差距的二元判据
+
+下列命令是当前差距的可执行判据；每条修复前判据当前失败（期望退出码 1），修复后判据成功（期望退出码 0）。仅输出目录、文件列表或人工观察结果的命令不构成门禁。历史缺口（私有依赖、启动覆盖、保存即 `verified`）不计入当前差距，必须以“已遏制/历史”处理并保留回归检查。
+
+| 差距 | 修复前判据（非零/失败） | 修复后判据（零/成功） |
+|---|---|---|
+| M1 转录不可重放 | `bash openspec/acceptance/m1-replay.sh`（当前 exit 127） | `bash openspec/acceptance/m1-replay.sh`（修复后 exit 0） |
+| M2 导出缺失扫描与审计 | `bash openspec/acceptance/m2-export-integrity.sh`（当前 exit 127） | `bash openspec/acceptance/m2-export-integrity.sh`（修复后 exit 0） |
+| M3 整书漏编/无双层锚点 | `bash openspec/acceptance/m3-coverage.sh`（当前 exit 127） | `bash openspec/acceptance/m3-coverage.sh`（修复后 exit 0） |
+| M4 分类与人工裁决缺口 | `bash openspec/acceptance/m4-stage-gate.sh`（当前 exit 127） | `bash openspec/acceptance/m4-stage-gate.sh`（修复后 exit 0） |
+| M5 全书与证据校验不足 | `bash openspec/acceptance/m5-evidence-gate.sh`（当前 exit 127） | `bash openspec/acceptance/m5-evidence-gate.sh`（修复后 exit 0） |
+| M6 数据体字段缺失 | `bash openspec/acceptance/m6-data-fields.sh`（当前 exit 127） | `bash openspec/acceptance/m6-data-fields.sh`（修复后 exit 0） |
+| M7 无可执行汇编 | `bash openspec/acceptance/m7-assembler.sh`（当前 exit 127） | `bash openspec/acceptance/m7-assembler.sh`（修复后 exit 0） |
+| M8 映射键碰撞 | `bash openspec/acceptance/m8-span-identity.sh`（当前 exit 127） | `bash openspec/acceptance/m8-span-identity.sh`（修复后 exit 0） |
+| 工作台多书多主张 | `bash openspec/acceptance/workbench-identity.sh`（当前 exit 127） | `bash openspec/acceptance/workbench-identity.sh`（修复后 exit 0） |
+| 流派与书目混部 | `bash openspec/acceptance/school-type-separation.sh`（当前 exit 127） | `bash openspec/acceptance/school-type-separation.sh`（修复后 exit 0） |
+| 测试宿主不足 | `bash openspec/acceptance/test-host.sh`（当前 exit 127） | `bash openspec/acceptance/test-host.sh`（修复后 exit 0） |
+| Golden 仅八字 | `bash openspec/acceptance/non-bazi-golden.sh`（当前 exit 127） | `bash openspec/acceptance/non-bazi-golden.sh`（修复后 exit 0） |
+| OCR 横排切分轴 | `bash openspec/acceptance/ocr-horizontal-axis.sh`（当前 exit 127） | `bash openspec/acceptance/ocr-horizontal-axis.sh`（修复后 exit 0） |
+| Pipeline P0 语义阻断 | `bash openspec/acceptance/pipeline-p0.sh`（当前 exit 127） | `bash openspec/acceptance/pipeline-p0.sh`（修复后 exit 0） |
 
 ### 19.1 旧存储处置
 

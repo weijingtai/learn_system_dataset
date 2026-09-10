@@ -1,7 +1,7 @@
 task_id: blackbox-t11
 name: transcribe-gap-table-corrections
-status: READY
-description: 依据 T-transcribe.md 规范，在 §19 表格修正 M1/M6/M8 三行低估，写入实测精确数字（496、148、18 键），并补充 8 项工程遗漏。
+status: READY_FOR_REVIEW
+description: 依据 T-transcribe.md 与 G3-REVIEW-R1，在 §19 修正 M1/M6/M8 的真实 HEAD 事实，标注 G2 已遏制的历史缺口，补充工程遗漏，并为每个当前差距提供二元判据。
 
 scope:
   write:
@@ -13,13 +13,12 @@ scope:
 forbidden:
   - 严禁篡改实测数字（496、148、18 键）
   - 严禁将「pipeline 无依赖声明」写入遗漏
-  - 严禁修改任何代码、JSON Schema、测试或工作包文档
+  - 严禁修改任何业务代码、JSON Schema、数据库或 fixture
 
 verification:
   red:
-    command: bash docs/blackbox-spec-rework/verify-T.sh
-    expected_exit: 3
-    expected_contains: "FAIL  T-11   §19 实测数字已写入 (期望 >=2, 实得 0)"
+    command: 对 §19 做临时副本变异后运行 bash docs/blackbox-spec-rework/verify-T.sh
+    expected: T-11s 至少一个语义门禁以非零退出；不得以关键词计数作为唯一 Red
   green:
     commands:
       - test $(grep -c "496\|148" openspec/learn-system-blackbox-architecture.md) -ge 2
@@ -27,5 +26,4 @@ verification:
       - test $(grep -c "^|" <(sed -n '/## 19/,/## 20/p' openspec/learn-system-blackbox-architecture.md)) -ge 21
       - git diff --check
       - bash docs/blackbox-spec-rework/verify-T.sh
-    expected_exit: 2
-    expected_contains: "PASS  T-11   §19 实测数字已写入"
+    expected: T-11 与全部 T-11s 通过；全局 FAIL 不增加

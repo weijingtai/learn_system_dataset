@@ -3,7 +3,7 @@
 # 用法: bash docs/blackbox-spec-rework/verify-T.sh
 # 现在跑应当大面积 FAIL —— 那是基线，不是脚本坏了。
 cd "$(dirname "$0")/../.." || exit 99
-SPEC="openspec/learn-system-blackbox-architecture.md"
+SPEC="${SPEC:-openspec/learn-system-blackbox-architecture.md}"
 FAILED=0
 
 chk() {  # chk <编号> <说明> <期望> <实得>
@@ -88,6 +88,51 @@ qmiss=0; for q in RunStatus StageProgress PendingQueue BlockingReasons ReworkImp
 chk T-09 "Orchestrator 六项查询(缺失)" "0"  "$qmiss"
 chk T-10 "异常页终态三值"            ">=3"  "$(c 'manually_transcribed\|known_unrecognizable\|deferred')"
 chk T-11 "§19 实测数字已写入"        ">=2"  "$(c '496\|148')"
+# T-11 R1 semantic gates: the gap table must describe HEAD facts and use
+# binary, path-sensitive criteria. Counts alone must not make stale prose pass.
+sec19=$(sed -n '/^## 19[. ]/,/^## 20[. ]/p' "$SPEC")
+sec190=$(printf '%s\n' "$sec19" | sed -n '/^### 19\.0 /,/^### 19\.1 /p')
+if printf '%s\n' "$sec19" | grep -Fq 'pipeline/tools/ingest_epub.py' \
+  && ! printf '%s\n' "$sec19" | grep -Eq '(^|[^/])tools/ingest_epub.py' ; then
+  printf 'PASS  T-11s §19 uses the real ingest tool path\n'
+else
+  printf 'FAIL  T-11s §19 uses the real ingest tool path\n'; FAILED=$((FAILED+1))
+fi
+for historical in '已由 G2 修复' '历史缺口已遏制' '启动覆盖本地库' '保存即 verified'; do
+  if printf '%s\n' "$sec19" | grep -Fq "$historical"; then
+    printf 'PASS  T-11s historical fact: %s\n' "$historical"
+  else
+    printf 'FAIL  T-11s historical fact missing: %s\n' "$historical"; FAILED=$((FAILED+1))
+  fi
+done
+if printf '%s\n' "$sec19" | grep -Fq 'git ls-files' \
+  && printf '%s\n' "$sec19" | grep -Fq '.venv' \
+  && printf '%s\n' "$sec19" | grep -Fq '为 3 个'; then
+  printf 'PASS  T-11s tracked non-OCR test count and scope\n'
+else
+  printf 'FAIL  T-11s tracked non-OCR test count and scope\n'; FAILED=$((FAILED+1))
+fi
+for fact in '496 rules' 'original_text` 非空 0' 'is_verified=1` 为 0' 'ge_ju_versions` 0' 'conditions` 非空 404' 'chapter` 非空 486' '148 span' '18 键' '6 组碰撞'; do
+  if printf '%s\n' "$sec19" | grep -Fq "$fact"; then
+    printf 'PASS  T-11s HEAD fact: %s\n' "$fact"
+  else
+    printf 'FAIL  T-11s HEAD fact missing: %s\n' "$fact"; FAILED=$((FAILED+1))
+  fi
+done
+criterion_rows=$(printf '%s\n' "$sec19" | awk '/^### 19\.0 /,/^### 19\.1 / { if ($0 ~ /^\|/ && $0 !~ /^\|---/) n++ } END { print n+0 }')
+chk T-11s "§19 当前差距均列二元判据" ">=15" "$criterion_rows"
+if printf '%s\n' "$sec190" | grep -Fq '当前失败' \
+  && printf '%s\n' "$sec190" | grep -Fq '修复后判据'; then
+  printf 'PASS  T-11s binary criteria are explicit\n'
+else
+  printf 'FAIL  T-11s binary criteria are explicit\n'; FAILED=$((FAILED+1))
+fi
+# Every 19.0 data row must contain executable commands on both sides.  A
+# prose-only "修复后" cell must never satisfy the row-count gate.
+bad_rows=$(printf '%s\n' "$sec190" | awk -F'`' '/^\|/ && $0 !~ /^\|---/ && $0 !~ /差距.*修复前/ {
+  if (NF != 5 || index($0, "exit ") == 0 || $0 ~ /test \$\? -ne 0/ || $4 !~ /openspec\/acceptance\//) n++
+} END { print n+0 }')
+chk T-11s "§19.0 每行两侧均为命令且有期望退出码" "0" "$bad_rows"
 chk T-12 "§19 施工顺序说明"          ">=1"  "$(c '非施工顺序\|前置层')"
 chk T-13 "章节状态标签"              ">=16" "$(c '^状态：')"
 chk T-13b "无节被标最终规范"          "0"    "$(c '^状态：最终规范')"
