@@ -134,7 +134,24 @@ bad_rows=$(printf '%s\n' "$sec190" | awk -F'`' '/^\|/ && $0 !~ /^\|---/ && $0 !~
 } END { print n+0 }')
 chk T-11s "§19.0 每行两侧均为命令且有期望退出码" "0" "$bad_rows"
 chk T-12 "§19 施工顺序说明"          ">=1"  "$(c '非施工顺序\|前置层')"
-chk T-13 "章节状态标签"              ">=16" "$(c '^状态：')"
+# T-13 is deliberately structural: the label must be the first non-empty
+# line after each exact §3–§18 heading, and must match the closed mapping.
+# Counting labels alone lets a moved label or a mislabeled section go green.
+t13_map=$(awk '
+  BEGIN { want[3]="讨论候选"; want[4]="待验证假设"; want[5]="已确认设计"; want[6]="已确认设计"; want[7]="待验证假设"; want[8]="待验证假设"; want[9]="讨论候选"; want[10]="待验证假设"; want[11]="待验证假设"; want[12]="待验证假设"; want[13]="待验证假设"; want[14]="待验证假设"; want[15]="讨论候选"; want[16]="待验证假设"; want[17]="待验证假设"; want[18]="已确认设计"; ok=1 }
+  /^## (3|4|5|6|7|8|9|10|11|12|13|14|15|16|17|18)\.[[:space:]]/ {
+    n=$2; sub(/\..*/,"",n); seen[n]++ ; pending=n; next
+  }
+  pending && NF { if ($0 != "状态：" want[pending]) ok=0; pending=0 }
+  END { for (i=3;i<=18;i++) if (seen[i] != 1) ok=0; print ok ? 1 : 0 }
+' "$SPEC")
+chk T-13 "§3–§18章节号→状态映射"      "1"    "$t13_map"
+local_candidate=$(awk '
+  /建议一个 Technique 一个 Release/ { found=1; if (prev == "状态：讨论候选") ok=1; while (getline after) { if (after ~ /[^[:space:]]/) { if (after == "状态：讨论候选") ok=1; break } } next }
+  { prev=$0 }
+  END { print (found && ok) ? 1 : 0 }
+' "$SPEC")
+chk T-13a "§16建议句局部讨论候选"      "1"    "$local_candidate"
 chk T-13b "无节被标最终规范"          "0"    "$(c '^状态：最终规范')"
 
 echo

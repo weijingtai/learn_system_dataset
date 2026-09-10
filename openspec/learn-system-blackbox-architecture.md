@@ -653,6 +653,8 @@ PublicationPackage
 
 建议一个 Technique 一个 Release，一个 Edition 一个 SourceAssetPack。每个子包、索引和编译报告都是独立 Artifact，不得只保留最终压缩包。
 
+状态：讨论候选
+
 `EvidenceMapPack` 提供从提炼知识到原始物理证据的端到端反向追溯映射与定位定义：
 
 - **完整无损证据链**：逐段写出并按以下固定顺序闭合（任何缺项、交换或悬空均拒绝）：
