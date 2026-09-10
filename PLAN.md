@@ -51,6 +51,8 @@
 
 **2026-09-09 G3 交叉验收 R1**：机器门禁已到 0 FAIL，但语义审查结论为 6 通过 / 6 返工或阻断。通过：T-01/T-03/T-05/T-09/T-10/T-12；返工：T-04/T-06/T-11/T-13；阻断：T-07/T-08（先完成 D-07）。证据见 `docs/blackbox-spec-rework/reviews/G3-REVIEW-R1.md`。
 
+**G3 R1 返工断点**：T-04/T-06/T-11/T-13 已完成返工并独立验收；剩余严格顺序为 `D-07 → T-07 → T-08 → G3 总验收`。接力 Prompt 见 `docs/blackbox-spec-rework/work-items/g3-r1/REMAINING_PROMPT.md`。
+
 **当前第一执行序列**：`D-01`、`D-03`、`T-02`、`D-02` 已验收。下一步先准备 R0 依赖解锁工作包，严格按 `ACT 03 → ACT 04` 执行；因既有 `ai_core` 传递依赖冲突，ACT 03 只做引用与精确差异检查，待 ACT 04 移除全部内网依赖后，对两项合并执行 `flutter pub get`、`flutter analyze` 与 `flutter test` 准出门禁。随后再分别准备并执行 ACT 01、ACT 02 的真实 Red→Green 工作包。主 Agent 只制作规格、BDD、TDD、ACT、Prompt 并独立验收，不编写业务实现。
 
 **7 项架构决议已由用户于 2026-09-08 批准**：单机 Ledger 本地进程；Pattern 是 Concept 的可规则识别子类、KnowledgeEntry 是发布视图；EditionPart 优先按卷；现有工作台提升为 Review Console；校订事实/corpus 迁移、派生索引重跑、旧知识库冻结；原件进入本地 Object Store 且分发受 ReleasePolicy 控制；工作台 AI 聊天剥离并在未来由 M4 Model Adapter 取代。旧存储和旧路径的权威说明见 `openspec/legacy-storage-transition.md`。

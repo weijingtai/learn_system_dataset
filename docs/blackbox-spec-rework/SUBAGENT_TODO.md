@@ -173,7 +173,7 @@
   - [x] PLAN/HANDOFF 同步
   - [x] 主 Agent 标记 `ACCEPTED`
 
-- [ ] T-04：三级消费级别与 G1–G7 门禁（状态：`REVIEWING`；R1 语义缺失、门禁假绿）
+- [x] T-04：三级消费级别与 G1–G7 门禁（状态：`ACCEPTED`；R1 返工验收 `b15c25d`）
   - [x] README/范围/依赖/禁止项
   - [x] BDD 场景
   - [x] TDD 正反用例与精确命令
@@ -183,11 +183,11 @@
   - [x] `wjt-react` 判定 READY
   - [x] 派发执行 Agent
   - [x] 执行提交与原始证据（`968a65e`）
-  - [ ] R1 返工：补全 G1–G7 原规范语义并加固门禁
-  - [ ] 主 Agent 规格审查
-  - [ ] 主 Agent 质量审查
-  - [x] PLAN/HANDOFF 同步（R1 未通过）
-  - [ ] 主 Agent 标记 `ACCEPTED`
+  - [x] R1 返工：补全 G1–G7 原规范语义并加固门禁
+  - [x] 主 Agent 规格审查
+  - [x] 主 Agent 质量审查
+  - [x] PLAN/HANDOFF 同步
+  - [x] 主 Agent 标记 `ACCEPTED`
 
 - [x] T-05：evidence_level 枚举（状态：`ACCEPTED`）
   - [x] README/范围/依赖/禁止项
@@ -204,7 +204,7 @@
   - [x] PLAN/HANDOFF 同步
   - [x] 主 Agent 标记 `ACCEPTED`
 
-- [ ] T-06：EvidenceMapPack 内容（状态：`REVIEWING`；R1 证据链顺序错误）
+- [x] T-06：EvidenceMapPack 内容（状态：`ACCEPTED`；R1 返工 `3768064`）
   - [x] README/范围/依赖/禁止项
   - [x] BDD 场景
   - [x] TDD 正反用例与精确命令
@@ -214,11 +214,11 @@
   - [x] `wjt-react` 判定 READY
   - [x] 派发执行 Agent
   - [x] 执行提交与原始证据（`1e52327`）
-  - [ ] R1 返工：恢复权威证据链顺序并加固门禁
-  - [ ] 主 Agent 规格审查
-  - [ ] 主 Agent 质量审查
-  - [x] PLAN/HANDOFF 同步（R1 未通过）
-  - [ ] 主 Agent 标记 `ACCEPTED`
+  - [x] R1 返工：恢复权威证据链顺序并加固门禁
+  - [x] 主 Agent 规格审查
+  - [x] 主 Agent 质量审查
+  - [x] PLAN/HANDOFF 同步
+  - [x] 主 Agent 标记 `ACCEPTED`
 
 - [ ] T-07：KnowledgePack 双向映射（状态：`BLOCKED`；必须先完成 D-07）
   - [x] README/范围/依赖/禁止项
@@ -282,7 +282,7 @@
   - [x] PLAN/HANDOFF 同步
   - [x] 主 Agent 标记 `ACCEPTED`
 
-- [ ] T-11：差距表事实修正（状态：`REVIEWING`；R1 发现过时事实与假判据）
+- [x] T-11：差距表事实修正（状态：`ACCEPTED`；R1 返工 `6f62189`）
   - [x] README/范围/依赖/禁止项
   - [x] BDD 场景
   - [x] TDD 正反用例与精确命令
@@ -292,11 +292,11 @@
   - [x] `wjt-react` 判定 READY
   - [x] 派发执行 Agent
   - [x] 执行提交与原始证据（`4deb1ce`）
-  - [ ] R1 返工：更新路径、依赖与测试数量等现状事实
-  - [ ] 主 Agent 规格审查
-  - [ ] 主 Agent 质量审查
-  - [x] PLAN/HANDOFF 同步（R1 未通过）
-  - [ ] 主 Agent 标记 `ACCEPTED`
+  - [x] R1 返工：更新路径、依赖与测试数量等现状事实
+  - [x] 主 Agent 规格审查
+  - [x] 主 Agent 质量审查
+  - [x] PLAN/HANDOFF 同步
+  - [x] 主 Agent 标记 `ACCEPTED`
 
 - [x] T-12：施工层级与拓扑（状态：`ACCEPTED`，提交 `5e83c64`）
   - [x] README/范围/依赖/禁止项
@@ -313,7 +313,7 @@
   - [x] PLAN/HANDOFF 同步
   - [x] 主 Agent 标记 `ACCEPTED`
 
-- [ ] T-13：章节状态标签（状态：`REVIEWING`；提交 `be2c6ce`，R1 漏局部候选标签）
+- [x] T-13：章节状态标签（状态：`ACCEPTED`；R1 返工 `e3b1570`）
   - [x] README/范围/依赖/禁止项
   - [x] BDD 场景
   - [x] TDD 正反用例与精确命令
@@ -323,11 +323,11 @@
   - [x] `wjt-react` 判定 READY
   - [x] 派发执行 Agent
   - [x] 执行提交与原始证据（`be2c6ce`）
-  - [ ] R1 返工：为 §16 建议语句增加局部“讨论候选”标签
-  - [ ] 主 Agent 规格审查
-  - [ ] 主 Agent 质量审查
-  - [x] PLAN/HANDOFF 同步（R1 未通过）
-  - [ ] 主 Agent 标记 `ACCEPTED`
+  - [x] R1 返工：为 §16 建议语句增加局部“讨论候选”标签
+  - [x] 主 Agent 规格审查
+  - [x] 主 Agent 质量审查
+  - [x] PLAN/HANDOFF 同步
+  - [x] 主 Agent 标记 `ACCEPTED`
 
 
 ## G4 其余 D 类设计任务

@@ -12,14 +12,12 @@
 
 ## G3 线原交接
 
-更新时间：2026-09-09（G3 交叉验收 R1：未通过，6 通过 / 6 返工或阻断）
+更新时间：2026-09-09（G3 R1 返工完成 4/7，可从 D-07 接力）
 当前分支/worktree：`codex/docs/knowledge-compilation`；独立仓库 `/Users/jingtaiwei/Git/Public/learn_system`
-刚完成：
-- G3 十二个 T 类提交已完成第一轮交叉验收；机器门禁为 0 FAIL，但语义验收仅 T-01/T-03/T-05/T-09/T-10/T-12 通过。
-- 详细证据与机械返工项见 `docs/blackbox-spec-rework/reviews/G3-REVIEW-R1.md`。
-进行到一半的事（精确到文件和章节）：T-04/T-06/T-11/T-13 需要返工；T-07/T-08 因 D-07 未完成而阻断。
-下一步（第一件事）：先重制 T-04、T-06、T-11、T-13 返工包；完成 D-07 后再按 T-07 → T-08 顺序返工，最后重验 G3。
-已知的坑：`verify-T.sh` 当前主要检查关键词和数量，0 FAIL 只能证明形式存在，不能证明全文转录、链路顺序、依赖关系和事实时效正确。
+刚完成：T-04、T-06、T-11、T-13 已补语义门禁、完成负向变异并由主 Agent 验收；提交见 `docs/blackbox-spec-rework/work-items/g3-r1/ACCEPTANCE.md`。
+进行到一半的事（精确到文件和章节）：G3 R1 为 4/7；D-07、T-07、T-08 尚未执行，工作区无未提交半成品。
+下一步（第一件事）：按 `docs/blackbox-spec-rework/work-items/g3-r1/REMAINING_PROMPT.md` 创建并执行 D-07 六件套；D-07 验收后再串行 T-07 → T-08。
+已知的坑：T-07/T-08 旧提交虽让旧脚本全绿，但依赖 D-07 未冻结，不能恢复 ACCEPTED；总门禁 0 仍不能替代负向变异和语义审查。
 
 ---
 2026-07-11（Claude/Cowork）：仓库文档已按并行线拆分——Tag 文档全部迁至 `tag_system/`（原 docs/superpowers/specs/ 下两份 Tag 规格已移至 tag_system/specs/），知识编译与产品母稿迁至 `knowledge_system/`。仓库地图见根 README.md。本文件中旧路径引用以新位置为准。
