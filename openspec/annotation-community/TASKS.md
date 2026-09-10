@@ -1,6 +1,6 @@
 # 笔记、原句注解与讨论 Tasks
 
-版本：1.3；2026-09-10（R2 六项返工补全；待独立复核）。状态：`APPROVED_DESIGN`；执行状态：`NOT_STARTED`。
+版本：1.4；2026-09-10（落实 FIX_V1_4 一次性修复说明；待抽查确认）。状态：`APPROVED_DESIGN`；执行状态：`NOT_STARTED`。
 权威需求：[PRD](PRD.md)，技术依据：[Design](DESIGN.md)，根路径与执行门禁：[Plans](PLANS.md)，审查缺陷登记：[REVIEW_R1](REVIEW_R1.md)。下面路径使用 Plans §1 的精确根路径标记；标为「新增」的路径是任务产物，不声称当前文件存在。
 
 **状态枚举直接引用 [工作包门禁](../subagent-delivery-gate.md) §7 的七值枚举**（`BACKLOG / PREPARING / READY / DISPATCHED / REVIEWING / ACCEPTED / BLOCKED`），本文件不再自造释义。总表「初始状态」是登记时的取值；**流转中的当前状态以仓库唯一监控表 [`SUBAGENT_TODO.md`](../../docs/blackbox-spec-rework/SUBAGENT_TODO.md) 为准**，NC-001～NC-025 须在该表登记「NC 注解社区线」章节后方可开始流转，避免两处状态源并存。
@@ -21,7 +21,7 @@
 | NC-008 | 本地图片与公共资源适配 | NC-003, NC-004, NC-025 | BACKLOG | 仅 BDD，TDD 待 NC-025 | R-15, R-20 |
 | NC-009 | 发布/更新/收回、权限事务与 ACL 全入口扫描 | NC-003, NC-008, NC-015 | BACKLOG | 仅 BDD，TDD 待 NC-002/003 | R-05, R-20 |
 | NC-010 | 笔记列表、公开详情与发布 UI | NC-005, NC-007, NC-009 | BACKLOG | 仅 BDD，TDD 待 NC-003 | R-01, R-05, R-16 |
-| NC-011 | 两级评论/回复与编辑删除 | NC-003, NC-009 | BACKLOG | 仅 BDD，TDD 待 NC-002/003 | R-08, R-20 |
+| NC-011 | 两级评论/回复与编辑删除 | NC-003, NC-009, NC-010 | BACKLOG | 仅 BDD，TDD 待 NC-002/003 | R-08, R-20 |
 | NC-012 | 赞踩/收藏/分享/@/关系与举报 | NC-003, NC-009, NC-011 | BACKLOG | 仅 BDD，TDD 待 NC-002/003 | R-09, R-10, R-20 |
 | NC-013 | 事务事件、投递、通知正文与补拉端点 | NC-003, NC-011, NC-012 | BACKLOG | 仅 BDD，TDD 待 NC-002/003 | R-11, R-20 |
 | NC-014 | Notification 宿主适配、去重与导航 | NC-010, NC-013 | BACKLOG | 仅 BDD，TDD 待 NC-013 | R-11, R-16 |
@@ -68,12 +68,12 @@ NC-019 可先准备本地回收站子 ACT，但完整清理验收等待备份协
 
 ### NC-002：模型与固定行为契约
 
-- [ ] RW-1～3：三类顶层引用集合规范排序/去重后数组换序 hash 不变；仅 change_summary 不同则 hash 不同并新增修订，系统派生摘要不同不影响保存；嵌套合法有序数组换序则 hash 不同。补 CommandRecord 完整/精简/拒绝终态、NotifierDeliveryBinding 可信来源及 command_id 正则正反例；外部不透明 ID 不套本地前缀正则。
+- [ ] RW-1～3：三类顶层引用集合规范排序后数组换序 hash 不变，完全相同的重复项被 Schema 拒绝（需负例 fixture）；仅 change_summary 不同则 hash 不同并新增修订，系统派生摘要不同不影响保存；嵌套合法有序数组换序则 hash 不同。补 CommandRecord 完整/精简/拒绝终态、NotifierDeliveryBinding 可信来源及 command_id 正则正反例；外部不透明 ID 不套本地前缀正则。
 
 - [ ] **先取得用户对 [Design §2.1](DESIGN.md) 的 UGC ID 前缀确认**（仅本系统拥有的业务 ID；notifier 原始 ID 不适用此前缀表）。未确认前本任务保持 `PREPARING`，不得进入 `READY`。
-- [ ] 新增 `SPEC/contracts/community-models.md` 与 `SPEC/contracts/state-machines.md`，覆盖 Note/Revision/Publication/ContentAccess/Comment/Reaction/NotificationRecord/NotifierDeliveryBinding/CommandRecord 的字段归属，以及八台状态机（编辑态、发布态、生命周期、审核态、客户端 `pending_op`、投递态、导入态、锚点解析）的**完整转移表**：每条边标注触发事件、前置条件、目标态与失败错误码；含 §4.1 的状态组合白名单与非法转移期望。
+- [ ] 新增 `SPEC/contracts/community-models.md` 与 `SPEC/contracts/state-machines.md`，覆盖 Note/Revision/Publication/ContentAccess/Comment/Reaction/NotificationRecord/NotifierDeliveryBinding/CommandRecord 的字段归属，以及九台状态机（编辑态、发布态、生命周期、审核态、客户端 `pending_op`、清理任务 `PurgeTask.state`、投递态、导入态、锚点解析）的**完整转移表**：每条边标注触发事件、前置条件、目标态与失败错误码；含 §4.1 的状态组合白名单与非法转移期望。
 - [ ] **机器 Schema 落位沿用仓库既有范式**（不另造一套）：新增 `openspec/schemas/community_note.schema.json` 等，正反例放 `openspec/schemas/examples/`，命名 `<obj>.valid.yaml` / `<obj>.invalid_<reason>.yaml`，并在 `openspec/schemas/verify.sh` 追加成对判据（正例必须通过、负例必须失败）。跨端 fixture 另放 `SPEC/fixtures/community/`。
-- [ ] 冻结 [Design §7.2](DESIGN.md) 的 content_hash canonical 编码，产出 `SPEC/fixtures/community/content_hash_cases.json`，并**同时指定两个消费者**：`SERVER/tests/test_community_hash_parity.py` 与 `CLIENT/test/contracts/content_hash_parity_test.dart`，逐条断言 `expected_hash` 字面量。fixture 不得只有生产者无消费者。按 nchash/v2 同时断言 expected_canonical_hex；仅改 binding/selector/mention offset/图片 alt/change_summary 必须不同，对象键序/同步进度不改变 hash；恢复同文另建修订。
+- [ ] 冻结 [Design §7.2](DESIGN.md) 的 content_hash canonical 编码，产出 `SPEC/fixtures/community/content_hash_cases.json`，并**同时指定两个消费者**：`SERVER/tests/test_community_hash_parity.py` 与 `CLIENT/test/contracts/content_hash_parity_test.dart`，逐条断言 `expected_hash` 字面量。fixture 不得只有生产者无消费者。按 nchash/v2 同时断言 expected_canonical_hex；仅改 binding/selector/mention offset/图片 alt/change_summary 必须不同，对象键序/同步进度不改变 hash；恢复同文另建修订。另含「mention 之前有一个 4 字节字符（如 `𠀀` U+20000）」用例：写明按 code point 计数的期望 start_offset、期望 canonical hex 与期望 hash，Python 与 Dart 必须得出同一字面值。
 - [ ] 冻结 [Design §7.1](DESIGN.md) 的限额边界闭合语义与计量口径，产出恰好等于/超一个单位的成对 fixture；必须含「4,000 个 4 字节 emoji 的评论」用例（期望通过）与 `limit=101`（期望 400）。
 - [ ] Fixture 至少含：私改未发布、恢复同文新修订、两个并发 parent、跨楼非法 reply、超限内容、四类无效 mention（user_id 不存在 / 账号已注销 / 已被拉黑 / 文本不再匹配）、五类非法 ID 格式（含 `rev_` 误用作 NoteRevision）。每条写清完整期望记录或错误 code，不写「验证失败即可」。
 - [ ] 新增 `SPEC/tools/validate_fixtures.py`。红条件：任一 fixture 缺 `expected` 字段、或出现未登记在 `state-machines.md` 枚举表中的状态值、或 ID 不符合 §2.1 前缀规则。
@@ -84,7 +84,7 @@ NC-019 可先准备本地回收站子 ACT，但完整清理验收等待备份协
 - [ ] 修改 `REST/openapi/openapi.yaml`，新增社区公共资源/命令/错误/分页/ETag/幂等；请求头一律用 `in: header` 的 header parameters。**该文件由四个任务串行写入：NC-003 → NC-013 → NC-017 → NC-021**，后继任务以前一个产出为基线重跑契约测试。密码学/书籍扩展在 NC-017/021 合并至同一入口，不伪造已冻结字段。
 - [ ] **写入白名单必须包含既有的 `REST/test/openapi_validation_test.dart`**：该文件现有 8 处断言（第 147/148/161/217-218/239-240/292/307 行附近）正好**要求** operation 级 `headers:` 存在，修正结构必然弄红。README 记录改前基线（当前 `dart test` 退出码与用例数），ACT 中把「迁移 8 处断言到 `in: header`」作为独立步骤，以便区分既有失败与本任务新增失败。
 - [ ] 落地 [Design §7.3](DESIGN.md) 的**错误目录**：每个场景唯一 HTTP 状态码 + 唯一 `code` + Problem Details 附加字段；不得保留「403 或 404」这类二选一。`conflict.idempotency` 沿用 SERVER 仓 `tests/test_playground_rest_writes.py` 的既有命名。限流阈值与 `retry_after_seconds` 填实值，未填实值前 `429` 不写入验收。
-- [ ] 按 Design §7.4 定义 command_id=Idempotency-Key、操作域、payload_hash、命令查询端点与恢复错误。完整结果保留 14 天，精简账本持续去重；超期同键绝不新建业务。reaction If-Match、expected_access_version、原始 applied_version 与当前状态读取分别建 Schema/HTTP 正反例。
+- [ ] 按 Design §7.4 定义 command_id=Idempotency-Key、唯一键 (owner_scope, command_id)、payload_hash（含 operation）、命令查询端点与恢复错误。完整结果保留 14 天，精简账本持续去重；超期同键绝不新建业务。reaction If-Match、expected_access_version、原始 applied_version 与当前状态读取分别建 Schema/HTTP 正反例。
 - [ ] 新增 `REST/test/community_openapi_contract_test.dart` 与 `REST/tool/validate_openapi`；验证器名称/版本/安装方式/离线失败行为取自 NC-001 的实值，**不由本任务执行 Agent 选型**。Swagger UI 读取同一 3.1 契约；notifier 的 3.0.3 契约只引用不复制。
 - [ ] Red fixture 包含：operation 级 `headers:`、缺必填、非法状态、同键异载荷、412，以及**一份故意非法的 3.1 文档（验证器必须返回非零退出码）**——这一条专为防止再写一个 yaml 字段检查器充数。Green 用真实解析器验证。
 - [ ] 运行 `dart test test/community_openapi_contract_test.dart` 与 `tool/validate_openapi openapi/openapi.yaml`，均退出 0；两者需本任务实际创建，不能假称现已可运行。
@@ -97,7 +97,7 @@ NC-019 可先准备本地回收站子 ACT，但完整清理验收等待备份协
 - [ ] 新增 `CLIENT/lib/src/domain/note.dart`、`note_revision.dart`、`persistence/note_database.dart`、`note_repository.dart`；在 `test/persistence/note_repository_test.dart` 建失败用例后实现事务保存与待同步记录。
 - [ ] 覆盖首次/无变化保存、连续两版本、附件引用、磁盘失败回滚（回滚后编辑态为 `save_failed` 且无半个 head/outbox）、文件库关闭重开、账号切换旧回调隔离；本地超限（1 MiB + 1 B）抛 `NoteSizeLimitExceeded` 且缓冲保留、不生成修订。禁止照搬 notebook 覆盖 committed 或内存模式报成功。
 - [ ] 冻结 outbox **外层** schema（与加密无关的信封头），声明「信封内容由 NC-016 填充」；或在 README 中改为直接依赖 NC-015 的冻结产物。二选一必须写明，不能带着未决依赖派发。
-- [ ] 消费 NC-002 的 `content_hash_cases.json`，新增 `CLIENT/test/contracts/content_hash_parity_test.dart` 断言 `expected_hash` 字面量；普通保存以完整语义投影去重，显式恢复/合并不按 hash 折叠。
+- [ ] 消费 NC-002 的 `content_hash_cases.json`，新增 `CLIENT/test/contracts/content_hash_parity_test.dart` 断言 `expected_hash` 字面量；普通保存以完整语义投影去重，显式恢复/合并不按 hash 折叠。按 Design §7.2 的 `summary_touched` 规则补三条用例：① head 说明为 X，新会话改动正文后改回原文再保存 → 不新增修订；② 新会话只填写说明 Y → 新增修订且 change_summary=Y；③ 新会话改动正文、未碰说明 → 新增修订且 change_summary 为空串（不继承 X）。
 - [ ] 运行 `flutter test test/persistence/note_repository_test.dart`；期望真文件重开后版本与引用不丢，失败不产生半个 head/outbox，不只测内存 Fake。
 
 ### NC-005：Markdown 编辑、预览和保存状态
@@ -164,7 +164,7 @@ R1 核验发现的独立缺口：`STORAGE/firebase/lib/media/blob_gateway_fireba
 
 ### NC-010：列表、详情与发布页面
 
-- [ ] **RW-5，客户端命令恢复（Design §7.4）**：发布/更新/收回等公共操作先以账号隔离的 Drift 队列持久化 command_id、operation、payload_hash、请求与状态，再发送。测试真实文件库关闭重开后以原键重试；响应丢失后调用命令查询端点对账，committed/rejected 对应原结果且不新建命令；收到 410 保留最小结果并读取当前资源核实，503 保留待办且只允许原键查询/重试，两者均不换键重放。未发送意图可取消；已发送操作取消只停止本地重试，不能显示服务端已撤销。用 HTTP 请求记录及服务器账本证明无第二次业务写入，迟到响应不得覆盖较新版本；验收加入 publication_flow_test.dart。
+- [ ] **RW-5，客户端命令恢复（Design §7.4）**：本任务新增 `CLIENT/lib/src/community/command_queue.dart`（账号隔离的 Drift 持久命令队列），它是客户端全部社区写命令的唯一队列。本任务负责 `content.publish/update/withdraw/trash/restore/purge` 的接入；`comment.create/edit/delete` 由 NC-011、`reaction.set`、`bookmark.set`、`share.create`、`share.revoke`、`report.create` 由 NC-012 复用同一队列，并按本条三项断言验收。操作先以该队列持久化 command_id、operation、payload_hash、请求与状态，再发送。测试真实文件库关闭重开后以原键重试；响应丢失后调用命令查询端点对账，committed/rejected 对应原结果且不新建命令；收到 410 保留最小结果并读取当前资源核实，503 保留待办且只允许原键查询/重试，两者均不换键重放。未发送意图可取消；已发送操作取消只停止本地重试，不能显示服务端已撤销。用 HTTP 请求记录及服务器账本证明无第二次业务写入，迟到响应不得覆盖较新版本；验收加入 publication_flow_test.dart。
 
 - [ ] 新增 `CLIENT/lib/src/community/note_list_page.dart`、`content_detail_page.dart`、`publication_controller.dart`、`community_api.dart` 和 `test/community/publication_flow_test.dart`；在拟新建 `CLIENT/example/` 配置真实测试宿主。
 - [ ] 验收本人草稿/有未发布修改/已公开状态、发布预览固定修订、图片未就绪拒绝发布、离线保留待发操作、版本冲突保留私人稿、服务器确认前不显示成功。
@@ -177,17 +177,18 @@ R1 核验发现的独立缺口：`STORAGE/firebase/lib/media/blob_gateway_fireba
 ### NC-011：两级评论、排序与修改历史
 
 - [ ] 新增 `SERVER/xuan/community/discussion_service.py`、`xuan/handlers/community_comments.py`、`tests/test_community_comments.py`；新增 `CLIENT/lib/src/community/discussion_controller.dart`、`discussion_panel.dart`、`test/community/discussion_test.dart`。
+- [ ] **客户端命令恢复**：`comment.create/edit/delete` 复用 NC-010 的 `command_queue.dart`，按 NC-010 RW-5 的三项断言验收：真实文件库关闭重开后以原键重试；响应丢失后调用命令查询端点对账，不新建评论；收到 410/503 时不换键重放。另测离线发表评论后重启 App：该评论在服务端只出现一次，讨论区与「待处理」队列中的「待发送」标记在服务端确认后同时消失。
 - [ ] 复用 replies 的 depth/root 校验思路；新事务同时检查主题 ACL、root/target 与版本，通过 NC-009 command_service 同事务写 comment/revision/计数/outbox/命令终态。一级可最新/最早，楼内正序，各层独立稳定游标。
 - [ ] 排序 tie-break 按 `(created_at, id)`，`id` 以 **UTF-8 字节序升序**比较（跨端游标稳定性的唯一依据）；一级默认 20 条、楼内默认展开 5 条，加载更多时已有内容与滚动位置不跳动。
-- [ ] 测跨 thread/root 拒绝、回复楼内仍 depth1、删除 root 留墓碑（`Comment.status = deleted`）/已有回复但禁止新回复、编辑不改 created_at、收回并发按 Design §4.4 两种提交顺序及仍可读旧版本分别断言、评论正文 4,000 与 4,001 code points 的成对边界（含 4 字节 emoji 用例）。
+- [ ] 测跨 thread/root 拒绝、回复楼内仍 depth1、删除 root 留墓碑（`Comment.status = deleted`）/已有回复但禁止新回复（返回 403 `forbidden.thread_closed`）、编辑不改 created_at、收回并发按 Design §4.4 两种提交顺序及仍可读旧版本分别断言、评论正文 4,000 与 4,001 code points 的成对边界（含 4 字节 emoji 用例）。
 - [ ] 讨论区空态区分「还没有人评论，来写第一条」与「该内容不接受新评论」（已收回 / root 已删除）。
 - [ ] 写入白名单含 `SERVER/tests/conftest.py`（仅追加 `COLLECTIONS` 键）。运行 `python3 -m pytest tests/test_community_comments.py -q`（需 Emulator）、`flutter test test/community/discussion_test.dart`。
 
 ### NC-012：互动、关系与结构化 mention
 
 - [ ] 新增 `SERVER/xuan/handlers/community_interactions.py`、`tests/test_community_interactions.py`；新增 `CLIENT/lib/src/community/interaction_controller.dart`、`mention_adapter.dart`、`social_navigation_adapter.dart`、`test/community/interactions_test.dart`。
-- [ ] **R2-02**：赞踩采用服务器 version + If-Match + NC-009 command_service，API viewer_reaction 为 like/dislike/null；取消只清活跃关系/计数，保留 null 状态行版本。新命令携带旧版本为 412；已执行命令重放返回原 applied_version，当前状态另读。客户端持久串行队列、重启恢复和迟到版本防回滚均需实现。
-- [ ] @ 按 [Design §6](DESIGN.md) 的三元组 `(user_id, start_offset, length)` + 创建时 `display_name` 持久化，保存时逐条校验子串是否仍等于 `"@" + display_name_at_creation`，不相等即解除该条关系；同昵称多处按各自 offset 独立判定。
+- [ ] **R2-02**：赞踩采用服务器 version + If-Match + NC-009 command_service，API viewer_reaction 为 like/dislike/null；取消只清活跃关系/计数，保留 null 状态行版本。新命令携带旧版本为 412；已执行命令重放返回原 applied_version，当前状态另读。客户端持久串行队列复用 NC-010 的 `command_queue.dart`，重启恢复和迟到版本防回滚均需实现；`bookmark.set`、`share.create`、`share.revoke`、`report.create` 同样经该队列发送，并按 NC-010 RW-5 的三项断言验收。
+- [ ] @ 按 [Design §6](DESIGN.md) 的三元组 `(user_id, start_offset, length)` + 创建时 `display_name` 持久化，保存时按 code point 偏移（Design §6；Dart 经 `runes` 换算，禁止直接用 `String.substring` 截取）逐条校验子串是否仍等于 `"@" + display_name_at_creation`，不相等即解除该条关系；同昵称多处按各自 offset 独立判定。
 - [ ] 收藏私有；分享解析检查当前权限，并提供分享链接管理与撤销（PRD §6.6）。资料/关注/私信/举报/拉黑调用已有能力，不添加排盘反馈；举报提交后给出受理确认并在举报者视图折叠该内容。
 - [ ] `social` 的可复用面已核实为**部分成立**（`mention/` 是注入式真端口，其余导出多为 `plaza_*` UI 组件），注入点逐个取自 NC-001，缺端口则本任务新增适配。
 - [ ] 基准反例：like(v0) → v1、cancel(v1) → v2、旧 like 同键重放后数据库仍 null/v2，UI 不被旧 v1 响应覆盖；重启后新动作使用读取版本；两设备同基线不同意图一个成功一个 412，禁止自动换版本抢写。另测未执行旧键/旧版本、相同值不重复计数、10 个并发操作、目标 purge 后旧命令不复活。
@@ -200,7 +201,7 @@ R1 核验发现的独立缺口：`STORAGE/firebase/lib/media/blob_gateway_fireba
 
 - [ ] 新增 `SERVER/xuan/community/notification_dispatch.py`、`xuan/handlers/community_deliveries.py`、`tests/test_community_deliveries.py`；扩展 NC-003 的同一 3.1 OpenAPI（串行顺序见 [Plans §1.2](PLANS.md)），接入既有 outbox 触发入口；写入白名单含 `SERVER/tests/conftest.py`（仅追加 `COLLECTIONS` 键）。
 - [ ] **实现上游 notifier 明确不提供的两个端点**：通知正文拉取与 cursor 补拉（`OPENSPEC-PUSH-CELL` 已答复「⛔ notifier 给不出这个端点…请向上游业务子系统要」）。ACK/`/receipts` 属 notifier 的 3.0.3 契约，**只引用不复制**，本任务不在 3.1 契约中重定义。
-- [ ] **R2-01**：业务 NotificationRecord.notification_id 按 Design §6 的 E 编码确定性生成 dlv_ ID，以 create-if-absent 去重；notifier_delivery_id 是上游原始不透明 deliveryId，严禁重命名/重算为业务 ID。实现 event+recipient → 多设备/用途投递的可信映射、账号/设备/当前 ACL 校验；NC-013 工作包必须附真实映射来源与契约证据，缺接口时登记上游扩展和失败停点，不允许构造 Fake 映射宣称接通。
+- [ ] **R2-01**：业务 NotificationRecord.notification_id 按 Design §6 的 E 编码确定性生成 ntf_ ID，以 create-if-absent 去重；notifier_delivery_id 是上游原始不透明 deliveryId，严禁重命名/重算为业务 ID。实现 event+recipient → 多设备/用途投递的可信映射、账号/设备/当前 ACL 校验；NC-013 工作包必须附真实映射来源与契约证据，缺接口时登记上游扩展和失败停点，不允许构造 Fake 映射宣称接通。
 - [ ] 显式声明并测试 at-least-once 语义（[Design §6.1](DESIGN.md)）：Firestore trigger 与外部推送均为 at-least-once，「原子」仅指投递记录终态写入一次；不得在任何文档或注释中声称 exactly-once。
 - [ ] 推送重试状态与记录创建分离；`delivery_state` 走 `created / dispatching / delivered / failed / abandoned` 五态，退避 1s/2s/4s/8s 上限 5 次。评论/回复/@ 去重，无自通知；赞站内、偏好控制系统提醒，踩/收藏/分享不通知。
 - [ ] 按 [Design §6.3](DESIGN.md) 实现聚合（默认 10 分钟窗口，@ 与直接回复不参与合并）与按内容静音（静音后该内容新评论不通知，但 @ 我的仍送达）。
@@ -257,11 +258,11 @@ R1 核验发现的独立缺口：`STORAGE/firebase/lib/media/blob_gateway_fireba
 
 ### NC-019：30 天回收站与永久清理
 
-- [ ] **RW-6，Design §7.4 命令恢复**：服务器 trash/restore/purge 复用 NC-009 command_service；逐项测试提交后响应前中断并原键重试。尤其 purge 提交后、响应前中断，以同键重试只产生一个清理任务与一条 purge 请求事件，不能推进第二次生命周期；后续清理进展事件另按任务阶段去重。客户端重启恢复原键，410/503 不换键，purge_pending 仅表示任务已登记，实际对象清理完成前不显示 purged。纯本地私人 trash/restore 仍使用本地事务，不伪造云命令。覆盖 test_community_purge.py 与 note_trash_test.dart。
+- [ ] **RW-6，Design §7.4 命令恢复**：服务器 trash/restore/purge 复用 NC-009 command_service；逐项测试提交后响应前中断并原键重试。尤其 purge 提交后、响应前中断，以同键重试只产生一个清理任务与一条 purge 请求事件，不能推进第二次生命周期；后续清理进展事件另按任务阶段去重。客户端重启恢复原键，410/503 不换键，`pending_op=purge_requested` 表示客户端已发出、服务端未确认；服务端 `lifecycle=purge_pending` 仅表示清理任务已登记，`PurgeTask.state=succeeded` 之前不显示 purged。纯本地私人 trash/restore 仍使用本地事务，不伪造云命令。覆盖 test_community_purge.py 与 note_trash_test.dart。
 
 - [ ] 新增 `CLIENT/lib/src/history/note_trash_page.dart`、`test/history/note_trash_test.dart`；新增 `SERVER/xuan/community/purge_service.py`、`tests/test_community_purge.py`，接入已冻结删除事件/备份清理。
 - [ ] **30 天的 T0 分两类，边界用例须分别构造**（[Design §4](DESIGN.md)）：曾公开的内容从服务端 trash 事件 `server_time` 起算；从未公开的纯本地笔记从本地持久 trash 事件起算并在首次上线时以服务端时间校正（只推后不提前）。
-- [ ] 测 30 天边界（可注入时钟，含第 30 天与第 31 天成对用例）、恢复保持私密、`purge_pending` 下 restore 返回 `409 conflict.lifecycle`、已公开离线删除时客户端 `pending_op=trash_pending` 且显示「正在停止公开，他人可能仍可访问」（禁止任何完成时态文案）、共享附件仍被引用时不删、清理重试、`purge_failed` 可重试、旧离线设备不能复活已清理正文。
+- [ ] 测 30 天边界（可注入时钟，含第 30 天与第 31 天成对用例）、恢复保持私密、`purge_pending` 下 restore 返回 `409 conflict.lifecycle`、已公开离线删除时客户端 `pending_op=trash_requested` 且显示「正在停止公开，他人可能仍可访问」（禁止任何完成时态文案）、共享附件仍被引用时不删、清理重试、`PurgeTask.state=failed` 可重试且重试不产生第二个清理任务、旧离线设备不能复活已清理正文。
 - [ ] 按 PRD §5.1 实现「彻底删除」确认层（含 N 个历史版本、M 张图片的真实数量与「已被他人保存的公开副本无法收回」）；回收站显示「剩余 N 天」，剩余 3 天内在列表提醒。
 - [ ] 写入白名单含 `SERVER/tests/conftest.py`（仅追加 `COLLECTIONS` 键）。运行 `flutter test test/history/note_trash_test.dart` 与 `python3 -m pytest tests/test_community_purge.py -q`（需 Emulator）。**「云端清理完成」的真实证据**：清理后从云端 GET 返回 404 的原始响应；只断言本地 `deleted_at` 不代表清理完成。
 

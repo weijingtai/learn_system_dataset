@@ -2,6 +2,8 @@
 
 版本：1.0；2026-09-10。状态：`APPROVED_DESIGN`；执行状态：`NOT_STARTED`。
 审查对象：[PRD](PRD.md) / [Design](DESIGN.md) / [Plans](PLANS.md) / [Tasks](TASKS.md) 的 v1.0。
+
+> **注意：本文件是 v1.0 的历史审查记录，不是现行规范。** §1.3 的 BT-05（`client_seq` 单调判定）、§1.4 的 TC-06（幂等键 TTL 14 天）等处置已被 v1.2 起的 R2 修订取代；现行规则一律以 PRD / DESIGN / PLANS / TASKS 最新版正文为准。
 审查角色：OpenSpec 规范审核官、用户体验官、BDD/TDD 就绪度审核官、技术契约与落地可行性审核官（四角色并行只读审查）。
 处置结果：四份文档升版至 v1.1。本文件是缺陷台账，不是完成报告。
 

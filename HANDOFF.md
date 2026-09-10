@@ -1,5 +1,14 @@
 # HANDOFF
 
+## 注解社区 v1.4 一次性修复
+
+更新时间：2026-09-10
+当前分支/worktree：`codex/docs/knowledge-compilation`；`/Users/jingtaiwei/Git/Public/learn_system`
+刚完成：严格按 FIX_V1_4.md 执行 FIX-01～18，共 56 处逐字替换；六份目标文件已验证只含指定替换。总守卫与 verify.sh 均 0，git diff --check 通过。
+进行到一半的事（精确到文件和章节）：无未完成替换；第 4 节账本保留策略未变，仍 UUIDv4/永久保留；文档头保持待抽查确认。
+下一步（第一件事）：复核人按 FIX_V1_4.md §5 抽查；账本策略如需更改由用户另行决定。
+已知的坑：本机 C.UTF-8 下两个守卫的汇总行会报 total 未绑定；使用 LC_ALL=C bash openspec/annotation-community/review_final_guard.sh 正常退出 0，未改脚本。其他 Agent 的 G3 改动不纳入本次提交。
+
 ## 注解社区 v1.3 六项返工
 
 更新时间：2026-09-10
