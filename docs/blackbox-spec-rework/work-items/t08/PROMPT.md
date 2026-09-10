@@ -1,37 +1,42 @@
-# T-08 Executor Prompt
+# T-08 Executor Prompt（G3 R2 返工）
 
-你是 T-08 文档执行 Agent。请在 `/Users/jingtaiwei/Git/Public/learn_system` 当前分支工作，禁止切换分支或进入其他 worktree。
+你是 T-08 门禁返工执行 Agent。在 `/Users/jingtaiwei/Git/Public/learn_system` 当前分支 `codex/docs/knowledge-compilation` 工作，禁止切换分支或进入其他 worktree。
 
-先完整阅读并严格遵循：
+先完整阅读：`docs/blackbox-spec-rework/reviews/G3-REVIEW-R2.md`、`docs/blackbox-spec-rework/work-items/g3-r2/COLD_START_PROMPT.md`、本目录六件套。
 
-- `docs/blackbox-spec-rework/work-items/t08/README.md`
-- `docs/blackbox-spec-rework/work-items/t08/BDD.md`
-- `docs/blackbox-spec-rework/work-items/t08/TDD.md`
-- `docs/blackbox-spec-rework/work-items/t08/ACT.yaml`
+## 背景
 
-【关键执行铁律与特别指示】：
-1. 遇到任何照抄源冲突、规格歧义或意外失败，严禁自己做决定，必须立即停止并向上汇报！
-2. 唯一允许修改的文件是 `openspec/learn-system-blackbox-architecture.md`；严禁修改任何代码、JSON Schema、测试、工作包文档、TODO、PLAN 或 `verify-T.sh`。
-3. 先保存 Red baseline（运行 `bash docs/blackbox-spec-rework/verify-T.sh` 并确认 7 FAIL，T-08 与 T-08b 为 FAIL）。
-4. 在 `openspec/learn-system-blackbox-architecture.md` 写入以下两处修改：
-   - **位置 1（`§1 系统边界`）**：
-     在系统边界说明中追加对外部 Tag 系统的三个承接接口声明：
-     - 黑箱编译器通过 `PublicationPackage` 向外部 Tag 系统承接三个核心接口：
-       1. `最小盘面概念字典`：规模约 100–200 个概念，由 `KnowledgeDataPack` 供给，仅包含稳定 `concept_id` + 名称 + 基础类象，**严格声明不含规则 DSL**，用以解除 G4 依赖倒挂；
-       2. `MarkContentBinding` 内容供给：由 `KnowledgeDataPack` 与 `RuleIndexPack` 供给，为 UI 标记提供内容与分歧数据；
-       3. `EvidenceBundle` 服务：由 `EvidenceMapPack` 供给，为解盘与证据高亮提供底层的无损证据链切片。
-   - **位置 2（`§16 M8 Dataset Compilation` 末尾）**：
-     在小节 16.2 之后（在 `## 17. Artifact Ledger` 之前），新增小节「16.3 Tag 标记系统耦合接口与字段承接」：
-     - 明确三个接口的供给子包及承接说明：
-       - `最小盘面概念字典`：由 `KnowledgeDataPack` 供给。规模控制在约 100–200 个概念，仅包含稳定 ID（`concept_id`）、名称与基础类象，**严格声明不含规则 DSL**；
-       - `MarkContentBinding`：由 `KnowledgeDataPack` 与 `RuleIndexPack` 供给；
-       - `EvidenceBundle`：由 `EvidenceMapPack` 供给。
-     - 明确五个关键字段归属与约束：
-       - `omen_carrying`（吉凶承载性）：指示该标记是否承载吉凶定性，由 M4/M5 生产，归入 `KnowledgeDataPack`；
-       - `condition_affordance`（条件可供性）：指示该标记可承载的条件槽位，由 M4/M5 结构化生产，归入 `RuleIndexPack` 与 `KnowledgeDataPack`；
-       - `school_variance_display`（流派分歧展示）：指示各流派对此标记的不同定性或观点分歧，由 M4/M6 审核产出，归入 `KnowledgeDataPack`；
-       - `concept_id`（概念标识）：全局稳定的概念 ID，由 M4 术语判层确定，归入 `KnowledgeDataPack`；
-       - 「是否改变当前判断」：明确规定属于 `MarkContentBinding` 的核心内容状态字段，必须由知识层（M4/M7/M6）通过判定状态供给，**UI 不得猜测**。
-5. 完成后运行 `docs/blackbox-spec-rework/work-items/t08/TDD.md` 中的全部 Green checks、`bash docs/blackbox-spec-rework/verify-T.sh`（FAIL 数必须从 7 严格减少至 5，且 T-08 与 T-08b 为 PASS）以及 `git diff --check`。
-6. 确认无误后提交修改，提交消息必须严格为：`docs: specify Tag system coupling interfaces and fields`。
-7. 最终报告必须包含：commit hash、真实修改文件、Red baseline、Green 原始摘要、三接口与五字段核验对照及全局 T 结果。
+T-08 正文基本正确，但 R1 门禁只查字段名与 M5 缺席，生产 Module 与归属子包完全不校验，接口只查名字出现，因此把 `concept_id` 改成 `M2 / SourceAssetPack`、只改 Module、只改 Package、把接口改成错误供给包，门禁都仍返回 0。
+
+## 写范围
+
+- `docs/blackbox-spec-rework/verify-T.sh`（仅 T-08 段）
+- `docs/blackbox-spec-rework/work-items/t08/{README.md,BDD.md,TDD.md,ACT.yaml,PROMPT.md,ACCEPTANCE.md}`
+
+`openspec/learn-system-blackbox-architecture.md` 为只读基线，仅允许复制到 `/tmp` 做临时变异。
+
+## 严格执行顺序
+
+1. 确认 T-07 已提交（前一任务未提交不得启动本任务），记录起点：分支、`HEAD`、`git status --short`、`git diff --check`。
+2. 在 `/tmp` 建立 Red baseline：以下四个变异在加固前必须仍返回 0，每个变异都从权威规格重新复制、只改该副本、单独运行。
+   - 变异 1：把 `concept_id` 改为 `M2 / SourceAssetPack`；
+   - 变异 2：任选五字段，只改成错误 Module（Package 保持正确）；
+   - 变异 3：任选五字段，只改成错误 Package（Module 保持正确）；
+   - 变异 4：将任一接口改为错误供给包。
+3. 改 `verify-T.sh`：
+   - 三接口供给子包必须精确校验：`最小盘面概念字典` → `KnowledgeDataPack`；`MarkContentBinding` → `KnowledgeDataPack` 与 `RuleIndexPack`；`EvidenceBundle` → `EvidenceMapPack`；§16.3.1 的「供给子包」行与 §1 的「由 … 供给」片段必须同时正确；
+   - §16.3.2 表格：五字段各恰好一次，`生产Module|归属子包` 规范化后精确等于期望（`omen_carrying`=M4/KnowledgeDataPack；`condition_affordance`=M4/RuleIndexPack 与 KnowledgeDataPack；`school_variance_display`=M4 / M6/KnowledgeDataPack；`concept_id`=M4/KnowledgeDataPack；是否改变当前判断=M4 / M7 / M6/KnowledgeDataPack（MarkContentBinding）），生产列不得含 M5；
+   - 保留：最小概念字典不含规则 DSL、Tag 的 G4 必须写成 `TAG_SYSTEM_DESIGN.md §12.2` 命名空间形式。
+4. 运行正常规格门禁，必须退出 0 且 `FAIL 合计: 0`。
+5. 逐一重跑四个变异，必须各自非零退出，且不得连带触发无关断言。
+6. 同步六件套：删除 M4/M5 共同生产、旧 7→5 FAIL 与旧提交指令；BDD、TDD、ACT、Prompt 必须一致说明 **M5 只校验**；状态写 `IMPLEMENTED_AWAITING_REVIEW`，不得写 `ACCEPTED`。
+7. 运行 `git diff --check`、`git status --short`，独立提交：`fix: enforce T-08 ownership mappings`。
+
+## 停手条件
+
+- 为实现门禁必须修改规格正文、业务代码或 Scope 外文件；
+- 正常规格门禁非零且失败不由本工作包造成；
+- 任一强制变异仍返回 0；
+- 允许文件存在他人的未提交修改。
+
+出现任一情况立即停止并报告精确冲突，不得自行改写正文、不得自行宣布验收通过、不得启动 G4。

@@ -241,8 +241,10 @@ else
   printf 'FAIL  T-07s §16.2 replacement statement missing or negated\n'; FAILED=$((FAILED+1))
 fi
 
-# T-08 语义门禁：Tag 三接口、五字段、M5 生产者排除及 G4 命名空间
+# T-08 语义门禁：Tag 三接口供给包、五字段 owner/package、M5 生产者排除及 G4 命名空间。
+# 生产 Module 与归属子包必须逐字段精确匹配：只校验字段唯一和 M5 缺席会漏掉错误归属。
 sec163=$(sed -n '/^### 16\.3 /,/^## 17/p' "$SPEC")
+sec1631=$(sed -n '/^#### 16\.3\.1 /,/^#### 16\.3\.2 /p' "$SPEC")
 sec01=$(sed -n '/^## 1\.[[:space:]]/,/^## 2\.[[:space:]]/p' "$SPEC")
 
 # 1. 三接口承接与“不含规则 DSL”
@@ -260,7 +262,30 @@ else
   printf 'FAIL  T-08s concept dictionary missing rule DSL restriction\n'; FAILED=$((FAILED+1))
 fi
 
-# 2. Tag 侧 G4 命名空间消歧
+# 2. 三接口供给子包精确校验：§16.3.1 的「供给子包」行与 §1 的「由 … 供给」片段必须同时正确
+t08_supply_1631() {
+  printf '%s\n' "$sec1631" | awk -v name="$1" '
+    function nz(s){ gsub(/`/,"",s); gsub(/[*]/,"",s); gsub(/[-]/,"",s); gsub(/[[:space:]]/,"",s); gsub(/：/,"",s); gsub(/；/,"",s); return s }
+    /^[0-9]+\.[[:space:]]+\*\*/ { inb = (index($0, name) > 0) }
+    inb && nz($0) ~ /供给子包/ { print nz($0); exit }
+  '
+}
+t08_supply_sec01() {
+  printf '%s\n' "$sec01" | grep -F "$1" | head -1 \
+    | sed -n 's/^[^由]*由[[:space:]]*\([^供]*\)供给.*$/\1/p' \
+    | sed -e 's/`//g' -e 's/[[:space:]]//g'
+}
+for t08_iface_pair in '最小盘面概念字典:KnowledgeDataPack' 'MarkContentBinding:KnowledgeDataPack与RuleIndexPack' 'EvidenceBundle:EvidenceMapPack'; do
+  t08_iface=${t08_iface_pair%%:*}; t08_pkg=${t08_iface_pair#*:}
+  if [ "$(t08_supply_1631 "$t08_iface")" = "供给子包由${t08_pkg}供给" ] \
+    && [ "$(t08_supply_sec01 "$t08_iface")" = "$t08_pkg" ]; then
+    printf 'PASS  T-08s interface supply package: %s -> %s\n' "$t08_iface" "$t08_pkg"
+  else
+    printf 'FAIL  T-08s interface supply package mismatch: %s (期望 %s)\n' "$t08_iface" "$t08_pkg"; FAILED=$((FAILED+1))
+  fi
+done
+
+# 3. Tag 侧 G4 命名空间消歧
 if printf '%s\n' "$sec01" | grep -Eq 'TAG_SYSTEM_DESIGN\.md §12\.2.*G4' \
   && printf '%s\n' "$sec163" | grep -Eq 'TAG_SYSTEM_DESIGN\.md §12\.2.*G4' \
   && ! printf '%s\n' "$sec163" | grep -Eq '解除.*（G4）'; then
@@ -269,39 +294,34 @@ else
   printf 'FAIL  T-08s Tag G4 missing TAG_SYSTEM_DESIGN.md namespace\n'; FAILED=$((FAILED+1))
 fi
 
-# 3. §16.3.2 字段表格解析与 M5 生产者排除
+# 4. §16.3.2 字段表格：五字段各恰好一次，生产 Module 与归属子包逐字段精确相等，生产列不得含 M5
 t08_table_res=$(printf '%s\n' "$sec163" | awk -F'|' '
+  function nz(s){ gsub(/`/,"",s); gsub(/[[:space:]]/,"",s); return s }
   BEGIN {
-    f["omen_carrying"]=1
-    f["condition_affordance"]=1
-    f["school_variance_display"]=1
-    f["concept_id"]=1
-    f["是否改变当前判断"]=1
+    want["omen_carrying"]="M4|KnowledgeDataPack"
+    want["condition_affordance"]="M4|RuleIndexPack与KnowledgeDataPack"
+    want["school_variance_display"]="M4/M6|KnowledgeDataPack"
+    want["concept_id"]="M4|KnowledgeDataPack"
+    want["是否改变当前判断"]="M4/M7/M6|KnowledgeDataPack（MarkContentBinding）"
   }
   /^\|/ && $0 !~ /^\|---/ && $0 !~ /字段名.*语义定义/ {
-    name=$2
-    prod=$4
-    pack=$5
-    gsub(/[`[:space:]]/, "", name)
-    if (name in f) {
+    name=nz($2); prod=nz($4); pack=nz($5)
+    rows++
+    if (name in want) {
       seen[name]++
-      # M5 绝对不得出现在生产 Module 列
-      if (prod ~ /M5/) m5_producer[name]=prod
+      if ((prod "|" pack) != want[name]) err=err name "实际[" prod "|" pack "]，期望[" want[name] "]; "
+      if (prod ~ /M5/) err=err name "生产列包含M5; "
     }
   }
   END {
-    err=""
-    for (k in f) {
-      if (seen[k] != 1) err=err k "出现" seen[k] "次; "
-      if (k in m5_producer) err=err k "生产列包含M5(" m5_producer[k] "); "
-    }
-    if (err == "") print "OK"
-    else print err
+    if (rows != 5) err=err "数据行=" rows "; "
+    for (k in want) if (seen[k] != 1) err=err k "出现" seen[k] "次; "
+    print (err == "" ? "OK" : err)
   }
 ')
 
 if [ "$t08_table_res" = "OK" ]; then
-  printf 'PASS  T-08s §16.3 table 5 fields present and M5 excluded from producers\n'
+  printf 'PASS  T-08s §16.3 table 5 fields with exact producer ownership and no M5 producer\n'
 else
   printf 'FAIL  T-08s §16.3 table issue: %s\n' "$t08_table_res"; FAILED=$((FAILED+1))
 fi

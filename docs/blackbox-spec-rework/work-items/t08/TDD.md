@@ -1,16 +1,21 @@
-# T-08 TDD／文档门禁
+# T-08 TDD／文档门禁（R2 返工版）
 
-## 1. 语义门禁设计
+## 1. 判据设计
 
-在 `docs/blackbox-spec-rework/verify-T.sh` 中对 §1 与 §16.3 实施结构与语义校验：
-1. 校验 Tag 三个核心接口（`最小盘面概念字典`、`MarkContentBinding`、`EvidenceBundle`）必须同时在 §1 与 §16.3 中明确承接；
-2. 校验概念字典必须严格声明「不含规则 DSL」；
-3. 校验 Tag 侧 G4 必须显式命名空间化为 `TAG_SYSTEM_DESIGN.md §12.2 的 G4`，严禁与规格正文 G4 内容分层门禁混同；
-4. 解析 §16.3.2 字段表格，确保五个关键字段（`omen_carrying`、`condition_affordance`、`school_variance_display`、`concept_id`、`是否改变当前判断`）均出现，且生产 Module 列**绝对不得包含 M5**（M5 仅作为 Validator，不得作为生产者）。
+R1 门禁的缺陷是**只查字段名与 M5 缺席**：生产 Module 与归属子包完全不校验，接口只查「名字是否出现在 §1 与 §16.3」，因此把 `concept_id` 改成 `M2 / SourceAssetPack`、只改 Module、只改 Package、把接口改成错误供给包，门禁都仍返回 0。
+
+R2 改为：
+
+- 三接口：解析 §16.3.1 每个编号项的「供给子包」行，并与 §1 的「由 … 供给」片段一起做规范化精确相等；
+- 五字段：解析 §16.3.2 表格，`生产Module|归属子包` 规范化后与期望逐字段精确相等，数据行必须恰好 5 行，生产列不得含 M5。
+
+## 2. 门禁实现
 
 ```bash
-# T-08 语义门禁：Tag 三接口、五字段、M5 生产者排除及 G4 命名空间
+# T-08 语义门禁：Tag 三接口供给包、五字段 owner/package、M5 生产者排除及 G4 命名空间。
+# 生产 Module 与归属子包必须逐字段精确匹配：只校验字段唯一和 M5 缺席会漏掉错误归属。
 sec163=$(sed -n '/^### 16\.3 /,/^## 17/p' "$SPEC")
+sec1631=$(sed -n '/^#### 16\.3\.1 /,/^#### 16\.3\.2 /p' "$SPEC")
 sec01=$(sed -n '/^## 1\.[[:space:]]/,/^## 2\.[[:space:]]/p' "$SPEC")
 
 # 1. 三接口承接与“不含规则 DSL”
@@ -28,7 +33,30 @@ else
   printf 'FAIL  T-08s concept dictionary missing rule DSL restriction\n'; FAILED=$((FAILED+1))
 fi
 
-# 2. Tag 侧 G4 命名空间消歧
+# 2. 三接口供给子包精确校验：§16.3.1 的「供给子包」行与 §1 的「由 … 供给」片段必须同时正确
+t08_supply_1631() {
+  printf '%s\n' "$sec1631" | awk -v name="$1" '
+    function nz(s){ gsub(/`/,"",s); gsub(/[*]/,"",s); gsub(/[-]/,"",s); gsub(/[[:space:]]/,"",s); gsub(/：/,"",s); gsub(/；/,"",s); return s }
+    /^[0-9]+\.[[:space:]]+\*\*/ { inb = (index($0, name) > 0) }
+    inb && nz($0) ~ /供给子包/ { print nz($0); exit }
+  '
+}
+t08_supply_sec01() {
+  printf '%s\n' "$sec01" | grep -F "$1" | head -1 \
+    | sed -n 's/^[^由]*由[[:space:]]*\([^供]*\)供给.*$/\1/p' \
+    | sed -e 's/`//g' -e 's/[[:space:]]//g'
+}
+for t08_iface_pair in '最小盘面概念字典:KnowledgeDataPack' 'MarkContentBinding:KnowledgeDataPack与RuleIndexPack' 'EvidenceBundle:EvidenceMapPack'; do
+  t08_iface=${t08_iface_pair%%:*}; t08_pkg=${t08_iface_pair#*:}
+  if [ "$(t08_supply_1631 "$t08_iface")" = "供给子包由${t08_pkg}供给" ] \
+    && [ "$(t08_supply_sec01 "$t08_iface")" = "$t08_pkg" ]; then
+    printf 'PASS  T-08s interface supply package: %s -> %s\n' "$t08_iface" "$t08_pkg"
+  else
+    printf 'FAIL  T-08s interface supply package mismatch: %s (期望 %s)\n' "$t08_iface" "$t08_pkg"; FAILED=$((FAILED+1))
+  fi
+done
+
+# 3. Tag 侧 G4 命名空间消歧
 if printf '%s\n' "$sec01" | grep -Eq 'TAG_SYSTEM_DESIGN\.md §12\.2.*G4' \
   && printf '%s\n' "$sec163" | grep -Eq 'TAG_SYSTEM_DESIGN\.md §12\.2.*G4' \
   && ! printf '%s\n' "$sec163" | grep -Eq '解除.*（G4）'; then
@@ -37,59 +65,79 @@ else
   printf 'FAIL  T-08s Tag G4 missing TAG_SYSTEM_DESIGN.md namespace\n'; FAILED=$((FAILED+1))
 fi
 
-# 3. §16.3.2 字段表格解析与 M5 生产者排除
+# 4. §16.3.2 字段表格：五字段各恰好一次，生产 Module 与归属子包逐字段精确相等，生产列不得含 M5
 t08_table_res=$(printf '%s\n' "$sec163" | awk -F'|' '
+  function nz(s){ gsub(/`/,"",s); gsub(/[[:space:]]/,"",s); return s }
   BEGIN {
-    f["omen_carrying"]=1
-    f["condition_affordance"]=1
-    f["school_variance_display"]=1
-    f["concept_id"]=1
-    f["是否改变当前判断"]=1
+    want["omen_carrying"]="M4|KnowledgeDataPack"
+    want["condition_affordance"]="M4|RuleIndexPack与KnowledgeDataPack"
+    want["school_variance_display"]="M4/M6|KnowledgeDataPack"
+    want["concept_id"]="M4|KnowledgeDataPack"
+    want["是否改变当前判断"]="M4/M7/M6|KnowledgeDataPack（MarkContentBinding）"
   }
   /^\|/ && $0 !~ /^\|---/ && $0 !~ /字段名.*语义定义/ {
-    name=$2
-    prod=$4
-    pack=$5
-    gsub(/[`[:space:]]/, "", name)
-    if (name in f) {
+    name=nz($2); prod=nz($4); pack=nz($5)
+    rows++
+    if (name in want) {
       seen[name]++
-      if (prod ~ /M5/) m5_producer[name]=prod
+      if ((prod "|" pack) != want[name]) err=err name "实际[" prod "|" pack "]，期望[" want[name] "]; "
+      if (prod ~ /M5/) err=err name "生产列包含M5; "
     }
   }
   END {
-    err=""
-    for (k in f) {
-      if (seen[k] != 1) err=err k "出现" seen[k] "次; "
-      if (k in m5_producer) err=err k "生产列包含M5(" m5_producer[k] "); "
-    }
-    if (err == "") print "OK"
-    else print err
+    if (rows != 5) err=err "数据行=" rows "; "
+    for (k in want) if (seen[k] != 1) err=err k "出现" seen[k] "次; "
+    print (err == "" ? "OK" : err)
   }
 ')
+
+if [ "$t08_table_res" = "OK" ]; then
+  printf 'PASS  T-08s §16.3 table 5 fields with exact producer ownership and no M5 producer\n'
+else
+  printf 'FAIL  T-08s §16.3 table issue: %s\n' "$t08_table_res"; FAILED=$((FAILED+1))
+fi
 ```
 
-## 2. Red baseline
+M5 的职责口径在三处保持一致：门禁在生产列拒绝 M5；§16.3.2 表格与 §16.3.2 说明均写明「M5 仅作为 Validator，不得作为生产者」；§13 明文「M5 仅作为验证工位，不负责生产」。
 
-门禁加固后、规格修改前：
-- `FAIL  T-08s Tag G4 missing TAG_SYSTEM_DESIGN.md namespace`
-- `FAIL  T-08s §16.3 table issue: condition_affordance生产列包含M5( M4 / M5 ); omen_carrying生产列包含M5( M4 / M5 );`
-- `FAIL 合计: 2`，退出码为 2。
+## 3. Red baseline（加固前，证明假绿）
 
-## 3. Green checks
+```text
+t08-1   exit=0   T-08 把 concept_id 改为 M2 / SourceAssetPack
+t08-2   exit=0   T-08 只改错误 Module（omen_carrying M4→M2，Package 不变）
+t08-3   exit=0   T-08 只改错误 Package（school_variance_display KnowledgeDataPack→RuleIndexPack，Module 不变）
+t08-4   exit=0   T-08 将 EvidenceBundle 接口改为错误供给包
+```
 
-修改 §1 与 §16.3 消歧 G4 并剔除 M5 生产者身份后：
-- `PASS  T-08s Tag interface present in §1 and §16.3: 最小盘面概念字典`
-- `PASS  T-08s Tag interface present in §1 and §16.3: MarkContentBinding`
-- `PASS  T-08s Tag interface present in §1 and §16.3: EvidenceBundle`
-- `PASS  T-08s concept dictionary preserves rule DSL restriction`
-- `PASS  T-08s Tag G4 namespaced to TAG_SYSTEM_DESIGN.md §12.2`
-- `PASS  T-08s §16.3 table 5 fields present and M5 excluded from producers`
-- `bash docs/blackbox-spec-rework/verify-T.sh` 退出码为 0，FAIL 合计为 0。
+## 4. Green checks（加固后，正常规格）
 
-## 4. 负向变异测试
+```text
+退出码: 0
+PASS  T-08s Tag interface present in §1 and §16.3: 最小盘面概念字典
+PASS  T-08s Tag interface present in §1 and §16.3: MarkContentBinding
+PASS  T-08s Tag interface present in §1 and §16.3: EvidenceBundle
+PASS  T-08s concept dictionary preserves rule DSL restriction
+PASS  T-08s interface supply package: 最小盘面概念字典 -> KnowledgeDataPack
+PASS  T-08s interface supply package: MarkContentBinding -> KnowledgeDataPack与RuleIndexPack
+PASS  T-08s interface supply package: EvidenceBundle -> EvidenceMapPack
+PASS  T-08s Tag G4 namespaced to TAG_SYSTEM_DESIGN.md §12.2
+PASS  T-08s §16.3 table 5 fields with exact producer ownership and no M5 producer
+FAIL 合计: 0
+```
 
-1. 变异 1：在 `omen_carrying` 生产 Module 列加入 M5，门禁必须报 FAIL（退出码 1）；
-2. 变异 2：删除 G4 的 `TAG_SYSTEM_DESIGN.md §12.2` 命名空间前缀，门禁必须报 FAIL（退出码 1）；
-3. 变异 3：删除「不含规则 DSL」硬限制，门禁必须报 FAIL（退出码 1）；
-4. 变异 4：删除 `EvidenceBundle` 接口，门禁必须报 FAIL（退出码 1）；
-5. 恢复规格后，退出码重归 0。
+## 5. 负向变异（加固后）
+
+每次变异从未修改的权威规格重新复制到 `/tmp/g3-r2-<case>.md`，只修改该副本，单独运行 `SPEC=/tmp/g3-r2-<case>.md bash docs/blackbox-spec-rework/verify-T.sh`。
+
+| 变异 | 内容 | 加固前退出码 | 加固后退出码 | 触发的断言 |
+|---|---|---|---|---|
+| t08-1 | `concept_id` → `M2 / SourceAssetPack` | 0（假绿） | 1 | 实际 `M2/SourceAssetPack\|KnowledgeDataPack`，期望 `M4\|KnowledgeDataPack` |
+| t08-2 | 只改 Module：`omen_carrying` M4→M2 | 0（假绿） | 1 | 实际 `M2\|KnowledgeDataPack`，期望 `M4\|KnowledgeDataPack` |
+| t08-3 | 只改 Package：`school_variance_display` → `RuleIndexPack` | 0（假绿） | 1 | 实际 `M4/M6\|RuleIndexPack`，期望 `M4/M6\|KnowledgeDataPack` |
+| t08-4 | `EvidenceBundle` 供给包改为 `SearchIndexPack`（§1 与 §16.3.1） | 0（假绿） | 1 | `interface supply package mismatch: EvidenceBundle (期望 EvidenceMapPack)` |
+
+每次变异只触发 1 条 FAIL，无连带误报。
+
+## 6. 恢复验证
+
+恢复权威规格后重新运行门禁，退出码 0、`FAIL 合计: 0`；`git diff --check` 退出 0。
