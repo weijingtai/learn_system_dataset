@@ -1,6 +1,6 @@
 # T-08 主 Agent 验收清单
 
-状态：`ACCEPTED`（R1 返工完成）
+状态：`REWORK_REQUIRED_R2`（正文基本正确，owner/package 门禁假绿且六件套冲突）
 
 ## 1. Scope and Commits
 
@@ -52,4 +52,6 @@ ALL 4 T-08 MUTATIONS SUCCESSFULLY FAILED AND RESTORED!
 
 - [x] `git diff --check` 通过
 - [x] 主 Agent 规格审查与质量审查通过
-- [x] 主 Agent 标记 `ACCEPTED`
+- [ ] 主 Agent 标记 `ACCEPTED`（等待 R2 返工）
+
+R2 复核：把 `concept_id` 改为 `M2 / SourceAssetPack` 后全量门禁仍为 0；BDD/PROMPT 仍保留 M4/M5 共同生产旧指令。返工见 `../../reviews/G3-REVIEW-R2.md`。

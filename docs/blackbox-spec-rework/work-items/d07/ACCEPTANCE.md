@@ -3,7 +3,7 @@
 ## 1. 基本信息
 
 - 任务 ID：`d07-technique-profile-and-query-contract`
-- 状态：`ACCEPTED`
+- 状态：`REWORK_REQUIRED_R2`（正文基本正确，门禁存在跨块代偿假绿）
 - 关联规格：`openspec/learn-system-blackbox-architecture.md` §13, §16
 - 关联返工项：RB 组第 4 条
 

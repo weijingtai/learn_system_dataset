@@ -1,6 +1,6 @@
 # T-07 主 Agent 验收清单
 
-状态：`ACCEPTED`（R1 返工完成）
+状态：`REWORK_REQUIRED_R2`（正文基本正确，唯一归属门禁假绿）
 
 ## 1. Scope and Commits
 
@@ -46,4 +46,6 @@ ALL 3 T-07 MUTATIONS SUCCESSFULLY FAILED AND RESTORED!
 
 - [x] `git diff --check` 通过
 - [x] 主 Agent 规格审查与质量审查通过
-- [x] 主 Agent 标记 `ACCEPTED`
+- [ ] 主 Agent 标记 `ACCEPTED`（等待 R2 返工）
+
+R2 复核：追加第二归属、给 optional-vector-index 追加 SearchIndexPack、把“正式取代”改成“不得取代”时，现门禁仍为 0；返工见 `../../reviews/G3-REVIEW-R2.md`。

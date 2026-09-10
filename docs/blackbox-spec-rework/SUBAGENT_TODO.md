@@ -220,7 +220,7 @@
   - [x] PLAN/HANDOFF 同步
   - [x] 主 Agent 标记 `ACCEPTED`
 
-- [x] T-07：KnowledgePack 双向映射（状态：`ACCEPTED`；R1 返工 `a62f225`）
+- [ ] T-07：KnowledgePack 双向映射（状态：`REWORK_REQUIRED_R2`；唯一归属门禁假绿）
   - [x] README/范围/依赖/禁止项
   - [x] BDD 场景
   - [x] TDD 正反用例与精确命令
@@ -234,9 +234,11 @@
   - [x] 主 Agent 规格审查
   - [x] 主 Agent 质量审查
   - [x] PLAN/HANDOFF 同步
-  - [x] 主 Agent 标记 `ACCEPTED`
+  - [ ] R2：精确校验唯一归属、非目标唯一语义与肯定取代声明
+  - [ ] R2：同步 README/PROMPT/TDD/ACT/ACCEPTANCE
+  - [ ] R2：主 Agent 复跑变异并标记 `ACCEPTED`
 
-- [x] T-08：Tag 三个接口承接（状态：`ACCEPTED`；R1 返工 `045a0ab`）
+- [ ] T-08：Tag 三个接口承接（状态：`REWORK_REQUIRED_R2`；owner/package 门禁假绿）
   - [x] README/范围/依赖/禁止项
   - [x] BDD 场景
   - [x] TDD 正反用例与精确命令
@@ -250,7 +252,9 @@
   - [x] 主 Agent 规格审查
   - [x] 主 Agent 质量审查
   - [x] PLAN/HANDOFF 同步
-  - [x] 主 Agent 标记 `ACCEPTED`
+  - [ ] R2：精确校验五字段 owner/package 与三接口供给包
+  - [ ] R2：同步 README/BDD/PROMPT/TDD/ACT/ACCEPTANCE
+  - [ ] R2：主 Agent 复跑变异并标记 `ACCEPTED`
 
 - [x] T-09：Orchestrator 查询契约（状态：`ACCEPTED`，提交 `d331ca4`）
   - [x] README/范围/依赖/禁止项
@@ -359,7 +363,7 @@
   - [ ] PLAN/HANDOFF 同步
   - [ ] 主 Agent 标记 `ACCEPTED`
 
-- [x] D-07：TechniqueProfile 与 QueryContract（状态：`ACCEPTED`，提交 `f6be483`）
+- [ ] D-07：TechniqueProfile 与 QueryContract（状态：`REWORK_REQUIRED_R2`；跨块关键词代偿）
   - [x] README/范围/依赖/禁止项
   - [x] BDD 场景
   - [x] TDD 正反用例与精确命令
@@ -372,7 +376,9 @@
   - [x] 主 Agent 规格审查
   - [x] 主 Agent 质量审查
   - [x] PLAN/HANDOFF 同步
-  - [x] 主 Agent 标记 `ACCEPTED`
+  - [ ] R2：按三个 Package 专属块解析，禁止跨块关键词代偿
+  - [ ] R2：补齐事实字段/枚举与逐规则 Profile/AST 版本负向门禁
+  - [ ] R2：主 Agent 复跑变异并标记 `ACCEPTED`
 
 - [ ] D-08：SchoolView（状态：`BACKLOG`）
   - [ ] README/范围/依赖/禁止项
