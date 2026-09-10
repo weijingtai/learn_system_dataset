@@ -39,6 +39,7 @@ APP 后端、客户端、Mark 渲染、学习笔记、经典讨论和端侧模�
 10. 模型输出只能成为候选，不能绕过校验和人工审核进入正式数据集。
 
 ## 3. 书籍、版本与载体
+状态：讨论候选
 
 `Work` 表示抽象著作；`Edition` 表示一个具体刻本、抄本、整理本或电子来源版本；`SourceAsset` 表示该 Edition 的 PDF、PNG、EPUB、TXT 等文件。
 
@@ -57,6 +58,8 @@ Work：《三辰通载》
 `EditionPart` 是 Edition 内可独立通过阶段 Gate 的自然分部。优先采用原书的“卷”；没有稳定卷界时采用连续页区间。不得把单页或 SourceSpan 直接作为 EditionPart。《三辰通载三十卷》以卷为 EditionPart，目录页和附录另设明确的连续页区间 Part。
 
 ## 4. Pattern（格局）
+
+状态：待验证假设
 
 `Concept` 是可跨来源或术数对齐的规范术语身份，不要求具有机器识别规则。当前将各术数中“有关键名称、识别规则、解释、衍生含义和来源”的对象统一称为“格局”，内部稳定类型 `Pattern` 是 Technique 范围内可规则识别的 Concept 子类型。七政四余是当前唯一已有原型的 Technique，紫微斗数、太乙神数、八字、大六壬、奇门遁甲等以后通过 `TechniqueProfile` 扩展。
 
@@ -91,6 +94,8 @@ KnowledgeEntry 的内容只能由 M8 从已审核对象编译，不接受工作�
 
 ## 5. 总体组织
 
+状态：已确认设计
+
 黑箱包含八个加工 Module 和三个基础设施 Module。
 
 ```text
@@ -124,6 +129,8 @@ M1 Source Intake
 `Review Console` 是跨人工阶段共用的交互 Interface，不是第九个加工 Module。现有 `pattern_knowledge_workbench` 向该 Interface 演进，分别呈现 M3 边界分歧、M4 提取分歧、M6 正式审核和 M7 汇编提案；人工决定始终归属发起该队列的 ProcessingRun、StepRun 和 Stage。
 
 ## 6. 两种运行
+
+状态：已确认设计
 
 ### 6.1 EditionRun
 
@@ -160,6 +167,8 @@ ReleaseRun 读取既有 `CanonicalKnowledgeSnapshot` 与本次新增的一个或
 任何 Edition 都可以单独加入和单独发布；后续加入新版本时才执行可比部分的对勘。
 
 ## 7. 统一 Module Interface
+
+状态：待验证假设
 
 所有加工 Module 使用同一外部 Interface；调用可以在一个 StepRun 内跨越执行、等待人工与恢复，不承诺单次同步返回最终结果：
 
@@ -209,6 +218,8 @@ StepRun 创建后从 `running` 开始。当任务需要人工处理时，进入 
 各 Processing Module 必须在运行中向 Local Orchestrator 实时上报进度事件（Progress Events），否则上述只读查询契约无实时数据来源。
 
 ## 8. Package 公共结构
+
+状态：待验证假设
 
 每个 StagePackage 都包含：
 
@@ -406,6 +417,8 @@ StepRun status 的合法迁移全集如下；未列出的迁移一律非法：
 
 ## 9. M1 Source Intake
 
+状态：讨论候选
+
 输入：PDF、PNG、EPUB、TXT、Markdown、旧数据库或其他 SourceSubmission。
 
 输出 `SourcePackage`：
@@ -420,6 +433,8 @@ M1 不做 OCR、文本清洗或知识判断。
 版权受限原件进入本地 content-addressed Object Store，不进入 Git。Git 只保存允许提交的转录、派生产物、manifest 和哈希；PublicationPackage 是否携带图像由 ReleasePolicy 决定。具体旧路径与迁移状态以 `openspec/legacy-storage-transition.md` 为唯一说明。
 
 ## 10. M2 Digitization & Correction
+
+状态：待验证假设
 
 M2 同时覆盖扫描识别与电子文本清洗，不能遗漏人工校订。
 
@@ -456,6 +471,8 @@ M2 Gate 通过前，该 EditionPart 的校对和清洗任务必须全部完成�
 
 ## 11. M3 Corpus Compilation
 
+状态：待验证假设
+
 M3 把校订结果组织成可引用语料，不再静默纠正文义：
 
 ```text
@@ -487,6 +504,8 @@ M3 Gate 要求该 EditionPart 内同层 Span 全文覆盖 100%、无缺口、无
 - `glyphbox_level`（扫描档）：在 offset 与 quote hash 基础上，追加扫描页、图像哈希和 OCR 字框范围（四点坐标）；属于最终无损证据链，`PUBLIC_RELEASE` 必须达到 `glyphbox_level`（依据 TARGET:140：「纯文本引用只能算开发级证据，不能算最终无损证据链」）。
 
 ## 12. M4 Knowledge Extraction
+
+状态：待验证假设
 
 ### 12.1 术语判层前置步骤（三层模型）
 
@@ -530,6 +549,8 @@ M4 将 SemanticSpan 分别提取为候选：
 
 ## 13. M5 Automatic Validation
 
+状态：待验证假设
+
 M5 是确定性校验，不使用模型替代规则判断，也不修改 Candidate。
 
 通用 Validator 检查 Schema、ID、哈希、引用、原文逐字一致性、证据范围、内容分层、血缘和状态。TechniqueProfile Validator 检查事实字段、枚举、规则 AST、必要/加强/破坏/例外条件和规则可执行性。
@@ -562,6 +583,8 @@ Python 标准库 `tokenize` 不用于古文语义提取。规则使用结构化 
 
 ## 14. M6 Review & Curation 与 Review Console
 
+状态：待验证假设
+
 M6 读取 CandidatePackage、ValidationPackage 和 CorpusPackage，提供原文/扫描对照、模型差异、返工项、接受、修改、驳回、补证、流派分歧和专家签发。
 
 当前 `pattern_knowledge_workbench` 是七政格局编辑原型，不是完整 Review Console。目标工作台通过 TechniqueProfile 支持多术数，并以同一界面的不同模式承接 M3、M4、M6 和 M7 人工队列。其 SQLite 只能作为 UI 查询投影，审核命令、Revision 和 ReviewDecision 必须写入 Artifact Ledger 本地进程。
@@ -579,6 +602,8 @@ M6 只读显示 M2 的扫描、OCR 和字框。发现 OCR 错误时创建 `Corre
 
 ## 15. M7 Incremental Knowledge Assembly
 
+状态：讨论候选
+
 M7 不等待同一 Work 的全部版本。它把本次新增的 ReviewedEditionPackage 增量汇入既有 CanonicalKnowledgeSnapshot，生成新的 Snapshot Revision。
 
 M7 保留同名异义、异名同义、多套规则、不同流派和相反结论。它先产生 `MergeProposal`、`AliasProposal`、`ConflictProposal` 和 `EvidenceRelationProposal`；不能确定的关系使用 Review Console 的 M7 模式人工裁决。该 ReviewDecision 归属 ReleaseRun，不修改已封存的 ReviewedEditionPackage。提案、差异和决定全部保留。
@@ -586,6 +611,8 @@ M7 保留同名异义、异名同义、多套规则、不同流派和相反结�
 加入同一 Work 的新 Edition 时，M7 仅对可比内容建立 Alignment、VariantReading、Addition 和 Omission，不覆盖旧版本。
 
 ## 16. M8 Dataset Compilation
+
+状态：待验证假设
 
 M8 冻结以下输入项：
 1. CanonicalKnowledgeSnapshot Revision；
@@ -699,6 +726,8 @@ GraphProjectionPack 与移动端数据必须来自同一 CanonicalKnowledgeSnaps
 
 ## 17. Artifact Ledger
 
+状态：待验证假设
+
 Artifact Ledger 使用本地混合存储：
 
 - 大文件和中间产物按 SHA-256 存入 content-addressed Object Store；
@@ -717,6 +746,8 @@ Ledger 暂不可用时适用 §8.2 的 `suspended` 语义：Module 立即停止�
 所有步骤按以下事务执行：创建 StepRun、冻结输入、验证输入 Contract、执行、保存原始输出和日志、计算哈希、验证输出、记录 Transformation、封存 StepManifest、写入最终状态。失败和部分输出也必须封存；重跑创建新 StepRun。
 
 ## 18. 双图与 Graph 无损要求
+
+状态：已确认设计
 
 系统同时维护：
 
