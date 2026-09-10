@@ -1,5 +1,10 @@
 # PLAN
 
+## 项目冷启动交接
+
+- [x] 将项目目标、模块现状、G3 R4 证据、三类剩余假绿和后任启动顺序落盘到 `PROJECT_COLD_START_HANDOFF.md`。
+- [ ] 后任按 `PROJECT_COLD_START_HANDOFF.md` §6 下发 R5 执行 Prompt；主 Agent只做计划与独立验收，G3 通过前不启动 G4。
+
 ## NC-001 首包补齐
 
 - [x] 六件套与基线同步 v1.5 十项要求，补校验字段契约和剩余交付清单；取代下方“尚需同步十项”的历史待办。
@@ -103,7 +108,7 @@
 
 **2026-09-08 初始基线**：`bash docs/blackbox-spec-rework/verify-T.sh` → 19 FAIL / 1 PASS。每完成一条 T 类，FAIL 减一。
 
-**2026-09-10 G3 返工交叉验收 R3**：R2 的 10 个指定变异已全部被拦截，但 D-07/T-07/T-08 仍有 7 个等价语义与唯一性假绿，G3 为 `REWORK_REQUIRED_R3`，暂不进入 G4。证据与机械返工项见 `docs/blackbox-spec-rework/reviews/G3-REVIEW-R3.md`；旧 R2 冷启动入口已作废。
+**2026-09-10 G3 返工交叉验收 R3（历史）**：R3 后已经历两轮实现；当前以本文件顶部项目冷启动交接和根 `PROJECT_COLD_START_HANDOFF.md` 为准。未提交的 89 例工作包已经过时，不得派发。
 
 **当前第一执行序列**：`D-01`、`D-03`、`T-02`、`D-02` 已验收。下一步先准备 R0 依赖解锁工作包，严格按 `ACT 03 → ACT 04` 执行；因既有 `ai_core` 传递依赖冲突，ACT 03 只做引用与精确差异检查，待 ACT 04 移除全部内网依赖后，对两项合并执行 `flutter pub get`、`flutter analyze` 与 `flutter test` 准出门禁。随后再分别准备并执行 ACT 01、ACT 02 的真实 Red→Green 工作包。主 Agent 只制作规格、BDD、TDD、ACT、Prompt 并独立验收，不编写业务实现。
 

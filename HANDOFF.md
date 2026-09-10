@@ -1,5 +1,14 @@
 # HANDOFF
 
+## 项目冷启动总交接（当前最高优先级）
+
+更新时间：2026-09-10
+当前分支/worktree：`codex/docs/knowledge-compilation`；`/Users/jingtaiwei/Git/Public/learn_system`
+刚完成：停止 G3 R4 验收并写出项目级冷启动交接；`ffe19df` 的正常门禁、37 项 selftest 与 98 个固定变异通过，但矩阵外盲测确认三类结构假绿。
+进行到一半的事（精确到文件和章节）：`verify-T.sh` 的 D-07 START 间隙未封闭、T-07 表格不拒绝额外列、T-08 不拒绝重复块标题；G3 保持 `REWORK_REQUIRED`。
+下一步（第一件事）：完整阅读根 `PROJECT_COLD_START_HANDOFF.md`，按其 §6 下发只改两个脚本的 R5 Prompt。
+已知的坑：未提交 `work-items/g3-r3/` 是过时 89 例草稿；NC-001 review 文件属于其他工作线；不得批量暂存或覆盖。
+
 ## NC-001 首包补齐
 
 更新时间：2026-09-10
@@ -106,8 +115,8 @@
   - T-08：Tag 三接口与五字段承接、Tag G4 命名空间化、排除 M5 生产者身份（提交 `045a0ab`）
   - G3 R3 结论：D-07/T-07/T-08 为 `REWORK_REQUIRED_R3`，详见 `docs/blackbox-spec-rework/reviews/G3-REVIEW-R3.md`。
 进行到一半的事（精确到文件和章节）：T-04/T-06/T-11/T-13 保持通过；D-07/T-07/T-08 需改为精确肯定句、精确接口名和唯一供给关系门禁。
-下一步（第一件事）：依据 `docs/blackbox-spec-rework/reviews/G3-REVIEW-R3.md` 生成新的冷启动执行契约，再按 D-07 → T-07 → T-08 串行返工。
-已知的坑：全量 `verify-T.sh` 当前仍是 0 FAIL，但等价否定句、Package 改名、额外或重复供给包仍可骗绿；旧 R2 冷启动 Prompt 已作废，不得启动 G4。
+下一步（第一件事）：本节已被文件顶部“项目冷启动总交接”取代；现行入口是根 `PROJECT_COLD_START_HANDOFF.md`。
+已知的坑：此处记录的是 R3 历史状态；不得派发未提交的旧 `work-items/g3-r3/PROMPT.md`，现行阻断与 R5 门禁见项目冷启动总交接。
 
 ---
 2026-07-11（Claude/Cowork）：仓库文档已按并行线拆分——Tag 文档全部迁至 `tag_system/`（原 docs/superpowers/specs/ 下两份 Tag 规格已移至 tag_system/specs/），知识编译与产品母稿迁至 `knowledge_system/`。仓库地图见根 README.md。本文件中旧路径引用以新位置为准。
