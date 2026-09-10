@@ -77,226 +77,253 @@ evidence_ok=$(printf '%s\n' "$evidence" | awk '
   }')
 chk T-06s "§16 证据链七项精确有序且闭合" "1" "$evidence_ok"
 
-# D-07 语义门禁：TechniqueProfilePack / QueryContractPack / RuleIndexPack 三份契约
-# 必须各自在专属段内闭合。§16 其余文字（如 ReleaseManifest 的「Schema/Profile 版本」）
-# 不得跨块代偿，因此先按专属段导语切片，再逐块断言，而不是对整节做关键词 grep。
-sec13=$(sed -n '/^## 13[. ]/,/^## 14[. ]/p' "$SPEC")
+# G3 R3 精确结构门禁：D-07 / T-07 / T-08
+# ---------------------------------------------------------------------
+# 本段所有 sed / grep / awk 一律通过 g3_sed / g3_grep / g3_awk 包一层 LC_ALL=C。
+# 原因：macOS BSD awk 在 en_US.UTF-8 下会把两个无关的中文串判为相等
+# （实测 "是否改变当前判断" == "字段名" 返回真），sed/grep 的多字节类也不确定。
+# LC_ALL=C 使比较退化为逐字节比较，精确且可复现。
+# 注意：不能全局 export LC_ALL=C —— 脚本其他段落（T-06s、T-08s 历史判据）依赖
+# en_US.UTF-8 下的多字节括号表达式与 `[^由]` 这类字符类，全局切换会让它们误报。
+g3_sed()  { LC_ALL=C sed "$@"; }
+g3_grep() { LC_ALL=C grep "$@"; }
+g3_awk()  { LC_ALL=C awk "$@"; }
 
-tp_anchor='承载各术数领域确定性事实结构与规则语法标准'
-qc_anchor='规范发布包对外暴露的确定性只读查询契约'
-ri_anchor='承载确定性适用规则索引'
+# 规范化只删除 Markdown 反引号、星号、空格、Tab 与 CR；其余字符（含否定词、
+# 标点、数字、斜杠、§ 与标识符）全部保留。期望值全部硬编码自权威常量文件，
+# 绝不从 $SPEC 动态生成。判定不做否定词枚举：任何改写都因「完整规范行不再
+# 精确出现且仅出现一次」而被拒绝，因此未知的否定句式同样无法绕过。
+g3n() { g3_sed -e 's/`//g' -e 's/\*//g' -e 's/[[:space:]]//g'; }
+g3cnt() { printf '%s\n' "$2" | g3_grep -Fxc -- "$1"; }   # $1 已规范化规范行, $2 已规范化段落
+g3norm() { printf '%s\n' "$1" | g3n; }
 
-d07_blocks=$(awk -v tp="$tp_anchor" -v qc="$qc_anchor" -v ri="$ri_anchor" '
-  /^#/ { cur = "" }
-  index($0, tp) > 0 { cur = "TP" }
-  index($0, qc) > 0 { cur = "QC" }
-  index($0, ri) > 0 { cur = "RI" }
-  cur != "" { print cur "\t" $0 }
-' "$SPEC")
-
-d07_block() { printf '%s\n' "$d07_blocks" | awk -F'\t' -v k="$1" '$1 == k { sub(/^[^\t]*\t/, ""); print }'; }
-d07_f() { printf '%s\n' "$1" | grep -Fq "$2"; }
-d07_e() { printf '%s\n' "$1" | grep -Eq "$2"; }
-
-for d07_pair in "TP:$tp_anchor" "QC:$qc_anchor" "RI:$ri_anchor"; do
-  d07_key=${d07_pair%%:*}; d07_anchor=${d07_pair#*:}
-  if [ -n "$(d07_block "$d07_key" | grep -v '^$')" ] && [ "$(grep -Fc "$d07_anchor" "$SPEC")" = "1" ]; then
-    printf 'PASS  D-07s %s dedicated block located\n' "$d07_key"
+g3_exact() {   # g3_exact <FAIL-ID> <段落> <标签> <规范行> [<标签> <规范行> ...]
+  local id="$1" body; body=$(printf '%s\n' "$2" | g3n); shift 2
+  local bad="" label line n
+  while [ $# -gt 0 ]; do
+    label="$1"; line="$2"; shift 2
+    n=$(g3cnt "$(g3norm "$line")" "$body")
+    [ "$n" = "1" ] || bad="$bad ${label}(x$n)"
+  done
+  if [ -z "$bad" ]; then
+    printf 'PASS  %s\n' "$id"
   else
-    printf 'FAIL  D-07s %s dedicated block missing or ambiguous\n' "$d07_key"; FAILED=$((FAILED+1))
+    printf 'FAIL  %s  规范行未精确出现一次:%s\n' "$id" "$bad"; FAILED=$((FAILED+1))
+  fi
+}
+
+g3_packs() { g3_grep -oE '[A-Za-z][A-Za-z0-9]*Pack' | LC_ALL=C sort -u \
+  | g3_awk 'BEGIN{ORS=""} {print (NR>1?",":"") $0}'; }
+
+# ---- 权威规范行（照抄自 work-items/g3-r3/CANONICAL.md，硬编码） ----
+C_D07_TP_START='`TechniqueProfilePack` 承载各术数领域确定性事实结构与规则语法标准，消除跨技法匹配歧义：'
+C_D07_TP_PROFILE='- **FactSet Profile**：针对不同术数体系定义专用事实切片 Profile，包括八字 `BaziFactSet`、七政 `QizhengFactSet`、紫微 `ZiweiFactSet`、奇门 `QimenFactSet`、六壬 `LiuRenFactSet`；依 2026-09-08 用户裁定，首纵切内部验收包采用 `QizhengFactSet`；'
+C_D07_TP_FIELDS='- **事实字段与枚举**：严格列出各 Profile 允许的事实键名、数据类型及闭集枚举值，禁止非受控字段参与确定性匹配；'
+C_D07_TP_OPERATORS='- **operator 集合**：规范规则条件所允许的确定性比较与集合操作符全集（如 `eq`、`neq`、`in`、`not_in`、`gt`、`gte`、`lt`、`lte`、`all`、`any`、`none`）；'
+C_D07_TP_AST='- **AST schema 版本**：定义规则 AST 的结构化模式版本（如 `ast_schema_version: "1.0"`），规则纯声明式表达，**禁止使用任何可执行或模型生成的 Python 规则**。'
+C_D07_QC_START='`QueryContractPack` 规范发布包对外暴露的确定性只读查询契约与客户端调用接口，定义四个核心接口及兼容声明：'
+C_D07_QC_ENTRY='- **`getEntry(entry_id)`**：按稳定实体标识获取对应 `KnowledgeEntry` 条目及其主张和上下文；'
+C_D07_QC_SPAN='- **`getSourceSpan(span_id)`**：按片段标识获取底层 `SourceSpan` 原文、校勘与定位引用；'
+C_D07_QC_SEARCH='- **`searchKnowledge(query, filters)`**：执行跨条目/术语的精确与全文知识检索；'
+C_D07_QC_MATCH='- **`matchFacts(fact_set)`**：输入版本化 FactSet，执行确定性规则匹配并返回全部且仅返回适用规则，明确报告已满足条件、缺失条件与触发例外；任一条件不全或例外成立时不得输出肯定判断；'
+C_D07_QC_COMPAT='- **向后兼容声明**：明确规定查询契约接口必须保持向后兼容演进，客户端只依赖稳定接口契约，不直接绑定底层文件存储形式。'
+C_D07_RI_START='`RuleIndexPack` 承载确定性适用规则索引：'
+C_D07_RI_VERSION='- **Profile 版本声明**：`RuleIndexPack` 中每条规则必须显式声明其所依据的 `Profile 版本`（如 `profile_version: "qizheng_v1.0"`）及 `AST schema 版本`；'
+C_D07_RI_DECLARATIVE='- **规则纯声明式结构**：所有适用规则必须使用纯声明式的 `结构化 AST/YAML/JSON` 表达，禁止包含任何动态 Python 逻辑或自由文本代码块。'
+
+C_T07_REPLACEMENT='黑箱架构规格以多子包组合的 `PublicationPackage`（特别是其中的结构化知识主体 `KnowledgeDataPack`）正式取代早期草案中单一扁平的 `KnowledgePack` 概念。'
+
+C_T08_S1_01='1. `最小盘面概念字典`：规模约 100–200 个概念，由 `KnowledgeDataPack` 供给，仅包含稳定 `concept_id` + 名称 + 基础类象，**严格声明不含规则 DSL**，用以解除 `TAG_SYSTEM_DESIGN.md §12.2` 的 G4 依赖倒挂问题；'
+C_T08_S1_02='2. `MarkContentBinding` 内容供给：由 `KnowledgeDataPack` 与 `RuleIndexPack` 供给，为 UI 标记提供内容与分歧数据；'
+C_T08_S1_03='3. `EvidenceBundle` 服务：由 `EvidenceMapPack` 供给，为解盘与证据高亮提供底层的无损证据链切片。'
+C_T08_B1_HEAD='1. **`最小盘面概念字典`**：'
+C_T08_B1_SUPPLY='   - **供给子包**：由 `KnowledgeDataPack` 供给；'
+C_T08_B1_LIMIT='   - **硬限制约束**：**严格声明不含规则 DSL**，用以解除 `TAG_SYSTEM_DESIGN.md §12.2` 的 G4 依赖倒挂问题。规则 DSL 属于后续阶段的 RuntimeFeature 范围，不在最小概念字典中承载。'
+C_T08_B2_HEAD='2. **`MarkContentBinding` 内容供给**：'
+C_T08_B2_SUPPLY='   - **供给子包**：由 `KnowledgeDataPack` 与 `RuleIndexPack` 供给；'
+C_T08_B3_HEAD='3. **`EvidenceBundle` 服务**：'
+C_T08_B3_SUPPLY='   - **供给子包**：由 `EvidenceMapPack` 供给；'
+C_T08_P01='- `omen_carrying`（吉凶承载性）：指示该标记是否承载吉凶定性，由 M4 生产，归入 `KnowledgeDataPack`（由 M5 负责校验其合规性，M5 不得作为字段生产者）；'
+C_T08_P02='- `condition_affordance`（条件可供性）：指示该标记可承载的条件槽位，由 M4 结构化生产，归入 `RuleIndexPack` 与 `KnowledgeDataPack`（由 M5 负责校验其可执行性，M5 不得作为字段生产者）；'
+C_T08_P03='- `school_variance_display`（流派分歧展示）：指示各流派对此标记的不同定性或观点分歧，由 M4/M6 审核产出，归入 `KnowledgeDataPack`；'
+C_T08_P04='- `concept_id`（概念标识）：全局稳定的概念 ID，由 M4 术语判层确定，归入 `KnowledgeDataPack`；'
+C_T08_P05='- 「是否改变当前判断」：明确规定属于 `MarkContentBinding` 的核心内容状态字段，必须由知识层（M4/M7/M6）通过判定状态供给，**UI 不得猜测**。'
+C_T08_R01='| `omen_carrying` | 吉凶承载性：指示该标记是否承载吉凶定性 | M4 | `KnowledgeDataPack` | 满足吉凶标定标准（`canonical` / `none`），严禁 UI 自行推导吉凶；M5 仅作为 Validator 负责检验标定合规性，不得作为生产者 |'
+C_T08_R02='| `condition_affordance` | 条件可供性：指示该标记可承载的条件槽位 | M4 | `RuleIndexPack` 与 `KnowledgeDataPack` | 结构化输出条件依赖；当 `omen_carrying=canonical` 时必填；M5 仅作为 Validator 负责校验规则可执行性，不得作为生产者 |'
+C_T08_R03='| `school_variance_display` | 流派分歧展示：指示各流派对此标记的不同定性或观点分歧 | M4 / M6 | `KnowledgeDataPack` | 存在流派分歧的知识点强制展示多流派对照，严禁单一流派静默覆盖 |'
+C_T08_R04='| `concept_id` | 概念标识：全局稳定的概念 ID | M4 | `KnowledgeDataPack` | 术语判层产出的稳定概念 ID，盘面语义物种必须绑定 |'
+C_T08_R05='| 是否改变当前判断 | 指示分歧是否导致格局或断语定性翻转 | M4 / M7 / M6 | `KnowledgeDataPack`（`MarkContentBinding`） | 核心内容状态字段，必须由知识层通过判定状态与 ReviewDecision 供给，**UI 不得猜测** |'
+
+sec16=$(g3_sed -n '/^## 16[. ]/,/^## 17[. ]/p' "$SPEC")
+sec162=$(g3_sed -n '/^### 16\.2 /,/^### 16\.3 /p' "$SPEC")
+sec01=$(g3_sed -n '/^## 1\.[[:space:]]/,/^## 2\.[[:space:]]/p' "$SPEC")
+sec1631=$(g3_sed -n '/^#### 16\.3\.1 /,/^#### 16\.3\.2 /p' "$SPEC")
+sec1632=$(g3_sed -n '/^#### 16\.3\.2 /,/^## 17/p' "$SPEC")
+sec13=$(g3_sed -n '/^## 13[. ]/,/^## 14[. ]/p' "$SPEC")
+
+# ---------------- D-07：三份契约的完整规范行 ----------------
+g3_exact G3-D07-TP "$sec16" \
+  TP-START "$C_D07_TP_START" TP-PROFILE "$C_D07_TP_PROFILE" \
+  TP-FIELDS "$C_D07_TP_FIELDS" TP-OPERATORS "$C_D07_TP_OPERATORS" \
+  TP-AST "$C_D07_TP_AST"
+g3_exact G3-D07-QC "$sec16" \
+  QC-START "$C_D07_QC_START" QC-ENTRY "$C_D07_QC_ENTRY" \
+  QC-SPAN "$C_D07_QC_SPAN" QC-SEARCH "$C_D07_QC_SEARCH" \
+  QC-MATCH "$C_D07_QC_MATCH"
+g3_exact G3-D07-RI "$sec16" \
+  RI-START "$C_D07_RI_START" RI-VERSION "$C_D07_RI_VERSION" \
+  RI-DECLARATIVE "$C_D07_RI_DECLARATIVE"
+g3_exact G3-D07-COMPAT "$sec16" QC-COMPAT "$C_D07_QC_COMPAT"
+
+# 四个查询接口的完整签名（不使用 getEntry 等子串存在性判断）
+for iface in 'getEntry(entry_id)' 'getSourceSpan(span_id)' 'searchKnowledge(query, filters)' 'matchFacts(fact_set)'; do
+  if printf '%s\n' "$sec16" | g3n | g3_grep -Fq -- "$(g3norm "$iface")"; then
+    printf 'PASS  G3-D07-QC  接口签名完整: %s\n' "$iface"
+  else
+    printf 'FAIL  G3-D07-QC  接口签名缺失或被改名: %s\n' "$iface"; FAILED=$((FAILED+1))
   fi
 done
 
-d07_tp=$(d07_block TP); d07_qc=$(d07_block QC); d07_ri=$(d07_block RI)
-
-for tp_elem in 'FactSet Profile' 'operator 集合' 'AST schema 版本'; do
-  if d07_f "$d07_tp" "$tp_elem"; then
-    printf 'PASS  D-07s TechniqueProfilePack element: %s\n' "$tp_elem"
-  else
-    printf 'FAIL  D-07s TechniqueProfilePack missing element: %s\n' "$tp_elem"; FAILED=$((FAILED+1))
-  fi
-done
-
-if d07_f "$d07_tp" '事实字段与枚举' && d07_f "$d07_tp" '闭集枚举' \
-  && ! d07_e "$d07_tp" '客户端自由猜测|不列.*事实字段|由客户端.*猜|无需列出.*枚举'; then
-  printf 'PASS  D-07s TechniqueProfilePack mandates fact fields and closed enum values\n'
-else
-  printf 'FAIL  D-07s TechniqueProfilePack fact fields / closed enums missing or negated\n'; FAILED=$((FAILED+1))
-fi
-
-if d07_e "$d07_tp" '禁止.*(可执行|模型生成).*Python'; then
-  printf 'PASS  D-07s TechniqueProfilePack forbids executable or model-generated Python\n'
-else
-  printf 'FAIL  D-07s TechniqueProfilePack Python ban missing\n'; FAILED=$((FAILED+1))
-fi
-
-for query_iface in 'getEntry' 'getSourceSpan' 'searchKnowledge' 'matchFacts'; do
-  if d07_f "$d07_qc" "$query_iface"; then
-    printf 'PASS  D-07s QueryContractPack interface: %s\n' "$query_iface"
-  else
-    printf 'FAIL  D-07s QueryContractPack missing interface: %s\n' "$query_iface"; FAILED=$((FAILED+1))
-  fi
-done
-
-if d07_f "$d07_qc" '向后兼容'; then
-  printf 'PASS  D-07s QueryContractPack declares backward compatibility\n'
-else
-  printf 'FAIL  D-07s QueryContractPack missing backward compatibility\n'; FAILED=$((FAILED+1))
-fi
-
-if d07_f "$d07_ri" '每条规则' && d07_f "$d07_ri" '显式声明' \
-  && d07_f "$d07_ri" 'profile_version' && d07_f "$d07_ri" 'AST schema 版本'; then
-  printf 'PASS  D-07s RuleIndexPack binds every rule to profile_version and AST schema version\n'
-else
-  printf 'FAIL  D-07s RuleIndexPack per-rule profile_version / AST schema version missing\n'; FAILED=$((FAILED+1))
-fi
-
-if d07_f "$d07_ri" '结构化 AST/YAML/JSON'; then
-  printf 'PASS  D-07s RuleIndexPack keeps rules declarative AST/YAML/JSON\n'
-else
-  printf 'FAIL  D-07s RuleIndexPack rules not declarative AST/YAML/JSON\n'; FAILED=$((FAILED+1))
-fi
-
-if printf '%s\n' "$sec13" | grep -Fq 'FactSet' \
-  && printf '%s\n' "$sec13" | grep -Fq '可执行性' \
-  && printf '%s\n' "$sec13" | grep -Fq 'G6' \
-  && printf '%s\n' "$sec13" | grep -Fq '不负责生产'; then
+if printf '%s\n' "$sec13" | g3_grep -Fq 'FactSet' \
+  && printf '%s\n' "$sec13" | g3_grep -Fq '可执行性' \
+  && printf '%s\n' "$sec13" | g3_grep -Fq 'G6' \
+  && printf '%s\n' "$sec13" | g3_grep -Fq '不负责生产'; then
   printf 'PASS  D-07s M5 verifies FactSet executability under G6 and produces no contract\n'
 else
   printf 'FAIL  D-07s M5 FactSet executability or non-producer boundary missing\n'; FAILED=$((FAILED+1))
 fi
 
-sec16=$(sed -n '/^## 16[. ]/,/^## 17[. ]/p' "$SPEC")
-if printf '%s\n' "$sec16" | grep -Fq 'TechniqueProfilePack' \
-  && printf '%s\n' "$sec16" | grep -Fq 'QueryContractPack'; then
-  printf 'PASS  D-07s PublicationPackage lists TechniqueProfilePack and QueryContractPack\n'
-else
-  printf 'FAIL  D-07s PublicationPackage missing TechniqueProfilePack or QueryContractPack\n'; FAILED=$((FAILED+1))
-fi
-
-# T-07 语义门禁：§16.2 KnowledgePack 双向映射表精确解析。
-# 右列必须是唯一落点：既不能缺少正确归属，也不能在正确归属之后追加第二个子包，
-# 因此改为规范化后精确相等，而不是子串匹配。
-sec162=$(sed -n '/^### 16\.2 /,/^### 16\.3 /p' "$SPEC")
-t07_errs=$(printf '%s\n' "$sec162" | awk -F'|' '
-  function nz(s) { gsub(/`/, "", s); gsub(/[[:space:]]/, "", s); return s }
+# ---------------- T-07：§16.2 完整映射表 ----------------
+t07_map_err=$(printf '%s\n' "$sec162" | g3_awk -F'|' '
+  function nz(s){ gsub(/`/,"",s); gsub(/\*/,"",s); gsub(/[[:space:]]/,"",s); return s }
   BEGIN {
-    wanted["release-manifest"]=1
-    wanted["schema"]=1
-    wanted["concepts"]=1
-    wanted["entries"]=1
-    wanted["assertions"]=1
-    wanted["applicability-rules"]=1
-    wanted["school-views"]=1
-    wanted["evidence-links"]=1
-    wanted["source-spans"]=1
-    wanted["source-anchors"]=1
-    wanted["scan-assets-or-references"]=1
-    wanted["exact-search-index"]=1
-    wanted["fulltext-index"]=1
-    wanted["optional-vector-index"]=1
-    wanted["query-contract"]=1
+    want["release-manifest"]="ReleaseManifest（发布清单与元数据摘要）"
+    want["schema"]="KnowledgeDataPack（及ContractRegistry对应模式定义）"
+    want["concepts"]="KnowledgeDataPack（概念定义及术语体系）"
+    want["entries"]="KnowledgeDataPack（知识条目KnowledgeEntry集合）"
+    want["assertions"]="KnowledgeDataPack（结构化主张Assertion集合）"
+    want["applicability-rules"]="RuleIndexPack（与KnowledgeDataPack中的适用规则）"
+    want["school-views"]="KnowledgeDataPack（各流派分歧与立场视图）"
+    want["evidence-links"]="EvidenceMapPack（证据链接与跨层关联）"
+    want["source-spans"]="EvidenceMapPack（与KnowledgeDataPack中的原文片段引用）"
+    want["source-anchors"]="EvidenceMapPack（底本物理位置证据锚点，必须随包发布）"
+    want["scan-assets-or-references"]="SourceAssetPack（扫描图或受控引用）"
+    want["exact-search-index"]="SearchIndexPack（精确检索索引）"
+    want["fulltext-index"]="SearchIndexPack（全文检索索引）"
+    want["optional-vector-index"]="本期不产出（依据§21非目标）"
+    want["query-contract"]="QueryContractPack（查询契约与接口定义）"
+    hdr="早期KnowledgePack目录建议(TARGET.md§9)"
   }
-  /^\|/ && $0 !~ /^\|---/ && $0 !~ /早期.*目录/ {
-    c1=nz($2)
-    c2=nz($3)
-    if (c1 in wanted) {
-      seen[c1]++
-      target[c1]=c2
-    }
-    total++
+  /^\|/ {
+    k=nz($2); v=nz($3)
+    if (k == hdr) next
+    if (k ~ /^[-:]+$/) next
+    rows++
+    cnt[k]++
+    got[k]=v
+    if (!(k in want)) extra=extra " [" k "]"
   }
   END {
-    err=""
-    if (total != 15) err=err "行数!=15(" total "); "
-    for (k in wanted) {
-      if (seen[k] != 1) err=err k "=" seen[k] "; "
+    e=""
+    if (rows != 15) e=e " 数据行=" rows "(期望15)"
+    for (x in want) {
+      if (cnt[x] != 1) e=e " " x "(x" cnt[x] ")"
+      else if (got[x] != want[x]) e=e " " x "=[" got[x] "]期望=[" want[x] "]"
     }
-    if (target["query-contract"] != "QueryContractPack（查询契约与接口定义）") err=err "query-contract归属[" target["query-contract"] "]，期望[QueryContractPack（查询契约与接口定义）]; "
-    if (target["optional-vector-index"] != "本期不产出（依据§21非目标）") err=err "optional-vector-index归属[" target["optional-vector-index"] "]，期望[本期不产出（依据§21非目标）]; "
-    if (err == "") print "OK"
-    else print err
+    if (extra != "") e=e " 未知key:" extra
+    print (e == "" ? "OK" : e)
   }
 ')
-
-if [ "$t07_errs" = "OK" ]; then
-  printf 'PASS  T-07s §16.2 映射表15项唯一且query-contract正确归属QueryContractPack\n'
+if [ "$t07_map_err" = "OK" ]; then
+  printf 'PASS  G3-T07-MAP  §16.2 映射表 15 项 key 唯一且 value 完整相等\n'
 else
-  printf 'FAIL  T-07s §16.2 映射表不合规: %s\n' "$t07_errs"; FAILED=$((FAILED+1))
+  printf 'FAIL  G3-T07-MAP  §16.2 映射表不合规:%s\n' "$t07_map_err"; FAILED=$((FAILED+1))
 fi
 
-# 取代声明必须是同一句肯定语义：同一行内同时出现 PublicationPackage、KnowledgeDataPack、
-# 正式取代、KnowledgePack；「不得取代」等否定句一律判失败。
-t07_decl=0
-if printf '%s\n' "$sec162" | grep -F '正式取代' | grep -F 'PublicationPackage' \
-  | grep -F 'KnowledgeDataPack' | grep -Fq 'KnowledgePack'; then
-  t07_decl=1
-fi
-if printf '%s\n' "$sec162" | grep -Eq '不得取代|不予取代|禁止取代|未予取代|不取代'; then
-  t07_decl=0
-fi
-if [ "$t07_decl" = "1" ]; then
-  printf 'PASS  T-07s §16.2 affirmative replacement statement with PublicationPackage and KnowledgeDataPack\n'
+t07_repl_n=$(g3cnt "$(g3norm "$C_T07_REPLACEMENT")" "$(printf '%s\n' "$sec162" | g3n)")
+if [ "$t07_repl_n" = "1" ]; then
+  printf 'PASS  G3-T07-REPLACEMENT  §16.2 取代声明完整句唯一且肯定\n'
 else
-  printf 'FAIL  T-07s §16.2 replacement statement missing or negated\n'; FAILED=$((FAILED+1))
+  printf 'FAIL  G3-T07-REPLACEMENT  §16.2 取代声明未完整精确出现一次(x%s)\n' "$t07_repl_n"; FAILED=$((FAILED+1))
 fi
 
-# T-08 语义门禁：Tag 三接口供给包、五字段 owner/package、M5 生产者排除及 G4 命名空间。
-# 生产 Module 与归属子包必须逐字段精确匹配：只校验字段唯一和 M5 缺席会漏掉错误归属。
-sec163=$(sed -n '/^### 16\.3 /,/^## 17/p' "$SPEC")
-sec1631=$(sed -n '/^#### 16\.3\.1 /,/^#### 16\.3\.2 /p' "$SPEC")
-sec01=$(sed -n '/^## 1\.[[:space:]]/,/^## 2\.[[:space:]]/p' "$SPEC")
+# ---------------- T-08：§1 三行 / §16.3.1 三块 / §16.3.2 五条与五行 ----------------
+t08_sec1_bad=""
+t08_idx=0
+for pair in "最小盘面概念字典|KnowledgeDataPack|$C_T08_S1_01" \
+            "MarkContentBinding|KnowledgeDataPack,RuleIndexPack|$C_T08_S1_02" \
+            "EvidenceBundle|EvidenceMapPack|$C_T08_S1_03"; do
+  t08_idx=$((t08_idx+1))
+  want_pkgs="${pair#*|}"; want_pkgs="${want_pkgs%|*}"
+  line="${pair##*|}"
+  n=$(g3cnt "$(g3norm "$line")" "$(printf '%s\n' "$sec01" | g3n)")
+  [ "$n" = "1" ] || t08_sec1_bad="$t08_sec1_bad S1-0$t08_idx(x$n)"
+done
+t08_pk1=$(printf '%s\n' "$C_T08_S1_01" | g3_packs)
+t08_pk2=$(printf '%s\n' "$C_T08_S1_02" | g3_packs)
+t08_pk3=$(printf '%s\n' "$C_T08_S1_03" | g3_packs)
+[ "$t08_pk1" = "KnowledgeDataPack" ] || t08_sec1_bad="$t08_sec1_bad S1-01包集合异常($t08_pk1)"
+[ "$t08_pk2" = "KnowledgeDataPack,RuleIndexPack" ] || t08_sec1_bad="$t08_sec1_bad S1-02包集合异常($t08_pk2)"
+[ "$t08_pk3" = "EvidenceMapPack" ] || t08_sec1_bad="$t08_sec1_bad S1-03包集合异常($t08_pk3)"
+t08_pk_mut=$(printf '%s\n' "$sec01" | g3_grep -F '最小盘面概念字典' | head -1 | g3_packs)
+[ "$t08_pk_mut" = "KnowledgeDataPack" ] || t08_sec1_bad="$t08_sec1_bad §1实际包集合异常($t08_pk_mut)"
+if [ -z "$t08_sec1_bad" ]; then
+  printf 'PASS  G3-T08-SEC1  §1 三接口行完整且各含唯一供给包\n'
+else
+  printf 'FAIL  G3-T08-SEC1  §1 三接口行不合规:%s\n' "$t08_sec1_bad"; FAILED=$((FAILED+1))
+fi
 
-# 1. 三接口承接与“不含规则 DSL”
-for tag_iface in '最小盘面概念字典' 'MarkContentBinding' 'EvidenceBundle'; do
-  if printf '%s\n' "$sec163" | grep -Fq "$tag_iface" && printf '%s\n' "$sec01" | grep -Fq "$tag_iface"; then
-    printf 'PASS  T-08s Tag interface present in §1 and §16.3: %s\n' "$tag_iface"
+t08_blocks=$(printf '%s\n' "$sec1631" | g3_awk '
+  /^[1-3]\.[[:space:]]+\*\*/ { n++ }
+  n > 0 { print n "\t" $0 }
+')
+# 注意：不能用 sub(/^[^\t]*\t/,"") —— 花括号表达式里的 \t 在 BSD awk 中不是制表符转义。
+# 用 index/substr 精确去掉 "<块号>\t" 前缀。
+t08_block_lines() { printf '%s\n' "$t08_blocks" | g3_awk -F'\t' -v k="$1" '
+  $1 == k { p = index($0, "\t"); if (p > 0) $0 = substr($0, p + 1); print }'; }
+t08_nblocks=$(printf '%s\n' "$t08_blocks" | g3_awk -F'\t' '$1 > m { m = $1 } END { print m + 0 }')
+t08_blk_bad=""
+[ "$t08_nblocks" = "3" ] || t08_blk_bad="$t08_blk_bad 编号块数=$t08_nblocks(期望3)"
+t08_bi=0
+for pair in "B1|$C_T08_B1_HEAD|$C_T08_B1_SUPPLY|KnowledgeDataPack" \
+            "B2|$C_T08_B2_HEAD|$C_T08_B2_SUPPLY|KnowledgeDataPack,RuleIndexPack" \
+            "B3|$C_T08_B3_HEAD|$C_T08_B3_SUPPLY|EvidenceMapPack"; do
+  t08_bi=$((t08_bi+1))
+  rest="${pair#*|}"; lbl="${pair%%|*}"
+  expect_pkgs="${rest##*|}"; rest="${rest%|*}"
+  want_supply="${rest#*|}"; want_head="${rest%%|*}"
+  blk=$(t08_block_lines "$t08_bi")
+  got_head=$(printf '%s\n' "$blk" | head -1)
+  if [ "$(g3norm "$got_head")" = "$(g3norm "$want_head")" ]; then
+    :
   else
-    printf 'FAIL  T-08s Tag interface missing: %s\n' "$tag_iface"; FAILED=$((FAILED+1))
+    t08_blk_bad="$t08_blk_bad ${lbl}标题=[$got_head]"
+  fi
+  sup_n=$(printf '%s\n' "$blk" | g3_grep -cE '^[[:space:]]+- \*\*供给子包\*\*：')
+  if [ "$sup_n" = "1" ]; then
+    got_supply=$(printf '%s\n' "$blk" | g3_grep -E '^[[:space:]]+- \*\*供给子包\*\*：')
+    if [ "$(g3norm "$got_supply")" = "$(g3norm "$want_supply")" ]; then
+      got_pkgs=$(printf '%s\n' "$got_supply" | g3_packs)
+      [ "$got_pkgs" = "$expect_pkgs" ] || t08_blk_bad="$t08_blk_bad ${lbl}包集合异常($got_pkgs)"
+    else
+      t08_blk_bad="$t08_blk_bad ${lbl}供给声明=[$got_supply]"
+    fi
+  else
+    t08_blk_bad="$t08_blk_bad ${lbl}供给声明数=$sup_n(期望1)"
   fi
 done
-
-if printf '%s\n' "$sec163" | grep -Fq '不含规则 DSL' && printf '%s\n' "$sec01" | grep -Fq '不含规则 DSL'; then
-  printf 'PASS  T-08s concept dictionary preserves rule DSL restriction\n'
+if [ -z "$t08_blk_bad" ]; then
+  printf 'PASS  G3-T08-BLOCK  §16.3.1 三块标题与唯一供给声明精确相等\n'
 else
-  printf 'FAIL  T-08s concept dictionary missing rule DSL restriction\n'; FAILED=$((FAILED+1))
+  printf 'FAIL  G3-T08-BLOCK  §16.3.1 块结构不合规:%s\n' "$t08_blk_bad"; FAILED=$((FAILED+1))
 fi
 
-# 2. 三接口供给子包精确校验：§16.3.1 的「供给子包」行与 §1 的「由 … 供给」片段必须同时正确
-t08_supply_1631() {
-  printf '%s\n' "$sec1631" | awk -v name="$1" '
-    function nz(s){ gsub(/`/,"",s); gsub(/[*]/,"",s); gsub(/[-]/,"",s); gsub(/[[:space:]]/,"",s); gsub(/：/,"",s); gsub(/；/,"",s); return s }
-    /^[0-9]+\.[[:space:]]+\*\*/ { inb = (index($0, name) > 0) }
-    inb && nz($0) ~ /供给子包/ { print nz($0); exit }
-  '
-}
-t08_supply_sec01() {
-  printf '%s\n' "$sec01" | grep -F "$1" | head -1 \
-    | sed -n 's/^[^由]*由[[:space:]]*\([^供]*\)供给.*$/\1/p' \
-    | sed -e 's/`//g' -e 's/[[:space:]]//g'
-}
-for t08_iface_pair in '最小盘面概念字典:KnowledgeDataPack' 'MarkContentBinding:KnowledgeDataPack与RuleIndexPack' 'EvidenceBundle:EvidenceMapPack'; do
-  t08_iface=${t08_iface_pair%%:*}; t08_pkg=${t08_iface_pair#*:}
-  if [ "$(t08_supply_1631 "$t08_iface")" = "供给子包由${t08_pkg}供给" ] \
-    && [ "$(t08_supply_sec01 "$t08_iface")" = "$t08_pkg" ]; then
-    printf 'PASS  T-08s interface supply package: %s -> %s\n' "$t08_iface" "$t08_pkg"
-  else
-    printf 'FAIL  T-08s interface supply package mismatch: %s (期望 %s)\n' "$t08_iface" "$t08_pkg"; FAILED=$((FAILED+1))
-  fi
-done
+g3_exact G3-T08-PROSE "$sec1632" \
+  P01 "$C_T08_P01" P02 "$C_T08_P02" P03 "$C_T08_P03" \
+  P04 "$C_T08_P04" P05 "$C_T08_P05"
 
-# 3. Tag 侧 G4 命名空间消歧
-if printf '%s\n' "$sec01" | grep -Eq 'TAG_SYSTEM_DESIGN\.md §12\.2.*G4' \
-  && printf '%s\n' "$sec163" | grep -Eq 'TAG_SYSTEM_DESIGN\.md §12\.2.*G4' \
-  && ! printf '%s\n' "$sec163" | grep -Eq '解除.*（G4）'; then
-  printf 'PASS  T-08s Tag G4 namespaced to TAG_SYSTEM_DESIGN.md §12.2\n'
-else
-  printf 'FAIL  T-08s Tag G4 missing TAG_SYSTEM_DESIGN.md namespace\n'; FAILED=$((FAILED+1))
-fi
-
-# 4. §16.3.2 字段表格：五字段各恰好一次，生产 Module 与归属子包逐字段精确相等，生产列不得含 M5
-t08_table_res=$(printf '%s\n' "$sec163" | awk -F'|' '
-  function nz(s){ gsub(/`/,"",s); gsub(/[[:space:]]/,"",s); return s }
+t08_tbl_err=$(printf '%s\n' "$sec1632" | g3_awk -F'|' '
+  function nz(s){ gsub(/`/,"",s); gsub(/\*/,"",s); gsub(/[[:space:]]/,"",s); return s }
   BEGIN {
     want["omen_carrying"]="M4|KnowledgeDataPack"
     want["condition_affordance"]="M4|RuleIndexPack与KnowledgeDataPack"
@@ -304,26 +331,59 @@ t08_table_res=$(printf '%s\n' "$sec163" | awk -F'|' '
     want["concept_id"]="M4|KnowledgeDataPack"
     want["是否改变当前判断"]="M4/M7/M6|KnowledgeDataPack（MarkContentBinding）"
   }
-  /^\|/ && $0 !~ /^\|---/ && $0 !~ /字段名.*语义定义/ {
-    name=nz($2); prod=nz($4); pack=nz($5)
+  /^\|/ {
+    nm=nz($2); mod=nz($4); pk=nz($5)
+    if (nm == "字段名") next
+    if (nm ~ /^[-:]+$/) next
     rows++
-    if (name in want) {
-      seen[name]++
-      if ((prod "|" pack) != want[name]) err=err name "实际[" prod "|" pack "]，期望[" want[name] "]; "
-      if (prod ~ /M5/) err=err name "生产列包含M5; "
-    }
+    cnt[nm]++
+    got[nm]=mod "|" pk
+    if (mod ~ /M5/) m5=m5 " [" nm "]"
+    if (!(nm in want)) extra=extra " [" nm "]"
   }
   END {
-    if (rows != 5) err=err "数据行=" rows "; "
-    for (k in want) if (seen[k] != 1) err=err k "出现" seen[k] "次; "
-    print (err == "" ? "OK" : err)
+    e=""
+    if (rows != 5) e=e " 数据行=" rows "(期望5)"
+    for (x in want) {
+      if (cnt[x] != 1) e=e " " x "(x" cnt[x] ")"
+      else if (got[x] != want[x]) e=e " " x "=[" got[x] "]期望=[" want[x] "]"
+    }
+    if (m5 != "") e=e " 生产列含M5:" m5
+    if (extra != "") e=e " 未知字段:" extra
+    print (e == "" ? "OK" : e)
   }
 ')
-
-if [ "$t08_table_res" = "OK" ]; then
-  printf 'PASS  T-08s §16.3 table 5 fields with exact producer ownership and no M5 producer\n'
+t08_row_bad=""
+t08_lbls=(R01 R02 R03 R04 R05)
+t08_rows=("$C_T08_R01" "$C_T08_R02" "$C_T08_R03" "$C_T08_R04" "$C_T08_R05")
+for i in 0 1 2 3 4; do
+  n=$(g3cnt "$(g3norm "${t08_rows[$i]}")" "$(printf '%s\n' "$sec1632" | g3n)")
+  [ "$n" = "1" ] || t08_row_bad="$t08_row_bad ${t08_lbls[$i]}(x$n)"
+done
+if [ "$t08_tbl_err" = "OK" ] && [ -z "$t08_row_bad" ]; then
+  printf 'PASS  G3-T08-TABLE  §16.3.2 五字段行完整、owner/package 精确、无 M5 生产者\n'
 else
-  printf 'FAIL  T-08s §16.3 table issue: %s\n' "$t08_table_res"; FAILED=$((FAILED+1))
+  printf 'FAIL  G3-T08-TABLE  §16.3.2 字段表不合规:%s%s\n' "$t08_tbl_err" "$t08_row_bad"; FAILED=$((FAILED+1))
+fi
+
+t08_s1_line=$(printf '%s\n' "$sec01" | g3_grep -F '最小盘面概念字典' | head -1)
+t08_b1_limit=$(printf '%s\n' "$sec1631" | g3_grep -F '硬限制约束' | head -1)
+t08_dsl_bad=""
+printf '%s\n' "$t08_s1_line"   | g3n | g3_grep -Fq '不含规则DSL' || t08_dsl_bad="$t08_dsl_bad §1"
+printf '%s\n' "$t08_b1_limit" | g3n | g3_grep -Fq '不含规则DSL' || t08_dsl_bad="$t08_dsl_bad §16.3.1"
+if [ -z "$t08_dsl_bad" ]; then
+  printf 'PASS  G3-T08-DSL  最小盘面概念字典在两处均声明不含规则 DSL\n'
+else
+  printf 'FAIL  G3-T08-DSL  「不含规则 DSL」缺失于:%s\n' "$t08_dsl_bad"; FAILED=$((FAILED+1))
+fi
+
+t08_g4_bad=""
+printf '%s\n' "$t08_s1_line"   | g3n | g3_grep -Fq 'TAG_SYSTEM_DESIGN.md§12.2' || t08_g4_bad="$t08_g4_bad §1"
+printf '%s\n' "$t08_b1_limit" | g3n | g3_grep -Fq 'TAG_SYSTEM_DESIGN.md§12.2' || t08_g4_bad="$t08_g4_bad §16.3.1"
+if [ -z "$t08_g4_bad" ]; then
+  printf 'PASS  G3-T08-G4  Tag 侧 G4 在两处均以 TAG_SYSTEM_DESIGN.md §12.2 命名空间化\n'
+else
+  printf 'FAIL  G3-T08-G4  「TAG_SYSTEM_DESIGN.md §12.2」缺失于:%s\n' "$t08_g4_bad"; FAILED=$((FAILED+1))
 fi
 
 qmiss=0; for q in RunStatus StageProgress PendingQueue BlockingReasons ReworkImpact ThroughputEstimate; do
