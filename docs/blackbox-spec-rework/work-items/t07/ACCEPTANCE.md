@@ -1,51 +1,74 @@
-# T-07 主 Agent 验收清单
+# T-07 验收报告（G3 R2 返工）
 
-状态：`REWORK_REQUIRED_R2`（正文基本正确，唯一归属门禁假绿）
+## 1. 基本信息
 
-## 1. Scope and Commits
+- 任务 ID：`blackbox-t07-knowledgepack-mapping`
+- 状态：`IMPLEMENTED_AWAITING_REVIEW`（等待主 Agent 独立验收，未自行宣布通过）
+- 关联规格：`openspec/learn-system-blackbox-architecture.md` §16.2（只读，未修改）
+- 关联缺陷台账：`docs/blackbox-spec-rework/reviews/G3-REVIEW-R2.md` T-07 节
+- 提交：`fix: enforce T-07 exact package mappings`（hash 见最终执行报告）
 
-- [x] 仅修改授权文件（`openspec/learn-system-blackbox-architecture.md`、`docs/blackbox-spec-rework/verify-T.sh` 及 `work-items/t07/`）
-- [x] 未触碰任何代码、JSON Schema、测试用例或数据库文件
-- [x] 未触碰并发修改中的注解系统文件
-- [x] 提交消息符合规范
+## 2. 变更文件
 
-## 2. KnowledgePack Mapping Table Verification
+- `docs/blackbox-spec-rework/verify-T.sh`（T-07 段改为精确归属校验）
+- `docs/blackbox-spec-rework/work-items/t07/{README.md,BDD.md,TDD.md,ACT.yaml,PROMPT.md,ACCEPTANCE.md}`
 
-- [x] §16.2 包含全部 15 个早期目录条目，逐项严格映射，无任何遗漏且无空行
-- [x] 每个条目在第一列各出现且仅出现一次（数据行总数严格为 15）
-- [x] `query-contract` 唯一归属 `QueryContractPack`，严禁归入 `RuleIndexPack` 或 `SearchIndexPack`
-- [x] `optional-vector-index` 保留非目标声明（依据 §21）
-- [x] 包含明确的 KnowledgePack 取代声明（`PublicationPackage` / `KnowledgeDataPack` 正式取代早期草案）
+规格正文未改动。
 
-## 3. Evidence and Regression
+## 3. 检查清单
 
-### Red 阶段证据
+- [x] 仅修改授权文件，未触碰业务代码、Schema、测试、数据库或并发中的注解系统文件
+- [x] §16.2 含全部 15 个早期目录条目，数据行总数严格为 15，每项各出现且仅出现一次
+- [x] `query-contract` 规范化后精确等于 `QueryContractPack（查询契约与接口定义）`，不得附加任何第二个子包
+- [x] `optional-vector-index` 规范化后精确等于 `本期不产出（依据§21非目标）`
+- [x] 取代声明为同行肯定语义（`PublicationPackage` / `KnowledgeDataPack` / `正式取代` / `KnowledgePack`），否定式被拒
+- [x] 六件套已删除旧双 IndexPack 映射、旧 8→7 FAIL 口径与禁止修改门禁指令
+- [x] 独立提交完成
+- [ ] 主 Agent 独立验收（未完成）
+
+## 4. Red baseline（加固前，证明假绿）
+
 ```text
-FAIL  T-07s §16.2 映射表不合规: query-contract未归属QueryContractPack; query-contract错归IndexPack;
-PASS  T-07s §16.2 包含KnowledgePack取代声明
-FAIL 合计: 1
-退出码: 1
+t07-1   exit=0   T-07 给 query-contract 追加 EvidenceMapPack
+t07-2   exit=0   T-07 给 optional-vector-index 追加「同时归入 SearchIndexPack」
+t07-3   exit=0   T-07 把「正式取代」改成「不得取代」
 ```
 
-### Green 阶段证据
+## 5. Green 证据（加固后，正常规格）
+
 ```text
-PASS  T-07s §16.2 映射表15项唯一且query-contract正确归属QueryContractPack
-PASS  T-07s §16.2 包含KnowledgePack取代声明
-FAIL 合计: 0
 退出码: 0
+PASS  T-07s §16.2 映射表15项唯一且query-contract正确归属QueryContractPack
+PASS  T-07s §16.2 affirmative replacement statement with PublicationPackage and KnowledgeDataPack
+FAIL 合计: 0
 ```
 
-### 负向变异测试证据
+## 6. 负向变异证据（加固后）
+
 ```text
-Mutation 1 (wrong mapping) exit code: 1
-Mutation 2 (missing row) exit code: 1
-Mutation 3 (missing replacement statement) exit code: 1
-Restored exit code: 0
-ALL 3 T-07 MUTATIONS SUCCESSFULLY FAILED AND RESTORED!
+=== t07-1 ===
+FAIL  T-07s §16.2 映射表不合规: query-contract归属[QueryContractPack（查询契约与接口定义）EvidenceMapPack]，期望[QueryContractPack（查询契约与接口定义）];
+FAIL 合计: 1
+
+=== t07-2 ===
+FAIL  T-07s §16.2 映射表不合规: optional-vector-index归属[本期不产出（依据§21非目标）同时归入SearchIndexPack]，期望[本期不产出（依据§21非目标）];
+FAIL 合计: 1
+
+=== t07-3 ===
+FAIL  T-07s §16.2 replacement statement missing or negated
+FAIL 合计: 1
 ```
 
-- [x] `git diff --check` 通过
-- [x] 主 Agent 规格审查与质量审查通过
-- [ ] 主 Agent 标记 `ACCEPTED`（等待 R2 返工）
+| 变异 | 加固前退出码 | 加固后退出码 |
+|---|---|---|
+| t07-1 query-contract 追加 EvidenceMapPack | 0（假绿） | 1 |
+| t07-2 optional-vector-index 追加 SearchIndexPack | 0（假绿） | 1 |
+| t07-3 正式取代 → 不得取代 | 0（假绿） | 1 |
 
-R2 复核：追加第二归属、给 optional-vector-index 追加 SearchIndexPack、把“正式取代”改成“不得取代”时，现门禁仍为 0；返工见 `../../reviews/G3-REVIEW-R2.md`。
+每次变异只触发 1 条 FAIL，无连带误报。
+
+## 7. 恢复验证
+
+恢复权威规格后重新运行门禁，退出码 0、`FAIL 合计: 0`；`git diff --check` 退出 0。
+
+等待主 Agent 独立验收；未启动 G4。

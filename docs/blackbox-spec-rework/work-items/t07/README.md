@@ -1,52 +1,70 @@
-# T-07 KnowledgePack ↔ PublicationPackage 双向映射表转录：执行工作包
+# T-07 §16.2 映射表唯一性与肯定语义门禁：执行工作包
 
-状态：`READY`（已按标准六件套建立，等待串行派发执行 Agent）
+状态：`IMPLEMENTED_AWAITING_REVIEW`（R2 返工：门禁已改为精确相等校验；等待主 Agent 独立验收）
 
 ## Goal
 
-在架构规格 `§16 M8 Dataset Compilation` 末尾新增 `16.2 KnowledgePack 与 PublicationPackage 双向映射表`，消除历史草案与现行黑箱架构之间的概念歧义：
-1. 完整对照 `LEARN_SYSTEM_TARGET.md §9`（行 185-202）中定义的 KnowledgePack 全部 14/15 个目录；
-2. 逐项明确其在现行 `PublicationPackage` 八个子包中的归属，不得留空行；
-3. 对于暂未产出的项目（如 `optional-vector-index`），显式标注「本期不产出（依据 §21）」；
-4. 明确写入概念取代声明：架构规格以结构化的 `PublicationPackage`（及核心子包 `KnowledgeDataPack`）正式取代早期草案中扁平单一的 `KnowledgePack` 概念。
+使 `verify-T.sh` 对 §16.2 双向映射表做**唯一落点**校验：15 行目录项各出现且仅出现一次，右列必须规范化后精确相等，禁止在正确归属后追加第二个子包；取代声明必须在同一句肯定语义中包含 `PublicationPackage`、`KnowledgeDataPack`、`正式取代`、`KnowledgePack`，「不得取代」等否定句一律失败。
+
+本轮返工不修改规格正文：§16.2 经 G3 R2 复核确认「正文基本正确，默认只读」，门禁必须向正文对齐。
 
 ## Authority
 
-- `docs/blackbox-spec-rework/T-transcribe.md` 中的 T-07
-- `LEARN_SYSTEM_TARGET.md §9`（行 185-202，KnowledgePack 目录结构）
-- `openspec/learn-system-blackbox-architecture.md` §16 与 §21
-- `docs/blackbox-spec-rework/verify-T.sh`（T-07 判据）
+- `docs/blackbox-spec-rework/reviews/G3-REVIEW-R2.md`（T-07 四条返工项）
+- `docs/blackbox-spec-rework/work-items/g3-r2/COLD_START_PROMPT.md`（本轮执行契约）
+- `openspec/learn-system-blackbox-architecture.md` §16.2（只读基线）
+- `LEARN_SYSTEM_TARGET.md §9`（15 个早期目录项来源）
 
 ## Dependencies
 
-- T-06：已 `ACCEPTED`；
-- T-05：已 `ACCEPTED`；
-- T-04：已 `ACCEPTED`；
-- 本任务与后续 T 类修改同一架构规格，必须严格串行派发。
+- D-07：本轮已返工并提交；
+- T-06 / T-05 / T-04：均已 `ACCEPTED`；
+- 与 D-07、T-08 共用同一门禁脚本，必须严格串行。
 
 ## Scope
 
-- WRITE：仅 `openspec/learn-system-blackbox-architecture.md`
-- 规格落点：`§16 M8 Dataset Compilation` 末尾（在 §17 之前新增 16.2 小节）。
+- WRITE：
+  - `docs/blackbox-spec-rework/verify-T.sh`（T-07 段精确映射门禁）
+  - `docs/blackbox-spec-rework/work-items/t07/`（六件套）
+- READ：
+  - `docs/blackbox-spec-rework/reviews/G3-REVIEW-R2.md`
+  - `openspec/learn-system-blackbox-architecture.md` §16.2
+  - `LEARN_SYSTEM_TARGET.md §9`
+
+## 已作废的旧口径（不得再出现于六件套）
+
+- 旧指令「唯一允许修改规格正文、严禁修改 `verify-T.sh`」——本轮返工恰恰只改门禁，不改正文；
+- 旧映射 `query-contract` → `RuleIndexPack` 与 `SearchIndexPack`——现行规格已唯一归属 `QueryContractPack`；
+- 旧基线口径「8 FAIL → 7 FAIL」——当前基线为 0 FAIL，判据以变异测试为准。
 
 ## Forbidden
 
-- 严禁遗漏 TARGET §9 中 14/15 项目录中的任何一项（`release-manifest`, `schema`, `concepts`, `entries`, `assertions`, `applicability-rules`, `school-views`, `evidence-links`, `source-spans`, `source-anchors`, `scan-assets-or-references`, `exact-search-index`, `fulltext-index`, `optional-vector-index`, `query-contract`）。
-- 严禁留空行，无归宿项必须明确标注「本期不产出（依据 §21）」。
-- 严禁修改任何代码、JSON Schema、测试、数据库文件、PLAN、TODO 或 `verify-T.sh`。
+- 禁止修改规格正文、业务代码、JSON Schema、测试、数据库、依赖、Tag 权威文档；
+- 禁止修改 `PLAN.md`、`HANDOFF.md`、`SUBAGENT_TODO.md` 或 G3 总 `ACCEPTANCE.md`；
+- 禁止在映射表中留空行或删减 15 项中的任何一项；
+- 禁止以子串匹配、关键词计数或放宽断言的方式取得绿色结果；
+- 禁止把临时变异文件写入仓库（只在 `/tmp` 生成副本）；
+- 禁止把状态写成 `ACCEPTED`。
 
-## Stop conditions
+## 门禁设计要点
 
-遇到以下情况必须立即停止并向上汇报：
-1. 照抄源目录名与架构已有子包存在归属矛盾；
-2. Green checks 未通过或全局回归出现未预期退化；
-3. 发现需要修改单文件作用域之外的任何文件。
+| 断言 | 判据 |
+|---|---|
+| 表格结构 | 数据行总数严格等于 15，15 个 key 各出现且仅出现一次 |
+| `query-contract` | 规范化（去反引号与空白）后精确等于 `QueryContractPack（查询契约与接口定义）` |
+| `optional-vector-index` | 规范化后精确等于 `本期不产出（依据§21非目标）` |
+| 取代声明 | 同一行同时含 `PublicationPackage`、`KnowledgeDataPack`、`正式取代`、`KnowledgePack`；出现 `不得取代` 等否定式即失败 |
 
-## ACT review（wjt-react 四查）
+## Stop Conditions
 
-- **忠实性**：通过；完整转录 TARGET §9 十五个条目，无遗漏、无擅自变更名称。
-- **可执行性**：通过；唯一定位点（§16 末尾），映射表与取代声明明确。
-- **可验收性**：通过；覆盖全部 10 个 grep 检验关键字，验收后 FAIL 总数由 8 严格降为 7。
-- **防越界性**：通过；单文件写作用域，禁止代码与依赖改动。
+- 正常规格门禁非零，且失败不由本工作包造成；
+- 任一强制变异仍返回 0；
+- 为实现门禁必须修改规格正文、业务代码或 Scope 外文件；
+- 允许文件存在他人的未提交修改。
 
-结论：工作包六件套完备，符合 G0 交付门禁，状态置为 `READY`。
+## ACT Review（wjt-react 四查）
+
+- **忠实性**：校验值直接取自 §16.2 现行正文，不新增、不改写语义。
+- **可执行性**：规范化规则、期望字符串与变异命令均确定，可机械重现。
+- **可验收性**：正常规格 0 FAIL 与三个变异非零必须同时成立才有效。
+- **防越界性**：写范围限于门禁脚本与六件套，规格正文只读；旧冲突指令已删除。

@@ -174,9 +174,12 @@ else
   printf 'FAIL  D-07s PublicationPackage missing TechniqueProfilePack or QueryContractPack\n'; FAILED=$((FAILED+1))
 fi
 
-# T-07 语义门禁：§16.2 KnowledgePack 双向映射表精确解析
+# T-07 语义门禁：§16.2 KnowledgePack 双向映射表精确解析。
+# 右列必须是唯一落点：既不能缺少正确归属，也不能在正确归属之后追加第二个子包，
+# 因此改为规范化后精确相等，而不是子串匹配。
 sec162=$(sed -n '/^### 16\.2 /,/^### 16\.3 /p' "$SPEC")
 t07_errs=$(printf '%s\n' "$sec162" | awk -F'|' '
+  function nz(s) { gsub(/`/, "", s); gsub(/[[:space:]]/, "", s); return s }
   BEGIN {
     wanted["release-manifest"]=1
     wanted["schema"]=1
@@ -195,9 +198,8 @@ t07_errs=$(printf '%s\n' "$sec162" | awk -F'|' '
     wanted["query-contract"]=1
   }
   /^\|/ && $0 !~ /^\|---/ && $0 !~ /早期.*目录/ {
-    c1=$2
-    c2=$3
-    gsub(/[`[:space:]]/, "", c1)
+    c1=nz($2)
+    c2=nz($3)
     if (c1 in wanted) {
       seen[c1]++
       target[c1]=c2
@@ -210,9 +212,8 @@ t07_errs=$(printf '%s\n' "$sec162" | awk -F'|' '
     for (k in wanted) {
       if (seen[k] != 1) err=err k "=" seen[k] "; "
     }
-    if (target["query-contract"] !~ /QueryContractPack/) err=err "query-contract未归属QueryContractPack; "
-    if (target["query-contract"] ~ /RuleIndexPack|SearchIndexPack/) err=err "query-contract错归IndexPack; "
-    if (target["optional-vector-index"] !~ /本期不产出.*§21/) err=err "optional-vector-index缺非目标; "
+    if (target["query-contract"] != "QueryContractPack（查询契约与接口定义）") err=err "query-contract归属[" target["query-contract"] "]，期望[QueryContractPack（查询契约与接口定义）]; "
+    if (target["optional-vector-index"] != "本期不产出（依据§21非目标）") err=err "optional-vector-index归属[" target["optional-vector-index"] "]，期望[本期不产出（依据§21非目标）]; "
     if (err == "") print "OK"
     else print err
   }
@@ -224,10 +225,20 @@ else
   printf 'FAIL  T-07s §16.2 映射表不合规: %s\n' "$t07_errs"; FAILED=$((FAILED+1))
 fi
 
-if printf '%s\n' "$sec162" | grep -Eq '取代.*KnowledgePack'; then
-  printf 'PASS  T-07s §16.2 包含KnowledgePack取代声明\n'
+# 取代声明必须是同一句肯定语义：同一行内同时出现 PublicationPackage、KnowledgeDataPack、
+# 正式取代、KnowledgePack；「不得取代」等否定句一律判失败。
+t07_decl=0
+if printf '%s\n' "$sec162" | grep -F '正式取代' | grep -F 'PublicationPackage' \
+  | grep -F 'KnowledgeDataPack' | grep -Fq 'KnowledgePack'; then
+  t07_decl=1
+fi
+if printf '%s\n' "$sec162" | grep -Eq '不得取代|不予取代|禁止取代|未予取代|不取代'; then
+  t07_decl=0
+fi
+if [ "$t07_decl" = "1" ]; then
+  printf 'PASS  T-07s §16.2 affirmative replacement statement with PublicationPackage and KnowledgeDataPack\n'
 else
-  printf 'FAIL  T-07s §16.2 缺失KnowledgePack取代声明\n'; FAILED=$((FAILED+1))
+  printf 'FAIL  T-07s §16.2 replacement statement missing or negated\n'; FAILED=$((FAILED+1))
 fi
 
 # T-08 语义门禁：Tag 三接口、五字段、M5 生产者排除及 G4 命名空间
