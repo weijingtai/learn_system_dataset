@@ -3,7 +3,7 @@
 ## 1. 基本信息
 
 - 任务 ID：`blackbox-t07-knowledgepack-mapping`
-- 状态：`IMPLEMENTED_AWAITING_REVIEW`（等待主 Agent 独立验收，未自行宣布通过）
+- 状态：`REWORK_REQUIRED_R3`（指定变异已修；等价否定措辞仍可假绿）
 - 关联规格：`openspec/learn-system-blackbox-architecture.md` §16.2（只读，未修改）
 - 关联缺陷台账：`docs/blackbox-spec-rework/reviews/G3-REVIEW-R2.md` T-07 节
 - 提交：`fix: enforce T-07 exact package mappings`（hash 见最终执行报告）
@@ -71,4 +71,4 @@ FAIL 合计: 1
 
 恢复权威规格后重新运行门禁，退出码 0、`FAIL 合计: 0`；`git diff --check` 退出 0。
 
-等待主 Agent 独立验收；未启动 G4。
+R3 主 Agent 独立验收不通过：“并未正式取代”“不应正式取代”等等价否定仍可假绿。返工见 `../../reviews/G3-REVIEW-R3.md`；未启动 G4。

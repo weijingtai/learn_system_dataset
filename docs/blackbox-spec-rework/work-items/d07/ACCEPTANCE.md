@@ -3,7 +3,7 @@
 ## 1. 基本信息
 
 - 任务 ID：`d07-technique-profile-and-query-contract`
-- 状态：`IMPLEMENTED_AWAITING_REVIEW`（等待主 Agent 独立验收，未自行宣布通过）
+- 状态：`REWORK_REQUIRED_R3`（指定变异已修；兼容性否定语义和 Package 改名仍可假绿）
 - 关联规格：`openspec/learn-system-blackbox-architecture.md` §13、§16（只读，未修改）
 - 关联缺陷台账：`docs/blackbox-spec-rework/reviews/G3-REVIEW-R2.md` D-07 节
 - 提交：`fix: harden D-07 package-specific gates`（hash 见最终执行报告）
@@ -81,9 +81,9 @@ FAIL 合计: 0
 - [x] 门禁改为三份契约的专属块解析，锚点缺失或重复一律 FAIL
 - [x] 正常规格退出 0、`FAIL 合计: 0`
 - [x] 三个强制变异加固前返回 0、加固后非零退出
-- [x] 六件套口径一致，状态为 `IMPLEMENTED_AWAITING_REVIEW`
+- [x] R2 六件套口径一致，执行时状态为 `IMPLEMENTED_AWAITING_REVIEW`
 - [x] 规格正文、业务代码与 Scope 外文件未被触碰
 - [x] `git diff --check` 退出 0
 - [ ] 主 Agent 独立验收（未完成）
 
-等待主 Agent 独立验收；未启动 G4。
+R3 主 Agent 独立验收不通过：兼容性否定语义与 Package 改名仍可假绿。返工见 `../../reviews/G3-REVIEW-R3.md`；未启动 G4。

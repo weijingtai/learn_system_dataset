@@ -222,7 +222,7 @@
   - [x] PLAN/HANDOFF 同步
   - [x] 主 Agent 标记 `ACCEPTED`
 
-- [ ] T-07：KnowledgePack 双向映射（状态：`REWORK_REQUIRED_R2`；唯一归属门禁假绿）
+- [ ] T-07：KnowledgePack 双向映射（状态：`REWORK_REQUIRED_R3`；等价否定语义假绿）
   - [x] README/范围/依赖/禁止项
   - [x] BDD 场景
   - [x] TDD 正反用例与精确命令
@@ -236,11 +236,12 @@
   - [x] 主 Agent 规格审查
   - [x] 主 Agent 质量审查
   - [x] PLAN/HANDOFF 同步
-  - [ ] R2：精确校验唯一归属、非目标唯一语义与肯定取代声明
-  - [ ] R2：同步 README/PROMPT/TDD/ACT/ACCEPTANCE
-  - [ ] R2：主 Agent 复跑变异并标记 `ACCEPTED`
+  - [x] R2：精确校验唯一归属、非目标唯一语义与指定肯定取代变异
+  - [x] R2：同步 README/PROMPT/TDD/ACT/ACCEPTANCE
+  - [x] R2：主 Agent 复跑 3 个指定变异（均被拦截；R3 发现等价绕过）
+  - [ ] R3：改用完整肯定句精确匹配并覆盖等价否定变异
 
-- [ ] T-08：Tag 三个接口承接（状态：`REWORK_REQUIRED_R2`；owner/package 门禁假绿）
+- [ ] T-08：Tag 三个接口承接（状态：`REWORK_REQUIRED_R3`；接口与供给关系唯一性假绿）
   - [x] README/范围/依赖/禁止项
   - [x] BDD 场景
   - [x] TDD 正反用例与精确命令
@@ -254,9 +255,10 @@
   - [x] 主 Agent 规格审查
   - [x] 主 Agent 质量审查
   - [x] PLAN/HANDOFF 同步
-  - [ ] R2：精确校验五字段 owner/package 与三接口供给包
-  - [ ] R2：同步 README/BDD/PROMPT/TDD/ACT/ACCEPTANCE
-  - [ ] R2：主 Agent 复跑变异并标记 `ACCEPTED`
+  - [x] R2：精确校验五字段 owner/package 与三接口指定供给包变异
+  - [x] R2：同步 README/BDD/PROMPT/TDD/ACT/ACCEPTANCE
+  - [x] R2：主 Agent 复跑 4 个指定变异（均被拦截；R3 发现唯一性绕过）
+  - [ ] R3：精确接口名、唯一供给行、拒绝额外 Package 后复验
 
 - [x] T-09：Orchestrator 查询契约（状态：`ACCEPTED`，提交 `d331ca4`）
   - [x] README/范围/依赖/禁止项
@@ -365,7 +367,7 @@
   - [ ] PLAN/HANDOFF 同步
   - [ ] 主 Agent 标记 `ACCEPTED`
 
-- [ ] D-07：TechniqueProfile 与 QueryContract（状态：`REWORK_REQUIRED_R2`；跨块关键词代偿）
+- [ ] D-07：TechniqueProfile 与 QueryContract（状态：`REWORK_REQUIRED_R3`；Package 名和兼容性语义假绿）
   - [x] README/范围/依赖/禁止项
   - [x] BDD 场景
   - [x] TDD 正反用例与精确命令
@@ -378,9 +380,10 @@
   - [x] 主 Agent 规格审查
   - [x] 主 Agent 质量审查
   - [x] PLAN/HANDOFF 同步
-  - [ ] R2：按三个 Package 专属块解析，禁止跨块关键词代偿
-  - [ ] R2：补齐事实字段/枚举与逐规则 Profile/AST 版本负向门禁
-  - [ ] R2：主 Agent 复跑变异并标记 `ACCEPTED`
+  - [x] R2：按三个 Package 专属块解析，禁止跨块关键词代偿
+  - [x] R2：补齐事实字段/枚举与逐规则 Profile/AST 版本负向门禁
+  - [x] R2：主 Agent 复跑 3 个指定变异（均被拦截；R3 发现语义绕过）
+  - [ ] R3：精确 Package 起始行与肯定兼容声明后复验
 
 - [ ] D-08：SchoolView（状态：`BACKLOG`）
   - [ ] README/范围/依赖/禁止项
