@@ -447,6 +447,13 @@ M3 把校订结果组织成可引用语料，不再静默纠正文义：
 
 M3 Gate 要求该 EditionPart 内同层 Span 全文覆盖 100%、无缺口、无重叠，拼接结果与该 Part 校订原文一致，未解决语义分歧为零。Edition 级覆盖率是全部 EditionPart 覆盖率的加权合取。
 
+### 11.1 证据级别枚举（evidence_level）与发布约束
+
+依据 `pipeline/DATASET_ACCEPTANCE_STANDARD.md §4-G3` 与 `LEARN_SYSTEM_TARGET.md:140`，语料切片与证据链锚点建立两档 `evidence_level` 枚举：
+
+- `offset_level`（通用档）：每个 span 必须包含 source offset（或等价确定性 anchor）以及 quote hash；属于开发级证据，只可用于 `INTERNAL_DEMO` 与 `DEV_SEARCH`；
+- `glyphbox_level`（扫描档）：在 offset 与 quote hash 基础上，追加扫描页、图像哈希和 OCR 字框范围（四点坐标）；属于最终无损证据链，`PUBLIC_RELEASE` 必须达到 `glyphbox_level`（依据 TARGET:140：「纯文本引用只能算开发级证据，不能算最终无损证据链」）。
+
 ## 12. M4 Knowledge Extraction
 
 ### 12.1 术语判层前置步骤（三层模型）
@@ -501,7 +508,7 @@ M5 是确定性校验，不使用模型替代规则判断，也不修改 Candida
 
 - **G1 来源与可重放性**：**M5 执行**（raw/transcript/patch/unit 哈希匹配、无未决字符、重放一致性）；
 - **G2 全书覆盖**：**M5 执行**（含正文 section 100% 覆盖、无重叠重复、拼接还原一致性、expected/actual 计数对账）；
-- **G3 身份、引用与证据锚点**：**M5 执行**（全局稳定 ID 无重复、无悬空引用、source offset 与 quote hash 锚点对账、evidence 范围校验、direct proposition 忠实性；OCR 扫描页/图像哈希/字框范围）；
+- **G3 身份、引用与证据锚点**：**M5 执行**（全局稳定 ID 无重复、无悬空引用、source offset 与 quote hash 锚点对账、evidence 范围校验、direct proposition 忠实性；OCR 扫描页/图像哈希/字框范围；`evidence_level` 判定规则：目标消费级别为 `PUBLIC_RELEASE` 时必须满足 `glyphbox_level`，若仅有 `offset_level` 则直接判定校验失败，`offset_level` 仅限内部与开发检索）；
 - **G4 内容分层**：**M5 执行**（命例入 Case 层、注文/异文/校勘入独立 editorial layer、条件/例外结构化、`school_ids` 不留空）；
 - **G5 概念与检索**：**M5 执行**（confirmed concept 声明引用/mentions/assertions/evidence 100% 对账、candidate concept 不得进入 release、检索正负例校验）；
 - **G6 盘面确定性匹配**：**M5 执行**（规则可执行性、FactSet AST/条件完整性）+ **延至 M8 执行**（RuleIndexPack 与 SearchIndexPack 索引产出后复验）；
@@ -511,7 +518,7 @@ M5 是确定性校验，不使用模型替代规则判断，也不修改 Candida
 |---|---|---|
 | G1 来源与可重放性 | M5 执行 | raw/transcript/patch/unit 哈希匹配、PUA 乱码与未决字符为 0、重放一致性。 |
 | G2 全书覆盖 | M5 执行 | 含正文 section 100% 覆盖（不得因标题层级静默排除）、无重叠重复、拼接还原一致性、expected/actual 计数对账。 |
-| G3 身份、引用与证据锚点 | M5 执行 | 全局稳定 ID 无重复、无悬空引用、source offset 与 quote hash 锚点对账、evidence 范围校验在所声明 span 内、direct proposition 忠实性；OCR 扫描页/图像哈希/字框范围。 |
+| G3 身份、引用与证据锚点 | M5 执行 | 全局稳定 ID 无重复、无悬空引用、source offset 与 quote hash 锚点对账、evidence 范围校验在所声明 span 内、direct proposition 忠实性；OCR 扫描页/图像哈希/字框范围；追加 `evidence_level` 判定（目标消费级别为 `PUBLIC_RELEASE` 时必须满足 `glyphbox_level`，若仅有 `offset_level` 则直接判定校验失败，`offset_level` 仅限内部与开发检索）。 |
 | G4 内容分层 | M5 执行 | 命例入 Case 层（不得当作通则 assertion）、注文/异文/校勘入独立 editorial layer、条件/例外结构化、`school_ids` 不留空。 |
 | G5 概念与检索 | M5 执行 | confirmed concept 声明引用/mentions/assertions/evidence 100% 对账、candidate concept 不得进入 release、检索正负例校验。 |
 | G6 盘面确定性匹配 | M5 执行 + 延至 M8 执行 | M5 执行（规则可执行性、FactSet AST/条件完整性，任一条件不全不得输出肯定判断）+ 延至 M8 执行（RuleIndexPack 与 SearchIndexPack 索引产出后复验）。 |
