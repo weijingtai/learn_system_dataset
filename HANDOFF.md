@@ -1,5 +1,14 @@
 # HANDOFF
 
+## 注解社区：多角色整体准入验收
+
+更新时间：2026-09-10
+当前分支/worktree：`codex/docs/knowledge-compilation`；`/Users/jingtaiwei/Git/Public/learn_system`
+刚完成：用户确认 v1.4 已验收；三个只读角色从 UX、产品、OpenSpec/执行准入汇总，新增 openspec/annotation-community/READINESS_REVIEW.md。结论可进入工作包准备，尚不可整套业务编码。
+进行到一半的事（精确到文件和章节）：NC 六件套与装配/机器契约尚未产出；没有新 READY/ACCEPTED。下方历史“待抽查”由用户本轮确认与 R4 通过记录取代。
+下一步（第一件事）：按准入报告 §4/§5 准备 NC-001 与 NC-020a 六件套，再审查与派发。
+已知的坑：七状态需逐屏落地；NC-004 outbox、NC-009 纯文本子范围、NC-007 Undo 依赖和 NC-001 新工程顺序需在工作包闭合。外部链路局部阻塞不等于整体停工；G3 并发工作不纳入此提交。
+
 ## 注解社区 v1.4 一次性修复
 
 更新时间：2026-09-10
