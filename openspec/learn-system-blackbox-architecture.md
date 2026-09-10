@@ -729,27 +729,39 @@ Ledger 暂不可用时适用 §8.2 的 `suspended` 语义：Module 立即停止�
 
 ## 19. 当前实现映射与差距
 
-| 目标 Module | 当前实现 | 当前差距 |
-|---|---|---|
-| M1 Source Intake | `pipeline/runner/ingest_raw.py`、`pipeline/registry/works/`、`tools/ingest_epub.py`、corpus manifest | Work/Edition/SourceAsset/Rights 契约不统一；未进入统一 Ledger；转录不可由记录的 raw+tool 重放 |
-| M2 Digitization & Correction | `ocr/`、FastAPI + Vue 校对工具 | 电子文本清洗不足；导出未完整携带扫描、页面 JSON、全部字框、审计和质量包 |
-| M3 Corpus Compilation | `pipeline/corpus`、outline、batches、segmentation | 当前 LM 复制文本切分；缺双层 Span、严格 offset、完整 SourceAnchor；已有整书漏编假绿 |
-| M4 Knowledge Extraction | concept/assertion/paraphrase 任务 | 多数为机器态；类别仍混杂；跨模型与人工裁决未形成统一 Stage Gate |
-| M5 Automatic Validation | `pipeline/validators` | 主要是局部加工校验；无法阻断全书漏编、错误证据范围和零命中假绿 |
-| M6 Review Workbench | `pattern_knowledge_workbench` | 七政硬编码；缺来源对照、模型比较、状态机、版本审计和通用 TechniqueProfile；实测数据体全空状态：496 rules，original_text 非空 0，is_verified=1 为 0，ge_ju_versions 0 行，conditions 404，chapter 486 |
-| M7 Incremental Assembly | `knowledge_system/` 设计文档 | 缺可执行 Assembler、跨 Edition 对勘、稳定 Pattern 聚合和提案裁决流程 |
-| M8 Dataset Compilation | `pipeline/rag` 开发索引 | 缺正式 Dataset Compiler、PublicationPackage、Graph 投影、ReleaseManifest 和发布校验；span→mentions 映射键碰撞：148 span 塌缩为 18 键、6 组碰撞，修好解析后将链到错误页 |
-| Artifact Ledger | 无 | 缺 Object Store、Metadata Ledger、Revision 和 Lineage Graph |
-| Local Orchestrator | 零散脚本和任务目录 | 缺 EditionRun/ReleaseRun 状态机、阶段 Gate、Checkpoint 和失效传播 |
-| Contract Registry | `pipeline/schemas` 零散规范 | 缺完整 Package Schema、Schema 版本、迁移器和 consumes/produces 声明 |
-| 工作台唯一键限制 | `{patternId, schoolId}` 复合唯一键 | 禁止多书多主张（`grep -n "uniqueKeys" -A3 pattern_knowledge_workbench/lib/database/tables.dart` 必 FAIL） |
-| 流派与书目混部 | `ge_ju_schools` 表 | 将 book(1) 与 school(2) 混存同表（`sqlite3 <db> "select type,count(*) from ge_ju_schools group by type"` 必 FAIL） |
-| 构建环境私有依赖 | `pubspec.yaml` | 依赖 192.168 内网包，干净环境不可构建（`grep -c "192.168" pattern_knowledge_workbench/pubspec.yaml` 现已在 R0 排期消除） |
-| 数据状态管理缺陷 | `drift_database.dart` 与 `rule_list_page.dart` | 启动覆盖本地库 + 保存即 verified（现已在 R0 排期消除） |
-| 测试宿主匮乏 | 仓库测试套件 | 全仓非 OCR 部分仅 1 个 748B 脚手架（`find . -name "test_*.py" -o -name "*_test.dart" | grep -v ocr/ | wc -l` 必 FAIL） |
-| 测试 Golden 不足 | `pipeline/validators/goldens` | 仅有 bazi/qtbj，无非八字 fixture（`find pipeline/validators/goldens -type f` 必 FAIL） |
-| OCR 横排切分轴 | `ocr/` 引擎 | R7 横排分支取轴错误（见 `ocr/HANDOFF_OCR_FIXES.md:181-185`） |
-| 语义分层阻塞 | `pipeline/TODO.md:12-14` | 三项 P0 语义阻断：忠实性门禁缺失、命例/注文/通则分层未实现、条件例外未结构化 |
+架构依赖拓扑与施工前置关系如下：
+
+```text
+L0 内核契约(ArtifactRef + §7 接口 + §8 信封)
+  └─ L1 Artifact Ledger(Object Store + Metadata + §17 StepRun 事务) ─ L1' LineageGraph
+       ├─ L2  Local Orchestrator(状态机/Gate/Checkpoint/失效传播)
+       ├─ L2' Contract Registry 完整体(Package Schema/TechniqueProfile/迁移器)
+       └─ M1 → M2 → M3 → M4 → M5 → M6 → M7 → M8
+```
+
+| 目标 Module | 层级 | 当前实现 | 当前差距 |
+|---|---|---|---|
+| M1 Source Intake | `Module` | `pipeline/runner/ingest_raw.py`、`pipeline/registry/works/`、`tools/ingest_epub.py`、corpus manifest | Work/Edition/SourceAsset/Rights 契约不统一；未进入统一 Ledger；转录不可由记录的 raw+tool 重放 |
+| M2 Digitization & Correction | `Module` | `ocr/`、FastAPI + Vue 校对工具 | 电子文本清洗不足；导出未完整携带扫描、页面 JSON、全部字框、审计和质量包 |
+| M3 Corpus Compilation | `Module` | `pipeline/corpus`、outline、batches、segmentation | 当前 LM 复制文本切分；缺双层 Span、严格 offset、完整 SourceAnchor；已有整书漏编假绿 |
+| M4 Knowledge Extraction | `Module` | concept/assertion/paraphrase 任务 | 多数为机器态；类别仍混杂；跨模型与人工裁决未形成统一 Stage Gate |
+| M5 Automatic Validation | `Module` | `pipeline/validators` | 主要是局部加工校验；无法阻断全书漏编、错误证据范围和零命中假绿 |
+| M6 Review Workbench | `Module` | `pattern_knowledge_workbench` | 七政硬编码；缺来源对照、模型比较、状态机、版本审计和通用 TechniqueProfile；实测数据体全空状态：496 rules，original_text 非空 0，is_verified=1 为 0，ge_ju_versions 0 行，conditions 404，chapter 486 |
+| M7 Incremental Assembly | `Module` | `knowledge_system/` 设计文档 | 缺可执行 Assembler、跨 Edition 对勘、稳定 Pattern 聚合和提案裁决流程 |
+| M8 Dataset Compilation | `Module` | `pipeline/rag` 开发索引 | 缺正式 Dataset Compiler、PublicationPackage、Graph 投影、ReleaseManifest 和发布校验；span→mentions 映射键碰撞：148 span 塌缩为 18 键、6 组碰撞，修好解析后将链到错误页 |
+| Artifact Ledger | `L1` | 无 | 缺 Object Store、Metadata Ledger、Revision 和 Lineage Graph |
+| Local Orchestrator | `L2` | 零散脚本和任务目录 | 缺 EditionRun/ReleaseRun 状态机、阶段 Gate、Checkpoint 和失效传播 |
+| Contract Registry | `L2'` | `pipeline/schemas` 零散规范 | 缺完整 Package Schema、Schema 版本、迁移器和 consumes/produces 声明 |
+| 工作台唯一键限制 | `Workbench` | `{patternId, schoolId}` 复合唯一键 | 禁止多书多主张（`grep -n "uniqueKeys" -A3 pattern_knowledge_workbench/lib/database/tables.dart` 必 FAIL） |
+| 流派与书目混部 | `Workbench` | `ge_ju_schools` 表 | 将 book(1) 与 school(2) 混存同表（`sqlite3 <db> "select type,count(*) from ge_ju_schools group by type"` 必 FAIL） |
+| 构建环境私有依赖 | `Workbench` | `pubspec.yaml` | 依赖 192.168 内网包，干净环境不可构建（`grep -c "192.168" pattern_knowledge_workbench/pubspec.yaml` 现已在 R0 排期消除） |
+| 数据状态管理缺陷 | `Workbench` | `drift_database.dart` 与 `rule_list_page.dart` | 启动覆盖本地库 + 保存即 verified（现已在 R0 排期消除） |
+| 测试宿主匮乏 | `Quality` | 仓库测试套件 | 全仓非 OCR 部分仅 1 个 748B 脚手架（`find . -name "test_*.py" -o -name "*_test.dart" | grep -v ocr/ | wc -l` 必 FAIL） |
+| 测试 Golden 不足 | `Quality` | `pipeline/validators/goldens` | 仅有 bazi/qtbj，无非八字 fixture（`find pipeline/validators/goldens -type f` 必 FAIL） |
+| OCR 横排切分轴 | `Cross-cutting` | `ocr/` 引擎 | R7 横排分支取轴错误（见 `ocr/HANDOFF_OCR_FIXES.md:181-185`） |
+| 语义分层阻塞 | `Cross-cutting` | `pipeline/TODO.md:12-14` | 三项 P0 语义阻断：忠实性门禁缺失、命例/注文/通则分层未实现、条件例外未结构化 |
+
+注：本表行序为盘点顺序，非施工顺序；施工顺序见上方拓扑，三个基础设施是前置层。
 
 ### 19.1 旧存储处置
 
