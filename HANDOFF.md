@@ -1,5 +1,14 @@
 # HANDOFF
 
+## NC-001 首包补齐
+
+更新时间：2026-09-10
+当前分支/worktree：`codex/docs/knowledge-compilation`；本仓库当前工作树。
+刚完成：六件套同步 v1.5 十项要求，新增 VALIDATION_CONTRACT.md 与 REMAINING_DELIVERABLES.md，机器基线增加注销事件未验证登记；Terra 只读缺口意见已纳入。
+进行到一半的事（精确到文件和章节）：NC-001-01 仍 PREPARING/NOT_EXECUTED；补齐文稿未替代正式独立 ACT 审查。
+下一步（第一件事）：独立复核 nc-001 全包，达到 READY 后派发两个校验工具文件；后续 NC-001-02、NC-002 文档落点及剩余证据见剩余交付清单。
+已知的坑：local 放行计划目录不代表完整 NC-001 通过；书籍继续暂缓；不夹带 G3 改动。
+
 ## 注解社区 v1.5 同步
 
 更新时间：2026-09-10

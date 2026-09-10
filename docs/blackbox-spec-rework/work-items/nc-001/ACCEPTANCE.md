@@ -1,6 +1,6 @@
 # NC-001-01 独立验收
 
-当前：NOT_EXECUTED。整项 NC-001 的九项要求未关闭。
+当前：NOT_EXECUTED。整项 NC-001 的十项要求未关闭。
 
 1. ACT审查先核忠实性/覆盖性/可执行性/独立性；原任务本地/完整范围差异必须引用基线§6，不得悄悄降低总项标准。按 wjt-react 要求由符合独立性规则的审查者给出结论，本文不自签 READY。
 2. 核对commit只有两个新文件，输入与旧门禁无diff；外部仓库无本任务改动。
@@ -12,3 +12,7 @@
 证据记录格式：commit；实际文件；每条command/exit_code/原始摘要；Red失败断言；变异案例输出；跳过项与剩余阻塞。主线程负责G6/PLAN/HANDOFF更新，执行者不修改。
 
 Terra同厂商证据快审：已核本地版本/身份决定；指出外部HEAD停点超出READ范围，现改为输入基线HEAD字段变化并限定外部路径只读存在性。此快审不替代独立wjt-react，不给READY。
+
+## v1.5 复核补充
+
+核对 VALIDATION_CONTRACT.md 与 JSON、BDD B11～13、TDD 五个新增命名测试及 ACT READ 范围闭合。当前输入 account_deletion.status=UNVERIFIED，local 可通过但 integrated 必须拒绝；将状态单独改成 VERIFIED 仍须拒绝。注销缺证只保留对应子项阻塞，不把它扩大为笔记本地工作全部停止。

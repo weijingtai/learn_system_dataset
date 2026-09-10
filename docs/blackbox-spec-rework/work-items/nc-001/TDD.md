@@ -7,7 +7,7 @@
 1. `python3 -m unittest discover -s openspec/annotation-community/tools -p test_check_integration_baseline.py -v`
 2. `python3 openspec/annotation-community/tools/check_integration_baseline.py --profile local --input openspec/annotation-community/integration_baseline.json` → 0，LOCAL_PREPARATION_PASS。
 3. 同一命令将 profile 改为 integrated → 1，至少包含 devices/account_pairs/rules/notifier_binding/test_runs/resolution_status 的失败路径，不能输出 PASS。
-4. `LC_ALL=C bash openspec/annotation-community/review_final_guard.sh` → 0。
+4. `LC_ALL=C bash openspec/annotation-community/review_v1_5_guard.sh` → 0。
 5. `bash openspec/annotation-community/verify.sh` → 0；`git diff --check` → 0。
 
 ## 真实 Red→Green
@@ -16,6 +16,12 @@
 
 测试方法至少包含：test_local_planned_pass、test_integrated_current_rejected、test_missing_fields（每必填字段subTest）、test_missing_parent、test_missing_creation_owner、test_existing_empty_directory_rejected、test_missing_sdk_evidence、test_fake_test_pass_rejected、test_new_identity_rejected、test_book_scope_rejected、test_bad_json_exit2、test_unknown_profile_exit2、test_integrated_fixture_structure_pass、test_inputs_unchanged。
 
-完整联调fixture必须在临时目录生成两个不同device_id、两个uid/appUserId映射、规则证据文件、已验证通知绑定证据、EXISTING客户端pubspec/lib、解析成功证据、全部外部仓库测试记录（command、exit_code=0、count>0、evidence文件）。各删除一个证据应失败。测试fixture的status必须标 TEST_FIXTURE；生产输入不能使用此状态求真实联调验收。checker仅验证结构，不验证云端真实性；ACCEPTANCE由人复核真实证据。
+完整联调fixture必须在临时目录生成两个不同device_id、两个uid/appUserId映射、规则证据文件、已验证通知绑定证据、EXISTING客户端pubspec/lib、解析成功证据、全部外部仓库测试记录（command、exit_code=0、count>0、evidence文件）。各删除一个证据应失败。测试fixture的顶层scope必须标 TEST_FIXTURE；生产输入不能使用此scope求真实联调验收。checker仅验证结构，不验证云端真实性；ACCEPTANCE由人复核真实证据。
 
 禁止测试从被测checker生成预期值；不得把“有字段”当作测试通过记录。CLI错误字段路径按JSON路径写明，如 integration.devices；排序输出保证可对比。
+
+## v1.5 新增字段与反例
+
+`spec_version` 必须为字符串 `1.5`。`integration.account_deletion` 必填，字段名精确取自输入 JSON，不得忽略；完整校验规则见 [VALIDATION_CONTRACT.md](VALIDATION_CONTRACT.md)。
+
+增加 test_account_deletion_unverified_local_pass、test_account_deletion_missing_rejected、test_account_deletion_verified_without_evidence_rejected、test_account_deletion_signout_rejected、test_account_deletion_unknown_delivery_rejected。对完整 fixture 分别删除 source/delivery_semantics/test_command/exit_code/count/evidence，每例返回 1 且输出对应字段路径；合法结构返回 0 仍仅代表结构通过。当前 integrated 失败路径必须额外包含 integration.account_deletion.status。

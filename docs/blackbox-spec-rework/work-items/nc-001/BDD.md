@@ -12,3 +12,6 @@
 | B08 | 提供错误JSON或未知profile | 执行校验 | 退出2，给输入错误，不输出Traceback或成功 |
 | B09 | 使用测试临时目录构造完整联调证据结构 | 校验integrated | 结构可通过，但只报告结构校验，不声明真实云已验收 |
 | B10 | 校验结束 | 比较输入/外部目录 | 内容与目录均未被更改 |
+| B11 | 注销来源未验证且所有字段完整登记为 null | 校验 local / integrated | local 可过；integrated 拒绝 integration.account_deletion.status，不阻断其他模块的本地文稿准备 |
+| B12 | 注销状态 VERIFIED 但缺来源、送达语义或执行证据 | 校验 integrated | 指出缺字段，不承认仅改状态的通过 |
+| B13 | 注销事件填写 sign_out 或未知送达语义 | 校验 | 拒绝将退出登录冒充删除账号 |

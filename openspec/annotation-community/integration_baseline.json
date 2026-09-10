@@ -136,6 +136,18 @@
     "notifier_binding": {
       "status": "UNVERIFIED"
     },
-    "test_runs": []
-  }
+    "test_runs": [],
+    "account_deletion": {
+      "status": "UNVERIFIED",
+      "source": null,
+      "delivery_semantics": null,
+      "test_command": null,
+      "exit_code": null,
+      "count": null,
+      "evidence": null,
+      "consumer": "NC-026",
+      "blocked_scope": "NC-026_ACCOUNT_DELETION"
+    }
+  },
+  "spec_version": "1.5"
 }

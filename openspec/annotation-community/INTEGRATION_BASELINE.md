@@ -52,7 +52,7 @@ Terra 建议中的 notebook 依赖和新增随机身份未采纳。两套 Drift 
 
 OpenAPI 选用 openapi-spec-validator 0.9.0，工具隔离于 SPEC/.venv-openapi，后续安装命令 `python3 -m venv openspec/annotation-community/.venv-openapi`，再使用其中 python 执行 `-m pip install openapi-spec-validator==0.9.0`。支持 OpenAPI 3.1 的依据：[维护方发布说明](https://pypi.org/project/openapi-spec-validator/0.9.0/)。本轮未安装，当前 Python 未装该包/pytest/jsonschema。离线无 wheel 或依赖时明确 ENV_BLOCKED，禁止改为字段存在性检查；NC-003 用合法/非法规范成对运行验证器。精确传递依赖 lock 在工具安装工作包输出，不伪造已冻结环境。
 
-## 5. NC-001 九项完成情况
+## 5. NC-001 十项完成情况
 
 | 项 | 本次事实 | 完整门禁 |
 |---|---|---|
@@ -64,12 +64,13 @@ OpenAPI 选用 openapi-spec-validator 0.9.0，工具隔离于 SPEC/.venv-openapi
 | Markdown Plus | 已指定版本，有缓存/官方说明 | 新工程实际依赖解析与 Widget 验证 |
 | Firestore rules | 本轮未定位权威部署路径 | SERVER 集成前必须由部署证据确定 |
 | 通知表现层 | 复用 social 普通中心组件；不挂遗留页 | 非静态 Repository 接入、导航真实验证 |
+| 宿主账号注销 | 来源、送达语义和测试均未验证 | NC-001 登记证据，NC-026 消费；缺证只阻断 NC-026 注销子项，不能以退出登录代替删号事件 |
 | 静音/聚合 | 存在UI/callable入口，未证明端到端语义 | NC-013/014 提供持久化、优先级和聚合证据 |
 
 这些缺口不要求用户现在整理书籍，也不妨碍 NC-002 本地模型文稿准备；完整 NC-001 不能据此标 ACCEPTED。
 
 ## 6. 两级准备门禁（主线程本轮细化）
 
-NC-001-01 只验证本地**规划基线**：计划目录声明、版本来源、依赖边界、复用证据和所有未验证项诚实登记。PLANNED_NEW 的合法性不等于目录/程序已存在。NC-001-02 是完整联调基线，继续要求原九项真实完成；本轮不编造它的执行命令或凭据。原 TASKS 的“目录必须存在”用于运行/完整准出；本地准备允许有明确创建责任与现存父目录的计划路径。禁止创建空目录或伪造测试结果让总项通过。
+NC-001-01 只验证本地**规划基线**：计划目录声明、版本来源、依赖边界、复用证据和所有未验证项诚实登记。PLANNED_NEW 的合法性不等于目录/程序已存在。NC-001-02 是完整联调基线，继续要求原十项真实完成；本轮不编造它的执行命令或凭据。原 TASKS 的“目录必须存在”用于运行/完整准出；本地准备允许有明确创建责任与现存父目录的计划路径。禁止创建空目录或伪造测试结果让总项通过。
 
 首份六件套见 [nc-001 README](../../docs/blackbox-spec-rework/work-items/nc-001/README.md)。它仍为 PREPARING，需独立 ACT 审查；本轮没有业务编码派发。
