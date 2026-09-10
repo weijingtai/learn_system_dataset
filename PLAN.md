@@ -1,5 +1,12 @@
 # PLAN
 
+## 注解社区：本轮工程准备
+
+- [x] 按用户要求由Terra调查本地基础和社交通知，主线程核对并写入INTEGRATION_BASELINE.md及JSON。
+- [x] 准备docs/blackbox-spec-rework/work-items/nc-001六件套，状态PREPARING，不冒充READY。
+- [ ] 独立ACT审查后实施本地规划基线checker，再准备NC-002；完整联调前置独立补证。
+- [ ] 书籍清单/整理与NC-020a本轮暂缓，待用户整理后恢复，不影响本地笔记契约准备。
+
 ## 注解社区：下一阶段准入
 
 - [x] 用户确认 v1.4 验收通过（R4 记录 1a3b4a8）；下面各轮历史复核待办以此收口。

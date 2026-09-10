@@ -557,7 +557,7 @@
 
 ### 前置契约（可立即准备六件套）
 
-- [ ] NC-001：客户端位置、宿主、端口装配、设备与后端清单、验证器选型（状态：`BACKLOG`）
+- [ ] NC-001：客户端位置、宿主、端口装配、设备与后端清单、验证器选型（状态：`PREPARING`）；本地规划基线与六件套已产出，见 `work-items/nc-001/README.md`，未达READY。
 - [ ] NC-002：非书籍模型、ID 前缀、状态机、限额、canonical 编码与 fixture（状态：`BACKLOG`；**须先取得用户对 Design §2.1 的 UGC ID 前缀确认，未确认前不得离开 `PREPARING`**）
 - [ ] NC-003：公共 REST/OpenAPI/Swagger 契约与错误目录（状态：`BACKLOG`）
 - [ ] NC-015：密钥恢复、设备授权与删除窗口协议（状态：`BACKLOG`；从零设计密码学协议，30–60 分钟 ACT 粒度不适用，须单独排期）

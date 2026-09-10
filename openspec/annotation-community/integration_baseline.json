@@ -1,0 +1,141 @@
+{
+  "schema_version": 1,
+  "task_id": "NC-001",
+  "scope": "LOCAL_PREPARATION",
+  "book_work": "DEFERRED_BY_USER",
+  "client": {
+    "path": "/Users/jingtaiwei/Git/Public/xuan-migration/reading-notes",
+    "package": "reading_notes",
+    "state": "PLANNED_NEW",
+    "creation_owner": "NC-004",
+    "runtime_verified": false
+  },
+  "sdk": {
+    "flutter": "3.44.6",
+    "dart": "3.12.2",
+    "evidence": "/Users/jingtaiwei/flutter/bin/cache/flutter.version.json",
+    "verification": "CACHE_METADATA_ONLY"
+  },
+  "dependencies": {
+    "flutter_markdown_plus": "1.0.12",
+    "drift": "2.31.0",
+    "drift_dev": "2.31.0",
+    "drift_flutter": "0.2.8",
+    "sqlite3": "2.9.4",
+    "sqlite3_flutter_libs": "0.5.42",
+    "path_provider": "2.1.6",
+    "build_runner": "2.15.1"
+  },
+  "resolution_status": "NOT_RUN",
+  "repositories": [
+    {
+      "name": "SPEC",
+      "path": "/Users/jingtaiwei/Git/Public/learn_system",
+      "git_root": "/Users/jingtaiwei/Git/Public/learn_system",
+      "head": "7dd2e5f977b95a9e1b7155ef20e648a16fe96e55",
+      "dirty_entries": 14,
+      "tests": {
+        "status": "NOT_RUN",
+        "reason": "Read-only source survey; runtime baseline not executed"
+      }
+    },
+    {
+      "name": "MIGRATION",
+      "path": "/Users/jingtaiwei/Git/Public/xuan-migration",
+      "status": "UNAVAILABLE"
+    },
+    {
+      "name": "STORAGE",
+      "path": "/Users/jingtaiwei/Git/Public/xuan-migration/xuan-storage",
+      "git_root": "/Users/jingtaiwei/Git/Public/xuan-migration/xuan-storage",
+      "head": "87f0ee514ca4255909901f27f4f4a55301fb20b9",
+      "dirty_entries": 0,
+      "tests": {
+        "status": "NOT_RUN",
+        "reason": "Read-only source survey; runtime baseline not executed"
+      }
+    },
+    {
+      "name": "SOCIAL",
+      "path": "/Users/jingtaiwei/Git/Public/xuan-migration/social",
+      "git_root": "/Users/jingtaiwei/Git/Public/xuan-migration/social",
+      "head": "1971f79320ba679daf9be9e89d13a221eae6ff88",
+      "dirty_entries": 0,
+      "tests": {
+        "status": "NOT_RUN",
+        "reason": "Read-only source survey; runtime baseline not executed"
+      }
+    },
+    {
+      "name": "NOTIFICATION",
+      "path": "/Users/jingtaiwei/Git/Public/xuan-migration/notification",
+      "git_root": "/Users/jingtaiwei/Git/Public/xuan-migration/notification",
+      "head": "e8cee528ff6aabe6bca744e546ffbe4f25cb02a7",
+      "dirty_entries": 0,
+      "tests": {
+        "status": "NOT_RUN",
+        "reason": "Read-only source survey; runtime baseline not executed"
+      }
+    },
+    {
+      "name": "REST",
+      "path": "/Users/jingtaiwei/Git/Public/xuan-migration/repository-rest-adapter",
+      "git_root": "/Users/jingtaiwei/Git/Public/xuan-migration/repository-rest-adapter",
+      "head": "0f8bf521a421592284e02fe0cd578b6db34ef439",
+      "dirty_entries": 0,
+      "tests": {
+        "status": "NOT_RUN",
+        "reason": "Read-only source survey; runtime baseline not executed"
+      }
+    },
+    {
+      "name": "SERVER",
+      "path": "/Users/jingtaiwei/Git/Public/xuan-server/functions-py",
+      "git_root": "/Users/jingtaiwei/Git/Public/xuan-server/functions-py",
+      "head": "866ea138c2a5b51e9fa5d4280568e78308090d63",
+      "dirty_entries": 0,
+      "tests": {
+        "status": "NOT_RUN",
+        "reason": "Read-only source survey; runtime baseline not executed"
+      }
+    },
+    {
+      "name": "NOTIFIER",
+      "path": "/Users/jingtaiwei/Git/Public/xuan-server/notifier",
+      "git_root": "/Users/jingtaiwei/Git/Public/xuan-server/notifier",
+      "head": "8f32132c245598e23ece1d28f5090b094e0c8037",
+      "dirty_entries": 0,
+      "tests": {
+        "status": "NOT_RUN",
+        "reason": "Read-only source survey; runtime baseline not executed"
+      }
+    }
+  ],
+  "identity": {
+    "policy": "HOST_SCOPE_ONLY",
+    "new_identity_system": false,
+    "public_profile_id": "PlaygroundUserId; not Firebase uid or appUserId"
+  },
+  "openapi_validator": {
+    "package": "openapi-spec-validator",
+    "version": "0.9.0",
+    "status": "NOT_INSTALLED_IN_CURRENT_PYTHON"
+  },
+  "integration": {
+    "devices": [],
+    "account_pairs": [],
+    "emulator": {
+      "firestore_config": "192.168.0.165:8080",
+      "auth_config": "192.168.0.165:9099",
+      "project_config": "demo-xuan",
+      "status": "CONFIG_ONLY_NOT_CONTACTED"
+    },
+    "rules": {
+      "status": "UNVERIFIED"
+    },
+    "notifier_binding": {
+      "status": "UNVERIFIED"
+    },
+    "test_runs": []
+  }
+}

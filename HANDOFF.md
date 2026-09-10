@@ -1,5 +1,14 @@
 # HANDOFF
 
+## 注解社区：NC-001 开工准备
+
+更新时间：2026-09-10
+当前分支/worktree：`codex/docs/knowledge-compilation`；`/Users/jingtaiwei/Git/Public/learn_system`
+刚完成：两位Terra完成只读模块调查，主线程抽查并决定独立reading_notes包、Drift复用、host scope身份与普通社交通知组件边界；新增INTEGRATION_BASELINE.md/JSON及nc-001六件套草稿。
+进行到一半的事（精确到文件和章节）：NC-001 PREPARING，六件套只覆盖NC-001-01本地规划基线校验；完整联调设备/账号/规则/真实测试缺证保留。尚未正式ACT审查，不可派发业务编码。
+下一步（第一件事）：独立审查nc-001包，落实基线checker；随后NC-002本地模型契约。书籍盘点/整理与NC-020a本轮按用户指令暂缓。
+已知的坑：notebook是圈画不是永久笔记库；xuan-migration父目录不是git仓；Profile实际参数为PlaygroundUserId而非appUserId；SDK仅读缓存元数据，依赖未解析、外部测试未跑。不得将本地规划校验当完整NC001通过。
+
 ## 注解社区：多角色整体准入验收
 
 更新时间：2026-09-10

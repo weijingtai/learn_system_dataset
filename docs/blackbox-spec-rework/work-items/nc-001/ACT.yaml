@@ -1,0 +1,48 @@
+TASK_ID: NC-001-01
+STATUS: PREPARING
+GOAL: Validate the local preparation snapshot without claiming integration readiness
+DEPENDS_ON: []
+ESTIMATE_MINUTES: 45
+SCOPE:
+  READ:
+    - openspec/annotation-community/integration_baseline.json
+    - openspec/annotation-community/INTEGRATION_BASELINE.md
+    - docs/blackbox-spec-rework/work-items/nc-001/BDD.md
+    - docs/blackbox-spec-rework/work-items/nc-001/TDD.md
+    - /Users/jingtaiwei/flutter/bin/cache/flutter.version.json
+    - /Users/jingtaiwei/Git/Public/xuan-migration
+  WRITE_NEW:
+    - openspec/annotation-community/tools/check_integration_baseline.py
+    - openspec/annotation-community/tools/test_check_integration_baseline.py
+  FORBIDDEN:
+    - external repositories
+    - baseline inputs
+    - package specifications and existing guards
+    - PLAN.md and HANDOFF.md
+DEPENDENCY_ALLOWLIST: [Python_standard_library]
+SIGNATURE:
+  cli: "check_integration_baseline.py --profile local|integrated --input PATH"
+  exit_0: "requested profile structurally valid; local output LOCAL_PREPARATION_PASS; integrated output INTEGRATED_STRUCTURE_PASS"
+  exit_1: "sorted field-path validation failures"
+  exit_2: "invalid JSON, unreadable input or CLI usage"
+RULES:
+  - "schema_version=1, task_id=NC-001; all required fields defined by input plus TDD; unknown status must fail"
+  - "local requires PLANNED_NEW with NC-004 owner and existing parent OR EXISTING with pubspec and lib"
+  - "SDK evidence must exist; pins must match approved input; identity HOST_SCOPE_ONLY and new_identity_system=false"
+  - "book_work must remain DEFERRED_BY_USER"
+  - "integrated additionally requires runtime_verified, resolved dependencies and complete real-evidence structure per TDD"
+  - "local does not require devices/cloud; neither profile may create directories or mutate input"
+  - "External READ is limited to SDK metadata and client/parent path existence; do not scan Git, user data or unrelated files; tests use temporary paths"
+TESTS_FIRST:
+  - "Create TDD's named unittest cases using isolated temporary fixtures; run test discovery; capture nonzero and actual failing assertion"
+STEPS:
+  - "Implement argument parsing and JSON input errors"
+  - "Implement local profile validation with exact field paths and no filesystem writes"
+  - "Implement integrated profile validation without bypassing any missing evidence"
+  - "Run all TDD commands; preserve integrated-current failure as expected negative evidence"
+  - "Stage only the two owned files and commit; report paths and raw command results"
+VERIFICATION:
+  - "python3 -m unittest discover -s openspec/annotation-community/tools -p test_check_integration_baseline.py -v"
+  - "python3 openspec/annotation-community/tools/check_integration_baseline.py --profile local --input openspec/annotation-community/integration_baseline.json"
+  - "python3 openspec/annotation-community/tools/check_integration_baseline.py --profile integrated --input openspec/annotation-community/integration_baseline.json"
+ON_FAIL: "Stop with exact assertion or missing prerequisite; do not edit inputs/standards, use cloud credentials, install packages or expand scope"
