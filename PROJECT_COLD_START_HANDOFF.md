@@ -1,9 +1,12 @@
 # Learn System 项目冷启动交接
 
-更新时间：2026-09-10  
-仓库：`/Users/jingtaiwei/Git/Public/learn_system`  
-分支：`codex/docs/knowledge-compilation`  
-当前 HEAD：`ffe19df`  
+更新时间：2026-09-10
+
+仓库：`/Users/jingtaiwei/Git/Public/learn_system`
+
+分支：`codex/docs/knowledge-compilation`
+
+当前 HEAD：`ffe19df`
 当前主线状态：`G3_REWORK_REQUIRED`；G3 通过前禁止进入 G4
 
 ## 1. 冷启动顺序
