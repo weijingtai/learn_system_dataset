@@ -1,5 +1,14 @@
 # HANDOFF
 
+## G6 NC-002 验收通过；NC-004 审查返工中（C/S 会话）
+
+更新时间：2026-09-11
+当前分支/worktree：`codex/docs/knowledge-compilation`；`/Users/jingtaiwei/Git/Public/learn_system`
+刚完成：NC-002 由用户派发的外部 Agent 完成六个提交（learn_system `0d27ea8`→`7ee2c45`，SERVER `30a868c`）；主 Agent 亲自验收通过（详见 `work-items/nc-002/ACCEPTANCE.md` 验收记录），SUBAGENT_TODO 记 `ACCEPTED`。产物：12 个 `community_*.schema.json` + 62 示例 + `verify_community.sh`；`tools/validate_fixtures.py`；SERVER `xuan/community_hash.py` + 一致性测试。社区 17 前缀入登记册 §3.5（`bb750db`）。NC-004 契约 `contracts/local-persistence.md` 与六件套（`ab11e28`）第一轮四查 REWORK 10 项（含 §5.1 去重规则与 DESIGN §7.2 的一处冲突、FailingExecutor 需包装 TransactionExecutor、merge 测试构造步骤违反头校验、README 缺 outbox 二选一声明、严格 JSON 扫描器规则未写死）。
+进行到一半的事（精确到文件和章节）：NC-004 返工落实中（契约 §2.1/§3/§5.1/§5.2/§6、README、TDD §5、BDD）。
+下一步（第一件事）：落实 NC-004 十项返工 → 第二轮四查 → READY → 把 `work-items/nc-004/PROMPT.md` 交用户派发。之后准备 NC-005（编辑器/Markdown）六件套。
+已知的坑：执行方交付报告若不在仓库内，Red 原文无法核验，只能以提交构成为据；NC-004 的 `flutter test` 依赖宿主机 libsqlite3，验收时用真文件库。
+
 ## G6 NC-002 达 READY（C/S 会话；黑箱之外全部归本线）
 
 更新时间：2026-09-11

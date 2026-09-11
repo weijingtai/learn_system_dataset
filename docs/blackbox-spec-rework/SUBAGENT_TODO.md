@@ -572,13 +572,13 @@
   - [x] 派发 NC-001-01 执行 Agent：`work-items/nc-001/PROMPT.md`，act/01 → act/02 → act/03 → act/04 四个提交
   - [x] 主 Agent 验收 NC-001-01：执行提交 `272fb60`→`11b4e46`→`d75afb1`→`11edbc7`；32 测试、local/integrated 与契约一致、`nc001_r2_guard.sh --require-impl` 0、3 个必做变异 + 17 个盲测全部符合；记录见 `work-items/nc-001/ACCEPTANCE.md`
   - [ ] NC-001-02 完整联调取证（设备、后端、Emulator、真实测试）另行准备工作包；Firebase 去留须在此之前由用户决定
-- [ ] NC-002：非书籍模型、ID 前缀、状态机、限额、canonical 编码与 fixture（状态：`READY`，PROMPT 已交用户派发外部 Agent）
+- [x] NC-002：非书籍模型、ID 前缀、状态机、限额、canonical 编码与 fixture（状态：`ACCEPTED`，2026-09-11；DEFERRED：CLIENT Dart 一致性测试 → NC-004、CommandRecord 按操作成对 Schema → NC-003）
   - [x] DESIGN §2.1 十七个 UGC ID 前缀：2026-09-10 用户全权托管主 Agent，前缀整表采用并冻结（community-models.md §0.1）；READINESS_REVIEW §3 同步登记，两处结论一致
   - [x] 规格侧产物（主 Agent）：`contracts/community-models.md`、`contracts/state-machines.md`、`tools/nchash_reference.py`、`fixtures/community/` 9 个文件 196 项
   - [x] 六件套 `work-items/nc-002/`（act/01～05）与守卫 `reviews/nc002_guard.sh`
   - [x] wjt-react 四查：R1 REWORK 20 项、R2 REWORK 9 项、R3 READY（`reviews/NC-002-REVIEW-R1.md`）；守卫 `nc002_guard.sh` 0
-  - [ ] 用户派发外部执行 Agent（`work-items/nc-002/PROMPT.md`，act/01～06）；主 Agent 按 ACCEPTANCE.md 验收（含参考编码器交叉复算与盲测）
-  - [ ] CLIENT Dart 一致性测试推迟至 NC-004 第一条 ACT（CLIENT 尚不存在）
+  - [x] 外部执行 Agent 完成 act/01～06：learn_system `0d27ea8`→`7ee2c45`，SERVER `30a868c`；主 Agent 验收通过（守卫 `--require-impl` 0、61 PASS、198 项、7+8 测试、9 盲测快照/反例、12 Schema 盲测、3 校验器变异），记录见 `work-items/nc-002/ACCEPTANCE.md`
+  - [x] CLIENT Dart 一致性测试推迟至 NC-004 第一条 ACT（已写入 nc-004/act/01）
 - [ ] NC-003：公共 REST/OpenAPI/Swagger 契约与错误目录（状态：`BACKLOG`）
 - [ ] NC-015：密钥恢复、设备授权与删除窗口协议（状态：`BACKLOG`；从零设计密码学协议，30–60 分钟 ACT 粒度不适用，须单独排期）
 - [ ] NC-020a：消费端书籍契约核对清单（状态：`BACKLOG`）
