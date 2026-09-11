@@ -1,6 +1,6 @@
 package: blackbox-g5
 title: G5 R1 总准出：文档级状态翻转（用户确认后）
-status: READY_PENDING_USER_CONFIRMATION
+status: DISPATCHED   # 用户 2026-09-11 确认进入实现阶段
 acts:
   - file: act/g5-01.yaml
     id: blackbox-g5/01

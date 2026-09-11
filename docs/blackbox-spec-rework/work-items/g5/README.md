@@ -1,6 +1,6 @@
 # G5：R1 总准出 —— 文档级状态翻转
 
-状态：`READY`（**只在用户书面确认「进入实现阶段」之后派发**；G5 准出记录见 `docs/blackbox-spec-rework/reviews/G5-EXIT-REVIEW.md`）
+状态：`DISPATCHED`（用户 2026-09-11 已确认；G5 准出记录见 `docs/blackbox-spec-rework/reviews/G5-EXIT-REVIEW.md`）
 
 ## 1. 目标
 
@@ -11,7 +11,7 @@
 - PLAN.md「黑箱架构规格 R1 审查返工项」节 44 条全部勾选、0 条未完成（2026-09-11）。
 - SUBAGENT_TODO G1/G2/G3/G4 共 36 个大项全部 `ACCEPTED`。
 - 三门禁 + `run_all.sh` + `check_d16.py` + fixture `verify.sh` 在 HEAD 干净树全绿（G5-EXIT-REVIEW §2）。
-- 用户确认：待填（日期 / 原话）。
+- 用户确认：2026-09-11，原话「确认可以进入。」（对主 Agent G5 准出报告的答复）。
 
 ## 3. 范围
 
