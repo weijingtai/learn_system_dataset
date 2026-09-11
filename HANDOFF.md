@@ -18,13 +18,13 @@
 下一步（第一件事）：拿到用户确认 → 派发 g5-01 → 验收 → `PROJECT_COLD_START_HANDOFF.md` 状态改 `IMPLEMENTATION_PHASE` → 写首纵切第一批（Artifact Ledger，§17，判据 `run_all.sh 20.2 20.3`）六件套；之后 M3 → M5 → M8，判据 `run_all.sh 20.N` 由 BLOCKED 变 PASS。
 已知的坑：PLAN.md 时间窗已向 C/S 解除；PLAN 的 D-16 节要求「零删行」，今后改 PLAN 只能追加或把 `- [ ]` 改 `- [x]` 并附取代者；验收仍在 `git archive` 导出树上跑。 **`check_d16.py` 刚性缺陷**：R3 把表 B 行数写死为 43、R4 要求黑箱节任何新 `- [ ]` 都登记进表 B，因此现在无法往 PLAN 黑箱节新增未勾选项（G5 记录条目因此只写在 SUBAGENT_TODO/HANDOFF）；首纵切第一批 ACT 必须先把 R3 改为「≥ 43」并允许表 B 追加行，再往 PLAN 加实现条目。
 
-## G6 规格 v1.6（S6 模型）已落地；NC-003 返工后待 R2（C/S 会话）
+## G6 NC-003/NC-015 READY 已派发；NC-009 DRAFT；环境阻塞：磁盘（C/S 会话）
 
 更新时间：2026-09-11
 当前分支/worktree：`codex/docs/knowledge-compilation`；`/Users/jingtaiwei/Git/Public/learn_system`
-刚完成：① 用户确认私人数据保护采用 xuan-storage S6 模型（无长期密钥、同步完即删、中转≤数分钟、设备全丢即丢失、手动导出兜底）——规格升 v1.6：PRD R-13 改「手动导出与导入」、旅程 7/8 重写、§6.1 第三维度改「导出备份」；DESIGN §5 改 S6；TASKS NC-015 改接入型、NC-017 改导出文件格式、NC-018 改导出/导入 UI（含迁移 NC-005 的 `CloudBackupStatus`）；`FIX_V1_6.md`、`review_v1_6_guard.sh`（包裹 v1.5）；旧守卫三处放宽（V09 版本 1.5～1.9、RW-4 接受导出型、nc005 K02 只核前 8 文案），记忆文件 `private-data-encryption-model.md` 已写。② NC-003 R1 返工 6 项落实：op 级 `headers` 实为 22 个 operation（全部）、既有断言 14 行 12 块（DESIGN/TASKS 勘误）；`type` 改按 `errors.py` `_L0_MAP` 真实集合；410 仅用于同键重放过期、R5 恒 200；新增 access_version 与「原始 applied_version 对当前状态」示例；act/02 拆为组件/端点两步（共 5 ACT，全量 +65）；D-NC003-12。
-进行到一半的事（精确到文件和章节）：两个 Sonnet 审查并行进行中——NC-003 R2 四查（对 `11b9267`）；NC-015 R1 四查 + 十二个攻击/故障场景审查（对 `fa15e43`，契约 `contracts/private_sync.md` 与六件套已写，守卫 `nc015_guard.sh` 0）。
-下一步（第一件事）：两份审查回来 → 落实返工/登记 READY → 把 NC-003 与 NC-015 的 PROMPT 交用户派发（两者互不依赖，可并行执行）。之后准备 NC-009（服务端 command_service、发布/收回/ACL 18 例）与 NC-016（接入实现）契约。
+刚完成：① 规格 v1.6（S6 模型）落地（`0eec9cd`）。② NC-003 两轮四查 READY（`c831412`），PROMPT 已交用户。③ NC-015 接入型契约 + 六件套，R1（含十二攻击场景）返工 5 项、R2 返工 1 项均落实，READY（`656115f`），PROMPT 已交用户。④ NC-009 服务端契约 `contracts/community_server.md` 与六件套 DRAFT（`d145f94`），四查进行中。
+进行到一半的事（精确到文件和章节）：**环境阻塞**——本机磁盘剩余 427 MiB（228 GiB 卷 97%），functions-py `.venv` 依赖安装因 `No space left on device` 失败（残缺 venv 已删）；NC-009 派发前须用户清理磁盘（候选：`~/Library/Caches` 1.8G、`~/.pub-cache` 7.5G 中旧版本、`xuan-migration` 13G 内的日志/构建产物），然后主 Agent 重建 `.venv`、跑既有 pytest 填 README 基线。NC-009 四查（Sonnet）进行中。
+下一步（第一件事）：收 NC-003/NC-015 执行报告 → 按各自 ACCEPTANCE 验收（NC-003 盲测：PyYAML 复算 22→0、jsonschema 262144/262145、枚举 diff、22 对 22 头参数、错误码抽查；NC-015 盲测：七项篡改副本）。NC-009 四查回来 → 落实返工 → 等磁盘 → 派发。之后 NC-016（S6 接入实现，需 xuan-storage 薄层）与 NC-010（客户端列表/发布页，依赖 NC-009）契约。
 已知的坑：PLAN.md 今后只能追加或把 `- [ ]` 改 `- [x]`（D-16 零删行判据；`check_d16.py` 只查黑箱侧条目，不查 G6 节）；G6 新条目不需登记进 D-16 映射表。一次性 Dart 盲测需 `import 'package:drift/drift.dart'` 才能用 `interceptWith`；执行方报告在 reading-notes 根目录未跟踪，验收不入库。
 
 ## G4 第二批验收通过：D-15 fixture、D-18 §20 判据化、前缀登记（Dataset 会话；黑箱线最新状态）
