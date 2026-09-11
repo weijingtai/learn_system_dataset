@@ -10,8 +10,8 @@
 - 唯一读取内容的文件是 --input 指定的 JSON 与同目录的 INTEGRATION_BASELINE.md；
 - 不执行 git 或其他子进程，不连接网络或 Emulator，不写文件或创建目录。
 
-本步骤（act/01）只实现契约 §2（顶层规则）与 §6（输出格式）；
-§3 及以后的对象规则由后续步骤补齐。--profile integrated 本步暂时退出 2。
+local 档校验契约 §2～§3（本地规划基线）；integrated 档在 §2～§3 之上叠加 §4～§5
+的增量规则（联调结构基线）。
 """
 
 import argparse
@@ -19,8 +19,6 @@ import json
 import re
 import sys
 from pathlib import Path
-
-STDERR_INTEGRATED_NOT_IMPLEMENTED = "integrated profile not implemented"
 
 DEPENDENCY_PINS = {
     "flutter_markdown_plus": "1.0.12",
@@ -42,6 +40,8 @@ PORT_NAMES = [
     "MENTION", "NOTIFICATION_RECEIVE", "SERVER_IDENTITY",
 ]
 
+TEST_RUN_REPOS = ["SPEC", "STORAGE", "SOCIAL", "NOTIFICATION", "REST", "SERVER", "NOTIFIER"]
+
 # integration 下各对象的通用规格：(未验证态取值, 验证态取值, 验证字段列表)。
 # 常驻字段（不受 status 闸门约束）与 account_deletion 的固定值单独处理。
 INTEGRATION_OBJECT_SPECS = {
@@ -59,6 +59,7 @@ INTEGRATION_OBJECT_SPECS = {
 
 HEX40_RE = re.compile(r"^[0-9a-f]{40}$")
 SYMBOL_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)?$")
+NAMESPACE_PREFIX_RE = re.compile(r"^nc_[0-9]{8}_[0-9a-f]{4,12}$")
 
 
 def _is_plain_int(value):
@@ -535,6 +536,296 @@ def check_integration(integration, base_dir, report):
             report.add("integration.account_deletion.blocked_scope")
 
 
+def _check_execution_evidence(obj, base_dir, prefix, report):
+    """契约 §4「执行证据规则」：command 非空字符串；exit_code 为整数 0（bool
+    不接受）；count 为正整数（bool 不接受）；evidence 为存在的文件。"""
+    if not _is_nonempty_str(obj.get("command")):
+        report.add(f"{prefix}.command")
+
+    exit_code = obj.get("exit_code")
+    if not _is_plain_int(exit_code) or exit_code != 0:
+        report.add(f"{prefix}.exit_code")
+
+    count = obj.get("count")
+    if not _is_plain_int(count) or count <= 0:
+        report.add(f"{prefix}.count")
+
+    evidence = obj.get("evidence")
+    if not _is_nonempty_str(evidence) or not _resolve_path(base_dir, evidence).is_file():
+        report.add(f"{prefix}.evidence")
+
+
+def check_devices(devices, report):
+    """契约 §4：integration.devices，至少两条不满足条件之一只报数组路径本身。"""
+    if not isinstance(devices, list):
+        report.add("integration.devices")
+        return
+
+    ok = len(devices) >= 2
+    if ok:
+        ids = []
+        any_p2p = False
+        for d in devices:
+            if not isinstance(d, dict):
+                ok = False
+                break
+            if (
+                not _is_nonempty_str(d.get("device_id"))
+                or not _is_nonempty_str(d.get("platform"))
+                or not _is_nonempty_str(d.get("os_version"))
+                or not isinstance(d.get("p2p_peer"), bool)
+            ):
+                ok = False
+                break
+            ids.append(d["device_id"])
+            if d["p2p_peer"] is True:
+                any_p2p = True
+        if ok and (len(set(ids)) != len(ids) or not any_p2p):
+            ok = False
+
+    if not ok:
+        report.add("integration.devices")
+
+
+def check_account_pairs(pairs, report):
+    """契约 §4：integration.account_pairs，任一条件不满足只报数组路径本身。"""
+    if not isinstance(pairs, list):
+        report.add("integration.account_pairs")
+        return
+
+    ok = len(pairs) >= 2
+    if ok:
+        uids, app_ids = [], []
+        for p in pairs:
+            if not isinstance(p, dict):
+                ok = False
+                break
+            if not _is_nonempty_str(p.get("uid")) or not _is_nonempty_str(p.get("app_user_id")):
+                ok = False
+                break
+            if "token" in p or "password" in p:
+                ok = False
+                break
+            uids.append(p["uid"])
+            app_ids.append(p["app_user_id"])
+        if ok and (len(set(uids)) != len(uids) or len(set(app_ids)) != len(app_ids)):
+            ok = False
+
+    if not ok:
+        report.add("integration.account_pairs")
+
+
+def check_test_runs(test_runs, base_dir, report):
+    """契约 §4：integration.test_runs，集合不符只报数组路径；集合相符时逐条
+    按执行证据规则报 integration.test_runs[<名>].<字段>。"""
+    if not isinstance(test_runs, list):
+        report.add("integration.test_runs")
+        return
+
+    for item in test_runs:
+        if not isinstance(item, dict) or not isinstance(item.get("repository"), str):
+            report.add("integration.test_runs")
+            return
+
+    names = [item["repository"] for item in test_runs]
+    if sorted(names) != sorted(TEST_RUN_REPOS):
+        report.add("integration.test_runs")
+        return
+
+    by_name = {item["repository"]: item for item in test_runs}
+    for name in TEST_RUN_REPOS:
+        _check_execution_evidence(by_name[name], base_dir, f"integration.test_runs[{name}]", report)
+
+
+def check_repositories_tests_integrated(repositories, base_dir, report):
+    """契约 §4：repositories[<名>].tests（MIGRATION 除外）。status 不是
+    PASSED 只报 .status；PASSED 时按执行证据规则报逐字段路径。"""
+    if not isinstance(repositories, list):
+        return
+    for item in repositories:
+        if not isinstance(item, dict):
+            continue
+        name = item.get("name")
+        if name == "MIGRATION" or name not in REPOSITORY_NAMES:
+            continue
+        tests = item.get("tests")
+        if not isinstance(tests, dict):
+            continue  # 已由 §3 报告 repositories[<name>].tests
+        prefix = f"repositories[{name}].tests"
+        if tests.get("status") != "PASSED":
+            report.add(f"{prefix}.status")
+        else:
+            _check_execution_evidence(tests, base_dir, prefix, report)
+
+
+def check_account_deletion_integrated(ad, base_dir, report):
+    """契约 §5：integration.account_deletion 的 integrated 增量规则。
+    UNVERIFIED 时只报 status（闸门）；VERIFIED 时逐个报不合格的验证字段。"""
+    if not isinstance(ad, dict):
+        return
+
+    if ad.get("status") != "VERIFIED":
+        report.add("integration.account_deletion.status")
+        return
+
+    source = ad.get("source")
+    if not isinstance(source, dict):
+        report.add("integration.account_deletion.source")
+    else:
+        if not _is_nonempty_str(source.get("file")) or not _is_nonempty_str(source.get("symbol")):
+            report.add("integration.account_deletion.source")
+        if source.get("event_kind") != "ACCOUNT_DELETED":
+            report.add("integration.account_deletion.source.event_kind")
+
+    if ad.get("delivery_semantics") not in ("AT_LEAST_ONCE", "EXACTLY_ONCE"):
+        report.add("integration.account_deletion.delivery_semantics")
+
+    if not _is_nonempty_str(ad.get("test_command")):
+        report.add("integration.account_deletion.test_command")
+
+    exit_code = ad.get("exit_code")
+    if not _is_plain_int(exit_code) or exit_code != 0:
+        report.add("integration.account_deletion.exit_code")
+
+    count = ad.get("count")
+    if not _is_plain_int(count) or count <= 0:
+        report.add("integration.account_deletion.count")
+
+    evidence = ad.get("evidence")
+    if not _is_nonempty_str(evidence) or not _resolve_path(base_dir, evidence).is_file():
+        report.add("integration.account_deletion.evidence")
+
+
+def check_integrated_extra(data, base_dir, report):
+    """契约 §4～§5：integrated 增量规则。调用方须先完成 §2～§3 的共同检查
+    （report 已累积其结果）。状态闸门只作用于本函数的增量检查：对象的
+    status 不是验证态时，只报 <对象>.status，不再报该对象在本函数中的
+    验证字段要求；§3 的半填检查不受本函数影响，独立生效。"""
+    scope = data.get("scope")
+    if scope not in ("INTEGRATED", "TEST_FIXTURE"):
+        report.add("scope")
+
+    client = data.get("client")
+    if isinstance(client, dict):
+        if client.get("state") != "EXISTING":
+            report.add("client.state")
+        if client.get("runtime_verified") is not True:
+            report.add("client.runtime_verified")
+
+    sdk = data.get("sdk")
+    if isinstance(sdk, dict):
+        if sdk.get("verification") != "RUNTIME_VERIFIED":
+            report.add("sdk.verification")
+
+    if data.get("resolution_status") != "RESOLVED":
+        report.add("resolution_status")
+
+    integration = data.get("integration")
+    if isinstance(integration, dict):
+        backend = integration.get("backend")
+        if isinstance(backend, dict):
+            if backend.get("status") != "VERIFIED":
+                report.add("integration.backend.status")
+            else:
+                if not _is_nonempty_str(backend.get("project_id")):
+                    report.add("integration.backend.project_id")
+                ns = backend.get("namespace_prefix")
+                if not isinstance(ns, str) or not NAMESPACE_PREFIX_RE.match(ns):
+                    report.add("integration.backend.namespace_prefix")
+                if backend.get("credential_injection") != "RUNTIME_ENV_VAR":
+                    report.add("integration.backend.credential_injection")
+                evidence = backend.get("evidence")
+                if not _is_nonempty_str(evidence) or not _resolve_path(base_dir, evidence).is_file():
+                    report.add("integration.backend.evidence")
+
+        emulator = integration.get("emulator")
+        if isinstance(emulator, dict):
+            if emulator.get("status") != "VERIFIED":
+                report.add("integration.emulator.status")
+            else:
+                if not _is_nonempty_str(emulator.get("start_command")):
+                    report.add("integration.emulator.start_command")
+                evidence = emulator.get("evidence")
+                if not _is_nonempty_str(evidence) or not _resolve_path(base_dir, evidence).is_file():
+                    report.add("integration.emulator.evidence")
+
+        rules = integration.get("rules")
+        if isinstance(rules, dict):
+            if rules.get("status") != "VERIFIED":
+                report.add("integration.rules.status")
+            else:
+                path_val = rules.get("path")
+                if not _is_nonempty_str(path_val) or not _resolve_path(base_dir, path_val).is_file():
+                    report.add("integration.rules.path")
+                evidence = rules.get("evidence")
+                if not _is_nonempty_str(evidence) or not _resolve_path(base_dir, evidence).is_file():
+                    report.add("integration.rules.evidence")
+
+        notifier_binding = integration.get("notifier_binding")
+        if isinstance(notifier_binding, dict):
+            if notifier_binding.get("status") != "VERIFIED":
+                report.add("integration.notifier_binding.status")
+            else:
+                evidence = notifier_binding.get("evidence")
+                if not _is_nonempty_str(evidence) or not _resolve_path(base_dir, evidence).is_file():
+                    report.add("integration.notifier_binding.evidence")
+
+        notification_presentation = integration.get("notification_presentation")
+        if isinstance(notification_presentation, dict):
+            if notification_presentation.get("status") != "VERIFIED":
+                report.add("integration.notification_presentation.status")
+            else:
+                evidence = notification_presentation.get("evidence")
+                if not _is_nonempty_str(evidence) or not _resolve_path(base_dir, evidence).is_file():
+                    report.add("integration.notification_presentation.evidence")
+
+        mute_aggregation = integration.get("mute_aggregation")
+        if isinstance(mute_aggregation, dict):
+            if mute_aggregation.get("status") != "VERIFIED":
+                report.add("integration.mute_aggregation.status")
+            else:
+                if mute_aggregation.get("content_mute") not in ("SUPPORTED", "UNSUPPORTED_E_WIRING"):
+                    report.add("integration.mute_aggregation.content_mute")
+                if mute_aggregation.get("aggregation") not in ("SUPPORTED", "UNSUPPORTED_E_WIRING"):
+                    report.add("integration.mute_aggregation.aggregation")
+                evidence = mute_aggregation.get("evidence")
+                if not _is_nonempty_str(evidence) or not _resolve_path(base_dir, evidence).is_file():
+                    report.add("integration.mute_aggregation.evidence")
+
+        check_account_deletion_integrated(integration.get("account_deletion"), base_dir, report)
+        check_devices(integration.get("devices"), report)
+        check_account_pairs(integration.get("account_pairs"), report)
+        check_test_runs(integration.get("test_runs"), base_dir, report)
+
+    openapi_validator = data.get("openapi_validator")
+    if isinstance(openapi_validator, dict):
+        if openapi_validator.get("status") != "VERIFIED":
+            report.add("openapi_validator.status")
+        else:
+            evidence = openapi_validator.get("evidence")
+            if not _is_nonempty_str(evidence) or not _resolve_path(base_dir, evidence).is_file():
+                report.add("openapi_validator.evidence")
+
+    check_repositories_tests_integrated(data.get("repositories"), base_dir, report)
+
+
+def run_common_checks(data, base_dir):
+    """契约 §2～§3：两种 profile 共同的检查，返回累积的 Report。"""
+    report = Report()
+    check_top_level(data, base_dir, report)
+    check_client(data.get("client"), base_dir, report)
+    check_sdk(data.get("sdk"), base_dir, report)
+    check_dependencies(data.get("dependencies"), report)
+    check_dependency_policy(data.get("dependency_policy"), report)
+    check_identity(data.get("identity"), report)
+    check_openapi_validator_common(data.get("openapi_validator"), base_dir, report)
+    check_md_placeholder(base_dir, report)
+    check_repositories(data.get("repositories"), report)
+    check_ports(data.get("ports"), base_dir, report)
+    check_integration(data.get("integration"), base_dir, report)
+    return report
+
+
 def build_arg_parser():
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument("--profile")
@@ -579,29 +870,18 @@ def main(argv=None):
         sys.stderr.write(f"invalid JSON input: {exc}\n")
         return 2
 
-    if profile == "integrated":
-        # 本步（act/01）尚未实现 integrated 档，§4 由 act/04 补齐。
-        sys.stderr.write(STDERR_INTEGRATED_NOT_IMPLEMENTED + "\n")
-        return 2
-
-    # profile == "local"
     if not isinstance(data, dict):
         print("root")
         return 1
 
     base_dir = input_path.parent
-    report = Report()
-    check_top_level(data, base_dir, report)
-    check_client(data.get("client"), base_dir, report)
-    check_sdk(data.get("sdk"), base_dir, report)
-    check_dependencies(data.get("dependencies"), report)
-    check_dependency_policy(data.get("dependency_policy"), report)
-    check_identity(data.get("identity"), report)
-    check_openapi_validator_common(data.get("openapi_validator"), base_dir, report)
-    check_md_placeholder(base_dir, report)
-    check_repositories(data.get("repositories"), report)
-    check_ports(data.get("ports"), base_dir, report)
-    check_integration(data.get("integration"), base_dir, report)
+    report = run_common_checks(data, base_dir)
+
+    if profile == "integrated":
+        check_integrated_extra(data, base_dir, report)
+        pass_word = "INTEGRATED_STRUCTURE_PASS"
+    else:
+        pass_word = "LOCAL_PREPARATION_PASS"
 
     if report.has_errors():
         for path in report.sorted_paths():
@@ -610,7 +890,7 @@ def main(argv=None):
 
     scope = data.get("scope")
     suffix = " (TEST_FIXTURE)" if scope == "TEST_FIXTURE" else ""
-    print("LOCAL_PREPARATION_PASS" + suffix)
+    print(pass_word + suffix)
     return 0
 
 

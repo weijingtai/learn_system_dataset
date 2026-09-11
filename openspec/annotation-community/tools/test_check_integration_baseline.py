@@ -745,5 +745,402 @@ class RepositoriesPortsIntegrationTests(unittest.TestCase):
             self.assertEqual(before_listing, after_listing)
 
 
+# TDD §3.1：契约 §7 的期望输出（23 行，逐字），只在测试文件字面量写出，不从
+# VALIDATION_CONTRACT.md 或校验器输出反推。
+GOLDEN_23 = [
+    "client.runtime_verified",
+    "client.state",
+    "integration.account_deletion.status",
+    "integration.account_pairs",
+    "integration.backend.status",
+    "integration.devices",
+    "integration.emulator.status",
+    "integration.mute_aggregation.status",
+    "integration.notification_presentation.status",
+    "integration.notifier_binding.status",
+    "integration.rules.status",
+    "integration.test_runs",
+    "openapi_validator.status",
+    "repositories[NOTIFICATION].tests.status",
+    "repositories[NOTIFIER].tests.status",
+    "repositories[REST].tests.status",
+    "repositories[SERVER].tests.status",
+    "repositories[SOCIAL].tests.status",
+    "repositories[SPEC].tests.status",
+    "repositories[STORAGE].tests.status",
+    "resolution_status",
+    "scope",
+    "sdk.verification",
+]
+
+TEST_RUN_REPOS = ["SPEC", "STORAGE", "SOCIAL", "NOTIFICATION", "REST", "SERVER", "NOTIFIER"]
+
+
+def make_verified_fixture(tmp):
+    """在 make_fixture 基础上构造完整验证态夹具（scope=TEST_FIXTURE），
+    供 integrated 档结构通过测试使用。取值按 TDD §3.5 逐字写死。
+    返回 (data, json_path, md_path)。"""
+    data, json_path, md_path = make_fixture(tmp)
+    tmp = Path(tmp)
+
+    data["scope"] = "TEST_FIXTURE"
+
+    existing_dir = tmp / "existing_client"
+    existing_dir.mkdir(parents=True, exist_ok=True)
+    (existing_dir / "pubspec.yaml").write_text("name: reading_notes\n", encoding="utf-8")
+    (existing_dir / "lib").mkdir(exist_ok=True)
+    (existing_dir / ".git").mkdir(exist_ok=True)
+    data["client"]["state"] = "EXISTING"
+    data["client"]["path"] = str(existing_dir)
+    data["client"]["runtime_verified"] = True
+
+    data["sdk"]["verification"] = "RUNTIME_VERIFIED"
+
+    resolution_evidence = tmp / "resolution_evidence.txt"
+    resolution_evidence.write_text("resolved", encoding="utf-8")
+    data["resolution_status"] = "RESOLVED"
+    data["resolution_evidence"] = str(resolution_evidence)
+
+    openapi_evidence = tmp / "openapi_evidence.txt"
+    openapi_evidence.write_text("verified", encoding="utf-8")
+    data["openapi_validator"]["status"] = "VERIFIED"
+    data["openapi_validator"]["evidence"] = str(openapi_evidence)
+
+    backend_evidence = tmp / "backend_evidence.txt"
+    backend_evidence.write_text("backend", encoding="utf-8")
+    data["integration"]["backend"] = {
+        "status": "VERIFIED",
+        "project_id": "demo-xuan-test",
+        "namespace_prefix": "nc_20260910_ab12cd",
+        "credential_injection": "RUNTIME_ENV_VAR",
+        "evidence": str(backend_evidence),
+    }
+
+    emulator_evidence = tmp / "emulator_evidence.txt"
+    emulator_evidence.write_text("emulator", encoding="utf-8")
+    data["integration"]["emulator"]["status"] = "VERIFIED"
+    data["integration"]["emulator"]["start_command"] = "firebase emulators:start --only firestore,auth"
+    data["integration"]["emulator"]["evidence"] = str(emulator_evidence)
+
+    rules_path = tmp / "rules_path.txt"
+    rules_path.write_text("rules", encoding="utf-8")
+    rules_evidence = tmp / "rules_evidence.txt"
+    rules_evidence.write_text("rules-evidence", encoding="utf-8")
+    data["integration"]["rules"] = {
+        "status": "VERIFIED",
+        "path": str(rules_path),
+        "evidence": str(rules_evidence),
+    }
+
+    notifier_evidence = tmp / "notifier_binding_evidence.txt"
+    notifier_evidence.write_text("notifier", encoding="utf-8")
+    data["integration"]["notifier_binding"] = {
+        "status": "VERIFIED",
+        "evidence": str(notifier_evidence),
+    }
+
+    np_evidence = tmp / "notification_presentation_evidence.txt"
+    np_evidence.write_text("np", encoding="utf-8")
+    data["integration"]["notification_presentation"]["status"] = "VERIFIED"
+    data["integration"]["notification_presentation"]["evidence"] = str(np_evidence)
+
+    mute_evidence = tmp / "mute_aggregation_evidence.txt"
+    mute_evidence.write_text("mute", encoding="utf-8")
+    data["integration"]["mute_aggregation"] = {
+        "status": "VERIFIED",
+        "content_mute": "SUPPORTED",
+        "aggregation": "UNSUPPORTED_E_WIRING",
+        "evidence": str(mute_evidence),
+    }
+
+    ad_source_file = tmp / "auth_coordinator.dart"
+    ad_source_file.write_text("class AuthCoordinator {}\n", encoding="utf-8")
+    ad_evidence = tmp / "account_deletion_evidence.txt"
+    ad_evidence.write_text("account-deletion", encoding="utf-8")
+    data["integration"]["account_deletion"].update({
+        "status": "VERIFIED",
+        "source": {
+            "file": str(ad_source_file),
+            "symbol": "AuthCoordinator.deleteAccount",
+            "event_kind": "ACCOUNT_DELETED",
+        },
+        "delivery_semantics": "AT_LEAST_ONCE",
+        "test_command": "python3 -m unittest",
+        "exit_code": 0,
+        "count": 1,
+        "evidence": str(ad_evidence),
+    })
+
+    data["integration"]["devices"] = [
+        {"device_id": "device-a", "platform": "android", "os_version": "14", "p2p_peer": True},
+        {"device_id": "device-b", "platform": "ios", "os_version": "17", "p2p_peer": False},
+    ]
+
+    data["integration"]["account_pairs"] = [
+        {"uid": "uid-1", "app_user_id": "app-user-1"},
+        {"uid": "uid-2", "app_user_id": "app-user-2"},
+    ]
+
+    test_runs = []
+    for name in TEST_RUN_REPOS:
+        evidence = tmp / f"test_run_{name}_evidence.txt"
+        evidence.write_text("test-run", encoding="utf-8")
+        test_runs.append({
+            "repository": name,
+            "command": "flutter test",
+            "exit_code": 0,
+            "count": 1,
+            "evidence": str(evidence),
+        })
+    data["integration"]["test_runs"] = test_runs
+
+    for repo in data["repositories"]:
+        if repo["name"] == "MIGRATION":
+            continue
+        evidence = tmp / f"repo_tests_{repo['name']}_evidence.txt"
+        evidence.write_text("repo-tests", encoding="utf-8")
+        repo["tests"] = {
+            "status": "PASSED",
+            "command": "flutter test",
+            "exit_code": 0,
+            "count": 1,
+            "evidence": str(evidence),
+        }
+
+    dump(data, json_path)
+    return data, json_path, md_path
+
+
+class IntegratedProfileTests(unittest.TestCase):
+    """TDD §3.5：步骤 4 的 10 个方法（契约 §4～§7）。"""
+
+    def test_integrated_current_golden(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            data, json_path, _ = make_fixture(tmp)
+            dump(data, json_path)
+            r = run_checker(json_path, "integrated")
+            self.assertEqual(r.returncode, 1)
+            self.assertEqual(r.stdout, "\n".join(GOLDEN_23) + "\n")
+
+    def test_integrated_fixture_pass(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            data, json_path, _ = make_verified_fixture(tmp)
+            r = run_checker(json_path, "integrated")
+            self.assertEqual(r.returncode, 0)
+            self.assertEqual(r.stdout, "INTEGRATED_STRUCTURE_PASS (TEST_FIXTURE)\n")
+
+    def test_integrated_fixture_evidence_removed(self):
+        cases = [
+            (lambda d: d["integration"]["backend"]["evidence"], "integration.backend.evidence"),
+            (lambda d: d["integration"]["emulator"]["evidence"], "integration.emulator.evidence"),
+            (lambda d: d["integration"]["rules"]["path"], "integration.rules.path"),
+            (lambda d: d["integration"]["rules"]["evidence"], "integration.rules.evidence"),
+            (lambda d: d["integration"]["notifier_binding"]["evidence"], "integration.notifier_binding.evidence"),
+            (lambda d: d["integration"]["notification_presentation"]["evidence"],
+             "integration.notification_presentation.evidence"),
+            (lambda d: d["integration"]["mute_aggregation"]["evidence"], "integration.mute_aggregation.evidence"),
+            (lambda d: d["openapi_validator"]["evidence"], "openapi_validator.evidence"),
+            (lambda d: d["integration"]["account_deletion"]["evidence"], "integration.account_deletion.evidence"),
+            (lambda d: find_repo(d, "STORAGE")["tests"]["evidence"], "repositories[STORAGE].tests.evidence"),
+            (lambda d: next(t for t in d["integration"]["test_runs"] if t["repository"] == "SERVER")["evidence"],
+             "integration.test_runs[SERVER].evidence"),
+        ]
+        with tempfile.TemporaryDirectory() as tmp:
+            for get_path, expect in cases:
+                data, json_path, _ = make_verified_fixture(tmp)
+                evidence_path = Path(get_path(data))
+                evidence_path.unlink()
+                dump(data, json_path)
+                r = run_checker(json_path, "integrated")
+                with self.subTest(expect=expect):
+                    self.assertEqual(r.returncode, 1)
+                    self.assertEqual(r.stdout, expect + "\n")
+
+    def test_fake_test_pass_rejected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            data, json_path, _ = make_fixture(tmp)
+            find_repo(data, "STORAGE")["tests"]["status"] = "PASSED"
+            dump(data, json_path)
+            r = run_checker(json_path, "integrated")
+            self.assertEqual(r.returncode, 1)
+            lines = r.stdout.splitlines()
+            for suffix in (".command", ".count", ".evidence", ".exit_code"):
+                self.assertIn(f"repositories[STORAGE].tests{suffix}", lines)
+            self.assertNotIn("PASS", r.stdout)
+
+            data, json_path, _ = make_verified_fixture(tmp)
+            find_repo(data, "STORAGE")["tests"]["exit_code"] = True
+            dump(data, json_path)
+            r = run_checker(json_path, "integrated")
+            self.assertEqual(r.returncode, 1)
+            self.assertIn("repositories[STORAGE].tests.exit_code", r.stdout.splitlines())
+            self.assertNotIn("PASS", r.stdout)
+
+            data, json_path, _ = make_verified_fixture(tmp)
+            find_repo(data, "STORAGE")["tests"]["count"] = 0
+            dump(data, json_path)
+            r = run_checker(json_path, "integrated")
+            self.assertEqual(r.returncode, 1)
+            self.assertIn("repositories[STORAGE].tests.count", r.stdout.splitlines())
+            self.assertNotIn("PASS", r.stdout)
+
+    def test_integrated_half_filled_unverified(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            data, json_path, _ = make_fixture(tmp)
+            data["integration"]["rules"]["path"] = "x"
+            dump(data, json_path)
+            r = run_checker(json_path, "integrated")
+            self.assertEqual(r.returncode, 1)
+            lines = r.stdout.splitlines()
+            self.assertIn("integration.rules.path", lines)
+            self.assertIn("integration.rules.status", lines)
+            self.assertNotIn("PASS", r.stdout)
+
+    def test_account_deletion_verified_missing_fields(self):
+        fields = ["source", "delivery_semantics", "test_command", "exit_code", "count", "evidence"]
+        with tempfile.TemporaryDirectory() as tmp:
+            for field in fields:
+                data, json_path, _ = make_verified_fixture(tmp)
+                data["integration"]["account_deletion"][field] = None
+                dump(data, json_path)
+                r = run_checker(json_path, "integrated")
+                with self.subTest(field=field):
+                    self.assertEqual(r.returncode, 1)
+                    self.assertIn(f"integration.account_deletion.{field}", r.stdout.splitlines())
+                    self.assertNotIn("PASS", r.stdout)
+
+    def test_account_deletion_kind_and_delivery_rejected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            data, json_path, _ = make_verified_fixture(tmp)
+            data["integration"]["account_deletion"]["source"]["event_kind"] = "sign_out"
+            dump(data, json_path)
+            r = run_checker(json_path, "integrated")
+            self.assertEqual(r.returncode, 1)
+            self.assertIn("integration.account_deletion.source.event_kind", r.stdout.splitlines())
+            self.assertNotIn("PASS", r.stdout)
+
+            data, json_path, _ = make_verified_fixture(tmp)
+            data["integration"]["account_deletion"]["delivery_semantics"] = "BEST_EFFORT"
+            dump(data, json_path)
+            r = run_checker(json_path, "integrated")
+            self.assertEqual(r.returncode, 1)
+            self.assertIn("integration.account_deletion.delivery_semantics", r.stdout.splitlines())
+            self.assertNotIn("PASS", r.stdout)
+
+            data, json_path, _ = make_verified_fixture(tmp)
+            data["integration"]["account_deletion"]["source"] = "x"
+            dump(data, json_path)
+            r = run_checker(json_path, "integrated")
+            self.assertEqual(r.returncode, 1)
+            self.assertIn("integration.account_deletion.source", r.stdout.splitlines())
+            self.assertNotIn("PASS", r.stdout)
+
+    def test_devices_and_pairs_rules(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            data, json_path, _ = make_verified_fixture(tmp)
+            data["integration"]["devices"] = data["integration"]["devices"][:1]
+            dump(data, json_path)
+            r = run_checker(json_path, "integrated")
+            self.assertEqual(r.returncode, 1)
+            self.assertEqual(r.stdout, "integration.devices\n")
+
+            data, json_path, _ = make_verified_fixture(tmp)
+            data["integration"]["devices"][1]["device_id"] = data["integration"]["devices"][0]["device_id"]
+            dump(data, json_path)
+            r = run_checker(json_path, "integrated")
+            self.assertEqual(r.returncode, 1)
+            self.assertEqual(r.stdout, "integration.devices\n")
+
+            data, json_path, _ = make_verified_fixture(tmp)
+            for dvc in data["integration"]["devices"]:
+                dvc["p2p_peer"] = False
+            dump(data, json_path)
+            r = run_checker(json_path, "integrated")
+            self.assertEqual(r.returncode, 1)
+            self.assertEqual(r.stdout, "integration.devices\n")
+
+            data, json_path, _ = make_verified_fixture(tmp)
+            data["integration"]["devices"][0]["p2p_peer"] = "yes"
+            dump(data, json_path)
+            r = run_checker(json_path, "integrated")
+            self.assertEqual(r.returncode, 1)
+            self.assertEqual(r.stdout, "integration.devices\n")
+
+            data, json_path, _ = make_verified_fixture(tmp)
+            data["integration"]["account_pairs"][0]["token"] = "secret"
+            dump(data, json_path)
+            r = run_checker(json_path, "integrated")
+            self.assertEqual(r.returncode, 1)
+            self.assertEqual(r.stdout, "integration.account_pairs\n")
+
+            data, json_path, _ = make_verified_fixture(tmp)
+            data["integration"]["account_pairs"][1]["uid"] = data["integration"]["account_pairs"][0]["uid"]
+            dump(data, json_path)
+            r = run_checker(json_path, "integrated")
+            self.assertEqual(r.returncode, 1)
+            self.assertEqual(r.stdout, "integration.account_pairs\n")
+
+    def test_test_runs_set_rules(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            data, json_path, _ = make_verified_fixture(tmp)
+            data["integration"]["test_runs"] = [
+                t for t in data["integration"]["test_runs"] if t["repository"] != "SPEC"
+            ]
+            dump(data, json_path)
+            r = run_checker(json_path, "integrated")
+            self.assertEqual(r.returncode, 1)
+            self.assertEqual(r.stdout, "integration.test_runs\n")
+
+            data, json_path, _ = make_verified_fixture(tmp)
+            next(t for t in data["integration"]["test_runs"] if t["repository"] == "SERVER")["exit_code"] = 1
+            dump(data, json_path)
+            r = run_checker(json_path, "integrated")
+            self.assertEqual(r.returncode, 1)
+            self.assertEqual(r.stdout, "integration.test_runs[SERVER].exit_code\n")
+
+            data, json_path, _ = make_verified_fixture(tmp)
+            next(t for t in data["integration"]["test_runs"] if t["repository"] == "SERVER")["command"] = ""
+            dump(data, json_path)
+            r = run_checker(json_path, "integrated")
+            self.assertEqual(r.returncode, 1)
+            self.assertEqual(r.stdout, "integration.test_runs[SERVER].command\n")
+
+            data, json_path, _ = make_verified_fixture(tmp)
+            next(t for t in data["integration"]["test_runs"] if t["repository"] == "SERVER")["count"] = 0
+            dump(data, json_path)
+            r = run_checker(json_path, "integrated")
+            self.assertEqual(r.returncode, 1)
+            self.assertEqual(r.stdout, "integration.test_runs[SERVER].count\n")
+
+    def test_integrated_value_rules(self):
+        cases = [
+            (lambda d: d["integration"]["backend"].__setitem__("namespace_prefix", "nc_2026_ab"),
+             "integration.backend.namespace_prefix"),
+            (lambda d: d["integration"]["backend"].__setitem__("namespace_prefix", "NC_20260910_ab12"),
+             "integration.backend.namespace_prefix"),
+            (lambda d: d["integration"]["backend"].__setitem__("credential_injection", "FILE"),
+             "integration.backend.credential_injection"),
+            (lambda d: d["integration"]["backend"].__setitem__("project_id", ""),
+             "integration.backend.project_id"),
+            (lambda d: d["integration"]["emulator"].__setitem__("start_command", ""),
+             "integration.emulator.start_command"),
+            (lambda d: d["integration"]["mute_aggregation"].__setitem__("content_mute", "YES"),
+             "integration.mute_aggregation.content_mute"),
+            (lambda d: d["integration"]["mute_aggregation"].__setitem__("aggregation", "PARTIAL"),
+             "integration.mute_aggregation.aggregation"),
+            (lambda d: d.__setitem__("sdk", []), "sdk"),
+            (lambda d: d["integration"].__setitem__("devices", {}), "integration.devices"),
+        ]
+        with tempfile.TemporaryDirectory() as tmp:
+            for mutate, expect in cases:
+                data, json_path, _ = make_verified_fixture(tmp)
+                mutate(data)
+                dump(data, json_path)
+                r = run_checker(json_path, "integrated")
+                with self.subTest(expect=expect):
+                    self.assertEqual(r.returncode, 1)
+                    self.assertEqual(r.stdout, expect + "\n")
+
+
 if __name__ == "__main__":
     unittest.main()
