@@ -1,0 +1,14 @@
+{
+  "page": "page_002",
+  "book": null,
+  "image": "data_work/sanche_pages/page_002.png",
+  "width": 1203,
+  "height": 1654,
+  "lines": [],
+  "chars": [],
+  "extra": {
+    "col_gap_thresh": 30,
+    "count_blocks": 0,
+    "bleed_thresh": 110
+  }
+}

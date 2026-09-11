@@ -1,0 +1,63 @@
+source_id: src_sanche_ed01
+work_title: 三辰通載三十卷
+edition_note: 影宋鈔本
+technique_id: qizheng
+rights_status: public_domain_text（文字公版；扫描件分发权 unconfirmed）
+release_policy: derived_page_images_only
+edition_part:
+  artifact_id: art_000000000000000000000000000000e1
+  label: 卷一·前三页
+  pages:
+  - page_001
+  - page_002
+  - page_003
+source_assets:
+- page: page_001
+  path_ref: ocr/data_work/sanche_pages/page_001.png
+  sha256: "e46bffa38119df1bb03f5a38e4f3f99405a476ba5d7b6a7c489956ccf2e58e65"
+  width: 1203
+  height: 1654
+  object_store: local
+  in_git: false
+- page: page_002
+  path_ref: ocr/data_work/sanche_pages/page_002.png
+  sha256: "aa5301d98c230a875eeb0b8d8d071393e4d15546d4f352cfb53747af1590f753"
+  width: 1203
+  height: 1654
+  object_store: local
+  in_git: false
+- page: page_003
+  path_ref: ocr/data_work/sanche_pages/page_003.png
+  sha256: "3c138fc9f32d2cfefe029d62dec2a9a0ce0f095c373af41a8a98f4c8f8afb268"
+  width: 1203
+  height: 1654
+  object_store: local
+  in_git: false
+files:
+- path: pages/page_001.json
+  role: ocr_page
+  sha256: "3716a9fb4c66781e9ed63c22b9aee081c892be2d567c02a0c1739d14d5036710"
+- path: pages/page_002.json
+  role: ocr_page
+  sha256: "4c958d306ec9b34fd799d1a6b262cb8f7e8035e63954d5936b5fd6715ad67e21"
+- path: pages/page_003.json
+  role: ocr_page
+  sha256: "8fef06c8108283e959f2584f150ced8aba6c88d3ccd9a479f42ad193c7dab4fb"
+- path: source/transcript_v1.md
+  role: transcript
+  sha256: "d1b1a101bcdf6bac7f8677bb4d1e5e88156947a5177abb0264cb6d5547240593"
+- path: anomalies.yaml
+  role: anomalies
+  sha256: "6c00f62240c5d50d2190ec90b5435efafd84ca377e8c6cb2a6d7a7cc6f7647f6"
+- path: spans.yaml
+  role: spans
+  sha256: "ec6d77b90aa1408d040465babc28a81f59aadf6d6edd9ba8db66ff8ead0b44ef"
+conversion:
+  tool: tools/build_fixture.py
+  inputs:
+  - ocr/data_work/data/page_001.json
+  - ocr/data_work/data/page_002.json
+  - ocr/data_work/data/page_003.json
+  - ocr/data_work/logs/anomalies.jsonl
+  note: 一行 OCR = 一个 span；机器转录未人工校对；仅作结构验收宿主
+content_status: machine_extracted

@@ -1,0 +1,47 @@
+schema_version: "1.0.0"
+stage_package_id: pkg_m3_000000000000000000000000000000f3
+artifact_revision_id: rev_000000000000000000000000000000f3
+stage: m3
+status: sealed
+payload:
+  spans_path: pipeline/corpus/_fixture/mini_ed01/spans.yaml
+  coverage:
+    page_001: 1.0
+    page_003: 1.0
+  excluded_pages:
+    page_002: known_unrecognizable
+manifest:
+  schema_version: "1.0.0"
+  processing_run_id: prun_000000000000000000000000000000f1
+  step_run_id: srun_000000000000000000000000000000f3
+  input_artifacts:
+  - schema_version: "1.0.0"
+    artifact_kind: artifact
+    artifact_id: art_000000000000000000000000000000f2
+    artifact_revision_id: rev_000000000000000000000000000000a2
+    artifact_type: ocr_page_set
+  output_artifacts:
+  - schema_version: "1.0.0"
+    artifact_kind: artifact
+    artifact_id: art_000000000000000000000000000000f3
+    artifact_revision_id: rev_000000000000000000000000000000a3
+    artifact_type: corpus_package
+  counts:
+    spans: 43
+    batches: 5
+  content_sha256: "ec6d77b90aa1408d040465babc28a81f59aadf6d6edd9ba8db66ff8ead0b44ef"
+validation:
+  passed: true
+  report_artifacts: []
+lineage:
+  upstream_artifacts: []
+  transformations:
+  - operation: compile_corpus
+    step_run_id: srun_000000000000000000000000000000f3
+    configuration_artifact_revision_id: rev_000000000000000000000000000000c3
+    input_artifact_revision_ids:
+    - rev_000000000000000000000000000000a2
+    output_artifact_revision_ids:
+    - rev_000000000000000000000000000000a3
+logs: []
+failures: []

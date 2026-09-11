@@ -1,0 +1,56 @@
+schema_version: "1.0.0"
+stage_package_id: pkg_m2_000000000000000000000000000000f2
+artifact_revision_id: rev_000000000000000000000000000000f2
+stage: m2
+status: sealed
+payload:
+  ocr_pages:
+  - page: page_001
+    path: pipeline/corpus/_fixture/mini_ed01/pages/page_001.json
+    sha256: "3716a9fb4c66781e9ed63c22b9aee081c892be2d567c02a0c1739d14d5036710"
+  - page: page_002
+    path: pipeline/corpus/_fixture/mini_ed01/pages/page_002.json
+    sha256: "4c958d306ec9b34fd799d1a6b262cb8f7e8035e63954d5936b5fd6715ad67e21"
+  - page: page_003
+    path: pipeline/corpus/_fixture/mini_ed01/pages/page_003.json
+    sha256: "8fef06c8108283e959f2584f150ced8aba6c88d3ccd9a479f42ad193c7dab4fb"
+  anomalies_path: pipeline/corpus/_fixture/mini_ed01/anomalies.yaml
+  terminal_states:
+    page_002: known_unrecognizable
+manifest:
+  schema_version: "1.0.0"
+  processing_run_id: prun_000000000000000000000000000000f1
+  step_run_id: srun_000000000000000000000000000000f2
+  input_artifacts:
+  - schema_version: "1.0.0"
+    artifact_kind: artifact
+    artifact_id: art_000000000000000000000000000000f1
+    artifact_revision_id: rev_000000000000000000000000000000a1
+    artifact_type: source_manifest
+  output_artifacts:
+  - schema_version: "1.0.0"
+    artifact_kind: artifact
+    artifact_id: art_000000000000000000000000000000f2
+    artifact_revision_id: rev_000000000000000000000000000000a2
+    artifact_type: ocr_page_set
+  counts:
+    ocr_pages: 3
+    lines: 43
+    chars: 230
+    anomalies: 1
+  content_sha256: "b91252098cec45b93894126dcab136bd2bb7791a860c4cced4cf620c35ac7b35"
+validation:
+  passed: true
+  report_artifacts: []
+lineage:
+  upstream_artifacts: []
+  transformations:
+  - operation: digitize_pages
+    step_run_id: srun_000000000000000000000000000000f2
+    configuration_artifact_revision_id: rev_000000000000000000000000000000c2
+    input_artifact_revision_ids:
+    - rev_000000000000000000000000000000a1
+    output_artifact_revision_ids:
+    - rev_000000000000000000000000000000a2
+logs: []
+failures: []

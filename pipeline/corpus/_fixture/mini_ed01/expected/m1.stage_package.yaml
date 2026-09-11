@@ -1,0 +1,39 @@
+schema_version: "1.0.0"
+stage_package_id: pkg_m1_000000000000000000000000000000f1
+artifact_revision_id: rev_000000000000000000000000000000f1
+stage: m1
+status: sealed
+payload:
+  source_manifest:
+    source_id: src_sanche_ed01
+    source_manifest_path: pipeline/corpus/_fixture/mini_ed01/manifest.yaml
+    edition_part_artifact_id: art_000000000000000000000000000000e1
+manifest:
+  schema_version: "1.0.0"
+  processing_run_id: prun_000000000000000000000000000000f1
+  step_run_id: srun_000000000000000000000000000000f1
+  input_artifacts: []
+  output_artifacts:
+  - schema_version: "1.0.0"
+    artifact_kind: artifact
+    artifact_id: art_000000000000000000000000000000f1
+    artifact_revision_id: rev_000000000000000000000000000000a1
+    artifact_type: source_manifest
+  counts:
+    pages: 3
+    source_assets: 3
+  content_sha256: "613d33e0772fa737c3ad161760f3720efbc4c681e9317983c65cdb7971e364c7"
+validation:
+  passed: true
+  report_artifacts: []
+lineage:
+  upstream_artifacts: []
+  transformations:
+  - operation: ingest_source
+    step_run_id: srun_000000000000000000000000000000f1
+    configuration_artifact_revision_id: rev_000000000000000000000000000000c1
+    input_artifact_revision_ids: []
+    output_artifact_revision_ids:
+    - rev_000000000000000000000000000000a1
+logs: []
+failures: []

@@ -1,0 +1,2579 @@
+work: 三辰通載三十卷
+source_id: src_sanche_ed01
+edition_part_artifact_id: art_000000000000000000000000000000e1
+evidence_level: glyphbox_level
+content_status: machine_extracted
+span_count: 43
+batch_count: 5
+spans:
+- span_id: ss_sanche_ed01_p0001_s01
+  batch_id: sanche_b001
+  page: page_001
+  line_index: 0
+  start_offset: 0
+  end_offset: 4
+  text: 三辰通載
+  source_anchor:
+    page: page_001
+    image_sha256: e46bffa38119df1bb03f5a38e4f3f99405a476ba5d7b6a7c489956ccf2e58e65
+    line_id: page_001c0000
+    bbox:
+      x: 1061.0
+      y: 250.0
+      w: 88.0
+      h: 288.0
+    chars:
+    - char_index: 0
+      glyph_id: page_001c0000
+      char: 三
+      box:
+        x: 1061.0
+        y: 257.1
+        w: 88.0
+        h: 29.9
+    - char_index: 1
+      glyph_id: page_001c0001
+      char: 辰
+      box:
+        x: 1119.8
+        y: 298.0
+        w: 29.2
+        h: 9.0
+    - char_index: 2
+      glyph_id: page_001c0002
+      char: 通
+      box:
+        x: 1061.0
+        y: 328.0
+        w: 88.0
+        h: 58.0
+    - char_index: 3
+      glyph_id: page_001c0003
+      char: 載
+      box:
+        x: 1061.0
+        y: 393.1
+        w: 119.8
+        h: 136.9
+- span_id: ss_sanche_ed01_p0001_s02
+  batch_id: sanche_b001
+  page: page_001
+  line_index: 1
+  start_offset: 5
+  end_offset: 12
+  text: （宋）錢如璧撰
+  source_anchor:
+    page: page_001
+    image_sha256: e46bffa38119df1bb03f5a38e4f3f99405a476ba5d7b6a7c489956ccf2e58e65
+    line_id: page_001c0001
+    bbox:
+      x: 965.0
+      y: 444.0
+      w: 40.0
+      h: 228.0
+    chars:
+    - char_index: 4
+      glyph_id: page_001c0004
+      char: （
+      box:
+        x: 965.0
+        y: 450.0
+        w: 40.0
+        h: 7.0
+    - char_index: 5
+      glyph_id: page_001c0005
+      char: 宋
+      box:
+        x: 965.0
+        y: 464.0
+        w: 40.0
+        h: 29.0
+    - char_index: 6
+      glyph_id: page_001c0006
+      char: ）
+      box:
+        x: 965.0
+        y: 499.0
+        w: 40.0
+        h: 8.0
+    - char_index: 7
+      glyph_id: page_001c0007
+      char: 錢
+      box:
+        x: 965.0
+        y: 528.0
+        w: 40.0
+        h: 29.0
+    - char_index: 8
+      glyph_id: page_001c0008
+      char: 如
+      box:
+        x: 965.0
+        y: 560.0
+        w: 40.0
+        h: 28.0
+    - char_index: 9
+      glyph_id: page_001c0009
+      char: 璧
+      box:
+        x: 965.0
+        y: 591.0
+        w: 40.0
+        h: 30.0
+    - char_index: 10
+      glyph_id: page_001c0010
+      char: 撰
+      box:
+        x: 965.0
+        y: 640.0
+        w: 40.0
+        h: 29.0
+- span_id: ss_sanche_ed01_p0001_s03
+  batch_id: sanche_b001
+  page: page_001
+  line_index: 2
+  start_offset: 13
+  end_offset: 19
+  text: 影宋刊本影印
+  source_anchor:
+    page: page_001
+    image_sha256: e46bffa38119df1bb03f5a38e4f3f99405a476ba5d7b6a7c489956ccf2e58e65
+    line_id: page_001c0002
+    bbox:
+      x: 345.0
+      y: 808.0
+      w: 33.0
+      h: 197.0
+    chars:
+    - char_index: 12
+      glyph_id: page_001c0038
+      char: ''
+      box:
+        x: 345.0
+        y: 813.0
+        w: 33.0
+        h: 25.600000000000023
+    - char_index: 13
+      glyph_id: page_001c0040
+      char: ''
+      box:
+        x: 345.0
+        y: 838.6
+        w: 33.0
+        h: 32.299999999999955
+    - char_index: 14
+      glyph_id: page_001c0041
+      char: ''
+      box:
+        x: 345.0
+        y: 870.9
+        w: 33.0
+        h: 27.100000000000023
+    - char_index: 18
+      glyph_id: page_001c0012
+      char: 宋
+      box:
+        x: 345.0
+        y: 902.0
+        w: 33.0
+        h: 26.0
+    - char_index: 19
+      glyph_id: page_001c0013
+      char: 刊
+      box:
+        x: 345.0
+        y: 932.0
+        w: 33.0
+        h: 27.0
+    - char_index: 21
+      glyph_id: page_001c0014
+      char: 本
+      box:
+        x: 345.0
+        y: 963.0
+        w: 33.0
+        h: 26.0
+    - char_index: 24
+      glyph_id: page_001c0015
+      char: 影
+      box:
+        x: 345.0
+        y: 994.0
+        w: 33.0
+        h: 1.0
+    - char_index: 25
+      glyph_id: page_001c0016
+      char: 印
+      box:
+        x: 345.0
+        y: 999.0
+        w: 33.0
+        h: 2.0
+- span_id: ss_sanche_ed01_p0001_s04
+  batch_id: sanche_b001
+  page: page_001
+  line_index: 3
+  start_offset: 20
+  end_offset: 37
+  text: 三辰通載三十卷宋錢如璧撰據静嘉堂藏
+  source_anchor:
+    page: page_001
+    image_sha256: e46bffa38119df1bb03f5a38e4f3f99405a476ba5d7b6a7c489956ccf2e58e65
+    line_id: page_001c0003
+    bbox:
+      x: 398.0
+      y: 809.0
+      w: 39.0
+      h: 666.0
+    chars:
+    - char_index: 11
+      glyph_id: page_001c0017
+      char: 三
+      box:
+        x: 398.0
+        y: 812.0
+        w: 39.0
+        h: 12.0
+    - char_index: 15
+      glyph_id: page_001c0018
+      char: 辰
+      box:
+        x: 398.0
+        y: 830.0
+        w: 39.0
+        h: 11.0
+    - char_index: 16
+      glyph_id: page_001c0019
+      char: 通
+      box:
+        x: 398.0
+        y: 848.0
+        w: 39.0
+        h: 3.0
+    - char_index: 17
+      glyph_id: page_001c0020
+      char: 載
+      box:
+        x: 398.0
+        y: 858.0
+        w: 39.0
+        h: 85.0
+    - char_index: 20
+      glyph_id: page_001c0021
+      char: 三
+      box:
+        x: 398.0
+        y: 948.0
+        w: 39.0
+        h: 11.0
+    - char_index: 22
+      glyph_id: page_001c0022
+      char: 十
+      box:
+        x: 398.0
+        y: 981.0
+        w: 39.0
+        h: 3.0
+    - char_index: 23
+      glyph_id: page_001c0023
+      char: 卷
+      box:
+        x: 398.0
+        y: 989.0
+        w: 39.0
+        h: 3.0
+    - char_index: 26
+      glyph_id: page_001c0024
+      char: 宋
+      box:
+        x: 398.0
+        y: 999.0
+        w: 39.0
+        h: 3.0
+    - char_index: 27
+      glyph_id: page_001c0025
+      char: 錢
+      box:
+        x: 398.0
+        y: 1008.0
+        w: 39.0
+        h: 26.0
+    - char_index: 28
+      glyph_id: page_001c0026
+      char: 如
+      box:
+        x: 398.0
+        y: 1039.0
+        w: 39.0
+        h: 26.0
+    - char_index: 29
+      glyph_id: page_001c0027
+      char: 璧
+      box:
+        x: 398.0
+        y: 1070.0
+        w: 39.0
+        h: 7.0
+    - char_index: 30
+      glyph_id: page_001c0028
+      char: 撰
+      box:
+        x: 398.0
+        y: 1100.0
+        w: 39.0
+        h: 8.0
+    - char_index: 31
+      glyph_id: page_001c0029
+      char: 據
+      box:
+        x: 398.0
+        y: 1114.0
+        w: 39.0
+        h: 26.0
+    - char_index: 32
+      glyph_id: page_001c0030
+      char: 静
+      box:
+        x: 398.0
+        y: 1147.0
+        w: 39.0
+        h: 7.0
+    - char_index: 33
+      glyph_id: page_001c0031
+      char: 嘉
+      box:
+        x: 398.0
+        y: 1175.0
+        w: 39.0
+        h: 25.0
+    - char_index: 34
+      glyph_id: page_001c0032
+      char: 堂
+      box:
+        x: 398.0
+        y: 1205.0
+        w: 39.0
+        h: 99.0
+    - char_index: 35
+      glyph_id: page_001c0036
+      char: ''
+      box:
+        x: 398.0
+        y: 1325.0
+        w: 39.0
+        h: 27.9
+    - char_index: 36
+      glyph_id: page_001c0037
+      char: ''
+      box:
+        x: 398.0
+        y: 1352.9
+        w: 39.0
+        h: 119.09999999999991
+- span_id: ss_sanche_ed01_p0003_s01
+  batch_id: sanche_b002
+  page: page_003
+  line_index: 0
+  start_offset: 0
+  end_offset: 4
+  text: 三辰通載
+  source_anchor:
+    page: page_003
+    image_sha256: 3c138fc9f32d2cfefe029d62dec2a9a0ce0f095c373af41a8a98f4c8f8afb268
+    line_id: page_003c0000
+    bbox:
+      x: 750.0
+      y: 284.0
+      w: 68.0
+      h: 220.0
+    chars:
+    - char_index: 0
+      glyph_id: page_003c0000
+      char: 三
+      box:
+        x: 750.0
+        y: 293.0
+        w: 68.0
+        h: 34.0
+    - char_index: 1
+      glyph_id: page_003c0001
+      char: 辰
+      box:
+        x: 750.0
+        y: 346.0
+        w: 68.0
+        h: 40.0
+    - char_index: 2
+      glyph_id: page_003c0002
+      char: 通
+      box:
+        x: 750.0
+        y: 399.0
+        w: 68.0
+        h: 43.0
+    - char_index: 3
+      glyph_id: page_003c0003
+      char: 載
+      box:
+        x: 750.0
+        y: 452.0
+        w: 68.0
+        h: 45.0
+- span_id: ss_sanche_ed01_p0003_s02
+  batch_id: sanche_b002
+  page: page_003
+  line_index: 1
+  start_offset: 5
+  end_offset: 8
+  text: '106'
+  source_anchor:
+    page: page_003
+    image_sha256: 3c138fc9f32d2cfefe029d62dec2a9a0ce0f095c373af41a8a98f4c8f8afb268
+    line_id: page_003c0001
+    bbox:
+      x: 1019.0
+      y: 632.0
+      w: 33.0
+      h: 15.0
+    chars:
+    - char_index: 4
+      glyph_id: page_003c0004
+      char: '1'
+      box:
+        x: 1022.0
+        y: 632.0
+        w: 8.0
+        h: 8.0
+    - char_index: 5
+      glyph_id: page_003c0005
+      char: '0'
+      box:
+        x: 1031.0
+        y: 632.0
+        w: 10.5
+        h: 21.0
+    - char_index: 6
+      glyph_id: page_003c0006
+      char: '6'
+      box:
+        x: 1041.5
+        y: 632.0
+        w: 10.5
+        h: 21.0
+- span_id: ss_sanche_ed01_p0003_s03
+  batch_id: sanche_b002
+  page: page_003
+  line_index: 2
+  start_offset: 9
+  end_offset: 15
+  text: 三辰通載目錄
+  source_anchor:
+    page: page_003
+    image_sha256: 3c138fc9f32d2cfefe029d62dec2a9a0ce0f095c373af41a8a98f4c8f8afb268
+    line_id: page_003c0002
+    bbox:
+      x: 1112.0
+      y: 908.0
+      w: 36.0
+      h: 193.0
+    chars:
+    - char_index: 7
+      glyph_id: page_003c0007
+      char: 三
+      box:
+        x: 1112.0
+        y: 913.0
+        w: 36.0
+        h: 3.0
+    - char_index: 8
+      glyph_id: page_003c0008
+      char: 辰
+      box:
+        x: 1112.0
+        y: 920.0
+        w: 36.0
+        h: 10.0
+    - char_index: 10
+      glyph_id: page_003c0009
+      char: 通
+      box:
+        x: 1112.0
+        y: 944.0
+        w: 36.0
+        h: 24.0
+    - char_index: 12
+      glyph_id: page_003c0010
+      char: 載
+      box:
+        x: 1112.0
+        y: 976.0
+        w: 36.0
+        h: 60.0
+    - char_index: 33
+      glyph_id: page_003c0011
+      char: 目
+      box:
+        x: 1112.0
+        y: 1040.0
+        w: 36.0
+        h: 22.0
+    - char_index: 51
+      glyph_id: page_003c0012
+      char: 錄
+      box:
+        x: 1112.0
+        y: 1066.0
+        w: 36.0
+        h: 32.0
+- span_id: ss_sanche_ed01_p0003_s04
+  batch_id: sanche_b002
+  page: page_003
+  line_index: 3
+  start_offset: 16
+  end_offset: 19
+  text: 卷第一
+  source_anchor:
+    page: page_003
+    image_sha256: 3c138fc9f32d2cfefe029d62dec2a9a0ce0f095c373af41a8a98f4c8f8afb268
+    line_id: page_003c0003
+    bbox:
+      x: 1074.0
+      y: 936.0
+      w: 34.0
+      h: 99.0
+    chars:
+    - char_index: 9
+      glyph_id: page_003c0013
+      char: 卷
+      box:
+        x: 1074.0
+        y: 941.0
+        w: 34.0
+        h: 27.0
+    - char_index: 11
+      glyph_id: page_003c0014
+      char: 第
+      box:
+        x: 1074.0
+        y: 975.0
+        w: 34.0
+        h: 31.0
+    - char_index: 26
+      glyph_id: page_003c0015
+      char: 一
+      box:
+        x: 1074.0
+        y: 1018.0
+        w: 34.0
+        h: 4.0
+- span_id: ss_sanche_ed01_p0003_s05
+  batch_id: sanche_b002
+  page: page_003
+  line_index: 4
+  start_offset: 20
+  end_offset: 24
+  text: 貴格之圗
+  source_anchor:
+    page: page_003
+    image_sha256: 3c138fc9f32d2cfefe029d62dec2a9a0ce0f095c373af41a8a98f4c8f8afb268
+    line_id: page_003c0004
+    bbox:
+      x: 998.0
+      y: 1000.0
+      w: 37.0
+      h: 133.0
+    chars:
+    - char_index: 13
+      glyph_id: page_003c0016
+      char: 貴
+      box:
+        x: 998.0
+        y: 1004.0
+        w: 37.0
+        h: 32.0
+    - char_index: 34
+      glyph_id: page_003c0017
+      char: 格
+      box:
+        x: 998.0
+        y: 1041.0
+        w: 37.0
+        h: 26.0
+    - char_index: 53
+      glyph_id: page_003c0018
+      char: 之
+      box:
+        x: 998.0
+        y: 1075.0
+        w: 37.0
+        h: 20.0
+    - char_index: 71
+      glyph_id: page_003c0019
+      char: 圗
+      box:
+        x: 998.0
+        y: 1104.0
+        w: 37.0
+        h: 27.0
+- span_id: ss_sanche_ed01_p0003_s06
+  batch_id: sanche_b002
+  page: page_003
+  line_index: 5
+  start_offset: 25
+  end_offset: 36
+  text: 周天黃道二十八宿求度數
+  source_anchor:
+    page: page_003
+    image_sha256: 3c138fc9f32d2cfefe029d62dec2a9a0ce0f095c373af41a8a98f4c8f8afb268
+    line_id: page_003c0005
+    bbox:
+      x: 959.0
+      y: 1004.0
+      w: 37.0
+      h: 360.0
+    chars:
+    - char_index: 14
+      glyph_id: page_003c0020
+      char: 周
+      box:
+        x: 959.0
+        y: 1008.0
+        w: 37.0
+        h: 27.0
+    - char_index: 38
+      glyph_id: page_003c0021
+      char: 天
+      box:
+        x: 959.0
+        y: 1044.0
+        w: 37.0
+        h: 21.0
+    - char_index: 52
+      glyph_id: page_003c0022
+      char: 黃
+      box:
+        x: 959.0
+        y: 1074.0
+        w: 37.0
+        h: 27.0
+    - char_index: 76
+      glyph_id: page_003c0023
+      char: 道
+      box:
+        x: 959.0
+        y: 1108.0
+        w: 37.0
+        h: 25.0
+    - char_index: 97
+      glyph_id: page_003c0024
+      char: 二
+      box:
+        x: 959.0
+        y: 1145.0
+        w: 37.0
+        h: 10.0
+    - char_index: 102
+      glyph_id: page_003c0025
+      char: 十
+      box:
+        x: 959.0
+        y: 1173.0
+        w: 37.0
+        h: 17.0
+    - char_index: 108
+      glyph_id: page_003c0026
+      char: 八
+      box:
+        x: 959.0
+        y: 1212.0
+        w: 37.0
+        h: 12.0
+    - char_index: 111
+      glyph_id: page_003c0027
+      char: 宿
+      box:
+        x: 959.0
+        y: 1237.0
+        w: 37.0
+        h: 24.0
+    - char_index: 131
+      glyph_id: page_003c0028
+      char: 求
+      box:
+        x: 959.0
+        y: 1269.0
+        w: 37.0
+        h: 24.0
+    - char_index: 148
+      glyph_id: page_003c0029
+      char: 度
+      box:
+        x: 959.0
+        y: 1303.0
+        w: 37.0
+        h: 25.0
+    - char_index: 170
+      glyph_id: page_003c0030
+      char: 數
+      box:
+        x: 959.0
+        y: 1337.0
+        w: 37.0
+        h: 24.0
+- span_id: ss_sanche_ed01_p0003_s07
+  batch_id: sanche_b002
+  page: page_003
+  line_index: 6
+  start_offset: 37
+  end_offset: 41
+  text: 星宮分野
+  source_anchor:
+    page: page_003
+    image_sha256: 3c138fc9f32d2cfefe029d62dec2a9a0ce0f095c373af41a8a98f4c8f8afb268
+    line_id: page_003c0006
+    bbox:
+      x: 1038.0
+      y: 1004.0
+      w: 31.0
+      h: 129.0
+    chars:
+    - char_index: 15
+      glyph_id: page_003c0031
+      char: 星
+      box:
+        x: 1038.0
+        y: 1008.0
+        w: 31.0
+        h: 23.0
+    - char_index: 32
+      glyph_id: page_003c0032
+      char: 宮
+      box:
+        x: 1038.0
+        y: 1040.0
+        w: 31.0
+        h: 22.0
+    - char_index: 54
+      glyph_id: page_003c0033
+      char: 分
+      box:
+        x: 1038.0
+        y: 1076.0
+        w: 31.0
+        h: 20.0
+    - char_index: 74
+      glyph_id: page_003c0034
+      char: 野
+      box:
+        x: 1038.0
+        y: 1107.0
+        w: 31.0
+        h: 25.0
+- span_id: ss_sanche_ed01_p0003_s08
+  batch_id: sanche_b002
+  page: page_003
+  line_index: 7
+  start_offset: 42
+  end_offset: 48
+  text: 七政旺宮星度
+  source_anchor:
+    page: page_003
+    image_sha256: 3c138fc9f32d2cfefe029d62dec2a9a0ce0f095c373af41a8a98f4c8f8afb268
+    line_id: page_003c0007
+    bbox:
+      x: 921.0
+      y: 1006.0
+      w: 34.0
+      h: 203.0
+    chars:
+    - char_index: 17
+      glyph_id: page_003c0035
+      char: 七
+      box:
+        x: 921.0
+        y: 1011.0
+        w: 34.0
+        h: 16.0
+    - char_index: 35
+      glyph_id: page_003c0036
+      char: 政
+      box:
+        x: 921.0
+        y: 1043.0
+        w: 34.0
+        h: 23.0
+    - char_index: 56
+      glyph_id: page_003c0037
+      char: 旺
+      box:
+        x: 921.0
+        y: 1077.0
+        w: 34.0
+        h: 15.0
+    - char_index: 72
+      glyph_id: page_003c0038
+      char: 宮
+      box:
+        x: 921.0
+        y: 1105.0
+        w: 34.0
+        h: 23.0
+    - char_index: 91
+      glyph_id: page_003c0039
+      char: 星
+      box:
+        x: 921.0
+        y: 1136.0
+        w: 34.0
+        h: 26.0
+    - char_index: 100
+      glyph_id: page_003c0040
+      char: 度
+      box:
+        x: 921.0
+        y: 1170.0
+        w: 34.0
+        h: 28.0
+- span_id: ss_sanche_ed01_p0003_s09
+  batch_id: sanche_b002
+  page: page_003
+  line_index: 8
+  start_offset: 49
+  end_offset: 55
+  text: 六曜配屬五行
+  source_anchor:
+    page: page_003
+    image_sha256: 3c138fc9f32d2cfefe029d62dec2a9a0ce0f095c373af41a8a98f4c8f8afb268
+    line_id: page_003c0008
+    bbox:
+      x: 841.0
+      y: 1007.0
+      w: 37.0
+      h: 196.0
+    chars:
+    - char_index: 19
+      glyph_id: page_003c0041
+      char: 六
+      box:
+        x: 841.0
+        y: 1013.0
+        w: 37.0
+        h: 17.0
+    - char_index: 39
+      glyph_id: page_003c0042
+      char: 曜
+      box:
+        x: 841.0
+        y: 1045.0
+        w: 37.0
+        h: 22.0
+    - char_index: 58
+      glyph_id: page_003c0043
+      char: 配
+      box:
+        x: 841.0
+        y: 1078.0
+        w: 37.0
+        h: 21.0
+    - char_index: 73
+      glyph_id: page_003c0044
+      char: 屬
+      box:
+        x: 841.0
+        y: 1107.0
+        w: 37.0
+        h: 29.0
+    - char_index: 94
+      glyph_id: page_003c0045
+      char: 五
+      box:
+        x: 841.0
+        y: 1143.0
+        w: 37.0
+        h: 16.0
+    - char_index: 101
+      glyph_id: page_003c0046
+      char: 行
+      box:
+        x: 841.0
+        y: 1173.0
+        w: 37.0
+        h: 26.0
+- span_id: ss_sanche_ed01_p0003_s10
+  batch_id: sanche_b002
+  page: page_003
+  line_index: 9
+  start_offset: 56
+  end_offset: 59
+  text: 星曜宮
+  source_anchor:
+    page: page_003
+    image_sha256: 3c138fc9f32d2cfefe029d62dec2a9a0ce0f095c373af41a8a98f4c8f8afb268
+    line_id: page_003c0009
+    bbox:
+      x: 882.0
+      y: 1007.0
+      w: 32.0
+      h: 127.0
+    chars:
+    - char_index: 16
+      glyph_id: page_003c0047
+      char: 星
+      box:
+        x: 882.0
+        y: 1010.0
+        w: 32.0
+        h: 24.0
+    - char_index: 37
+      glyph_id: page_003c0048
+      char: 曜
+      box:
+        x: 882.0
+        y: 1044.0
+        w: 32.0
+        h: 57.0
+    - char_index: 75
+      glyph_id: page_003c0049
+      char: 宮
+      box:
+        x: 882.0
+        y: 1108.0
+        w: 32.0
+        h: 24.0
+- span_id: ss_sanche_ed01_p0003_s11
+  batch_id: sanche_b003
+  page: page_003
+  line_index: 10
+  start_offset: 60
+  end_offset: 66
+  text: 論十二位高下
+  source_anchor:
+    page: page_003
+    image_sha256: 3c138fc9f32d2cfefe029d62dec2a9a0ce0f095c373af41a8a98f4c8f8afb268
+    line_id: page_003c0010
+    bbox:
+      x: 803.0
+      y: 1009.0
+      w: 36.0
+      h: 193.0
+    chars:
+    - char_index: 18
+      glyph_id: page_003c0050
+      char: 論
+      box:
+        x: 803.0
+        y: 1013.0
+        w: 36.0
+        h: 23.0
+    - char_index: 42
+      glyph_id: page_003c0051
+      char: 十
+      box:
+        x: 803.0
+        y: 1048.0
+        w: 36.0
+        h: 18.0
+    - char_index: 66
+      glyph_id: page_003c0052
+      char: 二
+      box:
+        x: 803.0
+        y: 1084.0
+        w: 36.0
+        h: 9.0
+    - char_index: 79
+      glyph_id: page_003c0053
+      char: 位
+      box:
+        x: 803.0
+        y: 1111.0
+        w: 36.0
+        h: 18.0
+    - char_index: 92
+      glyph_id: page_003c0054
+      char: 高
+      box:
+        x: 803.0
+        y: 1140.0
+        w: 36.0
+        h: 25.0
+    - char_index: 104
+      glyph_id: page_003c0055
+      char: 下
+      box:
+        x: 803.0
+        y: 1178.0
+        w: 36.0
+        h: 19.0
+- span_id: ss_sanche_ed01_p0003_s12
+  batch_id: sanche_b003
+  page: page_003
+  line_index: 11
+  start_offset: 67
+  end_offset: 72
+  text: 論身宮主星
+  source_anchor:
+    page: page_003
+    image_sha256: 3c138fc9f32d2cfefe029d62dec2a9a0ce0f095c373af41a8a98f4c8f8afb268
+    line_id: page_003c0011
+    bbox:
+      x: 767.0
+      y: 1011.0
+      w: 30.0
+      h: 158.0
+    chars:
+    - char_index: 20
+      glyph_id: page_003c0056
+      char: 論
+      box:
+        x: 767.0
+        y: 1014.0
+        w: 30.0
+        h: 23.0
+    - char_index: 36
+      glyph_id: page_003c0057
+      char: 身
+      box:
+        x: 767.0
+        y: 1044.0
+        w: 30.0
+        h: 27.0
+    - char_index: 55
+      glyph_id: page_003c0058
+      char: 宮
+      box:
+        x: 767.0
+        y: 1077.0
+        w: 30.0
+        h: 22.0
+    - char_index: 80
+      glyph_id: page_003c0059
+      char: 主
+      box:
+        x: 767.0
+        y: 1112.0
+        w: 30.0
+        h: 17.0
+    - char_index: 93
+      glyph_id: page_003c0060
+      char: 星
+      box:
+        x: 767.0
+        y: 1141.0
+        w: 30.0
+        h: 23.0
+- span_id: ss_sanche_ed01_p0003_s13
+  batch_id: sanche_b003
+  page: page_003
+  line_index: 12
+  start_offset: 73
+  end_offset: 87
+  text: 論星曜合照命宮論星曜對照命宮
+  source_anchor:
+    page: page_003
+    image_sha256: 3c138fc9f32d2cfefe029d62dec2a9a0ce0f095c373af41a8a98f4c8f8afb268
+    line_id: page_003c0012
+    bbox:
+      x: 655.0
+      y: 1013.0
+      w: 41.0
+      h: 449.0
+    chars:
+    - char_index: 21
+      glyph_id: page_003c0061
+      char: 論
+      box:
+        x: 655.0
+        y: 1017.0
+        w: 41.0
+        h: 22.0
+    - char_index: 41
+      glyph_id: page_003c0062
+      char: 星
+      box:
+        x: 655.0
+        y: 1048.0
+        w: 41.0
+        h: 22.0
+    - char_index: 60
+      glyph_id: page_003c0063
+      char: 曜
+      box:
+        x: 655.0
+        y: 1080.0
+        w: 41.0
+        h: 22.0
+    - char_index: 77
+      glyph_id: page_003c0064
+      char: 合
+      box:
+        x: 655.0
+        y: 1110.0
+        w: 41.0
+        h: 19.0
+    - char_index: 95
+      glyph_id: page_003c0065
+      char: 照
+      box:
+        x: 655.0
+        y: 1144.0
+        w: 41.0
+        h: 22.0
+    - char_index: 103
+      glyph_id: page_003c0066
+      char: 命
+      box:
+        x: 655.0
+        y: 1175.0
+        w: 41.0
+        h: 26.0
+    - char_index: 107
+      glyph_id: page_003c0067
+      char: 宮
+      box:
+        x: 655.0
+        y: 1209.0
+        w: 41.0
+        h: 23.0
+    - char_index: 124
+      glyph_id: page_003c0068
+      char: 論
+      box:
+        x: 655.0
+        y: 1245.0
+        w: 41.0
+        h: 21.0
+    - char_index: 137
+      glyph_id: page_003c0069
+      char: 星
+      box:
+        x: 655.0
+        y: 1275.0
+        w: 41.0
+        h: 23.0
+    - char_index: 155
+      glyph_id: page_003c0070
+      char: 曜
+      box:
+        x: 655.0
+        y: 1310.0
+        w: 41.0
+        h: 21.0
+    - char_index: 174
+      glyph_id: page_003c0071
+      char: 對
+      box:
+        x: 655.0
+        y: 1341.0
+        w: 41.0
+        h: 25.0
+    - char_index: 185
+      glyph_id: page_003c0072
+      char: 照
+      box:
+        x: 655.0
+        y: 1376.0
+        w: 41.0
+        h: 21.0
+    - char_index: 187
+      glyph_id: page_003c0073
+      char: 命
+      box:
+        x: 655.0
+        y: 1405.0
+        w: 41.0
+        h: 25.0
+    - char_index: 190
+      glyph_id: page_003c0074
+      char: 宮
+      box:
+        x: 655.0
+        y: 1437.0
+        w: 41.0
+        h: 22.0
+- span_id: ss_sanche_ed01_p0003_s14
+  batch_id: sanche_b003
+  page: page_003
+  line_index: 13
+  start_offset: 88
+  end_offset: 92
+  text: 論奴僕宮
+  source_anchor:
+    page: page_003
+    image_sha256: 3c138fc9f32d2cfefe029d62dec2a9a0ce0f095c373af41a8a98f4c8f8afb268
+    line_id: page_003c0013
+    bbox:
+      x: 536.0
+      y: 1014.0
+      w: 35.0
+      h: 127.0
+    chars:
+    - char_index: 24
+      glyph_id: page_003c0075
+      char: 論
+      box:
+        x: 536.0
+        y: 1018.0
+        w: 35.0
+        h: 22.0
+    - char_index: 48
+      glyph_id: page_003c0076
+      char: 奴
+      box:
+        x: 536.0
+        y: 1052.0
+        w: 35.0
+        h: 18.0
+    - char_index: 62
+      glyph_id: page_003c0077
+      char: 僕
+      box:
+        x: 536.0
+        y: 1082.0
+        w: 35.0
+        h: 25.0
+    - char_index: 88
+      glyph_id: page_003c0078
+      char: 宮
+      box:
+        x: 536.0
+        y: 1115.0
+        w: 35.0
+        h: 22.0
+- span_id: ss_sanche_ed01_p0003_s15
+  batch_id: sanche_b003
+  page: page_003
+  line_index: 14
+  start_offset: 93
+  end_offset: 98
+  text: 論身命二主
+  source_anchor:
+    page: page_003
+    image_sha256: 3c138fc9f32d2cfefe029d62dec2a9a0ce0f095c373af41a8a98f4c8f8afb268
+    line_id: page_003c0014
+    bbox:
+      x: 694.0
+      y: 1014.0
+      w: 31.0
+      h: 152.0
+    chars:
+    - char_index: 22
+      glyph_id: page_003c0079
+      char: 論
+      box:
+        x: 694.0
+        y: 1017.0
+        w: 31.0
+        h: 22.0
+    - char_index: 40
+      glyph_id: page_003c0080
+      char: 身
+      box:
+        x: 694.0
+        y: 1046.0
+        w: 31.0
+        h: 30.0
+    - char_index: 63
+      glyph_id: page_003c0081
+      char: 命
+      box:
+        x: 694.0
+        y: 1082.0
+        w: 31.0
+        h: 27.0
+    - char_index: 89
+      glyph_id: page_003c0082
+      char: 二
+      box:
+        x: 694.0
+        y: 1119.0
+        w: 31.0
+        h: 11.0
+    - char_index: 96
+      glyph_id: page_003c0083
+      char: 主
+      box:
+        x: 694.0
+        y: 1145.0
+        w: 31.0
+        h: 17.0
+- span_id: ss_sanche_ed01_p0003_s16
+  batch_id: sanche_b003
+  page: page_003
+  line_index: 15
+  start_offset: 99
+  end_offset: 103
+  text: 定三日宮
+  source_anchor:
+    page: page_003
+    image_sha256: 3c138fc9f32d2cfefe029d62dec2a9a0ce0f095c373af41a8a98f4c8f8afb268
+    line_id: page_003c0015
+    bbox:
+      x: 339.0
+      y: 1015.0
+      w: 37.0
+      h: 127.0
+    chars:
+    - char_index: 30
+      glyph_id: page_003c0084
+      char: 定
+      box:
+        x: 339.0
+        y: 1020.0
+        w: 37.0
+        h: 24.0
+    - char_index: 50
+      glyph_id: page_003c0085
+      char: 三
+      box:
+        x: 339.0
+        y: 1057.0
+        w: 37.0
+        h: 14.0
+    - char_index: 68
+      glyph_id: page_003c0086
+      char: 日
+      box:
+        x: 339.0
+        y: 1087.0
+        w: 37.0
+        h: 15.0
+    - char_index: 84
+      glyph_id: page_003c0087
+      char: 宮
+      box:
+        x: 339.0
+        y: 1115.0
+        w: 37.0
+        h: 22.0
+- span_id: ss_sanche_ed01_p0003_s17
+  batch_id: sanche_b003
+  page: page_003
+  line_index: 16
+  start_offset: 104
+  end_offset: 112
+  text: 再論相貌奴僕兩位
+  source_anchor:
+    page: page_003
+    image_sha256: 3c138fc9f32d2cfefe029d62dec2a9a0ce0f095c373af41a8a98f4c8f8afb268
+    line_id: page_003c0016
+    bbox:
+      x: 382.0
+      y: 1015.0
+      w: 38.0
+      h: 257.0
+    chars:
+    - char_index: 27
+      glyph_id: page_003c0088
+      char: 再
+      box:
+        x: 382.0
+        y: 1019.0
+        w: 38.0
+        h: 23.0
+    - char_index: 46
+      glyph_id: page_003c0089
+      char: 論
+      box:
+        x: 382.0
+        y: 1052.0
+        w: 38.0
+        h: 24.0
+    - char_index: 65
+      glyph_id: page_003c0090
+      char: 相
+      box:
+        x: 382.0
+        y: 1084.0
+        w: 38.0
+        h: 23.0
+    - char_index: 81
+      glyph_id: page_003c0091
+      char: 貌
+      box:
+        x: 382.0
+        y: 1113.0
+        w: 38.0
+        h: 25.0
+    - char_index: 98
+      glyph_id: page_003c0092
+      char: 奴
+      box:
+        x: 382.0
+        y: 1149.0
+        w: 38.0
+        h: 18.0
+    - char_index: 105
+      glyph_id: page_003c0093
+      char: 僕
+      box:
+        x: 382.0
+        y: 1179.0
+        w: 38.0
+        h: 25.0
+    - char_index: 109
+      glyph_id: page_003c0094
+      char: 兩
+      box:
+        x: 382.0
+        y: 1217.0
+        w: 38.0
+        h: 22.0
+    - char_index: 127
+      glyph_id: page_003c0095
+      char: 位
+      box:
+        x: 382.0
+        y: 1248.0
+        w: 38.0
+        h: 20.0
+- span_id: ss_sanche_ed01_p0003_s18
+  batch_id: sanche_b003
+  page: page_003
+  line_index: 17
+  start_offset: 113
+  end_offset: 117
+  text: 論相貌宮
+  source_anchor:
+    page: page_003
+    image_sha256: 3c138fc9f32d2cfefe029d62dec2a9a0ce0f095c373af41a8a98f4c8f8afb268
+    line_id: page_003c0017
+    bbox:
+      x: 420.0
+      y: 1015.0
+      w: 37.0
+      h: 126.0
+    chars:
+    - char_index: 31
+      glyph_id: page_003c0096
+      char: 論
+      box:
+        x: 420.0
+        y: 1020.0
+        w: 37.0
+        h: 23.0
+    - char_index: 47
+      glyph_id: page_003c0097
+      char: 相
+      box:
+        x: 420.0
+        y: 1052.0
+        w: 37.0
+        h: 21.0
+    - char_index: 64
+      glyph_id: page_003c0098
+      char: 貌
+      box:
+        x: 420.0
+        y: 1083.0
+        w: 37.0
+        h: 22.0
+    - char_index: 85
+      glyph_id: page_003c0099
+      char: 宮
+      box:
+        x: 420.0
+        y: 1115.0
+        w: 37.0
+        h: 22.0
+- span_id: ss_sanche_ed01_p0003_s19
+  batch_id: sanche_b003
+  page: page_003
+  line_index: 18
+  start_offset: 118
+  end_offset: 122
+  text: 論官祿宮
+  source_anchor:
+    page: page_003
+    image_sha256: 3c138fc9f32d2cfefe029d62dec2a9a0ce0f095c373af41a8a98f4c8f8afb268
+    line_id: page_003c0018
+    bbox:
+      x: 462.0
+      y: 1015.0
+      w: 32.0
+      h: 125.0
+    chars:
+    - char_index: 23
+      glyph_id: page_003c0100
+      char: 論
+      box:
+        x: 462.0
+        y: 1018.0
+        w: 32.0
+        h: 24.0
+    - char_index: 44
+      glyph_id: page_003c0101
+      char: 官
+      box:
+        x: 462.0
+        y: 1051.0
+        w: 32.0
+        h: 22.0
+    - char_index: 67
+      glyph_id: page_003c0102
+      char: 祿
+      box:
+        x: 462.0
+        y: 1085.0
+        w: 32.0
+        h: 23.0
+    - char_index: 86
+      glyph_id: page_003c0103
+      char: 宮
+      box:
+        x: 462.0
+        y: 1115.0
+        w: 32.0
+        h: 22.0
+- span_id: ss_sanche_ed01_p0003_s20
+  batch_id: sanche_b003
+  page: page_003
+  line_index: 19
+  start_offset: 123
+  end_offset: 127
+  text: 論疾厄宮
+  source_anchor:
+    page: page_003
+    image_sha256: 3c138fc9f32d2cfefe029d62dec2a9a0ce0f095c373af41a8a98f4c8f8afb268
+    line_id: page_003c0019
+    bbox:
+      x: 500.0
+      y: 1015.0
+      w: 34.0
+      h: 125.0
+    chars:
+    - char_index: 28
+      glyph_id: page_003c0104
+      char: 論
+      box:
+        x: 500.0
+        y: 1019.0
+        w: 34.0
+        h: 21.0
+    - char_index: 45
+      glyph_id: page_003c0105
+      char: 疾
+      box:
+        x: 500.0
+        y: 1051.0
+        w: 34.0
+        h: 23.0
+    - char_index: 61
+      glyph_id: page_003c0106
+      char: 厄
+      box:
+        x: 500.0
+        y: 1081.0
+        w: 34.0
+        h: 25.0
+    - char_index: 87
+      glyph_id: page_003c0107
+      char: 宮
+      box:
+        x: 500.0
+        y: 1115.0
+        w: 34.0
+        h: 22.0
+- span_id: ss_sanche_ed01_p0003_s21
+  batch_id: sanche_b004
+  page: page_003
+  line_index: 20
+  start_offset: 128
+  end_offset: 132
+  text: 論田宅宮
+  source_anchor:
+    page: page_003
+    image_sha256: 3c138fc9f32d2cfefe029d62dec2a9a0ce0f095c373af41a8a98f4c8f8afb268
+    line_id: page_003c0020
+    bbox:
+      x: 578.0
+      y: 1015.0
+      w: 34.0
+      h: 124.0
+    chars:
+    - char_index: 29
+      glyph_id: page_003c0108
+      char: 論
+      box:
+        x: 578.0
+        y: 1019.0
+        w: 34.0
+        h: 22.0
+    - char_index: 49
+      glyph_id: page_003c0109
+      char: 田
+      box:
+        x: 578.0
+        y: 1054.0
+        w: 34.0
+        h: 15.0
+    - char_index: 59
+      glyph_id: page_003c0110
+      char: 宅
+      box:
+        x: 578.0
+        y: 1080.0
+        w: 34.0
+        h: 24.0
+    - char_index: 82
+      glyph_id: page_003c0111
+      char: 宮
+      box:
+        x: 578.0
+        y: 1113.0
+        w: 34.0
+        h: 22.0
+- span_id: ss_sanche_ed01_p0003_s22
+  batch_id: sanche_b004
+  page: page_003
+  line_index: 21
+  start_offset: 133
+  end_offset: 137
+  text: 論財帛宮
+  source_anchor:
+    page: page_003
+    image_sha256: 3c138fc9f32d2cfefe029d62dec2a9a0ce0f095c373af41a8a98f4c8f8afb268
+    line_id: page_003c0021
+    bbox:
+      x: 619.0
+      y: 1015.0
+      w: 31.0
+      h: 123.0
+    chars:
+    - char_index: 25
+      glyph_id: page_003c0112
+      char: 論
+      box:
+        x: 619.0
+        y: 1018.0
+        w: 31.0
+        h: 23.0
+    - char_index: 43
+      glyph_id: page_003c0113
+      char: 財
+      box:
+        x: 619.0
+        y: 1049.0
+        w: 31.0
+        h: 22.0
+    - char_index: 57
+      glyph_id: page_003c0114
+      char: 帛
+      box:
+        x: 619.0
+        y: 1078.0
+        w: 31.0
+        h: 29.0
+    - char_index: 83
+      glyph_id: page_003c0115
+      char: 宮
+      box:
+        x: 619.0
+        y: 1113.0
+        w: 31.0
+        h: 22.0
+- span_id: ss_sanche_ed01_p0003_s23
+  batch_id: sanche_b004
+  page: page_003
+  line_index: 22
+  start_offset: 138
+  end_offset: 144
+  text: 三辰通載目錄
+  source_anchor:
+    page: page_003
+    image_sha256: 3c138fc9f32d2cfefe029d62dec2a9a0ce0f095c373af41a8a98f4c8f8afb268
+    line_id: page_003c0022
+    bbox:
+      x: 733.0
+      y: 1087.0
+      w: 24.0
+      h: 113.0
+    chars:
+    - char_index: 69
+      glyph_id: page_003c0116
+      char: 三
+      box:
+        x: 733.0
+        y: 1094.0
+        w: 24.0
+        h: 5.0
+    - char_index: 70
+      glyph_id: page_003c0117
+      char: 辰
+      box:
+        x: 733.0
+        y: 1101.0
+        w: 24.0
+        h: 3.0
+    - char_index: 78
+      glyph_id: page_003c0118
+      char: 通
+      box:
+        x: 733.0
+        y: 1110.0
+        w: 24.0
+        h: 14.0
+    - char_index: 90
+      glyph_id: page_003c0119
+      char: 載
+      box:
+        x: 733.0
+        y: 1130.0
+        w: 24.0
+        h: 36.0
+    - char_index: 99
+      glyph_id: page_003c0120
+      char: 目
+      box:
+        x: 733.0
+        y: 1167.0
+        w: 24.0
+        h: 14.0
+    - char_index: 106
+      glyph_id: page_003c0121
+      char: 錄
+      box:
+        x: 733.0
+        y: 1182.0
+        w: 24.0
+        h: 17.0
+- span_id: ss_sanche_ed01_p0003_s24
+  batch_id: sanche_b004
+  page: page_003
+  line_index: 23
+  start_offset: 145
+  end_offset: 150
+  text: 論廟旺克忌
+  source_anchor:
+    page: page_003
+    image_sha256: 3c138fc9f32d2cfefe029d62dec2a9a0ce0f095c373af41a8a98f4c8f8afb268
+    line_id: page_003c0023
+    bbox:
+      x: 922.0
+      y: 1229.0
+      w: 38.0
+      h: 169.0
+    chars:
+    - char_index: 114
+      glyph_id: page_003c0122
+      char: 論
+      box:
+        x: 922.0
+        y: 1240.0
+        w: 38.0
+        h: 22.0
+    - char_index: 130
+      glyph_id: page_003c0123
+      char: 廟
+      box:
+        x: 922.0
+        y: 1269.0
+        w: 38.0
+        h: 28.0
+    - char_index: 154
+      glyph_id: page_003c0124
+      char: 旺
+      box:
+        x: 922.0
+        y: 1308.0
+        w: 38.0
+        h: 15.0
+    - char_index: 166
+      glyph_id: page_003c0125
+      char: 克
+      box:
+        x: 922.0
+        y: 1334.0
+        w: 38.0
+        h: 29.0
+    - char_index: 183
+      glyph_id: page_003c0126
+      char: 忌
+      box:
+        x: 922.0
+        y: 1372.0
+        w: 38.0
+        h: 23.0
+- span_id: ss_sanche_ed01_p0003_s25
+  batch_id: sanche_b004
+  page: page_003
+  line_index: 24
+  start_offset: 151
+  end_offset: 155
+  text: 賤格之圖
+  source_anchor:
+    page: page_003
+    image_sha256: 3c138fc9f32d2cfefe029d62dec2a9a0ce0f095c373af41a8a98f4c8f8afb268
+    line_id: page_003c0024
+    bbox:
+      x: 1001.0
+      y: 1230.0
+      w: 35.0
+      h: 132.0
+    chars:
+    - char_index: 110
+      glyph_id: page_003c0127
+      char: 賤
+      box:
+        x: 1001.0
+        y: 1234.0
+        w: 35.0
+        h: 28.0
+    - char_index: 133
+      glyph_id: page_003c0128
+      char: 格
+      box:
+        x: 1001.0
+        y: 1271.0
+        w: 35.0
+        h: 22.0
+    - char_index: 149
+      glyph_id: page_003c0129
+      char: 之
+      box:
+        x: 1001.0
+        y: 1304.0
+        w: 35.0
+        h: 20.0
+    - char_index: 165
+      glyph_id: page_003c0130
+      char: 圖
+      box:
+        x: 1001.0
+        y: 1333.0
+        w: 35.0
+        h: 27.0
+- span_id: ss_sanche_ed01_p0003_s26
+  batch_id: sanche_b004
+  page: page_003
+  line_index: 25
+  start_offset: 156
+  end_offset: 160
+  text: 躔度廟格
+  source_anchor:
+    page: page_003
+    image_sha256: 3c138fc9f32d2cfefe029d62dec2a9a0ce0f095c373af41a8a98f4c8f8afb268
+    line_id: page_003c0025
+    bbox:
+      x: 1038.0
+      y: 1232.0
+      w: 34.0
+      h: 130.0
+    chars:
+    - char_index: 112
+      glyph_id: page_003c0131
+      char: 躔
+      box:
+        x: 1038.0
+        y: 1237.0
+        w: 34.0
+        h: 24.0
+    - char_index: 129
+      glyph_id: page_003c0132
+      char: 度
+      box:
+        x: 1038.0
+        y: 1268.0
+        w: 34.0
+        h: 28.0
+    - char_index: 147
+      glyph_id: page_003c0133
+      char: 廟
+      box:
+        x: 1038.0
+        y: 1300.0
+        w: 34.0
+        h: 27.0
+    - char_index: 168
+      glyph_id: page_003c0134
+      char: 格
+      box:
+        x: 1038.0
+        y: 1336.0
+        w: 34.0
+        h: 24.0
+- span_id: ss_sanche_ed01_p0003_s27
+  batch_id: sanche_b004
+  page: page_003
+  line_index: 26
+  start_offset: 161
+  end_offset: 165
+  text: 星曜怒宮
+  source_anchor:
+    page: page_003
+    image_sha256: 3c138fc9f32d2cfefe029d62dec2a9a0ce0f095c373af41a8a98f4c8f8afb268
+    line_id: page_003c0026
+    bbox:
+      x: 882.0
+      y: 1235.0
+      w: 36.0
+      h: 127.0
+    chars:
+    - char_index: 113
+      glyph_id: page_003c0135
+      char: 星
+      box:
+        x: 882.0
+        y: 1240.0
+        w: 36.0
+        h: 24.0
+    - char_index: 136
+      glyph_id: page_003c0136
+      char: 曜
+      box:
+        x: 882.0
+        y: 1274.0
+        w: 36.0
+        h: 22.0
+    - char_index: 152
+      glyph_id: page_003c0137
+      char: 怒
+      box:
+        x: 882.0
+        y: 1307.0
+        w: 36.0
+        h: 20.0
+    - char_index: 169
+      glyph_id: page_003c0138
+      char: 宮
+      box:
+        x: 882.0
+        y: 1337.0
+        w: 36.0
+        h: 21.0
+- span_id: ss_sanche_ed01_p0003_s28
+  batch_id: sanche_b004
+  page: page_003
+  line_index: 27
+  start_offset: 166
+  end_offset: 171
+  text: 論星宮主星
+  source_anchor:
+    page: page_003
+    image_sha256: 3c138fc9f32d2cfefe029d62dec2a9a0ce0f095c373af41a8a98f4c8f8afb268
+    line_id: page_003c0027
+    bbox:
+      x: 805.0
+      y: 1237.0
+      w: 34.0
+      h: 158.0
+    chars:
+    - char_index: 115
+      glyph_id: page_003c0139
+      char: 論
+      box:
+        x: 805.0
+        y: 1241.0
+        w: 34.0
+        h: 21.0
+    - char_index: 135
+      glyph_id: page_003c0140
+      char: 星
+      box:
+        x: 805.0
+        y: 1273.0
+        w: 34.0
+        h: 22.0
+    - char_index: 150
+      glyph_id: page_003c0141
+      char: 宮
+      box:
+        x: 805.0
+        y: 1305.0
+        w: 34.0
+        h: 24.0
+    - char_index: 172
+      glyph_id: page_003c0142
+      char: 主
+      box:
+        x: 805.0
+        y: 1340.0
+        w: 34.0
+        h: 18.0
+    - char_index: 182
+      glyph_id: page_003c0143
+      char: 星
+      box:
+        x: 805.0
+        y: 1370.0
+        w: 34.0
+        h: 21.0
+- span_id: ss_sanche_ed01_p0003_s29
+  batch_id: sanche_b004
+  page: page_003
+  line_index: 28
+  start_offset: 172
+  end_offset: 176
+  text: 論福德宮
+  source_anchor:
+    page: page_003
+    image_sha256: 3c138fc9f32d2cfefe029d62dec2a9a0ce0f095c373af41a8a98f4c8f8afb268
+    line_id: page_003c0028
+    bbox:
+      x: 461.0
+      y: 1238.0
+      w: 37.0
+      h: 135.0
+    chars:
+    - char_index: 119
+      glyph_id: page_003c0144
+      char: 論
+      box:
+        x: 461.0
+        y: 1244.0
+        w: 37.0
+        h: 28.0
+    - char_index: 145
+      glyph_id: page_003c0145
+      char: 福
+      box:
+        x: 461.0
+        y: 1282.0
+        w: 37.0
+        h: 21.0
+    - char_index: 157
+      glyph_id: page_003c0146
+      char: 德
+      box:
+        x: 461.0
+        y: 1311.0
+        w: 37.0
+        h: 31.0
+    - char_index: 180
+      glyph_id: page_003c0147
+      char: 宮
+      box:
+        x: 461.0
+        y: 1347.0
+        w: 37.0
+        h: 22.0
+- span_id: ss_sanche_ed01_p0003_s30
+  batch_id: sanche_b004
+  page: page_003
+  line_index: 29
+  start_offset: 177
+  end_offset: 181
+  text: 論妻妾宮
+  source_anchor:
+    page: page_003
+    image_sha256: 3c138fc9f32d2cfefe029d62dec2a9a0ce0f095c373af41a8a98f4c8f8afb268
+    line_id: page_003c0029
+    bbox:
+      x: 538.0
+      y: 1238.0
+      w: 37.0
+      h: 133.0
+    chars:
+    - char_index: 116
+      glyph_id: page_003c0148
+      char: 論
+      box:
+        x: 538.0
+        y: 1242.0
+        w: 37.0
+        h: 23.0
+    - char_index: 138
+      glyph_id: page_003c0149
+      char: 妻
+      box:
+        x: 538.0
+        y: 1276.0
+        w: 37.0
+        h: 25.0
+    - char_index: 158
+      glyph_id: page_003c0150
+      char: 妾
+      box:
+        x: 538.0
+        y: 1312.0
+        w: 37.0
+        h: 23.0
+    - char_index: 179
+      glyph_id: page_003c0151
+      char: 宮
+      box:
+        x: 538.0
+        y: 1346.0
+        w: 37.0
+        h: 21.0
+- span_id: ss_sanche_ed01_p0003_s31
+  batch_id: sanche_b005
+  page: page_003
+  line_index: 30
+  start_offset: 182
+  end_offset: 186
+  text: 論男女宮
+  source_anchor:
+    page: page_003
+    image_sha256: 3c138fc9f32d2cfefe029d62dec2a9a0ce0f095c373af41a8a98f4c8f8afb268
+    line_id: page_003c0030
+    bbox:
+      x: 580.0
+      y: 1238.0
+      w: 37.0
+      h: 132.0
+    chars:
+    - char_index: 123
+      glyph_id: page_003c0152
+      char: 論
+      box:
+        x: 580.0
+        y: 1245.0
+        w: 37.0
+        h: 21.0
+    - char_index: 139
+      glyph_id: page_003c0153
+      char: 男
+      box:
+        x: 580.0
+        y: 1276.0
+        w: 37.0
+        h: 25.0
+    - char_index: 159
+      glyph_id: page_003c0154
+      char: 女
+      box:
+        x: 580.0
+        y: 1312.0
+        w: 37.0
+        h: 20.0
+    - char_index: 177
+      glyph_id: page_003c0155
+      char: 宮
+      box:
+        x: 580.0
+        y: 1343.0
+        w: 37.0
+        h: 22.0
+- span_id: ss_sanche_ed01_p0003_s32
+  batch_id: sanche_b005
+  page: page_003
+  line_index: 31
+  start_offset: 187
+  end_offset: 191
+  text: 論身命宮
+  source_anchor:
+    page: page_003
+    image_sha256: 3c138fc9f32d2cfefe029d62dec2a9a0ce0f095c373af41a8a98f4c8f8afb268
+    line_id: page_003c0031
+    bbox:
+      x: 767.0
+      y: 1238.0
+      w: 34.0
+      h: 128.0
+    chars:
+    - char_index: 117
+      glyph_id: page_003c0156
+      char: 論
+      box:
+        x: 767.0
+        y: 1242.0
+        w: 34.0
+        h: 24.0
+    - char_index: 132
+      glyph_id: page_003c0157
+      char: 身
+      box:
+        x: 767.0
+        y: 1271.0
+        w: 34.0
+        h: 28.0
+    - char_index: 151
+      glyph_id: page_003c0158
+      char: 命
+      box:
+        x: 767.0
+        y: 1306.0
+        w: 34.0
+        h: 27.0
+    - char_index: 175
+      glyph_id: page_003c0159
+      char: 宮
+      box:
+        x: 767.0
+        y: 1341.0
+        w: 34.0
+        h: 20.0
+- span_id: ss_sanche_ed01_p0003_s33
+  batch_id: sanche_b005
+  page: page_003
+  line_index: 32
+  start_offset: 192
+  end_offset: 196
+  text: 定十二宮
+  source_anchor:
+    page: page_003
+    image_sha256: 3c138fc9f32d2cfefe029d62dec2a9a0ce0f095c373af41a8a98f4c8f8afb268
+    line_id: page_003c0032
+    bbox:
+      x: 846.0
+      y: 1238.0
+      w: 32.0
+      h: 126.0
+    chars:
+    - char_index: 118
+      glyph_id: page_003c0160
+      char: 定
+      box:
+        x: 846.0
+        y: 1242.0
+        w: 32.0
+        h: 25.0
+    - char_index: 140
+      glyph_id: page_003c0161
+      char: 十
+      box:
+        x: 846.0
+        y: 1278.0
+        w: 32.0
+        h: 17.0
+    - char_index: 160
+      glyph_id: page_003c0162
+      char: 二
+      box:
+        x: 846.0
+        y: 1312.0
+        w: 32.0
+        h: 10.0
+    - char_index: 167
+      glyph_id: page_003c0163
+      char: 宮
+      box:
+        x: 846.0
+        y: 1336.0
+        w: 32.0
+        h: 24.0
+- span_id: ss_sanche_ed01_p0003_s34
+  batch_id: sanche_b005
+  page: page_003
+  line_index: 33
+  start_offset: 197
+  end_offset: 204
+  text: 再論福德宮變格
+  source_anchor:
+    page: page_003
+    image_sha256: 3c138fc9f32d2cfefe029d62dec2a9a0ce0f095c373af41a8a98f4c8f8afb268
+    line_id: page_003c0033
+    bbox:
+      x: 423.0
+      y: 1239.0
+      w: 40.0
+      h: 229.0
+    chars:
+    - char_index: 125
+      glyph_id: page_003c0164
+      char: 再
+      box:
+        x: 423.0
+        y: 1246.0
+        w: 40.0
+        h: 22.0
+    - char_index: 143
+      glyph_id: page_003c0165
+      char: 論
+      box:
+        x: 423.0
+        y: 1280.0
+        w: 40.0
+        h: 21.0
+    - char_index: 162
+      glyph_id: page_003c0166
+      char: 福
+      box:
+        x: 423.0
+        y: 1314.0
+        w: 40.0
+        h: 24.0
+    - char_index: 176
+      glyph_id: page_003c0167
+      char: 德
+      box:
+        x: 423.0
+        y: 1343.0
+        w: 40.0
+        h: 23.0
+    - char_index: 186
+      glyph_id: page_003c0168
+      char: 宮
+      box:
+        x: 423.0
+        y: 1378.0
+        w: 40.0
+        h: 21.0
+    - char_index: 189
+      glyph_id: page_003c0169
+      char: 變
+      box:
+        x: 423.0
+        y: 1409.0
+        w: 40.0
+        h: 26.0
+    - char_index: 192
+      glyph_id: page_003c0170
+      char: 格
+      box:
+        x: 423.0
+        y: 1444.0
+        w: 40.0
+        h: 21.0
+- span_id: ss_sanche_ed01_p0003_s35
+  batch_id: sanche_b005
+  page: page_003
+  line_index: 34
+  start_offset: 205
+  end_offset: 209
+  text: 論兄弟宮
+  source_anchor:
+    page: page_003
+    image_sha256: 3c138fc9f32d2cfefe029d62dec2a9a0ce0f095c373af41a8a98f4c8f8afb268
+    line_id: page_003c0034
+    bbox:
+      x: 621.0
+      y: 1239.0
+      w: 34.0
+      h: 131.0
+    chars:
+    - char_index: 120
+      glyph_id: page_003c0171
+      char: 論
+      box:
+        x: 621.0
+        y: 1244.0
+        w: 34.0
+        h: 22.0
+    - char_index: 142
+      glyph_id: page_003c0172
+      char: 兄
+      box:
+        x: 621.0
+        y: 1279.0
+        w: 34.0
+        h: 20.0
+    - char_index: 153
+      glyph_id: page_003c0173
+      char: 弟
+      box:
+        x: 621.0
+        y: 1308.0
+        w: 34.0
+        h: 29.0
+    - char_index: 173
+      glyph_id: page_003c0174
+      char: 宮
+      box:
+        x: 621.0
+        y: 1341.0
+        w: 34.0
+        h: 25.0
+- span_id: ss_sanche_ed01_p0003_s36
+  batch_id: sanche_b005
+  page: page_003
+  line_index: 35
+  start_offset: 210
+  end_offset: 217
+  text: 論星曜同照命宮
+  source_anchor:
+    page: page_003
+    image_sha256: 3c138fc9f32d2cfefe029d62dec2a9a0ce0f095c373af41a8a98f4c8f8afb268
+    line_id: page_003c0035
+    bbox:
+      x: 698.0
+      y: 1239.0
+      w: 35.0
+      h: 223.0
+    chars:
+    - char_index: 121
+      glyph_id: page_003c0175
+      char: 論
+      box:
+        x: 698.0
+        y: 1244.0
+        w: 35.0
+        h: 21.0
+    - char_index: 134
+      glyph_id: page_003c0176
+      char: 星
+      box:
+        x: 698.0
+        y: 1272.0
+        w: 35.0
+        h: 23.0
+    - char_index: 156
+      glyph_id: page_003c0177
+      char: 曜
+      box:
+        x: 698.0
+        y: 1310.0
+        w: 35.0
+        h: 21.0
+    - char_index: 171
+      glyph_id: page_003c0178
+      char: 同
+      box:
+        x: 698.0
+        y: 1340.0
+        w: 35.0
+        h: 22.0
+    - char_index: 184
+      glyph_id: page_003c0179
+      char: 照
+      box:
+        x: 698.0
+        y: 1374.0
+        w: 35.0
+        h: 23.0
+    - char_index: 188
+      glyph_id: page_003c0180
+      char: 命
+      box:
+        x: 698.0
+        y: 1406.0
+        w: 35.0
+        h: 27.0
+    - char_index: 191
+      glyph_id: page_003c0181
+      char: 宮
+      box:
+        x: 698.0
+        y: 1438.0
+        w: 35.0
+        h: 22.0
+- span_id: ss_sanche_ed01_p0003_s37
+  batch_id: sanche_b005
+  page: page_003
+  line_index: 36
+  start_offset: 218
+  end_offset: 222
+  text: 論遷移宮
+  source_anchor:
+    page: page_003
+    image_sha256: 3c138fc9f32d2cfefe029d62dec2a9a0ce0f095c373af41a8a98f4c8f8afb268
+    line_id: page_003c0036
+    bbox:
+      x: 503.0
+      y: 1240.0
+      w: 34.0
+      h: 132.0
+    chars:
+    - char_index: 122
+      glyph_id: page_003c0182
+      char: 論
+      box:
+        x: 503.0
+        y: 1245.0
+        w: 34.0
+        h: 22.0
+    - char_index: 141
+      glyph_id: page_003c0183
+      char: 遷
+      box:
+        x: 503.0
+        y: 1279.0
+        w: 34.0
+        h: 23.0
+    - char_index: 163
+      glyph_id: page_003c0184
+      char: 移
+      box:
+        x: 503.0
+        y: 1314.0
+        w: 34.0
+        h: 21.0
+    - char_index: 178
+      glyph_id: page_003c0185
+      char: 宮
+      box:
+        x: 503.0
+        y: 1345.0
+        w: 34.0
+        h: 22.0
+- span_id: ss_sanche_ed01_p0003_s38
+  batch_id: sanche_b005
+  page: page_003
+  line_index: 37
+  start_offset: 223
+  end_offset: 227
+  text: 定胎元宮
+  source_anchor:
+    page: page_003
+    image_sha256: 3c138fc9f32d2cfefe029d62dec2a9a0ce0f095c373af41a8a98f4c8f8afb268
+    line_id: page_003c0037
+    bbox:
+      x: 345.0
+      y: 1241.0
+      w: 34.0
+      h: 133.0
+    chars:
+    - char_index: 126
+      glyph_id: page_003c0186
+      char: 定
+      box:
+        x: 345.0
+        y: 1247.0
+        w: 34.0
+        h: 23.0
+    - char_index: 144
+      glyph_id: page_003c0187
+      char: 胎
+      box:
+        x: 345.0
+        y: 1282.0
+        w: 34.0
+        h: 21.0
+    - char_index: 164
+      glyph_id: page_003c0188
+      char: 元
+      box:
+        x: 345.0
+        y: 1316.0
+        w: 34.0
+        h: 21.0
+    - char_index: 181
+      glyph_id: page_003c0189
+      char: 宮
+      box:
+        x: 345.0
+        y: 1348.0
+        w: 34.0
+        h: 23.0
+- span_id: ss_sanche_ed01_p0003_s39
+  batch_id: sanche_b005
+  page: page_003
+  line_index: 38
+  start_offset: 228
+  end_offset: 231
+  text: 四七九
+  source_anchor:
+    page: page_003
+    image_sha256: 3c138fc9f32d2cfefe029d62dec2a9a0ce0f095c373af41a8a98f4c8f8afb268
+    line_id: page_003c0038
+    bbox:
+      x: 259.0
+      y: 1251.0
+      w: 38.0
+      h: 88.0
+    chars:
+    - char_index: 128
+      glyph_id: page_003c0190
+      char: 四
+      box:
+        x: 259.0
+        y: 1258.0
+        w: 38.0
+        h: 17.0
+    - char_index: 146
+      glyph_id: page_003c0191
+      char: 七
+      box:
+        x: 259.0
+        y: 1287.0
+        w: 38.0
+        h: 20.0
+    - char_index: 161
+      glyph_id: page_003c0192
+      char: 九
+      box:
+        x: 259.0
+        y: 1314.0
+        w: 38.0
+        h: 21.0

@@ -1,0 +1,5742 @@
+{
+  "page": "page_003",
+  "book": null,
+  "image": "data_work/sanche_pages/page_003.png",
+  "width": 1203,
+  "height": 1654,
+  "lines": [
+    {
+      "id": "page_003c0000",
+      "box": {
+        "x": 750.0,
+        "y": 284.0,
+        "w": 68.0,
+        "h": 220.0
+      },
+      "level": "line",
+      "parent": null,
+      "text": "三辰通載",
+      "children": [],
+      "conf": 0.9985626339912415,
+      "angle": 0.0,
+      "extra": {
+        "band": 0
+      }
+    },
+    {
+      "id": "page_003c0001",
+      "box": {
+        "x": 1019.0,
+        "y": 632.0,
+        "w": 33.0,
+        "h": 15.0
+      },
+      "level": "line",
+      "parent": null,
+      "text": "106",
+      "children": [],
+      "conf": 0.9735517501831055,
+      "angle": 0.0,
+      "extra": {
+        "band": 1
+      }
+    },
+    {
+      "id": "page_003c0002",
+      "box": {
+        "x": 1112.0,
+        "y": 908.0,
+        "w": 36.0,
+        "h": 193.0
+      },
+      "level": "line",
+      "parent": null,
+      "text": "三辰通載目錄",
+      "children": [],
+      "conf": 0.9967125058174133,
+      "angle": 0.0,
+      "extra": {
+        "band": 2
+      }
+    },
+    {
+      "id": "page_003c0003",
+      "box": {
+        "x": 1074.0,
+        "y": 936.0,
+        "w": 34.0,
+        "h": 99.0
+      },
+      "level": "line",
+      "parent": null,
+      "text": "卷第一",
+      "children": [],
+      "conf": 0.9997208714485168,
+      "angle": 0.0,
+      "extra": {
+        "band": 2
+      }
+    },
+    {
+      "id": "page_003c0004",
+      "box": {
+        "x": 998.0,
+        "y": 1000.0,
+        "w": 37.0,
+        "h": 133.0
+      },
+      "level": "line",
+      "parent": null,
+      "text": "貴格之圗",
+      "children": [],
+      "conf": 0.8866560459136963,
+      "angle": 0.0,
+      "extra": {
+        "band": 2
+      }
+    },
+    {
+      "id": "page_003c0005",
+      "box": {
+        "x": 959.0,
+        "y": 1004.0,
+        "w": 37.0,
+        "h": 360.0
+      },
+      "level": "line",
+      "parent": null,
+      "text": "周天黃道二十八宿求度數",
+      "children": [],
+      "conf": 0.9984132647514343,
+      "angle": 0.0,
+      "extra": {
+        "band": 2
+      }
+    },
+    {
+      "id": "page_003c0006",
+      "box": {
+        "x": 1038.0,
+        "y": 1004.0,
+        "w": 31.0,
+        "h": 129.0
+      },
+      "level": "line",
+      "parent": null,
+      "text": "星宮分野",
+      "children": [],
+      "conf": 0.9443613290786743,
+      "angle": 0.0,
+      "extra": {
+        "band": 2
+      }
+    },
+    {
+      "id": "page_003c0007",
+      "box": {
+        "x": 921.0,
+        "y": 1006.0,
+        "w": 34.0,
+        "h": 203.0
+      },
+      "level": "line",
+      "parent": null,
+      "text": "七政旺宮星度",
+      "children": [],
+      "conf": 0.9879977703094482,
+      "angle": 0.0,
+      "extra": {
+        "band": 2
+      }
+    },
+    {
+      "id": "page_003c0008",
+      "box": {
+        "x": 841.0,
+        "y": 1007.0,
+        "w": 37.0,
+        "h": 196.0
+      },
+      "level": "line",
+      "parent": null,
+      "text": "六曜配屬五行",
+      "children": [],
+      "conf": 0.9998320937156677,
+      "angle": 0.0,
+      "extra": {
+        "band": 2
+      }
+    },
+    {
+      "id": "page_003c0009",
+      "box": {
+        "x": 882.0,
+        "y": 1007.0,
+        "w": 32.0,
+        "h": 127.0
+      },
+      "level": "line",
+      "parent": null,
+      "text": "星曜宮",
+      "children": [],
+      "conf": 0.9661970138549805,
+      "angle": 0.0,
+      "extra": {
+        "band": 2
+      }
+    },
+    {
+      "id": "page_003c0010",
+      "box": {
+        "x": 803.0,
+        "y": 1009.0,
+        "w": 36.0,
+        "h": 193.0
+      },
+      "level": "line",
+      "parent": null,
+      "text": "論十二位高下",
+      "children": [],
+      "conf": 0.9730994701385498,
+      "angle": 0.0,
+      "extra": {
+        "band": 2
+      }
+    },
+    {
+      "id": "page_003c0011",
+      "box": {
+        "x": 767.0,
+        "y": 1011.0,
+        "w": 30.0,
+        "h": 158.0
+      },
+      "level": "line",
+      "parent": null,
+      "text": "論身宮主星",
+      "children": [],
+      "conf": 0.9954475164413452,
+      "angle": 0.0,
+      "extra": {
+        "band": 2
+      }
+    },
+    {
+      "id": "page_003c0012",
+      "box": {
+        "x": 655.0,
+        "y": 1013.0,
+        "w": 41.0,
+        "h": 449.0
+      },
+      "level": "line",
+      "parent": null,
+      "text": "論星曜合照命宮論星曜對照命宮",
+      "children": [],
+      "conf": 0.9972831606864929,
+      "angle": 0.0,
+      "extra": {
+        "band": 2
+      }
+    },
+    {
+      "id": "page_003c0013",
+      "box": {
+        "x": 536.0,
+        "y": 1014.0,
+        "w": 35.0,
+        "h": 127.0
+      },
+      "level": "line",
+      "parent": null,
+      "text": "論奴僕宮",
+      "children": [],
+      "conf": 0.8711479902267456,
+      "angle": 0.0,
+      "extra": {
+        "band": 2
+      }
+    },
+    {
+      "id": "page_003c0014",
+      "box": {
+        "x": 694.0,
+        "y": 1014.0,
+        "w": 31.0,
+        "h": 152.0
+      },
+      "level": "line",
+      "parent": null,
+      "text": "論身命二主",
+      "children": [],
+      "conf": 0.997114360332489,
+      "angle": 0.0,
+      "extra": {
+        "band": 2
+      }
+    },
+    {
+      "id": "page_003c0015",
+      "box": {
+        "x": 339.0,
+        "y": 1015.0,
+        "w": 37.0,
+        "h": 127.0
+      },
+      "level": "line",
+      "parent": null,
+      "text": "定三日宮",
+      "children": [],
+      "conf": 0.9422045350074768,
+      "angle": 0.0,
+      "extra": {
+        "band": 2
+      }
+    },
+    {
+      "id": "page_003c0016",
+      "box": {
+        "x": 382.0,
+        "y": 1015.0,
+        "w": 38.0,
+        "h": 257.0
+      },
+      "level": "line",
+      "parent": null,
+      "text": "再論相貌奴僕兩位",
+      "children": [],
+      "conf": 0.9985913038253784,
+      "angle": 0.0,
+      "extra": {
+        "band": 2
+      }
+    },
+    {
+      "id": "page_003c0017",
+      "box": {
+        "x": 420.0,
+        "y": 1015.0,
+        "w": 37.0,
+        "h": 126.0
+      },
+      "level": "line",
+      "parent": null,
+      "text": "論相貌宮",
+      "children": [],
+      "conf": 0.9936614036560059,
+      "angle": 0.0,
+      "extra": {
+        "band": 2
+      }
+    },
+    {
+      "id": "page_003c0018",
+      "box": {
+        "x": 462.0,
+        "y": 1015.0,
+        "w": 32.0,
+        "h": 125.0
+      },
+      "level": "line",
+      "parent": null,
+      "text": "論官祿宮",
+      "children": [],
+      "conf": 0.9522094130516052,
+      "angle": 0.0,
+      "extra": {
+        "band": 2
+      }
+    },
+    {
+      "id": "page_003c0019",
+      "box": {
+        "x": 500.0,
+        "y": 1015.0,
+        "w": 34.0,
+        "h": 125.0
+      },
+      "level": "line",
+      "parent": null,
+      "text": "論疾厄宮",
+      "children": [],
+      "conf": 0.9081424474716187,
+      "angle": 0.0,
+      "extra": {
+        "band": 2
+      }
+    },
+    {
+      "id": "page_003c0020",
+      "box": {
+        "x": 578.0,
+        "y": 1015.0,
+        "w": 34.0,
+        "h": 124.0
+      },
+      "level": "line",
+      "parent": null,
+      "text": "論田宅宮",
+      "children": [],
+      "conf": 0.9941209554672241,
+      "angle": 0.0,
+      "extra": {
+        "band": 2
+      }
+    },
+    {
+      "id": "page_003c0021",
+      "box": {
+        "x": 619.0,
+        "y": 1015.0,
+        "w": 31.0,
+        "h": 123.0
+      },
+      "level": "line",
+      "parent": null,
+      "text": "論財帛宮",
+      "children": [],
+      "conf": 0.9928050637245178,
+      "angle": 0.0,
+      "extra": {
+        "band": 2
+      }
+    },
+    {
+      "id": "page_003c0022",
+      "box": {
+        "x": 733.0,
+        "y": 1087.0,
+        "w": 24.0,
+        "h": 113.0
+      },
+      "level": "line",
+      "parent": null,
+      "text": "三辰通載目錄",
+      "children": [],
+      "conf": 0.6793333888053894,
+      "angle": 0.0,
+      "extra": {
+        "band": 2
+      }
+    },
+    {
+      "id": "page_003c0023",
+      "box": {
+        "x": 922.0,
+        "y": 1229.0,
+        "w": 38.0,
+        "h": 169.0
+      },
+      "level": "line",
+      "parent": null,
+      "text": "論廟旺克忌",
+      "children": [],
+      "conf": 0.99894779920578,
+      "angle": 0.0,
+      "extra": {
+        "band": 2
+      }
+    },
+    {
+      "id": "page_003c0024",
+      "box": {
+        "x": 1001.0,
+        "y": 1230.0,
+        "w": 35.0,
+        "h": 132.0
+      },
+      "level": "line",
+      "parent": null,
+      "text": "賤格之圖",
+      "children": [],
+      "conf": 0.9270172715187073,
+      "angle": 0.0,
+      "extra": {
+        "band": 2
+      }
+    },
+    {
+      "id": "page_003c0025",
+      "box": {
+        "x": 1038.0,
+        "y": 1232.0,
+        "w": 34.0,
+        "h": 130.0
+      },
+      "level": "line",
+      "parent": null,
+      "text": "躔度廟格",
+      "children": [],
+      "conf": 0.9979951977729797,
+      "angle": 0.0,
+      "extra": {
+        "band": 2
+      }
+    },
+    {
+      "id": "page_003c0026",
+      "box": {
+        "x": 882.0,
+        "y": 1235.0,
+        "w": 36.0,
+        "h": 127.0
+      },
+      "level": "line",
+      "parent": null,
+      "text": "星曜怒宮",
+      "children": [],
+      "conf": 0.9260336756706238,
+      "angle": 0.0,
+      "extra": {
+        "band": 2
+      }
+    },
+    {
+      "id": "page_003c0027",
+      "box": {
+        "x": 805.0,
+        "y": 1237.0,
+        "w": 34.0,
+        "h": 158.0
+      },
+      "level": "line",
+      "parent": null,
+      "text": "論星宮主星",
+      "children": [],
+      "conf": 0.9969663619995117,
+      "angle": 0.0,
+      "extra": {
+        "band": 2
+      }
+    },
+    {
+      "id": "page_003c0028",
+      "box": {
+        "x": 461.0,
+        "y": 1238.0,
+        "w": 37.0,
+        "h": 135.0
+      },
+      "level": "line",
+      "parent": null,
+      "text": "論福德宮",
+      "children": [],
+      "conf": 0.9968617558479309,
+      "angle": 0.0,
+      "extra": {
+        "band": 2
+      }
+    },
+    {
+      "id": "page_003c0029",
+      "box": {
+        "x": 538.0,
+        "y": 1238.0,
+        "w": 37.0,
+        "h": 133.0
+      },
+      "level": "line",
+      "parent": null,
+      "text": "論妻妾宮",
+      "children": [],
+      "conf": 0.8839936256408691,
+      "angle": 0.0,
+      "extra": {
+        "band": 2
+      }
+    },
+    {
+      "id": "page_003c0030",
+      "box": {
+        "x": 580.0,
+        "y": 1238.0,
+        "w": 37.0,
+        "h": 132.0
+      },
+      "level": "line",
+      "parent": null,
+      "text": "論男女宮",
+      "children": [],
+      "conf": 0.9917827844619751,
+      "angle": 0.0,
+      "extra": {
+        "band": 2
+      }
+    },
+    {
+      "id": "page_003c0031",
+      "box": {
+        "x": 767.0,
+        "y": 1238.0,
+        "w": 34.0,
+        "h": 128.0
+      },
+      "level": "line",
+      "parent": null,
+      "text": "論身命宮",
+      "children": [],
+      "conf": 0.9875489473342896,
+      "angle": 0.0,
+      "extra": {
+        "band": 2
+      }
+    },
+    {
+      "id": "page_003c0032",
+      "box": {
+        "x": 846.0,
+        "y": 1238.0,
+        "w": 32.0,
+        "h": 126.0
+      },
+      "level": "line",
+      "parent": null,
+      "text": "定十二宮",
+      "children": [],
+      "conf": 0.9192119240760803,
+      "angle": 0.0,
+      "extra": {
+        "band": 2
+      }
+    },
+    {
+      "id": "page_003c0033",
+      "box": {
+        "x": 423.0,
+        "y": 1239.0,
+        "w": 40.0,
+        "h": 229.0
+      },
+      "level": "line",
+      "parent": null,
+      "text": "再論福德宮變格",
+      "children": [],
+      "conf": 0.9949971437454224,
+      "angle": 0.0,
+      "extra": {
+        "band": 2
+      }
+    },
+    {
+      "id": "page_003c0034",
+      "box": {
+        "x": 621.0,
+        "y": 1239.0,
+        "w": 34.0,
+        "h": 131.0
+      },
+      "level": "line",
+      "parent": null,
+      "text": "論兄弟宮",
+      "children": [],
+      "conf": 0.9822814464569092,
+      "angle": 0.0,
+      "extra": {
+        "band": 2
+      }
+    },
+    {
+      "id": "page_003c0035",
+      "box": {
+        "x": 698.0,
+        "y": 1239.0,
+        "w": 35.0,
+        "h": 223.0
+      },
+      "level": "line",
+      "parent": null,
+      "text": "論星曜同照命宮",
+      "children": [],
+      "conf": 0.9944378733634949,
+      "angle": 0.0,
+      "extra": {
+        "band": 2
+      }
+    },
+    {
+      "id": "page_003c0036",
+      "box": {
+        "x": 503.0,
+        "y": 1240.0,
+        "w": 34.0,
+        "h": 132.0
+      },
+      "level": "line",
+      "parent": null,
+      "text": "論遷移宮",
+      "children": [],
+      "conf": 0.9071851968765259,
+      "angle": 0.0,
+      "extra": {
+        "band": 2
+      }
+    },
+    {
+      "id": "page_003c0037",
+      "box": {
+        "x": 345.0,
+        "y": 1241.0,
+        "w": 34.0,
+        "h": 133.0
+      },
+      "level": "line",
+      "parent": null,
+      "text": "定胎元宮",
+      "children": [],
+      "conf": 0.9682979583740234,
+      "angle": 0.0,
+      "extra": {
+        "band": 2
+      }
+    },
+    {
+      "id": "page_003c0038",
+      "box": {
+        "x": 259.0,
+        "y": 1251.0,
+        "w": 38.0,
+        "h": 88.0
+      },
+      "level": "line",
+      "parent": null,
+      "text": "四七九",
+      "children": [],
+      "conf": 0.9999240040779114,
+      "angle": 0.0,
+      "extra": {
+        "band": 2
+      }
+    }
+  ],
+  "chars": [
+    {
+      "id": "page_003c0000",
+      "box": {
+        "x": 750.0,
+        "y": 293.0,
+        "w": 68.0,
+        "h": 34.0
+      },
+      "level": "char",
+      "parent": "page_003c0000",
+      "angle": 0.0,
+      "char": "三",
+      "orig_char": "三",
+      "conf": 0.9985626339912415,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 0,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0001",
+      "box": {
+        "x": 750.0,
+        "y": 346.0,
+        "w": 68.0,
+        "h": 40.0
+      },
+      "level": "char",
+      "parent": "page_003c0000",
+      "angle": 0.0,
+      "char": "辰",
+      "orig_char": "辰",
+      "conf": 0.9985626339912415,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 0,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0002",
+      "box": {
+        "x": 750.0,
+        "y": 399.0,
+        "w": 68.0,
+        "h": 43.0
+      },
+      "level": "char",
+      "parent": "page_003c0000",
+      "angle": 0.0,
+      "char": "通",
+      "orig_char": "通",
+      "conf": 0.9985626339912415,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 0,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0003",
+      "box": {
+        "x": 750.0,
+        "y": 452.0,
+        "w": 68.0,
+        "h": 45.0
+      },
+      "level": "char",
+      "parent": "page_003c0000",
+      "angle": 0.0,
+      "char": "載",
+      "orig_char": "載",
+      "conf": 0.9985626339912415,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 0,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0004",
+      "box": {
+        "x": 1022.0,
+        "y": 632.0,
+        "w": 8.0,
+        "h": 8.0
+      },
+      "level": "char",
+      "parent": "page_003c0001",
+      "angle": 0.0,
+      "char": "1",
+      "orig_char": "1",
+      "conf": 0.9735517501831055,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 1,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0005",
+      "box": {
+        "x": 1031.0,
+        "y": 632.0,
+        "w": 10.5,
+        "h": 21.0
+      },
+      "level": "char",
+      "parent": "page_003c0001",
+      "angle": 0.0,
+      "char": "0",
+      "orig_char": "0",
+      "conf": 0.9735517501831055,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 1,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0006",
+      "box": {
+        "x": 1041.5,
+        "y": 632.0,
+        "w": 10.5,
+        "h": 21.0
+      },
+      "level": "char",
+      "parent": "page_003c0001",
+      "angle": 0.0,
+      "char": "6",
+      "orig_char": "6",
+      "conf": 0.9735517501831055,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 1,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0007",
+      "box": {
+        "x": 1112.0,
+        "y": 913.0,
+        "w": 36.0,
+        "h": 3.0
+      },
+      "level": "char",
+      "parent": "page_003c0002",
+      "angle": 0.0,
+      "char": "三",
+      "orig_char": "三",
+      "conf": 0.9967125058174133,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0008",
+      "box": {
+        "x": 1112.0,
+        "y": 920.0,
+        "w": 36.0,
+        "h": 10.0
+      },
+      "level": "char",
+      "parent": "page_003c0002",
+      "angle": 0.0,
+      "char": "辰",
+      "orig_char": "辰",
+      "conf": 0.9967125058174133,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0013",
+      "box": {
+        "x": 1074.0,
+        "y": 941.0,
+        "w": 34.0,
+        "h": 27.0
+      },
+      "level": "char",
+      "parent": "page_003c0003",
+      "angle": 0.0,
+      "char": "卷",
+      "orig_char": "卷",
+      "conf": 0.9997208714485168,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0009",
+      "box": {
+        "x": 1112.0,
+        "y": 944.0,
+        "w": 36.0,
+        "h": 24.0
+      },
+      "level": "char",
+      "parent": "page_003c0002",
+      "angle": 0.0,
+      "char": "通",
+      "orig_char": "通",
+      "conf": 0.9967125058174133,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0014",
+      "box": {
+        "x": 1074.0,
+        "y": 975.0,
+        "w": 34.0,
+        "h": 31.0
+      },
+      "level": "char",
+      "parent": "page_003c0003",
+      "angle": 0.0,
+      "char": "第",
+      "orig_char": "第",
+      "conf": 0.9997208714485168,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0010",
+      "box": {
+        "x": 1112.0,
+        "y": 976.0,
+        "w": 36.0,
+        "h": 60.0
+      },
+      "level": "char",
+      "parent": "page_003c0002",
+      "angle": 0.0,
+      "char": "載",
+      "orig_char": "載",
+      "conf": 0.9967125058174133,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0016",
+      "box": {
+        "x": 998.0,
+        "y": 1004.0,
+        "w": 37.0,
+        "h": 32.0
+      },
+      "level": "char",
+      "parent": "page_003c0004",
+      "angle": 0.0,
+      "char": "貴",
+      "orig_char": "貴",
+      "conf": 0.8866560459136963,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0020",
+      "box": {
+        "x": 959.0,
+        "y": 1008.0,
+        "w": 37.0,
+        "h": 27.0
+      },
+      "level": "char",
+      "parent": "page_003c0005",
+      "angle": 0.0,
+      "char": "周",
+      "orig_char": "周",
+      "conf": 0.9984132647514343,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0031",
+      "box": {
+        "x": 1038.0,
+        "y": 1008.0,
+        "w": 31.0,
+        "h": 23.0
+      },
+      "level": "char",
+      "parent": "page_003c0006",
+      "angle": 0.0,
+      "char": "星",
+      "orig_char": "星",
+      "conf": 0.9443613290786743,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0047",
+      "box": {
+        "x": 882.0,
+        "y": 1010.0,
+        "w": 32.0,
+        "h": 24.0
+      },
+      "level": "char",
+      "parent": "page_003c0009",
+      "angle": 0.0,
+      "char": "星",
+      "orig_char": "星",
+      "conf": 0.9661970138549805,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0035",
+      "box": {
+        "x": 921.0,
+        "y": 1011.0,
+        "w": 34.0,
+        "h": 16.0
+      },
+      "level": "char",
+      "parent": "page_003c0007",
+      "angle": 0.0,
+      "char": "七",
+      "orig_char": "七",
+      "conf": 0.9879977703094482,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0050",
+      "box": {
+        "x": 803.0,
+        "y": 1013.0,
+        "w": 36.0,
+        "h": 23.0
+      },
+      "level": "char",
+      "parent": "page_003c0010",
+      "angle": 0.0,
+      "char": "論",
+      "orig_char": "論",
+      "conf": 0.9730994701385498,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0041",
+      "box": {
+        "x": 841.0,
+        "y": 1013.0,
+        "w": 37.0,
+        "h": 17.0
+      },
+      "level": "char",
+      "parent": "page_003c0008",
+      "angle": 0.0,
+      "char": "六",
+      "orig_char": "六",
+      "conf": 0.9998320937156677,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0056",
+      "box": {
+        "x": 767.0,
+        "y": 1014.0,
+        "w": 30.0,
+        "h": 23.0
+      },
+      "level": "char",
+      "parent": "page_003c0011",
+      "angle": 0.0,
+      "char": "論",
+      "orig_char": "論",
+      "conf": 0.9954475164413452,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0061",
+      "box": {
+        "x": 655.0,
+        "y": 1017.0,
+        "w": 41.0,
+        "h": 22.0
+      },
+      "level": "char",
+      "parent": "page_003c0012",
+      "angle": 0.0,
+      "char": "論",
+      "orig_char": "論",
+      "conf": 0.9972831606864929,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0079",
+      "box": {
+        "x": 694.0,
+        "y": 1017.0,
+        "w": 31.0,
+        "h": 22.0
+      },
+      "level": "char",
+      "parent": "page_003c0014",
+      "angle": 0.0,
+      "char": "論",
+      "orig_char": "論",
+      "conf": 0.997114360332489,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0100",
+      "box": {
+        "x": 462.0,
+        "y": 1018.0,
+        "w": 32.0,
+        "h": 24.0
+      },
+      "level": "char",
+      "parent": "page_003c0018",
+      "angle": 0.0,
+      "char": "論",
+      "orig_char": "論",
+      "conf": 0.9522094130516052,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0075",
+      "box": {
+        "x": 536.0,
+        "y": 1018.0,
+        "w": 35.0,
+        "h": 22.0
+      },
+      "level": "char",
+      "parent": "page_003c0013",
+      "angle": 0.0,
+      "char": "論",
+      "orig_char": "論",
+      "conf": 0.8711479902267456,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0112",
+      "box": {
+        "x": 619.0,
+        "y": 1018.0,
+        "w": 31.0,
+        "h": 23.0
+      },
+      "level": "char",
+      "parent": "page_003c0021",
+      "angle": 0.0,
+      "char": "論",
+      "orig_char": "論",
+      "conf": 0.9928050637245178,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0015",
+      "box": {
+        "x": 1074.0,
+        "y": 1018.0,
+        "w": 34.0,
+        "h": 4.0
+      },
+      "level": "char",
+      "parent": "page_003c0003",
+      "angle": 0.0,
+      "char": "一",
+      "orig_char": "一",
+      "conf": 0.9997208714485168,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0088",
+      "box": {
+        "x": 382.0,
+        "y": 1019.0,
+        "w": 38.0,
+        "h": 23.0
+      },
+      "level": "char",
+      "parent": "page_003c0016",
+      "angle": 0.0,
+      "char": "再",
+      "orig_char": "再",
+      "conf": 0.9985913038253784,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0104",
+      "box": {
+        "x": 500.0,
+        "y": 1019.0,
+        "w": 34.0,
+        "h": 21.0
+      },
+      "level": "char",
+      "parent": "page_003c0019",
+      "angle": 0.0,
+      "char": "論",
+      "orig_char": "論",
+      "conf": 0.9081424474716187,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0108",
+      "box": {
+        "x": 578.0,
+        "y": 1019.0,
+        "w": 34.0,
+        "h": 22.0
+      },
+      "level": "char",
+      "parent": "page_003c0020",
+      "angle": 0.0,
+      "char": "論",
+      "orig_char": "論",
+      "conf": 0.9941209554672241,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0084",
+      "box": {
+        "x": 339.0,
+        "y": 1020.0,
+        "w": 37.0,
+        "h": 24.0
+      },
+      "level": "char",
+      "parent": "page_003c0015",
+      "angle": 0.0,
+      "char": "定",
+      "orig_char": "定",
+      "conf": 0.9422045350074768,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0096",
+      "box": {
+        "x": 420.0,
+        "y": 1020.0,
+        "w": 37.0,
+        "h": 23.0
+      },
+      "level": "char",
+      "parent": "page_003c0017",
+      "angle": 0.0,
+      "char": "論",
+      "orig_char": "論",
+      "conf": 0.9936614036560059,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0032",
+      "box": {
+        "x": 1038.0,
+        "y": 1040.0,
+        "w": 31.0,
+        "h": 22.0
+      },
+      "level": "char",
+      "parent": "page_003c0006",
+      "angle": 0.0,
+      "char": "宮",
+      "orig_char": "宮",
+      "conf": 0.9443613290786743,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0011",
+      "box": {
+        "x": 1112.0,
+        "y": 1040.0,
+        "w": 36.0,
+        "h": 22.0
+      },
+      "level": "char",
+      "parent": "page_003c0002",
+      "angle": 0.0,
+      "char": "目",
+      "orig_char": "目",
+      "conf": 0.9967125058174133,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0017",
+      "box": {
+        "x": 998.0,
+        "y": 1041.0,
+        "w": 37.0,
+        "h": 26.0
+      },
+      "level": "char",
+      "parent": "page_003c0004",
+      "angle": 0.0,
+      "char": "格",
+      "orig_char": "格",
+      "conf": 0.8866560459136963,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0036",
+      "box": {
+        "x": 921.0,
+        "y": 1043.0,
+        "w": 34.0,
+        "h": 23.0
+      },
+      "level": "char",
+      "parent": "page_003c0007",
+      "angle": 0.0,
+      "char": "政",
+      "orig_char": "政",
+      "conf": 0.9879977703094482,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0057",
+      "box": {
+        "x": 767.0,
+        "y": 1044.0,
+        "w": 30.0,
+        "h": 27.0
+      },
+      "level": "char",
+      "parent": "page_003c0011",
+      "angle": 0.0,
+      "char": "身",
+      "orig_char": "身",
+      "conf": 0.9954475164413452,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0048",
+      "box": {
+        "x": 882.0,
+        "y": 1044.0,
+        "w": 32.0,
+        "h": 57.0
+      },
+      "level": "char",
+      "parent": "page_003c0009",
+      "angle": 0.0,
+      "char": "曜",
+      "orig_char": "曜",
+      "conf": 0.9661970138549805,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0021",
+      "box": {
+        "x": 959.0,
+        "y": 1044.0,
+        "w": 37.0,
+        "h": 21.0
+      },
+      "level": "char",
+      "parent": "page_003c0005",
+      "angle": 0.0,
+      "char": "天",
+      "orig_char": "天",
+      "conf": 0.9984132647514343,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0042",
+      "box": {
+        "x": 841.0,
+        "y": 1045.0,
+        "w": 37.0,
+        "h": 22.0
+      },
+      "level": "char",
+      "parent": "page_003c0008",
+      "angle": 0.0,
+      "char": "曜",
+      "orig_char": "曜",
+      "conf": 0.9998320937156677,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0080",
+      "box": {
+        "x": 694.0,
+        "y": 1046.0,
+        "w": 31.0,
+        "h": 30.0
+      },
+      "level": "char",
+      "parent": "page_003c0014",
+      "angle": 0.0,
+      "char": "身",
+      "orig_char": "身",
+      "conf": 0.997114360332489,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0062",
+      "box": {
+        "x": 655.0,
+        "y": 1048.0,
+        "w": 41.0,
+        "h": 22.0
+      },
+      "level": "char",
+      "parent": "page_003c0012",
+      "angle": 0.0,
+      "char": "星",
+      "orig_char": "星",
+      "conf": 0.9972831606864929,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0051",
+      "box": {
+        "x": 803.0,
+        "y": 1048.0,
+        "w": 36.0,
+        "h": 18.0
+      },
+      "level": "char",
+      "parent": "page_003c0010",
+      "angle": 0.0,
+      "char": "十",
+      "orig_char": "十",
+      "conf": 0.9730994701385498,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0113",
+      "box": {
+        "x": 619.0,
+        "y": 1049.0,
+        "w": 31.0,
+        "h": 22.0
+      },
+      "level": "char",
+      "parent": "page_003c0021",
+      "angle": 0.0,
+      "char": "財",
+      "orig_char": "財",
+      "conf": 0.9928050637245178,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0101",
+      "box": {
+        "x": 462.0,
+        "y": 1051.0,
+        "w": 32.0,
+        "h": 22.0
+      },
+      "level": "char",
+      "parent": "page_003c0018",
+      "angle": 0.0,
+      "char": "官",
+      "orig_char": "官",
+      "conf": 0.9522094130516052,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0105",
+      "box": {
+        "x": 500.0,
+        "y": 1051.0,
+        "w": 34.0,
+        "h": 23.0
+      },
+      "level": "char",
+      "parent": "page_003c0019",
+      "angle": 0.0,
+      "char": "疾",
+      "orig_char": "疾",
+      "conf": 0.9081424474716187,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0089",
+      "box": {
+        "x": 382.0,
+        "y": 1052.0,
+        "w": 38.0,
+        "h": 24.0
+      },
+      "level": "char",
+      "parent": "page_003c0016",
+      "angle": 0.0,
+      "char": "論",
+      "orig_char": "論",
+      "conf": 0.9985913038253784,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0097",
+      "box": {
+        "x": 420.0,
+        "y": 1052.0,
+        "w": 37.0,
+        "h": 21.0
+      },
+      "level": "char",
+      "parent": "page_003c0017",
+      "angle": 0.0,
+      "char": "相",
+      "orig_char": "相",
+      "conf": 0.9936614036560059,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0076",
+      "box": {
+        "x": 536.0,
+        "y": 1052.0,
+        "w": 35.0,
+        "h": 18.0
+      },
+      "level": "char",
+      "parent": "page_003c0013",
+      "angle": 0.0,
+      "char": "奴",
+      "orig_char": "奴",
+      "conf": 0.8711479902267456,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0109",
+      "box": {
+        "x": 578.0,
+        "y": 1054.0,
+        "w": 34.0,
+        "h": 15.0
+      },
+      "level": "char",
+      "parent": "page_003c0020",
+      "angle": 0.0,
+      "char": "田",
+      "orig_char": "田",
+      "conf": 0.9941209554672241,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0085",
+      "box": {
+        "x": 339.0,
+        "y": 1057.0,
+        "w": 37.0,
+        "h": 14.0
+      },
+      "level": "char",
+      "parent": "page_003c0015",
+      "angle": 0.0,
+      "char": "三",
+      "orig_char": "三",
+      "conf": 0.9422045350074768,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0012",
+      "box": {
+        "x": 1112.0,
+        "y": 1066.0,
+        "w": 36.0,
+        "h": 32.0
+      },
+      "level": "char",
+      "parent": "page_003c0002",
+      "angle": 0.0,
+      "char": "錄",
+      "orig_char": "錄",
+      "conf": 0.9967125058174133,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0022",
+      "box": {
+        "x": 959.0,
+        "y": 1074.0,
+        "w": 37.0,
+        "h": 27.0
+      },
+      "level": "char",
+      "parent": "page_003c0005",
+      "angle": 0.0,
+      "char": "黃",
+      "orig_char": "黃",
+      "conf": 0.9984132647514343,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0018",
+      "box": {
+        "x": 998.0,
+        "y": 1075.0,
+        "w": 37.0,
+        "h": 20.0
+      },
+      "level": "char",
+      "parent": "page_003c0004",
+      "angle": 0.0,
+      "char": "之",
+      "orig_char": "之",
+      "conf": 0.8866560459136963,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0033",
+      "box": {
+        "x": 1038.0,
+        "y": 1076.0,
+        "w": 31.0,
+        "h": 20.0
+      },
+      "level": "char",
+      "parent": "page_003c0006",
+      "angle": 0.0,
+      "char": "分",
+      "orig_char": "分",
+      "conf": 0.9443613290786743,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0058",
+      "box": {
+        "x": 767.0,
+        "y": 1077.0,
+        "w": 30.0,
+        "h": 22.0
+      },
+      "level": "char",
+      "parent": "page_003c0011",
+      "angle": 0.0,
+      "char": "宮",
+      "orig_char": "宮",
+      "conf": 0.9954475164413452,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0037",
+      "box": {
+        "x": 921.0,
+        "y": 1077.0,
+        "w": 34.0,
+        "h": 15.0
+      },
+      "level": "char",
+      "parent": "page_003c0007",
+      "angle": 0.0,
+      "char": "旺",
+      "orig_char": "旺",
+      "conf": 0.9879977703094482,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0114",
+      "box": {
+        "x": 619.0,
+        "y": 1078.0,
+        "w": 31.0,
+        "h": 29.0
+      },
+      "level": "char",
+      "parent": "page_003c0021",
+      "angle": 0.0,
+      "char": "帛",
+      "orig_char": "帛",
+      "conf": 0.9928050637245178,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0043",
+      "box": {
+        "x": 841.0,
+        "y": 1078.0,
+        "w": 37.0,
+        "h": 21.0
+      },
+      "level": "char",
+      "parent": "page_003c0008",
+      "angle": 0.0,
+      "char": "配",
+      "orig_char": "配",
+      "conf": 0.9998320937156677,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0110",
+      "box": {
+        "x": 578.0,
+        "y": 1080.0,
+        "w": 34.0,
+        "h": 24.0
+      },
+      "level": "char",
+      "parent": "page_003c0020",
+      "angle": 0.0,
+      "char": "宅",
+      "orig_char": "宅",
+      "conf": 0.9941209554672241,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0063",
+      "box": {
+        "x": 655.0,
+        "y": 1080.0,
+        "w": 41.0,
+        "h": 22.0
+      },
+      "level": "char",
+      "parent": "page_003c0012",
+      "angle": 0.0,
+      "char": "曜",
+      "orig_char": "曜",
+      "conf": 0.9972831606864929,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0106",
+      "box": {
+        "x": 500.0,
+        "y": 1081.0,
+        "w": 34.0,
+        "h": 25.0
+      },
+      "level": "char",
+      "parent": "page_003c0019",
+      "angle": 0.0,
+      "char": "厄",
+      "orig_char": "厄",
+      "conf": 0.9081424474716187,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0077",
+      "box": {
+        "x": 536.0,
+        "y": 1082.0,
+        "w": 35.0,
+        "h": 25.0
+      },
+      "level": "char",
+      "parent": "page_003c0013",
+      "angle": 0.0,
+      "char": "僕",
+      "orig_char": "僕",
+      "conf": 0.8711479902267456,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0081",
+      "box": {
+        "x": 694.0,
+        "y": 1082.0,
+        "w": 31.0,
+        "h": 27.0
+      },
+      "level": "char",
+      "parent": "page_003c0014",
+      "angle": 0.0,
+      "char": "命",
+      "orig_char": "命",
+      "conf": 0.997114360332489,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0098",
+      "box": {
+        "x": 420.0,
+        "y": 1083.0,
+        "w": 37.0,
+        "h": 22.0
+      },
+      "level": "char",
+      "parent": "page_003c0017",
+      "angle": 0.0,
+      "char": "貌",
+      "orig_char": "貌",
+      "conf": 0.9936614036560059,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0090",
+      "box": {
+        "x": 382.0,
+        "y": 1084.0,
+        "w": 38.0,
+        "h": 23.0
+      },
+      "level": "char",
+      "parent": "page_003c0016",
+      "angle": 0.0,
+      "char": "相",
+      "orig_char": "相",
+      "conf": 0.9985913038253784,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0052",
+      "box": {
+        "x": 803.0,
+        "y": 1084.0,
+        "w": 36.0,
+        "h": 9.0
+      },
+      "level": "char",
+      "parent": "page_003c0010",
+      "angle": 0.0,
+      "char": "二",
+      "orig_char": "二",
+      "conf": 0.9730994701385498,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0102",
+      "box": {
+        "x": 462.0,
+        "y": 1085.0,
+        "w": 32.0,
+        "h": 23.0
+      },
+      "level": "char",
+      "parent": "page_003c0018",
+      "angle": 0.0,
+      "char": "祿",
+      "orig_char": "祿",
+      "conf": 0.9522094130516052,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0086",
+      "box": {
+        "x": 339.0,
+        "y": 1087.0,
+        "w": 37.0,
+        "h": 15.0
+      },
+      "level": "char",
+      "parent": "page_003c0015",
+      "angle": 0.0,
+      "char": "日",
+      "orig_char": "日",
+      "conf": 0.9422045350074768,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0116",
+      "box": {
+        "x": 733.0,
+        "y": 1094.0,
+        "w": 24.0,
+        "h": 5.0
+      },
+      "level": "char",
+      "parent": "page_003c0022",
+      "angle": 0.0,
+      "char": "三",
+      "orig_char": "三",
+      "conf": 0.6793333888053894,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0117",
+      "box": {
+        "x": 733.0,
+        "y": 1101.0,
+        "w": 24.0,
+        "h": 3.0
+      },
+      "level": "char",
+      "parent": "page_003c0022",
+      "angle": 0.0,
+      "char": "辰",
+      "orig_char": "辰",
+      "conf": 0.6793333888053894,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0019",
+      "box": {
+        "x": 998.0,
+        "y": 1104.0,
+        "w": 37.0,
+        "h": 27.0
+      },
+      "level": "char",
+      "parent": "page_003c0004",
+      "angle": 0.0,
+      "char": "圗",
+      "orig_char": "圗",
+      "conf": 0.8866560459136963,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": true,
+      "rare_reason": "not_in_common_set",
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection",
+        "rare_hits": [
+          "圗"
+        ]
+      }
+    },
+    {
+      "id": "page_003c0038",
+      "box": {
+        "x": 921.0,
+        "y": 1105.0,
+        "w": 34.0,
+        "h": 23.0
+      },
+      "level": "char",
+      "parent": "page_003c0007",
+      "angle": 0.0,
+      "char": "宮",
+      "orig_char": "宮",
+      "conf": 0.9879977703094482,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0044",
+      "box": {
+        "x": 841.0,
+        "y": 1107.0,
+        "w": 37.0,
+        "h": 29.0
+      },
+      "level": "char",
+      "parent": "page_003c0008",
+      "angle": 0.0,
+      "char": "屬",
+      "orig_char": "屬",
+      "conf": 0.9998320937156677,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0034",
+      "box": {
+        "x": 1038.0,
+        "y": 1107.0,
+        "w": 31.0,
+        "h": 25.0
+      },
+      "level": "char",
+      "parent": "page_003c0006",
+      "angle": 0.0,
+      "char": "野",
+      "orig_char": "野",
+      "conf": 0.9443613290786743,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0049",
+      "box": {
+        "x": 882.0,
+        "y": 1108.0,
+        "w": 32.0,
+        "h": 24.0
+      },
+      "level": "char",
+      "parent": "page_003c0009",
+      "angle": 0.0,
+      "char": "宮",
+      "orig_char": "宮",
+      "conf": 0.9661970138549805,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0023",
+      "box": {
+        "x": 959.0,
+        "y": 1108.0,
+        "w": 37.0,
+        "h": 25.0
+      },
+      "level": "char",
+      "parent": "page_003c0005",
+      "angle": 0.0,
+      "char": "道",
+      "orig_char": "道",
+      "conf": 0.9984132647514343,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0064",
+      "box": {
+        "x": 655.0,
+        "y": 1110.0,
+        "w": 41.0,
+        "h": 19.0
+      },
+      "level": "char",
+      "parent": "page_003c0012",
+      "angle": 0.0,
+      "char": "合",
+      "orig_char": "合",
+      "conf": 0.9972831606864929,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0118",
+      "box": {
+        "x": 733.0,
+        "y": 1110.0,
+        "w": 24.0,
+        "h": 14.0
+      },
+      "level": "char",
+      "parent": "page_003c0022",
+      "angle": 0.0,
+      "char": "通",
+      "orig_char": "通",
+      "conf": 0.6793333888053894,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0053",
+      "box": {
+        "x": 803.0,
+        "y": 1111.0,
+        "w": 36.0,
+        "h": 18.0
+      },
+      "level": "char",
+      "parent": "page_003c0010",
+      "angle": 0.0,
+      "char": "位",
+      "orig_char": "位",
+      "conf": 0.9730994701385498,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0059",
+      "box": {
+        "x": 767.0,
+        "y": 1112.0,
+        "w": 30.0,
+        "h": 17.0
+      },
+      "level": "char",
+      "parent": "page_003c0011",
+      "angle": 0.0,
+      "char": "主",
+      "orig_char": "主",
+      "conf": 0.9954475164413452,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0091",
+      "box": {
+        "x": 382.0,
+        "y": 1113.0,
+        "w": 38.0,
+        "h": 25.0
+      },
+      "level": "char",
+      "parent": "page_003c0016",
+      "angle": 0.0,
+      "char": "貌",
+      "orig_char": "貌",
+      "conf": 0.9985913038253784,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0111",
+      "box": {
+        "x": 578.0,
+        "y": 1113.0,
+        "w": 34.0,
+        "h": 22.0
+      },
+      "level": "char",
+      "parent": "page_003c0020",
+      "angle": 0.0,
+      "char": "宮",
+      "orig_char": "宮",
+      "conf": 0.9941209554672241,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0115",
+      "box": {
+        "x": 619.0,
+        "y": 1113.0,
+        "w": 31.0,
+        "h": 22.0
+      },
+      "level": "char",
+      "parent": "page_003c0021",
+      "angle": 0.0,
+      "char": "宮",
+      "orig_char": "宮",
+      "conf": 0.9928050637245178,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0087",
+      "box": {
+        "x": 339.0,
+        "y": 1115.0,
+        "w": 37.0,
+        "h": 22.0
+      },
+      "level": "char",
+      "parent": "page_003c0015",
+      "angle": 0.0,
+      "char": "宮",
+      "orig_char": "宮",
+      "conf": 0.9422045350074768,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0099",
+      "box": {
+        "x": 420.0,
+        "y": 1115.0,
+        "w": 37.0,
+        "h": 22.0
+      },
+      "level": "char",
+      "parent": "page_003c0017",
+      "angle": 0.0,
+      "char": "宮",
+      "orig_char": "宮",
+      "conf": 0.9936614036560059,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0103",
+      "box": {
+        "x": 462.0,
+        "y": 1115.0,
+        "w": 32.0,
+        "h": 22.0
+      },
+      "level": "char",
+      "parent": "page_003c0018",
+      "angle": 0.0,
+      "char": "宮",
+      "orig_char": "宮",
+      "conf": 0.9522094130516052,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0107",
+      "box": {
+        "x": 500.0,
+        "y": 1115.0,
+        "w": 34.0,
+        "h": 22.0
+      },
+      "level": "char",
+      "parent": "page_003c0019",
+      "angle": 0.0,
+      "char": "宮",
+      "orig_char": "宮",
+      "conf": 0.9081424474716187,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0078",
+      "box": {
+        "x": 536.0,
+        "y": 1115.0,
+        "w": 35.0,
+        "h": 22.0
+      },
+      "level": "char",
+      "parent": "page_003c0013",
+      "angle": 0.0,
+      "char": "宮",
+      "orig_char": "宮",
+      "conf": 0.8711479902267456,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0082",
+      "box": {
+        "x": 694.0,
+        "y": 1119.0,
+        "w": 31.0,
+        "h": 11.0
+      },
+      "level": "char",
+      "parent": "page_003c0014",
+      "angle": 0.0,
+      "char": "二",
+      "orig_char": "二",
+      "conf": 0.997114360332489,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0119",
+      "box": {
+        "x": 733.0,
+        "y": 1130.0,
+        "w": 24.0,
+        "h": 36.0
+      },
+      "level": "char",
+      "parent": "page_003c0022",
+      "angle": 0.0,
+      "char": "載",
+      "orig_char": "載",
+      "conf": 0.6793333888053894,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0039",
+      "box": {
+        "x": 921.0,
+        "y": 1136.0,
+        "w": 34.0,
+        "h": 26.0
+      },
+      "level": "char",
+      "parent": "page_003c0007",
+      "angle": 0.0,
+      "char": "星",
+      "orig_char": "星",
+      "conf": 0.9879977703094482,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0054",
+      "box": {
+        "x": 803.0,
+        "y": 1140.0,
+        "w": 36.0,
+        "h": 25.0
+      },
+      "level": "char",
+      "parent": "page_003c0010",
+      "angle": 0.0,
+      "char": "高",
+      "orig_char": "高",
+      "conf": 0.9730994701385498,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0060",
+      "box": {
+        "x": 767.0,
+        "y": 1141.0,
+        "w": 30.0,
+        "h": 23.0
+      },
+      "level": "char",
+      "parent": "page_003c0011",
+      "angle": 0.0,
+      "char": "星",
+      "orig_char": "星",
+      "conf": 0.9954475164413452,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0045",
+      "box": {
+        "x": 841.0,
+        "y": 1143.0,
+        "w": 37.0,
+        "h": 16.0
+      },
+      "level": "char",
+      "parent": "page_003c0008",
+      "angle": 0.0,
+      "char": "五",
+      "orig_char": "五",
+      "conf": 0.9998320937156677,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0065",
+      "box": {
+        "x": 655.0,
+        "y": 1144.0,
+        "w": 41.0,
+        "h": 22.0
+      },
+      "level": "char",
+      "parent": "page_003c0012",
+      "angle": 0.0,
+      "char": "照",
+      "orig_char": "照",
+      "conf": 0.9972831606864929,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0083",
+      "box": {
+        "x": 694.0,
+        "y": 1145.0,
+        "w": 31.0,
+        "h": 17.0
+      },
+      "level": "char",
+      "parent": "page_003c0014",
+      "angle": 0.0,
+      "char": "主",
+      "orig_char": "主",
+      "conf": 0.997114360332489,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0024",
+      "box": {
+        "x": 959.0,
+        "y": 1145.0,
+        "w": 37.0,
+        "h": 10.0
+      },
+      "level": "char",
+      "parent": "page_003c0005",
+      "angle": 0.0,
+      "char": "二",
+      "orig_char": "二",
+      "conf": 0.9984132647514343,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0092",
+      "box": {
+        "x": 382.0,
+        "y": 1149.0,
+        "w": 38.0,
+        "h": 18.0
+      },
+      "level": "char",
+      "parent": "page_003c0016",
+      "angle": 0.0,
+      "char": "奴",
+      "orig_char": "奴",
+      "conf": 0.9985913038253784,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0120",
+      "box": {
+        "x": 733.0,
+        "y": 1167.0,
+        "w": 24.0,
+        "h": 14.0
+      },
+      "level": "char",
+      "parent": "page_003c0022",
+      "angle": 0.0,
+      "char": "目",
+      "orig_char": "目",
+      "conf": 0.6793333888053894,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0040",
+      "box": {
+        "x": 921.0,
+        "y": 1170.0,
+        "w": 34.0,
+        "h": 28.0
+      },
+      "level": "char",
+      "parent": "page_003c0007",
+      "angle": 0.0,
+      "char": "度",
+      "orig_char": "度",
+      "conf": 0.9879977703094482,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0046",
+      "box": {
+        "x": 841.0,
+        "y": 1173.0,
+        "w": 37.0,
+        "h": 26.0
+      },
+      "level": "char",
+      "parent": "page_003c0008",
+      "angle": 0.0,
+      "char": "行",
+      "orig_char": "行",
+      "conf": 0.9998320937156677,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0025",
+      "box": {
+        "x": 959.0,
+        "y": 1173.0,
+        "w": 37.0,
+        "h": 17.0
+      },
+      "level": "char",
+      "parent": "page_003c0005",
+      "angle": 0.0,
+      "char": "十",
+      "orig_char": "十",
+      "conf": 0.9984132647514343,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0066",
+      "box": {
+        "x": 655.0,
+        "y": 1175.0,
+        "w": 41.0,
+        "h": 26.0
+      },
+      "level": "char",
+      "parent": "page_003c0012",
+      "angle": 0.0,
+      "char": "命",
+      "orig_char": "命",
+      "conf": 0.9972831606864929,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0055",
+      "box": {
+        "x": 803.0,
+        "y": 1178.0,
+        "w": 36.0,
+        "h": 19.0
+      },
+      "level": "char",
+      "parent": "page_003c0010",
+      "angle": 0.0,
+      "char": "下",
+      "orig_char": "下",
+      "conf": 0.9730994701385498,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0093",
+      "box": {
+        "x": 382.0,
+        "y": 1179.0,
+        "w": 38.0,
+        "h": 25.0
+      },
+      "level": "char",
+      "parent": "page_003c0016",
+      "angle": 0.0,
+      "char": "僕",
+      "orig_char": "僕",
+      "conf": 0.9985913038253784,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0121",
+      "box": {
+        "x": 733.0,
+        "y": 1182.0,
+        "w": 24.0,
+        "h": 17.0
+      },
+      "level": "char",
+      "parent": "page_003c0022",
+      "angle": 0.0,
+      "char": "錄",
+      "orig_char": "錄",
+      "conf": 0.6793333888053894,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0067",
+      "box": {
+        "x": 655.0,
+        "y": 1209.0,
+        "w": 41.0,
+        "h": 23.0
+      },
+      "level": "char",
+      "parent": "page_003c0012",
+      "angle": 0.0,
+      "char": "宮",
+      "orig_char": "宮",
+      "conf": 0.9972831606864929,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0026",
+      "box": {
+        "x": 959.0,
+        "y": 1212.0,
+        "w": 37.0,
+        "h": 12.0
+      },
+      "level": "char",
+      "parent": "page_003c0005",
+      "angle": 0.0,
+      "char": "八",
+      "orig_char": "八",
+      "conf": 0.9984132647514343,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0094",
+      "box": {
+        "x": 382.0,
+        "y": 1217.0,
+        "w": 38.0,
+        "h": 22.0
+      },
+      "level": "char",
+      "parent": "page_003c0016",
+      "angle": 0.0,
+      "char": "兩",
+      "orig_char": "兩",
+      "conf": 0.9985913038253784,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0127",
+      "box": {
+        "x": 1001.0,
+        "y": 1234.0,
+        "w": 35.0,
+        "h": 28.0
+      },
+      "level": "char",
+      "parent": "page_003c0024",
+      "angle": 0.0,
+      "char": "賤",
+      "orig_char": "賤",
+      "conf": 0.9270172715187073,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0027",
+      "box": {
+        "x": 959.0,
+        "y": 1237.0,
+        "w": 37.0,
+        "h": 24.0
+      },
+      "level": "char",
+      "parent": "page_003c0005",
+      "angle": 0.0,
+      "char": "宿",
+      "orig_char": "宿",
+      "conf": 0.9984132647514343,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0131",
+      "box": {
+        "x": 1038.0,
+        "y": 1237.0,
+        "w": 34.0,
+        "h": 24.0
+      },
+      "level": "char",
+      "parent": "page_003c0025",
+      "angle": 0.0,
+      "char": "躔",
+      "orig_char": "躔",
+      "conf": 0.9979951977729797,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": true,
+      "rare_reason": "not_in_common_set",
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection",
+        "rare_hits": [
+          "躔"
+        ]
+      }
+    },
+    {
+      "id": "page_003c0135",
+      "box": {
+        "x": 882.0,
+        "y": 1240.0,
+        "w": 36.0,
+        "h": 24.0
+      },
+      "level": "char",
+      "parent": "page_003c0026",
+      "angle": 0.0,
+      "char": "星",
+      "orig_char": "星",
+      "conf": 0.9260336756706238,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0122",
+      "box": {
+        "x": 922.0,
+        "y": 1240.0,
+        "w": 38.0,
+        "h": 22.0
+      },
+      "level": "char",
+      "parent": "page_003c0023",
+      "angle": 0.0,
+      "char": "論",
+      "orig_char": "論",
+      "conf": 0.99894779920578,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0139",
+      "box": {
+        "x": 805.0,
+        "y": 1241.0,
+        "w": 34.0,
+        "h": 21.0
+      },
+      "level": "char",
+      "parent": "page_003c0027",
+      "angle": 0.0,
+      "char": "論",
+      "orig_char": "論",
+      "conf": 0.9969663619995117,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0148",
+      "box": {
+        "x": 538.0,
+        "y": 1242.0,
+        "w": 37.0,
+        "h": 23.0
+      },
+      "level": "char",
+      "parent": "page_003c0029",
+      "angle": 0.0,
+      "char": "論",
+      "orig_char": "論",
+      "conf": 0.8839936256408691,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0156",
+      "box": {
+        "x": 767.0,
+        "y": 1242.0,
+        "w": 34.0,
+        "h": 24.0
+      },
+      "level": "char",
+      "parent": "page_003c0031",
+      "angle": 0.0,
+      "char": "論",
+      "orig_char": "論",
+      "conf": 0.9875489473342896,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0160",
+      "box": {
+        "x": 846.0,
+        "y": 1242.0,
+        "w": 32.0,
+        "h": 25.0
+      },
+      "level": "char",
+      "parent": "page_003c0032",
+      "angle": 0.0,
+      "char": "定",
+      "orig_char": "定",
+      "conf": 0.9192119240760803,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0144",
+      "box": {
+        "x": 461.0,
+        "y": 1244.0,
+        "w": 37.0,
+        "h": 28.0
+      },
+      "level": "char",
+      "parent": "page_003c0028",
+      "angle": 0.0,
+      "char": "論",
+      "orig_char": "論",
+      "conf": 0.9968617558479309,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0171",
+      "box": {
+        "x": 621.0,
+        "y": 1244.0,
+        "w": 34.0,
+        "h": 22.0
+      },
+      "level": "char",
+      "parent": "page_003c0034",
+      "angle": 0.0,
+      "char": "論",
+      "orig_char": "論",
+      "conf": 0.9822814464569092,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0175",
+      "box": {
+        "x": 698.0,
+        "y": 1244.0,
+        "w": 35.0,
+        "h": 21.0
+      },
+      "level": "char",
+      "parent": "page_003c0035",
+      "angle": 0.0,
+      "char": "論",
+      "orig_char": "論",
+      "conf": 0.9944378733634949,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0182",
+      "box": {
+        "x": 503.0,
+        "y": 1245.0,
+        "w": 34.0,
+        "h": 22.0
+      },
+      "level": "char",
+      "parent": "page_003c0036",
+      "angle": 0.0,
+      "char": "論",
+      "orig_char": "論",
+      "conf": 0.9071851968765259,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0152",
+      "box": {
+        "x": 580.0,
+        "y": 1245.0,
+        "w": 37.0,
+        "h": 21.0
+      },
+      "level": "char",
+      "parent": "page_003c0030",
+      "angle": 0.0,
+      "char": "論",
+      "orig_char": "論",
+      "conf": 0.9917827844619751,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0068",
+      "box": {
+        "x": 655.0,
+        "y": 1245.0,
+        "w": 41.0,
+        "h": 21.0
+      },
+      "level": "char",
+      "parent": "page_003c0012",
+      "angle": 0.0,
+      "char": "論",
+      "orig_char": "論",
+      "conf": 0.9972831606864929,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0164",
+      "box": {
+        "x": 423.0,
+        "y": 1246.0,
+        "w": 40.0,
+        "h": 22.0
+      },
+      "level": "char",
+      "parent": "page_003c0033",
+      "angle": 0.0,
+      "char": "再",
+      "orig_char": "再",
+      "conf": 0.9949971437454224,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0186",
+      "box": {
+        "x": 345.0,
+        "y": 1247.0,
+        "w": 34.0,
+        "h": 23.0
+      },
+      "level": "char",
+      "parent": "page_003c0037",
+      "angle": 0.0,
+      "char": "定",
+      "orig_char": "定",
+      "conf": 0.9682979583740234,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0095",
+      "box": {
+        "x": 382.0,
+        "y": 1248.0,
+        "w": 38.0,
+        "h": 20.0
+      },
+      "level": "char",
+      "parent": "page_003c0016",
+      "angle": 0.0,
+      "char": "位",
+      "orig_char": "位",
+      "conf": 0.9985913038253784,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0190",
+      "box": {
+        "x": 259.0,
+        "y": 1258.0,
+        "w": 38.0,
+        "h": 17.0
+      },
+      "level": "char",
+      "parent": "page_003c0038",
+      "angle": 0.0,
+      "char": "四",
+      "orig_char": "四",
+      "conf": 0.9999240040779114,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0132",
+      "box": {
+        "x": 1038.0,
+        "y": 1268.0,
+        "w": 34.0,
+        "h": 28.0
+      },
+      "level": "char",
+      "parent": "page_003c0025",
+      "angle": 0.0,
+      "char": "度",
+      "orig_char": "度",
+      "conf": 0.9979951977729797,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0123",
+      "box": {
+        "x": 922.0,
+        "y": 1269.0,
+        "w": 38.0,
+        "h": 28.0
+      },
+      "level": "char",
+      "parent": "page_003c0023",
+      "angle": 0.0,
+      "char": "廟",
+      "orig_char": "廟",
+      "conf": 0.99894779920578,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0028",
+      "box": {
+        "x": 959.0,
+        "y": 1269.0,
+        "w": 37.0,
+        "h": 24.0
+      },
+      "level": "char",
+      "parent": "page_003c0005",
+      "angle": 0.0,
+      "char": "求",
+      "orig_char": "求",
+      "conf": 0.9984132647514343,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0157",
+      "box": {
+        "x": 767.0,
+        "y": 1271.0,
+        "w": 34.0,
+        "h": 28.0
+      },
+      "level": "char",
+      "parent": "page_003c0031",
+      "angle": 0.0,
+      "char": "身",
+      "orig_char": "身",
+      "conf": 0.9875489473342896,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0128",
+      "box": {
+        "x": 1001.0,
+        "y": 1271.0,
+        "w": 35.0,
+        "h": 22.0
+      },
+      "level": "char",
+      "parent": "page_003c0024",
+      "angle": 0.0,
+      "char": "格",
+      "orig_char": "格",
+      "conf": 0.9270172715187073,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0176",
+      "box": {
+        "x": 698.0,
+        "y": 1272.0,
+        "w": 35.0,
+        "h": 23.0
+      },
+      "level": "char",
+      "parent": "page_003c0035",
+      "angle": 0.0,
+      "char": "星",
+      "orig_char": "星",
+      "conf": 0.9944378733634949,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0140",
+      "box": {
+        "x": 805.0,
+        "y": 1273.0,
+        "w": 34.0,
+        "h": 22.0
+      },
+      "level": "char",
+      "parent": "page_003c0027",
+      "angle": 0.0,
+      "char": "星",
+      "orig_char": "星",
+      "conf": 0.9969663619995117,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0136",
+      "box": {
+        "x": 882.0,
+        "y": 1274.0,
+        "w": 36.0,
+        "h": 22.0
+      },
+      "level": "char",
+      "parent": "page_003c0026",
+      "angle": 0.0,
+      "char": "曜",
+      "orig_char": "曜",
+      "conf": 0.9260336756706238,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0069",
+      "box": {
+        "x": 655.0,
+        "y": 1275.0,
+        "w": 41.0,
+        "h": 23.0
+      },
+      "level": "char",
+      "parent": "page_003c0012",
+      "angle": 0.0,
+      "char": "星",
+      "orig_char": "星",
+      "conf": 0.9972831606864929,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0149",
+      "box": {
+        "x": 538.0,
+        "y": 1276.0,
+        "w": 37.0,
+        "h": 25.0
+      },
+      "level": "char",
+      "parent": "page_003c0029",
+      "angle": 0.0,
+      "char": "妻",
+      "orig_char": "妻",
+      "conf": 0.8839936256408691,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0153",
+      "box": {
+        "x": 580.0,
+        "y": 1276.0,
+        "w": 37.0,
+        "h": 25.0
+      },
+      "level": "char",
+      "parent": "page_003c0030",
+      "angle": 0.0,
+      "char": "男",
+      "orig_char": "男",
+      "conf": 0.9917827844619751,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0161",
+      "box": {
+        "x": 846.0,
+        "y": 1278.0,
+        "w": 32.0,
+        "h": 17.0
+      },
+      "level": "char",
+      "parent": "page_003c0032",
+      "angle": 0.0,
+      "char": "十",
+      "orig_char": "十",
+      "conf": 0.9192119240760803,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0183",
+      "box": {
+        "x": 503.0,
+        "y": 1279.0,
+        "w": 34.0,
+        "h": 23.0
+      },
+      "level": "char",
+      "parent": "page_003c0036",
+      "angle": 0.0,
+      "char": "遷",
+      "orig_char": "遷",
+      "conf": 0.9071851968765259,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0172",
+      "box": {
+        "x": 621.0,
+        "y": 1279.0,
+        "w": 34.0,
+        "h": 20.0
+      },
+      "level": "char",
+      "parent": "page_003c0034",
+      "angle": 0.0,
+      "char": "兄",
+      "orig_char": "兄",
+      "conf": 0.9822814464569092,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0165",
+      "box": {
+        "x": 423.0,
+        "y": 1280.0,
+        "w": 40.0,
+        "h": 21.0
+      },
+      "level": "char",
+      "parent": "page_003c0033",
+      "angle": 0.0,
+      "char": "論",
+      "orig_char": "論",
+      "conf": 0.9949971437454224,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0187",
+      "box": {
+        "x": 345.0,
+        "y": 1282.0,
+        "w": 34.0,
+        "h": 21.0
+      },
+      "level": "char",
+      "parent": "page_003c0037",
+      "angle": 0.0,
+      "char": "胎",
+      "orig_char": "胎",
+      "conf": 0.9682979583740234,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0145",
+      "box": {
+        "x": 461.0,
+        "y": 1282.0,
+        "w": 37.0,
+        "h": 21.0
+      },
+      "level": "char",
+      "parent": "page_003c0028",
+      "angle": 0.0,
+      "char": "福",
+      "orig_char": "福",
+      "conf": 0.9968617558479309,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0191",
+      "box": {
+        "x": 259.0,
+        "y": 1287.0,
+        "w": 38.0,
+        "h": 20.0
+      },
+      "level": "char",
+      "parent": "page_003c0038",
+      "angle": 0.0,
+      "char": "七",
+      "orig_char": "七",
+      "conf": 0.9999240040779114,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0133",
+      "box": {
+        "x": 1038.0,
+        "y": 1300.0,
+        "w": 34.0,
+        "h": 27.0
+      },
+      "level": "char",
+      "parent": "page_003c0025",
+      "angle": 0.0,
+      "char": "廟",
+      "orig_char": "廟",
+      "conf": 0.9979951977729797,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0029",
+      "box": {
+        "x": 959.0,
+        "y": 1303.0,
+        "w": 37.0,
+        "h": 25.0
+      },
+      "level": "char",
+      "parent": "page_003c0005",
+      "angle": 0.0,
+      "char": "度",
+      "orig_char": "度",
+      "conf": 0.9984132647514343,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0129",
+      "box": {
+        "x": 1001.0,
+        "y": 1304.0,
+        "w": 35.0,
+        "h": 20.0
+      },
+      "level": "char",
+      "parent": "page_003c0024",
+      "angle": 0.0,
+      "char": "之",
+      "orig_char": "之",
+      "conf": 0.9270172715187073,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0141",
+      "box": {
+        "x": 805.0,
+        "y": 1305.0,
+        "w": 34.0,
+        "h": 24.0
+      },
+      "level": "char",
+      "parent": "page_003c0027",
+      "angle": 0.0,
+      "char": "宮",
+      "orig_char": "宮",
+      "conf": 0.9969663619995117,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0158",
+      "box": {
+        "x": 767.0,
+        "y": 1306.0,
+        "w": 34.0,
+        "h": 27.0
+      },
+      "level": "char",
+      "parent": "page_003c0031",
+      "angle": 0.0,
+      "char": "命",
+      "orig_char": "命",
+      "conf": 0.9875489473342896,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0137",
+      "box": {
+        "x": 882.0,
+        "y": 1307.0,
+        "w": 36.0,
+        "h": 20.0
+      },
+      "level": "char",
+      "parent": "page_003c0026",
+      "angle": 0.0,
+      "char": "怒",
+      "orig_char": "怒",
+      "conf": 0.9260336756706238,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0173",
+      "box": {
+        "x": 621.0,
+        "y": 1308.0,
+        "w": 34.0,
+        "h": 29.0
+      },
+      "level": "char",
+      "parent": "page_003c0034",
+      "angle": 0.0,
+      "char": "弟",
+      "orig_char": "弟",
+      "conf": 0.9822814464569092,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0124",
+      "box": {
+        "x": 922.0,
+        "y": 1308.0,
+        "w": 38.0,
+        "h": 15.0
+      },
+      "level": "char",
+      "parent": "page_003c0023",
+      "angle": 0.0,
+      "char": "旺",
+      "orig_char": "旺",
+      "conf": 0.99894779920578,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0070",
+      "box": {
+        "x": 655.0,
+        "y": 1310.0,
+        "w": 41.0,
+        "h": 21.0
+      },
+      "level": "char",
+      "parent": "page_003c0012",
+      "angle": 0.0,
+      "char": "曜",
+      "orig_char": "曜",
+      "conf": 0.9972831606864929,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0177",
+      "box": {
+        "x": 698.0,
+        "y": 1310.0,
+        "w": 35.0,
+        "h": 21.0
+      },
+      "level": "char",
+      "parent": "page_003c0035",
+      "angle": 0.0,
+      "char": "曜",
+      "orig_char": "曜",
+      "conf": 0.9944378733634949,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0146",
+      "box": {
+        "x": 461.0,
+        "y": 1311.0,
+        "w": 37.0,
+        "h": 31.0
+      },
+      "level": "char",
+      "parent": "page_003c0028",
+      "angle": 0.0,
+      "char": "德",
+      "orig_char": "德",
+      "conf": 0.9968617558479309,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0150",
+      "box": {
+        "x": 538.0,
+        "y": 1312.0,
+        "w": 37.0,
+        "h": 23.0
+      },
+      "level": "char",
+      "parent": "page_003c0029",
+      "angle": 0.0,
+      "char": "妾",
+      "orig_char": "妾",
+      "conf": 0.8839936256408691,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0154",
+      "box": {
+        "x": 580.0,
+        "y": 1312.0,
+        "w": 37.0,
+        "h": 20.0
+      },
+      "level": "char",
+      "parent": "page_003c0030",
+      "angle": 0.0,
+      "char": "女",
+      "orig_char": "女",
+      "conf": 0.9917827844619751,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0162",
+      "box": {
+        "x": 846.0,
+        "y": 1312.0,
+        "w": 32.0,
+        "h": 10.0
+      },
+      "level": "char",
+      "parent": "page_003c0032",
+      "angle": 0.0,
+      "char": "二",
+      "orig_char": "二",
+      "conf": 0.9192119240760803,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0192",
+      "box": {
+        "x": 259.0,
+        "y": 1314.0,
+        "w": 38.0,
+        "h": 21.0
+      },
+      "level": "char",
+      "parent": "page_003c0038",
+      "angle": 0.0,
+      "char": "九",
+      "orig_char": "九",
+      "conf": 0.9999240040779114,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0166",
+      "box": {
+        "x": 423.0,
+        "y": 1314.0,
+        "w": 40.0,
+        "h": 24.0
+      },
+      "level": "char",
+      "parent": "page_003c0033",
+      "angle": 0.0,
+      "char": "福",
+      "orig_char": "福",
+      "conf": 0.9949971437454224,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0184",
+      "box": {
+        "x": 503.0,
+        "y": 1314.0,
+        "w": 34.0,
+        "h": 21.0
+      },
+      "level": "char",
+      "parent": "page_003c0036",
+      "angle": 0.0,
+      "char": "移",
+      "orig_char": "移",
+      "conf": 0.9071851968765259,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0188",
+      "box": {
+        "x": 345.0,
+        "y": 1316.0,
+        "w": 34.0,
+        "h": 21.0
+      },
+      "level": "char",
+      "parent": "page_003c0037",
+      "angle": 0.0,
+      "char": "元",
+      "orig_char": "元",
+      "conf": 0.9682979583740234,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0130",
+      "box": {
+        "x": 1001.0,
+        "y": 1333.0,
+        "w": 35.0,
+        "h": 27.0
+      },
+      "level": "char",
+      "parent": "page_003c0024",
+      "angle": 0.0,
+      "char": "圖",
+      "orig_char": "圖",
+      "conf": 0.9270172715187073,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0125",
+      "box": {
+        "x": 922.0,
+        "y": 1334.0,
+        "w": 38.0,
+        "h": 29.0
+      },
+      "level": "char",
+      "parent": "page_003c0023",
+      "angle": 0.0,
+      "char": "克",
+      "orig_char": "克",
+      "conf": 0.99894779920578,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0163",
+      "box": {
+        "x": 846.0,
+        "y": 1336.0,
+        "w": 32.0,
+        "h": 24.0
+      },
+      "level": "char",
+      "parent": "page_003c0032",
+      "angle": 0.0,
+      "char": "宮",
+      "orig_char": "宮",
+      "conf": 0.9192119240760803,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0134",
+      "box": {
+        "x": 1038.0,
+        "y": 1336.0,
+        "w": 34.0,
+        "h": 24.0
+      },
+      "level": "char",
+      "parent": "page_003c0025",
+      "angle": 0.0,
+      "char": "格",
+      "orig_char": "格",
+      "conf": 0.9979951977729797,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0138",
+      "box": {
+        "x": 882.0,
+        "y": 1337.0,
+        "w": 36.0,
+        "h": 21.0
+      },
+      "level": "char",
+      "parent": "page_003c0026",
+      "angle": 0.0,
+      "char": "宮",
+      "orig_char": "宮",
+      "conf": 0.9260336756706238,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0030",
+      "box": {
+        "x": 959.0,
+        "y": 1337.0,
+        "w": 37.0,
+        "h": 24.0
+      },
+      "level": "char",
+      "parent": "page_003c0005",
+      "angle": 0.0,
+      "char": "數",
+      "orig_char": "數",
+      "conf": 0.9984132647514343,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0178",
+      "box": {
+        "x": 698.0,
+        "y": 1340.0,
+        "w": 35.0,
+        "h": 22.0
+      },
+      "level": "char",
+      "parent": "page_003c0035",
+      "angle": 0.0,
+      "char": "同",
+      "orig_char": "同",
+      "conf": 0.9944378733634949,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0142",
+      "box": {
+        "x": 805.0,
+        "y": 1340.0,
+        "w": 34.0,
+        "h": 18.0
+      },
+      "level": "char",
+      "parent": "page_003c0027",
+      "angle": 0.0,
+      "char": "主",
+      "orig_char": "主",
+      "conf": 0.9969663619995117,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0174",
+      "box": {
+        "x": 621.0,
+        "y": 1341.0,
+        "w": 34.0,
+        "h": 25.0
+      },
+      "level": "char",
+      "parent": "page_003c0034",
+      "angle": 0.0,
+      "char": "宮",
+      "orig_char": "宮",
+      "conf": 0.9822814464569092,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0071",
+      "box": {
+        "x": 655.0,
+        "y": 1341.0,
+        "w": 41.0,
+        "h": 25.0
+      },
+      "level": "char",
+      "parent": "page_003c0012",
+      "angle": 0.0,
+      "char": "對",
+      "orig_char": "對",
+      "conf": 0.9972831606864929,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0159",
+      "box": {
+        "x": 767.0,
+        "y": 1341.0,
+        "w": 34.0,
+        "h": 20.0
+      },
+      "level": "char",
+      "parent": "page_003c0031",
+      "angle": 0.0,
+      "char": "宮",
+      "orig_char": "宮",
+      "conf": 0.9875489473342896,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0167",
+      "box": {
+        "x": 423.0,
+        "y": 1343.0,
+        "w": 40.0,
+        "h": 23.0
+      },
+      "level": "char",
+      "parent": "page_003c0033",
+      "angle": 0.0,
+      "char": "德",
+      "orig_char": "德",
+      "conf": 0.9949971437454224,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0155",
+      "box": {
+        "x": 580.0,
+        "y": 1343.0,
+        "w": 37.0,
+        "h": 22.0
+      },
+      "level": "char",
+      "parent": "page_003c0030",
+      "angle": 0.0,
+      "char": "宮",
+      "orig_char": "宮",
+      "conf": 0.9917827844619751,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0185",
+      "box": {
+        "x": 503.0,
+        "y": 1345.0,
+        "w": 34.0,
+        "h": 22.0
+      },
+      "level": "char",
+      "parent": "page_003c0036",
+      "angle": 0.0,
+      "char": "宮",
+      "orig_char": "宮",
+      "conf": 0.9071851968765259,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0151",
+      "box": {
+        "x": 538.0,
+        "y": 1346.0,
+        "w": 37.0,
+        "h": 21.0
+      },
+      "level": "char",
+      "parent": "page_003c0029",
+      "angle": 0.0,
+      "char": "宮",
+      "orig_char": "宮",
+      "conf": 0.8839936256408691,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0147",
+      "box": {
+        "x": 461.0,
+        "y": 1347.0,
+        "w": 37.0,
+        "h": 22.0
+      },
+      "level": "char",
+      "parent": "page_003c0028",
+      "angle": 0.0,
+      "char": "宮",
+      "orig_char": "宮",
+      "conf": 0.9968617558479309,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0189",
+      "box": {
+        "x": 345.0,
+        "y": 1348.0,
+        "w": 34.0,
+        "h": 23.0
+      },
+      "level": "char",
+      "parent": "page_003c0037",
+      "angle": 0.0,
+      "char": "宮",
+      "orig_char": "宮",
+      "conf": 0.9682979583740234,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0143",
+      "box": {
+        "x": 805.0,
+        "y": 1370.0,
+        "w": 34.0,
+        "h": 21.0
+      },
+      "level": "char",
+      "parent": "page_003c0027",
+      "angle": 0.0,
+      "char": "星",
+      "orig_char": "星",
+      "conf": 0.9969663619995117,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0126",
+      "box": {
+        "x": 922.0,
+        "y": 1372.0,
+        "w": 38.0,
+        "h": 23.0
+      },
+      "level": "char",
+      "parent": "page_003c0023",
+      "angle": 0.0,
+      "char": "忌",
+      "orig_char": "忌",
+      "conf": 0.99894779920578,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0179",
+      "box": {
+        "x": 698.0,
+        "y": 1374.0,
+        "w": 35.0,
+        "h": 23.0
+      },
+      "level": "char",
+      "parent": "page_003c0035",
+      "angle": 0.0,
+      "char": "照",
+      "orig_char": "照",
+      "conf": 0.9944378733634949,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0072",
+      "box": {
+        "x": 655.0,
+        "y": 1376.0,
+        "w": 41.0,
+        "h": 21.0
+      },
+      "level": "char",
+      "parent": "page_003c0012",
+      "angle": 0.0,
+      "char": "照",
+      "orig_char": "照",
+      "conf": 0.9972831606864929,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0168",
+      "box": {
+        "x": 423.0,
+        "y": 1378.0,
+        "w": 40.0,
+        "h": 21.0
+      },
+      "level": "char",
+      "parent": "page_003c0033",
+      "angle": 0.0,
+      "char": "宮",
+      "orig_char": "宮",
+      "conf": 0.9949971437454224,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0073",
+      "box": {
+        "x": 655.0,
+        "y": 1405.0,
+        "w": 41.0,
+        "h": 25.0
+      },
+      "level": "char",
+      "parent": "page_003c0012",
+      "angle": 0.0,
+      "char": "命",
+      "orig_char": "命",
+      "conf": 0.9972831606864929,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0180",
+      "box": {
+        "x": 698.0,
+        "y": 1406.0,
+        "w": 35.0,
+        "h": 27.0
+      },
+      "level": "char",
+      "parent": "page_003c0035",
+      "angle": 0.0,
+      "char": "命",
+      "orig_char": "命",
+      "conf": 0.9944378733634949,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0169",
+      "box": {
+        "x": 423.0,
+        "y": 1409.0,
+        "w": 40.0,
+        "h": 26.0
+      },
+      "level": "char",
+      "parent": "page_003c0033",
+      "angle": 0.0,
+      "char": "變",
+      "orig_char": "變",
+      "conf": 0.9949971437454224,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0074",
+      "box": {
+        "x": 655.0,
+        "y": 1437.0,
+        "w": 41.0,
+        "h": 22.0
+      },
+      "level": "char",
+      "parent": "page_003c0012",
+      "angle": 0.0,
+      "char": "宮",
+      "orig_char": "宮",
+      "conf": 0.9972831606864929,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0181",
+      "box": {
+        "x": 698.0,
+        "y": 1438.0,
+        "w": 35.0,
+        "h": 22.0
+      },
+      "level": "char",
+      "parent": "page_003c0035",
+      "angle": 0.0,
+      "char": "宮",
+      "orig_char": "宮",
+      "conf": 0.9944378733634949,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    },
+    {
+      "id": "page_003c0170",
+      "box": {
+        "x": 423.0,
+        "y": 1444.0,
+        "w": 40.0,
+        "h": 21.0
+      },
+      "level": "char",
+      "parent": "page_003c0033",
+      "angle": 0.0,
+      "char": "格",
+      "orig_char": "格",
+      "conf": 0.9949971437454224,
+      "source": "ocr",
+      "status": "pending",
+      "is_rare": false,
+      "rare_reason": null,
+      "glyph": null,
+      "sample_img": null,
+      "mapping": null,
+      "extra": {
+        "band": 2,
+        "seg": "projection"
+      }
+    }
+  ],
+  "extra": {
+    "col_gap_thresh": 30,
+    "count_blocks": 39,
+    "bleed_thresh": 110
+  }
+}

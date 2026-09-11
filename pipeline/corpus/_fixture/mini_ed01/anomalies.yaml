@@ -1,0 +1,18 @@
+entries:
+- page: page_002
+  terminal_state: known_unrecognizable
+  layout_type: no_text
+  evidence:
+    ts: '2026-08-27T00:52:28+00:00'
+    page: page_002
+    image: data_work/sanche_pages/page_002.png
+    layout_type: no_text
+    det_box_count: 0
+    note: 识别结果可能不可用，需人工处理
+    extra:
+      signals:
+      - no_text
+      metrics:
+        lines: 0
+  decided_by: fixture
+  note: 无文字页；M2 Gate 允许放行（§10.1）

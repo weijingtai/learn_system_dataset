@@ -959,6 +959,7 @@ L0 内核契约(ArtifactRef + §7 接口 + §8 信封)
 - `technique_id=qizheng`；`Work=三辰通载三十卷`；`Edition=影宋鈔本`；
 - `SourceAsset=ocr/data_work/sanche_pages/page_001..010.png`（本机派生页图，按 `openspec/legacy-storage-transition.md` §6 登记到本地 Object Store；源 PDF 不进 Git；素材缺失时报 `BLOCKED_SOURCE_ASSET_MISSING`，不得伪造）；
 - `evidence_level=glyphbox_level`；首纵切发布物为内部验收包，消费级别 `INTERNAL_DEMO`，`SourceAssetPack` 采用 `derived_page_images_only`（§16）。
+- 统一验收宿主：`pipeline/corpus/_fixture/mini_ed01/`（page_001..003 的 OCR 页面 JSON、机器转录、异常终态、字框锚点 spans 与 m1–m3 期望 StagePackage；页图不进 Git，`verify.sh` 缺图时报 `BLOCKED_SOURCE_ASSET_MISSING`）。
 
 ### 22.2 纵切终点（沿用 `LEARN_SYSTEM_TARGET.md` §13，八字改为七政）
 
