@@ -11,7 +11,8 @@
 ## 项目冷启动交接
 
 - [x] 将项目目标、模块现状、G3 R4 证据、三类剩余假绿和后任启动顺序落盘到 `PROJECT_COLD_START_HANDOFF.md`。
-- [ ] 后任按 `PROJECT_COLD_START_HANDOFF.md` §6 下发 R5 执行 Prompt；主 Agent只做计划与独立验收，G3 通过前不启动 G4。
+- [x] 后任按 `PROJECT_COLD_START_HANDOFF.md` §6 下发 R5 执行 Prompt；主 Agent只做计划与独立验收。R5 已完成并 `ACCEPTED`（工作包 `4d68634`，先红 `5de99fa`，后绿 `241c38c`；矩阵 109/109，盲测 13/13，只读复跑一致；证据 `docs/blackbox-spec-rework/work-items/g3-r5/ACCEPTANCE.md`）。
+- [ ] G3 门禁已封闭，G3 状态由 `REWORK_REQUIRED` 转为 `ACCEPTED`；是否启动 G4（执行引擎、Ledger、Orchestrator 契约）由用户决定，主 Agent 未启动。
 
 ## NC-001 首包补齐
 

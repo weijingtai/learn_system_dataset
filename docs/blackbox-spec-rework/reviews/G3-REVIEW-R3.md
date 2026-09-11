@@ -3,6 +3,8 @@
 日期：2026-09-10
 结论：`REWORK_REQUIRED_R3`
 
+后续状态（2026-09-10 更新）：本报告列出的 7 个假绿已由 R4（`1d4a6dc`、`ffe19df`，98 例矩阵）与 R5（`5de99fa`、`241c38c`，109 例矩阵）关闭，G3 R5 验收 `ACCEPTED`，证据见 `../work-items/g3-r5/ACCEPTANCE.md`。`../work-items/g3-r3/` 下的 89 例六件套是过时草稿，已标 `SUPERSEDED`，不得派发；该目录只有 `mutations.sh` 是现行文件。
+
 ## 已通过部分
 
 - 提交顺序正确：`95bec96`（D-07）→ `83b84b6`（T-07）→ `b3bf3ad`（T-08）；中间的注解社区提交不修改 G3 文件。

@@ -1,6 +1,6 @@
 # G3 R2 冷启动返工执行契约
 
-状态：`SUPERSEDED_BY_R3_REVIEW`。本文件规定的 10 个变异已经修复，但 R3 发现 7 个新假绿；不得再次把本文件作为放行依据。后续返工以 `../../reviews/G3-REVIEW-R3.md` 为准，待新的冷启动执行契约生成后再派发。
+状态：`SUPERSEDED`。本文件规定的 10 个变异已经修复，但 R3 发现 7 个新假绿；不得再次派发。R3 假绿已由 R4/R5 关闭（G3 R5 `ACCEPTED`，见 `../g3-r5/ACCEPTANCE.md`）；`../g3-r3/PROMPT.md` 同样是过时草稿，不得派发。
 
 ## Goal
 

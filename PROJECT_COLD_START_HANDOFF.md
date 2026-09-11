@@ -6,8 +6,10 @@
 
 分支：`codex/docs/knowledge-compilation`
 
-当前 HEAD：`ffe19df`
-当前主线状态：`G3_REWORK_REQUIRED`；G3 通过前禁止进入 G4
+当前 HEAD：`241c38c` 及其后（R5 完成时）
+当前主线状态：`G3_ACCEPTED`（2026-09-10 R5 验收通过）；G4 是否启动由用户决定，尚未启动
+
+> 2026-09-10 更新：§5 三个阻断已由 `work-items/g3-r5/` 关闭（先红 `5de99fa`、后绿 `241c38c`），验收证据见 `docs/blackbox-spec-rework/work-items/g3-r5/ACCEPTANCE.md`。§4–§9 保留为历史记录，供理解 G3 门禁的设计约束；§6 的机械任务已完成，不得重复派发。
 
 ## 1. 冷启动顺序
 

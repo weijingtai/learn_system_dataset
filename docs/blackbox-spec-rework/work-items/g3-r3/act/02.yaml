@@ -1,0 +1,21 @@
+task_id: blackbox-g3-r3/02
+estimated_minutes: 45
+goal: 把 d07-01..25 按 CASES 精确录入 harness 并取得 Red baseline
+depends_on:
+  - blackbox-g3-r3/01
+scope:
+  read:
+    - docs/blackbox-spec-rework/work-items/g3-r3/CANONICAL.md
+    - docs/blackbox-spec-rework/work-items/g3-r3/CASES.md
+    - docs/blackbox-spec-rework/verify-T.sh
+  write:
+    - docs/blackbox-spec-rework/work-items/g3-r3/mutations.sh
+tests_first:
+  cases:
+    - d07-01..25全部存在且无重复ID
+    - 每例绑定精确Anchor、命中次数与唯一FAIL-ID
+verification:
+  - bash docs/blackbox-spec-rework/work-items/g3-r3/mutations.sh d07
+expected: 当前门禁下退出非零；汇总分母精确25；不得出现MUTATION_NOT_APPLIED
+on_fail: 停止；不得修改verify-T.sh；报告缺失或重复case与命中次数
+commit_message: 'test: add D-07 closed mutation matrix'

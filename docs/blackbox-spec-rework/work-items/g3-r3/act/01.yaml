@@ -1,0 +1,24 @@
+task_id: blackbox-g3-r3/01
+estimated_minutes: 45
+goal: 建立可信的分组变异 harness 骨架、精确替换前置断言和 FAIL ID oracle
+depends_on: []
+scope:
+  read:
+    - openspec/learn-system-blackbox-architecture.md
+    - docs/blackbox-spec-rework/verify-T.sh
+    - docs/blackbox-spec-rework/work-items/g3-r3/CANONICAL.md
+    - docs/blackbox-spec-rework/work-items/g3-r3/CASES.md
+  write_new:
+    - docs/blackbox-spec-rework/work-items/g3-r3/mutations.sh
+tests_first:
+  cases:
+    - selftest-noop: Anchor命中0次或2次时输出MUTATION_NOT_APPLIED且selftest判定成功拦截
+    - selftest-oracle: 非零退出但缺指定FAIL-ID时不得计为rejected
+    - selftest-isolation: 两例使用不同临时副本且第二例不继承第一例变更
+    - selftest-normalize-fixture: 仅允许字符相等而语义字符变化不相等
+    - selftest-block-fixture: 精确三块通过，接口前缀污染或重复供给失败
+verification:
+  - bash docs/blackbox-spec-rework/work-items/g3-r3/mutations.sh selftest
+expected: 退出0；输出HARNESS SELFTEST PASS
+on_fail: 停止；不录入正式case；报告selftest名与原始输出
+commit_message: 'test: add G3 R3 mutation harness skeleton'

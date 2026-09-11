@@ -1,0 +1,59 @@
+task_id: blackbox-g3-r3-closed-gates
+mode: documentation_gate_rework
+status: PREPARING_ACT_REVIEW
+goal: 以精确句、精确表、精确块和永久变异套件一次性消除 D-07/T-07/T-08 假绿
+depends_on:
+  - review_commit: e0e62a8
+scope:
+  read:
+    - AGENTS.md
+    - HANDOFF.md
+    - PLAN.md
+    - openspec/learn-system-blackbox-architecture.md
+    - docs/blackbox-spec-rework/reviews/G3-REVIEW-R3.md
+    - docs/blackbox-spec-rework/work-items/g3-r3/README.md
+    - docs/blackbox-spec-rework/work-items/g3-r3/BDD.md
+    - docs/blackbox-spec-rework/work-items/g3-r3/TDD.md
+    - docs/blackbox-spec-rework/work-items/g3-r3/CANONICAL.md
+    - docs/blackbox-spec-rework/work-items/g3-r3/CASES.md
+    - docs/blackbox-spec-rework/work-items/d07/
+    - docs/blackbox-spec-rework/work-items/t07/
+    - docs/blackbox-spec-rework/work-items/t08/
+  write:
+    - docs/blackbox-spec-rework/verify-T.sh
+    - docs/blackbox-spec-rework/work-items/g3-r3/mutations.sh
+forbidden:
+  - 修改 openspec 规格正文、业务代码、Schema、依赖或其他工作包
+  - 使用关键词存在性或有限否定词黑名单代替精确比较
+  - 变异未实际生效仍计为通过
+  - 修改任何规格正文、工作包、验收标准、PLAN、HANDOFF、SUBAGENT_TODO 或 G3 总验收
+  - 合并、推送、自行宣布 ACCEPTED 或启动 G4
+acts:
+  - act/01.yaml
+  - act/02.yaml
+  - act/03.yaml
+  - act/04.yaml
+  - act/05.yaml
+  - act/06.yaml
+  - act/07.yaml
+traceability:
+  B1_exact_sentences: [blackbox-g3-r3/05, blackbox-g3-r3/06]
+  B2_exact_tables: [blackbox-g3-r3/06, blackbox-g3-r3/07]
+  B3_exact_interface_blocks: [blackbox-g3-r3/07]
+  B4_trusted_mutation_harness: [blackbox-g3-r3/01, blackbox-g3-r3/02, blackbox-g3-r3/03, blackbox-g3-r3/04]
+  B5_normal_and_regression: [blackbox-g3-r3/05, blackbox-g3-r3/06, blackbox-g3-r3/07]
+  B6_DSL_and_G4_two_locations: [blackbox-g3-r3/04, blackbox-g3-r3/07]
+  R3_D07_package_and_compat: [blackbox-g3-r3/02, blackbox-g3-r3/05]
+  R3_T07_complete_map_and_replacement: [blackbox-g3-r3/03, blackbox-g3-r3/06]
+  R3_T08_names_and_unique_supply: [blackbox-g3-r3/04, blackbox-g3-r3/07]
+verification:
+  - bash docs/blackbox-spec-rework/verify-T.sh
+  - bash docs/blackbox-spec-rework/work-items/g3-r3/mutations.sh all
+  - git diff --check
+on_fail: 停止，不扩大范围；报告失败步骤、命令、退出码、变异名、替换命中数和重叠脏文件
+report:
+  - 七个独立提交 hash 与逐提交文件清单
+  - Red baseline 与最终正常门禁原始摘要
+  - 分组及完整变异通过数，必须精确为 25/25/39 与 89
+  - 格式检查与工作区状态
+  - 明确写明等待主 Agent 验收且未启动 G4

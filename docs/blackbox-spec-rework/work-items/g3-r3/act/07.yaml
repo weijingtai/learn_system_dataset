@@ -1,0 +1,24 @@
+task_id: blackbox-g3-r3/07
+estimated_minutes: 60
+goal: 精确校验T-08的三行、三块、五说明与五字段表并完成全量Green
+depends_on:
+  - blackbox-g3-r3/06
+scope:
+  read:
+    - openspec/learn-system-blackbox-architecture.md
+    - docs/blackbox-spec-rework/work-items/g3-r3/CANONICAL.md
+    - docs/blackbox-spec-rework/work-items/g3-r3/mutations.sh
+  write:
+    - docs/blackbox-spec-rework/verify-T.sh
+tests_first:
+  cases:
+    - t08-01..39全部从Red转Green
+    - 接口精确命名、唯一供给和Package集合完全相等
+    - 说明区与表格双重表示分别精确校验
+verification:
+  - bash docs/blackbox-spec-rework/verify-T.sh
+  - bash docs/blackbox-spec-rework/work-items/g3-r3/mutations.sh all
+  - git diff --check
+expected: 正常门禁0；MUTATIONS 89/89 rejected；格式检查0
+on_fail: 不修改规格或harness；报告case ID、FAIL ID和退出码
+commit_message: 'fix: close all T-08 ownership gate bypasses'

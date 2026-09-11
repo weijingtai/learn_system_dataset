@@ -1,0 +1,24 @@
+task_id: blackbox-g3-r3/06
+estimated_minutes: 45
+goal: 用完整15项字典和唯一取代规范句替换T-07部分匹配
+depends_on:
+  - blackbox-g3-r3/05
+scope:
+  read:
+    - openspec/learn-system-blackbox-architecture.md
+    - docs/blackbox-spec-rework/work-items/g3-r3/CANONICAL.md
+    - docs/blackbox-spec-rework/work-items/g3-r3/mutations.sh
+  write:
+    - docs/blackbox-spec-rework/verify-T.sh
+tests_first:
+  cases:
+    - t07-01..25全部从Red转Green
+    - 15项任一错误、缺失、重复或附加归属不得通过
+    - 取代句任一否定、缺失或重复不得通过
+verification:
+  - bash docs/blackbox-spec-rework/verify-T.sh
+  - bash docs/blackbox-spec-rework/work-items/g3-r3/mutations.sh d07
+  - bash docs/blackbox-spec-rework/work-items/g3-r3/mutations.sh t07
+expected: 正常门禁0；D07 25/25与T07 25/25 rejected
+on_fail: 不修改规格或harness；报告case ID、FAIL ID和退出码
+commit_message: 'fix: close all T-07 mapping gate bypasses'

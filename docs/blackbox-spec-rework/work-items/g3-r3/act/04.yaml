@@ -1,0 +1,22 @@
+task_id: blackbox-g3-r3/04
+estimated_minutes: 60
+goal: 把 t08-01..39 按 CASES 精确录入 harness 并冻结完整 Red baseline
+depends_on:
+  - blackbox-g3-r3/03
+scope:
+  read:
+    - docs/blackbox-spec-rework/work-items/g3-r3/CANONICAL.md
+    - docs/blackbox-spec-rework/work-items/g3-r3/CASES.md
+    - docs/blackbox-spec-rework/verify-T.sh
+  write:
+    - docs/blackbox-spec-rework/work-items/g3-r3/mutations.sh
+tests_first:
+  cases:
+    - t08-01..39全部存在且无重复ID
+    - 五字段、五说明、六处接口表示均有指定变异
+verification:
+  - bash docs/blackbox-spec-rework/work-items/g3-r3/mutations.sh t08
+  - bash docs/blackbox-spec-rework/work-items/g3-r3/mutations.sh all
+expected: 当前门禁下均非零；分母精确39与89；不得出现MUTATION_NOT_APPLIED
+on_fail: 停止；不得修改verify-T.sh；报告缺失或重复case与命中次数
+commit_message: 'test: add T-08 and full mutation matrix'

@@ -1,5 +1,14 @@
 # HANDOFF
 
+## G3 R5 完成与验收（Dataset 会话；G3 线最新状态）
+
+更新时间：2026-09-10
+当前分支/worktree：`codex/docs/knowledge-compilation`；`/Users/jingtaiwei/Git/Public/learn_system`
+刚完成：主 Agent 复现三类区域边界假绿并写 `work-items/g3-r5/` 六件套（`4d68634`）；执行 Agent 先红 `5de99fa`（11 例新变异，98/109）、后绿 `241c38c`（区域提取、表格 17 行封闭、§16.3.1 序列相等）；主 Agent 独立验收：正常规格 0 FAIL、selftest 41/41、矩阵 109/109、13 例矩阵外盲测全部命中指定 FAIL ID、FAIL ID 超集测试通过、只读 Agent 复跑一致。G3 状态 `ACCEPTED`。
+进行到一半的事（精确到文件和章节）：无。`g3-r3/` 89 例草稿已标 `SUPERSEDED` 并归档；过时指针（G3-REVIEW-R3、g3-r2、SUBAGENT_TODO G3 节）已修正。
+下一步（第一件事）：由用户决定是否启动 G4；若启动，从 `SUBAGENT_TODO.md` G4 节选第一项准备六件套，主 Agent 仍只写规格/BDD/TDD/ACT/Prompt 并独立验收。
+已知的坑：`verify-T.sh` 的 `T-06s` 在 `LC_ALL=C` 下误报，验收须 `export LC_ALL=en_US.UTF-8`；两个主 Agent 会话并行，本线只显式暂存 G3 文件，不碰 G6 注解社区路径。
+
 ## G6 注解社区线接管（C/S 会话；G3 由并行 Dataset 会话负责）
 
 更新时间：2026-09-10

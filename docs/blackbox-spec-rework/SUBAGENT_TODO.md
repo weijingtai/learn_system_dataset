@@ -144,6 +144,10 @@
 ## G3 其余 T 类转录任务
 
 - [x] G3 R2 冷启动返工执行契约：`work-items/g3-r2/COLD_START_PROMPT.md`（含读集、写范围、顺序、10 个变异、停手条件和交付证据）
+- [x] G3 R3/R4：精确结构门禁与永久变异套件（`1d4a6dc` → `ffe19df`，98 例）；`work-items/g3-r3/` 六件套草稿为 89 例旧版，已标 `SUPERSEDED`，只保留 `mutations.sh` 为现行文件
+- [x] G3 R5 区域边界封闭六件套：`work-items/g3-r5/`（状态 `ACCEPTED`；先红 `5de99fa` 11 例，后绿 `241c38c`；矩阵 109/109，selftest 41/41）
+- [x] 主 Agent 独立验收：正常规格 0 FAIL、13 例矩阵外盲测全部命中指定 FAIL ID、FAIL ID 超集测试通过、只读 Agent 复跑一致；证据见 `work-items/g3-r5/ACCEPTANCE.md`
+- [ ] G4 是否放行由用户决定；主 Agent 未启动 G4
 
 - [x] T-01：术语三层模型写入 M4（状态：`ACCEPTED`）
   - [x] README/范围/依赖/禁止项
@@ -222,7 +226,7 @@
   - [x] PLAN/HANDOFF 同步
   - [x] 主 Agent 标记 `ACCEPTED`
 
-- [ ] T-07：KnowledgePack 双向映射（状态：`REWORK_REQUIRED_R3`；等价否定语义假绿）
+- [x] T-07：KnowledgePack 双向映射（状态：`ACCEPTED`；R4 `ffe19df` 精确 15 行字典 + R5 `241c38c` 表格 17 行封闭，t07 28/28）
   - [x] README/范围/依赖/禁止项
   - [x] BDD 场景
   - [x] TDD 正反用例与精确命令
@@ -239,9 +243,10 @@
   - [x] R2：精确校验唯一归属、非目标唯一语义与指定肯定取代变异
   - [x] R2：同步 README/PROMPT/TDD/ACT/ACCEPTANCE
   - [x] R2：主 Agent 复跑 3 个指定变异（均被拦截；R3 发现等价绕过）
-  - [ ] R3：改用完整肯定句精确匹配并覆盖等价否定变异
+  - [x] R3/R4：改用完整肯定句精确匹配并覆盖等价否定变异（`1d4a6dc`、`ffe19df`）
+  - [x] R5：拒绝行尾额外列与任意非规范表行，主 Agent 验收 `ACCEPTED`（`work-items/g3-r5/ACCEPTANCE.md`）
 
-- [ ] T-08：Tag 三个接口承接（状态：`REWORK_REQUIRED_R3`；接口与供给关系唯一性假绿）
+- [x] T-08：Tag 三个接口承接（状态：`ACCEPTED`；R4 `ffe19df` 精确接口行与包多重集 + R5 `241c38c` §16.3.1 序列相等与标题唯一，t08 47/47）
   - [x] README/范围/依赖/禁止项
   - [x] BDD 场景
   - [x] TDD 正反用例与精确命令
@@ -258,7 +263,8 @@
   - [x] R2：精确校验五字段 owner/package 与三接口指定供给包变异
   - [x] R2：同步 README/BDD/PROMPT/TDD/ACT/ACCEPTANCE
   - [x] R2：主 Agent 复跑 4 个指定变异（均被拦截；R3 发现唯一性绕过）
-  - [ ] R3：精确接口名、唯一供给行、拒绝额外 Package 后复验
+  - [x] R3/R4：精确接口名、唯一供给行、拒绝额外 Package 后复验（`1d4a6dc`、`ffe19df`）
+  - [x] R5：拒绝重复块标题与块外内容，主 Agent 验收 `ACCEPTED`（`work-items/g3-r5/ACCEPTANCE.md`）
 
 - [x] T-09：Orchestrator 查询契约（状态：`ACCEPTED`，提交 `d331ca4`）
   - [x] README/范围/依赖/禁止项
@@ -367,7 +373,7 @@
   - [ ] PLAN/HANDOFF 同步
   - [ ] 主 Agent 标记 `ACCEPTED`
 
-- [ ] D-07：TechniqueProfile 与 QueryContract（状态：`REWORK_REQUIRED_R3`；Package 名和兼容性语义假绿）
+- [x] D-07：TechniqueProfile 与 QueryContract（状态：`ACCEPTED`；R4 `ffe19df` 三个封闭块 + R5 `241c38c` 三段区域到下一 START 封闭，d07 34/34）
   - [x] README/范围/依赖/禁止项
   - [x] BDD 场景
   - [x] TDD 正反用例与精确命令
@@ -383,7 +389,8 @@
   - [x] R2：按三个 Package 专属块解析，禁止跨块关键词代偿
   - [x] R2：补齐事实字段/枚举与逐规则 Profile/AST 版本负向门禁
   - [x] R2：主 Agent 复跑 3 个指定变异（均被拦截；R3 发现语义绕过）
-  - [ ] R3：精确 Package 起始行与肯定兼容声明后复验
+  - [x] R3/R4：精确 Package 起始行与肯定兼容声明后复验（`1d4a6dc`、`ffe19df`）
+  - [x] R5：三段区域到下一 START/§16.2 完整封闭，主 Agent 验收 `ACCEPTED`（`work-items/g3-r5/ACCEPTANCE.md`）
 
 - [ ] D-08：SchoolView（状态：`BACKLOG`）
   - [ ] README/范围/依赖/禁止项
@@ -535,7 +542,7 @@
 - [ ] R1 架构规格达到下一阶段准出条件（状态：`BLOCKED`）
   - [ ] G1 规格内核全部 `ACCEPTED`
   - [ ] G2 R0 工作台数据安全全部 `ACCEPTED`
-  - [ ] G3 T 类全部 `ACCEPTED`
+  - [x] G3 T 类全部 `ACCEPTED`（T-01～T-13；D-07/T-07/T-08 假绿经 R5 关闭，2026-09-10）
   - [ ] G4 D 类全部 `ACCEPTED`
   - [ ] BDD 总验收包完整
   - [ ] TDD/机器门禁可执行
