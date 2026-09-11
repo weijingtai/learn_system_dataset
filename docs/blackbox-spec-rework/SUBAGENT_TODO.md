@@ -148,7 +148,7 @@
 - [x] G3 R5 区域边界封闭六件套：`work-items/g3-r5/`（状态 `ACCEPTED`；先红 `5de99fa` 11 例，后绿 `241c38c`；矩阵 109/109，selftest 41/41）
 - [x] 主 Agent 独立验收：正常规格 0 FAIL、13 例矩阵外盲测全部命中指定 FAIL ID、FAIL ID 超集测试通过、只读 Agent 复跑一致；证据见 `work-items/g3-r5/ACCEPTANCE.md`
 - [x] 用户 2026-09-10 决定启动 G4；第一批 `work-items/g4-r1/`（D-13/D-10/D-11 ｜ D-06/D-08 ｜ D-14）三组并行派发；D-15/D-16/D-18 第二批
-- [ ] G4 第二批 `work-items/g4-r2/`（2026-09-11 派发，`DISPATCHED`）：D 组 = ACT 01 前缀登记（sch_/sv_/cg_ 进 §8.1 第 3b 节、§12.2 去占位）+ ACT 02 D-15 fixture；E 组 = ACT 03 D-18 §20 判据化 + `openspec/acceptance/run_all.sh`；D→E 串行；主 Agent 锚点与输入核对见 `g4-r2/ACCEPTANCE.md` §0
+- [x] G4 第二批 `work-items/g4-r2/`（2026-09-11 派发并验收，全部 `ACCEPTED`）：D 组 = ACT 01 前缀登记 `851fa70` + ACT 02 D-15 fixture `6fc8536`；E 组 = ACT 03 D-18 `4884b6a` + 返工 `2978ad9`；三件裁定（哈希环、严格 offset、规范 verify.sh）记于 `g4-r2/ACCEPTANCE.md` §5.1；G4 仅剩 D-16
 
 - [x] T-01：术语三层模型写入 M4（状态：`ACCEPTED`）
   - [x] README/范围/依赖/禁止项
@@ -516,7 +516,7 @@
   - [x] 既有交叉审查通过
   - [x] 无业务实现冒充规格完成
 
-- [ ] D-18：完成标准判据化（状态：`REVIEWING`，`4884b6a` 判据全绿；返工一处 `run_all.sh fx()` 一律用规范 `verify.sh`，见 `g4-r2/PROMPT-E2.md`；主 Agent 验收见 `g4-r2/ACCEPTANCE.md` §5.4）
+- [x] D-18：完成标准判据化（状态：`ACCEPTED`，`4884b6a` + 返工 `2978ad9`；`openspec/acceptance/run_all.sh` 当前 `pass=0 fail=1 blocked=10`，20.7 因 `original_text` 全空为 FAIL 属预期；主 Agent 验收见 `g4-r2/ACCEPTANCE.md` §5.4–5.5）
   - [ ] README/范围/依赖/禁止项
   - [ ] BDD 场景
   - [ ] TDD 正反用例与精确命令

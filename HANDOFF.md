@@ -1,5 +1,14 @@
 # HANDOFF
 
+## G4 第二批验收通过：D-15 fixture、D-18 §20 判据化、前缀登记（Dataset 会话；黑箱线最新状态）
+
+更新时间：2026-09-11
+当前分支/worktree：`codex/docs/knowledge-compilation`；`/Users/jingtaiwei/Git/Public/learn_system`
+刚完成：用户把 `work-items/g4-r2/` 的 PROMPT-D / PROMPT-E / PROMPT-E2 交外部 Agent 执行，四个提交：r2-01 前缀登记 `851fa70`（§8.1 第 3b 节 sch_/sv_/cg_，§12.2 去占位）、r2-02 D-15 fixture `6fc8536`（`pipeline/corpus/_fixture/mini_ed01/`，43 span / 5 batch / 230 字框锚点，页图不进 Git，`verify.sh` V1–V8）、r2-03 D-18 `4884b6a` + 返工 `2978ad9`（§20 十一条各带判据，`openspec/acceptance/run_all.sh` 当前 `pass=0 fail=1 blocked=10`，20.7 因旧库 `original_text` 全空为 FAIL 属预期）。主 Agent 在 `git archive` 干净树上独立验收：三门禁绿、TDD §1–§3 全绿、8 例矩阵外 fixture 篡改全部命中、假 `verify.sh` 副本不被信任。三件执行者上报裁定（哈希环 = ACT 缺陷、严格 offset、`fx()` 一律用规范脚本）记于 `work-items/g4-r2/ACCEPTANCE.md` §5.1 并回写 ACT。
+进行到一半的事（精确到文件和章节）：无。G4 仅剩 D-16（PLAN 映射表与唯一 owner），六件套未写；已向 C/S 会话请求 `PLAN.md` 写入时间窗。
+下一步（第一件事）：与 C/S 约定时间窗后写 `work-items/g4-r3/`（D-16），派发、验收；随后 G5 总准出（BDD 总验收包、机器门禁、ACT 覆盖映射复核）。`pat_`/`ent_` 前缀（登记册 §3.4）仍待用户确认，不阻塞。
+已知的坑：验收要在 `git archive <hash>` 导出树上跑（软链 `.venv`、`pattern_knowledge_workbench/assets`，`FIXTURE_ASSET_ROOT` 指本机页图目录），否则同工作树里 C/S 的未提交 `openspec/schemas/community_*` 会混入门禁；`build_fixture.py` 的 `--asset-root` 只影响 `path_ref` 字面，重放必须用默认值；`verify-T.sh` 仍需 `LC_ALL=en_US.UTF-8`。
+
 ## G6 NC-004 达 READY（C/S 会话）
 
 更新时间：2026-09-11

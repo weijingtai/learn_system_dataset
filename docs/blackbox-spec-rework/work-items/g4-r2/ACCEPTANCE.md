@@ -1,6 +1,6 @@
 # ACCEPTANCE：G4 第二批（前缀登记 / D-15 / D-18）
 
-状态：r2-01 / r2-02 `ACCEPTED`（`851fa70`、`6fc8536`）；r2-03 `REVIEWING`（`4884b6a` 判据全绿，仅回退分支需按裁定 3 返工，见 §5 与 `PROMPT-E2.md`）
+状态：全部 `ACCEPTED`。r2-01 `851fa70`、r2-02 `6fc8536`、r2-03 `4884b6a` + 返工 `2978ad9`（见 §5）
 
 ## 0. 转译审查（原规划者四查，2026-09-10）
 
@@ -56,4 +56,8 @@
 
 ### 5.4 r2-03（`4884b6a`）REVIEWING → 返工一处
 
-范围 2 文件；门禁绿；TDD §3 十一条全 Green（11 行 + SUMMARY、exit 1、`FAIL  20.7` 含 `0/496`、BLOCKED 全带「前置缺失: 」且 5 个行名逐字属于 §19 第一列、副本删 span 后 `20.1` 为 FAIL、未篡改副本仍 BLOCKED）；§20 除第 7 条替换外各条原文不变、11 条编号连续、判据后缀齐全、intro 段逐字一致。唯一不通过：`run_all.sh` `fx()` 先跑 `$FIXTURE_DIR/verify.sh`，仅在 `BLOCKED_ENV` 时回退到规范脚本，违反裁定 3。返工后主 Agent 复验 TDD §3 全部判据 + 「副本 verify.sh 被篡改为直接打印 FIXTURE OK 时 20.1 仍按规范脚本判定」。
+范围 2 文件；门禁绿；TDD §3 十一条全 Green（11 行 + SUMMARY、exit 1、`FAIL  20.7` 含 `0/496`、BLOCKED 全带「前置缺失: 」且 5 个行名逐字属于 §19 第一列、副本删 span 后 `20.1` 为 FAIL、未篡改副本仍 BLOCKED）；§20 除第 7 条替换外各条原文不变、11 条编号连续、判据后缀齐全、intro 段逐字一致。唯一不通过：`run_all.sh` `fx()` 先跑 `$FIXTURE_DIR/verify.sh`，仅在 `BLOCKED_ENV` 时回退到规范脚本，违反裁定 3。
+
+### 5.5 r2-03 返工（`2978ad9`）ACCEPTED
+
+范围 1 文件（+4/−10）；`grep -c 'FIXTURE_DIR/verify.sh'` = 0，`fx()` 只调用 `$REPO_ROOT/pipeline/corpus/_fixture/mini_ed01/verify.sh` 并透传 `FIXTURE_DIR`；门禁绿；TDD §3 全部判据与改前一致（11 行、`SUMMARY pass=0 fail=1 blocked=10`、exit 1）。矩阵外：副本删 span → `FAIL  20.1`；未篡改副本 → `BLOCKED  20.1`；副本删 span 且把副本 `verify.sh` 换成只打印 `FIXTURE OK` 的假脚本 → 仍 `FAIL  20.1`（副本脚本从未被信任）；临时移走规范脚本 → `BLOCKED  20.1/20.2  前置缺失: M3 Corpus Compilation；fixture 缺失`；`FIXTURE_DIR=/nonexistent` → `FAIL`（不是 PASS 也不是静默）。D-18 → `ACCEPTED`。
