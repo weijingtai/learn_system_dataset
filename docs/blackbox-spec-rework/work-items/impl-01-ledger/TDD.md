@@ -6,7 +6,7 @@
 
 ```bash
 git status --short pipeline/ledger openspec/acceptance .gitignore docs/blackbox-spec-rework/work-items/g4-r3/check_d16.py   # 空
-ls pipeline/ledger 2>/dev/null | wc -l                                          # H1: 0；H2: 13（含 tests）
+ls pipeline/ledger 2>/dev/null | wc -l                                          # H1: 0；H2: 9（不含 __pycache__：__init__ actor errors ids lock objects states store tests）
 bash docs/blackbox-spec-rework/verify-T.sh | tail -1                            # FAIL 合计: 0
 bash docs/blackbox-spec-rework/work-items/g3-r3/mutations.sh all | tail -1      # 109/109
 bash openspec/schemas/verify.sh >/dev/null; echo $?                             # 0

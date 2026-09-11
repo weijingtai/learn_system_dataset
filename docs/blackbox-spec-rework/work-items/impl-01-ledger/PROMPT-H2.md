@@ -12,7 +12,7 @@
 
 严格执行：
 
-0. 开工前提：TDD §0 基线（`ls pipeline/ledger | wc -l` = 13；三门禁绿；`run_all.sh` 末行 `SUMMARY pass=0 fail=1 blocked=10`）。`git status --short pipeline/ledger openspec/acceptance` 无输出。
+0. 开工前提：TDD §0 基线（`ls pipeline/ledger | grep -v __pycache__ | wc -l` = 9（__init__ actor errors ids lock objects states store tests）；三门禁绿；`run_all.sh` 末行 `SUMMARY pass=0 fail=1 blocked=10`）。`git status --short pipeline/ledger openspec/acceptance` 无输出。
 1. `export LC_ALL=en_US.UTF-8`。
 2. ACT 03：先写 `tests/test_service.py`、`tests/test_checkpoint.py`（用例名逐字），记录 Red；实现 `service.py`（`LedgerService`、`LedgerReader`，方法名与参数名逐字按 `contract.methods`）；ACT `verify`；TDD §3 回归；提交。
 3. ACT 04：先写 `tests/test_daemon.py`，记录 Red；实现 `ledgerd.py`/`client.py`/`cli.py`；ACT `verify`；回归；提交。
