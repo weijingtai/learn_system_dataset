@@ -313,8 +313,12 @@ ReviewDecision 与 EvidenceLink 必须同时记录目标对象的 `entity_id`，
 | School（流派） | `sch_<technique>_<3位数字>` | 稳定身份（`school_id`，`entity_id` 语义） | 按技法命名空间、人工闭集、从 `001` 起顺序编号且不复用；同名流派在不同技法下是不同对象；只能引用 Contract Registry 已登记值 |
 | SchoolView（流派视图） | `sv_<32hex>` | 稳定身份（`school_view_id`，`entity_id` 语义） | M4 批量产出，UUIDv4 家族；内容变化以 `rev_<32hex>` 表达，不换号 |
 | ConflictGroup（冲突组） | `cg_<32hex>` | 分组标识（`conflict_group_id`） | 同一主题下相互冲突的一组 SchoolView 共享；M4 / M7 产出，UUIDv4 家族 |
+| Pattern（格局） | `pat_<technique>_<6位数字>` | 稳定身份（`pattern_id`，`entity_id` 语义） | 某技法下一个可规则识别的格局；按技法命名空间、人工闭集、从 `000001` 起顺序编号且不复用；M4 产出候选、M7 聚合后正式；只能引用 Contract Registry 已登记值 |
+| KnowledgeEntry（发布词条） | `ent_<32hex>` | 稳定身份（`entry_id`，`entity_id` 语义） | M8 编译出的发布视图词条，UUIDv4 家族；内容变化以 `rev_<32hex>` 表达，不换号；跨 Release 保号，退役写入 `IdentityMigrationMap`（§16） |
 
 旧工作台 slug（`qin_tang`、`tian_guan`）迁移时作为别名保留，不作 `school_id`；`guo_lao` 在旧表中类型为 book，不是流派。
+
+`pat_` 与 `ent_` 两行为用户 2026-09-11 确认（`openspec/id-prefix-registry.md` §3.4），随本表一并冻结；§4 已有字段 `pattern_id`、`entry_id` 自此按本表格式校验。
 
 #### 4. 版本轴分离规则（Schema Version 与 Content Revision）
 
