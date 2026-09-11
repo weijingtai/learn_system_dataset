@@ -56,7 +56,7 @@ Red（act/01）：`nchash.dart` 先只定义 `domain` 常量与抛 `Unimplemente
 
 Red：先写测试与只含空 `@DriftDatabase(tables: [])` 的类，运行命令 5 取得失败原文，再写表与生成。
 
-## 4. act/04：仓储保存规则（契约 §5.1 第 1～6 条）
+## 4. act/04：仓储保存规则（契约 §5.1 第 1～6、8 条）
 
 文件：`lib/src/persistence/note_repository.dart`、`lib/src/persistence/outbox.dart`（`OutboxEnvelope` 模型与 op/state 枚举）、`test/persistence/note_repository_test.dart`（本步 14 个测试）。
 
@@ -87,7 +87,7 @@ Red：先写 14 个测试与只抛 `UnimplementedError` 的仓储，运行命令
 | 测试名 | 断言 |
 |---|---|
 | `restore same content creates new revision` | B20：`restored_from` 正确、hash 相等、parent_ids=[当前头] |
-| `merge two heads` | B21：`createNote` 得 R1；`saveSnapshot(expectedHeadId=R1)` 得 R2（heads={R2}）；模拟同步到达：直接向 `note_heads` 插入 `(note_id, R1)`（R1 已存在于 `note_revisions`，满足 FK），此时 heads={R1,R2}；`mergeHeads(headIds:[R1,R2], merged)` 得 R3：`parent_ids==[R1,R2]`、heads=={R3}、`preferred_head_id==R3`、outbox 末条 op=`heads_merged` |
+| `merge two heads` | B21：`createNote` 得 R1；用**正文不同**的快照 `saveSnapshot(expectedHeadId=R1)` 得 R2（heads={R2}；正文相同会按去重规则 ① 返回 unchanged）；模拟同步到达：直接向 `note_heads` 插入 `(note_id, R1)`（R1 已存在于 `note_revisions`，满足 FK），此时 heads={R1,R2}；`mergeHeads(headIds:[R1,R2], merged)` 得 R3：`parent_ids==[R1,R2]`、heads=={R3}、`preferred_head_id==R3`、outbox 末条 op=`heads_merged` |
 | `disk failure rolls back whole save` | B17：`NativeDatabase(file).interceptWith(FailingInterceptor(failOnStatementContaining: 'outbox_envelopes'))`；先断言抛 `SaveFailed` 且 `cause` 为注入的 `SqliteException`（证明拦截发生在事务内），再断言三表行数与 `preferred_head_id` 不变 |
 | `close and reopen keeps everything` | B18 |
 | `stale session is rejected` | B19：`retireSession()` 后 `saveSnapshot`/`createNote`/`listRevisions` 均抛 `StaleSessionError`，无新行（用新连接读） |

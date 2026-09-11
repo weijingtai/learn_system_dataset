@@ -16,9 +16,9 @@
 | B10 | 正文 UTF-8 恰 1048576 字节 | 保存 | saved |
 | B11 | 正文 1048577 字节 | 保存 | 抛 `NoteSizeLimitExceeded`；四表行数不变（缓冲由调用方保留） |
 | B12 | 附件 21 个 / mention 完全重复 | 保存 | 分别抛 `AttachmentCountExceeded` / `DuplicateReferenceItem`；行数不变 |
-| B13 | head 说明为 X；新会话改正文再改回原文，summaryTouched=false | 保存 | `unchanged`（summary_touched ①） |
-| B14 | 新会话只填写说明 Y，summaryTouched=true | 保存 | `saved` 且新修订 change_summary=Y（②） |
-| B15 | 新会话改正文、未碰说明（传入空串） | 保存 | `saved` 且 change_summary 为空串，不继承 X（③） |
+| B13 | head 说明为 X；新会话改正文再改回原文，summaryTouched=false | 保存 | `unchanged`（去重规则 ②：仅说明不同且未碰说明框） |
+| B14 | 新会话只填写说明 Y，summaryTouched=true | 保存 | `saved` 且新修订 change_summary=Y（去重规则 ③） |
+| B15 | 新会话改正文、未碰说明（传入空串） | 保存 | `saved` 且 change_summary 为空串，不继承 X（去重规则 ③） |
 | B16 | expectedHeadId 不是当前头 | 保存 | 抛 `HeadConflictError`，行数不变 |
 | B17 | 执行器在 `outbox_envelopes` 插入时抛异常 | 保存 | 抛 `SaveFailed`；`note_revisions`/`note_heads`/`outbox_envelopes` 行数与事务前相等，`preferred_head_id` 未变 |
 | B18 | 三次保存后关闭库 | 重新打开同文件 | 修订数、头、附件引用、outbox 全部不丢 |

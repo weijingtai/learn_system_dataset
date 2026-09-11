@@ -27,3 +27,9 @@
 ## 2. 完成标准
 
 `nc004_guard.sh` 与 `git diff --check` 均 0；第二轮审查由另一位未参与者缩范围复核本节 17 项与 `ab11e28..HEAD` 的回归。
+
+## 3. 第二轮审查（R2，2026-09-11）：READY
+
+审查人：另一独立只读 Agent（Opus，缩范围）。R1 的 10 项 + 7 建议全部 CLOSED；去重规则四组合（投影全等/仅说明不同 × touched 真/假）无遗漏无重叠且与 DESIGN §7.2 逐句一致；`QueryInterceptor` 五个方法名与 drift 2.31.0 源码逐字一致，事务内 INSERT 经 `_InterceptedTransactionExecutor` 必被拦截；测试计数 7+2+4+14+8=35 七处一致；`ab11e28..75633ad` 无新矛盾；守卫 0、`git diff --check` 0、模糊词零命中。8 条非阻断建议已由主 Agent 落实（`runBatched` 判定写法、B13～B15 标签对齐契约编号、merge 测试第二次保存须正文不同、TDD §4 标题、`openScoped` 注入形状、act/05 期望 +35、README 35 处措辞；N8 保留 `WRITE_NEW` 键并以「追加」注明）。
+
+**决定记录：转译审查 R2：READY，5 个 ACT 可开工。** 执行 Prompt 为 `work-items/nc-004/PROMPT.md`，由用户交外部 Agent；主 Agent 按 ACCEPTANCE.md 验收。

@@ -1,6 +1,6 @@
 TASK_ID: NC-004-A
 PARENT: NC-004
-STATUS: PREPARING
+STATUS: READY
 REPO: xuan-migration/reading-notes（新建独立 Git 仓库）
 GOAL: 建立 reading_notes 包与 Git 仓库，实现 nchash/v2 的 E 编码、规范化、投影与哈希，通过 7 项一致性测试
 DEPENDS_ON: []

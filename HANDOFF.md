@@ -1,5 +1,14 @@
 # HANDOFF
 
+## G6 NC-004 达 READY（C/S 会话）
+
+更新时间：2026-09-11
+当前分支/worktree：`codex/docs/knowledge-compilation`；`/Users/jingtaiwei/Git/Public/learn_system`
+刚完成：NC-004 两轮四查（R1 REWORK 10 项 + 7 建议；R2 READY，记录 `reviews/NC-004-REVIEW-R1.md`）。关键裁定：去重规则按 DESIGN §7.2 重写为 ①投影全等→unchanged（无论 touched）②仅说明不同且未碰→unchanged ③其余→saved；失败注入改用 Drift `QueryInterceptor`；严格 JSON 扫描器四条规则写死；ACT 拆五步（250 分钟，35 个测试）；新增本地错误 `MentionCountExceeded`/`FieldLengthExceeded`；`example/` 推迟 NC-010。SUBAGENT_TODO 记 NC-004 `READY`。
+进行到一半的事（精确到文件和章节）：无。等待用户把 `work-items/nc-004/PROMPT.md` 交外部 Agent。
+下一步（第一件事）：收到 NC-004 执行报告后按 `work-items/nc-004/ACCEPTANCE.md` 验收（`nc004_guard.sh --require-impl` 会在 reading-notes 内运行 `flutter analyze` 与 `flutter test`）。等待期间准备 NC-005 六件套（编辑器 SM-1、Markdown 预览、`flutter_markdown_plus 1.0.12`、注入/外部图片安全测试）。
+已知的坑：`nc004_guard.sh --require-impl` 需要 PATH 内有 `/Users/jingtaiwei/flutter/bin`（守卫内部已注入）；宿主机需能加载 libsqlite3。
+
 ## G6 NC-002 验收通过；NC-004 审查返工中（C/S 会话）
 
 更新时间：2026-09-11

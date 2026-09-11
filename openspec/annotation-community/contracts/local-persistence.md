@@ -18,7 +18,7 @@
 
 ## 2. 数据库
 
-- 每个账号作用域一个文件：`<dir>/reading_notes_<scopeUid>.sqlite`（决定 D-NC004-04，沿用 `persistence_drift` 的 `<name>_<scopeUid>.sqlite` 惯例）；`<dir>` 由宿主注入（`Future<Directory> Function()`），包内不调用 `path_provider` 以外的路径 API。
+- 每个账号作用域一个文件：`<dir>/reading_notes_<scopeUid>.sqlite`（决定 D-NC004-04，沿用 `persistence_drift` 的 `<name>_<scopeUid>.sqlite` 惯例）；`<dir>` 由宿主解析后以 `Directory` 值注入 `NoteDatabase.openScoped({required Directory dir, required String scopeUid})`（宿主自己用 `path_provider` 取目录；本包不直接调用 `path_provider`，其依赖只为与 drift_flutter 解析一致而锁定）。
 - 生产打开方式 `NativeDatabase.createInBackground(File)`；测试用 `NativeDatabase(File)` 打开临时目录中的**真文件**（不用 `NativeDatabase.memory()` 证明持久化）。
 - `schemaVersion = 1`；`MigrationStrategy.onCreate` 建全部表与索引；本期无升级路径，`onUpgrade` 抛 `UnsupportedError`（后续任务显式登记迁移步骤）。
 - 外键约束开启（`PRAGMA foreign_keys = ON` 于 `beforeOpen`）。
@@ -116,7 +116,7 @@ enum SaveOutcome { saved, unchanged }
 
 ### 5.2 事务原子性的测试注入点
 
-`NoteDatabase` 构造接受 `QueryExecutor`。测试用 Drift 2.31 官方拦截器：`NativeDatabase(file).interceptWith(FailingInterceptor(failOnStatementContaining: 'outbox_envelopes'))`，其中 `FailingInterceptor extends QueryInterceptor` 覆盖 `runInsert`、`runUpdate`、`runDelete`、`runCustom`、`runBatched` 五个方法：当 `statement` 含目标子串时抛 `SqliteException(1, 'injected failure')`，否则转发。Drift 的 `_InterceptedExecutor` 会把同一拦截器套用到 `beginTransaction()` 返回的事务执行器，因此第 ④ 步（事务内 INSERT）会被拦截；测试须先断言拦截确实发生（捕获到 `SaveFailed` 且其 `cause` 为注入异常），再断言回滚。若实测拦截器未作用于事务内语句，视为停止条件上报，不得改用「先写一半再手工删」模拟。
+`NoteDatabase` 构造接受 `QueryExecutor`。测试用 Drift 2.31 官方拦截器：`NativeDatabase(file).interceptWith(FailingInterceptor(failOnStatementContaining: 'outbox_envelopes'))`，其中 `FailingInterceptor extends QueryInterceptor` 覆盖 `runInsert`、`runUpdate`、`runDelete`、`runCustom`、`runBatched` 五个方法：前四个当 `statement` 含目标子串时抛 `SqliteException(1, 'injected failure')`，`runBatched` 当 `statements.statements.any((s) => s.contains(target))` 时抛，否则转发。Drift 的 `_InterceptedExecutor` 会把同一拦截器套用到 `beginTransaction()` 返回的事务执行器，因此第 ④ 步（事务内 INSERT）会被拦截；测试须先断言拦截确实发生（捕获到 `SaveFailed` 且其 `cause` 为注入异常），再断言回滚。若实测拦截器未作用于事务内语句，视为停止条件上报，不得改用「先写一半再手工删」模拟。
 
 ## 6. nchash/v2 Dart 实现（`lib/src/domain/nchash.dart`）
 

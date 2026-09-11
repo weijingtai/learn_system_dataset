@@ -1,6 +1,6 @@
 # NC-004：可靠保存与不可变修订（CLIENT 建仓 + Drift 修订库）
 
-状态：`PREPARING`（六件套已产出，待 wjt-react 四查）。task_id：`NC-004`。权威需求来源：`openspec/annotation-community/TASKS.md` NC-004；DESIGN §3、§3.1、§3.2、§4.4、§5、§7.1、§7.2；契约 `openspec/annotation-community/contracts/local-persistence.md`（本任务专属，主 Agent 编写）、`community-models.md` §1、`state-machines.md` SM-1/3/5；fixture `fixtures/community/content_hash_cases.json`。分支（learn_system）：`codex/docs/knowledge-compilation`。
+状态：`READY`（2026-09-11 两轮 wjt-react 四查：R1 REWORK 10 项 + 7 建议、R2 READY；记录见 `reviews/NC-004-REVIEW-R1.md`）。执行由用户交外部 Agent，PROMPT.md 原样发送。task_id：`NC-004`。权威需求来源：`openspec/annotation-community/TASKS.md` NC-004；DESIGN §3、§3.1、§3.2、§4.4、§5、§7.1、§7.2；契约 `openspec/annotation-community/contracts/local-persistence.md`（本任务专属，主 Agent 编写）、`community-models.md` §1、`state-machines.md` SM-1/3/5；fixture `fixtures/community/content_hash_cases.json`。分支（learn_system）：`codex/docs/knowledge-compilation`。
 
 ## outbox 二选一（TASKS NC-004 第 4 条、TASKS 第 46 行）
 
@@ -32,7 +32,7 @@
 - Flutter 3.44.6 / Dart 3.12.2 位于 `/Users/jingtaiwei/flutter/bin`；执行者用 `export PATH=/Users/jingtaiwei/flutter/bin:$PATH`。
 - pub-cache 已有 drift 2.31.0、drift_dev 2.31.0、drift_flutter 0.2.8、sqlite3 2.9.4、sqlite3_flutter_libs 0.5.42、path_provider 2.1.6、build_runner 2.15.1、crypto 3.0.7、flutter_lints 6.0.0（主 Agent 2026-09-11 核对 `~/.pub-cache/hosted/pub.dev`）；`flutter pub get` 允许联网解析传递依赖，但不得改变上述精确版本。
 - `reading-notes` 目录当前不存在（NC-001 基线 `client.state=PLANNED_NEW`）；父目录 `xuan-migration` 存在且不是 Git 仓库。
-- 宿主机 macOS 自带 `libsqlite3`，`persistence_drift` 的测试中有 35 处以真文件 `NativeDatabase(File)` 运行；若 `flutter test` 报无法加载 sqlite3 → 停止上报。
+- 宿主机 macOS 自带 `libsqlite3`，`persistence_drift` 的测试中有 35 处真文件执行器用例（32 处 `NativeDatabase(File)` + 3 处 `createInBackground`）；若 `flutter test` 报无法加载 sqlite3 → 停止上报。
 - 共享守卫：本任务不触碰 learn_system，唯一的 learn_system 侧命令是 `bash docs/blackbox-spec-rework/reviews/nc004_guard.sh --require-impl`（只读）；其 K01 因并行线改动失败判外部失败，K02 及以后按本任务失败停工。
 
 ## Stop Conditions

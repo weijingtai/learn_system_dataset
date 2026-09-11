@@ -1,5 +1,5 @@
 TASK_ID: NC-004
-STATUS: PREPARING
+STATUS: READY
 GOAL: 建立 reading_notes 包，实现 nchash Dart、Drift 修订库、事务保存与 outbox 外层信封
 CONTRACTS:
   - openspec/annotation-community/contracts/local-persistence.md

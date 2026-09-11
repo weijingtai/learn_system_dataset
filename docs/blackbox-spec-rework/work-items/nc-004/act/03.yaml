@@ -1,6 +1,6 @@
 TASK_ID: NC-004-C
 PARENT: NC-004
-STATUS: PREPARING
+STATUS: READY
 REPO: xuan-migration/reading-notes（新建独立 Git 仓库）
 GOAL: 领域模型、常量、本地错误、Drift 表与库（含生成文件）及 4 项库测试
 DEPENDS_ON: [NC-004-B]
