@@ -10,7 +10,7 @@
 
 0. 前提：`README.md` §2 的「用户确认」已填日期（主 Agent 填）；`git status --short openspec/learn-system-blackbox-architecture.md docs/blackbox-spec-rework/README.md` 无输出。任一不满足停手。
 1. `export LC_ALL=en_US.UTF-8`；跑三门禁记录基线（应全绿）。
-2. 按 `act/g5-01.yaml`：断言五个锚点与行号；替换第 3 行；用 `new_quote` 四行替换第 5–7 行（`<日期>` 换成 README §2 填的日期）；替换 README 第 5 行。`git diff --numstat` 必须恰为规格 +5/−4、README +1/−1。
+2. 按 `act/g5-01.yaml`：断言五个锚点与行号；替换第 3 行；用 `new_quote` 四行替换第 5–7 行（`<日期>` 换成 README §2 填的日期）；替换 README 第 5 行。`git diff --numstat` 必须恰为规格 +3/−2、README +1/−1。
 3. 运行 ACT `verify` 全部；`grep -c '^状态：'` 必须与改前相同（节标签一行未动）。
 4. `git add` 两个文件后按 `commit.message` 提交。一个提交。
 5. 停手规则：锚点或行号不符；numstat 不符；任一门禁变红。停止、不自行决定，把原始输出交主 Agent。

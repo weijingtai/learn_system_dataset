@@ -8,7 +8,7 @@
 | `grep -c 'REVIEW_FAILED_R1' $S` | 1 | 0 |
 | `grep -c '^状态：' $S` | 19 | 19 |
 | `grep -c '^状态：最终规范' $S` | 0 | 0 |
-| `git diff <base> --numstat -- $S \| cut -f1,2` | — | `5 4` |
+| `git diff <base> --numstat -- $S \| cut -f1,2` | — | `3 2`（原写 `5 4` 为主 Agent 算术错误，已订正） |
 | `git diff <base> --numstat -- docs/blackbox-spec-rework/README.md \| cut -f1,2` | — | `1 1` |
 | `bash docs/blackbox-spec-rework/verify-T.sh \| tail -1` | FAIL 合计: 0 | FAIL 合计: 0 |
 | `bash docs/blackbox-spec-rework/work-items/g3-r3/mutations.sh all \| tail -1` | 109/109 | 109/109 |

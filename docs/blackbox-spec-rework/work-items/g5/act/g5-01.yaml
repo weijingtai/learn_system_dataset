@@ -16,7 +16,7 @@ steps:
   - 第 3 行整行替换为 new_status
   - 第 5–7 行三行整体替换为 new_quote（四行）
   - README 第 5 行整行替换为 readme_new
-  - 除此之外任何行不改：`git diff --numstat` 规格必须为 +5/−4，README +1/−1
+  - 除此之外任何行不改：`git diff --numstat` 规格必须为 +3/−2（new_quote 前两行与原文相同，git 不计为改动；原写 +5/−4 为主 Agent 算术错误，执行者 2026-09-11 上报后订正），README +1/−1
 new_status: '状态：`R1_REWORK_CLOSED`（R1 返工全部结清，允许进入 §22 首纵切实现；各节四态标签见每节「状态：」行，整份规格尚未批准为最终规范）'
 new_quote: |
   > R1 交叉审查（2026-09-08，架构 / 验收 / 用户体验 / 规划四角色独立进行）结论为**不通过**，
