@@ -9,14 +9,14 @@
 下一步（第一件事）：r3-03 验收；然后 G5 总准出（复核 BDD 总验收包、三门禁 + `run_all.sh`、ACT 覆盖映射），产出 G5 准出记录；之后进入 §22 首纵切实现批次（Artifact Ledger → M3 → M5 → M8，判据 `run_all.sh 20.N` 由 BLOCKED 变 PASS）。
 已知的坑：PLAN.md 时间窗已向 C/S 解除；PLAN 的 D-16 节要求「零删行」，今后改 PLAN 只能追加或把 `- [ ]` 改 `- [x]` 并附取代者；验收仍在 `git archive` 导出树上跑。
 
-## G6 NC-004 验收通过；NC-005 审查中（C/S 会话）
+## G6 NC-005 READY 已派发；NC-006 准备中（C/S 会话）
 
 更新时间：2026-09-11
 当前分支/worktree：`codex/docs/knowledge-compilation`；`/Users/jingtaiwei/Git/Public/learn_system`
-刚完成：NC-004 由外部 Agent 在新仓库 `xuan-migration/reading-notes` 完成五个提交（`9ac96cc`→`957536c`），主 Agent 亲自验收通过（详见 `work-items/nc-004/ACCEPTANCE.md` 验收记录：守卫 `--require-impl` 0、35 测试、Dart/Python 交叉复算、sqlite3 直查、失败注入回滚）。SUBAGENT_TODO 记 NC-004 `ACCEPTED`。NC-005 契约 `contracts/editor.md` 与六件套已产出，第一轮四查 REWORK 3 项已落实（`651220d`），第二轮缩范围审查进行中。
-进行到一半的事（精确到文件和章节）：NC-005 R2 审查结果待回；`PLAN.md` 的 NC-004/NC-005 条目更新**暂缓**——已向 Dataset 会话承诺在其 D-16 改 PLAN.md 提交前不动该文件，收到其通知后补。
-下一步（第一件事）：NC-005 R2 READY → 登记并把 `work-items/nc-005/PROMPT.md` 交用户派发（前置 NC-004 ACCEPTED 已满足）。之后准备 NC-006（撤销/重做/IME）六件套。
-已知的坑：一次性 Dart 盲测需 `import 'package:drift/drift.dart'` 才能用 `interceptWith`；执行方报告在 reading-notes 根目录未跟踪，验收不入库。
+刚完成：NC-005 两轮四查 READY（`e20c591`），PROMPT 已交用户派发；Dataset 通知 D-16 落地（`76bc4b4`）后按「只追加/只勾选、零删行」补 PLAN.md 的 NC-004 ACCEPTED、NC-005 READY/派发、NC-006 准备条目。此前 NC-004 由外部 Agent 在新仓库 `xuan-migration/reading-notes` 完成五个提交（`9ac96cc`→`957536c`），主 Agent 亲自验收通过（详见 `work-items/nc-004/ACCEPTANCE.md` 验收记录：守卫 `--require-impl` 0、35 测试、Dart/Python 交叉复算、sqlite3 直查、失败注入回滚）。SUBAGENT_TODO 记 NC-004 `ACCEPTED`。NC-005 契约 `contracts/editor.md` 与六件套已产出，第一轮四查 REWORK 3 项已落实（`651220d`），第二轮缩范围审查进行中。
+进行到一半的事（精确到文件和章节）：等 NC-005 执行报告，按 `work-items/nc-005/ACCEPTANCE.md` 验收；NC-006（撤销/重做/IME）六件套在 `work-items/nc-006/` 准备中。
+下一步（第一件事）：NC-005 报告回来 → `nc005_guard.sh --require-impl` + 盲测（去抖 1999/2000/2001 ms、400 ms 边界、大写 scheme 外部图片不联网、三态文案与 PRD §6.1 逐字 diff）。并行完成 NC-006 六件套并送四查。
+已知的坑：PLAN.md 今后只能追加或把 `- [ ]` 改 `- [x]`（D-16 零删行判据；`check_d16.py` 只查黑箱侧条目，不查 G6 节）；G6 新条目不需登记进 D-16 映射表。一次性 Dart 盲测需 `import 'package:drift/drift.dart'` 才能用 `interceptWith`；执行方报告在 reading-notes 根目录未跟踪，验收不入库。
 
 ## G4 第二批验收通过：D-15 fixture、D-18 §20 判据化、前缀登记（Dataset 会话；黑箱线最新状态）
 
