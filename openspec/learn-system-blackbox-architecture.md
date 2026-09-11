@@ -853,29 +853,31 @@ L0 内核契约(ArtifactRef + §7 接口 + §8 信封)
        └─ M1 → M2 → M3 → M4 → M5 → M6 → M7 → M8
 ```
 
-| 目标 Module | 层级 | 当前实现 | 当前差距 |
-|---|---|---|---|
-| M1 Source Intake | `Module` | `pipeline/runner/ingest_raw.py`、`pipeline/registry/works/`、`pipeline/tools/ingest_epub.py`、corpus manifest | Work/Edition/SourceAsset/Rights 契约不统一；未进入统一 Ledger；转录不可由记录的 raw+tool 重放 |
-| M2 Digitization & Correction | `Module` | `ocr/`、FastAPI + Vue 校对工具 | 电子文本清洗不足；导出未完整携带扫描、页面 JSON、全部字框、审计和质量包 |
-| M3 Corpus Compilation | `Module` | `pipeline/corpus`、outline、batches、segmentation | 当前 LM 复制文本切分；缺双层 Span、严格 offset、完整 SourceAnchor；已有整书漏编假绿 |
-| M4 Knowledge Extraction | `Module` | concept/assertion/paraphrase 任务 | 多数为机器态；类别仍混杂；跨模型与人工裁决未形成统一 Stage Gate |
-| M5 Automatic Validation | `Module` | `pipeline/validators` | 主要是局部加工校验；无法阻断全书漏编、错误证据范围和零命中假绿 |
-| M6 Review Workbench | `Module` | `pattern_knowledge_workbench` | 七政硬编码；缺来源对照、模型比较、状态机、版本审计和通用 TechniqueProfile；实测数据体：496 rules，其中 `original_text` 非空 0、`is_verified=1` 为 0、`ge_ju_versions` 0 行，`conditions` 非空 404、`chapter` 非空 486 |
-| M7 Incremental Assembly | `Module` | `knowledge_system/` 设计文档 | 缺可执行 Assembler、跨 Edition 对勘、稳定 Pattern 聚合和提案裁决流程 |
-| M8 Dataset Compilation | `Module` | `pipeline/rag` 开发索引 | 缺正式 Dataset Compiler、PublicationPackage、Graph 投影、ReleaseManifest 和发布校验；span→mentions 映射键碰撞：148 span 塌缩为 18 键、6 组碰撞，修好解析后将链到错误页 |
-| Artifact Ledger | `L1` | 无 | 缺 Object Store、Metadata Ledger、Revision 和 Lineage Graph |
-| Local Orchestrator | `L2` | 零散脚本和任务目录 | 缺 EditionRun/ReleaseRun 状态机、阶段 Gate、Checkpoint 和失效传播 |
-| Contract Registry | `L2'` | `pipeline/schemas` 零散规范 | 缺完整 Package Schema、Schema 版本、迁移器和 consumes/produces 声明 |
-| 工作台唯一键限制 | `Workbench` | `{patternId, schoolId}` 复合唯一键 | 禁止多书多主张（`grep -n "uniqueKeys" -A3 pattern_knowledge_workbench/lib/database/tables.dart` 必 FAIL） |
-| 流派与书目混部 | `Workbench` | `ge_ju_schools` 表 | 将 book(1) 与 school(2) 混存同表（`sqlite3 <db> "select type,count(*) from ge_ju_schools group by type"` 必 FAIL） |
-| 构建环境私有依赖 | `Workbench` | `pubspec.yaml` | **已由 G2 修复，历史缺口已遏制**：当前不再含 `192.168`；保留此行用于防回退判据（`grep -c "192.168" pattern_knowledge_workbench/pubspec.yaml` 应为 0） |
-| 数据状态管理缺陷 | `Workbench` | `drift_database.dart` 与 `rule_list_page.dart` | **已由 G2 修复，历史缺口已遏制**：当前不再启动覆盖本地库，也不再保存即 verified；保留回归判据（见 `act/01.yaml`、`act/02.yaml` 的 VERIFICATION） |
-| 测试宿主匮乏 | `Quality` | 仓库测试套件 | 当前 tracked 非 OCR 测试为 3 个；`.venv` 不计入统计。仍缺覆盖面与质量门禁（`git ls-files` 统计判据见下） |
-| 测试 Golden 不足 | `Quality` | `pipeline/validators/goldens` | 仅有 bazi/qtbj，无非八字 fixture（`find pipeline/validators/goldens -type f` 必 FAIL） |
-| OCR 横排切分轴 | `Cross-cutting` | `ocr/` 引擎 | R7 横排分支取轴错误（见 `ocr/HANDOFF_OCR_FIXES.md:181-185`） |
-| 语义分层阻塞 | `Cross-cutting` | `pipeline/TODO.md:12-14` | 三项 P0 语义阻断：忠实性门禁缺失、命例/注文/通则分层未实现、条件例外未结构化 |
+| 目标 Module | 层级 | 当前实现 | 当前差距 | 分期 |
+|---|---|---|---|---|
+| M1 Source Intake | `Module` | `pipeline/runner/ingest_raw.py`、`pipeline/registry/works/`、`pipeline/tools/ingest_epub.py`、corpus manifest | Work/Edition/SourceAsset/Rights 契约不统一；未进入统一 Ledger；转录不可由记录的 raw+tool 重放 | 首纵切后 |
+| M2 Digitization & Correction | `Module` | `ocr/`、FastAPI + Vue 校对工具 | 电子文本清洗不足；导出未完整携带扫描、页面 JSON、全部字框、审计和质量包 | 首纵切后 |
+| M3 Corpus Compilation | `Module` | `pipeline/corpus`、outline、batches、segmentation | 当前 LM 复制文本切分；缺双层 Span、严格 offset、完整 SourceAnchor；已有整书漏编假绿 | 首纵切内 |
+| M4 Knowledge Extraction | `Module` | concept/assertion/paraphrase 任务 | 多数为机器态；类别仍混杂；跨模型与人工裁决未形成统一 Stage Gate | 首纵切后 |
+| M5 Automatic Validation | `Module` | `pipeline/validators` | 主要是局部加工校验；无法阻断全书漏编、错误证据范围和零命中假绿 | 首纵切内 |
+| M6 Review Workbench | `Module` | `pattern_knowledge_workbench` | 七政硬编码；缺来源对照、模型比较、状态机、版本审计和通用 TechniqueProfile；实测数据体：496 rules，其中 `original_text` 非空 0、`is_verified=1` 为 0、`ge_ju_versions` 0 行，`conditions` 非空 404、`chapter` 非空 486 | 首纵切后 |
+| M7 Incremental Assembly | `Module` | `knowledge_system/` 设计文档 | 缺可执行 Assembler、跨 Edition 对勘、稳定 Pattern 聚合和提案裁决流程 | 首纵切后 |
+| M8 Dataset Compilation | `Module` | `pipeline/rag` 开发索引 | 缺正式 Dataset Compiler、PublicationPackage、Graph 投影、ReleaseManifest 和发布校验；span→mentions 映射键碰撞：148 span 塌缩为 18 键、6 组碰撞，修好解析后将链到错误页 | 首纵切内 |
+| Artifact Ledger | `L1` | 无 | 缺 Object Store、Metadata Ledger、Revision 和 Lineage Graph | 首纵切内 |
+| Local Orchestrator | `L2` | 零散脚本和任务目录 | 缺 EditionRun/ReleaseRun 状态机、阶段 Gate、Checkpoint 和失效传播 | 首纵切后 |
+| Contract Registry | `L2'` | `pipeline/schemas` 零散规范 | 缺完整 Package Schema、Schema 版本、迁移器和 consumes/produces 声明 | 首纵切后 |
+| 工作台唯一键限制 | `Workbench` | `{patternId, schoolId}` 复合唯一键 | 禁止多书多主张（`grep -n "uniqueKeys" -A3 pattern_knowledge_workbench/lib/database/tables.dart` 必 FAIL） | 本阶段暂缓 |
+| 流派与书目混部 | `Workbench` | `ge_ju_schools` 表 | 将 book(1) 与 school(2) 混存同表（`sqlite3 <db> "select type,count(*) from ge_ju_schools group by type"` 必 FAIL） | 本阶段暂缓 |
+| 构建环境私有依赖 | `Workbench` | `pubspec.yaml` | **已由 G2 修复，历史缺口已遏制**：当前不再含 `192.168`；保留此行用于防回退判据（`grep -c "192.168" pattern_knowledge_workbench/pubspec.yaml` 应为 0） | 本阶段暂缓 |
+| 数据状态管理缺陷 | `Workbench` | `drift_database.dart` 与 `rule_list_page.dart` | **已由 G2 修复，历史缺口已遏制**：当前不再启动覆盖本地库，也不再保存即 verified；保留回归判据（见 `act/01.yaml`、`act/02.yaml` 的 VERIFICATION） | 本阶段暂缓 |
+| 测试宿主匮乏 | `Quality` | 仓库测试套件 | 当前 tracked 非 OCR 测试为 3 个；`.venv` 不计入统计。仍缺覆盖面与质量门禁（`git ls-files` 统计判据见下） | 首纵切后 |
+| 测试 Golden 不足 | `Quality` | `pipeline/validators/goldens` | 仅有 bazi/qtbj，无非八字 fixture（`find pipeline/validators/goldens -type f` 必 FAIL） | 本阶段暂缓 |
+| OCR 横排切分轴 | `Cross-cutting` | `ocr/` 引擎 | R7 横排分支取轴错误（见 `ocr/HANDOFF_OCR_FIXES.md:181-185`） | 本阶段暂缓 |
+| 语义分层阻塞 | `Cross-cutting` | `pipeline/TODO.md:12-14` | 三项 P0 语义阻断：忠实性门禁缺失、命例/注文/通则分层未实现、条件例外未结构化 | 首纵切后 |
 
 注：本表行序为盘点顺序，非施工顺序；施工顺序见上方拓扑，三个基础设施是前置层。
+
+「分期」列取值闭集：`首纵切内`（该差距必须在首纵切内关闭）、`首纵切后`（首纵切以最薄可用形态使用现有实现，差距在纵切通过后关闭）、`本阶段暂缓`（不在本阶段处理）；依据与取舍见 §22。
 
 ### 19.0 当前差距的二元判据
 
@@ -933,3 +935,47 @@ L0 内核契约(ArtifactRef + §7 接口 + §8 信封)
 - 用户 Pattern 编辑器和发布流程；
 - Embedding、向量检索和端侧语言模型；
 - 要求三百页 Edition 在全部加工完成前不能产生任何可审核中间成果；系统按卷或连续页区间逐 Part 推进，但仍保留整本完成状态。
+
+## 22. 实施分期与首个纵切
+
+状态：讨论候选
+
+本节为主 Agent 依据 2026-09-08 用户裁定与 §19 差距表提出的分期方案，待用户过目确认；确认前保持讨论候选，不得据此启动 Module 实现任务。
+
+### 22.1 首纵切三元组（已裁定）
+
+- `technique_id=qizheng`；`Work=三辰通载三十卷`；`Edition=影宋鈔本`；
+- `SourceAsset=ocr/data_work/sanche_pages/page_001..010.png`（本机派生页图，按 `openspec/legacy-storage-transition.md` §6 登记到本地 Object Store；源 PDF 不进 Git；素材缺失时报 `BLOCKED_SOURCE_ASSET_MISSING`，不得伪造）；
+- `evidence_level=glyphbox_level`；首纵切发布物为内部验收包，消费级别 `INTERNAL_DEMO`，`SourceAssetPack` 采用 `derived_page_images_only`（§16）。
+
+### 22.2 纵切终点（沿用 `LEARN_SYSTEM_TARGET.md` §13，八字改为七政）
+
+```text
+《三辰通载》首个 EditionPart（卷一，取 page_001..010）
+→ M2 OCR 与人工校对（沿用现有 FastAPI + Vue 工具，输出字框）
+→ M3 CorpusPackage：双层 Span、严格 offset、完整 SourceAnchor
+→ M4 SourceSpan / Assertion / ApplicabilityRule 候选（沿用现有任务管线，少量条目人工签发）
+→ M5 Validator：G1–G3 与 glyphbox_level 证据门禁
+→ M8 PublicationPackage（KnowledgeDataPack + EvidenceMapPack + SourceAssetPack + QueryContractPack）
+→ QizhengFactSet 确定性匹配至少一条 Pattern 的全部适用主张（具体事实字段值在 M4 抽取后冻结，此处不预设）
+→ APP mock 展示原文
+→ 打开派生页图并高亮对应字框
+→ 对该原句保存私人注解与公开讨论锚点（AnchorContractPack）
+```
+
+### 22.3 分期表
+
+| 阶段 | 内容 | 对应 §19 行 | 完成判据 |
+|---|---|---|---|
+| 阶段 0 前置 | Artifact Ledger 本地进程（Object Store + Metadata Ledger + StepRun 事务 + LineageGraph 最小写读） | Artifact Ledger（首纵切内） | §17 事务序列可对一个 StepRun 完整执行；`openspec/acceptance/` 对应脚本 exit 0 |
+| 阶段 1 首纵切 | 关闭 M3、M5、M8 三行差距；M1/M2/M4/M6 以最薄可用形态接入（手工登记 SourceAsset、沿用现有 OCR 与任务管线、工作台只做只读对照与签发） | M3、M5、M8（首纵切内）；M1、M2、M4、M6（首纵切后，薄用） | §22.2 全链在 mini fixture（D-15）与真实前十页上各跑通一次；§20 第 1、3、4、8、9 条对该 EditionPart 成立 |
+| 阶段 2 纵切后 | 关闭 M1、M2、M4、M6、M7、Local Orchestrator、Contract Registry、测试宿主、语义分层各行差距 | 标为「首纵切后」的 9 行 | 各行 §19.0 判据 exit 0 |
+| 暂缓 | 工作台唯一键、流派与书目混部、构建环境（已遏制，只保留回归判据）、数据状态（已遏制）、非八字 Golden、OCR 横排 | 标为「本阶段暂缓」的 6 行 | 本阶段不设判据；回归判据保留 |
+
+### 22.4 取舍理由
+
+- 「首纵切内」硬上限 4 行：只有 Ledger、M3、M5、M8 的差距不关闭就无法得到「原句 → 字框高亮 → 可锚定注解」这条链；其余 Module 现有实现足以在 10 页规模下薄用。
+- M2 不入首纵切：现有 OCR 工具已输出页面 JSON 与字框（`ocr/data_work/`），首纵切直接消费；DigitizationPackage 的完整导出与电子文本清洗在纵切后关闭。
+- M4 不入首纵切：10 页规模的候选可由现有任务管线产出并人工签发少量 `expert_verified` 条目，足以验证匹配与追溯；类别分层与跨模型裁决在纵切后关闭。
+- Local Orchestrator 不入首纵切：单 EditionPart、单次运行可由脚本顺序驱动，StageCheckpoint（§17.1）与失效传播（§14.1）先以 Ledger 事件形式记录，状态机在纵切后实现。
+- 不按 §19 行序逐行拆 epic（已否决）：会得到多条并行大工程而纵切为零。

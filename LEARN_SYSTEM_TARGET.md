@@ -295,6 +295,8 @@ knowledge-pack-<technique>-<version>/
 
 这条纵切通过后，再扩展十干十二月、十神和格局，随后复用相同 Interface 接入其他术数。
 
+> 2026-09-08 用户裁定：首纵切改为七政《三辰通载三十卷》影宋鈔本（`technique_id=qizheng`，`evidence_level=glyphbox_level`）；上面流程中的「八字」「BaziFactSet」「十月丙火」按七政对应替换，权威分期与取舍见 `openspec/learn-system-blackbox-architecture.md` §22。本节原文保留作历史输入。
+
 ## 14. 最终完成定义
 
 Learn System 达到最终目标，至少需要满足：
