@@ -1,6 +1,6 @@
 # NC-015：接入 S6——设备授权、传输一次一密与中转删除协议（v1.6 接入型）
 
-状态：`DRAFT`（2026-09-11，待 wjt-react 四查与攻击/故障场景审查）。派发前置：无（规格仓内产物；不依赖 Firebase 去留）。执行由用户交外部 Agent，PROMPT.md 原样发送。task_id：`NC-015`。权威需求来源：TASKS v1.6 NC-015；PRD v1.6 R-12/R-13/R-14、§8 E-CRYPTO；DESIGN v1.6 §5；xuan-storage S6 设计稿裁决；契约 `openspec/annotation-community/contracts/private_sync.md`（本任务专属，主 Agent 编写）。
+状态：`READY`（2026-09-11：R1 四查 + 十二场景审查返工 5 项、R2 返工 1 项，均已落实；记录见 `reviews/NC-015-REVIEW-R1.md`）。派发前置：无（规格仓内产物；不依赖 Firebase 去留）。执行由用户交外部 Agent，PROMPT.md 原样发送。task_id：`NC-015`。权威需求来源：TASKS v1.6 NC-015；PRD v1.6 R-12/R-13/R-14、§8 E-CRYPTO；DESIGN v1.6 §5；xuan-storage S6 设计稿裁决；契约 `openspec/annotation-community/contracts/private_sync.md`（本任务专属，主 Agent 编写）。
 
 ## 用户指示（2026-09-11，两次强调）
 

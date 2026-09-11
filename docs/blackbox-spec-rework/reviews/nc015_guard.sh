@@ -37,12 +37,14 @@ else:
     det=[]; ok=tool.is_file() and (SPEC/"tools/test_check_private_sync_protocol.py").is_file(); det.append(f"files={ok}")
     n=len(list(fx.glob("*.json"))) if fx.exists() else 0; ok&=n==18; det.append(f"samples={n}")
     r=subprocess.run([str(PY),str(tool)],capture_output=True,text=True,cwd=root); ok&=r.returncode==0 and "samples=18" in r.stdout; det.append(f"checker={r.returncode}")
-    t=subprocess.run([str(PY),"-m","unittest",str(SPEC/"tools/test_check_private_sync_protocol.py")],capture_output=True,text=True,cwd=root); m=re.search(r"Ran (\d+) tests",t.stderr); ok&=t.returncode==0 and m is not None and int(m.group(1))>=15; det.append(f"unittest={t.returncode}/{m.group(1) if m else '无'}")
+    t=subprocess.run([str(PY),"-m","unittest",str(SPEC/"tools/test_check_private_sync_protocol.py")],capture_output=True,text=True,cwd=root); m=re.search(r"Ran (\d+) tests",t.stderr); ok&=t.returncode==0 and m is not None and int(m.group(1))>=16; det.append(f"unittest={t.returncode}/{m.group(1) if m else '无'}")
     src=read(SPEC/"tools/test_check_private_sync_protocol.py"); cheats=[p for p in ("skip","assertTrue(True)") if p in src]; ok&=not cheats; det.append(f"cheats={cheats}")
     if fx.exists() and n==18:
         tmp=Path(tempfile.mkdtemp()); shutil.copytree(fx,tmp/"fx"); (tmp/"fx"/"relay_ttl.json").write_text(json.dumps({"notifier_role":"signaling_only","sender_fallback_seconds":299,"storage_lifecycle_days":1,"expected":"config_ok"}),encoding="utf-8")
         r2=subprocess.run([str(PY),str(tool),"--contract",str(SPEC/"contracts/private_sync.md"),"--fixtures",str(tmp/"fx")],capture_output=True,text=True,cwd=root); ok&=r2.returncode!=0; det.append(f"tamper_ttl={r2.returncode}")
+        shutil.rmtree(tmp/"fx"); shutil.copytree(fx,tmp/"fx"); av=json.loads((tmp/"fx"/"auth_valid.json").read_text(encoding="utf-8")); h=av["peer_auth"]["accountBindingCertHash"]; av["peer_auth"]["accountBindingCertHash"]=("0" if h[0]!="0" else "1")+h[1:]; (tmp/"fx"/"auth_valid.json").write_text(json.dumps(av),encoding="utf-8")
+        r3=subprocess.run([str(PY),str(tool),"--contract",str(SPEC/"contracts/private_sync.md"),"--fixtures",str(tmp/"fx")],capture_output=True,text=True,cwd=root); ok&=r3.returncode!=0; det.append(f"tamper_cert_hash={r3.returncode}")
         shutil.rmtree(tmp,ignore_errors=True)
-    check(ok,"K05 NC-015 产物：检查器与自测存在、18 样例、检查器 0 且 samples=18、unittest ≥15、无作弊、TTL 篡改副本被拒","; ".join(det))
+    check(ok,"K05 NC-015 产物：检查器与自测存在、18 样例、检查器 0 且 samples=18、unittest ≥16、无作弊、TTL/证书哈希篡改副本被拒","; ".join(det))
 print(f"\nNC-015 失败条数：{fails}"); sys.exit(fails)
 PY

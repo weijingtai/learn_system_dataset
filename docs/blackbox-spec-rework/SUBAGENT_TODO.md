@@ -608,10 +608,10 @@
   - [x] 六件套 `work-items/nc-003/`（act/01 验证器接入与 35 处迁移、act/02 组件与内容端点、act/03 评论/互动/分享/举报/命令端点、act/04 示例校验与版本号）与守卫 `reviews/nc003_guard.sh`
   - [x] wjt-react 四查：R1 返工 6 项 + R2 返工 1 根因（14 行断言实为 10 块/其余 9 个）均落实并自证，READY（`reviews/NC-003-REVIEW-R1.md`）；守卫 `nc003_guard.sh` 0
   - [ ] 用户派发外部执行 Agent（`work-items/nc-003/PROMPT.md`，五个提交在 repository-rest-adapter 仓库）；主 Agent 按 ACCEPTANCE.md 验收
-- [ ] NC-015：接入 S6——设备授权、传输一次一密与中转删除协议（状态：`BACKLOG`；**v1.6 改为接入型**，2026-09-11 用户确认：私人数据保护走 xuan-storage S6 模型，无长期密钥、无恢复材料；契约 `contracts/private_sync.md` 与六件套 `work-items/nc-015/` 已写（DRAFT，2026-09-11），守卫 `reviews/nc015_guard.sh`；待 wjt-react 四查与攻击场景审查）
+- [ ] NC-015：接入 S6——设备授权、传输一次一密与中转删除协议（状态：`BACKLOG`；**v1.6 改为接入型**，2026-09-11 用户确认：私人数据保护走 xuan-storage S6 模型，无长期密钥、无恢复材料；契约 `contracts/private_sync.md` 与六件套 `work-items/nc-015/` READY（2026-09-11：R1 返工 5 项 + R2 返工 1 项落实），守卫 `reviews/nc015_guard.sh` 0；PROMPT 已交用户派发）
   - [x] 规格侧契约（主 Agent）：`private_sync.md`（同步身份 app_user_id、授权记录与 guard 八步判定、直连 DTLS/中转双通道 notifier+Storage、X25519+HKDF 一次一密与 AAD、三层删除、七步验收、15 样例、检查器红条件、D-NC015-01～07）
   - [x] 六件套（act/01 样例、act/02 检查器）与守卫
-  - [ ] wjt-react 四查 + 攻击/故障场景审查
+  - [x] wjt-react 四查 + 十二攻击/故障场景审查：R1 返工 5 项（notifier TTL 冲突、会话公钥绑定、signed_fields、AAD 原因码、证书哈希定义）+ R2 返工 1 项（证书哈希公式复算），均落实（`reviews/NC-015-REVIEW-R1.md`）
   - [ ] 用户派发；主 Agent 验收；通过后解锁 NC-016
 - [ ] NC-020a：消费端书籍契约核对清单（状态：`BACKLOG`）
 - [ ] NC-025：生产 BlobGateway（公共 + 私有）（状态：`BACKLOG`；R1 新增，NC-008/017 的硬前置）
