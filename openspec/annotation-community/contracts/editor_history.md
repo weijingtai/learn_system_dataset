@@ -1,6 +1,6 @@
 # 撤销/重做与输入法契约：唯一真源栈、归组、按键映射与焦点边界（NC-006）
 
-状态：`FROZEN_FOR_NC-006`（2026-09-11）。权威来源：[DESIGN](../DESIGN.md) §3「撤销栈归属」与 §3.1；[PRD](../PRD.md) §4、§4.1 A11Y-05；[TASKS](../TASKS.md) NC-006；[editor.md](editor.md) §2、§4（NC-005 裁定方案 b）；[community-models](community-models.md) §1.3 常量；NC-004 `limits.dart`。本文把已定设计落到 adapter 接口、归组判定、按键接线与测试判据，供执行者照抄；与上游冲突以上游为准并回报主 Agent。
+状态：`FROZEN_FOR_NC-006`（2026-09-11；同日验收后追加 D-NC006-13/14 与 §5.1 两条，供 act/04 消费）。权威来源：[DESIGN](../DESIGN.md) §3「撤销栈归属」与 §3.1；[PRD](../PRD.md) §4、§4.1 A11Y-05；[TASKS](../TASKS.md) NC-006；[editor.md](editor.md) §2、§4（NC-005 裁定方案 b）；[community-models](community-models.md) §1.3 常量；NC-004 `limits.dart`。本文把已定设计落到 adapter 接口、归组判定、按键接线与测试判据，供执行者照抄；与上游冲突以上游为准并回报主 Agent。
 
 ## 1. 位置、依赖与不变式
 
@@ -95,6 +95,8 @@ class EditorHistoryAdapter extends ValueNotifier<HistoryValue> {
 - 页面新增可选参数 `EditorHistoryAdapter? history`；为 `null` 时页面 `initState` 以 `now: DateTime.now` 自建，并在 `dispose` 调用 `clear()` 与 `dispose()`。页面**不再**向 `TextField` 传 `undoController`（保持 `null`；NC-005 的参数位保留但页面内部不使用）。
 - 正文 `TextField.onChanged` 之后（控制器已收到 `onTextChanged`/`onComposingChanged`）调用 `history.recordTextChange(before, after)`，`before` 为调用控制器前取到的 `controller.snapshot`。选区变化无文本变化时也调用（用 `TextEditingController` 监听器，而不只是 `onChanged`）。
 - `applySnapshot` 后页面把 `TextEditingController.value` 设为 `(text, selection(base, extent), composing: empty)`；此赋值触发的监听回调因 `_applying` 守卫不产生单元。
+- **输入法组合接线（D-NC006-13，NC-006 act/04 补齐）**：页面在同一监听器内按 `TextEditingController.value.composing.isValid` 驱动控制器：进入组合（上一值无效、本值有效）时，先取 `before = controller.snapshot`，再依次调用 `controller.onComposingChanged(true)`、`controller.onTextChanged(...)`，最后 `recordTextChange(before, after)`；组合中每次变更只调 `onTextChanged` 与 `recordTextChange`；退出组合（上一值有效、本值无效）时依次调用 `controller.onTextChanged(...)`、`controller.onComposingChanged(false)`，再 `recordTextChange(before, after)`。由此 adapter 在页面层看到的 `before.composing/after.composing` 与 §4.2 表一致：一次组合提交恰一个 `imeCommit` 单元，组合取消无单元。
+- **组合中撤销/重做为 no-op（D-NC006-14）**：`controller.state == imeComposing` 时 `undo()`/`redo()` 直接返回，不改栈、不改计数；工具条按钮在组合中同样不触发。理由：PRD §4「不拦截输入法正在使用的按键」，且组合中替换正文会与输入法待提交文本冲突。
 
 ### 5.2 Intent 覆盖与按键
 
@@ -137,4 +139,6 @@ class EditorHistoryAdapter extends ValueNotifier<HistoryValue> {
 | D-NC006-09 | `applySnapshot` 触发的变更由 `_applying` 守卫排除，不入栈 | 否则撤销自身会生成新单元并清空重做栈 |
 | D-NC006-10 | `Shortcuts/Actions` 只包正文输入框 | 焦点边界靠 Widget 树位置实现，无需焦点判断代码 |
 | D-NC006-11 | 删除与插入独立归组、不互并；光标跳转与非连续位置封闭栈顶 | DESIGN §3.1「删除操作按同规则独立归组」「光标跳转无条件开新单元」 |
+| D-NC006-13 | 页面按 `TextEditingValue.composing.isValid` 的进入/退出驱动 `onComposingChanged`，顺序见 §5.1 | 验收盲测发现 NC-005/NC-006 的 ACT 都未把该接线列入，页面层一次组合被记成多个单元；接线顺序决定 adapter 能否看到 `before.composing=true → after.composing=false` |
+| D-NC006-14 | 组合中 `undo()/redo()` no-op | 验收盲测：组合中撤销会清空正文而输入法仍持有待提交文本；PRD §4 要求不干扰输入法 |
 | D-NC006-12 | NC-005 守卫 `nc005_guard.sh` 的 `Shortcuts(` 扫描在 adapter 文件存在后自动跳过 | 该禁令只针对 NC-005 时段；NC-006 守卫改为断言 `Shortcuts` 只出现在页面且恰一次 |

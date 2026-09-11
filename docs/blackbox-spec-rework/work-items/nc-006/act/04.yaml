@@ -1,0 +1,42 @@
+TASK_ID: NC-006-D
+PARENT: NC-006
+STATUS: READY
+REPO: xuan-migration/reading-notes
+GOAL: 验收返工：页面按 TextEditingValue.composing 驱动 onComposingChanged（契约 §5.1 D-NC006-13 顺序），adapter 组合中 undo/redo no-op（D-NC006-14），3 项测试
+DEPENDS_ON: [NC-006-C]
+ESTIMATE_MINUTES: 40
+WORKLOAD: "页面监听器约 25 行改动 + adapter 2 处早返回 + 3 个 Widget 测试（testTextInput.updateEditingValue 注入 composing）"
+SCOPE:
+  READ:
+    - /Users/jingtaiwei/Git/Public/learn_system/openspec/annotation-community/contracts/editor_history.md §5.1（D-NC006-13/14 两条）、§4.2
+    - /Users/jingtaiwei/Git/Public/learn_system/docs/blackbox-spec-rework/work-items/nc-006/TDD.md §4b、BDD.md B37～B39
+    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/lib/src/editor/note_editor_controller.dart（onComposingChanged 语义，只读）
+  WRITE_NEW:
+    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/lib/src/editor/note_editor_page.dart（仅 TextEditingController 监听器内的组合进入/退出分支）
+    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/lib/src/editor/editor_history_adapter.dart（仅 undo()/redo() 开头的 imeComposing 早返回）
+    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/test/editor/editor_shortcuts_test.dart（追加 3 个测试）
+  FORBIDDEN:
+    - /Users/jingtaiwei/Git/Public/learn_system 下任何写入
+    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes 内上述三文件以外的任何文件（含控制器、NC-004/NC-005 文件、pubspec）
+    - xuan-migration 其他目录；父目录 git
+    - 新增依赖；改既有测试期望；skip；永真断言；先实现后补测试
+DEPENDENCY_ALLOWLIST: [无新增]
+RULES:
+  - "调用顺序逐字按契约 §5.1 D-NC006-13：进入组合 before→onComposingChanged(true)→onTextChanged→recordTextChange；退出组合 onTextChanged→onComposingChanged(false)→recordTextChange"
+  - "adapter 的 no-op 只看 controller.state == EditorState.imeComposing，不引入新字段"
+  - "只在 reading-notes 内 git add 本步三个文件；提交消息按 COMMIT_MESSAGE，末尾另起两行 Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
+TESTS_FIRST:
+  - "追加 3 个测试；运行 flutter test test/editor/editor_shortcuts_test.dart，保存失败原文作为 Red（期望 B37/B38/B39 三红）"
+STEPS:
+  - "实现至 13 个按键测试通过；flutter test 全量 +113；flutter analyze 0"
+  - "git add 三个文件并提交"
+  - "bash docs/blackbox-spec-rework/reviews/nc006_guard.sh --require-impl"
+VERIFICATION:
+  - "export PATH=/Users/jingtaiwei/flutter/bin:$PATH && cd /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes && flutter analyze"
+  - "cd /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes && flutter test test/editor/editor_shortcuts_test.dart（期望 +13）"
+  - "cd /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes && flutter test（期望 +113）"
+  - "cd /Users/jingtaiwei/Git/Public/learn_system && bash docs/blackbox-spec-rework/reviews/nc006_guard.sh --require-impl（期望 0）"
+  - "git -C /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes status --short（提交后为空）"
+ON_FAIL: "停止并报告失败命令、退出码与原文；不改契约与测试期望；testTextInput 注入的 composing 未到达 TextEditingController.value、或按契约顺序仍得不到恰一个单元，均为停止条件。"
+BASELINE_EXIT_CODES: "开工基线：reading-notes 4966924（flutter test +110、analyze 0、nc006_guard --require-impl 0）"
+COMMIT_MESSAGE: "fix: 页面输入法组合接线与组合中撤销 no-op（NC-006-D）"

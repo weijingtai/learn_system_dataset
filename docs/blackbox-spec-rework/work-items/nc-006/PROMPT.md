@@ -24,3 +24,24 @@
 5. 跳过项、未运行项与剩余风险。
 
 不要把本任务说成 NC-006 之外的任何任务完成：历史页与差异、iOS 原生撤销入口、图片清理、其他快捷键都在后续任务或已登记缺口。
+
+
+# NC-006 act/04 返工执行提示（2026-09-11 验收后追加）
+
+发送前提：act/01～03 已验收（reading-notes `afbe3a0`、`bc6435b`、`4966924`）。把分隔线以下全文原样发给执行 Agent。
+
+---
+
+你执行 NC-006 的返工步 act/04：在 `/Users/jingtaiwei/Git/Public/xuan-migration/reading-notes`（独立 Git 仓库；`xuan-migration` 父目录不是 Git 仓库，绝不在父目录执行 git；learn_system 只读）以 `4966924` 为基线补两处：① 编辑页把输入法组合状态喂给控制器；② adapter 在组合中撤销/重做为 no-op。`export PATH=/Users/jingtaiwei/flutter/bin:$PATH`。
+
+**先读**：`docs/blackbox-spec-rework/work-items/nc-006/act/04.yaml`、`TDD.md` §4b、`BDD.md` B37～B39；`openspec/annotation-community/contracts/editor_history.md` §5.1 的「输入法组合接线（D-NC006-13）」与「组合中撤销/重做为 no-op（D-NC006-14）」两条（顺序逐字照做）；`reading-notes/lib/src/editor/note_editor_page.dart`、`editor_history_adapter.dart`、`note_editor_controller.dart`（`onComposingChanged` 只读）。
+
+**先写测试再改实现**：先在 `test/editor/editor_shortcuts_test.dart` 追加 3 个测试（名称逐字取 TDD §4b），运行 `flutter test test/editor/editor_shortcuts_test.dart` 取得真实 Red 原文，再实现。
+
+**只允许写**：`lib/src/editor/note_editor_page.dart`、`lib/src/editor/editor_history_adapter.dart`、`test/editor/editor_shortcuts_test.dart`。禁止：其他任何文件；新增依赖；改控制器；改既有测试期望；`skip`、永真断言。
+
+**判据**：契约 §5.1 两条与 TDD §4b。若 `tester.testTextInput.updateEditingValue` 注入的 composing 未到达 `TextEditingController.value.composing`、或按契约顺序调用后 B37 仍无法得到恰一个单元，立即停止并原样报告。
+
+**提交**：一个提交，只 `git add` 上述三个文件，不 push；提交消息 `fix: 页面输入法组合接线与组合中撤销 no-op（NC-006-D）`，末尾另起两行加 `Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>`。
+
+**交付报告**：commit 哈希与 `git show --stat`；Red 命令/退出码/原文；`flutter analyze`、`flutter test test/editor/editor_shortcuts_test.dart`（期望 `+13`）、`flutter test`（期望 `+113`）、`bash /Users/jingtaiwei/Git/Public/learn_system/docs/blackbox-spec-rework/reviews/nc006_guard.sh --require-impl`（期望 0）各自退出码与末 20 行；`git status --short` 为空。

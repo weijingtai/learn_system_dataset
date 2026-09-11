@@ -8,9 +8,9 @@ DISPATCH_PRECONDITION: "NC-005 已 ACCEPTED（reading-notes flutter test +75）"
 SPLIT:
   - act/01.yaml
   - act/02.yaml
-  - act/03.yaml
-ORDER: "严格按 act/01 → 02 → 03；全部提交在 /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes 仓库；每步以上一步提交为基线；禁止并行"
-ESTIMATE_MINUTES_TOTAL: 155
+  - act/04.yaml（2026-09-11 验收返工：输入法组合接线与组合中撤销 no-op）
+ORDER: "严格按 act/01 → 02 → 03 → 04；全部提交在 /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes 仓库；每步以上一步提交为基线；禁止并行"
+ESTIMATE_MINUTES_TOTAL: 195
 DEFERRED:
   - "iOS 原生 UndoManager（摇动撤销/键盘工具条）入口：D-NC006-06，设备级验收缺口，登记 NC-024"
   - "F-01 其他快捷键、快捷键配置、跨页面键盘导航：后置，不在本任务"

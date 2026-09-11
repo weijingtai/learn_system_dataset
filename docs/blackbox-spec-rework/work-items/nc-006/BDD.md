@@ -39,4 +39,7 @@
 | B33 | 页面无历史 → 输入 → 撤销 | 观察按钮 | 初始撤销/重做均 `isEnabled=false`、label 「撤销」「重做」；输入后撤销启用；撤销后重做启用 |
 | B34 | 页面渲染 | 取正文 `TextField` | `undoController == null`；`Shortcuts` 恰 1 个、含 `UndoTextIntent` 的 `Actions` 恰 1 个，后代含正文不含标题框 |
 | B35 | 注入的 adapter 有历史 | 页面被替换为空 Widget（dispose） | adapter `pastUnits=0` |
+| B37 | 页面正文 `x`（一单元） | 用 `tester.testTextInput.updateEditingValue` 依次送 `xn`（composing 1..2）、`xni`（composing 1..3）、`x你`（composing 空） | 组合中控制器 `state=imeComposing`、`canLeave=false`、`pastUnits` 仍 1；提交后 `pastUnits=2`、`state=dirty`；`undo()` 一次 → 文本 `x` |
+| B38 | 页面正文 `x` | 送 `xn`（composing 1..2）后送 `x`（composing 空） | `pastUnits` 仍 1（组合取消无单元），`state=dirty` |
+| B39 | 页面正文有历史，正在组合（送 `xn` composing 1..2 后不提交） | Ctrl+Z；点击撤销按钮 | 文本仍 `xn`，`undoCount=0`，`pastUnits` 不变 |
 | B36 | NC-005 页面测试 | `no shortcuts registered by page` 改名为 `shortcuts and actions wrap only the body field` | 断言同 B34 树结构；NC-005 其余测试与 `+75` 计数不变 |

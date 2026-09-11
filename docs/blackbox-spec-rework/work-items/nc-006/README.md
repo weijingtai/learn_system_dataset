@@ -1,6 +1,6 @@
 # NC-006：撤销、重做与输入法
 
-状态：`READY`（2026-09-11 wjt-react R1：忠实性/覆盖性/独立性通过，可执行性 1 项返工——act/03 校验命令退出码语义——已由主 Agent 落实并空跑复核；记录见 `reviews/NC-006-REVIEW-R1.md`）。派发前置：**NC-005 ACCEPTED**（reading-notes 含 NC-005 四个提交、`flutter test +75`）。执行由用户交外部 Agent，PROMPT.md 原样发送。task_id：`NC-006`。权威需求来源：TASKS NC-006；DESIGN §3「撤销栈归属」、§3.1；PRD §4、§4.1 A11Y-05；契约 `openspec/annotation-community/contracts/editor_history.md`（本任务专属，主 Agent 编写）、`editor.md` §2/§4；NC-004 `limits.dart` 常量。
+状态：`REWORK_ACT04`（2026-09-11 验收：act/01～03 通过，盲测 ⑦ 发现页面未接入输入法组合、⑤ 组合中撤销需裁定；追加 act/04，D-NC006-13/14）。原状态 `READY`（2026-09-11 wjt-react R1：忠实性/覆盖性/独立性通过，可执行性 1 项返工——act/03 校验命令退出码语义——已由主 Agent 落实并空跑复核；记录见 `reviews/NC-006-REVIEW-R1.md`）。派发前置：**NC-005 ACCEPTED**（reading-notes 含 NC-005 四个提交、`flutter test +75`）。执行由用户交外部 Agent，PROMPT.md 原样发送。task_id：`NC-006`。权威需求来源：TASKS NC-006；DESIGN §3「撤销栈归属」、§3.1；PRD §4、§4.1 A11Y-05；契约 `openspec/annotation-community/contracts/editor_history.md`（本任务专属，主 Agent 编写）、`editor.md` §2/§4；NC-004 `limits.dart` 常量。
 
 ## 主 Agent 已核定的平台事实（执行者不再调研）
 
@@ -32,7 +32,7 @@ Flutter 3.44.6 源码：`EditableText` 无条件内嵌平台 `UndoHistory` 栈�
 
 ## 执行顺序
 
-`act/01`（adapter：分类、归组、IME、栈规则）→ `act/02`（adapter × 控制器：applySnapshot、自动保存不清栈、重开、调用集合）→ `act/03`（页面接线：Intent 覆盖、Ctrl+Y、按钮、焦点、NC-005 测试唯一改动）。每步一个提交在 `reading-notes` 仓库。
+返工：`act/04`（页面 `composing` 接线 + adapter 组合中 no-op，3 测试，全量 `+113`），以 `4966924` 为基线。首轮：`act/01`（adapter：分类、归组、IME、栈规则）→ `act/02`（adapter × 控制器：applySnapshot、自动保存不清栈、重开、调用集合）→ `act/03`（页面接线：Intent 覆盖、Ctrl+Y、按钮、焦点、NC-005 测试唯一改动）。每步一个提交在 `reading-notes` 仓库。
 
 ## 一次性交付与阅读顺序
 

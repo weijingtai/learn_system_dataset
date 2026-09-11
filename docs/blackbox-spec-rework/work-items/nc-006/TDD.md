@@ -9,9 +9,9 @@
 | 1 | `flutter analyze` | 0 issues |
 | 2 | `flutter test test/editor/editor_history_test.dart`（act/01 后） | `+17` |
 | 3 | `flutter test test/editor/editor_history_test.dart`（act/02 后） | `+25` |
-| 4 | `flutter test test/editor/editor_shortcuts_test.dart` | `+10` |
+| 4 | `flutter test test/editor/editor_shortcuts_test.dart` | act/03 后 `+10`；act/04 后 `+13` |
 | 5 | `flutter test test/editor/note_editor_page_test.dart` | `+6`（B36 改名后计数不变） |
-| 6 | `flutter test` | `+110: All tests passed!` |
+| 6 | `flutter test` | act/03 后 `+110`；act/04 后 `+113: All tests passed!` |
 | 7 | `git diff <NC-005 末提交> HEAD --stat -- pubspec.yaml pubspec.lock lib/src/domain lib/src/persistence test/persistence test/contracts lib/src/editor/save_status.dart lib/src/editor/markdown_preview.dart test/editor/save_status_test.dart test/editor/markdown_preview_test.dart test/editor/note_editor_test.dart` | 空 |
 | 8 | `grep -nE '\b500\b|\b20\b|DateTime\.now\(|Timer\(|Stopwatch\(' lib/src/editor/editor_history_adapter.dart` | 无输出 |
 | 9 | `test "$(grep -c 'Shortcuts(' lib/src/editor/note_editor_page.dart)" = 1`；另跑 `[ -z "$(grep -rl 'UndoHistoryController' lib/src/editor/)" ]` | 两条退出码均 0（恰 1 处；无匹配文件） |
@@ -43,8 +43,16 @@ Red：先写 8 个测试，运行命令 3 取得失败原文（若 NC-005 的 `a
 
 Red：先写 10 个测试与 B36 改动，运行命令 4、5 取得失败原文。
 
+## 4b. act/04：页面输入法组合接线与组合中撤销 no-op（契约 §5.1 D-NC006-13/14；验收返工）
+
+文件：`lib/src/editor/note_editor_page.dart`（监听器内按 `composing.isValid` 进入/退出调用 `onComposingChanged`，顺序逐字按契约 §5.1）、`lib/src/editor/editor_history_adapter.dart`（`undo()/redo()` 在 `controller.state == EditorState.imeComposing` 时直接返回）、`test/editor/editor_shortcuts_test.dart`（追加 3 个测试）。
+
+3 个测试：`page ime composition commits as one unit`（B37）、`page ime cancel produces no unit`（B38）、`undo is noop while composing via key and button`（B39）。组合状态用 `tester.testTextInput.updateEditingValue(TextEditingValue(text:, selection:, composing: TextRange(start:, end:)))` 注入，先 `tester.tap` 正文并 `pump` 使其获得焦点。
+
+Red：先写 3 个测试，运行命令 4 取得失败原文（B37/B38 因页面未接线而红，B39 因 adapter 未守卫而红）。
+
 ## 5. Red→Green 与禁止
 
 - 每步先测试后实现；报告贴 Red 原文。
 - 禁止：`skip`、永真断言、修改 NC-004 文件、修改 NC-005 白名单外文件、`UndoHistoryController` 驱动撤销、adapter 内 `DateTime.now()`/`Timer(`/`Stopwatch(`/字面量 500 与 20、登记 Ctrl+Y 之外任何新键、把「取消发布」放进撤销、新增依赖。
-- 命令 6 最终 `+110`。
+- 命令 6 最终 `+113`（act/03 阶段 `+110`）。
