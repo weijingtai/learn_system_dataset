@@ -1,0 +1,46 @@
+act_id: impl-01/04
+title: 本地进程 ledgerd + LedgerClient + CLI（单写入者、loopback/UDS）
+estimated_minutes: 60
+group: H2
+depends_on: [impl-01/03]
+scope:
+  write: [pipeline/ledger/ledgerd.py, pipeline/ledger/client.py, pipeline/ledger/cli.py, pipeline/ledger/tests/test_daemon.py]
+tests_first:
+  - 先写 test_daemon.py 用例名齐全并全红，再实现
+contract:
+  protocol: |
+    传输：Unix domain socket（路径参数 --socket，默认 <root>/ledger.sock）；每请求一行 JSON，每响应一行 JSON（UTF-8，行尾 \n）
+    请求：{"op": "<LedgerService 或 LedgerReader 公开方法名>", "args": {...}}；bytes 参数用 "<name>_b64"（base64）传递
+    响应：{"ok": true, "result": <JSON>} 或 {"ok": false, "error": {"type": "<异常类名>", "code": "<错误码或 null>", "message": "..."}}；bytes 结果用 "data_b64"
+    未知 op → error type 'UnknownOperation'；一个连接可多请求；服务端串行处理写请求（单线程接受 + 顺序执行即可）
+  ledgerd.py: |
+    python -m pipeline.ledger.ledgerd --root <dir> [--socket <path>]
+    启动：LedgerService(root)（内部取 WriterLock）；取不到 → 打印 `LEDGER_WRITER_LOCKED <root>` 并 exit 3，不启动监听
+    收到 SIGTERM/SIGINT：关闭 socket、释放锁、exit 0；socket 文件在退出时删除
+    每个请求写一行日志到 stderr：时间、op、ok/err
+  client.py: |
+    class LedgerClient(socket_path: Path)：与 LedgerService/LedgerReader 同名方法，参数同名；错误响应按 type 还原为 errors.py 中同名异常并 raise（未知类型 → LedgerError）
+  cli.py: |
+    python -m pipeline.ledger.cli init --root <dir>                  建库（migrate），打印 `LEDGER_INIT <root>`
+    python -m pipeline.ledger.cli status --root <dir>                只读：打印 schema 版本、各表行数（JSON 一行）
+    python -m pipeline.ledger.cli run-status --root <dir> <prun_id>  只读，JSON 一行
+    python -m pipeline.ledger.cli stage-progress --root <dir> <prun_id>
+    python -m pipeline.ledger.cli serve --root <dir> [--socket]      等价 ledgerd
+    退出码：成功 0；参数/引用错误 2；写锁被占 3
+tests:
+  test_daemon.py:
+    - test_daemon_starts_and_client_roundtrip（子进程 serve；client.create_processing_run → run_status 一致）
+    - test_second_daemon_exits_3_with_LEDGER_WRITER_LOCKED
+    - test_reader_cli_status_works_while_daemon_running
+    - test_error_propagates_as_same_exception_class（client 传非法 id → InvalidIdentifier，code=='ID_001'）
+    - test_bytes_roundtrip_via_base64（put_artifact 1 KiB 随机字节 → read_object 相等）
+    - test_unknown_op_returns_error
+    - test_sigterm_releases_lock_and_removes_socket
+verify:
+  - .venv/bin/python -m unittest discover -s pipeline/ledger/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 61
+  - .venv/bin/python -m pipeline.ledger.cli init --root /tmp/ledger_cli_test && .venv/bin/python -m pipeline.ledger.cli status --root /tmp/ledger_cli_test | head -1   # JSON 含 "ledger_schema_version"
+  - TDD §0 三门禁不变
+commit:
+  add: [pipeline/ledger]
+  message: "feat(ledger): single-writer local daemon over unix socket, client and cli (spec §17 process model)"
+on_fail: 停止并报告

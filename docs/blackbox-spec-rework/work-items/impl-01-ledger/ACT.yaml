@@ -1,0 +1,38 @@
+package: blackbox-impl-01-ledger
+title: 首纵切第一批：Artifact Ledger（§17）
+status: READY
+executor_groups:
+  H1: [impl-01/00, impl-01/01, impl-01/02]      # 一个执行 Agent 串行；H1 全部 ACCEPTED 后才派 H2
+  H2: [impl-01/03, impl-01/04, impl-01/05]
+acts:
+  - file: act/00.yaml
+    id: impl-01/00
+    writes: ["docs/blackbox-spec-rework/work-items/g4-r3/check_d16.py"]
+  - file: act/01.yaml
+    id: impl-01/01
+    writes: ["pipeline/ledger/__init__.py", "pipeline/ledger/ids.py", "pipeline/ledger/states.py", "pipeline/ledger/errors.py", "pipeline/ledger/actor.py", "pipeline/ledger/tests/__init__.py", "pipeline/ledger/tests/test_ids.py", "pipeline/ledger/tests/test_states.py"]
+  - file: act/02.yaml
+    id: impl-01/02
+    writes: ["pipeline/ledger/objects.py", "pipeline/ledger/store.py", "pipeline/ledger/lock.py", "pipeline/ledger/tests/test_objects.py", "pipeline/ledger/tests/test_store.py", ".gitignore"]
+  - file: act/03.yaml
+    id: impl-01/03
+    writes: ["pipeline/ledger/service.py", "pipeline/ledger/tests/test_service.py", "pipeline/ledger/tests/test_checkpoint.py"]
+  - file: act/04.yaml
+    id: impl-01/04
+    writes: ["pipeline/ledger/ledgerd.py", "pipeline/ledger/client.py", "pipeline/ledger/cli.py", "pipeline/ledger/tests/test_daemon.py"]
+  - file: act/05.yaml
+    id: impl-01/05
+    writes: ["pipeline/ledger/fixture_ingest.py", "pipeline/ledger/acceptance.py", "pipeline/ledger/service.py（仅追加 put_run_artifact）", "pipeline/ledger/tests/test_ingest.py", "pipeline/ledger/tests/test_acceptance.py", "openspec/acceptance/run_all.sh（仅 20.2/20.3 两行 + ledger_check 定义）"]
+global_rules:
+  - 每个 ACT 先写测试（Red 原文入报告）再实现；unittest；测试只用 tempfile 目录，不写 var/ 与 fixture
+  - 只用标准库 + PyYAML + jsonschema；不新增依赖、不新增 ID 前缀、不改 openspec/schemas、不改 fixture
+  - 中文注释与 docstring；公开函数签名与 ACT contract 逐字一致（参数名不得改）
+  - 每个 ACT 一个提交；不得 git add -A / git add .
+gates:
+  - bash docs/blackbox-spec-rework/verify-T.sh | tail -1                          # FAIL 合计: 0
+  - bash docs/blackbox-spec-rework/work-items/g3-r3/mutations.sh all | tail -1    # 109/109
+  - bash openspec/schemas/verify.sh >/dev/null; echo $?                           # 0
+  - .venv/bin/python -m unittest discover -s pipeline/ledger/tests -t .           # OK
+  - export LC_ALL=en_US.UTF-8; bash openspec/acceptance/run_all.sh                # ACT 05 后 pass=2 fail=1 blocked=8
+  - git diff --check
+on_fail: 停止并报告；对 contract 有两种理解、某条测试无法按定义写出、需要改 scope 之外文件 → 一律停手上报

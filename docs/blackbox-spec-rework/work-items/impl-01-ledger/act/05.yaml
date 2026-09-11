@@ -1,0 +1,87 @@
+act_id: impl-01/05
+title: mini_ed01 灌入 Ledger + acceptance.py + run_all.sh 20.2/20.3 由 BLOCKED 变 PASS
+estimated_minutes: 90
+group: H2
+depends_on: [impl-01/04]
+scope:
+  write: [pipeline/ledger/fixture_ingest.py, pipeline/ledger/acceptance.py, pipeline/ledger/tests/test_ingest.py, pipeline/ledger/tests/test_acceptance.py, openspec/acceptance/run_all.sh]
+tests_first:
+  - 先写 test_ingest.py、test_acceptance.py 并全红；再实现；最后改 run_all.sh
+anchors_run_all:   # 各恰 1 次（grep -Fc）
+  a1: '      block_line "$n" "Artifact Ledger" "StageCheckpoint §17.1 未实现"'
+  a2: '        OK) block_line "$n" "Artifact Ledger" "真实 StepRun 记录未实现" ;;'
+  a3: 'CANON_VERIFY="$REPO_ROOT/pipeline/corpus/_fixture/mini_ed01/verify.sh"'
+contract:
+  fixture_ingest.py: |
+    python -m pipeline.ledger.fixture_ingest --fixture <dir> --root <ledger_root> [--asset-root]
+    只读 fixture；用 LedgerService（直连模式）真实写路径灌入；全部 ID 取 fixture 常量（manifest.yaml / expected/*.yaml 中的 processing_run_id、step_run_id、stage_package_id、artifact_revision_id、output_artifact_id、output_revision_id、configuration_revision_id）
+    顺序（每个 stage 一个 StepRun，m1→m2→m3）：
+      1 create_processing_run('edition_run', edition_part_id=manifest.edition_part.artifact_id, technique_id, processing_run_id=常量)
+      2 配置修订：begin_step_run 要求 configuration_artifact_id 已 sealed，而配置不属于任何 StepRun 的产出，故 service.py 增加一个受限入口
+           put_run_artifact(processing_run_id, artifact_type, data, *, artifact_id=None, artifact_revision_id=None, producer_module, producer_version, rights_scope='internal') -> tuple[str, str]
+           （不挂 StepRun；仅允许 artifact_type ∈ {'configuration','technique_profile'}，否则 SchemaViolation(SCH_002)；写入即 sealed；记 audit）
+         m1..m3 三个配置修订在 create_processing_run 之后用它写入：内容 = JSON {stage, tool:'tools/build_fixture.py', tool_version:'mini_ed01'}，artifact_revision_id=常量 cN；StepRequest.configuration_artifact_id 引用本 stage 的配置修订
+         此入口是 ACT 05 对 service.py 的唯一追加，配套测试 test_put_run_artifact_only_configuration_types
+      3 begin_step_run(request={schema_version:'1.0.0', processing_run_id, step_run_id=常量, input_artifact_ids=[上一 stage output_revision_id]（m1 为 []）, technique_profile_id:'qizheng', configuration_artifact_id=cN})
+      4 任务级产物 + Checkpoint：
+         m1 任务 ['ingest_source']：put_artifact(type='source_manifest', data=manifest.yaml 字节) → seal → write_checkpoint(completed=[{task_id:'ingest_source', artifact_revision_id, status:'succeeded'}], pending=[], next_pointer=None)
+         m2 任务 ['page_001','page_002','page_003']：每页 put_artifact(type='ocr_page', data=pages/page_00N.json 字节) → seal；page_002 另 put_artifact(type='human_event', data=anomalies.yaml 中该条 JSON) → seal 并在 completed 项写 terminal_state:'known_unrecognizable'；每页一次 write_checkpoint（pending 递减，next_pointer 指向下一页；最后 None）；三页 → 3 个 Checkpoint
+         m3 任务 ['sanche_b001'..'sanche_b005']：每批 put_artifact(type='corpus_batch', data=该批 spans JSON) → seal → write_checkpoint；5 个 Checkpoint
+      5 stage 输出修订：put_artifact(type= m1 'source_manifest' / m2 'ocr_page_set' / m3 'corpus_spans'，data=json.dumps(package.payload, sort_keys=True, ensure_ascii=False).encode(), artifact_id=output_artifact_id, artifact_revision_id=output_revision_id) → seal
+      6 校验报告：put_artifact(type='validation_report', data=json.dumps(package.validation, sort_keys=True)) → seal；日志：put_artifact(type='step_log', data=b'ingest from mini_ed01') → seal
+      7 record_transformation(operation=package.lineage.transformations[0].operation, tool='tools/build_fixture.py', tool_version='mini_ed01', configuration_revision_id=cN, input_revision_ids=[上一 stage output]（m1 []）, output_revision_ids=[output_revision_id], validation_report_revision_id=报告修订, human_event_revision_ids=[page_002 事件修订]（仅 m2））
+      8 register_stage_package(step_run_id, package, data=expected/mN.stage_package.yaml 字节, stage_package_id=常量, artifact_revision_id=常量 fN) → seal
+      9 finish_step_run(result={schema_version:'1.0.0', processing_run_id, step_run_id, status_version: 当前值, status:'succeeded', output_artifact_ids:[output_revision_id, 包修订], validation_report_ids:[报告修订], log_artifact_ids:[日志修订], failure_artifact_ids:[]})
+    第二次对同一 root 灌入 → 第一个显式 ID 冲突处 raise DuplicateIdentifier(ID_002)，不留半成品（事务）
+    打印末行 `INGEST OK <processing_run_id> step_runs=3 checkpoints=9 transformations=3`
+  acceptance.py: |
+    python -m pipeline.ledger.acceptance --fixture <dir> --check 20_2|20_3 [--keep]
+    在 tempfile.mkdtemp() 建 Ledger，灌入 fixture，执行场景，打印每条 `PASS <name>` / `FAIL <name> <原因>`；退出码 0 全过 / 1 任一 FAIL / 3 环境缺失（fixture 不存在或 .venv 缺 yaml/jsonschema）；无 --keep 时删除临时目录
+    20_2（名称固定）：
+      chain_lengths      三个 stage 的 Checkpoint 链长 == 1/3/5，prev 指针逐个正确，m1 首个 prev 为 None
+      manifest_refs_last_checkpoint  三个 StepManifest 的 last_checkpoint_revision_id == 该 stage 最后 Checkpoint
+      failed_run_preserved  用 supersede_step_run 为 m3 开 R2（input 同 m3），完成 sanche_b001 后 write_checkpoint，再 put 一个失败修订 seal 后 fail_step_run(R2)；断言 R2.status=='failed'、失败修订 sealed 可读、R1（原 m3 StepRun）status 仍 succeeded 且其全部修订 status/sha256 与灌入后快照逐字相同
+      recover_skips_completed  recover_from_checkpoint(edition_part, 'm3', request) → plan.completed_task_ids == ['sanche_b001']，pending 的 task_id == ['sanche_b002','sanche_b003','sanche_b004','sanche_b005']，checkpoint_revision_id == R2 的 Checkpoint；新 StepRun R3.supersedes_step_run_id == R2 且有 recovery 事件
+      history_not_overwritten  R3 创建后 R2 仍 failed、其失败修订仍 sealed；step_run_events 只增不减（计数比较）
+    20_3（名称固定）：
+      transformations_count   == 3
+      每个 transformation：inputs_recorded（m1 允许 []，m2/m3 非空且 ⊆ frozen_inputs）、outputs_recorded（非空，全 sealed）、tool_recorded（tool 与 tool_version 非空）、config_recorded（configuration_revision_id 为 sealed 修订且 artifact_type=='configuration'）、validation_recorded（validation_report_revision_id 为 sealed 修订且 artifact_type=='validation_report'）、human_decisions_recorded（字段存在为列表；m2 恰 1 项且其修订 artifact_type=='human_event'）、step_run_succeeded_with_manifest（所属 StepRun succeeded 且 StepManifest 修订 sealed）
+  run_all_sh: |
+    在 a3 行之后追加（脚本已有 $PY 指向 .venv/bin/python，直接复用）：
+      ledger_check() {   # $1 条目号 $2 检查名(20_2|20_3) $3 说明
+        if [ ! -x "$PY" ]; then block_line "$1" "测试宿主匮乏" ".venv 缺失"; return 0; fi
+        out="$(cd "$REPO_ROOT" && "$PY" -m pipeline.ledger.acceptance --fixture "$FIXTURE_DIR" --check "$2" 2>&1)"; rc=$?
+        case "$rc" in
+          0) pass_line "$1" "$3" ;;
+          1) fail_line "$1" "$3" "$(printf '%s\n' "$out" | grep -m1 '^FAIL' )" ;;
+          *) block_line "$1" "测试宿主匮乏" "pipeline.ledger 不可用（退出码 $rc）" ;;
+        esac
+      }
+    a1 整行替换为：      ledger_check "$n" 20_2 "最近 StageCheckpoint 可恢复且历史失败保留（宿主 mini_ed01 真实 Ledger）"
+    a2 整行替换为：        OK) ledger_check "$n" 20_3 "每个语义转换的输入/输出/工具/配置/校验/人工决定记录齐全（宿主 mini_ed01 真实 Ledger）" ;;
+      （20.3 case 里 probe_status 的 lineage 预检保留：预检 FAIL 仍走原 fail 分支，只有 OK 才进入 ledger_check）
+    其余任何行不改；BLOCKED 行名仍逐字属 §19 第一列（「测试宿主匮乏」在列）
+tests:
+  test_ingest.py:
+    - test_ingest_creates_3_step_runs_9_checkpoints_3_transformations
+    - test_ingest_uses_fixture_constant_ids（三个 stage_package_id / output_revision_id / step_run_id 与 expected 常量相等）
+    - test_ingest_twice_raises_ID_002_and_leaves_no_partial_state（第二次前后 audit_log 行数不变）
+    - test_ingest_page_002_records_human_event_with_terminal_state
+    - test_put_run_artifact_only_configuration_types（type='ocr_page' → SchemaViolation SCH_002）
+  test_acceptance.py:
+    - test_check_20_2_passes_on_fixture（exit 0，输出含 5 个 PASS 名称）
+    - test_check_20_3_passes_on_fixture（exit 0）
+    - test_check_20_2_fails_when_checkpoint_missing（monkeypatch：灌入后删除 m3 最后一个 stage_checkpoints 行 → chain_lengths FAIL，exit 1）
+    - test_check_20_3_fails_when_validation_report_missing（把 m2 transformation.validation_report_revision_id 置 NULL → validation_recorded FAIL）
+    - test_missing_fixture_exit_3
+verify:
+  - .venv/bin/python -m unittest discover -s pipeline/ledger/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 71
+  - export LC_ALL=en_US.UTF-8; bash openspec/acceptance/run_all.sh; echo exit=$?         # PASS  20.2 …、PASS  20.3 …；SUMMARY pass=2 fail=1 blocked=8；exit=1
+  - bash openspec/acceptance/run_all.sh | grep -E '^BLOCKED' | sed -E 's/.*前置缺失: ([^；]+)；.*/\1/' | sort -u   # 每个名字逐字在规格 §19 主表第一列
+  - 篡改：临时副本 fixture 删除一个 span → FIXTURE_DIR=<副本> bash openspec/acceptance/run_all.sh 20.2 → FAIL  20.2（宿主校验先失败）
+  - grep -c 'ledger_check' openspec/acceptance/run_all.sh   # 3（定义 1 + 调用 2）
+  - TDD §0 三门禁不变
+commit:
+  add: [pipeline/ledger, openspec/acceptance/run_all.sh]
+  message: "feat(ledger): ingest mini_ed01 through real ledger write path; §20.2/§20.3 acceptance checks turn PASS in run_all.sh"
+on_fail: 停止并报告；不得把 20.2/20.3 写成无条件 PASS；不得改 fixture

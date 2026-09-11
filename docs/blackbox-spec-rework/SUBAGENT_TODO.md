@@ -558,6 +558,29 @@
   - [x] 用户确认进入实现阶段（2026-09-11「确认可以进入。」；g5-01 已派发，翻转 `REVIEW_FAILED_R1` → `R1_REWORK_CLOSED` 后大项记 `ACCEPTED`）
 
 
+## G7 首纵切实现（Dataset 会话；§22 顺序 Artifact Ledger → M3 → M5 → M8）
+
+- [ ] impl-01：Artifact Ledger §17（状态：`READY`；工作包 `work-items/impl-01-ledger/`，六个 ACT 分 H1（00–02）/H2（03–05）两轮派发；完成判据 `openspec/acceptance/run_all.sh` 20.2/20.3 由 BLOCKED 变 PASS，`SUMMARY pass=2 fail=1 blocked=8`）
+  - [x] README/范围/依赖/禁止项
+  - [x] BDD 场景
+  - [x] TDD 正反用例与精确命令
+  - [x] ACT.yaml（含 SCOPE、ON_FAIL、VERIFICATION）
+  - [x] Executor Prompt（H1、H2）
+  - [x] Acceptance 清单
+  - [x] `wjt-react` 判定 READY（2026-09-11）
+  - [ ] 派发 H1 执行 Agent
+  - [ ] H1 执行提交与原始证据（ACT 00/01/02）
+  - [ ] 主 Agent 验收 H1
+  - [ ] 派发 H2 执行 Agent
+  - [ ] H2 执行提交与原始证据（ACT 03/04/05）
+  - [ ] 主 Agent 规格审查
+  - [ ] 主 Agent 质量审查
+  - [ ] PLAN/HANDOFF 同步
+  - [ ] 主 Agent 标记 `ACCEPTED`
+- [ ] impl-02：M3 Corpus Compilation（状态：`BACKLOG`；impl-01 后）
+- [ ] impl-03：M5 Automatic Validation（状态：`BACKLOG`）
+- [ ] impl-04：M8 Dataset Compilation（状态：`BACKLOG`）
+
 ## G6 NC 注解社区线
 
 任务定义源：`openspec/annotation-community/TASKS.md`；本表持有流转状态，两处不得并存第二套状态源。

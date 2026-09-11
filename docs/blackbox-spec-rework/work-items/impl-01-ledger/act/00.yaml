@@ -1,0 +1,18 @@
+act_id: impl-01/00
+title: check_d16.py R3 行数条件改为 ≥ 43，允许表 B 追加行
+estimated_minutes: 10
+group: H1
+scope:
+  write: [docs/blackbox-spec-rework/work-items/g4-r3/check_d16.py]
+tests_first:
+  - Red：临时副本 PLAN 在表 B 末尾追加一行 `| 「G5 总准出：G4 D 类全部」 | mapped | 复制测试 | \`PLAN.md\` |` 之外的新合法行（开头文字取 PLAN 中某条既有黑箱未勾选项，但该项已在表 B → 会因匹配 2 行而 R3 FAIL，不能用）；改用：在 PLAN 黑箱节新增 `- [ ] impl-01 Artifact Ledger 测试条目` 并在表 B 追加 `| 「impl-01 Artifact Ledger 测试条目」 | mapped | 测试 | \`pipeline/TODO.md\` |` → 当前脚本报 `D16 FAIL R3 表 B 数据行数=44（应 43）`
+rule_change:
+  R3: 数据行数由「= 43」改为「≥ 43」；其余不变
+verify:
+  - python3 docs/blackbox-spec-rework/work-items/g4-r3/check_d16.py            # D16 OK
+  - 上述 Red 副本 → D16 OK；副本再删表 B 一行（剩 42）→ D16 FAIL R3 表 B 数据行数=42
+  - git diff --check
+commit:
+  add: [docs/blackbox-spec-rework/work-items/g4-r3/check_d16.py]
+  message: "fix(D-16): check_d16.py R3 accepts table B growth (>= 43 rows)"
+on_fail: 停止并报告

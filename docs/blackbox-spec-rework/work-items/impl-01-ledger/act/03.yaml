@@ -1,0 +1,98 @@
+act_id: impl-01/03
+title: LedgerService / LedgerReader：StepRun 事务序列、人工恢复、suspended 对账、StageCheckpoint（service.py）
+estimated_minutes: 120
+group: H2
+depends_on: [impl-01/02]
+scope:
+  write: [pipeline/ledger/service.py, pipeline/ledger/tests/test_service.py, pipeline/ledger/tests/test_checkpoint.py]
+tests_first:
+  - 先写 test_service.py、test_checkpoint.py 用例名齐全并全红，再实现
+contract:
+  common: |
+    class LedgerService(root: Path, actor_provider: ActorProvider = LocalActorProvider(), schemas_dir: Path = openspec/schemas)
+      构造即 migrate() 并取 WriterLock（取不到 raise WriterLocked）；close() 释放
+      所有写方法：一个 store.transaction()；每次状态变化写 revision_status_events / step_run_events；每次写 API 调用写 audit_log(action=方法名, target=主 id)
+      所有 *_id 参数先 ids.validate；引用型参数（input/config/validation/human_event）必须存在且 status=='sealed'，否则 MissingReference(REF_001) / NotConsumable
+      可选显式 ID（导入路径）：processing_run_id / step_run_id / artifact_id / artifact_revision_id / stage_package_id 参数给定时：格式非法 → ID_001；已存在 → ID_002
+    class LedgerReader(root: Path)：只读，不取锁；get_revision/get_step_run/list_step_run_events/list_transformations/latest_checkpoint/list_checkpoints/run_status/stage_progress/read_object
+  methods: |
+    create_processing_run(kind: 'edition_run'|'release_run', edition_part_id: str, technique_id: str, *, processing_run_id=None) -> str
+    begin_step_run(request: dict, *, step_run_id=None) -> str
+      用 jsonschema 按 step_request.schema.json 校验（失败 SchemaViolation SCH_001/SCH_002）；request.step_run_id 若与参数冲突 → ID_001
+      input_artifact_ids 与 configuration_artifact_id 逐个必须为 sealed Revision（否则 REF_001 / NotConsumable）；写 frozen_inputs；status='running'，status_version=0；事件 created
+    put_artifact(step_run_id, artifact_type: str, data: bytes, *, artifact_id=None, artifact_revision_id=None, prev_revision_id=None, schema_id=None, schema_version=None, producer_module: str, producer_version: str, configuration_revision_id=None, rights_scope='internal') -> tuple[str, str]
+      要求 step_run.status ∈ {running, awaiting_human}；ObjectStore.put；revision status='draft'；artifact_type 匹配 ^[a-z][a-z0-9_]*$
+    seal_revision(artifact_revision_id, *, validation_report_revision_id=None) -> None        draft→sealed；sealed_at；ObjectStore.verify 失败 → HashMismatch(SRC_003) 并转 quarantined
+    quarantine_revision(artifact_revision_id, reason, *, validation_report_revision_id=None)   draft→quarantined
+    invalidate_revision(artifact_revision_id, reason)                                          sealed→invalidated
+    supersede_revision(old_revision_id, new_revision_id)                                       old（sealed|quarantined|invalidated）→superseded；new 必须 sealed 且 artifact_id 相同；new.prev_revision_id==old
+    register_stage_package(step_run_id, package: dict, data: bytes, *, stage_package_id=None, artifact_revision_id=None) -> tuple[str, str]
+      按 stage_package.schema.json 校验；package.stage 与 stage_package_id 的 <stage> 一致；artifact_type='stage_package'；写 stage_packages；返回 (stage_package_id, artifact_revision_id)；调用方随后 seal_revision
+    record_transformation(step_run_id, *, operation: str, tool: str, tool_version: str, configuration_revision_id: str, input_revision_ids: list[str], output_revision_ids: list[str], model_ref=None, validation_report_revision_id=None, human_event_revision_ids: list[str] = ()) -> int
+      operation 匹配 ^[a-z][a-z0-9_]*$；inputs ⊆ frozen_inputs ∪ 本 StepRun 产出的 sealed 修订；outputs 必须为本 StepRun 产出的 sealed 修订
+    await_human(step_run_id, pending_queue_revision_ids: list[str]) -> str
+      running→awaiting_human；生成 resume_token = secrets.token_urlsafe(32)；DB 只存 sha256(token)；事件 await_human payload {frozen_inputs, pending_queue, human_events:[]}
+    record_human_event(step_run_id, resume_token, event_artifact_revision_id, *, decision_type=None) -> None
+      校验 token 哈希与 status_version 绑定（不匹配 InvalidResumeToken）；事件修订必须 sealed 且 artifact_type=='human_event'；decision_type ∈ REVIEW_DECISION_TYPES 或 None；写 human_events + 事件 human_event；**不消费 token**
+    resume(step_run_id, resume_token) -> None
+      校验 token；原子：awaiting_human→running，resume_token_hash 置 NULL（单次使用）；事件 resume；二次 resume 同 token → InvalidResumeToken
+    suspend(step_run_id, reason: str, source: 'operator'|'infrastructure') -> None
+      running|awaiting_human → suspended；事件 suspended payload {reason, source, frozen_inputs, pending_queue（若来自 awaiting_human 则原队列，否则 []）, human_events}
+    recover(step_run_id, reason: str) -> None
+      仅 suspended → running（若 suspend 前是 awaiting_human，则 → awaiting_human，保留 token）；先读最后持久状态，若已终态 raise IllegalTransition（不得改写）；事件 recovery
+    fail_step_run(step_run_id, failure_revision_ids: list[str], reason: str) -> None
+      running|awaiting_human|suspended → failed；failure 修订必须 sealed（artifact_type 任意）；事件 failure；封存 StepManifest（见 finish）
+    finish_step_run(step_run_id, result: dict) -> str
+      按 step_result.schema.json 校验；result.status 必须 'succeeded'；output/validation/log 列表中每个修订必须 sealed 且属本 StepRun；写 result_json；running→succeeded；生成并封存 StepManifest 修订（artifact_type='step_manifest'，内容 JSON：step_run_id, request, result, frozen_inputs, transformation_ids, last_checkpoint_revision_id, sealed_at）；返回 StepManifest 的 artifact_revision_id
+    supersede_step_run(old_step_run_id, new_request: dict, *, step_run_id=None) -> str
+      新 StepRun 的 supersedes_step_run_id=old；old 若非终态 → superseded（事件 transition）；old 已终态保持不变
+    write_checkpoint(step_run_id, *, edition_part_id, stage, completed_tasks: list[dict], human_decisions: list[str], pending_queue: list[dict], next_pointer: dict|None, rework_impact_report_revision_id=None, artifact_id=None, artifact_revision_id=None) -> str
+      completed_tasks 每项 {task_id, artifact_revision_id, status: 'succeeded'|'failed', terminal_state: str|None}；输出修订必须存在（failed 项可为失败修订）
+      prev_checkpoint_revision_id = latest_checkpoint(edition_part_id, stage) 的修订（跨 StepRun 也接链）；同一 (edition_part_id, stage) 只有一条链；stage 已被某 succeeded StepRun 封存后，只有 supersedes 该 StepRun 的新 StepRun 可再写
+      内容 JSON 存 Object Store（artifact_type='stage_checkpoint'，直接 sealed）；写 stage_checkpoints；事件 checkpoint
+    latest_checkpoint(edition_part_id, stage) -> dict|None（含内容 JSON 与元数据）
+    recover_from_checkpoint(edition_part_id, stage, new_request: dict, *, step_run_id=None) -> tuple[str, dict]
+      取最近 Checkpoint；创建新 StepRun（supersedes = Checkpoint 所属 StepRun）；返回 (new_step_run_id, plan)，plan = {checkpoint_revision_id, completed_task_ids（含 failed 标记的 task 不在其中，须重做）, human_decisions, pending_queue, next_pointer}；事件 recovery payload {checkpoint_revision_id}
+      若 Checkpoint 所属 StepRun 的最后一个已接受人工事件晚于该 Checkpoint（比较 created_at），先补写一个 Checkpoint（human_decisions 补齐）再恢复
+    run_status(processing_run_id) -> dict {processing_run_id, status（succeeded 若全部 StepRun succeeded；failed 若任一 failed 且无后继；awaiting_human / suspended / running 按最新非终态 StepRun）, started_at, finished_at|None, step_runs: [...]}
+    stage_progress(processing_run_id) -> dict {stage: {step_runs:n, succeeded:n, failed:n, running:n, awaiting_human:n, suspended:n, superseded:n, last_checkpoint_revision_id}}
+tests:
+  test_service.py:
+    - test_begin_step_run_validates_request_schema（缺 technique_profile_id → SCH_001）
+    - test_begin_step_run_rejects_unsealed_input（draft 修订作输入 → NotConsumable）
+    - test_put_then_seal_records_hash_size_and_events
+    - test_seal_detects_object_tamper（改 Object 文件后 seal → SRC_003 且 status quarantined）
+    - test_illegal_artifact_transition（sealed→draft 无接口；invalidated→sealed → IllegalTransition）
+    - test_supersede_revision_requires_same_artifact_and_prev_pointer
+    - test_record_transformation_outputs_must_belong_to_step_run
+    - test_await_human_resume_token_single_use（resume 两次第二次 InvalidResumeToken）
+    - test_record_human_event_does_not_consume_token
+    - test_record_human_event_rejects_wrong_token
+    - test_suspend_from_awaiting_human_and_recover_returns_to_awaiting_human
+    - test_recover_on_terminal_step_run_is_illegal
+    - test_suspended_event_persists_reason_source_inputs_queue
+    - test_finish_step_run_seals_step_manifest_and_validates_result_schema
+    - test_fail_step_run_keeps_failure_artifact_sealed
+    - test_supersede_step_run_keeps_old_terminal_state_and_links
+    - test_explicit_ids_import_path（合法未占用 → 采用；重复 → ID_002；非法 → ID_001）
+    - test_every_write_appends_audit_log
+    - test_reader_can_read_while_service_holds_lock
+    - test_run_status_and_stage_progress_shapes
+  test_checkpoint.py:
+    - test_checkpoint_chain_prev_pointer_and_single_chain
+    - test_checkpoint_content_has_all_required_fields（§17.1 必含 11 项键名逐字：edition_part_id, stage, step_run_id, completed_tasks, human_decisions, pending_queue, next_pointer, actor_ref, created_at, prev_checkpoint_revision_id, rework_impact_report_revision_id）
+    - test_checkpoint_per_task_not_per_stage（3 个 task → 3 个 Checkpoint）
+    - test_recover_from_checkpoint_skips_completed_and_replays_pending
+    - test_recover_creates_new_step_run_with_supersedes_and_recovery_event
+    - test_failed_task_recorded_in_completed_list_with_failed_flag_and_must_be_redone
+    - test_backfill_checkpoint_when_human_event_newer_than_checkpoint
+    - test_sealed_stage_rejects_new_checkpoint_from_unrelated_step_run
+verify:
+  - .venv/bin/python -m unittest discover -s pipeline/ledger/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 54
+  - grep -c 'token_urlsafe' pipeline/ledger/service.py   # ≥ 1
+  - grep -c 'hashlib' pipeline/ledger/service.py         # ≥ 1（token 只存哈希）
+  - TDD §0 三门禁不变
+commit:
+  add: [pipeline/ledger]
+  message: "feat(ledger): LedgerService step-run transaction sequence, human resume, suspended reconciliation and StageCheckpoint (spec §7.1/§17/§17.1)"
+on_fail: 停止并报告；对合法迁移表有疑问时以规格 §8.2 表为准，不得放宽

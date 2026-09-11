@@ -5,8 +5,8 @@
 更新时间：2026-09-11
 当前分支/worktree：`codex/docs/knowledge-compilation`；`/Users/jingtaiwei/Git/Public/learn_system`
 刚完成：G5 准出记录 `reviews/G5-EXIT-REVIEW.md` 14/14 满足；用户 2026-09-11 确认「确认可以进入」；外部 Agent 按 `work-items/g5/PROMPT-G.md` 提交 `70c05cd`，规格头部 `REVIEW_FAILED_R1` → `R1_REWORK_CLOSED`（节标签未动），主 Agent 干净树验收通过。执行者上报 numstat 与 ACT 不符，裁定为主 Agent 算术错误（`375ff8b` 订正）。`PROJECT_COLD_START_HANDOFF.md` 状态改 `IMPLEMENTATION_PHASE`。
-进行到一半的事（精确到文件和章节）：无。
-下一步（第一件事）：写首纵切第一批「Artifact Ledger」六件套 `work-items/impl-01-ledger/`：先修 `check_d16.py` R3 行数写死（改 ≥ 43）以便往 PLAN 加实现条目；再按 §17 拆 ACT（本地进程 + 本地客户端接口、SQLite Metadata Ledger 表与 Revision/Lineage、Object Store、StageCheckpoint §17.1、StepRun 状态机 §7/D-03），完成判据 `run_all.sh 20.2 20.3` 由 BLOCKED 变 PASS，fixture `mini_ed01` 为宿主。实现语言 Python（`.venv`），Schema 以 `openspec/schemas/` L0 为准。
+进行到一半的事（精确到文件和章节）：首纵切第一批 `work-items/impl-01-ledger/` 六件套已 READY（六个 ACT：00 检查脚本 R3 ≥43；01 标识/状态机；02 Object Store + SQLite DDL + 写锁；03 LedgerService/Reader；04 ledgerd/client/cli；05 fixture 灌入 + acceptance.py + `run_all.sh` 20.2/20.3），分 H1（00–02）/H2（03–05）两轮派发，`PROMPT-H1.md` 待用户交外部 Agent；SUBAGENT_TODO 新增 G7 节。
+下一步（第一件事）：H1 报告回来 → 干净树验收（`unittest` 用例数阈值、DDL 15 表、写锁、`.gitignore`）→ 记 ACCEPTED → 交 `PROMPT-H2.md`；H2 验收含 TDD §2 附加判据（签名逐字、迁移穷举、半成品、篡改、恒真检查）与 `run_all.sh pass=2 fail=1 blocked=8`。
 已知的坑：实现批次会第一次产生 `pipeline/` 下的新代码与测试，验收要跑真实测试而不只是 grep；`run_all.sh` 的 20.2/20.3 规则里 BLOCKED 分支是硬编码的，实现落地后 ACT 必须同时改 `run_all.sh` 对应规则（属 D-18 产物，改动需在 ACT 内写明）。
 
 ## G4 D 类全部 ACCEPTED：D-16 映射表与 pat_/ent_ 登记验收通过（Dataset 会话；黑箱线最新状态）
