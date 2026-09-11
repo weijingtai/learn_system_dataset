@@ -5,8 +5,8 @@
 更新时间：2026-09-11
 当前分支/worktree：`codex/docs/knowledge-compilation`；`/Users/jingtaiwei/Git/Public/learn_system`
 刚完成：外部 Agent 按 `work-items/g4-r3/PROMPT-F.md` 交付 `76bc4b4`（D-16：PLAN.md 只增不删加入「黑箱差距 → PLAN 条目 → owner 映射」，§19 19 行归属、43 条标注、3 条新增登记、`KnowledgeReleaseCompiler` 唯一 owner `pipeline/TODO.md`；检查脚本 `check_d16.py`）与 `e306258`（`pat_`/`ent_` 进 §8.1 第 3b 节）。主 Agent 干净树验收：门禁绿、TDD 全绿、零删行、7 例检查脚本篡改全部检出；一处执行者上报（TDD grep 尾随空格）裁定为主 Agent 笔误已订正。验收后主 Agent 勾选 PLAN 中 21 条 `superseded-by` 条目（未勾选 66 → 45），SUBAGENT_TODO D-16 `ACCEPTED`，G4 D-01～D-19 全部 `ACCEPTED`。
-进行到一半的事（精确到文件和章节）：`check_d16.py` R3 因勾选后匹配数变 0 在 HEAD 误报，小返工 `work-items/g4-r3/act/r3-03.yaml` + `PROMPT-F2.md` 待用户交外部 Agent（只碰脚本，不需要 PLAN 时间窗）。
-下一步（第一件事）：r3-03 验收；然后 G5 总准出（复核 BDD 总验收包、三门禁 + `run_all.sh`、ACT 覆盖映射），产出 G5 准出记录；之后进入 §22 首纵切实现批次（Artifact Ledger → M3 → M5 → M8，判据 `run_all.sh 20.N` 由 BLOCKED 变 PASS）。
+进行到一半的事（精确到文件和章节）：无。r3-03（`check_d16.py` R3 兼容已勾选行）`aa85430` 已验收，`check_d16.py` 在 HEAD 为 `D16 OK`。
+下一步（第一件事）：G5 总准出（复核 BDD 总验收包、三门禁 + `run_all.sh`、ACT 覆盖映射），产出 G5 准出记录；之后进入 §22 首纵切实现批次（Artifact Ledger → M3 → M5 → M8，判据 `run_all.sh 20.N` 由 BLOCKED 变 PASS）。
 已知的坑：PLAN.md 时间窗已向 C/S 解除；PLAN 的 D-16 节要求「零删行」，今后改 PLAN 只能追加或把 `- [ ]` 改 `- [x]` 并附取代者；验收仍在 `git archive` 导出树上跑。
 
 ## G6 NC-005 READY 已派发；NC-006 准备中（C/S 会话）

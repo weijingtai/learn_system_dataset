@@ -1,6 +1,6 @@
 # ACCEPTANCE：G4 第三批（D-16 映射表 / pat_ ent_ 登记）
 
-状态：r3-01 / r3-02 `ACCEPTED`（`76bc4b4`、`e306258`，见 §5）；r3-03（检查脚本 R3 兼容已勾选行，`PROMPT-F2.md`）`DISPATCHED`
+状态：全部 `ACCEPTED`。r3-01 `76bc4b4`、r3-02 `e306258`、r3-03 `aa85430`（见 §5）
 
 ## 0. 转译审查（原规划者四查，2026-09-11）
 
@@ -53,3 +53,7 @@ TDD §2 第 3 行与 ACT r3-02 verify 的 `grep -c '^| '` 多了一个尾随空�
 - 主 Agent 已勾选 PLAN 中 21 条 `superseded-by` 条目（附取代者），未勾选 66 → 45。
 - 由此 `check_d16.py` R3 的 `- [ ] <开头>` 匹配数变 0：属主 Agent 设计缺陷（R3 应对 `- [ ]`/`- [x]` 合计计数）。返工 `act/r3-03.yaml`（只碰脚本），`PROMPT-F2.md`。
 - D-16 `ACCEPTED`；G4 D 类全部 `ACCEPTED`；C/S 会话 PLAN.md 时间窗解除。
+
+### 5.5 r3-03（`aa85430`）ACCEPTED
+
+范围 1 文件 +8/−3，只改 R3 匹配条件（`- [ ]` 或 `- [x]` 合计）与一处注释；`git diff --check` 通过；无 try/except。Red：改前脚本（`aa85430~1` 版本）在当前 PLAN 上 `D16 FAIL R3 开头文字匹配数=0`；Green：`D16 OK` exit 0。矩阵外篡改 5 例（临时副本）：表 B 开头文字改一字 → R3 匹配 0；同一开头同时存在 `- [x]` 与 `- [ ]` → R3 匹配 2；黑箱节塞入未登记 `- [ ]` → R4；删表 A 一行 → R2；把一条已勾选改回未勾选、把一条 mapped 项勾选 → 均 `D16 OK`（勾选状态不在 R3/R4 判定范围，符合 ACT）。执行报告 `docs/reports/G4-R3-F-EXECUTION-REPORT.md` 在仓库内不存在（执行者未入库），验收以提交内容与主 Agent 实跑为据。
