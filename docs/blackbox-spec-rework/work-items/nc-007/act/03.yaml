@@ -1,0 +1,40 @@
+TASK_ID: NC-007-C
+PARENT: NC-007
+STATUS: READY
+REPO: xuan-migration/reading-notes
+GOAL: "实现多分支冲突控制器与状态机（revision_conflict_controller.dart），8 项测试"
+DEPENDS_ON: [NC-007-B]
+ESTIMATE_MINUTES: 50
+WORKLOAD: "revision_conflict_controller.dart（检测 headRevisionIds、四选项决策：保留本机、采用对方、稍后处理不阻断编辑、第三方分支保护）+ revision_conflict_test.dart（8 个测试）"
+SCOPE:
+  READ:
+    - /Users/jingtaiwei/Git/Public/learn_system/openspec/annotation-community/contracts/revision_history.md
+    - /Users/jingtaiwei/Git/Public/learn_system/openspec/annotation-community/contracts/local-persistence.md §5
+    - /Users/jingtaiwei/Git/Public/learn_system/docs/blackbox-spec-rework/work-items/nc-007/TDD.md、BDD.md
+  WRITE_NEW:
+    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/lib/src/history/revision_conflict_controller.dart
+    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/test/history/revision_conflict_test.dart
+  FORBIDDEN:
+    - /Users/jingtaiwei/Git/Public/learn_system 下任何写入
+    - 修改 NC-004/NC-005/NC-006 保护文件
+    - 修改 pubspec.yaml 与 pubspec.lock
+    - skip、永真断言、先实现后补测试
+DEPENDENCY_ALLOWLIST: [无新增依赖]
+RULES:
+  - "冲突控制器仅通过 NoteRepository 公开接口操作数据"
+  - "选稍后处理标记当前会话已关闭横幅，不阻断常规编辑与自动保存"
+  - "用户编辑中到达新分支不覆盖当前编辑草稿"
+  - "每步先写测试取得真实 Red 原文，再实现"
+  - "只在 reading-notes 内 git add 本步文件；提交消息按 COMMIT_MESSAGE，末尾另起两行 Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
+TESTS_FIRST:
+  - "写 8 个控制器测试与空壳类；运行 flutter test test/history/revision_conflict_test.dart，保存失败原文作为 Red"
+STEPS:
+  - "实现 revision_conflict_controller.dart 至 8 个测试全绿；flutter analyze 0"
+  - "git add 本步文件并提交"
+VERIFICATION:
+  - "export PATH=/Users/jingtaiwei/flutter/bin:$PATH && cd /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes && flutter analyze"
+  - "cd /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes && flutter test test/history/revision_conflict_test.dart（期望 +8）"
+  - "git -C /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes status --short（提交后除未跟踪报告外为空）"
+ON_FAIL: "停止并报告失败命令、退出码与原文；不改契约、测试期望，不新增依赖，不扩大范围。"
+BASELINE_EXIT_CODES: "开工基线：NC-007-B 已提交（flutter test +129）"
+COMMIT_MESSAGE: "feat: 多分支冲突检测与四选项决策控制器（NC-007-C）"

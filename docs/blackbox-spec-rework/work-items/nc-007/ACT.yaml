@@ -1,0 +1,20 @@
+TASK_ID: NC-007
+STATUS: READY
+GOAL: "实现历史修订列表、纯本地长文差异对比、多分支冲突检测与 PRD 旅程 6 四选项冲突处理完整路径"
+CONTRACTS:
+  - openspec/annotation-community/contracts/revision_history.md
+  - openspec/annotation-community/contracts/local-persistence.md
+  - openspec/annotation-community/contracts/editor.md
+  - openspec/annotation-community/contracts/editor_history.md
+DISPATCH_PRECONDITION: "NC-006 已 ACCEPTED"
+SPLIT:
+  - act/01.yaml
+  - act/02.yaml
+  - act/03.yaml
+  - act/04.yaml
+ORDER: "严格按 act/01 → 02 → 03 → 04 顺序执行；每步独立提交；禁止并行"
+ESTIMATE_MINUTES_TOTAL: 190
+DEFERRED:
+  - "NC-008：本地图片对象与外部公共资源适配"
+  - "NC-010：笔记列表、公开详情与发布 UI（列表冲突标记的统一入口）"
+  - "NC-019：回收站完整流转与永久清理"

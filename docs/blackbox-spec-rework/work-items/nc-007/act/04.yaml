@@ -1,0 +1,45 @@
+TASK_ID: NC-007-D
+PARENT: NC-007
+STATUS: READY
+REPO: xuan-migration/reading-notes
+GOAL: "实现冲突横幅、对照视图与手动合并工作区（conflict_banner.dart），8 项测试"
+DEPENDS_ON: [NC-007-C]
+ESTIMATE_MINUTES: 45
+WORKLOAD: "conflict_banner.dart（非阻断横幅、对照视图、四选项按钮、手动合并工作区整合 NC-006 撤销栈）+ 追加测试到 test/history/revision_conflict_test.dart + lib/reading_notes.dart 追加导出"
+SCOPE:
+  READ:
+    - /Users/jingtaiwei/Git/Public/learn_system/openspec/annotation-community/contracts/revision_history.md
+    - /Users/jingtaiwei/Git/Public/learn_system/openspec/annotation-community/contracts/local-persistence.md §5
+    - /Users/jingtaiwei/Git/Public/learn_system/openspec/annotation-community/contracts/editor.md
+    - /Users/jingtaiwei/Git/Public/learn_system/docs/blackbox-spec-rework/work-items/nc-007/TDD.md、BDD.md
+  WRITE_NEW:
+    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/lib/src/history/conflict_banner.dart
+    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/test/history/revision_conflict_test.dart（追加 8 个测试）
+    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/lib/reading_notes.dart（追加历史与冲突公开导出）
+  FORBIDDEN:
+    - /Users/jingtaiwei/Git/Public/learn_system 下任何写入
+    - 修改 NC-004/NC-005/NC-006 保护文件
+    - 修改 pubspec.yaml 与 pubspec.lock
+    - skip、永真断言、先实现后补测试
+DEPENDENCY_ALLOWLIST: [无新增依赖]
+RULES:
+  - "冲突横幅默认置于编辑页顶部，不以模态弹窗拦截编辑输入"
+  - "四选项文案逐字对齐：「保留本机」「采用对方」「手动合并」「稍后处理」"
+  - "手动合并编辑区接入 NC-006 撤销/重做支持"
+  - "每步先写测试取得真实 Red 原文，再实现"
+  - "只在 reading-notes 内 git add 本步文件；提交消息按 COMMIT_MESSAGE，末尾另起两行 Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
+TESTS_FIRST:
+  - "在 revision_conflict_test.dart 追加 8 个 UI 与手动合并测试；运行 flutter test test/history/revision_conflict_test.dart，保存失败原文作为 Red"
+STEPS:
+  - "实现 conflict_banner.dart 与导出至全量 16 个测试全绿；flutter analyze 0"
+  - "全量运行 flutter test 验证 +145: All tests passed!"
+  - "git add 本步文件并提交"
+VERIFICATION:
+  - "export PATH=/Users/jingtaiwei/flutter/bin:$PATH && cd /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes && flutter analyze"
+  - "cd /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes && flutter test test/history/revision_conflict_test.dart（期望 +16）"
+  - "cd /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes && flutter test（期望 +145）"
+  - "cd /Users/jingtaiwei/Git/Public/learn_system && bash docs/blackbox-spec-rework/reviews/nc007_guard.sh --require-impl（期望 0）"
+  - "git -C /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes status --short（提交后除未跟踪报告外为空）"
+ON_FAIL: "停止并报告失败命令、退出码与原文；不改契约、测试期望，不新增依赖，不扩大范围。"
+BASELINE_EXIT_CODES: "开工基线：NC-007-C 已提交（flutter test +137）"
+COMMIT_MESSAGE: "feat: 冲突顶部横幅、对照视图与手动合并编辑（NC-007-D）"
