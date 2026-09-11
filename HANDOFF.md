@@ -1,5 +1,14 @@
 # HANDOFF
 
+## G6 NC-001-01 达 READY 并派发（C/S 会话）
+
+更新时间：2026-09-10
+当前分支/worktree：`codex/docs/knowledge-compilation`；`/Users/jingtaiwei/Git/Public/learn_system`
+刚完成：用户全权托管后，主 Agent 代为拍板「CLIENT 用独立 Git 仓库」与 NC-002 十七个前缀整表采用。NC-001 R1 返工由 Sonnet 执行 Agent 落实（`aadd1fc`，14 文件，`nc001_r1_guard.sh` 0，主 Agent 亲自复跑）。随后三轮独立 wjt-react 四查：R2 判 REWORK 6 项、R3 判 REWORK 3 项 + 5 建议、R4 判 READY；返工由主 Agent 本人落实（`7ba3f35`、`3e5d1d8`、`cb1e3e9`），记录见 `reviews/NC-001-REVIEW-R2.md`，守卫改为 `reviews/nc001_r2_guard.sh`（K02/K03 核对 `aadd1fc`，永久为真；新增 K09～K11）。关键裁定：§4 状态闸门只管 §4 增量、§3 半填两档保留；根非 object 输出 `root`；103 条必填键逐字写死；ACT 拆四步（40/50/55/55 分钟）；共享守卫失败判外部。SUBAGENT_TODO 已登记 NC-001-01 `DISPATCHED`。
+进行到一半的事（精确到文件和章节）：Sonnet 执行 Agent 正按 `work-items/nc-001/PROMPT.md` 实现 `openspec/annotation-community/tools/check_integration_baseline.py` 与测试，四个提交（act/01～04）。
+下一步（第一件事）：收到执行报告后按 `work-items/nc-001/ACCEPTANCE.md` 亲自验收：四提交只含两文件、32 方法全跑、local 恰为 `LOCAL_PREPARATION_PASS`、integrated 与契约 §7 逐字相同、`nc001_r2_guard.sh --require-impl` 为 0、至少三个矩阵外变异、无 skip/永真/从输出生成期望。通过后 SUBAGENT_TODO 记 NC-001-01 `ACCEPTED`（总项仍 PREPARING，等 NC-001-02）。然后准备 NC-002 六件套。
+已知的坑：`nc001_r1_guard.sh` 已被 R2 守卫取代，直接跑它会因 K02/K03 对当前工作树失败，属预期。执行者若报告契约歧义，是我的责任，不让其自行裁定。
+
 ## G3 R5 完成与验收（Dataset 会话；G3 线最新状态）
 
 更新时间：2026-09-10
