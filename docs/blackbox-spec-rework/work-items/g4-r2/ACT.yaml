@@ -1,0 +1,46 @@
+task_id: blackbox-g4-r2-fixture-and-acceptance
+mode: documentation_and_fixture
+status: READY
+goal: 登记三前缀；建立 mini_ed01 fixture（页图不进 Git）；§20 十一条判据化并提供 run_all.sh
+depends_on:
+  - baseline_commit: 38d44f3
+  - accepted: [D-02, D-08, D-14, G3]
+groups:
+  D: { acts: [act/r2-01.yaml, act/r2-02.yaml], prompt: PROMPT-D.md }
+  E: { acts: [act/r2-03.yaml], prompt: PROMPT-E.md, after: D }
+scope:
+  read:
+    - AGENTS.md
+    - docs/blackbox-spec-rework/work-items/g4-r2/
+    - docs/blackbox-spec-rework/D-design.md
+    - openspec/schemas/
+    - openspec/legacy-storage-transition.md
+    - openspec/id-prefix-registry.md
+    - ocr/data_work/data/page_001.json
+    - ocr/data_work/data/page_002.json
+    - ocr/data_work/data/page_003.json
+    - ocr/data_work/logs/anomalies.jsonl
+    - ocr/data_work/sanche_pages/   # 只读，只取哈希与尺寸
+    - pipeline/corpus/bazi/qtbj_ed01/
+  write:
+    - openspec/learn-system-blackbox-architecture.md
+    - openspec/id-prefix-registry.md            # 仅 D
+    - pipeline/corpus/_fixture/mini_ed01/**     # 仅 D，新建
+    - openspec/acceptance/run_all.sh            # 仅 E，新建
+forbidden:
+  - 图像/PDF 写入仓库；伪造哈希或空文件
+  - 修改 openspec/schemas/verify.sh、Schema、verify-T.sh、mutations.sh
+  - 触动 G3 冻结区域、§3–§18 状态行；改动 §20 编号或条数
+  - 新造前缀或门禁代号；把不可判定项写成 PASS
+  - git add -A / git add . / stash / reset / clean / rebase / push / worktree
+  - ACT 未写明的决定自行拍板
+env:
+  - export LC_ALL=en_US.UTF-8
+verification:
+  - TDD §1/§2/§3 对应 Green 值
+  - TDD §4 回归
+on_fail: 停止，不扩大范围；报告 ACT id、锚点命中数、命令、退出码、原始输出、git status --short
+report:
+  - 每个 ACT 一个提交：hash、git show --stat --oneline
+  - 基线输出；每 ACT Red/Green 原始输出；回归输出
+  - 明确写明「等待主 Agent 独立验收」

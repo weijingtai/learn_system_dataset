@@ -1,0 +1,46 @@
+act_id: blackbox-g4-r2/01
+title: 登记 sch_ / sv_ / cg_ 到规格 §8.1，并替换 §12.2 占位句
+estimated_minutes: 25
+group: D
+scope:
+  write: [openspec/learn-system-blackbox-architecture.md, openspec/id-prefix-registry.md]
+tests_first:
+  - TDD §0 基线；TDD §1 五条 Red 值
+anchors:
+  before_heading: '#### 4. 版本轴分离规则（Schema Version 与 Content Revision）'
+  placeholder_sentence_substring: '`school_id` 与 `school_view_id` 的标识前缀待用户确认后登记到 §8.1 新对象表，在此之前规格不自造前缀。'
+  registry_todo: '- [ ] 把 §3.3 三行登记进规格 §8.1「新对象标识格式」表（第二批工作包 ACT，见 `docs/blackbox-spec-rework/work-items/g4-r2/`）。'
+steps:
+  - 断言 before_heading 整行恰 1 次；断言含 placeholder_sentence_substring 的行恰 1 次（§12.2 SchoolView 定义段，整段一行）；断言 registry_todo 整行恰 1 次
+  - 在 before_heading 行之前插入 text_3b 全文（text_3b 末尾保留一个空行再接 before_heading）
+  - 在 §12.2 那一行内，把 placeholder_sentence_substring 这一子串替换为 replacement_substring（只改这一处子串，行内其余字节不变）
+  - 把 registry_todo 整行替换为 `- [x] 把 §3.3 三行登记进规格 §8.1「新对象标识格式」表（已由 `work-items/g4-r2/act/r2-01.yaml` 完成，规格 §8.1 第 3b 节）。`
+text_3b: |
+  #### 3b. 流派与视图标识格式（用户 2026-09-10 确认）
+
+  以下三类标识随 D-08 `SchoolView` 引入，含义、家族与使用规则见 `openspec/id-prefix-registry.md` §3.3；本表冻结格式，校验器按 §8.1 第 5 条判定非法：
+
+  | 对象 | 冻结格式 | 语义归属 | 说明 |
+  |---|---|---|---|
+  | School（流派） | `sch_<technique>_<3位数字>` | 稳定身份（`school_id`，`entity_id` 语义） | 按技法命名空间、人工闭集、从 `001` 起顺序编号且不复用；同名流派在不同技法下是不同对象；只能引用 Contract Registry 已登记值 |
+  | SchoolView（流派视图） | `sv_<32hex>` | 稳定身份（`school_view_id`，`entity_id` 语义） | M4 批量产出，UUIDv4 家族；内容变化以 `rev_<32hex>` 表达，不换号 |
+  | ConflictGroup（冲突组） | `cg_<32hex>` | 分组标识（`conflict_group_id`） | 同一主题下相互冲突的一组 SchoolView 共享；M4 / M7 产出，UUIDv4 家族 |
+
+  旧工作台 slug（`qin_tang`、`tian_guan`）迁移时作为别名保留，不作 `school_id`；`guo_lao` 在旧表中类型为 book，不是流派。
+
+replacement_substring: '`school_id`、`school_view_id` 与 `conflict_group_id` 的标识格式见 §8.1 第 3b 节与 `openspec/id-prefix-registry.md` §3.3。'
+verify:
+  - export LC_ALL=en_US.UTF-8
+  - S=openspec/learn-system-blackbox-architecture.md
+  - grep -c '^#### 3b\. 流派与视图标识格式' $S                                        # 1
+  - sed -n '/^#### 3b\. /,/^#### 4\. /p' $S | grep -c '^| `sch_\|^| `sv_\|^| `cg_'   # 0（表首列是对象名，不以前缀开头）
+  - sed -n '/^#### 3b\. /,/^#### 4\. /p' $S | grep -c '`sch_<technique>_<3位数字>`\|`sv_<32hex>`\|`cg_<32hex>`'   # 3
+  - grep -c '待用户确认' $S                                                            # 0
+  - grep -c '§8.1 第 3b 节' $S                                                         # 1
+  - grep -c '^- \[x\] 把 §3.3 三行登记进规格' openspec/id-prefix-registry.md          # 1
+  - awk '/^## 8\./{f=1;next} f && NF {print; exit}' $S                                 # 状态：待验证假设
+  - TDD §4 回归
+commit:
+  add: [openspec/learn-system-blackbox-architecture.md, openspec/id-prefix-registry.md]
+  message: "spec(ids): register sch_/sv_/cg_ prefixes in §8.1 and link from §12.2"
+on_fail: 停止并报告

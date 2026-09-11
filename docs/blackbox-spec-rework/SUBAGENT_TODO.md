@@ -148,6 +148,7 @@
 - [x] G3 R5 区域边界封闭六件套：`work-items/g3-r5/`（状态 `ACCEPTED`；先红 `5de99fa` 11 例，后绿 `241c38c`；矩阵 109/109，selftest 41/41）
 - [x] 主 Agent 独立验收：正常规格 0 FAIL、13 例矩阵外盲测全部命中指定 FAIL ID、FAIL ID 超集测试通过、只读 Agent 复跑一致；证据见 `work-items/g3-r5/ACCEPTANCE.md`
 - [x] 用户 2026-09-10 决定启动 G4；第一批 `work-items/g4-r1/`（D-13/D-10/D-11 ｜ D-06/D-08 ｜ D-14）三组并行派发；D-15/D-16/D-18 第二批
+- [ ] G4 第二批 `work-items/g4-r2/`（2026-09-11 派发，`DISPATCHED`）：D 组 = ACT 01 前缀登记（sch_/sv_/cg_ 进 §8.1 第 3b 节、§12.2 去占位）+ ACT 02 D-15 fixture；E 组 = ACT 03 D-18 §20 判据化 + `openspec/acceptance/run_all.sh`；D→E 串行；主 Agent 锚点与输入核对见 `g4-r2/ACCEPTANCE.md` §0
 
 - [x] T-01：术语三层模型写入 M4（状态：`ACCEPTED`）
   - [x] README/范围/依赖/禁止项
@@ -479,7 +480,7 @@
   - [x] PLAN/HANDOFF 同步
   - [x] 主 Agent 标记 `ACCEPTED`
 
-- [ ] D-15：最小可跑 fixture（状态：`PREPARING`；用户 2026-09-10 裁定：《三辰通载》派生页图不进 Git，fixture 只含转录文本与锚点，页图走本地 Object Store 引用，缺图报 `BLOCKED_SOURCE_ASSET_MISSING`）
+- [ ] D-15：最小可跑 fixture（状态：`DISPATCHED`，工作包 `work-items/g4-r2/` ACT 02，D 组；用户 2026-09-10 裁定：《三辰通载》派生页图不进 Git，fixture 只含转录文本与锚点，页图走本地 Object Store 引用，缺图报 `BLOCKED_SOURCE_ASSET_MISSING`）
   - [ ] README/范围/依赖/禁止项
   - [ ] BDD 场景
   - [ ] TDD 正反用例与精确命令
@@ -515,7 +516,7 @@
   - [x] 既有交叉审查通过
   - [x] 无业务实现冒充规格完成
 
-- [ ] D-18：完成标准判据化（状态：`BACKLOG`）
+- [ ] D-18：完成标准判据化（状态：`DISPATCHED`，工作包 `work-items/g4-r2/` ACT 03，E 组，串行于 D 组之后）
   - [ ] README/范围/依赖/禁止项
   - [ ] BDD 场景
   - [ ] TDD 正反用例与精确命令

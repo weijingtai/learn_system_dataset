@@ -1,0 +1,105 @@
+act_id: blackbox-g4-r2/02
+title: D-15 最小可跑 fixture mini_ed01（页图不进 Git）
+estimated_minutes: 60
+group: D
+depends_on: [blackbox-g4-r2/01]
+scope:
+  write: [pipeline/corpus/_fixture/mini_ed01/**, openspec/learn-system-blackbox-architecture.md]
+tests_first:
+  - 先写 verify.sh（下文 V1–V8），先运行确认因文件缺失而 FAIL（Red），再写 build_fixture.py 生成其余文件（Green）
+  - TDD §0 基线含三张 PNG 哈希核对；不符即停手
+
+layout:   # 目录内不得出现任何图像文件
+  - pipeline/corpus/_fixture/mini_ed01/README.md
+  - pipeline/corpus/_fixture/mini_ed01/manifest.yaml
+  - pipeline/corpus/_fixture/mini_ed01/pages/page_001.json       # 与 ocr/data_work/data/page_001.json 逐字节相同
+  - pipeline/corpus/_fixture/mini_ed01/pages/page_002.json
+  - pipeline/corpus/_fixture/mini_ed01/pages/page_003.json
+  - pipeline/corpus/_fixture/mini_ed01/source/transcript_v1.md
+  - pipeline/corpus/_fixture/mini_ed01/anomalies.yaml
+  - pipeline/corpus/_fixture/mini_ed01/spans.yaml
+  - pipeline/corpus/_fixture/mini_ed01/expected/m1.stage_package.yaml
+  - pipeline/corpus/_fixture/mini_ed01/expected/m2.stage_package.yaml
+  - pipeline/corpus/_fixture/mini_ed01/expected/m3.stage_package.yaml
+  - pipeline/corpus/_fixture/mini_ed01/tools/build_fixture.py    # 确定性生成器；只用 python 标准库 + yaml
+  - pipeline/corpus/_fixture/mini_ed01/verify.sh
+
+constants:   # 硬编码，禁止改动
+  source_id: src_sanche_ed01
+  work_title: 三辰通載三十卷
+  edition_note: 影宋鈔本
+  technique_id: qizheng
+  edition_part_artifact_id: art_000000000000000000000000000000e1
+  edition_part_label: 卷一·前三页
+  asset_root_default: ocr/data_work/sanche_pages      # 可由环境变量 FIXTURE_ASSET_ROOT 覆盖（仅用于校验时的缺图模拟）
+  page_assets:
+    page_001: { file: page_001.png, sha256: e46bffa38119df1bb03f5a38e4f3f99405a476ba5d7b6a7c489956ccf2e58e65, width: 1203, height: 1654 }
+    page_002: { file: page_002.png, sha256: aa5301d98c230a875eeb0b8d8d071393e4d15546d4f352cfb53747af1590f753, width: 1203, height: 1654 }
+    page_003: { file: page_003.png, sha256: 3c138fc9f32d2cfefe029d62dec2a9a0ce0f095c373af41a8a98f4c8f8afb268, width: 1203, height: 1654 }
+  expected_ids:
+    processing_run_id: prun_000000000000000000000000000000f1
+    m1: { stage_package_id: pkg_m1_000000000000000000000000000000f1, artifact_revision_id: rev_000000000000000000000000000000f1, step_run_id: srun_000000000000000000000000000000f1, output_artifact_id: art_000000000000000000000000000000f1, output_revision_id: rev_000000000000000000000000000000a1, configuration_revision_id: rev_000000000000000000000000000000c1 }
+    m2: { stage_package_id: pkg_m2_000000000000000000000000000000f2, artifact_revision_id: rev_000000000000000000000000000000f2, step_run_id: srun_000000000000000000000000000000f2, output_artifact_id: art_000000000000000000000000000000f2, output_revision_id: rev_000000000000000000000000000000a2, configuration_revision_id: rev_000000000000000000000000000000c2 }
+    m3: { stage_package_id: pkg_m3_000000000000000000000000000000f3, artifact_revision_id: rev_000000000000000000000000000000f3, step_run_id: srun_000000000000000000000000000000f3, output_artifact_id: art_000000000000000000000000000000f3, output_revision_id: rev_000000000000000000000000000000a3, configuration_revision_id: rev_000000000000000000000000000000c3 }
+
+formats:
+  manifest.yaml: |
+    source_id / work_title / edition_note / technique_id / rights_status: public_domain_text（文字公版；扫描件分发权 unconfirmed）
+    release_policy: derived_page_images_only
+    edition_part: { artifact_id, label, pages: [page_001, page_002, page_003] }
+    source_assets: 三项，每项 { page, path_ref: "<asset_root_default>/<file>", sha256, width, height, object_store: local, in_git: false }
+    files: 逐项 { path, role, sha256 }，role ∈ ocr_page / transcript / anomalies / spans / expected_stage_package；覆盖 pages/*.json、source/transcript_v1.md、anomalies.yaml、spans.yaml、expected/*.yaml
+    conversion: { tool: tools/build_fixture.py, inputs: [ocr/data_work/data/page_00{1,2,3}.json, ocr/data_work/logs/anomalies.jsonl], note: "一行 OCR = 一个 span；机器转录未人工校对；仅作结构验收宿主" }
+    content_status: machine_extracted
+  source/transcript_v1.md: |
+    首行标题 `# src_sanche_ed01 · 三辰通載三十卷（影宋鈔本）· 卷一·前三页 · 机器转录 v1（未人工校对）`
+    每页一节 `## page_00N`，下面按 pages JSON `lines` 数组顺序每行一个 `lines[i].text`（不改字、不合并、不加标点）
+    page_002 节内容固定为一行 `（known_unrecognizable：无文字页，见 anomalies.yaml）`
+  anomalies.yaml: |
+    entries: 一项 { page: page_002, terminal_state: known_unrecognizable, layout_type: no_text, evidence: 原样复制 anomalies.jsonl 中 page_002 那条记录（ts/page/image/layout_type/det_box_count/note/extra）, decided_by: fixture, note: "无文字页；M2 Gate 允许放行（§10.1）" }
+  spans.yaml: |
+    work / source_id / edition_part_artifact_id / evidence_level: glyphbox_level / content_status: machine_extracted / span_count / batch_count
+    spans: 按 page_001 行序 4 条、page_003 行序 39 条，共 43 条；每条：
+      span_id: ss_sanche_ed01_p<NNNN>_s<NN>（页号 4 位、行序 2 位，均从 01 起）
+      batch_id: sanche_b001（page_001 全部）；page_003 第 1–10 行 sanche_b002、11–20 行 sanche_b003、21–30 行 sanche_b004、31–39 行 sanche_b005
+      page, line_index（0 起）, start_offset, end_offset（相对该页在 transcript 中 `## page` 节文本块的字符偏移，块 = 行以 "\n" 连接；end 不含）, text（= lines[i].text）
+      source_anchor: { page, image_sha256（= 该页 sha256）, line_id（= lines[i].id）, bbox: {x,y,w,h}（= lines[i].box）, chars: [ { char_index（在 chars 数组中的下标）, glyph_id（= chars[j].id）, char, box: {x,y,w,h} } … 该行全部字：取 chars[j].parent == line_id 的全部 j，按数组顺序 ] }
+  expected/mN.stage_package.yaml: |
+    结构照抄 openspec/schemas/examples/qtbj_ed01.m1.stage_package.valid.yaml，替换为 expected_ids 常量；stage 分别 m1/m2/m3；status sealed
+    payload：m1 { source_manifest: { source_id, source_manifest_path: pipeline/corpus/_fixture/mini_ed01/manifest.yaml, edition_part_artifact_id } }；m2 { ocr_pages: [ {page, path: pipeline/corpus/_fixture/mini_ed01/pages/page_00N.json, sha256} ×3 ], anomalies_path, terminal_states: { page_002: known_unrecognizable } }；m3 { spans_path, coverage: { page_001: 1.0, page_003: 1.0 }, excluded_pages: { page_002: known_unrecognizable } }
+    manifest.counts：m1 { pages: 3, source_assets: 3 }；m2 { ocr_pages: 3, lines: 43, chars: 230, anomalies: 1 }；m3 { spans: 43, batches: 5 }
+    manifest.content_sha256：m1 = sha256(manifest.yaml 文件)；m2 = sha256(三页 JSON 的 sha256 十六进制串按页名排序后用 "\n" 连接再加末尾 "\n" 的字节串)；m3 = sha256(spans.yaml 文件)
+    lineage.transformations：一项，operation 分别 ingest_source / digitize_pages / compile_corpus；input_artifact_revision_ids：m1 []，m2 [m1.output_revision_id]，m3 [m2.output_revision_id]
+    manifest.input_artifacts：m1 []；m2/m3 引用上一阶段 output（artifact_kind artifact，artifact_type 分别 source_manifest / ocr_page_set）
+    validation.passed: true；logs/failures 空
+  verify.sh: |
+    用法：bash verify.sh；环境变量 FIXTURE_DIR（默认脚本所在目录）、FIXTURE_ASSET_ROOT（默认 asset_root_default，相对仓库根）
+    只用 bash + .venv/bin/python（yaml、json、hashlib、jsonschema 经 check-jsonschema）；.venv 不存在时打印 `BLOCKED_ENV .venv missing` 并 exit 3
+    检查（每条打印 `PASS <name>` 或 `FAIL <name> <原因>`）：
+      V1 manifest_sha256：manifest.files 每项 sha256 == 实际文件
+      V2 ids：manifest/spans/expected 中所有 id 匹配前缀正则（src_、ss_、art_、rev_、pkg_m[1-8]_、prun_、srun_ 各自格式）
+      V3 coverage：page_001/page_003 各自 spans 按 start_offset 排序后 0..len 连续无重叠无缺口，join("\n") == transcript 该页块；page_002 spans 为 0 且 anomalies 终态 known_unrecognizable
+      V4 anchors：每个 span 的 line_id 存在于对应 pages JSON、bbox == lines[i].box、chars 的 (char_index, glyph_id, char) 与 chars 数组一致且 parent == line_id、image_sha256 == manifest 对应资产 sha256
+      V5 expected_schema：三个 expected 文件通过 check-jsonschema（stage_package.schema.json）
+      V6 expected_hash：content_sha256 按 formats 规则重算相等；counts 与实际相等
+      V7 assets：对 manifest.source_assets 每项，若 <FIXTURE_ASSET_ROOT>/<file> 存在则 sha256 与尺寸相等（PASS），否则打印 `BLOCKED_SOURCE_ASSET_MISSING <path_ref>` 并记 blocked
+      V8 no_images：fixture 目录内无 png/jpg/jpeg/pdf 文件
+    退出码：任一 FAIL → 1；无 FAIL 但有 blocked → 3；否则 0 并打印末行 `FIXTURE OK`
+  tools/build_fixture.py: |
+    参数 --out <目录>（默认 fixture 目录）、--asset-root、--ocr-data（默认 ocr/data_work/data）、--anomalies（默认 ocr/data_work/logs/anomalies.jsonl）
+    确定性：相同输入产生逐字节相同输出（yaml 用 sort_keys=False、allow_unicode=True、固定缩进；不写时间戳）
+    输入缺失时打印 `BLOCKED_SOURCE_ASSET_MISSING <path>` 并 exit 3，不创建任何文件
+  README.md: |
+    说明用途（统一验收宿主，D-15）、页图不进 Git 的裁定、如何在缺图机器上得到 BLOCKED、如何重放（build_fixture.py）、内容为机器转录不作知识来源
+
+spec_edit:
+  anchor: '- `evidence_level=glyphbox_level`；首纵切发布物为内部验收包，消费级别 `INTERNAL_DEMO`，`SourceAssetPack` 采用 `derived_page_images_only`（§16）。'
+  insert_after: '- 统一验收宿主：`pipeline/corpus/_fixture/mini_ed01/`（page_001..003 的 OCR 页面 JSON、机器转录、异常终态、字框锚点 spans 与 m1–m3 期望 StagePackage；页图不进 Git，`verify.sh` 缺图时报 `BLOCKED_SOURCE_ASSET_MISSING`）。'
+
+verify:
+  - TDD §2 全部 Green 值
+  - TDD §4 回归
+commit:
+  add: [pipeline/corpus/_fixture/mini_ed01, openspec/learn-system-blackbox-architecture.md]
+  message: "feat(D-15): add mini_ed01 fixture (3 pages, glyphbox anchors, expected m1-m3 packages, no images in git)"
+on_fail: 素材缺失/哈希不符/check-jsonschema 不可用/任一 V 项无法按定义实现 → 停止并报告，不得伪造

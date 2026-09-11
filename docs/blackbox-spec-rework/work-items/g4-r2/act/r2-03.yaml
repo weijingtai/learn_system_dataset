@@ -1,0 +1,53 @@
+act_id: blackbox-g4-r2/03
+title: D-18 §20 十一条判据化 + openspec/acceptance/run_all.sh
+estimated_minutes: 60
+group: E
+depends_on: [blackbox-g4-r2/02]
+scope:
+  write: [openspec/acceptance/run_all.sh, openspec/learn-system-blackbox-architecture.md]
+tests_first:
+  - TDD §3 Red：run_all.sh 不存在（exit 127）；§20 无「判据：」
+anchors:
+  s20_heading: '## 20. 黑箱完成标准'
+  s20_items_first: '1. 一个 EditionPart 严格按 M1-M6 阶段 Gate 完成，任何未完成任务不能流入下一阶段；Edition 完成是全部 Part Gate 的合取。'
+  s20_item7: '7. 当前七政格局数据可作为官方 Candidate 输入；用户 Pattern 仅保留未来 Adapter seam。'
+steps:
+  - 断言三处锚点各恰 1 次；断言 §20 内 `^[0-9]+\. ` 行恰 11 行
+  - 在 s20_heading 行与第 1 条之间（原为一个空行）插入 intro_paragraph（前后各一空行）
+  - 对 11 条每条：在行末追加 `｜ 判据：\`bash openspec/acceptance/run_all.sh 20.N\`，期望 \`PASS  20.N\``（N = 条目编号；条目原文一个字不改，只在末尾追加）
+  - 第 7 条在追加判据之前，先把 s20_item7 整行替换为 item7_replacement（含准入阈值），再追加判据
+  - 新建 openspec/acceptance/run_all.sh（可执行位 755），按 script_spec 实现
+intro_paragraph: '每条完成标准对应 `openspec/acceptance/run_all.sh` 的一项检查，输出 `PASS` / `FAIL` / `BLOCKED(前置缺失: <§19 差距行>)`；允许 `BLOCKED`，不允许「无法执行」；退出码等于 `FAIL` 条数。统一验收宿主为 `pipeline/corpus/_fixture/mini_ed01/`（§22.1）；能在宿主上判定的部分先判定，宿主之外依赖未实现能力的部分报 `BLOCKED` 并写明缺什么。'
+item7_replacement: '7. 当前七政格局数据可作为官方 Candidate 输入；用户 Pattern 仅保留未来 Adapter seam。准入阈值：只有 `original_text` 非空且来源引用可解析的 rule 才能成为 Candidate，`original_text` 为空者一律 fail-closed 拒绝；当前 `ge_ju_database.sqlite` 496 条 rule 的 `original_text` 全空，故本条现为 `FAIL`，不得因「可作为输入」的字面而判通过。'
+script_spec: |
+  用法：bash openspec/acceptance/run_all.sh [20.N ...]；无参数跑全部 11 条，顺序 20.1→20.11
+  环境：export LC_ALL=en_US.UTF-8 由脚本自行设置；FIXTURE_DIR 透传给 fixture verify.sh（默认 pipeline/corpus/_fixture/mini_ed01）
+  输出格式（每条恰一行，两个空格分隔）：
+    PASS  20.N  <说明>
+    FAIL  20.N  <说明>: <原因>
+    BLOCKED  20.N  前置缺失: <§19 差距行名>；<说明>
+  末行：SUMMARY pass=<n> fail=<n> blocked=<n>；退出码 = fail 数
+  只用 bash + python3/.venv；.venv 缺失时凡依赖它的条目报 BLOCKED（前置缺失: 测试宿主匮乏；.venv 缺失），不报「无法执行」
+  fixture 子检查：fx() 运行 bash "$FIXTURE_DIR/verify.sh" 捕获退出码：0 → 宿主 OK；3 → 宿主 OK 但素材缺失（记录）；1 → 宿主 FAIL（原因取其 FAIL 行）；脚本缺失 → BLOCKED（前置缺失: M3 Corpus Compilation；fixture 缺失）
+  各条规则（严格按此，不得写成 PASS）：
+    20.1  fx 为 1 → FAIL；fx OK → 检查 expected/m1..m3 三包 stage 递增且 lineage 串联（m2 输入 = m1 输出、m3 输入 = m2 输出），不满足 → FAIL；满足 → BLOCKED 前置缺失: Local Orchestrator（M4–M6 Gate 未实现）
+    20.2  fx 为 1 → FAIL；否则 BLOCKED 前置缺失: Artifact Ledger（StageCheckpoint §17.1 未实现）
+    20.3  fx 为 1 → FAIL；fx OK → 检查三包 lineage.transformations 各恰 1 项且含 configuration_artifact_revision_id，不满足 → FAIL；满足 → BLOCKED 前置缺失: Artifact Ledger（真实 StepRun 记录未实现）
+    20.4  fx 为 1 → FAIL；fx OK（含素材缺失）→ 检查 spans 每条 source_anchor.image_sha256 与 manifest.source_assets 一致（fixture verify V4 已含，此处复核一次），不满足 → FAIL；满足 → BLOCKED 前置缺失: M8 Dataset Compilation（PublicationPackage 反向追溯未实现）
+    20.5  BLOCKED 前置缺失: M7 Incremental Assembly
+    20.6  前置：grep -c 'not_captured' openspec/learn-system-blackbox-architecture.md ≥ 1，否则 FAIL；满足 → BLOCKED 前置缺失: M8 Dataset Compilation（KnowledgeEntry 编译未实现）
+    20.7  用 sqlite3 查 pattern_knowledge_workbench/assets/ge_ju_database.sqlite：eligible = count(*) from ge_ju_rules where trim(coalesce(original_text,''))<>''；total = count(*)；打印 eligible/total；eligible = 0 → FAIL（原因：original_text 全空，准入阈值不满足）；eligible ≥ 1 且存在 pipeline/tools/import_legacy_candidates.py → PASS；eligible ≥ 1 但导入工具不存在 → BLOCKED 前置缺失: M6 Review Workbench（legacy_candidate 导入流程未实现）；sqlite3 或数据库缺失 → BLOCKED 前置缺失: 测试宿主匮乏
+    20.8  BLOCKED 前置缺失: M8 Dataset Compilation（SourceAssetPack 未实现）
+    20.9  BLOCKED 前置缺失: M8 Dataset Compilation（GraphProjectionPack 未实现）
+    20.10 前置：bash openspec/schemas/verify.sh 退出 0，否则 FAIL（§7/§8 契约不稳定）；满足 → BLOCKED 前置缺失: Contract Registry（无第二 Adapter 可做替换验证）
+    20.11 BLOCKED 前置缺失: M8 Dataset Compilation（尚无两个 Release 可比，IdentityMigrationMap 未产出）
+  BLOCKED 行的差距行名必须逐字取自 §19 主表第一列：M7 Incremental Assembly / M8 Dataset Compilation / Artifact Ledger / Local Orchestrator / Contract Registry / M6 Review Workbench / M3 Corpus Compilation / 测试宿主匮乏
+verify:
+  - TDD §3 全部 Green 值（含当前预期：20.7 FAIL，其余 BLOCKED，exit=1）
+  - bash openspec/acceptance/run_all.sh 20.7 | head -1                     # 以 FAIL  20.7 开头且含 0/496
+  - sed -n '/^## 20\./,/^## 21\./p' openspec/learn-system-blackbox-architecture.md | grep -c '前置缺失'   # 1（intro）
+  - TDD §4 回归
+commit:
+  add: [openspec/acceptance/run_all.sh, openspec/learn-system-blackbox-architecture.md]
+  message: "feat(D-18): make §20 criteria executable via openspec/acceptance/run_all.sh (PASS/FAIL/BLOCKED)"
+on_fail: 停止并报告；不得把任何 BLOCKED 改成 PASS，不得改动 §20 编号
