@@ -1,0 +1,15 @@
+TASK_ID: NC-015
+STATUS: DRAFT
+GOAL: 按 private_sync.md 交付 15 个正反样例与检查器（红条件闭集），供 NC-016 实现与攻击场景审查消费
+CONTRACTS:
+  - openspec/annotation-community/contracts/private_sync.md
+DISPATCH_PRECONDITION: "无（规格仓内产物）"
+SPLIT:
+  - act/01.yaml
+  - act/02.yaml
+ORDER: "act/01 → act/02；全部提交在 learn_system 仓库，只 git add 本步文件；禁止并行"
+ESTIMATE_MINUTES_TOTAL: 80
+DEFERRED:
+  - "guard 补丁（expiresAt、deviceId、指纹比较）、AAD、X25519/HKDF 包装、中转配置、接收端验收流水：NC-016"
+  - "导出文件格式与导入 UI：NC-017/018"
+  - "P2P 通道四个硬缺口（断线重连、内容校验、TURN、>2 设备）中除内容校验外的三项：xuan-storage 轨道，NC-016 只消费现状"
