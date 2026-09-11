@@ -927,17 +927,19 @@ L0 内核契约(ArtifactRef + §7 接口 + §8 信封)
 
 ## 20. 黑箱完成标准
 
-1. 一个 EditionPart 严格按 M1-M6 阶段 Gate 完成，任何未完成任务不能流入下一阶段；Edition 完成是全部 Part Gate 的合取。
-2. 任一阶段失败后可从该 EditionPart 最近 StageCheckpoint 恢复；历史失败不被覆盖。
-3. 每个语义转换都有输入、输出、工具/模型、配置、校验和人工决定记录。
-4. 原始数据、校订数据、候选、驳回项、正式知识和发布物均可双向追溯。
-5. 新 Edition 可单独增量加入同一 Work，不要求收齐其他版本，也不改旧身份。
-6. Pattern 名称、规则、解释和出处可逐项补全；`not_captured` 不被误判为不存在。
-7. 当前七政格局数据可作为官方 Candidate 输入；用户 Pattern 仅保留未来 Adapter seam。
-8. PublicationPackage 同时包含结构化知识、符合 ReleasePolicy 的 SourceAssetPack 及其关系。`reference_and_hash_only` 必须包含可由本地 Object Store 或受权后端解析的受控引用、SHA-256、页标识、权利说明和完整 Evidence 映射才满足本条；不要求携带原始文件字节。引用不可解析时验收失败。
-9. 移动端数据与 GraphProjectionPack 来自同一 Canonical Snapshot，Graph 往返无损。
-10. 更换 OCR、模型、索引或存储 Adapter 不改变相邻 Module 的 Interface。
-11. 跨 Release 注解锚点可迁移率按 §16 `AnchorContractPack` 定义计算并写入 ValidationReport；`PUBLIC_RELEASE` 必须为 100%，`retired` 项在 ReleaseManifest 逐条披露，缺少 IdentityMigrationMap 时验收失败。
+每条完成标准对应 `openspec/acceptance/run_all.sh` 的一项检查，输出 `PASS` / `FAIL` / `BLOCKED(前置缺失: <§19 差距行>)`；允许 `BLOCKED`，不允许「无法执行」；退出码等于 `FAIL` 条数。统一验收宿主为 `pipeline/corpus/_fixture/mini_ed01/`（§22.1）；能在宿主上判定的部分先判定，宿主之外依赖未实现能力的部分报 `BLOCKED` 并写明缺什么。
+
+1. 一个 EditionPart 严格按 M1-M6 阶段 Gate 完成，任何未完成任务不能流入下一阶段；Edition 完成是全部 Part Gate 的合取。｜ 判据：`bash openspec/acceptance/run_all.sh 20.1`，期望 `PASS  20.1`
+2. 任一阶段失败后可从该 EditionPart 最近 StageCheckpoint 恢复；历史失败不被覆盖。｜ 判据：`bash openspec/acceptance/run_all.sh 20.2`，期望 `PASS  20.2`
+3. 每个语义转换都有输入、输出、工具/模型、配置、校验和人工决定记录。｜ 判据：`bash openspec/acceptance/run_all.sh 20.3`，期望 `PASS  20.3`
+4. 原始数据、校订数据、候选、驳回项、正式知识和发布物均可双向追溯。｜ 判据：`bash openspec/acceptance/run_all.sh 20.4`，期望 `PASS  20.4`
+5. 新 Edition 可单独增量加入同一 Work，不要求收齐其他版本，也不改旧身份。｜ 判据：`bash openspec/acceptance/run_all.sh 20.5`，期望 `PASS  20.5`
+6. Pattern 名称、规则、解释和出处可逐项补全；`not_captured` 不被误判为不存在。｜ 判据：`bash openspec/acceptance/run_all.sh 20.6`，期望 `PASS  20.6`
+7. 当前七政格局数据可作为官方 Candidate 输入；用户 Pattern 仅保留未来 Adapter seam。准入阈值：只有 `original_text` 非空且来源引用可解析的 rule 才能成为 Candidate，`original_text` 为空者一律 fail-closed 拒绝；当前 `ge_ju_database.sqlite` 496 条 rule 的 `original_text` 全空，故本条现为 `FAIL`，不得因「可作为输入」的字面而判通过。｜ 判据：`bash openspec/acceptance/run_all.sh 20.7`，期望 `PASS  20.7`
+8. PublicationPackage 同时包含结构化知识、符合 ReleasePolicy 的 SourceAssetPack 及其关系。`reference_and_hash_only` 必须包含可由本地 Object Store 或受权后端解析的受控引用、SHA-256、页标识、权利说明和完整 Evidence 映射才满足本条；不要求携带原始文件字节。引用不可解析时验收失败。｜ 判据：`bash openspec/acceptance/run_all.sh 20.8`，期望 `PASS  20.8`
+9. 移动端数据与 GraphProjectionPack 来自同一 Canonical Snapshot，Graph 往返无损。｜ 判据：`bash openspec/acceptance/run_all.sh 20.9`，期望 `PASS  20.9`
+10. 更换 OCR、模型、索引或存储 Adapter 不改变相邻 Module 的 Interface。｜ 判据：`bash openspec/acceptance/run_all.sh 20.10`，期望 `PASS  20.10`
+11. 跨 Release 注解锚点可迁移率按 §16 `AnchorContractPack` 定义计算并写入 ValidationReport；`PUBLIC_RELEASE` 必须为 100%，`retired` 项在 ReleaseManifest 逐条披露，缺少 IdentityMigrationMap 时验收失败。｜ 判据：`bash openspec/acceptance/run_all.sh 20.11`，期望 `PASS  20.11`
 
 ## 21. 非目标
 
