@@ -51,6 +51,6 @@ VERIFICATION:
   - "LC_ALL=C bash openspec/annotation-community/review_v1_5_guard.sh"
   - "bash openspec/annotation-community/verify.sh"
   - "git diff --check"
-ON_FAIL: "停止并报告失败命令、退出码与断言原文；不改输入、契约或测试期望，不安装依赖，不扩大范围。例外：review_v1_5_guard.sh、verify.sh 或 git diff --check 失败时先运行 git diff --stat，失败来源不在本任务两个文件之内的判为外部失败，只在报告中记录，不返工、不停工。"
+ON_FAIL: "停止并报告失败命令、退出码与断言原文；不改输入、契约或测试期望，不安装依赖，不扩大范围。例外：review_v1_5_guard.sh、verify.sh 或 git diff --check 失败时先运行 git diff --stat，失败来源不在本任务两个文件之内的判为外部失败，只在报告中记录，不返工、不停工。`nc001_r2_guard.sh` 的 K01 失败同样按外部失败处理；其 K02～K10 失败仍按本任务失败停工。"
 BASELINE_EXIT_CODES: "开工基线（提交 aadd1fc 实测）：review_v1_5_guard.sh=0，verify.sh=0，git diff --check=0，nc001_r2_guard.sh（不带 --require-impl）=0"
 COMMIT_MESSAGE: "feat(nc-001): 集成基线校验器对象规则（一）"

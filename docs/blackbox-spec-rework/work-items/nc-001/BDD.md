@@ -26,3 +26,4 @@
 | B20 | scope=TEST_FIXTURE 且其余同 B01 | 校验 local | 退出 0，stdout 恰为 `LOCAL_PREPARATION_PASS (TEST_FIXTURE)` |
 | B21 | 类型、枚举或固定值错误：schema_version 为 bool、head 非 40 位小写 hex、dirty_entries 为 bool 或负数、write_policy/kind/choice/status 不在枚举、NOTIFIER 允许写入、MIGRATION 状态不是 UNAVAILABLE、openapi_validator 五个固定值任一不等、emulator 常驻字段为空、account_deletion.consumer/blocked_scope 不等、client/identity/sdk/dependency_policy 固定值不等、仓库或端口集合缺项或重复 | 校验 local | 退出 1，报对应键的完整路径（集合问题只报数组路径） |
 | B22 | JSON 根不是 object（`[]`、`"x"`、`null`） | 校验 local / integrated | 退出 1，stdout 恰为一行 `root` |
+| B23 | 完整验证态夹具中 §4 取值规则任一被改坏：namespace_prefix 不匹配正则、credential_injection 不是 RUNTIME_ENV_VAR、project_id 或 start_command 为空、content_mute/aggregation 不在枚举、某容器类型错误（sdk 为数组、devices 为对象） | 校验 integrated | 退出 1，stdout 恰为对应的一行路径 |

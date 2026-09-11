@@ -56,9 +56,9 @@
 
 **ports**：name 恰为 HOST_INIT、ACCOUNT_SCOPE、HTTP、STORAGE、IM_NAVIGATION、MENTION、NOTIFICATION_RECEIVE、SERVER_IDENTITY 各一次，集合不符报 `ports`。每条：file 为存在的文件；symbol 匹配 `^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)?$`（纯行号、`文件:行` 均拒绝）；kind ∈ `EXISTING_IMPLEMENTATION`（直接调用既有实现）/ `NEW_ADAPTER`（CLIENT 或 SERVER 新增适配层后使用该符号）。符号是否真在文件中由主线程守卫核对，本工具不读外部文件内容。
 
-**openapi_validator**：package=`openapi-spec-validator`；version=`0.9.0`；install_command 非空；offline_failure=`ENV_BLOCKED`；status ∈ `NOT_INSTALLED_IN_CURRENT_PYTHON` / `VERIFIED`；evidence 键存在，未验证态时为 null。
+**openapi_validator**：package=`openapi-spec-validator`；version=`0.9.0`；install_command 非空；offline_failure=`ENV_BLOCKED`；status ∈ `NOT_INSTALLED_IN_CURRENT_PYTHON` / `VERIFIED`；evidence 键存在，未验证态时为 null；status=VERIFIED 时 local 档不检查 evidence 是否存在（只由 §4 在 integrated 下检查）。
 
-**integration 下的对象**：表中键必须全部存在。status 为未验证态时，验证字段必须全为 null，否则报该字段路径（防止半填冒充）。
+**integration 下的对象**：表中键必须全部存在。status 必须取表中「未验证态 / 验证态」两值之一，否则报 `<对象>.status`。status 为未验证态时，验证字段必须全为 null，否则报该字段路径（防止半填冒充）。
 
 | 对象 | 未验证态 / 验证态 | 验证字段 | 常驻字段 |
 |---|---|---|---|

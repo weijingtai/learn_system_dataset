@@ -43,3 +43,17 @@ git diff --check
 ```
 
 均为 0（K08 允许 SKIP）。随后由另一位未参与编写的审查者做第二轮 wjt-react 四查；READY 后主 Agent 在 SUBAGENT_TODO 登记并派发 PROMPT.md。两轮不收敛则停止并上报用户。
+
+## 4. 第二轮审查（R3，2026-09-10）与落实
+
+审查人：另一独立只读 Agent（Opus）。结论：上一轮 6 项中 5 项 CLOSED、第 6 项部分 CLOSED；新报 3 条阻断、5 条建议。判定 REWORK。主 Agent 落实如下（提交见 git log）：
+
+| # | R3 返工项 | 落实 |
+|---|---|---|
+| 1 | `test_inputs_unchanged` 括注「integrated 此时退出 2」在步骤 4 失效，与「不改前步期望」冲突 | TDD §3.4 改为只断言哈希与目录列表，不断言退出码与 stdout；守卫 K10 拒绝「后者此时退出 2」残留 |
+| 2 | 契约 §4 六条取值规则零负例 | 新增 `test_integrated_value_rules`（9 个 subTest，含两个容器类型负例）；`test_integrated_fixture_pass` 的完整夹具取值逐字写死；BDD B23；方法 31 → 32；守卫 K07/K08 同步 |
+| 3 | 外部失败豁免未覆盖 `nc001_r2_guard.sh` 的 K01 | 四个 ACT、README、PROMPT、TDD 七处逐字追加「K01 同样按外部失败处理；K02～K10 仍按本任务失败停工」；新增守卫 K11 核对七处一致 |
+
+建议 1～5 全部采纳：契约 §3 写明 status 枚举约束；`openapi_validator.evidence` 在 local 下不检查；`test_test_runs_set_rules` 补 command/count 负例；`test_integrated_fixture_evidence_removed` 的 11 条期望路径逐条写出；ACCEPTANCE 复述外部失败规则。
+
+第三轮审查若仍不 READY，按 wjt-react 规则停止并上报用户。

@@ -121,18 +121,23 @@ for i in range(1, 5):
     deps.append(dd.group(1).strip() if dd else "")
     onfail.append("外部失败" in t and "ON_FAIL" in t and "WORKLOAD" in t)
 want_deps = ["[]", "[NC-001-01-A]", "[NC-001-01-B]", "[NC-001-01-C]"]
-ok07 = (len(methods) == 31 == len(set(methods))
-        and bids == [f"B{i:02d}" for i in range(1, 23)] and all(x in tdd for x in bids)
+ok07 = (len(methods) == 32 == len(set(methods))
+        and bids == [f"B{i:02d}" for i in range(1, 24)] and all(x in tdd for x in bids)
         and len(keys) == 103 == len(set(keys))
         and all(acts) and all(30 <= x <= 60 for x in est) and deps == want_deps and all(onfail)
         and not (pack / "act" / "05.yaml").exists())
-check(ok07, "K07 BDD B01～B22 全覆盖、TDD 31 个方法不重复、必填键 103 条、四个 ACT 30–60 分钟且依赖链/ON_FAIL/WORKLOAD 齐全",
+check(ok07, "K07 BDD B01～B23 全覆盖、TDD 32 个方法不重复、必填键 103 条、四个 ACT 30–60 分钟且依赖链/ON_FAIL/WORKLOAD 齐全",
       f"方法={len(methods)}，BDD={len(bids)}，必填键={len(keys)}，估时={est}，依赖={deps}，onfail={onfail}")
 
 # K09：契约 R2 裁定句存在（歧义已封闭）
 need = ["闸门只作用于 §4 的增量检查", "stdout 恰为一行 `root`", "只报该数组路径本身，不下钻"]
 miss = [s for s in need if s not in contract]
 check(not miss, "K09 契约含 R2 三条裁定（状态闸门范围、根类型输出、数组元素路径）", f"缺={miss}")
+
+# K11：外部失败豁免覆盖 R2 守卫 K01，且七处措辞一致
+EX = "`nc001_r2_guard.sh` 的 K01 失败同样按外部失败处理；其 K02～K10 失败仍按本任务失败停工。"
+miss11 = [f for f in ["README.md", "PROMPT.md", "TDD.md", "act/01.yaml", "act/02.yaml", "act/03.yaml", "act/04.yaml"] if EX not in read(pack / f)]
+check(not miss11, "K11 外部失败豁免含 R2 守卫 K01，七处逐字一致", f"缺={miss11}")
 
 # K10：六件套无模糊词、无对 R1 守卫/两步拆分的残留引用
 vague = re.compile(r"适当|优雅|合理|必要时|酌情|尽量|大致|视情况")
@@ -141,7 +146,7 @@ for f in ["README.md", "BDD.md", "TDD.md", "VALIDATION_CONTRACT.md", "ACT.yaml",
     t = read(pack / f)
     for mm in vague.finditer(t):
         hits.append(f"{f}:{mm.group(0)}")
-    if "nc001_r1_guard" in t or "两个 ACT" in t or "分两步" in t:
+    if "nc001_r1_guard" in t or "两个 ACT" in t or "分两步" in t or "31 个方法" in t or "后者此时退出 2" in t:
         hits.append(f"{f}:残留 R1/两步引用")
 check(not hits, "K10 六件套无模糊词、无 R1 守卫与两步拆分残留", f"{hits}")
 
@@ -168,9 +173,9 @@ else:
               f"REQUIRED_KEY_PATHS={has_list}，可疑写法={cheats}")
     ok08 = (checker.exists() and loc.returncode == 0 and loc.stdout == "LOCAL_PREPARATION_PASS\n"
             and itg.returncode == 1 and itg.stdout == "\n".join(golden) + "\n"
-            and ut.returncode == 0 and ran is not None and int(ran.group(1)) >= 31
+            and ut.returncode == 0 and ran is not None and int(ran.group(1)) >= 32
             and not missing and not missing_keys and has_list and not cheats)
-    check(ok08, "K08 校验器：local 通过、integrated 输出与契约 §7 逐字相同、31 个方法与 103 条必填键字面量齐全且无跳过", detail)
+    check(ok08, "K08 校验器：local 通过、integrated 输出与契约 §7 逐字相同、32 个方法与 103 条必填键字面量齐全且无跳过", detail)
 
 print(f"\nNC-001 R2 失败条数：{fails}")
 sys.exit(fails)
