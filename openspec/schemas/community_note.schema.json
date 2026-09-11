@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CommunityNote",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "$ref": "community_common.schema.json#/$defs/noteId"
+    },
+    "owner_scope": {
+      "type": "string",
+      "minLength": 1
+    },
+    "kind": {
+      "type": "string",
+      "enum": [
+        "note",
+        "annotation"
+      ]
+    },
+    "head_revision_ids": {
+      "type": "array",
+      "items": {
+        "$ref": "community_common.schema.json#/$defs/noteRevisionId"
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "preferred_head_id": {
+      "$ref": "community_common.schema.json#/$defs/noteRevisionId"
+    },
+    "lifecycle": {
+      "type": "string",
+      "enum": [
+        "active",
+        "trashed",
+        "purge_pending",
+        "purged"
+      ]
+    },
+    "pending_op": {
+      "type": "string",
+      "enum": [
+        "none",
+        "withdraw_requested",
+        "trash_requested",
+        "purge_requested"
+      ]
+    },
+    "created_at": {
+      "$ref": "community_common.schema.json#/$defs/timestamp"
+    },
+    "trashed_at": {
+      "oneOf": [
+        {
+          "$ref": "community_common.schema.json#/$defs/timestamp"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "required": [
+    "id",
+    "owner_scope",
+    "kind",
+    "head_revision_ids",
+    "preferred_head_id",
+    "lifecycle",
+    "pending_op",
+    "created_at",
+    "trashed_at"
+  ]
+}

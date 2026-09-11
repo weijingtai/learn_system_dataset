@@ -1,0 +1,167 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CommunityCommonDefs",
+  "$defs": {
+    "noteId": {
+      "type": "string",
+      "pattern": "^note_[0-9a-f]{32}$"
+    },
+    "noteRevisionId": {
+      "type": "string",
+      "pattern": "^nrev_[0-9a-f]{32}$"
+    },
+    "publicationId": {
+      "type": "string",
+      "pattern": "^pub_[0-9a-f]{32}$"
+    },
+    "contentAccessId": {
+      "type": "string",
+      "pattern": "^cacc_[0-9a-f]{32}$"
+    },
+    "contentBindingId": {
+      "type": "string",
+      "pattern": "^cbnd_[0-9a-f]{32}$"
+    },
+    "anchorRefId": {
+      "type": "string",
+      "pattern": "^anc_[0-9a-f]{32}$"
+    },
+    "anchorResolutionId": {
+      "type": "string",
+      "pattern": "^ares_[0-9a-f]{32}$"
+    },
+    "threadId": {
+      "type": "string",
+      "pattern": "^thr_[0-9a-f]{32}$"
+    },
+    "commentId": {
+      "type": "string",
+      "pattern": "^cmt_[0-9a-f]{32}$"
+    },
+    "commentRevisionId": {
+      "type": "string",
+      "pattern": "^crev_[0-9a-f]{32}$"
+    },
+    "reactionId": {
+      "type": "string",
+      "pattern": "^rct_[0-9a-f]{32}$"
+    },
+    "bookmarkId": {
+      "type": "string",
+      "pattern": "^bmk_[0-9a-f]{32}$"
+    },
+    "shareLinkId": {
+      "type": "string",
+      "pattern": "^shr_[0-9a-f]{32}$"
+    },
+    "backupManifestId": {
+      "type": "string",
+      "pattern": "^bkm_[0-9a-f]{32}$"
+    },
+    "notificationRecordId": {
+      "type": "string",
+      "pattern": "^ntf_[0-9a-f]{32}$"
+    },
+    "behaviorEventId": {
+      "type": "string",
+      "pattern": "^bev_[0-9a-f]{32}$"
+    },
+    "actorPseudonym": {
+      "type": "string",
+      "pattern": "^psn_[0-9a-f]{32}$"
+    },
+    "contentId": {
+      "type": "string",
+      "pattern": "^note_[0-9a-f]{32}$"
+    },
+    "anchorId": {
+      "type": "string",
+      "pattern": "^anc_[0-9a-f]{32}$"
+    },
+    "notificationId": {
+      "type": "string",
+      "pattern": "^ntf_[0-9a-f]{32}$"
+    },
+    "eventId": {
+      "type": "string",
+      "pattern": "^bev_[0-9a-f]{32}$"
+    },
+    "upstreamRevisionId": {
+      "type": "string",
+      "pattern": "^rev_[0-9a-f]{32}$"
+    },
+    "upstreamReleaseId": {
+      "type": "string",
+      "pattern": "^rel_[0-9a-f]{32}$"
+    },
+    "commandId": {
+      "type": "string",
+      "pattern": "^cmd_[0-9a-f]{12}4[0-9a-f]{3}[89ab][0-9a-f]{15}$"
+    },
+    "accountId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[^/]+$"
+    },
+    "attachmentId": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]{1,128}$"
+    },
+    "hex64": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "timestamp": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{1,6})?Z$"
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "operationName": {
+      "type": "string",
+      "enum": [
+        "content.publish",
+        "content.update",
+        "content.withdraw",
+        "content.trash",
+        "content.restore",
+        "content.purge",
+        "comment.create",
+        "comment.edit",
+        "comment.delete",
+        "reaction.set",
+        "bookmark.set",
+        "share.create",
+        "share.revoke",
+        "report.create",
+        "backup.begin",
+        "backup.complete",
+        "backup.delete"
+      ]
+    },
+    "targetKind": {
+      "type": "string",
+      "enum": [
+        "knowledge_entry",
+        "assertion",
+        "source_span",
+        "source_anchor"
+      ]
+    },
+    "relation": {
+      "type": "string",
+      "enum": [
+        "about",
+        "quotes"
+      ]
+    },
+    "targetRef": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    }
+  }
+}

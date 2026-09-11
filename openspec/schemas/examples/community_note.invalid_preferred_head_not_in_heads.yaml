@@ -1,0 +1,10 @@
+id: note_0123456789abcdef0123456789abcdef
+owner_scope: user_scope_0123
+kind: note
+head_revision_ids:
+  - nrev_0123456789abcdef0123456789abcdef
+preferred_head_id: nrev_ffffffffffffffffffffffffffffffff
+lifecycle: active
+pending_op: none
+created_at: '2026-09-10T12:00:00Z'
+trashed_at: null
