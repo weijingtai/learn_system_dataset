@@ -10,6 +10,7 @@
 
 严格执行：
 
+0. 开工前提：`git status --short openspec/learn-system-blackbox-architecture.md openspec/id-prefix-registry.md pipeline/corpus/_fixture` 必须无输出（这三处若已有他人未提交改动，你的 `git add` 会把它们一并带进提交）。有输出即停手报告。
 1. `export LC_ALL=en_US.UTF-8`。运行 TDD §0 全部基线（含 `git merge-base --is-ancestor 38d44f3 HEAD`、三张 PNG 的 sha256 与 README Inputs 逐一比对、`.venv/bin/check-jsonschema` 存在）并记录原始输出。任一不符即停手报告。
 2. 按 `act/r2-01.yaml`：断言三处锚点；记录 TDD §1 Red；插入 `text_3b`（逐字，去掉 YAML 两格缩进）、替换 §12.2 占位子串、勾选登记册待办；运行 ACT `verify` 与 TDD §4 回归；`git add openspec/learn-system-blackbox-architecture.md openspec/id-prefix-registry.md` 后按 `commit.message` 提交。
 3. 按 `act/r2-02.yaml`：**先写 `verify.sh`**（V1–V8 定义一条不少），运行确认 Red；再写 `tools/build_fixture.py`（确定性，只用标准库 + yaml），生成 `layout` 列出的全部文件；`constants` 与 `formats` 是硬规定，不得改 ID、哈希、batch 划分或字段名；page_002 按 `known_unrecognizable` 处理；spans 恰 43 条 5 批。然后运行 TDD §2 全部 Green 判据（含缺图模拟 exit 3、两种篡改检出 exit 1、`build_fixture.py --out` 重放 `diff -r` 无差异）与 TDD §4 回归；在规格 §22.1 按 `spec_edit` 插入一行；`git add pipeline/corpus/_fixture/mini_ed01 openspec/learn-system-blackbox-architecture.md` 后按 `commit.message` 提交。
