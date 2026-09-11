@@ -1,6 +1,6 @@
 # NC-001-01 校验字段契约
 
-状态：PREPARING（R1 返工版，见 [NC-001-REVIEW-R1](../../reviews/NC-001-REVIEW-R1.md)）。这是 `openspec/annotation-community/tools/check_integration_baseline.py` 的输入契约，不是业务 REST Schema。权威规格为 PRD/DESIGN/TASKS v1.5 与 TASKS NC-001。本文列出的键、枚举与固定值就是全部判据：执行者不得从输入 JSON 反推必填项，也不得自行增删。
+状态：PREPARING（R2 返工版，见 [NC-001-REVIEW-R2](../../reviews/NC-001-REVIEW-R2.md)；R1 见 [NC-001-REVIEW-R1](../../reviews/NC-001-REVIEW-R1.md)）。这是 `openspec/annotation-community/tools/check_integration_baseline.py` 的输入契约，不是业务 REST Schema。权威规格为 PRD/DESIGN/TASKS v1.5 与 TASKS NC-001。本文列出的键、枚举与固定值就是全部判据：执行者不得从输入 JSON 反推必填项，也不得自行增删。
 
 ## 1. 读取范围
 
@@ -13,7 +13,7 @@
 
 | 路径 | 规则 |
 |---|---|
-| （根） | object |
+| （根） | object；不是 object（例如 `[]`、`"x"`、`null`）时退出 1，stdout 恰为一行 `root`，不再检查其他规则 |
 | schema_version | 整数 1，bool 不接受 |
 | spec_version | 字符串 `1.5` |
 | task_id | 字符串 `NC-001` |
@@ -78,7 +78,7 @@ integration.devices、integration.account_pairs、integration.test_runs 为 arra
 
 integrated 先执行 §2～§3，再执行下表。
 
-**状态闸门**：对象的 status 不是验证态时，只报 `<对象>.status`，不再报该对象的验证字段；status 为验证态时，逐个报不合格的验证字段。
+**状态闸门**：对象的 status 不是验证态时，只报 `<对象>.status`，不再报该对象在**本表（§4）**中的验证字段要求；status 为验证态时，逐个报不合格的验证字段。闸门只作用于 §4 的增量检查：§3「未验证态时验证字段必须全为 null，否则报该字段路径」在两种 profile 下都照常执行，其报告不受闸门抑制。例：integrated 下 `integration.rules.status=UNVERIFIED` 且 `path="x"`，stdout 同时含 `integration.rules.path` 与 `integration.rules.status`。
 
 | 路径 | 通过条件 |
 |---|---|
@@ -111,7 +111,8 @@ integrated 先执行 §2～§3，再执行下表。
 ## 6. 错误路径写法与输出
 
 - 对象键用点号：`client.state`。数组中按 name 或 repository 定位的记录用方括号：`repositories[SPEC].tests.status`、`ports[HTTP].symbol`、`integration.test_runs[SERVER].evidence`。
-- 缺键、类型错误、枚举不符、值不等，都报该键的完整路径；父级不是 object 时只报父级路径，不再下钻。
+- 缺键、类型错误、枚举不符、值不等，都报该键的完整路径；父级不是 object 时只报父级路径，不再下钻。根不是 object 时只报 `root`（§2）。
+- `repositories`、`ports`、`integration.test_runs`、`integration.devices`、`integration.account_pairs` 的某个元素不是 object，或元素缺定位键（`name` / `repository`）、定位键不是字符串，只报该数组路径本身，不下钻；定位键集合不符也只报数组路径（§3、§4）。
 - 退出 0：stdout 恰好一行。local 为 `LOCAL_PREPARATION_PASS`，integrated 为 `INTEGRATED_STRUCTURE_PASS`；scope=TEST_FIXTURE 时行尾追加一个空格和 `(TEST_FIXTURE)`。
 - 退出 1：stdout 每行一个路径，去重后按 Python `sorted()` 排序，不输出 PASS。
 - 退出 2：`--input` 缺失或不可读、JSON 语法错误、`--profile` 缺失或不是 local/integrated；stderr 输出一行诊断，不输出 traceback，stdout 为空。缺键、类型或枚举错误属于退出 1，不得崩溃成退出 2。

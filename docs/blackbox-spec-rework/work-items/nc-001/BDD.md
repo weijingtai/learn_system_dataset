@@ -21,3 +21,8 @@
 | B15 | 同目录 INTEGRATION_BASELINE.md 含 TBD 或待定，或该文件不存在 | 校验 local | 报 `INTEGRATION_BASELINE.md` |
 | B16 | dependencies 或 sdk 版本与契约固定值不同，或 dependencies 多出一个键 | 校验 local | 报 `dependencies.<键>`、`sdk.<键>` 或 `dependencies` |
 | B17 | integration 下某对象为未验证态，但验证字段已填值 | 校验 local | 报该验证字段路径，拒绝半填冒充 |
+| B18 | integration 下某对象为未验证态，但验证字段已填值 | 校验 integrated | 同时报该验证字段路径与 `<对象>.status`；§4 状态闸门不抑制 §3 的半填报告 |
+| B19 | 完整验证态夹具中：设备少于两台、device_id 重复或无 P2P 对端；账号对含 token 键；test_runs 缺 SPEC 一条 | 校验 integrated | 分别只报 `integration.devices`、`integration.account_pairs`、`integration.test_runs` |
+| B20 | scope=TEST_FIXTURE 且其余同 B01 | 校验 local | 退出 0，stdout 恰为 `LOCAL_PREPARATION_PASS (TEST_FIXTURE)` |
+| B21 | 类型、枚举或固定值错误：schema_version 为 bool、head 非 40 位小写 hex、dirty_entries 为 bool 或负数、write_policy/kind/choice/status 不在枚举、NOTIFIER 允许写入、MIGRATION 状态不是 UNAVAILABLE、openapi_validator 五个固定值任一不等、emulator 常驻字段为空、account_deletion.consumer/blocked_scope 不等、client/identity/sdk/dependency_policy 固定值不等、仓库或端口集合缺项或重复 | 校验 local | 退出 1，报对应键的完整路径（集合问题只报数组路径） |
+| B22 | JSON 根不是 object（`[]`、`"x"`、`null`） | 校验 local / integrated | 退出 1，stdout 恰为一行 `root` |

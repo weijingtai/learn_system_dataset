@@ -5,5 +5,7 @@ CONTRACT: docs/blackbox-spec-rework/work-items/nc-001/VALIDATION_CONTRACT.md
 SPLIT:
   - act/01.yaml
   - act/02.yaml
-ORDER: "严格按 act/01.yaml → act/02.yaml 执行，每步独立提交；act/02 以 act/01 的提交为基线"
-ESTIMATE_MINUTES_TOTAL: 105
+  - act/03.yaml
+  - act/04.yaml
+ORDER: "严格按 act/01 → act/02 → act/03 → act/04 执行，每步独立提交；每步以上一步的提交为基线，四步都只写同两个工具文件，禁止并行"
+ESTIMATE_MINUTES_TOTAL: 200
