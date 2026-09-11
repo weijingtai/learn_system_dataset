@@ -137,10 +137,30 @@ C_D07_RI_DECLARATIVE='- **规则纯声明式结构**：所有适用规则必须�
 C_T07_HEAD='### 16.2 KnowledgePack 与 PublicationPackage 双向映射表'
 C_T07_REPLACEMENT='黑箱架构规格以多子包组合的 `PublicationPackage`（特别是其中的结构化知识主体 `KnowledgeDataPack`）正式取代早期草案中单一扁平的 `KnowledgePack` 概念。'
 C_T07_EXPLAIN='为消除历史协作歧义，早期草案（`LEARN_SYSTEM_TARGET.md §9`）建议的 KnowledgePack 目录项与现行黑箱架构子包及规约的双向对应关系如下：'
+# §16.2 映射表的表头行与分隔行（逐字硬编码，用于表格 17 行完整封闭）
+C_T07_TBL_HEAD='| 早期 KnowledgePack 目录建议 (`TARGET.md §9`) | 现行黑箱架构落点 (`PublicationPackage` 子包 / 规约) |'
+C_T07_TBL_SEP='|---|---|'
+# §16.2 映射表的 15 个 canonical 数据行（逐字抄自 work-items/g3-r3/mutations.sh）
+C_T07_M01='| `release-manifest` | `ReleaseManifest`（发布清单与元数据摘要） |'
+C_T07_M02='| `schema` | `KnowledgeDataPack`（及 Contract Registry 对应模式定义） |'
+C_T07_M03='| `concepts` | `KnowledgeDataPack`（概念定义及术语体系） |'
+C_T07_M04='| `entries` | `KnowledgeDataPack`（知识条目 KnowledgeEntry 集合） |'
+C_T07_M05='| `assertions` | `KnowledgeDataPack`（结构化主张 Assertion 集合） |'
+C_T07_M06='| `applicability-rules` | `RuleIndexPack`（与 `KnowledgeDataPack` 中的适用规则） |'
+C_T07_M07='| `school-views` | `KnowledgeDataPack`（各流派分歧与立场视图） |'
+C_T07_M08='| `evidence-links` | `EvidenceMapPack`（证据链接与跨层关联） |'
+C_T07_M09='| `source-spans` | `EvidenceMapPack`（与 `KnowledgeDataPack` 中的原文片段引用） |'
+C_T07_M10='| `source-anchors` | `EvidenceMapPack`（底本物理位置证据锚点，必须随包发布） |'
+C_T07_M11='| `scan-assets-or-references` | `SourceAssetPack`（扫描图或受控引用） |'
+C_T07_M12='| `exact-search-index` | `SearchIndexPack`（精确检索索引） |'
+C_T07_M13='| `fulltext-index` | `SearchIndexPack`（全文检索索引） |'
+C_T07_M14='| `optional-vector-index` | 本期不产出（依据 §21 非目标） |'
+C_T07_M15='| `query-contract` | `QueryContractPack`（查询契约与接口定义） |'
 
 C_T08_S1_01='1. `最小盘面概念字典`：规模约 100–200 个概念，由 `KnowledgeDataPack` 供给，仅包含稳定 `concept_id` + 名称 + 基础类象，**严格声明不含规则 DSL**，用以解除 `TAG_SYSTEM_DESIGN.md §12.2` 的 G4 依赖倒挂问题；'
 C_T08_S1_02='2. `MarkContentBinding` 内容供给：由 `KnowledgeDataPack` 与 `RuleIndexPack` 供给，为 UI 标记提供内容与分歧数据；'
 C_T08_S1_03='3. `EvidenceBundle` 服务：由 `EvidenceMapPack` 供给，为解盘与证据高亮提供底层的无损证据链切片。'
+C_T08_S1631_HEAD='#### 16.3.1 三个耦合接口规范与供给子包'
 C_T08_B1_HEAD='1. **`最小盘面概念字典`**：'
 C_T08_B1_SUPPLY='   - **供给子包**：由 `KnowledgeDataPack` 供给；'
 C_T08_B1_SCOPE='   - **规模与范围**：规模控制在约 100–200 个概念（覆盖十天干、十二地支、九星、八门、八神等盘面基础元素），仅包含稳定 ID（`concept_id`）、名称与基础类象；'
@@ -174,55 +194,54 @@ sec16n=$(printf '%s\n' "$sec16" | g3n)
 sec162n=$(printf '%s\n' "$sec162" | g3n)
 sec1631n=$(printf '%s\n' "$sec1631" | g3n)
 
-# ============ D-07：三个封闭契约块 ============
-# 以三个完整 START 行定位；START 之后跳过紧随空行，收集连续的 "- " 列表项；
-# 一旦开始收集，遇到空行或任何非列表行即结束。块内列表项序列必须与规范完全相等。
-g3_d07_items() { # <规范化§16> <规范化START行>
-  # 规范化后星号与空格已被删除，因此列表项的前缀就是单个 "-"（而非 "- "）
-  printf '%s\n' "$1" | S="$2" g3_awk '
-    $0 == ENVIRON["S"] { st = 1; next }
-    st == 1 {
-      if ($0 == "") next
-      if (substr($0, 1, 1) == "-") { st = 2; print; next }
-      st = 0; next
-    }
-    st == 2 {
-      if (substr($0, 1, 1) == "-") { print; next }
-      st = 0; next
-    }'
+# ============ D-07：三个封闭契约区域 ============
+# 区域定义（不再是「遇非列表行即停」的块，而是到下一个固定边界为止的整段）：
+#   TP 区域 = TP START 行 .. QC START 行之前；QC 区域 = QC START 行 .. RI START 行之前；
+#   RI 区域 = RI START 行 .. `### 16.2` 标题行之前。
+# 区域内跳过空行后，剩余行序列必须逐字等于「START 行 + 固定有序条目」。
+# 这样，区域内任何位置（含块尾隔空行处）追加的多余行都会使序列不等而 FAIL。
+g3_d07_region() { # <规范化§16> <规范化START行> <规范化END行>
+  printf '%s\n' "$1" | S="$2" E="$3" g3_awk '
+    st == 1 && $0 == ENVIRON["E"] { exit }
+    $0 == ENVIRON["S"] { st = 1; print; next }
+    st == 1 { if ($0 == "") next; print }'
 }
 
 d07_tp_n=$(g3cnt "$(g3norm "$C_D07_TP_START")" "$sec16n")
 d07_qc_n=$(g3cnt "$(g3norm "$C_D07_QC_START")" "$sec16n")
 d07_ri_n=$(g3cnt "$(g3norm "$C_D07_RI_START")" "$sec16n")
-d07_tp_got=$(g3_d07_items "$sec16n" "$(g3norm "$C_D07_TP_START")")
-d07_qc_got=$(g3_d07_items "$sec16n" "$(g3norm "$C_D07_QC_START")")
-d07_ri_got=$(g3_d07_items "$sec16n" "$(g3norm "$C_D07_RI_START")")
-D07_TP_WANT=$(g3_join_items "$(g3norm "$C_D07_TP_PROFILE")" "$(g3norm "$C_D07_TP_FIELDS")" \
+d07_tp_got=$(g3_d07_region "$sec16n" "$(g3norm "$C_D07_TP_START")" "$(g3norm "$C_D07_QC_START")")
+d07_qc_got=$(g3_d07_region "$sec16n" "$(g3norm "$C_D07_QC_START")" "$(g3norm "$C_D07_RI_START")")
+d07_ri_got=$(g3_d07_region "$sec16n" "$(g3norm "$C_D07_RI_START")" "$(g3norm "$C_T07_HEAD")")
+D07_TP_WANT=$(g3_join_items "$(g3norm "$C_D07_TP_START")" \
+                            "$(g3norm "$C_D07_TP_PROFILE")" "$(g3norm "$C_D07_TP_FIELDS")" \
                             "$(g3norm "$C_D07_TP_OPERATORS")" "$(g3norm "$C_D07_TP_AST")")
-D07_QC_WANT=$(g3_join_items "$(g3norm "$C_D07_QC_ENTRY")" "$(g3norm "$C_D07_QC_SPAN")" \
+D07_QC_WANT=$(g3_join_items "$(g3norm "$C_D07_QC_START")" \
+                            "$(g3norm "$C_D07_QC_ENTRY")" "$(g3norm "$C_D07_QC_SPAN")" \
                             "$(g3norm "$C_D07_QC_SEARCH")" "$(g3norm "$C_D07_QC_MATCH")" \
                             "$(g3norm "$C_D07_QC_COMPAT")")
-D07_RI_WANT=$(g3_join_items "$(g3norm "$C_D07_RI_VERSION")" "$(g3norm "$C_D07_RI_DECLARATIVE")")
+D07_RI_WANT=$(g3_join_items "$(g3norm "$C_D07_RI_START")" \
+                            "$(g3norm "$C_D07_RI_VERSION")" "$(g3norm "$C_D07_RI_DECLARATIVE")")
 
 if [ "$d07_tp_n" = "1" ] && [ "$d07_tp_got" = "$D07_TP_WANT" ]; then
   printf 'PASS  G3-D07-TP  TechniqueProfilePack 封闭块 4 条列表项序列完全相等\n'
 else
-  printf 'FAIL  G3-D07-TP  TechniqueProfilePack 封闭块不等于规范序列(START x%s，条目 %s/4)\n' \
+  printf 'FAIL  G3-D07-TP  TechniqueProfilePack 封闭块不等于规范序列(START x%s，区域非空行 %s/5)\n' \
     "$d07_tp_n" "$(g3_nlines "$d07_tp_got")"; FAILED=$((FAILED+1))
 fi
 
-# 四个查询接口只能来自 QC 封闭块的实际列表项，不做全 §16 子串搜索
+# 四个查询接口只能来自 QC 区域去掉首行 START 之后的条目，不做全 §16 子串搜索
+d07_qc_items=$(printf '%s\n' "$d07_qc_got" | g3_sed -n '2,$p')
 d07_iface_bad=""
 for d07_sig in 'getEntry(entry_id)' 'getSourceSpan(span_id)' 'searchKnowledge(query, filters)' 'matchFacts(fact_set)'; do
-  printf '%s\n' "$d07_qc_got" | g3_grep -Fq -- "$(g3norm "$d07_sig")" \
+  printf '%s\n' "$d07_qc_items" | g3_grep -Fq -- "$(g3norm "$d07_sig")" \
     || d07_iface_bad="$d07_iface_bad ${d07_sig}"
 done
 
 if [ "$d07_qc_n" = "1" ] && [ "$d07_qc_got" = "$D07_QC_WANT" ] && [ -z "$d07_iface_bad" ]; then
   printf 'PASS  G3-D07-QC  QueryContractPack 封闭块 5 条列表项序列完全相等且恰四个查询接口\n'
 else
-  printf 'FAIL  G3-D07-QC  QueryContractPack 封闭块不等于规范序列(START x%s，条目 %s/5，签名缺失:%s)\n' \
+  printf 'FAIL  G3-D07-QC  QueryContractPack 封闭块不等于规范序列(START x%s，区域非空行 %s/6，签名缺失:%s)\n' \
     "$d07_qc_n" "$(g3_nlines "$d07_qc_got")" "${d07_iface_bad:-无}"; FAILED=$((FAILED+1))
 fi
 
@@ -236,7 +255,7 @@ fi
 if [ "$d07_ri_n" = "1" ] && [ "$d07_ri_got" = "$D07_RI_WANT" ]; then
   printf 'PASS  G3-D07-RI  RuleIndexPack 封闭块 2 条列表项序列完全相等\n'
 else
-  printf 'FAIL  G3-D07-RI  RuleIndexPack 封闭块不等于规范序列(START x%s，条目 %s/2)\n' \
+  printf 'FAIL  G3-D07-RI  RuleIndexPack 封闭块不等于规范序列(START x%s，区域非空行 %s/3)\n' \
     "$d07_ri_n" "$(g3_nlines "$d07_ri_got")"; FAILED=$((FAILED+1))
 fi
 
@@ -308,10 +327,50 @@ t07_decl_err=$(printf '%s\n' "$sec162n" \
       if (other != 0) m = m " 封闭区外声明行" other "条:" oth
       print (m == "" ? "OK" : m) }')
 
-if [ "$t07_map_err" = "OK" ] && [ "$t07_decl_err" = "OK" ]; then
+# §16.2 表格整体 17 行封闭：表头 1 行 + 分隔 1 行 + 15 个数据行；
+# 每个数据行必须逐字等于 15 个 canonical 之一（且每个 canonical 恰出现一次），
+# 且每行 `|` 字节数恰为 3（两列）。任何行尾追加的第三列都会破坏这两项。
+t07_tbl_lines=$(printf '%s\n' "$sec162n" | g3_awk 'substr($0, 1, 1) == "|" { print }')
+t07_tbl_n=$(g3_nlines "$t07_tbl_lines")
+t07_tbl_msg=""
+[ "$t07_tbl_n" = "17" ] || t07_tbl_msg="$t07_tbl_msg 表格行数=$t07_tbl_n(期望17)"
+t07_tbl_l1=$(printf '%s\n' "$t07_tbl_lines" | g3_sed -n '1p')
+t07_tbl_l2=$(printf '%s\n' "$t07_tbl_lines" | g3_sed -n '2p')
+[ "$t07_tbl_l1" = "$(g3norm "$C_T07_TBL_HEAD")" ] || t07_tbl_msg="$t07_tbl_msg 表头行=[$t07_tbl_l1]"
+[ "$t07_tbl_l2" = "$(g3norm "$C_T07_TBL_SEP")" ] || t07_tbl_msg="$t07_tbl_msg 分隔行=[$t07_tbl_l2]"
+
+T07_ROWS_WANT=$(g3_join_items \
+  "$(g3norm "$C_T07_M01")" "$(g3norm "$C_T07_M02")" "$(g3norm "$C_T07_M03")" \
+  "$(g3norm "$C_T07_M04")" "$(g3norm "$C_T07_M05")" "$(g3norm "$C_T07_M06")" \
+  "$(g3norm "$C_T07_M07")" "$(g3norm "$C_T07_M08")" "$(g3norm "$C_T07_M09")" \
+  "$(g3norm "$C_T07_M10")" "$(g3norm "$C_T07_M11")" "$(g3norm "$C_T07_M12")" \
+  "$(g3norm "$C_T07_M13")" "$(g3norm "$C_T07_M14")" "$(g3norm "$C_T07_M15")")
+t07_m_lbls=(M01 M02 M03 M04 M05 M06 M07 M08 M09 M10 M11 M12 M13 M14 M15)
+t07_m_rows=("$C_T07_M01" "$C_T07_M02" "$C_T07_M03" "$C_T07_M04" "$C_T07_M05" \
+            "$C_T07_M06" "$C_T07_M07" "$C_T07_M08" "$C_T07_M09" "$C_T07_M10" \
+            "$C_T07_M11" "$C_T07_M12" "$C_T07_M13" "$C_T07_M14" "$C_T07_M15")
+for i in 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14; do
+  t07_mn=$(g3cnt "$(g3norm "${t07_m_rows[$i]}")" "$t07_tbl_lines")
+  [ "$t07_mn" = "1" ] || t07_tbl_msg="$t07_tbl_msg ${t07_m_lbls[$i]}(x$t07_mn)"
+done
+
+# 第 3–17 行逐行校验：`|` 字节数恰 3，且整行属于 15 个 canonical 之一
+while IFS= read -r t07_row; do
+  [ -n "$t07_row" ] || continue
+  t07_pipe_n=$(printf '%s\n' "$t07_row" | g3_awk '{ print gsub(/[|]/, "&") }')
+  [ "$t07_pipe_n" = "3" ] || t07_tbl_msg="$t07_tbl_msg 竖线数=$t07_pipe_n[$t07_row]"
+  t07_mem_n=$(g3cnt "$t07_row" "$T07_ROWS_WANT")
+  [ "$t07_mem_n" = "1" ] || t07_tbl_msg="$t07_tbl_msg 非规范数据行[$t07_row]"
+done <<< "$(printf '%s\n' "$t07_tbl_lines" | g3_sed -n '3,$p')"
+
+t07_tbl_err="OK"
+[ -z "$t07_tbl_msg" ] || t07_tbl_err="$t07_tbl_msg"
+
+if [ "$t07_map_err" = "OK" ] && [ "$t07_decl_err" = "OK" ] && [ "$t07_tbl_err" = "OK" ]; then
   printf 'PASS  G3-T07-MAP  §16.2 映射表 15 项唯一且声明区封闭\n'
 else
-  printf 'FAIL  G3-T07-MAP  §16.2 不合规[表:%s][声明区:%s]\n' "$t07_map_err" "$t07_decl_err"; FAILED=$((FAILED+1))
+  printf 'FAIL  G3-T07-MAP  §16.2 不合规[表:%s][声明区:%s][表行:%s]\n' \
+    "$t07_map_err" "$t07_decl_err" "$t07_tbl_err"; FAILED=$((FAILED+1))
 fi
 
 if [ "$t07_decl_err" = "OK" ]; then
@@ -381,7 +440,30 @@ t08_b1_pk=$(printf '%s\n' "$t08_b1_blk" | g3_packs)
 t08_b2_pk=$(printf '%s\n' "$t08_b2_blk" | g3_packs)
 t08_b3_pk=$(printf '%s\n' "$t08_b3_blk" | g3_packs)
 
+# §16.3.1 整区域封闭：从 `#### 16.3.1` 标题行到 `#### 16.3.2` 之前，去掉空行后的
+# 规范化行序列必须逐字等于 11 行（标题 + B1 标题与 3 条目 + B2 标题与 2 条目 + B3 标题与 2 条目）。
+# 三个块标题在区域内必须各恰出现一次。块尾重复标题与块外正文因此都会 FAIL。
+t08_s1631_seq=$(printf '%s\n' "$sec1631n" | g3_awk '
+  index($0, "####16.3.2") == 1 { exit }
+  $0 == "" { next }
+  { print }')
+T08_S1631_WANT=$(g3_join_items "$(g3norm "$C_T08_S1631_HEAD")" \
+  "$(g3norm "$C_T08_B1_HEAD")" "$(g3norm "$C_T08_B1_SUPPLY")" \
+  "$(g3norm "$C_T08_B1_SCOPE")" "$(g3norm "$C_T08_B1_LIMIT")" \
+  "$(g3norm "$C_T08_B2_HEAD")" "$(g3norm "$C_T08_B2_SUPPLY")" "$(g3norm "$C_T08_B2_NOTE")" \
+  "$(g3norm "$C_T08_B3_HEAD")" "$(g3norm "$C_T08_B3_SUPPLY")" "$(g3norm "$C_T08_B3_NOTE")")
+t08_s1631_n=$(g3_nlines "$t08_s1631_seq")
+t08_h1_n=$(g3cnt "$(g3norm "$C_T08_B1_HEAD")" "$sec1631n")
+t08_h2_n=$(g3cnt "$(g3norm "$C_T08_B2_HEAD")" "$sec1631n")
+t08_h3_n=$(g3cnt "$(g3norm "$C_T08_B3_HEAD")" "$sec1631n")
+
 t08_blk_bad=""
+[ "$t08_s1631_seq" = "$T08_S1631_WANT" ] || t08_blk_bad="$t08_blk_bad §16.3.1区域序列不等于规范"
+if [ "$t08_h1_n" = "1" ] && [ "$t08_h2_n" = "1" ] && [ "$t08_h3_n" = "1" ]; then
+  :
+else
+  t08_blk_bad="$t08_blk_bad 块标题非唯一"
+fi
 if [ "$t08_b1_blk" = "$T08_B1_WANT" ] && [ "$t08_b1_pk" = "KnowledgeDataPack" ]; then
   :
 else
@@ -400,7 +482,8 @@ fi
 if [ -z "$t08_blk_bad" ]; then
   printf 'PASS  G3-T08-BLOCK  §16.3.1 三块条目序列封闭且包多重集精确\n'
 else
-  printf 'FAIL  G3-T08-BLOCK  §16.3.1 块结构不封闭:%s\n' "$t08_blk_bad"; FAILED=$((FAILED+1))
+  printf 'FAIL  G3-T08-BLOCK  §16.3.1 块结构不封闭:%s 区域行数=%s(期望11) 标题计数 B1x%s B2x%s B3x%s\n' \
+    "$t08_blk_bad" "$t08_s1631_n" "$t08_h1_n" "$t08_h2_n" "$t08_h3_n"; FAILED=$((FAILED+1))
 fi
 
 g3_exact G3-T08-PROSE "$sec1632" \
