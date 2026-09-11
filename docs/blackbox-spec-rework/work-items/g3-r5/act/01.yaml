@@ -1,0 +1,28 @@
+act_id: blackbox-g3-r5/01
+title: 先红——新增 11 个永久变异、2 个原语、4 个 selftest
+estimated_minutes: 45
+scope:
+  write:
+    - docs/blackbox-spec-rework/work-items/g3-r3/mutations.sh
+tests_first:
+  - 开工前执行 TDD §0 四条基线命令，任一不符即停手
+steps:
+  - 在「R4 加固新增案例所需的常量」段之后新增 TDD §1.1 列出的 9 个常量，逐字照抄
+  - 在 append_line / del_block 之后新增原语 append_gap_line 与 append_suffix（TDD §1.2 的断言一个不少）
+  - 在 apply_case 中按 TDD §1.3 追加 d07-31..34、t07-27..28、t08-43..47，每例带一行中文注释说明绕过方式
+  - 在 case_ids 中追加对应绑定：d07-31|d07-32 → G3-D07-TP；d07-33 → G3-D07-QC；d07-34 → G3-D07-RI；t07-27|t07-28 → G3-T07-MAP；t08-43..47 → G3-T08-BLOCK
+  - 在 run_selftest 末尾（[6] 之后、SELFTEST 汇总之前）新增 TDD §1.4 的 4 项 [7] 自检
+  - 把 main 的分母改为 d07 34 / t07 28 / t08 47；同步脚本头部用法注释（25/25/39/89 → 34/28/47/109）
+verify:
+  - export LC_ALL=en_US.UTF-8
+  - bash docs/blackbox-spec-rework/work-items/g3-r3/mutations.sh selftest | tail -1      # SELFTEST: 41/41
+  - bash docs/blackbox-spec-rework/work-items/g3-r3/mutations.sh d07 | grep -c '^not-rejected'   # 4
+  - bash docs/blackbox-spec-rework/work-items/g3-r3/mutations.sh t07 | grep -c '^not-rejected'   # 2
+  - bash docs/blackbox-spec-rework/work-items/g3-r3/mutations.sh t08 | grep -c '^not-rejected'   # 5
+  - bash docs/blackbox-spec-rework/work-items/g3-r3/mutations.sh all | grep -c 'MUTATION_NOT_APPLIED'   # 0
+  - bash docs/blackbox-spec-rework/work-items/g3-r3/mutations.sh all | tail -1          # MUTATIONS: 98/109 rejected
+  - git diff --check
+commit:
+  add: [docs/blackbox-spec-rework/work-items/g3-r3/mutations.sh]
+  message: "test: add G3 R5 permanent red mutations for region boundaries"
+on_fail: 任一 not-rejected 计数不符或出现 MUTATION_NOT_APPLIED，停止并报告 cid 与 Anchor 命中数；不得改规格

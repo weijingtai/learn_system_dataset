@@ -1,0 +1,45 @@
+task_id: blackbox-g3-r5-region-boundaries
+mode: documentation_gate_rework
+status: READY
+goal: 封闭 D-07 三段 START 间隙、T-07 表格额外列、T-08 §16.3.1 重复标题与块外内容三类假绿，并固化为永久变异
+depends_on:
+  - baseline_commit: ffe19df
+  - branch: codex/docs/knowledge-compilation
+scope:
+  read:
+    - AGENTS.md
+    - docs/blackbox-spec-rework/work-items/g3-r5/README.md
+    - docs/blackbox-spec-rework/work-items/g3-r5/BDD.md
+    - docs/blackbox-spec-rework/work-items/g3-r5/TDD.md
+    - docs/blackbox-spec-rework/work-items/g3-r5/act/01.yaml
+    - docs/blackbox-spec-rework/work-items/g3-r5/act/02.yaml
+    - openspec/learn-system-blackbox-architecture.md   # 只读待测对象；expected 常量只来自两个脚本内已提交的 C_* 与 TDD §1.1
+  write:
+    - docs/blackbox-spec-rework/verify-T.sh
+    - docs/blackbox-spec-rework/work-items/g3-r3/mutations.sh
+forbidden:
+  - 修改规格正文、其他工作包、验收文档、PLAN、HANDOFF、SUBAGENT_TODO、本目录任何文件
+  - 增加自然语言否定词或关键词黑名单
+  - 从 $SPEC 推导 expected；使用 sort -u；用 [[:space:]] 做规范化
+  - 放宽既有断言、缩减既有 98 例、固定返回码
+  - git add -A / git add . / stash / reset / clean / 切分支 / rebase / push
+  - 宣布 G3 通过或启动 G4
+env:
+  - export LC_ALL=en_US.UTF-8   # 本机默认 LC_CTYPE=C 会让无关的 T-06s 误报
+acts:
+  - act/01.yaml   # 先红：11 例 + 2 原语 + 4 selftest，提交
+  - act/02.yaml   # 后绿：三类区域封闭，提交
+verification:
+  - bash docs/blackbox-spec-rework/verify-T.sh                                   # FAIL 合计: 0
+  - bash docs/blackbox-spec-rework/work-items/g3-r3/mutations.sh selftest       # SELFTEST: 41/41
+  - bash docs/blackbox-spec-rework/work-items/g3-r3/mutations.sh all            # MUTATIONS: 109/109 rejected
+  - git diff --check
+  - git diff --name-only ffe19df HEAD -- docs/blackbox-spec-rework/ | grep -v -e verify-T.sh -e g3-r3/mutations.sh -e work-items/g3-r5/   # 期望空
+on_fail: 停止，不扩大范围；报告失败 ACT 步骤、命令、退出码、用例 cid、Anchor 命中数、当前 git status --short
+report:
+  - 两个提交 hash 与各自 git show --stat --oneline 输出（每个提交只含授权脚本）
+  - 开工基线四条命令原始输出
+  - Red 阶段 d07/t07/t08 的 not-rejected 行（恰 4/2/5 行）与 selftest 41/41
+  - Green 阶段正常门禁尾行、selftest、d07/t07/t08/all 尾行、MUTATION_NOT_APPLIED 计数 0、git diff --check
+  - git status --short（不得新增或改动范围外文件；开工前已存在的脏文件原样列出）
+  - 明确写明「等待主 Agent 独立验收；未启动 G4」

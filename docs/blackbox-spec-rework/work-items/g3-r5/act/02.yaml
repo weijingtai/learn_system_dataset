@@ -1,0 +1,30 @@
+act_id: blackbox-g3-r5/02
+title: 后绿——D-07 区域提取、T-07 表格 17 行封闭、T-08 §16.3.1 序列相等
+estimated_minutes: 60
+depends_on: [blackbox-g3-r5/01]
+scope:
+  write:
+    - docs/blackbox-spec-rework/verify-T.sh
+tests_first:
+  - act/01 已提交，且 `mutations.sh all` 当前为 98/109（11 例红）
+steps:
+  - D-07：按 TDD §2.1 新增 g3_d07_region，TP/QC/RI 三个区域分别以 QC START / RI START / §16.2 标题为 END；WANT 前置 START 行；删除旧函数 g3_d07_items；FAIL 文案按 TDD §2.1 输出实算的区域非空行数；三个 START 计数检查与四接口来源检查保留
+  - T-07：按 TDD §2.2 新增 C_T07_TBL_HEAD、C_T07_TBL_SEP、C_T07_M01..M15 硬编码常量（逐字抄自 mutations.sh），新增 t07_tbl_err 表格 17 行封闭检查，并入 G3-T07-MAP
+  - T-08：按 TDD §2.3 新增 C_T08_S1631_HEAD，计算 §16.3.1 去空行序列并与 11 行 WANT 相等，三个 HEAD 各计数为 1，并入 G3-T08-BLOCK
+  - 所有新增 sed/grep/awk 一律经 g3_sed/g3_grep/g3_awk（LC_ALL=C）；规范化只用 g3n/g3norm
+  - FAIL 文案中的计数必须是真实计算值，不得写死
+verify:
+  - export LC_ALL=en_US.UTF-8
+  - bash docs/blackbox-spec-rework/verify-T.sh | tail -1                                   # FAIL 合计: 0
+  - bash docs/blackbox-spec-rework/verify-T.sh | grep -c '^PASS  G3-'                       # 12
+  - bash docs/blackbox-spec-rework/work-items/g3-r3/mutations.sh selftest | tail -1        # SELFTEST: 41/41
+  - bash docs/blackbox-spec-rework/work-items/g3-r3/mutations.sh d07 | tail -1             # MUTATIONS: 34/34 rejected
+  - bash docs/blackbox-spec-rework/work-items/g3-r3/mutations.sh t07 | tail -1             # MUTATIONS: 28/28 rejected
+  - bash docs/blackbox-spec-rework/work-items/g3-r3/mutations.sh t08 | tail -1             # MUTATIONS: 47/47 rejected
+  - bash docs/blackbox-spec-rework/work-items/g3-r3/mutations.sh all | tail -1             # MUTATIONS: 109/109 rejected
+  - bash docs/blackbox-spec-rework/work-items/g3-r3/mutations.sh all | grep -c 'MUTATION_NOT_APPLIED'   # 0
+  - git diff --check
+commit:
+  add: [docs/blackbox-spec-rework/verify-T.sh]
+  message: "fix: close final G3 region boundary bypasses"
+on_fail: 任一既有用例变 not-rejected 或正常规格出现 G3-* FAIL，停止并报告 FAIL 行原文；不得放宽断言
