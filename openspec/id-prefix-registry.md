@@ -60,6 +60,32 @@
 | `pat_` | Pattern 格局 | `pat_<technique>_<6位数字>` | 某技法下一个可规则识别的格局 | 人工闭集 | §4 已有字段名 `pattern_id`，格式未登记 |
 | `ent_` | KnowledgeEntry 发布词条 | `ent_<32hex>` | M8 编译出的发布视图词条 | UUIDv4 | §4 已有字段名 `entry_id`，格式未登记；建议在 M8 工作包前确认 |
 
+### 3.5 注解社区 UGC 前缀（17 项，用户 2026-09-10 托管主 Agent 确认）
+
+本节对象属于注解社区（客户端/服务端），不属于黑箱 M1～M8；格式冻结的权威文本是 `openspec/annotation-community/DESIGN.md` §2.1 与 `openspec/annotation-community/contracts/community-models.md` §0.1，**不登记进黑箱规格 §8.1**。全部为 UUIDv4 家族 `<前缀><32hex>`。新增社区前缀须先在本节增行。
+
+| 前缀 | 对象 | 格式 | 含义 | 家族 | 生产者 | 对应规格 |
+|---|---|---|---|---|---|---|
+| `note_` | Note | `note_<32hex>` | 私人笔记/注解的稳定身份，同时作为公共记录的 `content_id` | UUIDv4 | 注解社区 CLIENT | DESIGN §2.1；community-models §1.1 |
+| `nrev_` | NoteRevision | `nrev_<32hex>` | 笔记的一次不可变修订（与上游 `rev_` 刻意区分） | UUIDv4 | CLIENT | community-models §1.2 |
+| `pub_` | Publication | `pub_<32hex>` | 一次公开发布记录 | UUIDv4 | 注解社区 SERVER | community-models §2.1 |
+| `cacc_` | ContentAccess | `cacc_<32hex>` | 内容的公共访问与状态记录 | UUIDv4 | SERVER | community-models §2.2 |
+| `cbnd_` | ContentBinding | `cbnd_<32hex>` | 公共关联索引项 | UUIDv4 | SERVER | community-models §2.3 |
+| `anc_` | AnchorRef | `anc_<32hex>` | 注解锚点（含 entity_id、artifact_revision_id、release_id 三要素） | UUIDv4 | CLIENT | community-models §1.2；黑箱 §16 AnchorContractPack |
+| `ares_` | AnchorResolution | `ares_<32hex>` | 锚点在某 Release 下的一次解析结果 | UUIDv4 | CLIENT/SERVER | state-machines SM-9 |
+| `thr_` | Thread | `thr_<32hex>` | 讨论主题 | UUIDv4 | SERVER | community-models §2.4 |
+| `cmt_` | Comment | `cmt_<32hex>` | 评论 | UUIDv4 | SERVER | community-models §2.4 |
+| `crev_` | CommentRevision | `crev_<32hex>` | 评论的一次修订 | UUIDv4 | SERVER | community-models §2.4 |
+| `rct_` | Reaction | `rct_<32hex>` | 赞/踩状态行 | UUIDv4 | SERVER | community-models §2.5 |
+| `bmk_` | Bookmark | `bmk_<32hex>` | 收藏 | UUIDv4 | SERVER | community-models §2.5 |
+| `shr_` | ShareLink | `shr_<32hex>` | 分享链接 | UUIDv4 | SERVER | community-models §2.5 |
+| `bkm_` | BackupManifest | `bkm_<32hex>` | 私人密文备份清单 | UUIDv4 | CLIENT | DESIGN §2 |
+| `ntf_` | NotificationRecord | `ntf_` + SHA256_hex(E([event_id, recipient_id]))[:32] | 业务通知（event+recipient 唯一，确定性派生；不是 notifier deliveryId） | 确定性 32hex | SERVER | community-models §3.1 |
+| `bev_` | BehaviorEvent | `bev_<32hex>`（服务端事件确定性派生，客户端事件 UUIDv4） | 只追加的行为事件 | UUIDv4/确定性 | SERVER/CLIENT | DESIGN §11.2 |
+| `psn_` | 行为假名 actor_pseudonym | `psn_<32hex>` | 一账号一假名，密码学随机，不可由账号 ID 推导 | UUIDv4 | SERVER | DESIGN §11.3 |
+
+冲突检查：以上 17 个前缀在黑箱规格与 `openspec/schemas/` 中 `git grep -c` 均为 0；与 §3.1～§3.4 的 `src_ ss_ ku_ as_ pr_ co_shared_ co_ hg_ art_ rev_ rel_ prun_ srun_ pkg_ sch_ sv_ cg_ pat_ ent_` 无重名。附件 ID（`attachment_id`）与举报（Report）不设业务前缀（community-models §6 D-NC002-01、D-NC002-03）。
+
 ## 4. 使用规则
 
 1. **只引用已登记前缀**。规格、Schema、代码出现未登记前缀，校验器判非法（§8.1 第 5 条）。
@@ -72,3 +98,4 @@
 
 - [x] 把 §3.3 三行登记进规格 §8.1「新对象标识格式」表（已由 `work-items/g4-r2/act/r2-01.yaml` 完成，规格 §8.1 第 3b 节）。
 - [ ] 用户确认 §3.4 两行后移入 §3.3 并登记。
+- [x] 社区 17 个 UGC 前缀已登记为 §3.5（2026-09-11，C/S 会话）；不进黑箱规格 §8.1，只在 DESIGN §2.1 与本登记册维护。
