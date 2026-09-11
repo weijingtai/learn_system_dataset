@@ -19,7 +19,8 @@ check(g1==0 and g2==0,"K01 回归：v1.6 守卫与 verify.sh 均为 0",f"{g1},{g
 c=read(SPEC/"contracts/private_sync.md")
 need=["2026-08-02-s6-p2p-sync-third-party-design.md","app_user_id","verifyPeerSession","expiresAtUtcMs","X25519","HKDF-SHA256","associatedData","/v1/messages/relay","private/p2p/","300 秒","age: 1","nchash/v2","duplicate_ack","reject:hash_mismatch","不重写密码学"]
 secs=all(f"## {i}." in c for i in range(1,10))
-ok02=secs and all(n in c for n in need) and all(f"D-NC015-{i:02d}" in c for i in range(1,8)) and "TBD" not in c and "待定" not in c
+c_nocode=re.sub(r"`[^`\n]*`","",c)
+ok02=secs and all(n in c for n in need) and all(f"D-NC015-{i:02d}" in c for i in range(1,8)) and "TBD" not in c_nocode and "待定" not in c_nocode
 check(ok02,"K02 契约：九节、S6 引用、身份/授权/一次一密/中转/删除/验收要素、D-NC015-01～07、无占位",f"missing={[n for n in need if n not in c]} secs={secs}")
 bdd=read(PACK/"BDD.md"); tdd=read(PACK/"TDD.md"); acts=[read(PACK/"act"/f"0{i}.yaml") for i in range(1,3)]
 bids=re.findall(r"^\| (B\d\d) \|",bdd,re.M); est=[int((re.search(r"^ESTIMATE_MINUTES: (\d+)",a,re.M) or [0,0])[1]) for a in acts]

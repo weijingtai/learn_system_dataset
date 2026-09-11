@@ -129,7 +129,7 @@ WebRTC DataChannel 强制 DTLS，每次连接 ECDHE 临时密钥（S6 §4.2）�
 
 ## 8. 检查器 `tools/check_private_sync_protocol.py`
 
-红条件（任一即退出 1）：本契约缺 §1～§9 任一节标题；缺 `D-NC015-01`～`D-NC015-07`；正文出现 `TBD`/`待定`；`fixtures/private_sync/` 缺 §7 表任一文件；任一样例缺 `expected`；`expected` 不在闭集 `{authorized, deniedScopeMismatch, deniedDtlsMismatch, deniedBadSignature, deniedRevokedOrUntrusted, deniedEpochMismatch, accept, reject:hash_mismatch, reject:bad_signature, reject:schema_invalid, reject:source_untrusted, duplicate_ack, config_ok, layers_ok}`；`relay_ttl.json` 的 `notifier_ttl_seconds != 300` 或 `storage_lifecycle_days != 1`。绿：退出 0 并打印样例计数（恰 15）。检查器用 `unittest` 自测（本机无 pytest）。
+红条件（任一即退出 1）：本契约缺 §1～§9 任一节标题；缺 `D-NC015-01`～`D-NC015-07`；正文出现 `TBD`/`待定`（扫描前先剔除反引号内的行内代码，本句不算）；`fixtures/private_sync/` 缺 §7 表任一文件；任一样例缺 `expected`；`expected` 不在闭集 `{authorized, deniedScopeMismatch, deniedDtlsMismatch, deniedBadSignature, deniedRevokedOrUntrusted, deniedEpochMismatch, accept, reject:hash_mismatch, reject:bad_signature, reject:schema_invalid, reject:source_untrusted, duplicate_ack, config_ok, layers_ok}`；`relay_ttl.json` 的 `notifier_ttl_seconds != 300` 或 `storage_lifecycle_days != 1`。绿：退出 0 并打印样例计数（恰 15）。检查器用 `unittest` 自测（本机无 pytest）。
 
 ## 9. 决定登记（NC-015，主 Agent 裁定，可推翻）
 
