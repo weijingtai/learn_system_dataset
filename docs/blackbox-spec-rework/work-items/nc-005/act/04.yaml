@@ -1,0 +1,47 @@
+TASK_ID: NC-005-D
+PARENT: NC-005
+STATUS: PREPARING
+REPO: xuan-migration/reading-notes
+GOAL: 实现 NoteEditorPage：工具条、三态指示接线、失败动作、预览切换、undoController 参数位，A11Y-04/05/07 断言，6 项测试
+DEPENDS_ON: [NC-005-C]
+ESTIMATE_MINUTES: 55
+WORKLOAD: "页面 Widget 约 200 行 + 6 个 Widget 测试（semantics、键盘 inset、320×200% 无溢出、无 Shortcuts）"
+SCOPE:
+  READ:
+    - /Users/jingtaiwei/Git/Public/learn_system/openspec/annotation-community/contracts/editor.md
+    - /Users/jingtaiwei/Git/Public/learn_system/openspec/annotation-community/contracts/local-persistence.md §3、§5
+    - /Users/jingtaiwei/Git/Public/learn_system/openspec/annotation-community/contracts/state-machines.md SM-1
+    - /Users/jingtaiwei/Git/Public/learn_system/docs/blackbox-spec-rework/work-items/nc-005/TDD.md、BDD.md
+    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/lib/src/domain/、/Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/lib/src/persistence/（NC-004 产物，只读）
+    - ~/.pub-cache/hosted/pub.dev/flutter_markdown_plus-1.0.12/lib/src/widget.dart、builder.dart（只看签名，不复制）
+  WRITE_NEW:
+    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/lib/src/editor/note_editor_page.dart
+    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/test/editor/note_editor_page_test.dart
+    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/lib/reading_notes.dart（追加导出）
+  FORBIDDEN:
+    - /Users/jingtaiwei/Git/Public/learn_system 下任何写入
+    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/lib/src/domain/、/Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/lib/src/persistence/、/Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/test/persistence/、/Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/test/contracts/（NC-004 文件）
+    - xuan-migration 其他目录；父目录 git
+    - 契约外依赖；注册 Shortcuts/快捷键；实现 undo 栈；真实网络；skip；永真断言；先实现后补测试
+DEPENDENCY_ALLOWLIST: [flutter_markdown_plus 1.0.12（仅 act/01 追加到 pubspec）；其余沿用 NC-004 锁定版本]
+RULES:
+  - "页面不注册 Shortcuts/CallbackShortcuts、不实现 undo 栈；undoController 参数原样透传给 TextField（NC-006 接 adapter）"
+  - "按钮命中区 ≥ 48×48 逻辑像素；工具条常驻软键盘上方"
+  - "判据只取契约与 TDD；契约未写明的行为触发停止条件，不自行裁定"
+  - "每步先写测试取得真实 Red 原文，再实现；不修改前步测试期望"
+  - "只在 reading-notes 内 git add 本步文件；提交消息按 COMMIT_MESSAGE，末尾另起两行 Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
+TESTS_FIRST:
+  - "写 6 个测试与只含空 Scaffold 的页面；运行 flutter test test/editor/note_editor_page_test.dart，保存失败原文作为 Red"
+STEPS:
+  - "实现页面至 6 个测试通过；flutter test 全量 +74；flutter analyze 0"
+  - "git add 本步文件并提交"
+  - "cd /Users/jingtaiwei/Git/Public/learn_system && bash docs/blackbox-spec-rework/reviews/nc005_guard.sh --require-impl"
+VERIFICATION:
+  - "export PATH=/Users/jingtaiwei/flutter/bin:$PATH && cd /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes && flutter analyze"
+  - "cd /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes && flutter test test/editor/note_editor_page_test.dart（期望 +6）"
+  - "cd /Users/jingtaiwei/Git/Public/learn_system && bash docs/blackbox-spec-rework/reviews/nc005_guard.sh --require-impl（期望 0）"
+  - "cd /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes && flutter test"
+  - "git -C /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes status --short（提交后为空）"
+ON_FAIL: "停止并报告失败命令、退出码与原文；不改契约、测试期望，不新增依赖，不扩大范围。flutter_markdown_plus 实际参数与契约 §5.1 不符、markdown 传递依赖冲突、需要改 NC-004 文件，均为停止条件。learn_system 侧 nc005_guard.sh 的 K01 失败判外部失败只记录；K02 及以后按本任务失败停工。"
+BASELINE_EXIT_CODES: "开工基线：NC-004 ACCEPTED（reading-notes flutter test +35、analyze 0）；pub-cache 含 flutter_markdown_plus 1.0.12 与 markdown 7.3.1；learn_system nc005_guard.sh=0（K05 SKIP）"
+COMMIT_MESSAGE: "feat: 编辑页整合与无障碍断言（NC-005-D）"

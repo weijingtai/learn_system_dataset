@@ -1,0 +1,46 @@
+TASK_ID: NC-005-C
+PARENT: NC-005
+STATUS: PREPARING
+REPO: xuan-migration/reading-notes
+GOAL: 实现 MarkdownPreview：imageBuilder 按 scheme 分派、外部图片不自动加载、attachment 解析器、HTML 不执行、链接只回调，7 项测试
+DEPENDS_ON: [NC-005-B]
+ESTIMATE_MINUTES: 50
+WORKLOAD: "markdown_preview.dart（MarkdownBody 接线 + 三分支 imageBuilder + 占位按钮）+ CountingImageResolver/HttpOverrides 支撑 + 7 个 Widget 测试"
+SCOPE:
+  READ:
+    - /Users/jingtaiwei/Git/Public/learn_system/openspec/annotation-community/contracts/editor.md
+    - /Users/jingtaiwei/Git/Public/learn_system/openspec/annotation-community/contracts/local-persistence.md §3、§5
+    - /Users/jingtaiwei/Git/Public/learn_system/openspec/annotation-community/contracts/state-machines.md SM-1
+    - /Users/jingtaiwei/Git/Public/learn_system/docs/blackbox-spec-rework/work-items/nc-005/TDD.md、BDD.md
+    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/lib/src/domain/、/Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/lib/src/persistence/（NC-004 产物，只读）
+    - ~/.pub-cache/hosted/pub.dev/flutter_markdown_plus-1.0.12/lib/src/widget.dart、builder.dart（只看签名，不复制）
+  WRITE_NEW:
+    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/lib/src/editor/markdown_preview.dart
+    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/test/support/counting_image_resolver.dart
+    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/test/editor/markdown_preview_test.dart
+    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/lib/reading_notes.dart（追加导出）
+  FORBIDDEN:
+    - /Users/jingtaiwei/Git/Public/learn_system 下任何写入
+    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/lib/src/domain/、/Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/lib/src/persistence/、/Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/test/persistence/、/Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/test/contracts/（NC-004 文件）
+    - xuan-migration 其他目录；父目录 git
+    - 契约外依赖；注册 Shortcuts/快捷键；实现 undo 栈；真实网络；skip；永真断言；先实现后补测试
+DEPENDENCY_ALLOWLIST: [flutter_markdown_plus 1.0.12（仅 act/01 追加到 pubspec）；其余沿用 NC-004 锁定版本]
+RULES:
+  - "参数名逐字按契约 §5.1：MarkdownBody(data, selectable, imageBuilder, onTapLink)；imageBuilder 必须提供；不传 builders/extensionSet"
+  - "任何 scheme 都不得构造 Image.network/NetworkImage；http(s) 只渲染占位按钮"
+  - "判据只取契约与 TDD；契约未写明的行为触发停止条件，不自行裁定"
+  - "每步先写测试取得真实 Red 原文，再实现；不修改前步测试期望"
+  - "只在 reading-notes 内 git add 本步文件；提交消息按 COMMIT_MESSAGE，末尾另起两行 Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
+TESTS_FIRST:
+  - "写 7 个测试与只返回 MarkdownBody(data: markdown) 的预览；运行 flutter test test/editor/markdown_preview_test.dart，保存 image builder is invoked… 与 external image is not fetched… 的失败原文作为 Red"
+STEPS:
+  - "实现预览至 7 个测试通过；flutter analyze 0"
+  - "git add 本步文件并提交"
+VERIFICATION:
+  - "export PATH=/Users/jingtaiwei/flutter/bin:$PATH && cd /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes && flutter analyze"
+  - "cd /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes && flutter test test/editor/markdown_preview_test.dart（期望 +7）"
+  - "cd /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes && flutter test"
+  - "git -C /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes status --short（提交后为空）"
+ON_FAIL: "停止并报告失败命令、退出码与原文；不改契约、测试期望，不新增依赖，不扩大范围。flutter_markdown_plus 实际参数与契约 §5.1 不符、markdown 传递依赖冲突、需要改 NC-004 文件，均为停止条件。learn_system 侧 nc005_guard.sh 的 K01 失败判外部失败只记录；K02 及以后按本任务失败停工。"
+BASELINE_EXIT_CODES: "开工基线：NC-004 ACCEPTED（reading-notes flutter test +35、analyze 0）；pub-cache 含 flutter_markdown_plus 1.0.12 与 markdown 7.3.1；learn_system nc005_guard.sh=0（K05 SKIP）"
+COMMIT_MESSAGE: "feat: Markdown 预览与图片/HTML 安全（NC-005-C）"

@@ -1,0 +1,18 @@
+TASK_ID: NC-005
+STATUS: PREPARING
+GOAL: 在 reading_notes 包内实现编辑态控制器、自动保存、三态指示、Markdown 预览安全与编辑页 A11Y
+CONTRACTS:
+  - openspec/annotation-community/contracts/editor.md
+DISPATCH_PRECONDITION: "NC-004 已 ACCEPTED"
+SPLIT:
+  - act/01.yaml
+  - act/02.yaml
+  - act/03.yaml
+  - act/04.yaml
+ORDER: "严格按 act/01 → 02 → 03 → 04；全部提交在 /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes 仓库；每步以上一步提交为基线；禁止并行"
+ESTIMATE_MINUTES_TOTAL: 210
+DEFERRED:
+  - "editor_history_adapter、归组、平台快捷键与双撤销断言：NC-006（本任务只留 onHistoryStep/applySnapshot 与 undoController 参数位）"
+  - "设备同步/云备份两维度的真实取值：NC-016/NC-018（本任务只做枚举、文案、semantics）"
+  - "publicView 外部图片策略：NC-010（本任务两模式都不自动加载，D-NC005-04）"
+  - "历史/差异/恢复旅程 UI：NC-007"
