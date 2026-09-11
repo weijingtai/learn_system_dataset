@@ -176,6 +176,15 @@ def run_checker(json_path, profile):
     )
 
 
+def set_nested(data, dotted_path, value):
+    """按点号路径设置嵌套字典的值，例如 set_nested(data, 'client.path', 'x')。"""
+    parts = dotted_path.split(".")
+    node = data
+    for part in parts[:-1]:
+        node = node[part]
+    node[parts[-1]] = value
+
+
 class TopLevelTests(unittest.TestCase):
     def test_local_fixture_pass(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -271,6 +280,205 @@ class TopLevelTests(unittest.TestCase):
             r = run_checker(json_path, "local")
             self.assertEqual(r.returncode, 1)
             self.assertEqual(r.stdout, "client\n")
+
+
+class ClientSdkDependencyTests(unittest.TestCase):
+    """TDD §3.3：步骤 2 的 8 个方法（client/sdk/dependencies/dependency_policy/
+    identity/openapi_validator 规则与 INTEGRATION_BASELINE.md 占位扫描）。"""
+
+    def test_planned_new_rules(self):
+        # creation_owner 不是 NC-004
+        with tempfile.TemporaryDirectory() as tmp1:
+            data, json_path, _ = make_fixture(tmp1)
+            data["client"]["creation_owner"] = "NC-005"
+            dump(data, json_path)
+            before = sorted(str(p.relative_to(tmp1)) for p in Path(tmp1).rglob("*"))
+            r = run_checker(json_path, "local")
+            after = sorted(str(p.relative_to(tmp1)) for p in Path(tmp1).rglob("*"))
+            self.assertEqual(r.returncode, 1)
+            self.assertIn("client.creation_owner", r.stdout.splitlines())
+            self.assertNotIn("PASS", r.stdout)
+            self.assertEqual(before, after)
+
+        # path 的父目录不存在
+        with tempfile.TemporaryDirectory() as tmp2:
+            data, json_path, _ = make_fixture(tmp2)
+            data["client"]["path"] = str(Path(tmp2) / "no_such_parent" / "reading_notes")
+            dump(data, json_path)
+            before = sorted(str(p.relative_to(tmp2)) for p in Path(tmp2).rglob("*"))
+            r = run_checker(json_path, "local")
+            after = sorted(str(p.relative_to(tmp2)) for p in Path(tmp2).rglob("*"))
+            self.assertEqual(r.returncode, 1)
+            self.assertIn("client.path", r.stdout.splitlines())
+            self.assertNotIn("PASS", r.stdout)
+            self.assertEqual(before, after)
+
+        # path 本身已存在
+        with tempfile.TemporaryDirectory() as tmp3:
+            data, json_path, _ = make_fixture(tmp3)
+            Path(data["client"]["path"]).mkdir(parents=True, exist_ok=True)
+            dump(data, json_path)
+            before = sorted(str(p.relative_to(tmp3)) for p in Path(tmp3).rglob("*"))
+            r = run_checker(json_path, "local")
+            after = sorted(str(p.relative_to(tmp3)) for p in Path(tmp3).rglob("*"))
+            self.assertEqual(r.returncode, 1)
+            self.assertIn("client.state", r.stdout.splitlines())
+            self.assertNotIn("PASS", r.stdout)
+            self.assertEqual(before, after)
+
+    def test_existing_client_rules(self):
+        for missing in ("pubspec.yaml", "lib", "git"):
+            with tempfile.TemporaryDirectory() as tmp:
+                data, json_path, _ = make_fixture(tmp)
+                existing_dir = Path(tmp) / "existing_client"
+                existing_dir.mkdir(parents=True, exist_ok=True)
+                (existing_dir / "pubspec.yaml").write_text("name: reading_notes\n", encoding="utf-8")
+                (existing_dir / "lib").mkdir(exist_ok=True)
+                (existing_dir / ".git").mkdir(exist_ok=True)
+                if missing == "pubspec.yaml":
+                    (existing_dir / "pubspec.yaml").unlink()
+                elif missing == "lib":
+                    (existing_dir / "lib").rmdir()
+                elif missing == "git":
+                    (existing_dir / ".git").rmdir()
+                data["client"]["state"] = "EXISTING"
+                data["client"]["path"] = str(existing_dir)
+                dump(data, json_path)
+                r = run_checker(json_path, "local")
+                with self.subTest(missing=missing):
+                    self.assertEqual(r.returncode, 1)
+                    self.assertIn("client.path", r.stdout.splitlines())
+                    self.assertNotIn("PASS", r.stdout)
+
+    def test_client_and_identity_values(self):
+        cases = [
+            ("client.package", "notes", "client.package"),
+            ("client.state", "OTHER", "client.state"),
+            ("client.vcs", "SUBMODULE", "client.vcs"),
+            ("client.runtime_verified", "no", "client.runtime_verified"),
+            ("client.path", "", "client.path"),
+            ("sdk.verification", "X", "sdk.verification"),
+            ("sdk.dart", "3.12.3", "sdk.dart"),
+            ("identity.policy", "X", "identity.policy"),
+            ("identity.public_profile_id", "", "identity.public_profile_id"),
+            ("dependency_policy.offline_failure", "IGNORE", "dependency_policy.offline_failure"),
+            ("dependency_policy.flutter_markdown_plus_rationale", "", "dependency_policy.flutter_markdown_plus_rationale"),
+        ]
+        with tempfile.TemporaryDirectory() as tmp:
+            for dotted, value, expect in cases:
+                data, json_path, _ = make_fixture(tmp)
+                set_nested(data, dotted, value)
+                dump(data, json_path)
+                r = run_checker(json_path, "local")
+                with self.subTest(dotted=dotted):
+                    self.assertEqual(r.returncode, 1)
+                    self.assertIn(expect, r.stdout.splitlines())
+                    self.assertNotIn("PASS", r.stdout)
+
+    def test_sdk_evidence_missing(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            data, json_path, _ = make_fixture(tmp)
+            Path(data["sdk"]["evidence"]).unlink()
+            dump(data, json_path)
+            r = run_checker(json_path, "local")
+            self.assertEqual(r.returncode, 1)
+            self.assertIn("sdk.evidence", r.stdout.splitlines())
+            self.assertNotIn("PASS", r.stdout)
+
+    def test_pins_rules(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            data, json_path, _ = make_fixture(tmp)
+            data["dependencies"]["drift"] = "2.34.0"
+            dump(data, json_path)
+            r = run_checker(json_path, "local")
+            self.assertEqual(r.returncode, 1)
+            self.assertIn("dependencies.drift", r.stdout.splitlines())
+            self.assertNotIn("PASS", r.stdout)
+
+            data, json_path, _ = make_fixture(tmp)
+            data["dependencies"]["extra_pkg"] = "1.0.0"
+            dump(data, json_path)
+            r = run_checker(json_path, "local")
+            self.assertEqual(r.returncode, 1)
+            self.assertIn("dependencies", r.stdout.splitlines())
+            self.assertNotIn("PASS", r.stdout)
+
+            data, json_path, _ = make_fixture(tmp)
+            data["sdk"]["flutter"] = "3.44.7"
+            dump(data, json_path)
+            r = run_checker(json_path, "local")
+            self.assertEqual(r.returncode, 1)
+            self.assertIn("sdk.flutter", r.stdout.splitlines())
+            self.assertNotIn("PASS", r.stdout)
+
+    def test_identity_and_book_rejected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            data, json_path, _ = make_fixture(tmp)
+            data["identity"]["new_identity_system"] = True
+            dump(data, json_path)
+            r = run_checker(json_path, "local")
+            self.assertEqual(r.returncode, 1)
+            self.assertIn("identity.new_identity_system", r.stdout.splitlines())
+            self.assertNotIn("PASS", r.stdout)
+
+            data, json_path, _ = make_fixture(tmp)
+            data["identity"]["new_identity_system"] = "false"
+            dump(data, json_path)
+            r = run_checker(json_path, "local")
+            self.assertEqual(r.returncode, 1)
+            self.assertIn("identity.new_identity_system", r.stdout.splitlines())
+            self.assertNotIn("PASS", r.stdout)
+
+            data, json_path, _ = make_fixture(tmp)
+            data["book_work"] = "ACTIVE"
+            dump(data, json_path)
+            r = run_checker(json_path, "local")
+            self.assertEqual(r.returncode, 1)
+            self.assertIn("book_work", r.stdout.splitlines())
+            self.assertNotIn("PASS", r.stdout)
+
+    def test_openapi_validator_rules(self):
+        cases = [
+            ({"package": "x"}, "openapi_validator.package"),
+            ({"version": "0.8.0"}, "openapi_validator.version"),
+            ({"install_command": ""}, "openapi_validator.install_command"),
+            ({"offline_failure": "IGNORE"}, "openapi_validator.offline_failure"),
+            ({"status": "INSTALLED"}, "openapi_validator.status"),
+            ({"evidence": "x"}, "openapi_validator.evidence"),
+        ]
+        with tempfile.TemporaryDirectory() as tmp:
+            for overrides, expect in cases:
+                data, json_path, _ = make_fixture(tmp)
+                data["openapi_validator"].update(copy.deepcopy(overrides))
+                dump(data, json_path)
+                r = run_checker(json_path, "local")
+                with self.subTest(overrides=overrides):
+                    self.assertEqual(r.returncode, 1)
+                    self.assertIn(expect, r.stdout.splitlines())
+                    self.assertNotIn("PASS", r.stdout)
+
+    def test_placeholder_rules(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            data, json_path, md_path = make_fixture(tmp)
+            md_path.write_text(md_path.read_text(encoding="utf-8") + "\nTBD\n", encoding="utf-8")
+            r = run_checker(json_path, "local")
+            self.assertEqual(r.returncode, 1)
+            self.assertIn("INTEGRATION_BASELINE.md", r.stdout.splitlines())
+            self.assertNotIn("PASS", r.stdout)
+
+            data, json_path, md_path = make_fixture(tmp)
+            md_path.write_text(md_path.read_text(encoding="utf-8") + "\n待定\n", encoding="utf-8")
+            r = run_checker(json_path, "local")
+            self.assertEqual(r.returncode, 1)
+            self.assertIn("INTEGRATION_BASELINE.md", r.stdout.splitlines())
+            self.assertNotIn("PASS", r.stdout)
+
+            data, json_path, md_path = make_fixture(tmp)
+            md_path.unlink()
+            r = run_checker(json_path, "local")
+            self.assertEqual(r.returncode, 1)
+            self.assertIn("INTEGRATION_BASELINE.md", r.stdout.splitlines())
+            self.assertNotIn("PASS", r.stdout)
 
 
 if __name__ == "__main__":
