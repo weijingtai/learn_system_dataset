@@ -1,10 +1,11 @@
 # Learn System 黑箱内部架构规格
 
-状态：`REVIEW_FAILED_R1`
+状态：`R1_REWORK_CLOSED`（R1 返工全部结清，允许进入 §22 首纵切实现；各节四态标签见每节「状态：」行，整份规格尚未批准为最终规范）
 
 > R1 交叉审查（2026-09-08，架构 / 验收 / 用户体验 / 规划四角色独立进行）结论为**不通过**，
 > 原 38 条返工项与追加的 2 条版权/存储返工项见 `PLAN.md` 的「黑箱架构规格 R1 审查返工项」一节。
-> 在该节全部结清前，本规格不得作为 tasks 拆解依据，亦不得启动 M1-M8 任何 Module 的实现任务。
+> 该节 44 条已于 2026-09-11 全部结清（G1–G4 共 36 个工作项 `ACCEPTED`，证据 `docs/blackbox-spec-rework/SUBAGENT_TODO.md` 与 `reviews/G5-EXIT-REVIEW.md`）；
+> 用户于 2026-09-11 确认进入实现阶段。实现批次的完成判据为 `openspec/acceptance/run_all.sh` 对应条目由 `BLOCKED` 变 `PASS`。
 
 日期：2026-09-08
 

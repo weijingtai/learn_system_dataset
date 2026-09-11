@@ -2,7 +2,7 @@
 
 > Subagent 大项/小项唯一监控表：[`SUBAGENT_TODO.md`](SUBAGENT_TODO.md)。从 2026-09-09 起，新任务必须按 `openspec/subagent-delivery-gate.md` 准备 BDD、TDD、ACT、Prompt 和 Acceptance 后才能派发。
 
-> 审查对象：`openspec/learn-system-blackbox-architecture.md`（状态 `REVIEW_FAILED_R1`）
+> 审查对象：`openspec/learn-system-blackbox-architecture.md`（状态 `R1_REWORK_CLOSED`，2026-09-11；历史状态 `REVIEW_FAILED_R1`）
 > 审查结论来源：2026-09-08 四角色独立交叉审查（架构 / 验收 / 用户体验 / 规划）
 > 返工项母本：`PLAN.md` 的「黑箱架构规格 R1 审查返工项」一节（R0 / RA–RG，40 条）
 > 本目录是**转译产物**：把那 40 条翻译成执行者可以直接照做的指令，目标是**一次做对，不再迭代**。
