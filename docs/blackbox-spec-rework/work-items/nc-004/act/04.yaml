@@ -1,0 +1,48 @@
+TASK_ID: NC-004-D
+PARENT: NC-004
+STATUS: PREPARING
+REPO: xuan-migration/reading-notes（新建独立 Git 仓库）
+GOAL: 恢复/合并、磁盘失败回滚、重开持久化、会话隔离、outbox 信封检查，追加 6 项测试
+DEPENDS_ON: [NC-004-C]
+ESTIMATE_MINUTES: 55
+WORKLOAD: "restoreRevision + mergeHeads（契约 §5.1 第 7 条）+ FailingExecutor + 6 个测试"
+SCOPE:
+  READ:
+    - /Users/jingtaiwei/Git/Public/learn_system/openspec/annotation-community/contracts/local-persistence.md
+    - /Users/jingtaiwei/Git/Public/learn_system/openspec/annotation-community/contracts/community-models.md §1、§5、§6
+    - /Users/jingtaiwei/Git/Public/learn_system/openspec/annotation-community/contracts/state-machines.md SM-1、SM-3、SM-5
+    - /Users/jingtaiwei/Git/Public/learn_system/openspec/annotation-community/fixtures/community/content_hash_cases.json
+    - /Users/jingtaiwei/Git/Public/learn_system/docs/blackbox-spec-rework/work-items/nc-004/TDD.md、BDD.md
+    - /Users/jingtaiwei/Git/Public/xuan-migration/xuan-storage/drift/（只看 Drift 写法与测试风格，不 import、不复制）
+  WRITE_NEW:
+    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/lib/src/persistence/note_repository.dart（追加两个方法）
+    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/test/support/failing_executor.dart
+    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/test/persistence/note_repository_test.dart（追加 6 个测试）
+  FORBIDDEN:
+    - /Users/jingtaiwei/Git/Public/learn_system 下任何写入
+    - /Users/jingtaiwei/Git/Public/xuan-migration 下 reading-notes 以外的任何目录；在父目录执行 git
+    - 契约 §1 之外的依赖；`^` 版本范围；persistence_drift / persistence_core / flutter_markdown_plus
+    - NativeDatabase.memory() 用于持久化断言；skip；永真断言；先实现后补测试
+DEPENDENCY_ALLOWLIST: [契约 §1 精确版本：crypto 3.0.7, drift 2.31.0, drift_flutter 0.2.8, sqlite3 2.9.4, sqlite3_flutter_libs 0.5.42, path_provider 2.1.6, drift_dev 2.31.0, build_runner 2.15.1, flutter_lints 6.0.0, flutter_test(sdk)]
+RULES:
+  - "FailingExecutor 包装真文件执行器，在 SQL 含 outbox_envelopes 时抛 SqliteException；不得先写一半再删"
+  - "会话隔离测试用新连接读库证明无新行"
+  - "判据只取契约与 TDD；契约未写明的行为触发停止条件，不自行裁定"
+  - "每步先写测试取得真实 Red 原文，再实现；不修改前步测试期望"
+  - "只在 reading-notes 内 git add 本步文件；提交消息按 COMMIT_MESSAGE，末尾另起两行 Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
+TESTS_FIRST:
+  - "先写 6 个测试（两个方法仍抛 UnimplementedError）；运行 flutter test test/persistence/note_repository_test.dart，保存失败原文作为 Red"
+STEPS:
+  - "实现 restoreRevision、mergeHeads"
+  - "18 个测试通过；flutter test 全量 +30；flutter analyze 0"
+  - "git add 本步文件并提交"
+  - "cd /Users/jingtaiwei/Git/Public/learn_system && bash docs/blackbox-spec-rework/reviews/nc004_guard.sh --require-impl"
+VERIFICATION:
+  - "export PATH=/Users/jingtaiwei/flutter/bin:$PATH && cd /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes && flutter analyze"
+  - "cd /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes && flutter test test/persistence/note_repository_test.dart（期望 +18）"
+  - "cd /Users/jingtaiwei/Git/Public/learn_system && bash docs/blackbox-spec-rework/reviews/nc004_guard.sh --require-impl（期望 0）"
+  - "cd /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes && flutter test"
+  - "git -C /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes status --short（提交后为空）"
+ON_FAIL: "停止并报告失败命令、退出码与原文；不改契约、fixture 副本、测试期望，不新增依赖，不扩大范围。flutter pub get 无法在精确版本解析、sqlite3 无法加载、build_runner 因环境失败，均为停止条件。learn_system 侧 nc004_guard.sh 的 K01 失败判外部失败只记录；K02 及以后按本任务失败停工。"
+BASELINE_EXIT_CODES: "开工基线：reading-notes 不存在；Flutter 3.44.6/Dart 3.12.2；pub-cache 含契约 §1 全部精确版本；learn_system nc004_guard.sh=0（K05 SKIP）"
+COMMIT_MESSAGE: "feat: 恢复合并、失败回滚与会话隔离（NC-004-D）"
