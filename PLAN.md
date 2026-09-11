@@ -5,8 +5,8 @@
 - [x] 第一批 `work-items/g4-r1/`：D-13/D-10/D-11、D-06/D-08、D-14 六项由外部 Agent 落实，主 Agent 验收 `ACCEPTED`（2026-09-10；证据 `docs/blackbox-spec-rework/work-items/g4-r1/ACCEPTANCE.md`）。
 - [x] 用户拍板（2026-09-10）：`sch_`/`sv_`/`cg_` 前缀（`openspec/id-prefix-registry.md`）；§22 分期方案确认；D-15 页图不进 Git。
 - [x] 第二批 `work-items/g4-r2/`：前缀登记 `851fa70`、D-15 fixture `6fc8536`、D-18 `4884b6a`+`2978ad9`，主 Agent 验收 `ACCEPTED`（2026-09-11；证据 `docs/blackbox-spec-rework/work-items/g4-r2/ACCEPTANCE.md` §5）。
-- [ ] 第三批 D-16 PLAN 映射表与唯一 owner（与 C/S 会话约定 `PLAN.md` 时间窗后写 `work-items/g4-r3/`）。
-- [ ] 用户确认 `pat_`/`ent_` 前缀（登记册 §3.4，不阻塞）。
+- [ ] 第三批 D-16 PLAN 映射表与唯一 owner（`work-items/g4-r3/` 2026-09-11 READY 并派发；C/S 时间窗至 NC-004 验收前）。
+- [x] 用户确认 `pat_`/`ent_` 前缀（2026-09-11；登记册 §3.4 已改为已确认；规格 §8.1 登记随第三批 `work-items/g4-r3/` ACT 02）。
 - [ ] G5 总准出：G4 D 类全部 `ACCEPTED` 后复核 BDD 总验收包、机器门禁与 ACT 覆盖映射。
 
 ## G6 注解社区线（C/S 会话；与 Dataset 会话的 G3 线并行、互不暂存）

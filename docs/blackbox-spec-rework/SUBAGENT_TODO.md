@@ -495,15 +495,15 @@
   - [ ] PLAN/HANDOFF 同步
   - [ ] 主 Agent 标记 `ACCEPTED`
 
-- [ ] D-16：PLAN 映射与唯一 owner（状态：`BACKLOG`）
-  - [ ] README/范围/依赖/禁止项
-  - [ ] BDD 场景
-  - [ ] TDD 正反用例与精确命令
-  - [ ] ACT.yaml（含 SCOPE、ON_FAIL、VERIFICATION）
-  - [ ] Executor Prompt
-  - [ ] Acceptance 清单
-  - [ ] `wjt-react` 判定 READY
-  - [ ] 派发执行 Agent
+- [ ] D-16：PLAN 映射与唯一 owner（状态：`DISPATCHED`；工作包 `work-items/g4-r3/`，含 ACT 02 `pat_`/`ent_` 登记；C/S 会话 PLAN.md 时间窗至 NC-004 验收前）
+  - [x] README/范围/依赖/禁止项
+  - [x] BDD 场景
+  - [x] TDD 正反用例与精确命令
+  - [x] ACT.yaml（含 SCOPE、ON_FAIL、VERIFICATION）
+  - [x] Executor Prompt
+  - [x] Acceptance 清单
+  - [x] `wjt-react` 判定 READY（2026-09-11）
+  - [x] 派发执行 Agent（2026-09-11，用户交外部 Agent）
   - [ ] 执行提交与原始证据
   - [ ] 主 Agent 规格审查
   - [ ] 主 Agent 质量审查

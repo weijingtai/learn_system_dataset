@@ -1,0 +1,22 @@
+package: blackbox-g4-r3
+title: G4 第三批：D-16 PLAN 映射与唯一 owner ＋ pat_/ent_ 前缀登记
+status: READY
+executor_groups:
+  F: [blackbox-g4-r3/01, blackbox-g4-r3/02]     # 一个执行 Agent，串行 01 → 02，各一个提交
+acts:
+  - file: act/r3-01.yaml
+    id: blackbox-g4-r3/01
+    writes: [PLAN.md, pipeline/TODO.md, pattern_knowledge_workbench/TODO.md, LEARN_SYSTEM_TARGET.md, docs/blackbox-spec-rework/work-items/g4-r3/check_d16.py]
+  - file: act/r3-02.yaml
+    id: blackbox-g4-r3/02
+    writes: [openspec/learn-system-blackbox-architecture.md]
+global_forbidden:
+  - 删除或改写 PLAN.md 任何既有行（含勾选状态）；碰 G6/注解社区各节
+  - 改 §19/§20/§22、Schema、verify-T.sh、mutations.sh、openspec/schemas/verify.sh、openspec/id-prefix-registry.md
+  - git add -A / git add . / stash / reset / rebase / push / 新建 worktree
+gates:
+  - bash docs/blackbox-spec-rework/verify-T.sh | tail -1        # FAIL 合计: 0
+  - bash docs/blackbox-spec-rework/work-items/g3-r3/mutations.sh all | tail -1   # 109/109
+  - bash openspec/schemas/verify.sh; echo $?                    # 0
+  - git diff --check
+on_fail: 停止并报告；不得为让判据变绿而删改 PLAN 既有行或放宽 checker
