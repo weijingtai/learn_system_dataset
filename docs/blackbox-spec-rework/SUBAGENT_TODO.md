@@ -149,6 +149,7 @@
 - [x] 主 Agent 独立验收：正常规格 0 FAIL、13 例矩阵外盲测全部命中指定 FAIL ID、FAIL ID 超集测试通过、只读 Agent 复跑一致；证据见 `work-items/g3-r5/ACCEPTANCE.md`
 - [x] 用户 2026-09-10 决定启动 G4；第一批 `work-items/g4-r1/`（D-13/D-10/D-11 ｜ D-06/D-08 ｜ D-14）三组并行派发；D-15/D-16/D-18 第二批
 - [x] G4 第二批 `work-items/g4-r2/`（2026-09-11 派发并验收，全部 `ACCEPTED`）：D 组 = ACT 01 前缀登记 `851fa70` + ACT 02 D-15 fixture `6fc8536`；E 组 = ACT 03 D-18 `4884b6a` + 返工 `2978ad9`；三件裁定（哈希环、严格 offset、规范 verify.sh）记于 `g4-r2/ACCEPTANCE.md` §5.1；G4 仅剩 D-16
+- [x] G4 第三批 `work-items/g4-r3/`（2026-09-11 派发并验收）：D-16 `76bc4b4`、`pat_`/`ent_` 登记 `e306258`，均 `ACCEPTED`；G4 D 类 D-01～D-19 全部 `ACCEPTED`；r3-03 检查脚本兼容已勾选行（`PROMPT-F2.md`）待执行；下一步 G5 总准出
 
 - [x] T-01：术语三层模型写入 M4（状态：`ACCEPTED`）
   - [x] README/范围/依赖/禁止项
@@ -495,7 +496,7 @@
   - [ ] PLAN/HANDOFF 同步
   - [ ] 主 Agent 标记 `ACCEPTED`
 
-- [ ] D-16：PLAN 映射与唯一 owner（状态：`DISPATCHED`；工作包 `work-items/g4-r3/`，含 ACT 02 `pat_`/`ent_` 登记；C/S 会话 PLAN.md 时间窗至 NC-004 验收前）
+- [x] D-16：PLAN 映射与唯一 owner（状态：`ACCEPTED`；`76bc4b4` 映射表 + `e306258` `pat_`/`ent_` 登记；验收见 `work-items/g4-r3/ACCEPTANCE.md` §5；PLAN 21 条 superseded-by 已由主 Agent 勾选；r3-03 检查脚本小返工 `DISPATCHED`）
   - [x] README/范围/依赖/禁止项
   - [x] BDD 场景
   - [x] TDD 正反用例与精确命令
@@ -504,11 +505,11 @@
   - [x] Acceptance 清单
   - [x] `wjt-react` 判定 READY（2026-09-11）
   - [x] 派发执行 Agent（2026-09-11，用户交外部 Agent）
-  - [ ] 执行提交与原始证据
-  - [ ] 主 Agent 规格审查
-  - [ ] 主 Agent 质量审查
-  - [ ] PLAN/HANDOFF 同步
-  - [ ] 主 Agent 标记 `ACCEPTED`
+  - [x] 执行提交与原始证据
+  - [x] 主 Agent 规格审查
+  - [x] 主 Agent 质量审查
+  - [x] PLAN/HANDOFF 同步
+  - [x] 主 Agent 标记 `ACCEPTED`
 
 - [x] D-17：旧存储处置（状态：`ACCEPTED`；旧流程豁免补制标准工作包）
   - [x] 已确认设计写入规格

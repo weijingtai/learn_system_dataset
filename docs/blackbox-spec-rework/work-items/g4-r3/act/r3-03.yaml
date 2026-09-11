@@ -1,0 +1,24 @@
+act_id: blackbox-g4-r3/03
+title: check_d16.py R3 兼容已勾选行（主 Agent 设计缺陷返工）
+estimated_minutes: 15
+group: F
+depends_on: [blackbox-g4-r3/01]
+scope:
+  write: [docs/blackbox-spec-rework/work-items/g4-r3/check_d16.py]
+background: |
+  主 Agent 验收 D-16 后勾选了 PLAN 中 21 条 `superseded-by` 条目（`- [ ]` → `- [x]` 并追加「（已取代：…）」后缀）。
+  原 R3 只数 `- [ ] <开头>`，现在这 21 条匹配数为 0，`check_d16.py` 在 HEAD 上误报 FAIL。缺陷在 ACT checker 规则，不在执行者。
+tests_first:
+  - Red：python3 docs/blackbox-spec-rework/work-items/g4-r3/check_d16.py → `D16 FAIL R3 开头文字匹配数=0 …`，exit 1
+rule_change:
+  R3: 对每个「开头」，PLAN 中以 `- [ ] <开头>` 或 `- [x] <开头>` 起始的行合计恰 1 条；其余不变（标注三值、行数 43）
+  R4: 不变——只考察 `- [ ]` 行；但「减去 R3 匹配到的」改为「减去 R3 匹配到的且仍为 `- [ ]` 的行」
+  其余 R1/R2/R5/R6 不变
+verify:
+  - python3 docs/blackbox-spec-rework/work-items/g4-r3/check_d16.py            # D16 OK, exit 0
+  - 篡改自检（临时副本 --plan）：表 B 一条开头文字改一字 → R3 匹配数 0；同一开头同时存在 `- [ ]` 与 `- [x]` 两行 → R3 匹配数 2；把一条已勾选的 `- [x]` 改回 `- [ ]` 且移到「## 既有知识编译与 Tag 计划」节外的新标题下 → 仍由 R3 匹配（数=1）故不报 R4，这是预期（R4 只管未登记项）
+  - git diff --check
+commit:
+  add: [docs/blackbox-spec-rework/work-items/g4-r3/check_d16.py]
+  message: "fix(D-16): check_d16.py R3 counts both unchecked and checked lines for each prefix"
+on_fail: 停止并报告；不得改 PLAN.md

@@ -1,6 +1,6 @@
 # ACCEPTANCE：G4 第三批（D-16 映射表 / pat_ ent_ 登记）
 
-状态：`READY`（待用户交外部 Agent 执行；`PLAN.md` 时间窗：C/S 会话 2026-09-11 承诺 NC-004 验收完成之前不碰）
+状态：r3-01 / r3-02 `ACCEPTED`（`76bc4b4`、`e306258`，见 §5）；r3-03（检查脚本 R3 兼容已勾选行，`PROMPT-F2.md`）`DISPATCHED`
 
 ## 0. 转译审查（原规划者四查，2026-09-11）
 
@@ -31,3 +31,25 @@ r3-01 提交恰 5 文件、r3-02 恰 1 文件；`git diff <base> -- PLAN.md` 零
 ## 4. 结论
 
 通过后主 Agent：SUBAGENT_TODO D-16 → `ACCEPTED`，G4 D 类全部 `ACCEPTED`；随后单独提交勾选 PLAN 中表 B 标 `superseded-by` 且证据在 HEAD 的条目（附提交 hash），此时才允许出现 `- [ ]` → `- [x]` 的改动；再同步 PLAN/HANDOFF，进入 G5 总准出。
+
+## 5. 验收记录（主 Agent，2026-09-11）
+
+执行报告：`docs/reports/G4-R3-F-EXECUTION-REPORT.md`（执行者）。方法：`git archive e306258` 到 scratchpad 干净树，软链 `.venv`。并发提交 `651220d`（nc-005）夹在两提交之间，文件无交集，按 hash 定位。
+
+### 5.1 执行者上报裁定
+
+TDD §2 第 3 行与 ACT r3-02 verify 的 `grep -c '^| '` 多了一个尾随空格，分隔行 `|---|` 不匹配，字面结果 4 → 6；本意是含分隔行的表格行数。裁定：主 Agent 笔误，命令订正为 `grep -c '^|'`，Green 5 → 7 不变；执行者按字面如实报告、未改命令，正确。
+
+### 5.2 r3-01（`76bc4b4`）ACCEPTED
+
+范围 5 文件；`PLAN.md` `--numstat` 88/0，`-` 内容行 0（零删行）；三门禁绿；TDD §1 全绿（新节 1、未勾选 63→66、`check_d16.py` → `D16 OK`、三文件「唯一登记处」各 1、子计划未勾选 15/23 不变、节序 ORDER_OK）；`plan_section` 与三处替换行逐字一致。`check_d16.py` 298 行、无 try/except、六条规则各有 FAIL 出口。矩阵外篡改 7 例全部检出：删表 A 一行 → R2；owner 改为不存在路径 → R2；C 节一条改 `[x]` → R5；黑箱节新增漏网 `- [ ]` → R4；表 B 开头文字改一字 → R3（匹配 0）；标注改 `done` → R3；PLAN 内复制一条未勾选项 → R3（匹配 2）。主 Agent 第一次篡改误改了表 A 第三列的引用文字（不受检，`D16 OK` 属正确），已重做。
+
+### 5.3 r3-02（`e306258`）ACCEPTED
+
+范围 1 文件 +4；`rows` 两行与 `note` 逐字一致；TDD §2：`pat_<technique>_<6位数字>` 1、`ent_<32hex>` 1、3b 表 `^|` 行 7、「用户 2026-09-11 确认」1、`cg_` 行不变；门禁绿。
+
+### 5.4 后续
+
+- 主 Agent 已勾选 PLAN 中 21 条 `superseded-by` 条目（附取代者），未勾选 66 → 45。
+- 由此 `check_d16.py` R3 的 `- [ ] <开头>` 匹配数变 0：属主 Agent 设计缺陷（R3 应对 `- [ ]`/`- [x]` 合计计数）。返工 `act/r3-03.yaml`（只碰脚本），`PROMPT-F2.md`。
+- D-16 `ACCEPTED`；G4 D 类全部 `ACCEPTED`；C/S 会话 PLAN.md 时间窗解除。

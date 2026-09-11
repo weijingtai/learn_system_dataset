@@ -116,7 +116,7 @@ G6 注解社区线各节（「G6 注解社区线」「NC-001 首包补齐」「�
 
 - [x] 将项目目标、模块现状、G3 R4 证据、三类剩余假绿和后任启动顺序落盘到 `PROJECT_COLD_START_HANDOFF.md`。
 - [x] 后任按 `PROJECT_COLD_START_HANDOFF.md` §6 下发 R5 执行 Prompt；主 Agent只做计划与独立验收。R5 已完成并 `ACCEPTED`（工作包 `4d68634`，先红 `5de99fa`，后绿 `241c38c`；矩阵 109/109，盲测 13/13，只读复跑一致；证据 `docs/blackbox-spec-rework/work-items/g3-r5/ACCEPTANCE.md`）。
-- [ ] G3 门禁已封闭，G3 状态由 `REWORK_REQUIRED` 转为 `ACCEPTED`；是否启动 G4（执行引擎、Ledger、Orchestrator 契约）由用户决定，主 Agent 未启动。
+- [x] G3 门禁已封闭，G3 状态由 `REWORK_REQUIRED` 转为 `ACCEPTED`；是否启动 G4（执行引擎、Ledger、Orchestrator 契约）由用户决定，主 Agent 未启动。（已取代：用户 2026-09-10 已启动 G4；D-16 表 B，2026-09-11）
 
 ## NC-001 首包补齐
 
@@ -251,9 +251,9 @@ RE→T-11 + D-18；RF→D-14~D-17 + T-12/T-13；RG→D-19。**覆盖完整，无
 
 - [x] 修复: `openspec/learn-system-blackbox-architecture.md:§4,§12` Pattern / Concept / KnowledgeEntry 三者关系未定义——`CONTEXT.md:11` 称 Pattern 为产品级总称，`LEARN_SYSTEM_TARGET.md:121` 的产品级聚合却是 KnowledgeEntry（规格全文 0 次出现），§12 又把 Concept 与 Pattern 并列为两类候选，导致 M4/M6/M7/M8 无法确定主键对象 ｜ 通过标准: 规格写明三者的从属关系、各自 ID 前缀、字段清单与「一个 Pattern 聚合 N 条 Assertion」的基数约束；`CONTEXT.md` 补 Concept、KnowledgeEntry 词条
 - [x] 修复: `openspec/learn-system-blackbox-architecture.md:§16` PublicationPackage 八个子包与 `LEARN_SYSTEM_TARGET.md:185-202` 已确认的 KnowledgePack 十四个目录无映射，客户端契约名 KnowledgePack 在规格中 0 次出现 ｜ 通过标准: §16 含双向映射表，逐条覆盖 concepts/entries/assertions/applicability-rules/school-views/evidence-links/source-spans/source-anchors/query-contract；若属更名则写出取代声明
-- [ ] 修复: `openspec/learn-system-blackbox-architecture.md:§16` Annotation 完全缺席，而 `LEARN_SYSTEM_TARGET.md:307` 要求注解「稳定锚定到可版本迁移的知识/原文对象」；按现 §2 原则7，每次发版用户全部注解变孤儿 ｜ 通过标准: §16 新增 `AnchorContractPack`，含可锚定对象白名单、`entity_id` 稳定性承诺等级、`IdentityMigrationMap`（迁移/合并/拆分/废弃四类）；§20 加入「跨 Release 注解锚点可迁移率」验收项
+- [x] 修复: `openspec/learn-system-blackbox-architecture.md:§16` Annotation 完全缺席，而 `LEARN_SYSTEM_TARGET.md:307` 要求注解「稳定锚定到可版本迁移的知识/原文对象」；按现 §2 原则7，每次发版用户全部注解变孤儿 ｜ 通过标准: §16 新增 `AnchorContractPack`，含可锚定对象白名单、`entity_id` 稳定性承诺等级、`IdentityMigrationMap`（迁移/合并/拆分/废弃四类）；§20 加入「跨 Release 注解锚点可迁移率」验收项（已取代：D-06 `e474ae4`；D-16 表 B，2026-09-11）
 - [x] 修复: `openspec/learn-system-blackbox-architecture.md:§16` FactSet 与 Matcher 全文 0 次出现，RuleIndexPack 只有名字无内容，TechniqueProfile 只作 M8 输入未作输出发布，下游拿到规则也不知合法字段与取值 ｜ 通过标准: §16 新增 `TechniqueProfilePack`（FactSet Profile、事实字段与枚举、operator 集合、规则 AST schema 版本）与 `QueryContractPack`（getEntry/getSourceSpan/searchKnowledge/matchFacts）；每条规则声明所依据的 Profile 版本
-- [ ] 修复: `openspec/learn-system-blackbox-architecture.md:§12,§18` 流派只以裸词 School 出现，无 SchoolView 对象、无 school_id 命名空间、无「该分歧是否改变当前判断」字段，与 `knowledge_system/METAPHYSICS_KNOWLEDGE_COMPILATION_WORKFLOW_v1.2.md:263` 及 `tag_system/TAG_SYSTEM_DESIGN.md:299-307` 已定稿内容冲突 ｜ 通过标准: 规格定义 SchoolView 对象（school_id、主张归属、冲突组 ID、changes_current_judgment）与 SchoolViewPack 子包；§14 增列「流派归属审核」为独立 ReviewDecision 类型
+- [x] 修复: `openspec/learn-system-blackbox-architecture.md:§12,§18` 流派只以裸词 School 出现，无 SchoolView 对象、无 school_id 命名空间、无「该分歧是否改变当前判断」字段，与 `knowledge_system/METAPHYSICS_KNOWLEDGE_COMPILATION_WORKFLOW_v1.2.md:263` 及 `tag_system/TAG_SYSTEM_DESIGN.md:299-307` 已定稿内容冲突 ｜ 通过标准: 规格定义 SchoolView 对象（school_id、主张归属、冲突组 ID、changes_current_judgment）与 SchoolViewPack 子包；§14 增列「流派归属审核」为独立 ReviewDecision 类型（已取代：D-08 `07f79dd` + `851fa70`；D-16 表 B，2026-09-11）
 - [x] 修复: `openspec/learn-system-blackbox-architecture.md:§16` EvidenceMapPack 只有名字无内容，SourceAnchor 仅在 §11（M3 内部）出现，客户端拿到扫描图不知高亮哪块 ｜ 通过标准: §16 写出 `EvidenceLink → Assertion → SourceSpan → SourceAnchor → OcrPage/字框坐标 → SourceAsset 页标识` 完整链路，坐标系与 SourceAssetPack 页图像素尺寸同源可换算，并列为 ValidationReport 的 fail-closed 检查项
 - [x] 修复: `openspec/learn-system-blackbox-architecture.md:§1,§16` 仓库已声明知识区与 Tag 区唯一允许的三个耦合接口（盘面概念字典、MarkContentBinding、EvidenceBundle，见 `README.md:20`、`tag_system/README.md:29-33`），§16 八个子包无一承接 ｜ 通过标准: §16 给出承载点，逐项写出 MarkContentBinding 所需 concept_id / omen_carrying / condition_affordance / school_variance_display / changes_current_judgment 五字段的来源 Module 与 Package；或在 §21 明确本期不产出
 - [x] 修复: `openspec/learn-system-blackbox-architecture.md:§12` 未吸收 `knowledge_system/CROSS_TECHNIQUE_ONTOLOGY.md:19-66` 已定稿的术语三层模型（L1 闭集 / L2 同形异义 / L3 技法私有）与三步判层，按现规格写 M4 任务会重演该文档已判定的缺陷 ｜ 通过标准: §12 写入三步判层为 M4 强制前置步骤并声明 L1 为确定性免模型路径；§5 Contract Registry 登记 `schemas/shared/canon`、`schemas/shared/homographs` 为 M4 冻结输入
@@ -261,12 +261,12 @@ RE→T-11 + D-18；RF→D-14~D-17 + T-12/T-13；RG→D-19。**覆盖完整，无
 ### RC Gate 与运行语义（阻断第一条纵切）
 
 - [x] 修复: `openspec/learn-system-blackbox-architecture.md:§2原则5,§6.1,§10,§11,§20.1 与 §21` Gate 粒度自相矛盾——四处要求整本 Edition 完成才过 Gate，§21 却把「一次性处理整本三百页书籍」列为非目标，且规格未定义任何可 Gate 的最小单位；实测单部 300 页 Edition 需 1.2 万–2 万次人工决策（依据：`ocr/data_work/` 真实 10 页 584 行 2749 字、低置信字 10.7%、异常页 20%；`pipeline/corpus/bazi/qtbj_ed01/` 每千字≈4 Span≈38 assertion），单人不可完成 ｜ 通过标准: 规格定义 `EditionPart`（卷/册/页区间，含判定规则）作为 Gate 与发布最小单位，各自封 StageManifest 各自过 Gate，Edition 级 Gate 为其合取；§2原则5、§6.1、§10、§11、§20.1、§21 六处口径改到一致，`grep -n "整本\|三百页" openspec/learn-system-blackbox-architecture.md` 无矛盾表述
-- [ ] 修复: `openspec/learn-system-blackbox-architecture.md:§14` 失效传播粒度为整个 Edition（一页 OCR 改字 → M3-M6 全部重跑），审到第 280 条发现错字则前 279 条 ReviewDecision 连同全部模型运行报废；与 §20.2「从最近 StageCheckpoint 恢复」冲突，且 §19 表已把「失效传播」列为 Orchestrator 缺口 ｜ 通过标准: 规格给出按 LineageGraph 的精确失效算法（以 SourceSpan 为影响面单位，血缘不可达者继承并标 `carried_forward`），定义「内容等价则继承、内容变化则降级待复核」判定规则，并要求产出 `ReworkImpactReport`（失效 N / 继承 M / 待复核 K / 累计轮次）
-- [ ] 修复: `openspec/learn-system-blackbox-architecture.md:§20.2` StageCheckpoint 全文仅出现 1 次，§5 与 §17 均未定义其落盘粒度与内容——承诺了断点续做但没规定断点里有什么 ｜ 通过标准: 规格定义 StageCheckpoint 的落盘粒度（每 EditionPart / 每 N 次人工决定）、必含内容（已完成任务清单、已封存人工决定、待办队列剩余、下一步指针）、恢复语义（已完成人工决定不重做），并规定 M2/M3/M4/M6 每次人工决定后即时持久化
+- [x] 修复: `openspec/learn-system-blackbox-architecture.md:§14` 失效传播粒度为整个 Edition（一页 OCR 改字 → M3-M6 全部重跑），审到第 280 条发现错字则前 279 条 ReviewDecision 连同全部模型运行报废；与 §20.2「从最近 StageCheckpoint 恢复」冲突，且 §19 表已把「失效传播」列为 Orchestrator 缺口 ｜ 通过标准: 规格给出按 LineageGraph 的精确失效算法（以 SourceSpan 为影响面单位，血缘不可达者继承并标 `carried_forward`），定义「内容等价则继承、内容变化则降级待复核」判定规则，并要求产出 `ReworkImpactReport`（失效 N / 继承 M / 待复核 K / 累计轮次）（已取代：D-10 `015e34f`；D-16 表 B，2026-09-11）
+- [x] 修复: `openspec/learn-system-blackbox-architecture.md:§20.2` StageCheckpoint 全文仅出现 1 次，§5 与 §17 均未定义其落盘粒度与内容——承诺了断点续做但没规定断点里有什么 ｜ 通过标准: 规格定义 StageCheckpoint 的落盘粒度（每 EditionPart / 每 N 次人工决定）、必含内容（已完成任务清单、已封存人工决定、待办队列剩余、下一步指针）、恢复语义（已完成人工决定不重做），并规定 M2/M3/M4/M6 每次人工决定后即时持久化（已取代：D-11 `3598ea8`；D-16 表 B，2026-09-11）
 - [x] 修复: `openspec/learn-system-blackbox-architecture.md:§11,§12` M3 边界分歧与 M4 类别分歧要求人工裁决且不裁决不能过 Gate，但工作台在 M6，操作者在 M3/M4 无任何界面可用；§15 已明文让 M7 复用 M6 工作台，M3/M4 无对应表述属遗漏 ｜ 通过标准: 二选一写死——(a) §14 把 M6 提升为跨阶段 `Review Console` 并增列 M3/M4 两种工作模式及各自输入 Package；或 (b) §5 Module 列表新增独立分歧裁决工具并定义其 Package 输入输出
-- [ ] 修复: `openspec/learn-system-blackbox-architecture.md:§6.2` ReleaseRun 流程图无 M6，但 §15 要求「不能确定的关系使用 M6 工作台人工裁决」，跨 Run 复用 M6 的运行归属、Gate 归属、Artifact 归属三者均未定义 ｜ 通过标准: §6.2 补含 M7 → M6 裁决 → M7 回流的完整流程图，并规定该次 ReviewDecision 挂在哪个 Run 下、是否影响原 EditionRun 的 ReviewedEditionPackage 封存状态
-- [ ] 修复: `openspec/learn-system-blackbox-architecture.md:§5,§7` 操作者无法回答「我在哪、还剩多少、卡在哪」——Local Orchestrator 职责无查询能力，§7 接口无状态读取，§8 manifest 仅在封存后存在 ｜ 通过标准: §5 增只读查询契约，覆盖 RunStatus / StageProgress / PendingQueue（M2 异常页与低置信字、M3 边界分歧、M4 类别分歧、M6 待签发、M7 待裁决五个队列）/ BlockingReasons / ReworkImpact / ThroughputEstimate 六项；§7 补 Module 运行中进度事件上报
-- [ ] 修复: `openspec/learn-system-blackbox-architecture.md:§10` 异常版面页无终态定义（`ocr/data_work/logs/anomalies.jsonl` 已登记 page_002、page_010，弧线字切分仍是 `ocr/experiments/curve_segment.py` 原型），操作者不知该逐字录入还是可标记放行，与 §6.1「失败为零」冲突 ｜ 通过标准: §10 给出异常页合法终态枚举（如 manually_transcribed / known_unrecognizable / deferred）并明确哪些终态可让 M2 Gate 通过
+- [x] 修复: `openspec/learn-system-blackbox-architecture.md:§6.2` ReleaseRun 流程图无 M6，但 §15 要求「不能确定的关系使用 M6 工作台人工裁决」，跨 Run 复用 M6 的运行归属、Gate 归属、Artifact 归属三者均未定义 ｜ 通过标准: §6.2 补含 M7 → M6 裁决 → M7 回流的完整流程图，并规定该次 ReviewDecision 挂在哪个 Run 下、是否影响原 EditionRun 的 ReviewedEditionPackage 封存状态（已取代：D-13 `4086c2c`；D-16 表 B，2026-09-11）
+- [x] 修复: `openspec/learn-system-blackbox-architecture.md:§5,§7` 操作者无法回答「我在哪、还剩多少、卡在哪」——Local Orchestrator 职责无查询能力，§7 接口无状态读取，§8 manifest 仅在封存后存在 ｜ 通过标准: §5 增只读查询契约，覆盖 RunStatus / StageProgress / PendingQueue（M2 异常页与低置信字、M3 边界分歧、M4 类别分歧、M6 待签发、M7 待裁决五个队列）/ BlockingReasons / ReworkImpact / ThroughputEstimate 六项；§7 补 Module 运行中进度事件上报（已取代：规格 §5 六项只读查询契约；D-16 表 B，2026-09-11）
+- [x] 修复: `openspec/learn-system-blackbox-architecture.md:§10` 异常版面页无终态定义（`ocr/data_work/logs/anomalies.jsonl` 已登记 page_002、page_010，弧线字切分仍是 `ocr/experiments/curve_segment.py` 原型），操作者不知该逐字录入还是可标记放行，与 §6.1「失败为零」冲突 ｜ 通过标准: §10 给出异常页合法终态枚举（如 manually_transcribed / known_unrecognizable / deferred）并明确哪些终态可让 M2 Gate 通过（已取代：规格 §10.1 终态闭集；D-16 表 B，2026-09-11）
 
 ### RD 既有已定稿标准未吸收
 
@@ -280,15 +280,15 @@ RE→T-11 + D-18；RF→D-14~D-17 + T-12/T-13；RG→D-19。**覆盖完整，无
 - [x] 修复: `openspec/learn-system-blackbox-architecture.md:§19 M6行` 低估：只写能力缺失，未写数据体全空——496 条 rule 的 original_text / assertion / brief / explanation / notes 全部 0 条非空，is_verified=1 为 0 条，ge_ju_versions 表 0 行 ｜ 通过标准: 该行含上述数字，并附复核命令 `sqlite3 pattern_knowledge_workbench/assets/ge_ju_database.sqlite "select count(*) from ge_ju_rules where trim(coalesce(original_text,''))<>''"` 预期当前为 0
 - [x] 修复: `openspec/learn-system-blackbox-architecture.md:§19 M8行` 低估：把问题写成「零命中假绿」，实际是证据错链——`pipeline/rag/build_index.py:135-138` 的 span_map 只按 seg 序号建键，148 个 span 塌缩为 18 键、6 组碰撞；`:148-152` 对完整 span ID 抛 ValueError 后静默 continue 才是八字 mentions=0 的真根因，解析修好后 mentions 将链到错误页 ｜ 通过标准: 该行文字含「span→mentions 映射键碰撞（148 span 塌缩为 18 键）」，并附判据断言 span_map 键数 == spans 行数
 - [x] 修复: `openspec/learn-system-blackbox-architecture.md:§19` 缺十二项已知重大缺口，其中四项为结构性阻断：`ge_ju_rules` 唯一键 `{patternId, schoolId}`（`tables.dart:68-70`，结构上禁止同一格局同一流派有多本书多主张，与 §4/§18 多主张模型冲突）、`ge_ju_schools` 把 book(1) 与 school(2) 混存同表（Work/Edition 身份被折叠进 School）、干净环境不可构建、测试宿主匮乏（全仓非 OCR 部分仅 1 个 748B 脚手架测试，goldens 只有 bazi/qtbj 三组无非八字 fixture）；另需登记 OCR R7 与 `pipeline/TODO.md:12-14` 的三项 P0 语义阻断 ｜ 通过标准: §19 补齐上述各行，每行附一条「当前必 FAIL、修好后必 PASS」的判据命令；注意 `pipeline/requirements.txt` 已存在，「无依赖声明」不再成立，不得计入
-- [ ] 修复: `openspec/learn-system-blackbox-architecture.md:§20` 十条完成标准全为散文断言，经逐条核验 0 条可用一条命令判定，2 条（第 3、5）有部分基础，第 7 条按字面现在就能「通过」而构成新的假绿 ｜ 通过标准: 每条改写为「命令 + 期望退出码/期望输出」二元组；`bash openspec/acceptance/run_all.sh` 逐条打印 PASS / FAIL / BLOCKED(前置缺失)，允许 BLOCKED，不允许「无法执行」
+- [x] 修复: `openspec/learn-system-blackbox-architecture.md:§20` 十条完成标准全为散文断言，经逐条核验 0 条可用一条命令判定，2 条（第 3、5）有部分基础，第 7 条按字面现在就能「通过」而构成新的假绿 ｜ 通过标准: 每条改写为「命令 + 期望退出码/期望输出」二元组；`bash openspec/acceptance/run_all.sh` 逐条打印 PASS / FAIL / BLOCKED(前置缺失)，允许 BLOCKED，不允许「无法执行」（已取代：D-18 `4884b6a` + `2978ad9`；D-16 表 B，2026-09-11）
 
 ### RF 规划前置（不解决则拆出的 tasks 无法验收）
 
-- [ ] 修复: `openspec/learn-system-blackbox-architecture.md:§19,§20,§21` 全文无任何分期、优先级或 MVP 表述，§19 十二行全「缺」、§20 十条全为终态；而 `LEARN_SYSTEM_TARGET.md:278-296` 已确认第一阶段是一条纵切，该纵切横跨 §19 的 8 行，不独占任何一行——按差距表逐行拆将得到 12 条并行 epic，各推进 30% 时纵切仍为 0 ｜ 通过标准: 规格新增「实施分期与首个纵切」一节，§19 每行标注 {首纵切内 / 首纵切后 / 本阶段暂缓} 之一，且标为「首纵切内」的不超过 4 行
+- [x] 修复: `openspec/learn-system-blackbox-architecture.md:§19,§20,§21` 全文无任何分期、优先级或 MVP 表述，§19 十二行全「缺」、§20 十条全为终态；而 `LEARN_SYSTEM_TARGET.md:278-296` 已确认第一阶段是一条纵切，该纵切横跨 §19 的 8 行，不独占任何一行——按差距表逐行拆将得到 12 条并行 epic，各推进 30% 时纵切仍为 0 ｜ 通过标准: 规格新增「实施分期与首个纵切」一节，§19 每行标注 {首纵切内 / 首纵切后 / 本阶段暂缓} 之一，且标为「首纵切内」的不超过 4 行（已取代：D-14 `d36a202`；D-16 表 B，2026-09-11）
 - [x] 裁定（2026-09-08 用户）：首纵切改用**七政《三辰通载三十卷》影宋鈔本**。三元组 = `technique_id=qizheng` + `Work=三辰通载三十卷` + `Edition=影宋鈔本` + 本地 `SourceAsset=ocr/data_work/sanche_pages/page_001..010.png`（派生页图位于工作目录但被 Git 忽略，克隆不可恢复）+ 源 PDF 外部引用（247M，按 `.gitignore` 策略不入仓，见 RG 组）。连带确定：`evidence_level=字框级`；M6 复用现有七政工作台原型；496 条空 rule 不作为纵切输入，知识从原文重新抽取。迁移前必须按 `openspec/legacy-storage-transition.md` 登记到本地 Object Store。
-- [ ] 修复: `openspec/learn-system-blackbox-architecture.md:§4` 与 `LEARN_SYSTEM_TARGET.md:289`、`PLAN.md` 首纵切术数冲突，且素材物理不存在——`raw_books/` 全仓仅 2 个文件（`bazi/qiongtongbaojian/穷通宝鉴.epub`、`qimendunjia/yanbodiaosou.md`），无任何八字扫描件；唯一扫描物料是七政《三辰通载》10 页 PNG，其源 PDF 位于 `$HOME/Downloads/`（见 `ocr/run_sanche10.sh:14`）不在仓库、无哈希登记，违反 §9；而七政侧 496 条 rule 知识字段全空。即「八字有文无图、七政有图无文」，`LEARN_SYSTEM_TARGET.md:292` 的高亮终点当前对两者皆不可达 ｜ 通过标准: 裁定并写入规格一组三元组 `technique_id + Work/Edition + SourceAsset 仓库内路径`，该路径真实存在且可计算哈希；若选择需新引入的扫描件，则「取得并登记该扫描件」成为首纵切第 1 号任务
-- [ ] 修复: 缺最小可跑 fixture Edition，导致 §20 第 1/2/4/9 条无验收宿主，且第一批 tasks 写不出「跑哪条命令算过」 ｜ 通过标准: 建立 `pipeline/corpus/_fixture/mini_ed01`（≤3 页、≤5 batch），在无内网、无 GPU、无外部模型 API 条件下可跑完 M1→M6，并被 §19/§20 引用为统一验收宿主
-- [ ] 修复: `PLAN.md:7` 提议「按差距矩阵重写本节」，但差距表覆盖不到本文件现有 26 条未完成项中的至少 6 条（pipeline 环境检查、四本手册状态回写、《烟波钓叟歌》扩批模板、奇门试点材料、奇门金标集、旧 APP 迁移策略）及整条 Tag 线与 OCR 线，规格 §21 也未将其列为非目标，重写将静默丢失；另有 5 处重复登记（KnowledgeReleaseCompiler 见 `PLAN.md:18` / `pipeline/TODO.md` / `pattern_knowledge_workbench/TODO.md` / `LEARN_SYSTEM_TARGET.md:258`）会漂移成第 6 处 ｜ 通过标准: PLAN.md 只做增补与映射不做替换；新增「差距行 ↔ 既有条目 ↔ owner 文件」映射表，§19 每行有归属，现有未完成项被删除数量为 0 且每条标注 mapped / superseded-by / out-of-scope，重复项收敛到唯一 owner 文件
+- [x] 修复: `openspec/learn-system-blackbox-architecture.md:§4` 与 `LEARN_SYSTEM_TARGET.md:289`、`PLAN.md` 首纵切术数冲突，且素材物理不存在——`raw_books/` 全仓仅 2 个文件（`bazi/qiongtongbaojian/穷通宝鉴.epub`、`qimendunjia/yanbodiaosou.md`），无任何八字扫描件；唯一扫描物料是七政《三辰通载》10 页 PNG，其源 PDF 位于 `$HOME/Downloads/`（见 `ocr/run_sanche10.sh:14`）不在仓库、无哈希登记，违反 §9；而七政侧 496 条 rule 知识字段全空。即「八字有文无图、七政有图无文」，`LEARN_SYSTEM_TARGET.md:292` 的高亮终点当前对两者皆不可达 ｜ 通过标准: 裁定并写入规格一组三元组 `technique_id + Work/Edition + SourceAsset 仓库内路径`，该路径真实存在且可计算哈希；若选择需新引入的扫描件，则「取得并登记该扫描件」成为首纵切第 1 号任务（已取代：裁定 2026-09-08 首纵切改七政 + §22；D-16 表 B，2026-09-11）
+- [x] 修复: 缺最小可跑 fixture Edition，导致 §20 第 1/2/4/9 条无验收宿主，且第一批 tasks 写不出「跑哪条命令算过」 ｜ 通过标准: 建立 `pipeline/corpus/_fixture/mini_ed01`（≤3 页、≤5 batch），在无内网、无 GPU、无外部模型 API 条件下可跑完 M1→M6，并被 §19/§20 引用为统一验收宿主（已取代：D-15 `6fc8536`；D-16 表 B，2026-09-11）
+- [x] 修复: `PLAN.md:7` 提议「按差距矩阵重写本节」，但差距表覆盖不到本文件现有 26 条未完成项中的至少 6 条（pipeline 环境检查、四本手册状态回写、《烟波钓叟歌》扩批模板、奇门试点材料、奇门金标集、旧 APP 迁移策略）及整条 Tag 线与 OCR 线，规格 §21 也未将其列为非目标，重写将静默丢失；另有 5 处重复登记（KnowledgeReleaseCompiler 见 `PLAN.md:18` / `pipeline/TODO.md` / `pattern_knowledge_workbench/TODO.md` / `LEARN_SYSTEM_TARGET.md:258`）会漂移成第 6 处 ｜ 通过标准: PLAN.md 只做增补与映射不做替换；新增「差距行 ↔ 既有条目 ↔ owner 文件」映射表，§19 每行有归属，现有未完成项被删除数量为 0 且每条标注 mapped / superseded-by / out-of-scope，重复项收敛到唯一 owner 文件（已取代：D-16 `76bc4b4`；D-16 表 B，2026-09-11）
 - [x] 修复: `openspec/learn-system-blackbox-architecture.md:§17,§19` 未对既有五处存储给出处置结论，Ledger 落地后将全部返工，且违反 §2 原则2「Module 不直接读取或修改其他 Module 的数据库」 ｜ 通过标准: 对 `ocr/data_work/index.db`、`pipeline/units/`（139 单元）、`pipeline/rag/index.sqlite`、`pipeline/corpus/`、`pattern_knowledge_workbench/assets/ge_ju_database.sqlite`（496 rules）每处给出 {迁移 / 重跑 / 冻结为历史快照} 三选一结论
 - [x] 修复: `openspec/learn-system-blackbox-architecture.md:§19` 行序为 M1→M8→三个基础设施，恰是真实依赖拓扑的逆序（L0 内核契约 → Artifact Ledger → Local Orchestrator / Contract Registry → M1-M8），执行者自上而下开工时 Ledger 尚不存在，M1 必然自造 ID 与 manifest 约定后返工 ｜ 通过标准: §19 增「层级」列标出 L0/L1/L2/Module 四层，或按拓扑重排行序，并显式标注三个基础设施为前置层
 - [x] 修复: `openspec/learn-system-blackbox-architecture.md` 全文 21 节仅 §2 带「已确认原则」标签，其余以确定语气陈述，违反 `AGENTS.md:39`「明确区分已确认设计 / 讨论候选 / 待验证假设 / 最终规范」；§16 的「建议一个 Technique 一个 Release」混入正文，读者无法判断其对 task 是否有约束力 ｜ 通过标准: §3-§18 每节带状态标签，`grep -c "^状态：" openspec/learn-system-blackbox-architecture.md` ≥ 16，且「建议」类表述归入「讨论候选」或升格为规范
@@ -309,20 +309,20 @@ RE→T-11 + D-18；RF→D-14~D-17 + T-12/T-13；RG→D-19。**覆盖完整，无
 - [x] 明确当前不实现登录鉴权；只保留固定返回 `local_owner` 的 `ActorProvider` 接口，未来可替换线上身份适配器。业务对象稳定 ID 不属于登录身份系统，仍按 D-01 处理。
 - [x] 确认 OCR 参数化设计：现有中国传统竖排古籍 OCR/FastAPI/Vue 保持主链，不引入 Kraken；每个 Edition 使用经代表页校准、人工验收和冻结的版本化 `OCRProfile`。设计见 `openspec/ocr-profile-parameterization.md`。
 - [ ] 在黑箱 R1 规格复审通过后，以最薄实现让现有 OCR `run` 路径读取并封存 `OCRProfile`；不得借机重写算法、增加调参 UI 或接入第二引擎。
-- [ ] 完成 `openspec/learn-system-blackbox-architecture.md` 的 R1 返工并复审；PLAN 只增补映射，不重写或删除既有未完成项。
+- [x] 完成 `openspec/learn-system-blackbox-architecture.md` 的 R1 返工并复审；PLAN 只增补映射，不重写或删除既有未完成项。（已取代：G3 `241c38c` + G4 D 类全部 ACCEPTED；D-16 表 B，2026-09-11）
 - [x] 确认并记录 Learn System 最终目标、端到端运行方式、现有工具成熟度和缺口。
 - [x] 审计《穷通宝鉴》现有拆书数据，并形成 `pipeline/DATASET_ACCEPTANCE_STANDARD.md` 验收草案；当前结论为 `NOT_READY`。
 - [x] 将七政四余 `companion_system` 原样迁入通用独立项目 `pattern_knowledge_workbench/`，建立 README、领域词汇、扩展计划、缺口分析和待办。
 - [ ] 修复《穷通宝鉴》约 7.5% 源文漏编与八字 concept mentions 为 0 的两项假绿问题。
 - [ ] 修复工作台启动覆盖数据库、保存即 verified、无版本审计和 AI 候选绕过审核的 P0 风险。
 - [ ] 将工作台从七政硬编码演进为 `TechniqueProfile`，七政作为首个 profile，随后接入八字、紫微、大六壬和奇门。
-- [ ] 定义第一条八字纵切的 KnowledgePack、FactSet、ApplicabilityRule、SourceAnchor 和 Annotation 契约。
+- [x] 定义第一条八字纵切的 KnowledgePack、FactSet、ApplicabilityRule、SourceAnchor 和 Annotation 契约。（已取代：首纵切改七政；契约由 D-07 与 §16 给出；D-16 表 B，2026-09-11）
 - [ ] 打通一页扫描件到 `SourceSpan → OCR 字框 → PDF/PNG` 的无损证据链。
 - [ ] 泛化 taskgen，移除八字/《穷通宝鉴》硬编码，并建立非八字 fixture。
 - [ ] 修复完整 span ID 索引和 `concept → assertion → evidence` 查询链。
 - [ ] 实现发布级 KnowledgeReleaseCompiler、ReleaseManifest、validator 和只读 AppKnowledgeAdapter。
-- [ ] 用 `丙日干 + 亥月` FactSet 验收“十月丙火”全部相关主张召回、原文展示与扫描定位。
-- [ ] 实现锚定到词条/主张/原句/扫描区域的私人及公开 Annotation 最小模型。
+- [x] 用 `丙日干 + 亥月` FactSet 验收“十月丙火”全部相关主张召回、原文展示与扫描定位。（已取代：首纵切改七政，八字纵切延至 §22 首纵切后；D-16 表 B，2026-09-11）
+- [x] 实现锚定到词条/主张/原句/扫描区域的私人及公开 Annotation 最小模型。（已取代：D-06 `AnchorContractPack` + G6 NC-002 契约；D-16 表 B，2026-09-11）
 - [ ] 在首条纵切通过后，扩展十干十二月、十神、格局和其他术数 FactSet Profile。
 
 ## 既有知识编译与 Tag 计划
@@ -342,14 +342,14 @@ RE→T-11 + D-18；RF→D-14~D-17 + T-12/T-13；RG→D-19。**覆盖完整，无
 - [ ] 增加 assertion task、glossary、RAG index 的确定性校验器。
 - [ ] 按 `PIPELINE_REVIEW_v1.md` 回写四本手册的当前状态与扩批规则。
 - [ ] 为《烟波钓叟歌》s13-s110 扩批建立 batches/id_range/metrics/review 模板。
-- [ ] 用户确认 v1.2 推荐项、冻结项和阶段零范围。
+- [x] 用户确认 v1.2 推荐项、冻结项和阶段零范围。（已取代：§22 已确认设计（用户 2026-09-10）；D-16 表 B，2026-09-11）
 - [ ] 确认旧 APP 类型并定稿迁移策略。
 - [ ] 选择一段具有正文、注文、条件、例外和术语的奇门试点材料。
-- [ ] 建立首个 `SourcePackage` 与连续工位 `TaskPackage` 示例。
+- [x] 建立首个 `SourcePackage` 与连续工位 `TaskPackage` 示例。（已取代：D-02 StagePackage Schema + D-15 `mini_ed01`；D-16 表 B，2026-09-11）
 - [ ] 建立奇门分工位金标集并比较不同模型表现。
 - [ ] 根据试点修订 Schema、错误码和自动放行门槛。
-- [ ] 将用户批准的最终设计转入 OpenSpec。
-- [ ] 编写实施计划并开始校验器与编译器实现。
+- [x] 将用户批准的最终设计转入 OpenSpec。（已取代：`openspec/learn-system-blackbox-architecture.md` G3 ACCEPTED；D-16 表 B，2026-09-11）
+- [x] 编写实施计划并开始校验器与编译器实现。（已取代：§22 首纵切 + G5 总准出后的实现批次；D-16 表 B，2026-09-11）
 
 当前 Tag 线优先制作 `official_starter_clear` 第一版官方基础包、TechniqueProfile 和 Preview Catalog；随后用它作为 TagStyleCompiler MVP 的 golden input。不得直接启动 `TagStyleEditor`、Marketplace 或用户 Dart/Flutter 插件实施。pipeline 线仍按 `PIPELINE_REVIEW_v1.md` 继续补依赖、环境检查和确定性校验器。
 

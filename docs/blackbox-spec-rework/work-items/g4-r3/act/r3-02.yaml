@@ -23,7 +23,7 @@ verify:
   - S=openspec/learn-system-blackbox-architecture.md
   - grep -c 'pat_<technique>_<6位数字>' $S      # 1
   - grep -c 'ent_<32hex>' $S                    # 1
-  - sed -n '/^#### 3b\. /,/^#### 4\. /p' $S | grep -c '^| '     # 7
+  - sed -n '/^#### 3b\. /,/^#### 4\. /p' $S | grep -c '^|'     # 7
   - sed -n '/^#### 3b\. /,/^#### 4\. /p' $S | grep -c '用户 2026-09-11 确认'   # 1
   - TDD §3 回归
 commit:

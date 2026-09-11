@@ -35,7 +35,7 @@ bash openspec/schemas/verify.sh >/dev/null; echo "schemas exit=$?"             #
 |---|---|---|
 | `grep -c 'pat_<technique>_<6位数字>' $S` | 0 | 1 |
 | `grep -c 'ent_<32hex>' $S` | 0 | 1 |
-| `sed -n '/^#### 3b\. /,/^#### 4\. /p' $S \| grep -c '^| '` | 5 | 7 |
+| `sed -n '/^#### 3b\. /,/^#### 4\. /p' $S \| grep -c '^|'` | 5 | 7 |
 | `sed -n '/^#### 3b\. /,/^#### 4\. /p' $S \| grep -c '用户 2026-09-11 确认'` | 0 | 1 |
 | `grep -Fc '\| ConflictGroup（冲突组） \| \`cg_<32hex>\` \|' $S` | 1 | 1（原三行不变） |
 
