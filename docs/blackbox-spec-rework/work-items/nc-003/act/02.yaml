@@ -1,0 +1,42 @@
+TASK_ID: NC-003-B
+PARENT: NC-003
+STATUS: DRAFT
+REPO: xuan-migration/repository-rest-adapter
+GOAL: 追加社区参数、Schema（契约 §5）、错误响应组件、CommandResult 与内容端点 W1～W6、R1、R6；6 项测试
+DEPENDS_ON: [NC-003-A]
+ESTIMATE_MINUTES: 60
+WORKLOAD: "yaml 约 500 行（参数 9 个、Schema 约 25 个、响应组件约 15 个、路径 8 个）；6 个结构测试"
+SCOPE:
+  READ:
+    - /Users/jingtaiwei/Git/Public/learn_system/openspec/annotation-community/contracts/community_api.md
+    - /Users/jingtaiwei/Git/Public/learn_system/openspec/annotation-community/contracts/community-models.md §0.1、§2、§5
+    - /Users/jingtaiwei/Git/Public/learn_system/openspec/schemas/community_*.schema.json（MentionRef/BindingRef 定义，只读）
+    - /Users/jingtaiwei/Git/Public/learn_system/docs/blackbox-spec-rework/work-items/nc-003/TDD.md、BDD.md
+    - /Users/jingtaiwei/Git/Public/xuan-migration/repository-rest-adapter/openapi/openapi.yaml、/Users/jingtaiwei/Git/Public/xuan-migration/repository-rest-adapter/test/openapi_validation_test.dart（既有）
+  WRITE_NEW:
+    - /Users/jingtaiwei/Git/Public/xuan-migration/repository-rest-adapter/openapi/openapi.yaml（components 与 W1～W6、R1、R6）
+    - /Users/jingtaiwei/Git/Public/xuan-migration/repository-rest-adapter/test/community_openapi_contract_test.dart（追加 6 测试）
+  FORBIDDEN:
+    - /Users/jingtaiwei/Git/Public/learn_system 下任何写入
+    - /Users/jingtaiwei/Git/Public/xuan-migration/repository-rest-adapter/lib/、pubspec.yaml、pubspec.lock、test/rest_contract_suite_test.dart、test/wire_test.dart
+    - xuan-migration 其他目录；父目录 git；functions-py
+    - 新增依赖；再写 yaml 字段检查器代替验证器；改 playground 字段语义；skip；永真断言；先实现后补测试
+DEPENDENCY_ALLOWLIST: [无新增；yaml 已为 dev 依赖]
+RULES:
+  - "路径、方法、头、字段、错误码、枚举只来自 community_api.md；期望值只来自 TDD；契约未写明的行为触发停止条件"
+  - "验证器只经 tool/validate_openapi 调用；退出 2 表示未安装，按停止条件上报"
+  - "只在 REST 仓库内 git add 本步文件；提交消息按 COMMIT_MESSAGE，末尾另起两行 Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
+TESTS_FIRST:
+  - "追加 6 个测试；运行命令 5，保存失败原文作为 Red"
+STEPS:
+  - "实现至 8 个社区测试通过；验证器 0；dart analyze 0"
+  - "git add 本步文件并提交"
+VERIFICATION:
+  - "export PATH=/Users/jingtaiwei/flutter/bin:$PATH && cd /Users/jingtaiwei/Git/Public/xuan-migration/repository-rest-adapter && dart analyze"
+  - "cd /Users/jingtaiwei/Git/Public/xuan-migration/repository-rest-adapter && tool/validate_openapi openapi/openapi.yaml（期望 0）"
+  - "cd /Users/jingtaiwei/Git/Public/xuan-migration/repository-rest-adapter && dart test test/community_openapi_contract_test.dart（期望 +8）"
+  - "cd /Users/jingtaiwei/Git/Public/xuan-migration/repository-rest-adapter && dart test（期望 +58）"
+  - "git -C /Users/jingtaiwei/Git/Public/xuan-migration/repository-rest-adapter status --short（提交后为空）"
+ON_FAIL: "停止并报告失败命令、退出码与原文；不改契约、测试期望，不新增依赖，不扩大范围。验证器运行报错（非验证失败）、迁移后出现非 headers 类验证错误且契约未覆盖、既有 11 个非迁移测试变红、需改 pubspec：均为停止条件。learn_system 侧 nc003_guard.sh 的 K01 失败判外部失败只记录；K02 及以后按本任务失败停工。"
+BASELINE_EXIT_CODES: "开工基线：REST 仓 0f8bf52，dart test +50，validate_openapi 对既有文档非零（'headers' was unexpected）"
+COMMIT_MESSAGE: "feat(openapi): 社区组件、错误目录与内容端点（NC-003-B）"

@@ -14,3 +14,6 @@ pipeline/corpus/**/raw/*.pdf
 
 # Artifact Ledger 本地数据（Object Store + SQLite，不进 Git）
 var/
+
+# NC-001 基线指定的 OpenAPI 验证器 venv
+openspec/annotation-community/.venv-openapi/

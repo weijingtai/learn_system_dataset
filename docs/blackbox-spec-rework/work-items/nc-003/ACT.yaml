@@ -1,0 +1,20 @@
+TASK_ID: NC-003
+STATUS: DRAFT
+GOAL: 在 REST 仓库把 openapi.yaml 修成合法 3.1 并追加注解社区 20 端点、错误目录、命令账本与真实验证器/示例校验
+CONTRACTS:
+  - openspec/annotation-community/contracts/community_api.md
+  - openspec/annotation-community/contracts/community-models.md（§0.1、§2、§5）
+DISPATCH_PRECONDITION: "NC-002 已 ACCEPTED；验证器已安装（README 路径）"
+SPLIT:
+  - act/01.yaml
+  - act/02.yaml
+  - act/03.yaml
+  - act/04.yaml
+ORDER: "严格按 act/01 → 02 → 03 → 04；全部提交在 /Users/jingtaiwei/Git/Public/xuan-migration/repository-rest-adapter 仓库；每步以上一步提交为基线；禁止并行"
+ESTIMATE_MINUTES_TOTAL: 210
+DEFERRED:
+  - "backup.begin/complete/delete 的路径与密码学字段：NC-017（随 NC-015 接入 xuan-storage 后）"
+  - "服务端实现（command_service、事务、ACL 18 例真实 HTTP 测试、限流开启）：NC-009 起"
+  - "通知补拉端点与 notifier 绑定：NC-013"
+  - "书籍上传/导入端点：NC-021"
+  - "行为事件上报端点：NC-026"
