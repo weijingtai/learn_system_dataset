@@ -10,7 +10,7 @@
 
 > **Subagent 工作监控：[`docs/blackbox-spec-rework/SUBAGENT_TODO.md`](docs/blackbox-spec-rework/SUBAGENT_TODO.md)**。所有大项及其 BDD、TDD、ACT、Prompt、执行、验收小项在此勾选；准出规则见 [`openspec/subagent-delivery-gate.md`](openspec/subagent-delivery-gate.md)。
 
-> **注解／读书笔记／评论系统冷启动：[`docs/annotation-community/COLD_START_PROMPT.md`](docs/annotation-community/COLD_START_PROMPT.md)**。需要调研或开发私人注解、公开笔记、原句讨论、回复、互动及其 Learn System 数据接入时，将该文件全文交给新 Agent。
+> **注解／读书笔记／评论系统（G6 注解社区线）**：权威规格为 [`openspec/annotation-community/`](openspec/annotation-community/) 下的 `PRD.md`、`DESIGN.md`、`PLANS.md`、`TASKS.md`（v1.5），任务流转状态只看 [`docs/blackbox-spec-rework/SUBAGENT_TODO.md`](docs/blackbox-spec-rework/SUBAGENT_TODO.md) G6 节；全项目接手入口为根 [`AGENT_TAKEOVER_PROMPT.md`](AGENT_TAKEOVER_PROMPT.md)。旧文件 [`docs/annotation-community/COLD_START_PROMPT.md`](docs/annotation-community/COLD_START_PROMPT.md) 是 2026-09-09 调研期 prompt，其「第一阶段产出」已被上述规格与 NC 工作包取代，只作背景阅读，不再作为冷启动入口。
 
 ## 黑箱核心 ID 快速说明
 
