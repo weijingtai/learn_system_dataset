@@ -7,8 +7,8 @@
 ### 1.1 产物位置
 
 - 契约文件：`/Users/jingtaiwei/Git/Public/xuan-migration/repository-rest-adapter/openapi/openapi.yaml`（既有 3.1.0 文档，**原地修改**：修正既有非法结构并追加社区部分；`info.version` 由 `1.0.0` 升为 `1.1.0`）。
-- 验证器：`openapi-spec-validator 0.9.0`，安装位置 `/Users/jingtaiwei/Git/Public/learn_system/openspec/annotation-community/.venv-openapi/bin/openapi-spec-validator`（NC-001 基线；主 Agent 2026-09-11 已安装并核实：既有 openapi.yaml **验证失败**——`'headers' was unexpected`；notifier 3.0.3 契约通过；故意非法文档被拒）。
-- REST 仓库测试基线（改前，主 Agent 实测）：`dart test` 退出码 0，`+50: All tests passed!`；`test/openapi_validation_test.dart` 含 19 个 `test(`，其中 8 处断言要求 operation 级 `headers:`（第 147/148/161/217/218/239/240/292/307 行附近）。
+- 验证器：`openapi-spec-validator 0.9.0`，安装位置 `/Users/jingtaiwei/Git/Public/learn_system/openspec/annotation-community/.venv-openapi/bin/openapi-spec-validator`（NC-001 基线；主 Agent 2026-09-11 已安装并核实：既有 openapi.yaml **验证失败**——`'headers' was unexpected`；notifier 3.0.3 契约通过；故意非法文档被拒）。精确计数（PyYAML 按 `paths.*.<method>` 解析）：22 个 operation **全部**带非法 operation 级 `headers:`；全文 `grep -c headers:` 的 35 含 12 处合法 response 级与 1 处 `components/headers`，不可作判据。
+- REST 仓库测试基线（改前，主 Agent 实测）：`dart test` 退出码 0，`+50: All tests passed!`；`test/openapi_validation_test.dart` 含 19 个 `test(`，其中 **14 行断言、分布在 12 个测试块**要求 operation 级 `headers:`（第 147/161/217/239/292/307/315/320/329/330/339/340/349/350 行；第 50 行的 `components['headers']` 合法，不迁移）；其余 7 个测试不涉及。
 - 权威文档两份：本文对应 REST 仓 3.1.0；notifier ACK/relay 契约 `xuan-server/notifier/api/openapi.yaml`（3.0.3）只引用不复制。
 
 ### 1.2 Firebase 方向（用户 2026-09-11 指示：按 Firebase 方向写，与 functions-py 现有约定统一）
@@ -47,7 +47,7 @@
 | W12 | `share.create` | `POST /share-links` | `CreateShareLinkRequest` | 201 `ShareLinkResponse` | — |
 | W13 | `share.revoke` | `DELETE /share-links/{share_id}` | 无 | 200 `ShareLinkResponse` | — |
 | W14 | `report.create` | `POST /reports` | `CreateReportRequest` | 201 `ReportResponse` | — |
-| — | `backup.begin` / `backup.complete` / `backup.delete` | **本任务不定义路径**（NC-017 随 NC-015 密码学字段补入） | — | — | — |
+| — | `backup.begin` / `backup.complete` / `backup.delete` | **保留枚举值，本期无路径**（v1.6 S6 模型无云端备份，PRD R-13 改为本机导出） | — | — | — |
 | R1 | — | `GET /contents/{content_id}` | — | 200 `ContentDetail`（ETag）/ 304 | — |
 | R2 | — | `GET /contents/{content_id}/comments?cursor&limit` | — | 200 `CommentPage`（ETag）/ 304 | — |
 | R3 | — | `GET /reactions/{target_type}/{target_id}` | — | 200 `ReactionState`（ETag） | — |
@@ -61,7 +61,7 @@
 
 ### 3.1 结构硬规则
 
-- 所有请求头一律写成 `components/parameters` 下 `in: header` 的参数并在 operation 的 `parameters` 中 `$ref`；**operation 对象内禁止出现 `headers:` 键**（OpenAPI 3.1 无此字段，验证器拒绝）。既有 35 处必须迁移，既有 8 处断言必须改为检查 `parameters` 中存在 `in: header` 且 `name` 相符的项（可经 `$ref` 解析）。
+- 所有请求头一律写成 `components/parameters` 下 `in: header` 的参数并在 operation 的 `parameters` 中 `$ref`；**operation 对象内禁止出现 `headers:` 键**（OpenAPI 3.1 无此字段，验证器拒绝）。既有 22 个 operation 必须全部迁移（响应级 `headers:` 与 `components/headers` 中的响应头 `ETag` 保留）；既有 14 行断言必须改为检查 `parameters` 中存在 `in: header` 且 `name` 相符的项（可经 `$ref` 解析）。
 - 响应头（`ETag`、`Retry-After`）仍在 response 的 `headers:` 下声明，这是合法位置。
 
 ### 3.2 头参数（components/parameters 名 → HTTP 头名）
@@ -109,18 +109,22 @@
 
 403/404 边界：调用方已被证明拥有该资源读权限时用 403，否则一律 404（DESIGN §7.3）。
 
-### 4.2 `type` 到 SERVER L0 闭合码的映射（沿用 `xuan/errors.py`）
+### 4.2 `type` 到 SERVER L0 闭合码的映射（逐字取自 `xuan/errors.py` 第 14～26 行 `_L0_MAP`，2026-09-11 核实）
 
-| `code` 前缀 | `type` |
-|---|---|
-| `unauthenticated` | `unauthenticated` |
-| `not_found.*` | `not_found` |
-| `forbidden.*` | `permission-denied` |
-| `conflict.idempotency` | `aborted` |
-| `conflict.version` / `conflict.access_version` / `conflict.lifecycle` / `conflict.object_missing` / `gone.command_result` | `failed_precondition` |
-| `invalid_argument.*` / `too_large.*` | `invalid_argument` |
-| `rate_limited` | `resource_exhausted` |
-| `unavailable*` | `unavailable` |
+L0 闭合码全集：`invalid_argument, not_found, unauthenticated, permission_denied, conflict.idempotency, conflict.unique, unavailable, deadline_exceeded, internal`（`failed-precondition` 归并为 `invalid_argument`，`resource-exhausted` 归并为 `unavailable`）。客户端只按 `code` 分支，`type` 仅为与既有错误层同源的粗分类。
+
+| `code` | `type`（L0） | 对应 `XuanHttpsError` code |
+|---|---|---|
+| `unauthenticated` | `unauthenticated` | `unauthenticated` |
+| `not_found.*` | `not_found` | `not-found` |
+| `forbidden.*` | `permission_denied` | `permission-denied` |
+| `conflict.idempotency` | `conflict.idempotency` | `aborted` |
+| `conflict.version` / `conflict.access_version` / `conflict.lifecycle` / `conflict.object_missing` / `gone.command_result` | `invalid_argument` | `failed-precondition` |
+| `invalid_argument.*` / `too_large.*` | `invalid_argument` | `invalid-argument` |
+| `rate_limited` | `unavailable` | `resource-exhausted` |
+| `unavailable` / `unavailable.command_status` | `unavailable` | `unavailable` |
+
+`ProblemDetails.type` 的 enum 恰为上述 L0 全集中出现的 6 个值：`unauthenticated, not_found, permission_denied, conflict.idempotency, invalid_argument, unavailable`。
 
 ### 4.3 ACL 入口与统一 404
 
@@ -213,7 +217,10 @@
 | report.create | `report_ref` | `ReportResponse` | 0 |
 | backup.* | `backup_id` | NC-017 定义 | NC-017 定义 |
 
-精简账本（14 天后）只保留 `CommandResult`（`compacted=true`），不含任何完整结果 Schema 字段；R5 在可恢复时返回 `CommandResult`，不能恢复完整响应时仍 200 返回精简 `CommandResult`（DESIGN §7.4 第 4 条的 410 只用于客户端明确请求完整响应的场景：R5 带 query `full=true` 且已精简 → 410 `gone.command_result`）。
+精简账本（14 天后）只保留 `CommandResult`（`compacted=true`），不含任何完整结果 Schema 字段。两条路径（DESIGN §7.4 第 3～5 条逐字落地）：
+- **同键重放写命令**（W1～W14 携带既有 `Idempotency-Key`）：14 天内 → 原始完整响应（原 HTTP 状态与体）；14 天后可恢复最小结果但无法恢复完整响应 → `410 gone.command_result`，附加字段 `command`（精简 `CommandResult`）；均不重新执行。
+- **命令查询 R5**：记录存在 → `200 CommandResult`（完整期含 `compacted=false`，精简后 `compacted=true`）；未见记录 → `404 not_found.command`；账本服务暂时不可用 → `503 unavailable.command_status`。R5 无任何 query 参数。
+- 重放与 R5 返回的 `applied_version` 都是**原始**值，不承诺当前状态；当前状态另经 R1/R3 读取（示例 `command_replay_original_version.json` 与 `reaction_state_current.json` 成对给出 applied_version=1 与当前 version=2）。
 
 ## 8. REST 仓库产物与测试判据
 
@@ -224,7 +231,7 @@
 | `test/community_openapi_contract_test.dart` | 上表全部结构判据各至少一个测试；另调用 `tool/validate_openapi` 对 `openapi/openapi.yaml` 期望退出 0，对 `test/fixtures/openapi/red_*.yaml` 每个期望非 0 |
 | `tool/validate_openapi` | bash：优先 `$OPENAPI_VALIDATOR`，否则 §1.1 的绝对路径；不存在时退出 2 并打印 `validator not installed (ENV_BLOCKED)`；否则透传验证器退出码 |
 | `tool/check_examples.py` | Python（`$PYTHON` 或 learn_system `.venv/bin/python`，需 `jsonschema`）：读 `test/fixtures/openapi/examples/manifest.json`（每项 `{file, schema, expect: valid|invalid}`），用 `components/schemas/<schema>` 校验，任一不符退出 1 |
-| `test/fixtures/openapi/` | Red 文档：`red_operation_headers.yaml`（含 operation 级 `headers:`）、`red_invalid_31.yaml`（缺 `info.version`）；examples：`publish_missing_required.json`（缺 `content_hash`，invalid）、`comment_illegal_status.json`（`status: archived`，invalid）、`idempotency_conflict_409.json`（`ProblemDetails`，valid，含 `original_request_hash`）、`version_conflict_412.json`（valid，含 `current_version`）、`publish_valid.json`（valid） |
+| `test/fixtures/openapi/` | Red 文档：`red_operation_headers.yaml`（含 operation 级 `headers:`）、`red_invalid_31.yaml`（缺 `info.version`）；examples：`publish_missing_required.json`（缺 `content_hash`，invalid）、`comment_illegal_status.json`（`status: archived`，invalid）、`idempotency_conflict_409.json`（`ProblemDetails`，valid，含 `original_request_hash`）、`version_conflict_412.json`（valid，含 `current_version`）、`publish_valid.json`（valid）、`access_version_conflict_409.json`（`ProblemDetails`，valid，含 `current_access_version`）、`command_replay_original_version.json`（`CommandResult`，valid，`applied_version: 1`）、`reaction_state_current.json`（`ReactionState`，valid，`version: 2`，与前者成对表达「原始 applied_version ≠ 当前状态」） |
 
 ## 9. 决定登记（NC-003，主 Agent 裁定，可推翻）
 
@@ -238,6 +245,7 @@
 | D-NC003-06 | 社区部分 snake_case，不改 playground | 与 community-models、fixture、nchash 投影一致，避免两套字段名 |
 | D-NC003-07 | 评论列表 ETag 组合 access 版本与末条评论键 | 评论新增不改 `ContentAccess.version`，单独版本才能让 304 正确失效 |
 | D-NC003-08 | 限流阈值实值如 §6，服务端默认关闭 | TASKS 要求填实值；SERVER 现状默认关闭，开启归 NC-009 |
-| D-NC003-09 | backup.* 只进操作枚举，不定义路径 | 密码学字段由 NC-015（接入 xuan-storage）后经 NC-017 进 OpenAPI |
+| D-NC003-09 | backup.* 只作保留枚举值，不定义路径 | v1.6：私人数据保护改为 S6 模型，无云端备份；保留枚举以免改动 NC-002 已冻结的 Schema 与 fixture |
 | D-NC003-10 | `conflict.object_missing` 新增为目录行 | DESIGN §4.3 publish 前置「图片对象已全部上传完成」需要可断言的错误码 |
 | D-NC003-11 | 契约测试用 Python 验证器与 jsonschema 经进程调用 | Dart 生态无成熟 3.1 校验器（DESIGN §7.4 明令禁止再写 yaml 字段检查器充数） |
+| D-NC003-12 | `forbidden.not_owner` 覆盖 update/withdraw/trash/restore/purge/share.create 六个本人操作，比 DESIGN §7.3 基线（withdraw/publish/trash）多列 restore/purge/share.create | 三者同为「只有本人可做」且调用方已被证明可读，按 §7.3 边界规则归 403；基线表只列举未穷举 |

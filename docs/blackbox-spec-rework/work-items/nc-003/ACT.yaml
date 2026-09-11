@@ -10,10 +10,11 @@ SPLIT:
   - act/02.yaml
   - act/03.yaml
   - act/04.yaml
-ORDER: "严格按 act/01 → 02 → 03 → 04；全部提交在 /Users/jingtaiwei/Git/Public/xuan-migration/repository-rest-adapter 仓库；每步以上一步提交为基线；禁止并行"
-ESTIMATE_MINUTES_TOTAL: 210
+  - act/05.yaml
+ORDER: "严格按 act/01 → 02 → 03 → 04 → 05；全部提交在 /Users/jingtaiwei/Git/Public/xuan-migration/repository-rest-adapter 仓库；每步以上一步提交为基线；禁止并行"
+ESTIMATE_MINUTES_TOTAL: 230
 DEFERRED:
-  - "backup.begin/complete/delete 的路径与密码学字段：NC-017（随 NC-015 接入 xuan-storage 后）"
+  - "backup.begin/complete/delete：v1.6 起为保留枚举值，本期无路径（PRD R-13 改为本机导出）"
   - "服务端实现（command_service、事务、ACL 18 例真实 HTTP 测试、限流开启）：NC-009 起"
   - "通知补拉端点与 notifier 绑定：NC-013"
   - "书籍上传/导入端点：NC-021"

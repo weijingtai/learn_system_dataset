@@ -8,11 +8,11 @@
 
 ## Goal
 
-在 REST 仓库 `repository-rest-adapter` 内：① 把既有 `openapi/openapi.yaml` 的 35 处非法 operation 级 `headers:` 迁移为 `in: header` 参数，并迁移既有测试的 8 处断言；② 追加注解社区 20 个端点（14 写命令 + 6 读）、Schema、错误目录、命令账本结果与限流实值；③ 接入真实 OpenAPI 3.1 验证器与 JSON Schema 示例校验工具；④ 新增社区契约测试。执行者不做设计：路径、方法、头、字段、错误码、枚举全部来自契约。
+在 REST 仓库 `repository-rest-adapter` 内：① 把既有 `openapi/openapi.yaml` 全部 22 个 operation 的非法 operation 级 `headers:` 迁移为 `in: header` 参数，并迁移既有测试的 14 行断言（12 个测试块）；② 追加注解社区 20 个端点（14 写命令 + 6 读）、Schema、错误目录、命令账本结果与限流实值；③ 接入真实 OpenAPI 3.1 验证器与 JSON Schema 示例校验工具；④ 新增社区契约测试。执行者不做设计：路径、方法、头、字段、错误码、枚举全部来自契约。
 
 ## Scope
 
-- 允许写：仅 `/Users/jingtaiwei/Git/Public/xuan-migration/repository-rest-adapter/` 内：`openapi/openapi.yaml`（原地修改）、`test/openapi_validation_test.dart`（仅 8 处断言与其辅助函数）、新建 `test/community_openapi_contract_test.dart`、`tool/validate_openapi`、`tool/check_examples.py`、`test/fixtures/openapi/**`。
+- 允许写：仅 `/Users/jingtaiwei/Git/Public/xuan-migration/repository-rest-adapter/` 内：`openapi/openapi.yaml`（原地修改）、`test/openapi_validation_test.dart`（仅 14 行断言所在的 12 个测试块与一个辅助函数）、新建 `test/community_openapi_contract_test.dart`、`tool/validate_openapi`、`tool/check_examples.py`、`test/fixtures/openapi/**`。
 - 只读：REST 仓库 `lib/`、`pubspec.yaml`、`pubspec.lock`、其他测试；learn_system 全部；`xuan-server/notifier/api/openapi.yaml`；functions-py。
 - 禁止：写入 learn_system；改 `lib/`、`pubspec.*`；新增 Dart 依赖（`yaml` 已是 dev 依赖）；再写 yaml 字段检查器代替真实验证器；改 playground 既有字段名或语义（只改头的表达形式）；`skip`、永真断言；先实现后补测试。
 
@@ -22,18 +22,18 @@
 
 ## Dependencies / Baseline
 
-- REST 仓库改前基线（主 Agent 2026-09-11 实测）：HEAD `0f8bf52`，`dart test` 退出 0、`+50`；`openapi-spec-validator openapi/openapi.yaml` **失败**（`'headers' was unexpected`）。
+- REST 仓库改前基线（主 Agent 2026-09-11 实测）：HEAD `0f8bf52`，`dart test` 退出 0、`+50`（19 + 14 + 17）；`openapi-spec-validator openapi/openapi.yaml` **失败**（`'headers' was unexpected`）。
 - 验证器：`/Users/jingtaiwei/Git/Public/learn_system/openspec/annotation-community/.venv-openapi/bin/openapi-spec-validator`（0.9.0，已安装）；JSON Schema：`/Users/jingtaiwei/Git/Public/learn_system/.venv/bin/python`（含 `jsonschema 4.26.0`）。两者只读调用。
 - 共享守卫：唯一 learn_system 侧命令 `bash docs/blackbox-spec-rework/reviews/nc003_guard.sh --require-impl`（只读）；K01 失败判外部失败，K02 及以后按本任务失败停工。
 
 ## Stop Conditions
 
-契约有两种以上解释；验证器不在上述路径或运行报错（非验证失败）；迁移 35 处 headers 后验证器仍报非 `headers` 类错误且无法按契约 §3.1 解决；`pubspec` 需要改动；既有 11 个非迁移测试变红；需要写白名单外文件。遇到即停，原样报告。
+契约有两种以上解释；验证器不在上述路径或运行报错（非验证失败）；迁移 22 个 operation 的 headers 后验证器仍报非 `headers` 类错误且无法按契约 §3.1 解决；`pubspec` 需要改动；既有 7 个非迁移测试变红；需要写白名单外文件。遇到即停，原样报告。
 
 ## 执行顺序
 
-`act/01`（验证器工具 + 红文档 + 35 处迁移 + 8 处断言迁移）→ `act/02`（社区组件与内容端点）→ `act/03`（评论/互动/分享/举报/命令端点）→ `act/04`（示例校验工具与 fixture、版本号、全量）。每步一个提交在 REST 仓库。
+`act/01`（验证器工具 + 红文档 + 22 处迁移 + 14 行断言迁移）→ `act/02`（社区参数/Schema/错误组件/CommandResult）→ `act/03`（内容端点 W1～W6、R1、R6）→ `act/04`（评论/互动/分享/举报/命令端点）→ `act/05`（示例校验工具与 fixture、版本号、全量）。每步一个提交在 REST 仓库。
 
 ## 一次性交付与阅读顺序
 
-1. 本 README；2. `contracts/community_api.md`；3. [BDD](BDD.md)、[TDD](TDD.md)；4. [ACT](ACT.yaml) 与 act/01～04；5. [ACCEPTANCE](ACCEPTANCE.md)；6. [PROMPT](PROMPT.md)。
+1. 本 README；2. `contracts/community_api.md`；3. [BDD](BDD.md)、[TDD](TDD.md)；4. [ACT](ACT.yaml) 与 act/01～05；5. [ACCEPTANCE](ACCEPTANCE.md)；6. [PROMPT](PROMPT.md)。
