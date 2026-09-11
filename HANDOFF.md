@@ -18,13 +18,13 @@
 下一步（第一件事）：拿到用户确认 → 派发 g5-01 → 验收 → `PROJECT_COLD_START_HANDOFF.md` 状态改 `IMPLEMENTATION_PHASE` → 写首纵切第一批（Artifact Ledger，§17，判据 `run_all.sh 20.2 20.3`）六件套；之后 M3 → M5 → M8，判据 `run_all.sh 20.N` 由 BLOCKED 变 PASS。
 已知的坑：PLAN.md 时间窗已向 C/S 解除；PLAN 的 D-16 节要求「零删行」，今后改 PLAN 只能追加或把 `- [ ]` 改 `- [x]` 并附取代者；验收仍在 `git archive` 导出树上跑。 **`check_d16.py` 刚性缺陷**：R3 把表 B 行数写死为 43、R4 要求黑箱节任何新 `- [ ]` 都登记进表 B，因此现在无法往 PLAN 黑箱节新增未勾选项（G5 记录条目因此只写在 SUBAGENT_TODO/HANDOFF）；首纵切第一批 ACT 必须先把 R3 改为「≥ 43」并允许表 B 追加行，再往 PLAN 加实现条目。
 
-## G6 NC-007 验收 REWORK（act/05～06 派发中）（C/S 会话）
+## G6 NC-007 ACCEPTED；本地笔记线全部落地（C/S 会话）
 
 更新时间：2026-09-11
 当前分支/worktree：`codex/docs/knowledge-compilation`；`/Users/jingtaiwei/Git/Public/learn_system`
-刚完成：NC-007 独立验收——形式门禁全过（守卫 0、145 测试、范围干净），盲测发现两处实质缺陷：① `revision_compare.dart` 在中间区 > 2000 行时无条件全删全插（20k 行改两处 → 变更行 39 962）；② `ManualMergePage` 的控制器用真实 Timer 自动保存到首选 head，真实库上 `commitManualMerge` 抛 `HeadConflictError`。此前 `4ea5105` 把 NC-007 标成 ACCEPTED 但没有盲测与源码审阅记录，已作废。契约追加 §6（D-NC007-06/07），新增 act/05（锚定递归，3 测试）、act/06（工作区不自动保存，2 测试，全量 `+150`），PROMPT.md 末尾追加派发段，守卫 K05 在 `--require-impl` 下要求返工落地。
-进行到一半的事（精确到文件和章节）：等 act/05～06 执行报告；验收时复跑 ACCEPTANCE R1 的盲测 ①（20k 两处变更行恰 4）、④（工作区 2.5 s 无 saveSnapshot）、⑤（真实 Drift 两 head 合并）。
-下一步（第一件事）：act/05～06 验收关闭 NC-007。之后本地线只剩依赖服务端/Firebase 决定的任务（NC-003、NC-008 起）；可先做 NC-003 前的 Firebase 替代对比材料。
+刚完成：NC-007 act/05～06 验收通过（reading-notes `5cdd344`、`9b35e97`；守卫 `--require-impl` 0；150 测试；盲测：20k 行两处变更行恰 4、1.1 MiB 首尾改动加 300 行移动 39 ms、跨 2000 行阈值随机重组精确、合并工作区无自动保存、真实 Drift 两 head 合并成功），NC-007 记 ACCEPTED（ACCEPTANCE.md R2）。本地笔记线 NC-002/004/005/006/007 全部 ACCEPTED；reading-notes 独立仓库共 19 个提交。
+进行到一半的事（精确到文件和章节）：无。
+下一步（第一件事）：本地线剩余任务全部依赖服务端契约（NC-003）或 Firebase 去留（用户暂缓）。建议先做 NC-003 前置材料：供应商无关的账号模型（在线 + 匿名）与 Firebase 替代对比，供用户决策；同时可准备 NC-008（图片）中不依赖服务端的本地图片对象部分的契约草案，但不派发。
 已知的坑：PLAN.md 今后只能追加或把 `- [ ]` 改 `- [x]`（D-16 零删行判据；`check_d16.py` 只查黑箱侧条目，不查 G6 节）；G6 新条目不需登记进 D-16 映射表。一次性 Dart 盲测需 `import 'package:drift/drift.dart'` 才能用 `interceptWith`；执行方报告在 reading-notes 根目录未跟踪，验收不入库。
 
 ## G4 第二批验收通过：D-15 fixture、D-18 §20 判据化、前缀登记（Dataset 会话；黑箱线最新状态）

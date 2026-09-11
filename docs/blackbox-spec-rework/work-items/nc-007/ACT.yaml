@@ -1,5 +1,5 @@
 TASK_ID: NC-007
-STATUS: REWORK
+STATUS: ACCEPTED
 GOAL: "实现历史修订列表、纯本地长文差异对比、多分支冲突检测与 PRD 旅程 6 四选项冲突处理完整路径"
 CONTRACTS:
   - openspec/annotation-community/contracts/revision_history.md

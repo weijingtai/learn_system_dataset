@@ -1,7 +1,7 @@
 # NC-007：历史差异、恢复与冲突处理旅程
 
 - 任务 ID：`NC-007`
-- 状态：`REWORK`（2026-09-11 主 Agent 验收：act/01～04 形式门禁通过，盲测发现两处实质缺陷——长文差异在中间区 > 2000 行时整篇删插、手动合并工作区自动保存导致合并提交失败；追加 act/05、act/06，契约 §6）。原状态 `READY`
+- 状态：`ACCEPTED`（2026-09-11 R2，reading-notes `29f6065`→`9b35e97`，150 测试）。曾为 `REWORK`（2026-09-11 主 Agent 验收：act/01～04 形式门禁通过，盲测发现两处实质缺陷——长文差异在中间区 > 2000 行时整篇删插、手动合并工作区自动保存导致合并提交失败；追加 act/05、act/06，契约 §6）。原状态 `READY`
 - 目标：在 Flutter 包 `/Users/jingtaiwei/Git/Public/xuan-migration/reading-notes` 实现历史修订列表、纯本地长文差异对比、多分支冲突检测与 PRD 旅程 6 四选项冲突处理完整路径。
 - 依赖：`NC-004`（Drift 修订库与仓储接口）、`NC-005`（编辑器控制器与页面）、`NC-006`（撤销/重做栈支持）。
 - 仓库：`xuan-migration/reading-notes`（独立 Git 仓库）；`xuan-migration` 父目录不是 Git 仓库；`learn_system` 仓库只读。

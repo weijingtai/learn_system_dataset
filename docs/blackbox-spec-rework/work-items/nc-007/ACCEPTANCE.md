@@ -1,6 +1,6 @@
 # NC-007 验收规格与记录
 
-当前状态：`REWORK`（2026-09-11 主 Agent 独立验收：形式门禁通过，盲测发现两处实质缺陷；此前 `4ea5105` 的 ACCEPTED 标记未做盲测与源码审阅，作废）
+当前状态：`ACCEPTED`（2026-09-11 R2；R1 曾判 REWORK 2 项，act/05～06 落实后通过。此前 `4ea5105` 的 ACCEPTED 标记未做盲测与源码审阅，作废）
 
 ---
 
@@ -49,3 +49,11 @@
   - **① 缺陷**：20 000 行文档只改第 10 行与第 19 990 行，变更行数 39 962（整篇删插，耗时 20 ms）。原因：`_myersDiff` 在中间区 `n+m > 2000` 时无条件返回全删全插。折叠与导航在长文上失效。→ D-NC007-06，act/05。
   - **④ 缺陷**：`ManualMergePage` 用真实 `Timer` 与真实仓储构造 `NoteEditorController`，打字后 2.5 s 内 `saveSnapshot` 被调用；在真实库上复现：自动保存替换首选 head 后 `commitManualMerge` 抛 `HeadConflictError: Head not in current heads`，手动合并无法提交。既有测试的替身在 `mergeHeads` 中不校验 heads，所以未暴露。→ D-NC007-07，act/06。
 - 判定：**REWORK**。act/05、act/06 通过后复跑本记录 ①④ 与 ⑤，再关闭 NC-007。
+
+## 验收记录 R2（主 Agent，2026-09-11）：act/05～06 通过，NC-007 ACCEPTED
+
+- 提交：reading-notes `5cdd344`（E）、`9b35e97`（F）；只含各自两个允许文件，其余 diff 为空；`lib/src/history/` 无裸 `Timer(`、`revision_compare.dart` 无 `maxThreshold` 退化。
+- 守卫 `nc007_guard.sh --require-impl`（返工判据：返工已落地、测试 ≥150）K01～K05 全 PASS；`flutter test +150`，analyze 0。
+- 源码核对：中间区按契约 §6.1 递归——≤2000 行走 Myers，否则唯一公共行 + LIS 锚定、间隙递归，仅无锚点时整体删插；`ManualMergePage` 控制器改用永不触发的 `TimerFactory`，提交仍只经 `commitManualMerge`。报告写明真实库测试一开始即绿（回归守卫）与 grep 无输出退出码 1 的含义。
+- 盲测（临时文件，已删除）：① 20 000 行改两处 → 变更行恰 4，63 ms，块可重组；①b 约 1.1 MiB 文档首尾各改一处并移动 300 行 → 变更行 604（4 + 300 删 + 300 插），39 ms；② 40 组跨过 2000 行阈值、锚点稀疏的随机编辑全部精确重组；④ 合并工作区打字 2.5 s 无 `saveSnapshot`，「保存合并」恰一次 `mergeHeads` 且 headIds 为进入冲突时的两个 head；⑤ 真实 Drift 库两 head 手动合并成功，heads 收敛为一个，parent_ids 为原两 head，修订链完整。
+- 判定：**NC-007 ACCEPTED**（act/01～06，reading-notes `29f6065`→`9b35e97`，全量 150 测试）。
