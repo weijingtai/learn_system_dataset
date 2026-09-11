@@ -627,10 +627,12 @@
   - [x] wjt-react 四查：R1 返工 1 项（act/03 校验命令 `&&` 链退出码误判）+ 2 建议，主 Agent 落实后 READY（`reviews/NC-006-REVIEW-R1.md`）；守卫 `nc006_guard.sh` 0
   - [x] 外部执行 Agent 完成 act/01～03（三个提交）；主 Agent 验收：守卫 0、110 测试、六组盲测通过，⑦ 页面层 IME 组合缺口与 ⑤ 组合中撤销裁定为 D-NC006-13/14（`work-items/nc-006/ACCEPTANCE.md`）
   - [x] act/04 返工（页面 `composing` 接线 + adapter 组合中 no-op，3 测试，`+113`）：`00f6fc9`；主 Agent 复跑盲测 ⑦/⑤ 通过，守卫 `--require-impl` 0，NC-006 关闭（ACCEPTANCE.md R2）
-- [ ] NC-007：历史、差异、恢复与冲突处理旅程（状态：`READY`）
+- [x] NC-007：历史、差异、恢复与冲突处理旅程（状态：`ACCEPTED`，2026-09-11；reading-notes `29f6065`→`8a910a2`，act/01～04，145 测试）
   - [x] 规格侧契约（主 Agent）：`openspec/annotation-community/contracts/revision_history.md`（纯本地长文差异、连续 3 行折叠、跳转导航、恢复旧版新建带 restored_from 修订、PRD 旅程 6 四选项闭集与非阻断横幅、D-NC007-01～05）
   - [x] 六件套 `work-items/nc-007/`（act/01 差异与折叠、act/02 历史列表与恢复、act/03 冲突控制器、act/04 横幅与手动合并工作区）与守卫 `reviews/nc007_guard.sh`
   - [x] 审查与门禁：守卫 `nc007_guard.sh` 0，BDD B01～B32 齐全，全量测试目标 +145
+  - [x] 执行 Agent 完成 act/01～04（reading-notes 四个原子提交：`29f6065`、`033392d`、`5e970f8`、`8a910a2`）
+  - [x] 主 Agent 验收通过：`nc007_guard.sh --require-impl` 0 FAIL、analyze 0 issues、145 测试全过、零外部网络/零新依赖、保护文件未触碰，详见 `work-items/nc-007/ACCEPTANCE.md`
 
 ### 图片与公开社区
 
