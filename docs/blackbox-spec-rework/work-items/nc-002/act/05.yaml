@@ -1,46 +1,50 @@
 TASK_ID: NC-002-E
 PARENT: NC-002
 STATUS: PREPARING
-REPO: xuan-server/functions-py
-GOAL: 在 SERVER 独立实现 nchash/v2（xuan/community_hash.py）与跨端一致性 unittest，并复制 fixture 副本
+REPO: learn_system
+GOAL: 实现 fixture 校验器 validate_fixtures.py 与 7 个单元测试
 DEPENDS_ON: [NC-002-D]
-ESTIMATE_MINUTES: 50
-WORKLOAD: "1 个模块（E 编码 6 类型 + snapshot 规范化 4 段 + project_revision）+ 7 个 unittest 方法 + 1 个字节复制的 fixture"
+ESTIMATE_MINUTES: 55
+WORKLOAD: "校验器 7 条规则（解析 state-machines.md 枚举总表、递归遍历状态键与 ID 键）+ 7 个 unittest 方法"
 SCOPE:
   READ:
-    - openspec/annotation-community/contracts/community-models.md §1.2（snapshot 六字段与嵌套结构）
-    - openspec/annotation-community/DESIGN.md §7.2
-    - openspec/annotation-community/fixtures/community/content_hash_cases.json
-    - docs/blackbox-spec-rework/work-items/nc-002/TDD.md §4
-    - /Users/jingtaiwei/Git/Public/xuan-server/functions-py/tests/test_hashing_parity.py（仅参考测试风格；不改）
+    - openspec/annotation-community/contracts/community-models.md
+    - openspec/annotation-community/contracts/state-machines.md
+    - openspec/annotation-community/fixtures/community/
+    - docs/blackbox-spec-rework/work-items/nc-002/TDD.md
+    - docs/blackbox-spec-rework/work-items/nc-002/BDD.md
+    - openspec/schemas/verify.sh（写法参考；全任务不改）
+    - openspec/schemas/artifact_ref.schema.json（仅参考写法）
   WRITE_NEW:
-    - /Users/jingtaiwei/Git/Public/xuan-server/functions-py/xuan/community_hash.py
-    - /Users/jingtaiwei/Git/Public/xuan-server/functions-py/tests/test_community_hash_parity.py
-    - /Users/jingtaiwei/Git/Public/xuan-server/functions-py/tests/fixtures/community_content_hash_cases.json（cp 自 SPEC 原件，不得手改）
+    - openspec/annotation-community/tools/validate_fixtures.py
+    - openspec/annotation-community/tools/test_validate_fixtures.py
   FORBIDDEN:
-    - 读取或 import openspec/annotation-community/tools/nchash_reference.py 的代码（只允许读 DESIGN §7.2 与契约）
-    - SERVER 其他任何文件（含 tests/conftest.py、xuan/hashing.py、requirements.txt）
-    - 在 SERVER 安装依赖、创建 venv、连接 Emulator/网络
-    - learn_system 任何文件
-DEPENDENCY_ALLOWLIST: [Python 标准库, 仓库既有 .venv/bin/check-jsonschema 0.38.0（仅 learn_system 步骤）]
+    - openspec/annotation-community/contracts/、fixtures/、tools/nchash_reference.py（只读）
+    - openspec/schemas/verify.sh（任何改动；决定 D-NC002-11）；既有 *.schema.json 与 examples/ 非 community_ 文件
+    - openspec/annotation-community/ 四份规格与既有守卫
+    - docs/blackbox-spec-rework/ 下除本工作包外的一切；PLAN.md、HANDOFF.md、SUBAGENT_TODO.md
+    - /Users/jingtaiwei/Git/Public/xuan-migration、/Users/jingtaiwei/Git/Public/xuan-server 下任何写入（act/06 除外）
+DEPENDENCY_ALLOWLIST: [Python 标准库]
 RULES:
-  - "实现独立于参考编码器；测试只读 tests/fixtures 副本中的字面量"
-  - "unittest 写法，不依赖 pytest 与 conftest；命令 python3 -m unittest tests.test_community_hash_parity -v 在 SERVER 根运行"
+  - "枚举值只能从 state-machines.md 枚举总表解析得到，不得硬编码状态值"
+  - "问题行按 TDD §3 文案逐字输出；去重后 sorted()"
   - "判据只取两份契约与 fixture；契约未写明的行为触发停止条件，不自行裁定"
-  - "所有 Schema 对象节点 additionalProperties: false；ID 一律 pattern 精确匹配"
   - "不修改前几步已有示例、测试与脚本的期望；只追加本步内容"
-  - "只允许新建本步 WRITE_NEW 列出的文件；不创建其他目录"
+  - "只允许新建本步 WRITE_NEW 列出的文件；不创建目录"
 TESTS_FIRST:
-  - "cp SPEC 原件为 tests/fixtures/community_content_hash_cases.json；写 7 个测试与只定义 DOMAIN 的空壳模块；运行 TDD 命令 5，保存真实失败原文作为 Red"
+  - "写 7 个测试与只打印 FIXTURES_OK 0 files 0 cases 且退出 0 的空壳；运行 TDD 命令 3，保存真实断言失败原文作为 Red"
 STEPS:
-  - "实现 encode / normalize_snapshot / canonical_bytes / content_hash / project_revision 与两个异常类"
-  - "运行 TDD 命令 5、6"
-  - "在 SERVER 仓只 git add 三个文件并提交（不 push）"
+  - "实现 V1～V7 与 CLI 退出码"
+  - "运行 TDD 命令 3、4"
+  - "运行 VERIFICATION 全部命令；只暂存两个文件并提交"
 VERIFICATION:
-  - "cd /Users/jingtaiwei/Git/Public/xuan-server/functions-py && python3 -m unittest tests.test_community_hash_parity -v（期望 Ran 7 tests OK）"
-  - "cmp /Users/jingtaiwei/Git/Public/learn_system/openspec/annotation-community/fixtures/community/content_hash_cases.json /Users/jingtaiwei/Git/Public/xuan-server/functions-py/tests/fixtures/community_content_hash_cases.json"
-  - "cd /Users/jingtaiwei/Git/Public/xuan-server/functions-py && git diff --check && git status --short（提交后应为空）"
-  - "bash docs/blackbox-spec-rework/reviews/nc002_guard.sh --require-impl（期望 0）"
+  - "python3 -m unittest discover -s openspec/annotation-community/tools -p 'test_validate_fixtures.py' -v"
+  - "python3 openspec/annotation-community/tools/validate_fixtures.py openspec/annotation-community/fixtures/community/（期望退出 0，末行 FIXTURES_OK 9 files 198 cases）"
+  - "bash openspec/schemas/verify.sh（期望 0；本任务不修改该文件）"
+  - "bash openspec/schemas/verify_community.sh（期望 0）"
+  - "LC_ALL=C bash openspec/annotation-community/review_v1_5_guard.sh"
+  - "bash openspec/annotation-community/verify.sh"
+  - "git diff --check"
 ON_FAIL: "停止并报告失败命令、退出码与原文；不改契约、fixture、示例期望或测试期望，不安装依赖，不扩大范围。例外：review_v1_5_guard.sh、openspec/annotation-community/verify.sh、git diff --check 或 nc002_guard.sh 的 K01 失败时先运行 git diff --stat，失败来源不在本任务白名单文件之内的判为外部失败，只在报告中记录，不返工、不停工；nc002_guard.sh 的 K02～K08 失败仍按本任务失败停工。"
-BASELINE_EXIT_CODES: "开工基线：openspec/schemas/verify.sh=0，review_v1_5_guard.sh=0，annotation-community/verify.sh=0，git diff --check=0，nc002_guard.sh=0（K08 SKIP）；SERVER HEAD 866ea13 工作树干净，本机无 pytest"
-COMMIT_MESSAGE: "feat(community): nchash/v2 编码器与跨端一致性测试（NC-002）"
+BASELINE_EXIT_CODES: "开工基线：openspec/schemas/verify.sh=0，review_v1_5_guard.sh=0，annotation-community/verify.sh=0，git diff --check=0，nc002_guard.sh=0（K07/K08 SKIP）；SERVER HEAD 866ea13 工作树干净，本机无 pytest"
+COMMIT_MESSAGE: "feat(nc-002): fixture 校验器与测试"

@@ -2,10 +2,10 @@ TASK_ID: NC-002-A
 PARENT: NC-002
 STATUS: PREPARING
 REPO: learn_system
-GOAL: 建立 community_common $defs、Note、NoteRevision 三个 Schema 及其正反例、配对示例、verify_community.sh，并在 verify.sh 末尾追加调用
+GOAL: 建立 community_common $defs 与 community_note Schema、note 的 7 个示例，以及 verify_community.sh 前三步（metaschema / 正例 / 反例）
 DEPENDS_ON: []
-ESTIMATE_MINUTES: 55
-WORKLOAD: "3 个 Schema（common 约 28 个 $defs；note 9 字段；note_revision 13 字段 + 5 个嵌套 $defs 与 if/then）+ 17 个示例文件 + verify_community.sh（4 段）+ verify.sh 追加 1 行"
+ESTIMATE_MINUTES: 45
+WORKLOAD: "common 约 30 个 $defs + note 9 字段 + 7 个示例 + verify_community.sh 前三步（含文件名推断与配对/结构专属文件的排除）"
 SCOPE:
   READ:
     - openspec/annotation-community/contracts/community-models.md
@@ -13,45 +13,37 @@ SCOPE:
     - openspec/annotation-community/fixtures/community/
     - docs/blackbox-spec-rework/work-items/nc-002/TDD.md
     - docs/blackbox-spec-rework/work-items/nc-002/BDD.md
-    - openspec/schemas/verify.sh
+    - openspec/schemas/verify.sh（写法参考；全任务不改）
     - openspec/schemas/artifact_ref.schema.json（仅参考写法）
   WRITE_NEW:
     - openspec/schemas/community_common.schema.json
     - openspec/schemas/community_note.schema.json
-    - openspec/schemas/community_note_revision.schema.json
-    - openspec/schemas/examples/community_note.*.yaml（TDD §2.2 列出的 6 个）
-    - openspec/schemas/examples/community_note_revision.*.yaml（9 个）
-    - openspec/schemas/examples/community_pair_annotation.valid.yaml
-    - openspec/schemas/examples/community_pair_annotation.invalid_no_anchor.yaml
+    - openspec/schemas/examples/community_note.*.yaml（TDD §2.2 列出的 7 个）
     - openspec/schemas/verify_community.sh
-    - openspec/schemas/verify.sh（仅末尾追加一行 bash "$REPO_ROOT/openspec/schemas/verify_community.sh"）
   FORBIDDEN:
     - openspec/annotation-community/contracts/、fixtures/、tools/nchash_reference.py（只读）
-    - openspec/schemas/verify.sh 除末尾追加一行外的任何改动；既有 *.schema.json 与 examples/ 非 community_ 文件
+    - openspec/schemas/verify.sh（任何改动；决定 D-NC002-11）；既有 *.schema.json 与 examples/ 非 community_ 文件
     - openspec/annotation-community/ 四份规格与既有守卫
     - docs/blackbox-spec-rework/ 下除本工作包外的一切；PLAN.md、HANDOFF.md、SUBAGENT_TODO.md
-    - /Users/jingtaiwei/Git/Public/xuan-migration、/Users/jingtaiwei/Git/Public/xuan-server 下任何写入（act/05 除外）
-DEPENDENCY_ALLOWLIST: [Python 标准库, 仓库既有 .venv/bin/check-jsonschema 0.38.0（仅 learn_system 步骤）]
+    - /Users/jingtaiwei/Git/Public/xuan-migration、/Users/jingtaiwei/Git/Public/xuan-server 下任何写入（act/06 除外）
+DEPENDENCY_ALLOWLIST: [Python 标准库, 仓库既有 .venv/bin/check-jsonschema 0.38.0, 仓库既有 .venv 内 jsonschema 4.26.0 与 PyYAML 6.0.3（仅 verify_community.sh 的结构块 import，不安装、不升级）]
 RULES:
-  - "verify_community.sh 用 --base-uri file://$REPO_ROOT/openspec/schemas/ 解析跨文件 $ref"
-  - "verify_community.sh 按 TDD §2.3 通用化：以文件名推断 schema，新增示例无需改脚本"
+  - "所有 Schema 对象节点 additionalProperties: false，豁免仅 TDD §2.3 步 4(a) 列出的三处开放对象；ID 一律 pattern 精确匹配"
+  - "verify_community.sh 用 --base-uri file://$REPO_ROOT/openspec/schemas/ 解析跨文件 $ref；按 TDD §2.3 通用化，新增示例无需改脚本；本步不写结构块（步 4）与 verify.sh 追加行"
   - "判据只取两份契约与 fixture；契约未写明的行为触发停止条件，不自行裁定"
-  - "所有 Schema 对象节点 additionalProperties: false；ID 一律 pattern 精确匹配"
   - "不修改前几步已有示例、测试与脚本的期望；只追加本步内容"
-  - "只允许新建本步 WRITE_NEW 列出的文件；不创建其他目录"
+  - "只允许新建本步 WRITE_NEW 列出的文件；不创建目录"
 TESTS_FIRST:
-  - "写出 17 个示例与 verify_community.sh；三个 Schema 先只写 {\"$schema\", \"type\": \"object\"} 空壳；运行 bash openspec/schemas/verify_community.sh，保存首个 FAIL: … should have failed 原文作为 Red"
+  - "先写本步全部示例并把本步 Schema 写成 {\"$schema\", \"type\": \"object\"} 空壳，运行 bash openspec/schemas/verify_community.sh，保存首个 FAIL: … should have failed 原文作为 Red"
 STEPS:
-  - "按 community-models §0～§1 与 TDD §2.1/§2.2 写 common、note、note_revision 三个 Schema"
-  - "运行 verify_community.sh 至全部 PASS，再在 verify.sh 末尾追加调用行并运行 verify.sh"
-  - "运行 VERIFICATION 全部命令"
-  - "只暂存本步 WRITE_NEW 文件并提交"
+  - "按 community-models §0～§1.1 与 TDD §2.1/§2.2 写 common 与 note 两个 Schema"
+  - "运行 verify_community.sh 至本步示例全部 PASS"
+  - "运行 VERIFICATION 全部命令；只暂存本步 WRITE_NEW 文件并提交"
 VERIFICATION:
   - "bash openspec/schemas/verify_community.sh"
-  - "bash openspec/schemas/verify.sh"
   - "LC_ALL=C bash openspec/annotation-community/review_v1_5_guard.sh"
   - "bash openspec/annotation-community/verify.sh"
   - "git diff --check"
 ON_FAIL: "停止并报告失败命令、退出码与原文；不改契约、fixture、示例期望或测试期望，不安装依赖，不扩大范围。例外：review_v1_5_guard.sh、openspec/annotation-community/verify.sh、git diff --check 或 nc002_guard.sh 的 K01 失败时先运行 git diff --stat，失败来源不在本任务白名单文件之内的判为外部失败，只在报告中记录，不返工、不停工；nc002_guard.sh 的 K02～K08 失败仍按本任务失败停工。"
-BASELINE_EXIT_CODES: "开工基线：openspec/schemas/verify.sh=0，review_v1_5_guard.sh=0，annotation-community/verify.sh=0，git diff --check=0，nc002_guard.sh=0（K08 SKIP）；SERVER HEAD 866ea13 工作树干净，本机无 pytest"
-COMMIT_MESSAGE: "feat(nc-002): community 模型 Schema（一）与校验脚本"
+BASELINE_EXIT_CODES: "开工基线：openspec/schemas/verify.sh=0，review_v1_5_guard.sh=0，annotation-community/verify.sh=0，git diff --check=0，nc002_guard.sh=0（K07/K08 SKIP）；SERVER HEAD 866ea13 工作树干净，本机无 pytest"
+COMMIT_MESSAGE: "feat(nc-002): community 公共 $defs、Note Schema 与校验脚本"

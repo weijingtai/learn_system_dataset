@@ -10,7 +10,9 @@ SPLIT:
   - act/03.yaml
   - act/04.yaml
   - act/05.yaml
-ORDER: "严格按 act/01 → 02 → 03 → 04 → 05；前四步各一个 learn_system 提交，第五步一个 SERVER 提交；每步以上一步提交为基线；禁止并行"
-ESTIMATE_MINUTES_TOTAL: 255
+  - act/06.yaml
+ORDER: "严格按 act/01 → 02 → 03 → 04 → 05 → 06；前五步各一个 learn_system 提交，第六步一个 SERVER 提交；每步以上一步提交为基线；禁止并行"
+ESTIMATE_MINUTES_TOTAL: 310
 DEFERRED:
   - "CLIENT/test/contracts/content_hash_parity_test.dart：CLIENT 不存在，推迟为 NC-004 的第一条 ACT"
+  - "CommandRecord 按 operation 的完整/精简成对 Schema（DESIGN §2.1.1『由 NC-002 按操作作成对 Schema』）：本任务只冻结通用 CommandRecord Schema 与 rejected/compacted 两个终态约束；按操作的 result_fields 白名单与 HTTP 响应同源，推迟到 NC-003 随 OpenAPI 一并产出，理由是操作目录的响应体在 NC-003 才冻结"

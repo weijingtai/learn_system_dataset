@@ -7,6 +7,12 @@
       两端实现必须各自独立编写，测试只比对 fixture 中的字面量。
 
 只用标准库。任何违反 §7.2 的输入都抛 ValueError（不静默修正）。
+
+职责分层（DESIGN §7.2 的「原始 JSON 数字 -0 拒绝」与「重复键拒绝」）：
+Python 的 json.loads 在到达 encode() 之前就已把 -0 变成 0、把重复键合并，
+因此这两条只能在 **JSON 解析层** 落实。本文件提供 load_snapshot_json(text)，
+用 parse_int 与 object_pairs_hook 在解析时拒绝；SERVER/CLIENT 实现必须在各自的
+解析入口做同样的事（TDD §4 指定）。encode() 内部对重复键的检查只是防御性断言。
 """
 from __future__ import annotations
 
@@ -157,11 +163,35 @@ def content_hash(snapshot: dict) -> str:
     return hashlib.sha256(DOMAIN + canonical_bytes(snapshot)).hexdigest()
 
 
+def _parse_int(text: str) -> int:
+    if text == "-0":
+        raise ValueError("原始 JSON 数字 -0 拒绝")
+    return int(text)
+
+
+def _pairs(pairs: list) -> dict:
+    keys = [k for k, _ in pairs]
+    if len(keys) != len(set(keys)):
+        raise ValueError(f"重复键: {sorted(k for k in set(keys) if keys.count(k) > 1)}")
+    return dict(pairs)
+
+
+def load_snapshot_json(text: str) -> Any:
+    """解析层：拒绝 -0 与重复键，拒绝浮点常量（NaN/Infinity）；其余交给 normalize_snapshot。"""
+    def _const(name):  # NaN / Infinity / -Infinity
+        raise ValueError(f"拒绝浮点常量: {name}")
+    return json.loads(text, parse_int=_parse_int, object_pairs_hook=_pairs, parse_constant=_const)
+
+
+def content_hash_from_text(text: str) -> str:
+    return content_hash(load_snapshot_json(text))
+
+
 def main(argv: list[str]) -> int:
     if len(argv) != 2:
         sys.stderr.write("usage: nchash_reference.py <snapshot.json>\n")
         return 2
-    snap = json.loads(open(argv[1], encoding="utf-8").read())
+    snap = load_snapshot_json(open(argv[1], encoding="utf-8").read())
     print(canonical_bytes(snap).hex())
     print(content_hash(snap))
     return 0

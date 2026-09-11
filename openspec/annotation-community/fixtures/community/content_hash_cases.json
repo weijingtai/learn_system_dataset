@@ -1,5 +1,5 @@
 {
-  "$comment": "nchash/v2 跨端一致性用例。expected_* 由 openspec/annotation-community/tools/nchash_reference.py 生成；SERVER/CLIENT 测试只比对字面量，禁止调用被测编码器生成期望。",
+  "$comment": "nchash/v2 跨端一致性用例。expected_* 由 openspec/annotation-community/tools/nchash_reference.py 生成；SERVER/CLIENT 测试只比对字面量，禁止调用被测编码器生成期望。 invalid_json_texts 是原始 JSON 文本，须经 load_snapshot_json（或等价解析入口）拒绝；invalid_snapshots 是已解析对象，由 normalize/encode 拒绝。",
   "domain": "nchash/v2\\n",
   "hash": "sha256_hex(UTF8(domain) + canonical_bytes)",
   "cases": [
@@ -1208,7 +1208,7 @@
     },
     {
       "name": "C17_revision_record_projection",
-      "note": "给出完整 NoteRevision 记录；消费者只投影六个语义字段再计算，结果与 C01 相同。id/parent_ids/created_at/restored_from/同步进度不进 hash",
+      "note": "给出完整 NoteRevision 记录并附带同步/备份进度字段（sync_state、backup_state）；消费者的 project_revision 只取六个语义字段、忽略其余键再计算，结果与 C01 相同。id/parent_ids/created_at/restored_from/created_on_device/同步与备份进度都不进 hash",
       "revision": {
         "id": "nrev_fedcba9876543210fedcba9876543210",
         "note_id": "note_0123456789abcdef0123456789abcdef",
@@ -1287,7 +1287,10 @@
             "anchor": null
           }
         ],
-        "change_summary": "补充亥月用神"
+        "change_summary": "补充亥月用神",
+        "sync_state": "pending",
+        "backup_state": "none",
+        "created_on_device": "dev-ios-01"
       },
       "snapshot": null,
       "equal_hash_to": "C01_base",
@@ -1966,6 +1969,23 @@
         "change_summary": "补充亥月用神"
       },
       "reason": "缺失可补默认值，但显式 null 不等价于空串，拒绝"
+    }
+  ],
+  "invalid_json_texts": [
+    {
+      "name": "J01_negative_zero",
+      "text": "{\"title\":\"a\",\"markdown\":\"\",\"attachment_refs\":[],\"mentions\":[{\"user_id\":\"u\",\"display_name\":\"x\",\"start_offset\":-0,\"length\":2}],\"bindings\":[],\"change_summary\":\"\"}",
+      "reason": "原始 JSON 数字 -0 必须在解析层拒绝（json.loads 会静默变成 0）"
+    },
+    {
+      "name": "J02_duplicate_key",
+      "text": "{\"title\":\"a\",\"title\":\"b\",\"markdown\":\"\"}",
+      "reason": "重复键必须在解析层拒绝（json.loads 会静默取后者）"
+    },
+    {
+      "name": "J03_nan_constant",
+      "text": "{\"title\":NaN}",
+      "reason": "NaN/Infinity 常量拒绝"
     }
   ]
 }

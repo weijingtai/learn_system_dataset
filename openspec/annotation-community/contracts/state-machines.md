@@ -77,7 +77,13 @@ hidden 不影响本机器：作者对 hidden 内容仍可 withdraw；moderation 
 
 ## SM-3 生命周期 lifecycle（DESIGN §4.1、§4.3、§4.4）
 
-初态 `active`。曾公开的内容由服务端权威；从未公开的纯本地笔记由客户端本地执行同一张表（失败为本地错误 `IllegalLifecycleTransition`）。
+初态 `active`。曾公开的内容由服务端权威；从未公开的纯本地笔记由客户端本地执行同一张表，HTTP 失败列按下表映射为本地结果（`lifecycle_transition_cases.json` 中 `local: true` 的用例只取 409 分支）：
+
+| 服务端失败 | 本地等价 |
+|---|---|
+| `409 conflict.lifecycle` | 本地错误 `IllegalLifecycleTransition`，状态不变 |
+| `404 not_found.content`（purged tombstone） | 本地错误 `TombstoneRejected`；同步收到旧头时静默忽略、不复活 |
+| `403 forbidden.not_owner` | 本地不适用（本地库只有本人 scope） |
 
 | 当前态 | 事件 | 前置条件 | 目标态 | 失败 |
 |---|---|---|---|---|
@@ -194,3 +200,4 @@ UI：`pending_op ≠ none` 显示「正在停止公开，他人可能仍可访�
 | D-NC002-07 | purge 只能从 trashed 发起（active → purge_pending 非法） | PRD 回收站 30 天模型；DESIGN §4.3「到期或本人明确彻底删除」在回收站语境内 |
 | D-NC002-08 | 导入态不支持 retained → active 回滚 | DESIGN §8 只定义「替换后旧版 retained」；回滚需重新导入，避免两个 active |
 | D-NC002-09 | SM-4 非审核角色的错误码 `403 forbidden.moderation_role` 为候选，NC-003 冻结前不进验收 | DESIGN §7.3 基线目录无此场景，不得由执行者发明 |
+| D-NC002-10 | 本文使用的本地错误类名闭集见 community-models.md §6 D-NC002-10（八个类名） | 类名是客户端可断言标识，不是 HTTP 错误码 |

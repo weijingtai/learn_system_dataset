@@ -34,17 +34,17 @@ for r in enum_rows:
     ENUM |= set(re.findall(r"`([^`]+)`", cells[3] if len(cells) > 3 else ""))
 sm_heads = re.findall(r"^## SM-(\d)\w? ", sm, re.M)
 prefix_rows = len(re.findall(r"\| `[a-z]+_` \|", models))
-ok02 = (len(enum_rows) == 11 and len(ENUM) >= 40 and sorted(set(sm_heads)) == [str(i) for i in range(1, 10)]
-        and all(f"D-NC002-0{i}" in models for i in range(1, 7)) and all(f"D-NC002-0{i}" in sm for i in range(7, 10))
+ok02 = (len(enum_rows) == 11 and len(ENUM) == 41 and sorted(set(sm_heads)) == [str(i) for i in range(1, 10)]
+        and all(f"D-NC002-0{i}" in models for i in range(1, 7)) and "D-NC002-10" in models and "D-NC002-11" in models and all(f"D-NC002-0{i}" in sm for i in range(7, 10)) and "D-NC002-10" in sm
         and prefix_rows >= 17 and "17 个操作字符串闭集" in models)
-check(ok02, "K02 契约：枚举总表 11 行、SM-1～9 齐全、前缀 17 行、决定 D-NC002-01～09 登记", f"rows={len(enum_rows)} enum={len(ENUM)} heads={sorted(set(sm_heads))} prefix_rows={prefix_rows}")
+check(ok02, "K02 契约：枚举总表 11 行且恰 41 值、SM-1～9 齐全、前缀 17 行、决定 D-NC002-01～11 登记", f"rows={len(enum_rows)} enum={len(ENUM)} heads={sorted(set(sm_heads))} prefix_rows={prefix_rows}")
 
 # K03 fixture 结构（独立实现，不依赖 validate_fixtures.py）
 FX = SPEC / "fixtures/community"
 WANT = {"content_hash_cases.json","id_format_cases.json","command_id_cases.json","limit_cases.json","mention_cases.json","state_combinations.json","lifecycle_transition_cases.json","comment_reply_cases.json","revision_cases.json"}
 files = {p.name for p in FX.glob("*.json")}
 STATE_KEYS = {"visibility","lifecycle","moderation_state","state","from","to","editor_state","delivery_state","pending_op","status","content_visibility","head_becomes"}
-ALLOW_EXTRA = {"new","user_choice"}
+ALLOW_EXTRA = {"new"}
 NONBIZ = {"user_id","account_id","actor_id","author_id","recipient_id","block_id","entity_id","device_id","attachment_id","command_id","event_id","object_id","reporter_id","target_id","target_ref","notifier_delivery_id","public_profile_id"}
 BIZ = re.compile(r"^(note|nrev|pub|cacc|cbnd|anc|ares|thr|cmt|crev|rct|bmk|shr|bkm|ntf|bev|psn)_[0-9a-f]{32}$")
 problems = []; total = 0
@@ -75,6 +75,9 @@ for fname in sorted(files & WANT):
         for v in d["invalid_snapshots"]:
             total += 1
             if "reason" not in v: problems.append(f"{fname}:invalid missing reason")
+        for v in d.get("invalid_json_texts", []):
+            total += 1
+            if "reason" not in v or not isinstance(v.get("text"), str): problems.append(f"{fname}:invalid_json_text missing text/reason")
         byname = {c["name"]: c for c in d["cases"]}
         for c in d["cases"]:
             t = c.get("equal_hash_to")
@@ -84,7 +87,7 @@ for fname in sorted(files & WANT):
             total += 1
             if not isinstance(c, dict) or "expected" not in c: problems.append(f"{fname}#{i} missing expected")
     walk(d, "", fname, skip)
-check(files == WANT and total == 196 and not problems, "K03 fixture：9 个文件、196 项、每项有 expected、状态值 ⊆ 枚举总表、业务 ID 格式合法、equal_hash_to 自洽", f"files={sorted(files ^ WANT)} total={total} problems={problems[:5]}")
+check(files == WANT and total == 198 and not problems, "K03 fixture：9 个文件、198 项、每项有 expected、状态值 ⊆ 枚举总表、业务 ID 格式合法、equal_hash_to 自洽", f"files={sorted(files ^ WANT)} total={total} problems={problems[:5]}")
 
 # K04 参考编码器复算 fixture 期望
 spec_ref = importlib.util.spec_from_file_location("nchash_reference", SPEC / "tools/nchash_reference.py"); R = importlib.util.module_from_spec(spec_ref); spec_ref.loader.exec_module(R)
@@ -97,19 +100,25 @@ for v in d["encoding_vectors"]:
 for v in d["invalid_snapshots"]:
     try: R.content_hash(v["snapshot"]); bad04.append(v["name"])
     except ValueError: pass
-check(not bad04 and R.encode({"x": None}) == b"o1:s1:xn;", "K04 参考编码器复算：18 case + 16 向量 + 7 非法例与 fixture 一致", f"{bad04}")
+for v in d["invalid_json_texts"]:
+    try: R.content_hash_from_text(v["text"]); bad04.append(v["name"])
+    except ValueError: pass
+    try: json.loads(v["text"])
+    except ValueError: bad04.append(v["name"] + ":裸 json.loads 也拒绝，用例失去意义")
+check(not bad04 and R.encode({"x": None}) == b"o1:s1:xn;", "K04 参考编码器复算：18 case + 16 向量 + 7 非法对象 + 3 非法 JSON 文本与 fixture 一致", f"{bad04}")
 
 # K05 六件套结构
-bdd = read(PACK / "BDD.md"); tdd = read(PACK / "TDD.md"); acts = [read(PACK / "act" / f"0{i}.yaml") for i in range(1, 6)]
+bdd = read(PACK / "BDD.md"); tdd = read(PACK / "TDD.md"); acts = [read(PACK / "act" / f"0{i}.yaml") for i in range(1, 7)]
 bids = re.findall(r"^\| (B\d\d) \|", bdd, re.M)
 est = [int((re.search(r"^ESTIMATE_MINUTES: (\d+)", a, re.M) or [0, 0])[1]) for a in acts]
 deps = [(re.search(r"^DEPENDS_ON: (.*)$", a, re.M) or [0, ""])[1].strip() for a in acts]
 vague = re.compile(r"适当|优雅|合理|必要时|酌情|尽量|大致|视情况")
-hits = [f"{f}:{m.group(0)}" for f in ["README.md","BDD.md","TDD.md","ACT.yaml","PROMPT.md","ACCEPTANCE.md","act/01.yaml","act/02.yaml","act/03.yaml","act/04.yaml","act/05.yaml"] for m in vague.finditer(read(PACK / f))]
-ok05 = (bids == [f"B{i:02d}" for i in range(1, 21)] and all(30 <= e <= 60 for e in est) and deps == ["[]","[NC-002-A]","[NC-002-B]","[NC-002-C]","[NC-002-D]"]
-        and all("外部失败" in a and "WORKLOAD" in a and "ON_FAIL" in a for a in acts) and not hits and "196" in tdd and "155" not in tdd
-        and read(PACK / "ACT.yaml").count("- act/0") == 5 and "DEFERRED" in read(PACK / "ACT.yaml"))
-check(ok05, "K05 六件套：BDD B01～B20、五个 ACT 30–60 分钟且依赖链/ON_FAIL/WORKLOAD 齐全、无模糊词、计数 196、CLIENT 推迟登记", f"bids={len(bids)} est={est} deps={deps} vague={hits}")
+hits = [f"{f}:{m.group(0)}" for f in ["README.md","BDD.md","TDD.md","ACT.yaml","PROMPT.md","ACCEPTANCE.md","act/01.yaml","act/02.yaml","act/03.yaml","act/04.yaml","act/05.yaml","act/06.yaml"] for m in vague.finditer(read(PACK / f))]
+ok05 = (bids == [f"B{i:02d}" for i in range(1, 24)] and all(30 <= e <= 60 for e in est) and deps == ["[]","[NC-002-A]","[NC-002-B]","[NC-002-C]","[NC-002-D]","[NC-002-E]"]
+        and all("外部失败" in a and "WORKLOAD" in a and "ON_FAIL" in a for a in acts) and not hits and "198" in tdd and "196" not in tdd and "155" not in tdd
+        and read(PACK / "ACT.yaml").count("- act/0") == 6 and read(PACK / "ACT.yaml").count("DEFERRED") == 1 and "NC-003" in read(PACK / "ACT.yaml")
+        and not any("verify.sh 末尾追加" in a or "追加一行" in a for a in acts) and not (PACK / "act" / "07.yaml").exists())
+check(ok05, "K05 六件套：BDD B01～B23、六个 ACT 30–60 分钟且依赖链/ON_FAIL/WORKLOAD 齐全、无模糊词、计数 198、两项推迟登记、不改 verify.sh", f"bids={len(bids)} est={est} deps={deps} vague={hits}")
 
 # K06 前缀结论两处登记
 todo = read(root / "docs/blackbox-spec-rework/SUBAGENT_TODO.md"); rr = read(SPEC / "READINESS_REVIEW.md")
@@ -117,6 +126,9 @@ check("前缀整表采用" in todo and "NC-002" in todo and "前缀整表采用"
 
 # K08 执行产物
 schemas = sorted(p.name for p in (root / "openspec/schemas").glob("community_*.schema.json"))
+vs = read(root / "openspec/schemas/verify.sh")
+vs_head = subprocess.run(["git", "-C", str(root), "show", "437571b:openspec/schemas/verify.sh"], capture_output=True, text=True).stdout
+check("verify_community" not in vs and vs == vs_head, "K07 openspec/schemas/verify.sh 未被本线改动（D-NC002-11）", "与 437571b 版本不同或含 verify_community")
 if not schemas and not req:
     print("SKIP  K08 执行产物尚未存在（验收时加 --require-impl，必须 PASS）")
 else:
@@ -124,8 +136,7 @@ else:
     ok08 = len(schemas) == 12
     det.append(f"schemas={len(schemas)}")
     r = subprocess.run(["bash", "openspec/schemas/verify_community.sh"], cwd=root, capture_output=True, text=True); ok08 &= r.returncode == 0 and "PASS community_all" in r.stdout; det.append(f"verify_community={r.returncode}")
-    vs = read(root / "openspec/schemas/verify.sh"); ok08 &= vs.count("verify_community.sh") == 1 and vs.rstrip().endswith('bash "$REPO_ROOT/openspec/schemas/verify_community.sh"'); det.append("verify.sh 追加行=" + str(vs.count("verify_community.sh")))
-    r = subprocess.run([sys.executable, str(SPEC / "tools/validate_fixtures.py"), str(FX)], capture_output=True, text=True); ok08 &= r.returncode == 0 and r.stdout.strip().endswith("FIXTURES_OK 9 files 196 cases"); det.append(f"validate={r.returncode}/{r.stdout.strip().splitlines()[-1] if r.stdout.strip() else ''}")
+    r = subprocess.run([sys.executable, str(SPEC / "tools/validate_fixtures.py"), str(FX)], capture_output=True, text=True); ok08 &= r.returncode == 0 and r.stdout.strip().endswith("FIXTURES_OK 9 files 198 cases"); det.append(f"validate={r.returncode}/{r.stdout.strip().splitlines()[-1] if r.stdout.strip() else ''}")
     # 变异：临时副本
     with tempfile.TemporaryDirectory() as tmp:
         base = Path(tmp) / "spec"; (base / "contracts").mkdir(parents=True); shutil.copytree(FX, base / "fixtures/community"); shutil.copy(SPEC / "contracts/state-machines.md", base / "contracts/")
@@ -140,7 +151,7 @@ else:
     ok08 &= ch.is_file() and tf.is_file() and fcopy.is_file() and fcopy.read_bytes() == (FX / "content_hash_cases.json").read_bytes(); det.append("server_files+cmp=" + str(ch.is_file() and tf.is_file() and fcopy.is_file() and fcopy.read_bytes() == (FX / 'content_hash_cases.json').read_bytes()))
     src = read(ch); tsrc = read(tf)
     ok08 &= "nchash_reference" not in src and "json.dumps" not in src and "nchash_reference" not in tsrc and "skip" not in tsrc and "firebase" not in tsrc; det.append("no_reference/json.dumps/skip=" + str("nchash_reference" not in src and "json.dumps" not in src and "skip" not in tsrc))
-    r = subprocess.run([sys.executable, "-m", "unittest", "tests.test_community_hash_parity"], cwd=SERVER, capture_output=True, text=True); ran = re.search(r"Ran (\d+)", r.stderr); ok08 &= r.returncode == 0 and ran is not None and int(ran.group(1)) == 7; det.append(f"server_tests={r.returncode}/{ran.group(1) if ran else '无'}")
+    r = subprocess.run([sys.executable, "-m", "unittest", "tests.test_community_hash_parity"], cwd=SERVER, capture_output=True, text=True); ran = re.search(r"Ran (\d+)", r.stderr); ok08 &= r.returncode == 0 and ran is not None and int(ran.group(1)) == 8; det.append(f"server_tests={r.returncode}/{ran.group(1) if ran else '无'}")
     # 交叉复算
     xbad = []
     if ch.is_file():
@@ -152,9 +163,12 @@ else:
                 if S.canonical_bytes(snap) != R.canonical_bytes(snap) or S.content_hash(snap) != R.content_hash(snap): xbad.append(c["name"])
             for v in d["encoding_vectors"]:
                 if S.encode(v["value"]) != R.encode(v["value"]): xbad.append(v["name"])
+            for v in d["invalid_json_texts"]:
+                try: S.load_snapshot_json(v["text"]); xbad.append(v["name"])
+                except ValueError: pass
         except Exception as e: xbad.append(repr(e))
     ok08 &= not xbad; det.append(f"cross={xbad[:3]}")
-    check(ok08, "K08 执行产物：12 Schema、verify_community 0、verify.sh 单行追加、校验器 0/196 且三变异非零、7+7 测试、SERVER 副本一致、交叉复算一致、无参考引用", "; ".join(det))
+    check(ok08, "K08 执行产物：12 Schema、verify_community 0、校验器 0/198 且三变异非零、7+8 测试、SERVER 副本一致、交叉复算（含解析层拒绝）一致、无参考引用", "; ".join(det))
 
 print(f"\nNC-002 失败条数：{fails}")
 sys.exit(fails)

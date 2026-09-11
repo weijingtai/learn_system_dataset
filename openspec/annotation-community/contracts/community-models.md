@@ -8,7 +8,7 @@
 |---|---|
 | 业务 ID | `<前缀><32 位小写 hex>`，前缀见 §0.1；正则 `^<前缀>[0-9a-f]{32}$`。上游保留前缀 `art_ / rev_ / rel_ / pr_ / prun_` 只能出现在引用上游对象的字段（`artifact_revision_id`、`release_id`），不得用于本系统对象 |
 | 命令 ID | `cmd_` + UUIDv4 去连字符的 32 位小写 hex，正则见 DESIGN §2.1.1 |
-| 宿主账号 ID | `account_id` / `author_id` / `actor_id` / `recipient_id` / `user_id` 为宿主不透明字符串（PlaygroundUserId），非空、≤ 128 字节、不含 `/`；本系统不解释其格式 |
+| 宿主账号 ID | `account_id` / `author_id` / `actor_id` / `recipient_id` / `user_id` 为宿主不透明字符串（PlaygroundUserId），非空、≤ 128 code point（Schema `maxLength: 128`；UTF-8 字节上限 384 由服务端保存逻辑校验）、不含 `/`；本系统不解释其格式 |
 | owner_scope | 服务器由认证推导的非空字符串，客户端不可写 |
 | 时间戳 | RFC 3339 UTC，格式 `YYYY-MM-DDTHH:MM:SS(.fff)?Z`；私人本地记录设备时间，公开排序/审计用服务器时间 |
 | 哈希 | 64 位小写 hex |
@@ -69,7 +69,7 @@
 | created_at | timestamp | ✔ | 否 |
 | created_on_device | string（设备 ID，宿主格式） | ✔ | 否 |
 
-语义投影 `snapshot` = 上表「进 content_hash = 是」的六个字段；规范化与编码见 DESIGN §7.2 与 `tools/nchash_reference.py`。
+语义投影 `snapshot` = 上表「进 content_hash = 是」的六个字段；`project_revision` 只取这六个键，记录中出现的其他键（含同步进度、备份状态等运行时字段）一律忽略、不报错。规范化与编码见 DESIGN §7.2 与 `tools/nchash_reference.py`。解析层职责：原始 JSON 的 `-0` 与重复键必须在解析时拒绝（`json.loads` 之后已不可见），各端的 JSON 解析入口须实现同样的拒绝（TDD §4 `load_snapshot_json`）。
 
 **AttachmentRef**（`attachment_id` 是唯一规范字段名）：
 
@@ -97,8 +97,8 @@
 | 字段 | 类型 | 必填 | 说明 |
 |---|---|---|---|
 | relation | enum `about` / `quotes` | ✔ | about＝笔记关于该对象；quotes＝引用该对象的原文片段（决定 D-NC002-02） |
-| target_kind | enum `knowledge_entry` / `assertion` / `source_span` / `source_anchor` | ✔ | 与 LEARN_SYSTEM_TARGET §3.2 可注解对象一致；正式白名单以 D-06 为准，D-06 定稿后若收窄，本枚举只删不增 |
-| target_ref | string，1–200 字节 | ✔ | 上游稳定 entity_id（如 `ku_…`、`ss_…`） |
+| target_kind | enum `knowledge_entry` / `assertion` / `source_span` / `source_anchor` | ✔ | 与仓库根 [`LEARN_SYSTEM_TARGET.md`](../../../LEARN_SYSTEM_TARGET.md) §3.2 的四类可注解对象一致；正式白名单以 D-06 为准，D-06 定稿后若收窄，本枚举只删不增 |
+| target_ref | string，1–200 code point（Schema `minLength: 1, maxLength: 200`） | ✔ | 上游稳定 entity_id（如 `ku_…`、`ss_…`） |
 | anchor | AnchorRef / null | 默认 null | `quotes` 必须带 anchor；`about` 允许 null |
 
 **AnchorRef**（创建时固定，永不改写）：
@@ -215,7 +215,7 @@
 
 字段与类型逐字取自 DESIGN §2.1.1（CommandRecord、NotifierDeliveryBinding）与 §11.2（BehaviorEvent）；本文不复制以免两处漂移。Schema 约束补充：
 
-- CommandRecord.operation 取 DESIGN §2.1.1 列出的 17 个操作字符串闭集（content.publish/update/withdraw/trash/restore/purge、comment.create/edit/delete、reaction.set、bookmark.set、share.create/revoke、report.create、backup.begin/complete/delete）；`outcome ∈ {committed, rejected}`；`applied_version` 为 integer ≥ 0 或 null；`result_http_status` integer 100–599；`payload_hash` 64 hex。
+- CommandRecord.operation 取 DESIGN §2.1.1 列出的 17 个操作字符串闭集（content.publish/update/withdraw/trash/restore/purge、comment.create/edit/delete、reaction.set、bookmark.set、share.create/revoke、report.create、backup.begin/complete/delete）；`outcome ∈ {committed, rejected}`；`applied_version` 为 integer ≥ 0 或 null；`result_http_status` integer 100–599；`payload_hash` 64 hex。终态约束：`outcome=rejected` ⇒ `applied_version=null` 且 `result_code` 为非空字符串且 `result_http_status ≥ 400`；`result_compacted_at` 非 null ⇒ `result_fields` 为空对象（精简账本不含响应体）。按 operation 的 `result_fields` 完整/精简白名单与 HTTP 响应同源，由 NC-003 随 OpenAPI 产出（NC-002 ACT.yaml `DEFERRED` 登记）。
 - NotifierDeliveryBinding 文档 ID = `SHA256_hex(UTF8(notifier_delivery_id))`；`write_source ∈ {trusted_ingress, trusted_delivery_callback}`。
 - BehaviorEvent.attributes 的字段全集由 NC-026 冻结；NC-002 的 Schema 只约束 §11.2 的外层字段与 `event_id` 格式，`attributes` 暂为 `type: object`（NC-026 收紧）。
 - PseudonymMapping：`account_id`, `actor_pseudonym (psn_)`, `created_at`。
@@ -250,8 +250,10 @@
 | 编号 | 决定 | 理由 |
 |---|---|---|
 | D-NC002-01 | attachment_id 为对象存储不透明键 `^[A-Za-z0-9_-]{1,128}$`，不新增业务前缀 | DESIGN §2.1 的 17 项前缀已由用户确认，不再扩表；附件字节沿用既有对象存储 |
-| D-NC002-02 | BindingRef.relation 枚举 `about / quotes`；target_kind 四值取自 LEARN_SYSTEM_TARGET §3.2 | 满足 PRD「对词条、主张、原句、扫描位置写注解」；D-06 定稿后只删不增 |
+| D-NC002-02 | BindingRef.relation 枚举 `about / quotes`；target_kind 四值取自 LEARN_SYSTEM_TARGET §3.2 | 满足 PRD「对词条、主张、原句、扫描位置写注解」；2026-09-11 黑箱规格 §16 `AnchorContractPack`（提交 e474ae4）冻结的可锚定对象白名单与此四值完全一致，AnchorRef 的 entity_id + artifact_revision_id + release_id 三要素亦一致；NC-020b/NC-022 引用该节 |
 | D-NC002-03 | Report 无业务 ID，以 command_id 为键 | 避免新增前缀；举报天然一命令一记录 |
 | D-NC002-04 | Selector 用 `selector/v0-provisional`，只含整数/字符串 | D-06 未冻结坐标类型；先保证编码可跨端复算，不宣称原句锚点已互通 |
 | D-NC002-05 | Note.trashed_at 记设备时间，首次同步只允许被服务器时间推后 | DESIGN §4.4 回收站 T0 两类起算 |
 | D-NC002-06 | Comment.created_at 为服务器时间；编辑不改 created_at | DESIGN §4.4 排序不跳动 |
+| D-NC002-11 | 社区 Schema 由 `openspec/schemas/verify_community.sh` 独立校验，**不**向 `openspec/schemas/verify.sh` 追加调用（TASKS NC-002 原文「在 openspec/schemas/verify.sh 追加成对判据」的实现方式变更） | verify.sh 是 D-02 已验收的 L0 唯一验证命令（规格 §8），且其 `set -e` 会把社区 fixture 的红误报成黑箱线阻断；黑箱线（Dataset 会话）2026-09-11 明确要求，主 Agent 采纳。主 Agent 守卫依次运行两个脚本 |
+| D-NC002-10 | 客户端本地错误类名闭集（NC-002 裁定，NC-004/005 沿用）：`NoteSizeLimitExceeded`（DESIGN §7.1 原文）、`AttachmentCountExceeded`、`DuplicateReferenceItem`、`IllegalEditorTransition`、`IllegalLifecycleTransition`、`TombstoneRejected`、`TrashRequiresWithdraw`、`PendingOpConflict` | DESIGN 只给出第一个类名；其余为本地状态机非法边与限额的可断言标识，fixture 已引用；与 §7.3 HTTP 错误码严格分域 |

@@ -193,17 +193,6 @@
         "http": 400,
         "code": "invalid_argument.limit"
       }
-    },
-    {
-      "name": "list_limit_0",
-      "limit": "LIST_LIMIT",
-      "input": {
-        "limit": 0
-      },
-      "expected": {
-        "http": 400,
-        "code": "invalid_argument.limit"
-      }
     }
   ]
 }
