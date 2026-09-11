@@ -1,5 +1,14 @@
 # HANDOFF
 
+## G6 注解社区线接管（C/S 会话；G3 由并行 Dataset 会话负责）
+
+更新时间：2026-09-10
+当前分支/worktree：`codex/docs/knowledge-compilation`；`/Users/jingtaiwei/Git/Public/learn_system`
+刚完成：按根 `AGENT_TAKEOVER_PROMPT.md` 冷启动并发出首次汇报。亲自复跑：`verify-T.sh` 在 UTF-8 locale 下 0 FAIL、selftest 37/37、固定矩阵 98/98 rejected；用临时副本盲测 R5-1a/1b、R5-2、R5-3 四类变异在 HEAD 上仍全部 exit 0，阻断属实。`nc001_r1_guard.sh` 当前 5 项 FAIL（K02/K03/K04/K06/K07），即 NC-001 R1 返工尚未落实；v1.5 守卫与 verify.sh 均 0。根 README 注解社区入口改指 v1.5 规格与接手 Prompt（`fe83bd8`）。分工：两个主 Agent 会话并行，`【LearnSystem】Dataset` 负责 G3 R5（`work-items/g3-r5/` 六件套由其编写）；本会话 `【LearnSystem】C/S` 只做 G6，不读写 G3 文件。
+进行到一半的事（精确到文件和章节）：NC-001 R1 返工（`docs/blackbox-spec-rework/reviews/NC-001-REVIEW-R1.md` §3：8 个整文件 + 18 处逐字替换，§5 的 14 个文件一次提交）等待用户确认「CLIENT 用独立 Git 仓库」（该文 §6 第 1 项）后派发；NC-002 的 `DESIGN.md` §2.1 十七个 UGC 前缀已一次性列给用户确认。
+下一步（第一件事）：用户不反对 → 派执行 Agent 按 NC-001-REVIEW-R1 §2/§5 落实返工并使 `nc001_r1_guard.sh` 为 0 → 未参与编写者做 wjt-react 四查 → READY 后在 SUBAGENT_TODO 登记并派发 `work-items/nc-001/PROMPT.md`（act/01 → act/02）→ 按 ACCEPTANCE.md 与 `--require-impl` 验收。
+已知的坑：本机 shell 未设 LANG（默认 C locale），`verify-T.sh` 在 `LC_ALL=C` 下 T-06s 误报 FAIL、退出 1，须用 UTF-8 locale；注解社区两个守卫反而须 `LC_ALL=C`。`work-items/nc-001/act/` 在返工落实前不存在。Firebase 去留最迟在 NC-001-02 或 NC-009 前决定，此前服务端规格一律供应商无关。`SUBAGENT_TODO.md` 有他人未提交的 G3 改动，本线不暂存该文件。
+
 ## 项目冷启动总交接（当前最高优先级）
 
 更新时间：2026-09-10

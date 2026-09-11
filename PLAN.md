@@ -1,5 +1,13 @@
 # PLAN
 
+## G6 注解社区线（C/S 会话；与 Dataset 会话的 G3 线并行、互不暂存）
+
+- [x] 按 `AGENT_TAKEOVER_PROMPT.md` 冷启动、复跑 G3 与 G6 守卫、发出首次汇报；根 README 注解社区入口修正（`fe83bd8`）。
+- [ ] 用户确认「CLIENT 用独立 Git 仓库」后，派发 `reviews/NC-001-REVIEW-R1.md` 返工：8 整文件 + 18 逐字替换，14 个文件一次提交，`nc001_r1_guard.sh` 为 0。
+- [ ] 未参与编写者做 wjt-react 四查 → READY → 派发 `work-items/nc-001/PROMPT.md`（act/01 → act/02）→ 按 ACCEPTANCE.md 与 `nc001_r1_guard.sh --require-impl` 验收。
+- [ ] NC-002：用户确认 `DESIGN.md` §2.1 十七个前缀后准备六件套；结论同时写入 SUBAGENT_TODO 与 `READINESS_REVIEW.md` §3，消除两处矛盾。
+- [ ] NC-003 之前准备 Firebase 替代方案对比材料供用户决定；此前服务端规格一律供应商无关表述。NC-026 之前设计服务端删号路径，与 Firebase 决定一并处理。
+
 ## 项目冷启动交接
 
 - [x] 将项目目标、模块现状、G3 R4 证据、三类剩余假绿和后任启动顺序落盘到 `PROJECT_COLD_START_HANDOFF.md`。
