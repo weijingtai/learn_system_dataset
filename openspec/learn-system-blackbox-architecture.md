@@ -607,9 +607,23 @@ M6 读取 CandidatePackage、ValidationPackage 和 CorpusPackage，提供原文/
 
 现有依赖私有 `ai_core` 的聊天与直接生成规则能力从 Review Console 剥离。模型调用统一属于 M4 的 Model Adapter；以后如需在审核界面提供模型建议，只显示已经进入 CandidatePackage 且完整留痕的候选，不恢复旁路聊天写入。
 
-M6 只读显示 M2 的扫描、OCR 和字框。发现 OCR 错误时创建 `CorrectionRequest` 并退回 M2，由 FastAPI + Vue 校对工具修正；之后只让血缘可达的派生物失效，未受影响的人工决定可继承到新 Revision。
+M6 只读显示 M2 的扫描、OCR 和字框。发现 OCR 错误时创建 `CorrectionRequest` 并退回 M2，由 FastAPI + Vue 校对工具修正；修正后的失效范围与继承规则按 §14.1 精确失效传播执行，禁止整 Edition 或整 Stage 批量失效。
 
 输出 `ReviewedEditionPackage`，包括获批和驳回知识、所有 ReviewDecision、Revision、证据关系及零个未解决项。
+
+### 14.1 精确失效传播
+
+上游修正（M2 校订、M3 边界改判或任何被修正的 SourceSpan / StructuralSpan）发生后，失效范围由 LineageGraph（§18）机器判定，不由操作者手工挑选：
+
+- **影响面单位**：被修正的 `SourceSpan` / `StructuralSpan` 及其 `SourceAnchor`；每次修正产生它们的新 `artifact_revision_id`。
+- **失效判定**：从被修正 span 的新 Revision 出发，沿 LineageGraph 血缘可达的 Candidate、ValidationReport 条目与 ReviewDecision 目标对象一律置为 `invalidated`（§8.2 状态）；历史 Revision 保留，新运行不得消费。
+- **继承判定**：血缘不可达的对象原样继承到新 Revision，状态标记 `carried_forward`，并记录 `carried_from_revision_id` 与触发本轮的 `CorrectionRequest` 引用。
+- **人工决定的继承规则（写死）**：对每条血缘可达的 ReviewDecision，比较其目标对象修正前后的规范化内容哈希：内容等价则决定自动继承（`carried_forward`）；内容变化则降级为 `needs_review`（待复核），进入 Review Console 对应模式队列，不得自动沿用原决定。
+- **`ReworkImpactReport`**：每轮失效传播必须产出并封存为 Artifact，至少含 `invalidated_count`（失效 N）、`carried_forward_count`（继承 M）、`needs_review_count`（待复核 K）、`rework_round`（该 EditionPart 累计返工轮次）、`trigger_correction_request_id` 与受影响队列清单；Local Orchestrator 的 `ReworkImpact` 查询（§5）返回同一结构的预估值。
+- **收敛告警阈值**：同一 EditionPart 的 `rework_round` ≥ 3，或单轮 `invalidated_count` 占该 Part 有效对象数 ≥ 30% 时，`BlockingReasons` 必须登记 `rework_threshold_exceeded` 告警并要求操作者确认后才继续；告警本身不自动阻断 Gate，也不得被静默忽略。
+- **禁止**：整 Edition、整 Stage 或整队列的批量失效；由操作者手工判定哪些决定仍有效；跳过 ReworkImpactReport 直接重跑。
+
+本节与 §20 第 2 条（从最近 StageCheckpoint 恢复，见 §17.1）配合：恢复只重放待办队列，`carried_forward` 的决定不重做。
 
 ## 15. M7 Incremental Knowledge Assembly
 
