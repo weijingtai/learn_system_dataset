@@ -1,0 +1,53 @@
+TASK_ID: NC-001-01-B
+PARENT: NC-001-01
+STATUS: PREPARING
+GOAL: 实现契约 §4、§5、§7；integrated 档对完整证据给出结构通过，对当前快照输出 23 行缺证清单
+DEPENDS_ON: [NC-001-01-A]
+ESTIMATE_MINUTES: 50
+SCOPE:
+  READ:
+    - docs/blackbox-spec-rework/work-items/nc-001/VALIDATION_CONTRACT.md
+    - docs/blackbox-spec-rework/work-items/nc-001/BDD.md
+    - docs/blackbox-spec-rework/work-items/nc-001/TDD.md
+    - openspec/annotation-community/integration_baseline.json
+    - openspec/annotation-community/INTEGRATION_BASELINE.md
+  PATH_EXISTENCE_ONLY:
+    - integration_baseline.json 中出现的全部外部路径，只判断是否存在，不读内容
+  WRITE:
+    - openspec/annotation-community/tools/check_integration_baseline.py
+    - openspec/annotation-community/tools/test_check_integration_baseline.py
+  FORBIDDEN:
+    - /Users/jingtaiwei/Git/Public/xuan-migration 与 /Users/jingtaiwei/Git/Public/xuan-server 下的任何写入
+    - openspec/annotation-community/integration_baseline.json
+    - openspec/annotation-community/INTEGRATION_BASELINE.md
+    - docs/blackbox-spec-rework/work-items/nc-001/ 下全部文件
+    - openspec/annotation-community/ 下既有守卫与四份规格
+    - PLAN.md、HANDOFF.md、docs/blackbox-spec-rework/SUBAGENT_TODO.md
+DEPENDENCY_ALLOWLIST: [Python 标准库]
+SIGNATURE:
+  cli: "check_integration_baseline.py --profile local|integrated --input PATH"
+  exit_0: "integrated 档 stdout 恰为 INTEGRATED_STRUCTURE_PASS；scope=TEST_FIXTURE 时追加 ' (TEST_FIXTURE)'"
+  exit_1: "stdout 每行一个契约 §6 写法的路径，去重后 sorted()"
+  exit_2: "CLI 或输入错误，stderr 一行；删除步骤 1 中 integrated 的临时退出 2"
+RULES:
+  - "判据只取 VALIDATION_CONTRACT.md §4～§7"
+  - "状态闸门：对象 status 不是验证态时只报 <对象>.status"
+  - "不得修改步骤 1 已有测试的期望；只追加步骤 2 的方法与完整夹具构造函数"
+  - "23 行期望在测试文件中以字面量写出，不读取 VALIDATION_CONTRACT.md 生成"
+TESTS_FIRST:
+  - "写入 TDD §3 步骤 2 的 8 个方法；运行 TDD 命令 1（此时 integrated 仍退出 2），保存非 0 退出码与断言失败原文"
+STEPS:
+  - "实现契约 §4 各行与状态闸门"
+  - "实现契约 §5 account_deletion 验证态规则"
+  - "实现 TEST_FIXTURE 输出后缀"
+  - "运行 VERIFICATION 全部命令并满足 TDD 期望"
+  - "只暂存两个文件并提交，消息为 feat(nc-001): 集成基线校验器 integrated 档"
+VERIFICATION:
+  - "python3 -m unittest discover -s openspec/annotation-community/tools -p 'test_check_integration_baseline.py' -v"
+  - "python3 openspec/annotation-community/tools/check_integration_baseline.py --profile local --input openspec/annotation-community/integration_baseline.json"
+  - "python3 openspec/annotation-community/tools/check_integration_baseline.py --profile integrated --input openspec/annotation-community/integration_baseline.json（期望退出 1，stdout 与契约 §7 逐字相同）"
+  - "LC_ALL=C bash openspec/annotation-community/review_v1_5_guard.sh"
+  - "bash openspec/annotation-community/verify.sh"
+  - "git diff --check"
+  - "bash docs/blackbox-spec-rework/reviews/nc001_r1_guard.sh --require-impl"
+ON_FAIL: "停止并报告失败命令、退出码与断言原文；不改输入、契约或测试期望，不安装依赖，不扩大范围"

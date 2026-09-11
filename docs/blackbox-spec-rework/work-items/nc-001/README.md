@@ -16,21 +16,21 @@
 
 ## Dependencies / Baseline
 
-父目录存在、CLIENT=PLANNED_NEW且创建归NC-004；当前没有 checker，因此初始命令应退出2并显示文件不存在，不算行为Red。真正Red由下述测试针对未实现checker的返回与诊断建立。外部测试均未运行；不把本包通过声称成它们通过。
+父目录存在、CLIENT=PLANNED_NEW且创建归NC-004；当前没有 checker；Red 按 TDD §4 用空壳取得真实断言失败，文件不存在导致的退出 2 不算 Red。外部测试均未运行；不把本包通过声称成它们通过。
 
 ## Stop Conditions
 
-输入JSON与调查证据矛盾、输入基线的HEAD字段发生变化、执行需越过读写范围、需要访问真实云或身份凭据、标准库不可用均停止并报告。NC-001-02 联调工作另行准备；其十项缺口不能由本执行者临时设计/填值。
+输入JSON与调查证据矛盾、契约存在两种以上解释、执行需越过读写范围、需要访问真实云或身份凭据、标准库不可用均停止并报告。执行者不核对仓库 HEAD 是否仍为采样值，HEAD 新鲜度由 NC-001-02 重新取证。NC-001-02 联调工作另行准备；其十项缺口不能由本执行者临时设计/填值。
 
 ## Deliverables
 
-精确两文件、每项成对测试、Red/Green原始输出和单独commit。`--profile local` 是 LOCAL_PREPARATION_PASS；`--profile integrated` 对现有未验证快照必须失败。只有后续真实联调基线通过才能申请NC-001整项验收。
+精确两文件，按 act/01.yaml → act/02.yaml 分两个提交，每步交付 Red/Green 原始输出。`--profile local` 是 LOCAL_PREPARATION_PASS；`--profile integrated` 对现有未验证快照必须失败。只有后续真实联调基线通过才能申请NC-001整项验收。
 
 ## 一次性交付与阅读顺序
 
 1. 本 README：边界与状态。
 2. [BDD](BDD.md)、[TDD](TDD.md)、[校验字段契约](VALIDATION_CONTRACT.md)：行为、反例和判据。
-3. [ACT](ACT.yaml)：只写两个工具文件；[PROMPT](PROMPT.md) 为待 READY 后使用的草稿。
+3. [ACT](ACT.yaml) 及 [act/01](act/01.yaml)、[act/02](act/02.yaml)：分两步只写两个工具文件；[PROMPT](PROMPT.md) 为待 READY 后使用的草稿。
 4. [ACCEPTANCE](ACCEPTANCE.md)：独立复核与验收。
 5. [剩余交付清单](REMAINING_DELIVERABLES.md)：完整 NC-001 尚缺的十项证据、责任和后续文档。
 

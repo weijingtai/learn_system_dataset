@@ -64,8 +64,8 @@ NC-019 可先准备本地回收站子 ACT，但完整清理验收等待备份协
 - [ ] 读取现有 SOCIAL/STORAGE/REST/NOTIFICATION 及候选 CLIENT 的 AGENTS、pubspec、导出与真实调用；确认是否已有可复用学习包。当前相邻 learn_system 不是 Flutter 包。
 - [ ] 新增 `SPEC/INTEGRATION_BASELINE.md`，冻结 CLIENT 实际根、包名、Flutter/Dart 版本、各依赖精确范围、宿主初始化/账号/HTTP/存储/IM 导航注入点、各仓库基线提交。若改变拟建目录，回写所有任务路径。
 - [ ] `INTEGRATION_BASELINE.md` 必填项（R1 补入，此前 NC-016/018/023 引用了本任务从未承诺的产物）：① **设备清单表**（device_id、平台、系统版本、是否可作 P2P 对端，至少两台）；② **测试后端表**（project_id、命名空间前缀 `nc_<日期>_<短哈希>`、测试账号 uid ↔ app_user_id 对、凭据注入方式）；③ **Emulator 实值**（`FIRESTORE_EMULATOR_HOST`、`FIREBASE_AUTH_EMULATOR_HOST`、`GCLOUD_PROJECT`）与启动方式；④ 每个外部仓库的当前 HEAD、当前测试基线（退出码 + 用例数）、是否允许写入及精确写入路径；⑤ **OpenAPI 3.1 验证器实值**（名称 + 精确版本 + 安装方式 + 离线失败行为）；⑥ `flutter_markdown_plus` 的选型依据、精确版本范围（workspace 内 pub-cache 现为 1.0.12，但**无任何 pubspec 引用它**，属新依赖）与离线 pub-cache 失败策略；⑦ Firestore 安全规则文件路径；⑧ 通知回跳挂靠哪一套 notification 表现层（`social/lib/src/notification/` 与 `notification/lib/src/` 并存）；⑨ 宿主 notification 是否支持「按内容静音」与「聚合」粒度，不支持则登记为 E-WIRING 缺口；⑩ 宿主账号注销与本人彻底删除账号事件的来源、送达语义（至少一次还是恰好一次）与测试方式，供 NC-026 消费。
-- [ ] 新增 `SPEC/tools/check_integration_baseline.py`。红条件：`INTEGRATION_BASELINE.md` 含 `TBD`/`待定`/`?` 占位、或 CLIENT 根路径在文件系统中不存在、或任一端口缺 `文件:符号` 形式、或上述十项必填项任一缺失。
-- [ ] 验收：每个端口列真实文件/符号和「已有实现/新增适配」，不把 mock 或内存降级当生产；目录/版本未唯一确定则本任务不通过。运行 `python3 SPEC/tools/check_integration_baseline.py`，退出 0。
+- [ ] 新增 `SPEC/tools/check_integration_baseline.py`，机器输入为 `SPEC/integration_baseline.json`，并扫描同目录 `INTEGRATION_BASELINE.md`；字段契约见 `PACK/nc-001/VALIDATION_CONTRACT.md`。分两级：**NC-001-01** 用 `--profile local` 校验规划基线，允许 CLIENT 为 `PLANNED_NEW`（创建归 NC-004、父目录存在、目录尚不存在），未验证项必须按契约如实登记；**NC-001-02** 用 `--profile integrated` 作为本任务总项准出，要求 CLIENT 为 `EXISTING` 且十项全部为验证态。两级共同红条件：`INTEGRATION_BASELINE.md` 含 `TBD`/`待定` 占位、任一端口缺存在的文件或合法符号、上述十项必填项任一缺失。
+- [ ] 验收：每个端口列真实文件/符号和「已有实现/新增适配」，不把 mock 或内存降级当生产；目录/版本未唯一确定则本任务不通过。NC-001-01 运行 `python3 SPEC/tools/check_integration_baseline.py --profile local --input SPEC/integration_baseline.json`，退出 0，只关闭 NC-001-01；**NC-001 总项**运行同一命令的 `--profile integrated`，退出 0 且 stdout 恰为 `INTEGRATED_STRUCTURE_PASS`（不带 `(TEST_FIXTURE)`）才可标 ACCEPTED。
 
 ### NC-002：模型与固定行为契约
 

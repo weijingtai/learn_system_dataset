@@ -1,5 +1,6 @@
 {
   "schema_version": 1,
+  "spec_version": "1.5",
   "task_id": "NC-001",
   "scope": "LOCAL_PREPARATION",
   "book_work": "DEFERRED_BY_USER",
@@ -8,6 +9,7 @@
     "package": "reading_notes",
     "state": "PLANNED_NEW",
     "creation_owner": "NC-004",
+    "vcs": "NEW_GIT_REPOSITORY",
     "runtime_verified": false
   },
   "sdk": {
@@ -26,7 +28,12 @@
     "path_provider": "2.1.6",
     "build_runner": "2.15.1"
   },
+  "dependency_policy": {
+    "offline_failure": "ENV_BLOCKED",
+    "flutter_markdown_plus_rationale": "用户指定 flutter_markdown_plus；只负责 Markdown 渲染，编辑使用 Flutter 文本输入与撤销适配"
+  },
   "resolution_status": "NOT_RUN",
+  "resolution_evidence": null,
   "repositories": [
     {
       "name": "SPEC",
@@ -34,15 +41,17 @@
       "git_root": "/Users/jingtaiwei/Git/Public/learn_system",
       "head": "7dd2e5f977b95a9e1b7155ef20e648a16fe96e55",
       "dirty_entries": 14,
+      "write_policy": "PER_TASK_WHITELIST",
       "tests": {
         "status": "NOT_RUN",
-        "reason": "Read-only source survey; runtime baseline not executed"
+        "reason": "只读源码调查，未执行运行基线"
       }
     },
     {
       "name": "MIGRATION",
       "path": "/Users/jingtaiwei/Git/Public/xuan-migration",
-      "status": "UNAVAILABLE"
+      "status": "UNAVAILABLE",
+      "write_policy": "READ_ONLY"
     },
     {
       "name": "STORAGE",
@@ -50,9 +59,10 @@
       "git_root": "/Users/jingtaiwei/Git/Public/xuan-migration/xuan-storage",
       "head": "87f0ee514ca4255909901f27f4f4a55301fb20b9",
       "dirty_entries": 0,
+      "write_policy": "PER_TASK_WHITELIST",
       "tests": {
         "status": "NOT_RUN",
-        "reason": "Read-only source survey; runtime baseline not executed"
+        "reason": "只读源码调查，未执行运行基线"
       }
     },
     {
@@ -61,9 +71,10 @@
       "git_root": "/Users/jingtaiwei/Git/Public/xuan-migration/social",
       "head": "1971f79320ba679daf9be9e89d13a221eae6ff88",
       "dirty_entries": 0,
+      "write_policy": "PER_TASK_WHITELIST",
       "tests": {
         "status": "NOT_RUN",
-        "reason": "Read-only source survey; runtime baseline not executed"
+        "reason": "只读源码调查，未执行运行基线"
       }
     },
     {
@@ -72,9 +83,10 @@
       "git_root": "/Users/jingtaiwei/Git/Public/xuan-migration/notification",
       "head": "e8cee528ff6aabe6bca744e546ffbe4f25cb02a7",
       "dirty_entries": 0,
+      "write_policy": "PER_TASK_WHITELIST",
       "tests": {
         "status": "NOT_RUN",
-        "reason": "Read-only source survey; runtime baseline not executed"
+        "reason": "只读源码调查，未执行运行基线"
       }
     },
     {
@@ -83,9 +95,10 @@
       "git_root": "/Users/jingtaiwei/Git/Public/xuan-migration/repository-rest-adapter",
       "head": "0f8bf521a421592284e02fe0cd578b6db34ef439",
       "dirty_entries": 0,
+      "write_policy": "PER_TASK_WHITELIST",
       "tests": {
         "status": "NOT_RUN",
-        "reason": "Read-only source survey; runtime baseline not executed"
+        "reason": "只读源码调查，未执行运行基线"
       }
     },
     {
@@ -94,9 +107,10 @@
       "git_root": "/Users/jingtaiwei/Git/Public/xuan-server/functions-py",
       "head": "866ea138c2a5b51e9fa5d4280568e78308090d63",
       "dirty_entries": 0,
+      "write_policy": "PER_TASK_WHITELIST",
       "tests": {
         "status": "NOT_RUN",
-        "reason": "Read-only source survey; runtime baseline not executed"
+        "reason": "只读源码调查，未执行运行基线"
       }
     },
     {
@@ -105,36 +119,115 @@
       "git_root": "/Users/jingtaiwei/Git/Public/xuan-server/notifier",
       "head": "8f32132c245598e23ece1d28f5090b094e0c8037",
       "dirty_entries": 0,
+      "write_policy": "READ_ONLY",
       "tests": {
         "status": "NOT_RUN",
-        "reason": "Read-only source survey; runtime baseline not executed"
+        "reason": "只读源码调查，未执行运行基线"
       }
+    }
+  ],
+  "ports": [
+    {
+      "name": "HOST_INIT",
+      "file": "/Users/jingtaiwei/Git/Public/xuan-migration/xuan-shell/lib/app/xuan_shell_dependencies.dart",
+      "symbol": "XuanShellDependencies.create",
+      "kind": "EXISTING_IMPLEMENTATION"
+    },
+    {
+      "name": "ACCOUNT_SCOPE",
+      "file": "/Users/jingtaiwei/Git/Public/xuan-migration/xuan-storage/drift/lib/scope/scope_resolver.dart",
+      "symbol": "ScopeResolver",
+      "kind": "EXISTING_IMPLEMENTATION"
+    },
+    {
+      "name": "HTTP",
+      "file": "/Users/jingtaiwei/Git/Public/xuan-migration/repository-rest-adapter/lib/src/rest_storage_driver.dart",
+      "symbol": "RestStorageDriver",
+      "kind": "NEW_ADAPTER"
+    },
+    {
+      "name": "STORAGE",
+      "file": "/Users/jingtaiwei/Git/Public/xuan-migration/xuan-storage/drift/lib/record/drift_record_data_source.dart",
+      "symbol": "DriftRecordDataSource",
+      "kind": "NEW_ADAPTER"
+    },
+    {
+      "name": "IM_NAVIGATION",
+      "file": "/Users/jingtaiwei/Git/Public/xuan-migration/social/lib/src/profile/public_profile_page.dart",
+      "symbol": "PublicProfilePage.onStartChat",
+      "kind": "NEW_ADAPTER"
+    },
+    {
+      "name": "MENTION",
+      "file": "/Users/jingtaiwei/Git/Public/xuan-migration/social/lib/src/mention/mention_input_enhancer.dart",
+      "symbol": "MentionInputEnhancer.onInsert",
+      "kind": "NEW_ADAPTER"
+    },
+    {
+      "name": "NOTIFICATION_RECEIVE",
+      "file": "/Users/jingtaiwei/Git/Public/xuan-migration/notification/lib/src/receive/receive_pipeline.dart",
+      "symbol": "ReceivePipeline.handleDelivery",
+      "kind": "EXISTING_IMPLEMENTATION"
+    },
+    {
+      "name": "SERVER_IDENTITY",
+      "file": "/Users/jingtaiwei/Git/Public/xuan-server/functions-py/xuan/identity.py",
+      "symbol": "resolve_app_user_id",
+      "kind": "EXISTING_IMPLEMENTATION"
     }
   ],
   "identity": {
     "policy": "HOST_SCOPE_ONLY",
     "new_identity_system": false,
-    "public_profile_id": "PlaygroundUserId; not Firebase uid or appUserId"
+    "public_profile_id": "PlaygroundUserId；不是 Firebase uid，也不是 appUserId"
   },
   "openapi_validator": {
     "package": "openapi-spec-validator",
     "version": "0.9.0",
-    "status": "NOT_INSTALLED_IN_CURRENT_PYTHON"
+    "install_command": "python3 -m venv openspec/annotation-community/.venv-openapi && openspec/annotation-community/.venv-openapi/bin/python -m pip install openapi-spec-validator==0.9.0",
+    "offline_failure": "ENV_BLOCKED",
+    "status": "NOT_INSTALLED_IN_CURRENT_PYTHON",
+    "evidence": null
   },
   "integration": {
     "devices": [],
     "account_pairs": [],
+    "backend": {
+      "status": "UNVERIFIED",
+      "project_id": null,
+      "namespace_prefix": null,
+      "credential_injection": null,
+      "evidence": null
+    },
     "emulator": {
       "firestore_config": "192.168.0.165:8080",
       "auth_config": "192.168.0.165:9099",
       "project_config": "demo-xuan",
-      "status": "CONFIG_ONLY_NOT_CONTACTED"
+      "status": "CONFIG_ONLY_NOT_CONTACTED",
+      "start_command": null,
+      "evidence": null
     },
     "rules": {
-      "status": "UNVERIFIED"
+      "status": "UNVERIFIED",
+      "path": null,
+      "evidence": null
     },
     "notifier_binding": {
-      "status": "UNVERIFIED"
+      "status": "UNVERIFIED",
+      "evidence": null
+    },
+    "notification_presentation": {
+      "choice": "SOCIAL_NOTIFICATION_CENTER",
+      "file": "/Users/jingtaiwei/Git/Public/xuan-migration/social/lib/src/notification/notification_center_page.dart",
+      "symbol": "NotificationCenterPage",
+      "status": "UNVERIFIED",
+      "evidence": null
+    },
+    "mute_aggregation": {
+      "status": "UNVERIFIED",
+      "content_mute": null,
+      "aggregation": null,
+      "evidence": null
     },
     "test_runs": [],
     "account_deletion": {
@@ -148,6 +241,5 @@
       "consumer": "NC-026",
       "blocked_scope": "NC-026_ACCOUNT_DELETION"
     }
-  },
-  "spec_version": "1.5"
+  }
 }
