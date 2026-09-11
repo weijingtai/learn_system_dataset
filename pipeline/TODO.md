@@ -21,7 +21,7 @@
 
 ## P2：发布与 APP 接入
 
-- [ ] 实现 `KnowledgeReleaseCompiler`、ReleaseManifest 与 fail-closed validator；验收：缺来源、证据、规则、审核、rights 或任一内容哈希时拒绝编译，重放产生相同发布哈希。
+- [ ] 实现 `KnowledgeReleaseCompiler`、ReleaseManifest 与 fail-closed validator（本条为 `KnowledgeReleaseCompiler` 唯一登记处，D-16 收敛 2026-09-11；规格 §16 M8）；验收：缺来源、证据、规则、审核、rights 或任一内容哈希时拒绝编译，重放产生相同发布哈希。
 - [ ] 实现只读 App adapter；验收：客户端只接受带获批 release ID/hash 的 Bundle，直接读取 corpus、加工 units 或 dev RAG SQLite 必须失败。
 - [ ] 接入 `pattern_knowledge_workbench`；验收：仅获批格局、流派观点、原文证据和规则可成为编译输入，工作台草稿、私人笔记和互动计数不得泄漏进知识发布包。
 - [ ] Embedding 后置；验收：关闭向量能力时精确条件匹配、来源跳转、审核过滤和发布门禁仍完整通过，向量结果不能绕过任何硬门禁。

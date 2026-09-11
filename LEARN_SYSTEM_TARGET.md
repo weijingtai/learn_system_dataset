@@ -255,7 +255,7 @@ knowledge-pack-<technique>-<version>/
 4. 定义各术数 FactSet Profile 和结构化 `ApplicabilityRule`；
 5. 将现有自然语言 conditions 编译/标注为可查询条件；
 6. 修复 concept→assertion→evidence 检索链及完整 span ID 索引；
-7. 实现 `KnowledgeReleaseCompiler`、ReleaseManifest 和发布级 validator；
+7. 实现 `KnowledgeReleaseCompiler`、ReleaseManifest 和发布级 validator（唯一登记处：`pipeline/TODO.md` P2 第 1 条，D-16 收敛）；
 8. 提供只读 `AppKnowledgeAdapter`；
 9. 用一个真实八字垂直切片证明排盘事实可以匹配词条并打开原始扫描位置。
 

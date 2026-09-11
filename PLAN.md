@@ -9,6 +9,94 @@
 - [x] 用户确认 `pat_`/`ent_` 前缀（2026-09-11；登记册 §3.4 已改为已确认；规格 §8.1 登记随第三批 `work-items/g4-r3/` ACT 02）。
 - [ ] G5 总准出：G4 D 类全部 `ACCEPTED` 后复核 BDD 总验收包、机器门禁与 ACT 覆盖映射。
 
+## 黑箱差距 → PLAN 条目 → owner 映射（D-16，2026-09-11；只增不删）
+
+本节是 D-16 的产物（`docs/blackbox-spec-rework/D-design.md` §D-16）。规则：根 `PLAN.md` 只保留顺序与 Gate 状态，细节留在各 owner 文件；本文件任何未勾选项零删除。标注含义：`mapped` = 有 §19 差距行或 owner 文件承接，继续有效；`superseded-by` = 已被所列提交/章节完成或取代，勾选由主 Agent 事后凭证据做；`out-of-scope` = 不在 §22 本阶段范围，保留不删、不派发。§19 指 `openspec/learn-system-blackbox-architecture.md` §19 主表。
+
+### A. §19 差距行 → PLAN 既有条目 → 唯一 owner 文件
+
+| §19 差距行 | 分期 | PLAN 既有条目（「」内为条目开头文字） | 唯一 owner 文件 |
+|---|---|---|---|
+| M1 Source Intake | 首纵切后 | 「建立首个 `SourcePackage` 与连续工位 `TaskPackage` 示例」；`pipeline/TODO.md` P0 第 3 条（PUA 勘误可重放） | `pipeline/TODO.md` |
+| M2 Digitization & Correction | 首纵切后 | 「在黑箱 R1 规格复审通过后，以最薄实现让现有 OCR `run` 路径」；「打通一页扫描件到 `SourceSpan → OCR 字框 → PDF/PNG`」 | `openspec/ocr-profile-parameterization.md` |
+| M3 Corpus Compilation | 首纵切内 | 「修复《穷通宝鉴》约 7.5% 源文漏编」 | `pipeline/TODO.md` |
+| M4 Knowledge Extraction | 首纵切后 | 「泛化 taskgen，移除八字/《穷通宝鉴》硬编码」 | `pipeline/TODO.md` |
+| M5 Automatic Validation | 首纵切内 | 「增加 assertion task、glossary、RAG index 的确定性校验器」 | `pipeline/TODO.md` |
+| M6 Review Workbench | 首纵切后 | 「修复工作台启动覆盖数据库、保存即 verified」；「将工作台从七政硬编码演进为 `TechniqueProfile`」 | `pattern_knowledge_workbench/TODO.md` |
+| M7 Incremental Assembly | 首纵切后 | 无既有条目 → 本节 C 新增登记 | `knowledge_system/EXECUTION_PLAN.md` |
+| M8 Dataset Compilation | 首纵切内 | 「修复完整 span ID 索引和」；「实现发布级 KnowledgeReleaseCompiler」 | `pipeline/TODO.md` |
+| Artifact Ledger | 首纵切内 | 无既有条目 → 本节 C 新增登记 | `docs/blackbox-spec-rework/SUBAGENT_TODO.md` |
+| Local Orchestrator | 首纵切后 | 无既有条目 → 本节 C 新增登记 | `docs/blackbox-spec-rework/SUBAGENT_TODO.md` |
+| Contract Registry | 首纵切后 | 「根据试点修订 Schema、错误码和自动放行门槛」 | `docs/blackbox-spec-rework/SUBAGENT_TODO.md` |
+| 工作台唯一键限制 | 本阶段暂缓 | `pattern_knowledge_workbench/TODO.md`「清理并迁移 496 rule 基线」 | `pattern_knowledge_workbench/TODO.md` |
+| 流派与书目混部 | 本阶段暂缓 | `pattern_knowledge_workbench/TODO.md`「实现 School 主视图与关键分歧门禁」 | `pattern_knowledge_workbench/TODO.md` |
+| 构建环境私有依赖 | 本阶段暂缓（已修复，防回退） | 已勾选：「修复: `pattern_knowledge_workbench/pubspec.yaml:62,66,86`」（G2 ACT-03） | `docs/blackbox-spec-rework/SUBAGENT_TODO.md` |
+| 数据状态管理缺陷 | 本阶段暂缓（已修复，防回退） | 已勾选：「修复: `pattern_knowledge_workbench/lib/database/drift_database.dart:28-29`」「修复: `pattern_knowledge_workbench/lib/pages/rule_list_page.dart:1202,1802`」（G2 ACT-01/02） | `docs/blackbox-spec-rework/SUBAGENT_TODO.md` |
+| 测试宿主匮乏 | 首纵切后 | 「为 `pipeline/` 增加依赖声明与环境检查」；「收紧 `tests/test_segment.py` 的宽松断言」 | `pipeline/TODO.md` |
+| 测试 Golden 不足 | 本阶段暂缓 | 「泛化 taskgen，移除八字/《穷通宝鉴》硬编码」（非八字 fixture 部分） | `pipeline/TODO.md` |
+| OCR 横排切分轴 | 本阶段暂缓 | 「R7 `segment_block` 横排分支墨迹掩码与取轴错误」 | `ocr/HANDOFF_OCR_FIXES.md` |
+| 语义分层阻塞 | 首纵切后 | `pipeline/TODO.md` P0 第 6–8 条（忠实性门禁、命例/注文/通则分层、条件例外结构化） | `pipeline/TODO.md` |
+
+### B. PLAN 既有未勾选项标注（黑箱相关 43 条；「」内为条目开头文字）
+
+| PLAN 未勾选项（开头文字） | 标注 | 对应 §19 行 / 取代者 / 理由 | owner 文件 |
+|---|---|---|---|
+| 「第三批 D-16 PLAN 映射表与唯一 owner」 | mapped | 本节即其产物 | `docs/blackbox-spec-rework/SUBAGENT_TODO.md` |
+| 「G5 总准出：G4 D 类全部」 | mapped | G5 | `docs/blackbox-spec-rework/SUBAGENT_TODO.md` |
+| 「G3 门禁已封闭，G3 状态由」 | superseded-by | 用户 2026-09-10 已启动 G4（本文件 G4 节第 1 条） | `docs/blackbox-spec-rework/SUBAGENT_TODO.md` |
+| 「修复: `openspec/learn-system-blackbox-architecture.md:§16` Annotation 完全缺席」 | superseded-by | D-06 `e474ae4`（§16 `AnchorContractPack`） | `docs/blackbox-spec-rework/work-items/g4-r1/ACCEPTANCE.md` |
+| 「修复: `openspec/learn-system-blackbox-architecture.md:§12,§18` 流派只以裸词 School 出现」 | superseded-by | D-08 `07f79dd`（§12.2 `SchoolView`）+ `851fa70`（`sch_`/`sv_`/`cg_`） | `docs/blackbox-spec-rework/work-items/g4-r1/ACCEPTANCE.md` |
+| 「修复: `openspec/learn-system-blackbox-architecture.md:§14` 失效传播粒度为整个 Edition」 | superseded-by | D-10 `015e34f`（§14.1） | `docs/blackbox-spec-rework/work-items/g4-r1/ACCEPTANCE.md` |
+| 「修复: `openspec/learn-system-blackbox-architecture.md:§20.2` StageCheckpoint 全文仅出现 1 次」 | superseded-by | D-11 `3598ea8`（§17.1） | `docs/blackbox-spec-rework/work-items/g4-r1/ACCEPTANCE.md` |
+| 「修复: `openspec/learn-system-blackbox-architecture.md:§6.2` ReleaseRun 流程图无 M6」 | superseded-by | D-13 `4086c2c`（§6.2） | `docs/blackbox-spec-rework/work-items/g4-r1/ACCEPTANCE.md` |
+| 「修复: `openspec/learn-system-blackbox-architecture.md:§5,§7` 操作者无法回答」 | superseded-by | 规格 §5 Local Orchestrator 六项只读查询契约（`RunStatus` 等）已在正文 | `openspec/learn-system-blackbox-architecture.md` |
+| 「修复: `openspec/learn-system-blackbox-architecture.md:§10` 异常版面页无终态定义」 | superseded-by | 规格 §10.1 终态闭集（含 `known_unrecognizable`），D-15 fixture 已用 | `openspec/learn-system-blackbox-architecture.md` |
+| 「修复: `openspec/learn-system-blackbox-architecture.md:§20` 十条完成标准全为散文断言」 | superseded-by | D-18 `4884b6a` + `2978ad9`（`openspec/acceptance/run_all.sh`） | `docs/blackbox-spec-rework/work-items/g4-r2/ACCEPTANCE.md` |
+| 「修复: `openspec/learn-system-blackbox-architecture.md:§19,§20,§21` 全文无任何分期」 | superseded-by | D-14 `d36a202`（§19 分期列 + §22） | `docs/blackbox-spec-rework/work-items/g4-r1/ACCEPTANCE.md` |
+| 「修复: `openspec/learn-system-blackbox-architecture.md:§4` 与 `LEARN_SYSTEM_TARGET.md:289`」 | superseded-by | 裁定 2026-09-08 首纵切改七政《三辰通载》（其后一条已勾选）+ §22 | `openspec/learn-system-blackbox-architecture.md` |
+| 「修复: 缺最小可跑 fixture Edition」 | superseded-by | D-15 `6fc8536`（`pipeline/corpus/_fixture/mini_ed01/`，§22.1） | `docs/blackbox-spec-rework/work-items/g4-r2/ACCEPTANCE.md` |
+| 「修复: `PLAN.md:7` 提议「按差距矩阵重写本节」」 | superseded-by | D-16（本节） | `docs/blackbox-spec-rework/SUBAGENT_TODO.md` |
+| 「完成 `openspec/learn-system-blackbox-architecture.md` 的 R1 返工并复审」 | superseded-by | G3 `ACCEPTED`（`241c38c`）+ G4 D 类 `ACCEPTED`（D-16 后收口） | `docs/blackbox-spec-rework/SUBAGENT_TODO.md` |
+| 「在黑箱 R1 规格复审通过后，以最薄实现让现有 OCR `run` 路径」 | mapped | §19 M2 | `openspec/ocr-profile-parameterization.md` |
+| 「修复《穷通宝鉴》约 7.5% 源文漏编」 | mapped | §19 M3 / M5 / M8 | `pipeline/TODO.md` |
+| 「修复工作台启动覆盖数据库、保存即 verified」 | mapped | §19 M6；前两项已由 G2 ACT-01/02 修复，余「无版本审计、AI 候选绕过审核」 | `pattern_knowledge_workbench/TODO.md` |
+| 「将工作台从七政硬编码演进为 `TechniqueProfile`」 | mapped | §19 M6；D-07 `TechniqueProfilePack` 为契约 | `pattern_knowledge_workbench/TODO.md` |
+| 「定义第一条八字纵切的 KnowledgePack」 | superseded-by | 首纵切改七政（裁定 2026-09-08）；契约已由 D-07 与 §16 八子包给出 | `openspec/learn-system-blackbox-architecture.md` |
+| 「打通一页扫描件到 `SourceSpan → OCR 字框 → PDF/PNG`」 | mapped | §19 M2 / M8；D-15 fixture 已给出字框锚点样例 | `pipeline/TODO.md` |
+| 「泛化 taskgen，移除八字/《穷通宝鉴》硬编码」 | mapped | §19 M4 / 测试 Golden 不足 | `pipeline/TODO.md` |
+| 「修复完整 span ID 索引和」 | mapped | §19 M8（映射键碰撞） | `pipeline/TODO.md` |
+| 「实现发布级 KnowledgeReleaseCompiler」 | mapped | §19 M8；唯一 owner `pipeline/TODO.md` P2 第 1 条，其余三处已改为引用 | `pipeline/TODO.md` |
+| 「用 `丙日干 + 亥月` FactSet 验收」 | superseded-by | 首纵切改七政；八字纵切延至 §22 首纵切后 | `LEARN_SYSTEM_TARGET.md` |
+| 「实现锚定到词条/主张/原句/扫描区域的私人及公开 Annotation 最小模型」 | superseded-by | D-06 `AnchorContractPack` + G6 注解社区线 NC-002 契约 | `openspec/annotation-community/TASKS.md` |
+| 「在首条纵切通过后，扩展十干十二月」 | mapped | §22 首纵切后 | `LEARN_SYSTEM_TARGET.md` |
+| 「为 `pipeline/` 增加依赖声明与环境检查」 | mapped | §19 测试宿主匮乏 | `pipeline/TODO.md` |
+| 「增加 assertion task、glossary、RAG index 的确定性校验器」 | mapped | §19 M5 | `pipeline/TODO.md` |
+| 「按 `PIPELINE_REVIEW_v1.md` 回写四本手册」 | mapped | §19 无对应行；文档维护项 | `knowledge_system/PIPELINE_REVIEW_v1.md` |
+| 「为《烟波钓叟歌》s13-s110 扩批」 | out-of-scope | 奇门语料，§22 本阶段暂缓 | `pipeline/TODO.md` |
+| 「用户确认 v1.2 推荐项、冻结项和阶段零范围」 | superseded-by | §22 已确认设计（用户 2026-09-10） | `openspec/learn-system-blackbox-architecture.md` |
+| 「确认旧 APP 类型并定稿迁移策略」 | out-of-scope | 待用户决定，与 G6 Firebase 去留同批 | `PLAN.md` |
+| 「选择一段具有正文、注文、条件、例外和术语的奇门试点材料」 | out-of-scope | 首纵切改七政 | `pipeline/TODO.md` |
+| 「建立首个 `SourcePackage` 与连续工位 `TaskPackage` 示例」 | superseded-by | D-02 `StagePackage` Schema + D-15 `mini_ed01` 期望包 | `openspec/schemas/` |
+| 「建立奇门分工位金标集」 | out-of-scope | 奇门，§22 本阶段暂缓 | `pipeline/TODO.md` |
+| 「根据试点修订 Schema、错误码和自动放行门槛」 | mapped | §19 Contract Registry | `docs/blackbox-spec-rework/SUBAGENT_TODO.md` |
+| 「将用户批准的最终设计转入 OpenSpec」 | superseded-by | `openspec/learn-system-blackbox-architecture.md`（G3 `ACCEPTED`） | `openspec/learn-system-blackbox-architecture.md` |
+| 「编写实施计划并开始校验器与编译器实现」 | superseded-by | §22 首纵切 + G5 总准出后的实现批次 | `docs/blackbox-spec-rework/SUBAGENT_TODO.md` |
+| 「R7 `segment_block` 横排分支墨迹掩码与取轴错误」 | mapped | §19 OCR 横排切分轴 | `ocr/HANDOFF_OCR_FIXES.md` |
+| 「清掉 `_find_gaps` 未被使用的 `min_gap` 死参」 | mapped | §19 无对应行；OCR 线维护项 | `ocr/HANDOFF_OCR_FIXES.md` |
+| 「收紧 `tests/test_segment.py` 的宽松断言」 | mapped | §19 测试宿主匮乏 | `ocr/HANDOFF_OCR_FIXES.md` |
+
+G6 注解社区线各节（「G6 注解社区线」「NC-001 首包补齐」「注解社区 v1.5 同步」「注解社区：本轮工程准备」「注解社区：下一阶段准入」「注解社区 v1.4」「注解社区 R2 六项返工（v1.3）」「注解社区 v1.1 补充复核」「上下游生产交付核对回执」「注解社区线：跨 Agent 数据契约（2026-09-10）」）的全部未勾选项（本次 20 条）：`out-of-scope`（黑箱之外；owner `openspec/annotation-community/TASKS.md`，由 C/S 会话维护，本表不逐条登记）。
+
+### C. §19 无既有条目的三行：新增登记（判据取自 `openspec/acceptance/run_all.sh`）
+
+- [ ] Artifact Ledger（§19 L1，首纵切内）：Object Store / Metadata Ledger / Revision / Lineage Graph 按规格 §17 实现；判据 `bash openspec/acceptance/run_all.sh 20.2 20.3` 由 BLOCKED 变 PASS ｜ owner `docs/blackbox-spec-rework/SUBAGENT_TODO.md`（G5 后实现批次）。
+- [ ] Local Orchestrator（§19 L2，首纵切后）：EditionRun/ReleaseRun 状态机、阶段 Gate、StageCheckpoint、失效传播按规格 §5 / §6 / §14.1 / §17.1 实现；判据 `bash openspec/acceptance/run_all.sh 20.1` 由 BLOCKED 变 PASS ｜ owner `docs/blackbox-spec-rework/SUBAGENT_TODO.md`。
+- [ ] M7 Incremental Assembly（§19，首纵切后）：可执行 Assembler、跨 Edition 对勘、稳定 Pattern 聚合与提案裁决按规格 §15 实现；判据 `bash openspec/acceptance/run_all.sh 20.5` 由 BLOCKED 变 PASS ｜ owner `knowledge_system/EXECUTION_PLAN.md`。
+
+### D. 重复登记收敛
+
+`KnowledgeReleaseCompiler` 唯一登记处 = `pipeline/TODO.md` P2 第 1 条；`pattern_knowledge_workbench/TODO.md`、`LEARN_SYSTEM_TARGET.md` 第 13 节第 7 条、本文件「实现发布级 KnowledgeReleaseCompiler…」均改为/视为引用，不再各自登记验收。
+
 ## G6 注解社区线（C/S 会话；与 Dataset 会话的 G3 线并行、互不暂存）
 
 - [x] 按 `AGENT_TAKEOVER_PROMPT.md` 冷启动、复跑 G3 与 G6 守卫、发出首次汇报；根 README 注解社区入口修正（`fe83bd8`）。

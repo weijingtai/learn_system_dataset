@@ -14,7 +14,7 @@
 - [ ] 建立 `TechniqueProfile`、七政 `FactSchema` 和严格 Condition DSL；验收：非法事实/条件、无匹配和未决默认值均 fail closed，并有确定性 fixture。
 - [ ] 实现 School 主视图与关键分歧门禁；验收：选定 School 优先呈现，其他流派显示为不同观点；影响适用性/判断的冲突必须首层提示。
 - [ ] 集成 Learn System Pipeline；验收：来源处理、候选生成和验证结果可追溯到本工作台领域对象，不能直接进入发布区。
-- [ ] 实现 `KnowledgeReleaseCompiler`；验收：只从获批对象编译 ReleaseBundle，缺来源、证据、适用规则或审核决定时编译失败。
+- [ ] `KnowledgeReleaseCompiler` 唯一登记处为 `pipeline/TODO.md` P2 第 1 条（D-16 收敛 2026-09-11）；本工作台只需保证获批格局、流派观点、原文证据与规则可作为其编译输入（验收同 `pipeline/TODO.md` P2 第 3 条），不再另行登记编译器实现。
 - [ ] 实现只读 App adapter；验收：客户端只消费 ReleaseBundle，不能直接修改知识源，也不能依赖原型 SQLite 的 `verified` 字段。
 - [ ] 清理并迁移 496 rule 基线；验收：报告逐条说明是否有条件、章节、原文、Assertion、证据和审核状态，未补齐项不得发布。
 
