@@ -376,7 +376,7 @@ DESIGN 不再给出「403 或 404」这类二选一。每个场景固定唯一 H
 
 错误目录见 §7.3，为唯一权威；本期无私有备份端点；backup.* 操作保留为枚举值不实现（NC-003 D-NC003-09）。限流阈值与 `retry_after_seconds` 的实值由 NC-003 填入，未填实值前 `429` 不可测，不得写入验收。
 
-OpenAPI 必须用 `in: header` 的 header parameters 表示请求头。现有 `repository-rest-adapter/openapi/openapi.yaml` 有 **22 个 operation（全部）带非法 operation 级 `headers:`、0 处 `in: header`**（v1.6 勘误：原「35 处」为全文 grep 把 response 级与 components 级合并计入），属非法结构，不能原样复制。**注意其既有 `test/openapi_validation_test.dart` 有 8 处断言正好要求这个非法形式存在**，修正结构必然弄红既有测试——该文件因此必须进入 NC-003 的写入白名单，并在工作包 README 中记录改前基线（当前 `dart test` 退出码与用例数），以便区分既有失败与新增失败。
+OpenAPI 必须用 `in: header` 的 header parameters 表示请求头。现有 `repository-rest-adapter/openapi/openapi.yaml` 有 **22 个 operation（全部）带非法 operation 级 `headers:`、0 处 `in: header`**（v1.6 勘误：原「35 处」为全文 grep 把 response 级与 components 级合并计入），属非法结构，不能原样复制。**注意其既有 `test/openapi_validation_test.dart` 有 14 行断言（10 个测试块）正好要求这个非法形式存在**，修正结构必然弄红既有测试——该文件因此必须进入 NC-003 的写入白名单，并在工作包 README 中记录改前基线（当前 `dart test` 退出码与用例数），以便区分既有失败与新增失败。
 
 **权威文档为两份，不是一份**：本系统 3.1.0 契约在 REST 仓；ACK/relay 契约在 `xuan-server/notifier/api/openapi.yaml`（3.0.3）。Swagger UI 与客户端契约测试各自消费对应的那一份，JSON Schema 不维护第二套含义相反的字段。
 
