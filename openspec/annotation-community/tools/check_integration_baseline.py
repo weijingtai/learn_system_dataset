@@ -16,6 +16,7 @@
 
 import argparse
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -31,6 +32,33 @@ DEPENDENCY_PINS = {
     "path_provider": "2.1.6",
     "build_runner": "2.15.1",
 }
+
+REPOSITORY_NAMES = [
+    "SPEC", "MIGRATION", "STORAGE", "SOCIAL", "NOTIFICATION", "REST", "SERVER", "NOTIFIER",
+]
+
+PORT_NAMES = [
+    "HOST_INIT", "ACCOUNT_SCOPE", "HTTP", "STORAGE", "IM_NAVIGATION",
+    "MENTION", "NOTIFICATION_RECEIVE", "SERVER_IDENTITY",
+]
+
+# integration 下各对象的通用规格：(未验证态取值, 验证态取值, 验证字段列表)。
+# 常驻字段（不受 status 闸门约束）与 account_deletion 的固定值单独处理。
+INTEGRATION_OBJECT_SPECS = {
+    "backend": ("UNVERIFIED", "VERIFIED", ["project_id", "namespace_prefix", "credential_injection", "evidence"]),
+    "emulator": ("CONFIG_ONLY_NOT_CONTACTED", "VERIFIED", ["start_command", "evidence"]),
+    "rules": ("UNVERIFIED", "VERIFIED", ["path", "evidence"]),
+    "notifier_binding": ("UNVERIFIED", "VERIFIED", ["evidence"]),
+    "notification_presentation": ("UNVERIFIED", "VERIFIED", ["evidence"]),
+    "mute_aggregation": ("UNVERIFIED", "VERIFIED", ["content_mute", "aggregation", "evidence"]),
+    "account_deletion": (
+        "UNVERIFIED", "VERIFIED",
+        ["source", "delivery_semantics", "test_command", "exit_code", "count", "evidence"],
+    ),
+}
+
+HEX40_RE = re.compile(r"^[0-9a-f]{40}$")
+SYMBOL_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)?$")
 
 
 def _is_plain_int(value):
@@ -346,6 +374,167 @@ def check_md_placeholder(base_dir, report):
         report.add("INTEGRATION_BASELINE.md")
 
 
+def check_repositories(repos, report):
+    """契约 §3：repositories。数组元素结构或定位键集合不符时只报数组路径本身。"""
+    if not isinstance(repos, list):
+        return
+
+    for item in repos:
+        if not isinstance(item, dict) or not isinstance(item.get("name"), str):
+            report.add("repositories")
+            return
+
+    names = [item["name"] for item in repos]
+    if sorted(names) != sorted(REPOSITORY_NAMES):
+        report.add("repositories")
+        return
+
+    by_name = {item["name"]: item for item in repos}
+    for name in REPOSITORY_NAMES:
+        item = by_name[name]
+        prefix = f"repositories[{name}]"
+
+        if "path" not in item or not _is_nonempty_str(item["path"]):
+            report.add(f"{prefix}.path")
+
+        wp_ok = "write_policy" in item and item["write_policy"] in ("READ_ONLY", "PER_TASK_WHITELIST")
+        if not wp_ok:
+            report.add(f"{prefix}.write_policy")
+        elif name in ("MIGRATION", "NOTIFIER") and item["write_policy"] != "READ_ONLY":
+            report.add(f"{prefix}.write_policy")
+
+        if name == "MIGRATION":
+            if "status" not in item or item["status"] != "UNAVAILABLE":
+                report.add(f"{prefix}.status")
+            continue
+
+        if "git_root" not in item or not _is_nonempty_str(item["git_root"]):
+            report.add(f"{prefix}.git_root")
+
+        if "head" not in item or not isinstance(item.get("head"), str) or not HEX40_RE.match(item["head"]):
+            report.add(f"{prefix}.head")
+
+        dirty = item.get("dirty_entries")
+        if "dirty_entries" not in item or not _is_plain_int(dirty) or dirty < 0:
+            report.add(f"{prefix}.dirty_entries")
+
+        tests = item.get("tests")
+        if "tests" not in item or not isinstance(tests, dict):
+            report.add(f"{prefix}.tests")
+        else:
+            status = tests.get("status")
+            if "status" not in tests or status not in ("NOT_RUN", "PASSED", "FAILED"):
+                report.add(f"{prefix}.tests.status")
+            if status == "NOT_RUN":
+                if "reason" not in tests or not _is_nonempty_str(tests["reason"]):
+                    report.add(f"{prefix}.tests.reason")
+
+
+def check_ports(ports, base_dir, report):
+    """契约 §3：ports。数组元素结构或定位键集合不符时只报数组路径本身。"""
+    if not isinstance(ports, list):
+        return
+
+    for item in ports:
+        if not isinstance(item, dict) or not isinstance(item.get("name"), str):
+            report.add("ports")
+            return
+
+    names = [item["name"] for item in ports]
+    if sorted(names) != sorted(PORT_NAMES):
+        report.add("ports")
+        return
+
+    by_name = {item["name"]: item for item in ports}
+    for name in PORT_NAMES:
+        item = by_name[name]
+        prefix = f"ports[{name}]"
+
+        file_val = item.get("file")
+        if "file" not in item or not _is_nonempty_str(file_val) or not _resolve_path(base_dir, file_val).is_file():
+            report.add(f"{prefix}.file")
+
+        symbol = item.get("symbol")
+        if "symbol" not in item or not isinstance(symbol, str) or not SYMBOL_RE.match(symbol):
+            report.add(f"{prefix}.symbol")
+
+        if "kind" not in item or item["kind"] not in ("EXISTING_IMPLEMENTATION", "NEW_ADAPTER"):
+            report.add(f"{prefix}.kind")
+
+
+def check_integration_object_common(name, obj, report):
+    """契约 §3：integration 下对象的共同规则——status 枚举、未验证态时验证
+    字段必须为 null。常驻字段与 account_deletion 固定值由调用方另行检查。
+    调用方须保证 obj 已是 dict。"""
+    unverified, verified, val_fields = INTEGRATION_OBJECT_SPECS[name]
+    prefix = f"integration.{name}"
+
+    status = None
+    if "status" not in obj:
+        report.add(f"{prefix}.status")
+    else:
+        status = obj["status"]
+        if status not in (unverified, verified):
+            report.add(f"{prefix}.status")
+
+    for field in val_fields:
+        if field not in obj:
+            report.add(f"{prefix}.{field}")
+        elif status == unverified and obj[field] is not None:
+            report.add(f"{prefix}.{field}")
+
+
+def check_integration(integration, base_dir, report):
+    """契约 §3：integration。local 档只检查 devices/account_pairs/test_runs
+    为 array（§4 的内容规则由 integrated 增量另行检查）。"""
+    if not isinstance(integration, dict):
+        return
+
+    for key in ("devices", "account_pairs", "test_runs"):
+        if key not in integration:
+            report.add(f"integration.{key}")
+        elif not isinstance(integration[key], list):
+            report.add(f"integration.{key}")
+
+    object_names = (
+        "backend", "emulator", "rules", "notifier_binding",
+        "notification_presentation", "mute_aggregation", "account_deletion",
+    )
+    for name in object_names:
+        if name not in integration or not isinstance(integration[name], dict):
+            report.add(f"integration.{name}")
+            continue
+        check_integration_object_common(name, integration[name], report)
+
+    emulator = integration.get("emulator")
+    if isinstance(emulator, dict):
+        for field in ("firestore_config", "auth_config", "project_config"):
+            if field not in emulator or not _is_nonempty_str(emulator[field]):
+                report.add(f"integration.emulator.{field}")
+
+    np_obj = integration.get("notification_presentation")
+    if isinstance(np_obj, dict):
+        if "choice" not in np_obj or np_obj["choice"] not in (
+            "SOCIAL_NOTIFICATION_CENTER", "NOTIFICATION_PACKAGE_PAGE",
+        ):
+            report.add("integration.notification_presentation.choice")
+
+        file_val = np_obj.get("file")
+        if "file" not in np_obj or not _is_nonempty_str(file_val) or not _resolve_path(base_dir, file_val).is_file():
+            report.add("integration.notification_presentation.file")
+
+        symbol = np_obj.get("symbol")
+        if "symbol" not in np_obj or not isinstance(symbol, str) or not SYMBOL_RE.match(symbol):
+            report.add("integration.notification_presentation.symbol")
+
+    ad_obj = integration.get("account_deletion")
+    if isinstance(ad_obj, dict):
+        if "consumer" not in ad_obj or ad_obj["consumer"] != "NC-026":
+            report.add("integration.account_deletion.consumer")
+        if "blocked_scope" not in ad_obj or ad_obj["blocked_scope"] != "NC-026_ACCOUNT_DELETION":
+            report.add("integration.account_deletion.blocked_scope")
+
+
 def build_arg_parser():
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument("--profile")
@@ -410,6 +599,9 @@ def main(argv=None):
     check_identity(data.get("identity"), report)
     check_openapi_validator_common(data.get("openapi_validator"), base_dir, report)
     check_md_placeholder(base_dir, report)
+    check_repositories(data.get("repositories"), report)
+    check_ports(data.get("ports"), base_dir, report)
+    check_integration(data.get("integration"), base_dir, report)
 
     if report.has_errors():
         for path in report.sorted_paths():

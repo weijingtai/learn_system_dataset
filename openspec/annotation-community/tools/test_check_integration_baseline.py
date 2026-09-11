@@ -10,7 +10,9 @@ check_integration_baseline.py，不导入其内部函数，只断言 CLI 的
 """
 
 import copy
+import hashlib
 import json
+import re
 import subprocess
 import sys
 import tempfile
@@ -183,6 +185,46 @@ def set_nested(data, dotted_path, value):
     for part in parts[:-1]:
         node = node[part]
     node[parts[-1]] = value
+
+
+_ARRAY_SEGMENT_RE = re.compile(r"^([A-Za-z_][A-Za-z0-9_]*)\[([A-Za-z0-9_]+)\]$")
+
+
+def _step_into(node, segment):
+    """按契约 §6 写法解析一个路径片段：普通键名或 数组名[定位名]。"""
+    m = _ARRAY_SEGMENT_RE.match(segment)
+    if m:
+        arr = node[m.group(1)]
+        return next(it for it in arr if it.get("name") == m.group(2))
+    return node[segment]
+
+
+def delete_key_path(data, dotted_path):
+    """按 REQUIRED_KEY_PATHS 的写法删除对应键，用于 test_missing_required_keys。"""
+    parts = dotted_path.split(".")
+    node = data
+    for part in parts[:-1]:
+        node = _step_into(node, part)
+    last = parts[-1]
+    m = _ARRAY_SEGMENT_RE.match(last)
+    if m:
+        arr = node[m.group(1)]
+        item = next(it for it in arr if it.get("name") == m.group(2))
+        arr.remove(item)
+    else:
+        del node[last]
+
+
+def find_repo(data, name):
+    return next(it for it in data["repositories"] if it.get("name") == name)
+
+
+def find_port(data, name):
+    return next(it for it in data["ports"] if it.get("name") == name)
+
+
+def sha256_of(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 class TopLevelTests(unittest.TestCase):
@@ -479,6 +521,228 @@ class ClientSdkDependencyTests(unittest.TestCase):
             self.assertEqual(r.returncode, 1)
             self.assertIn("INTEGRATION_BASELINE.md", r.stdout.splitlines())
             self.assertNotIn("PASS", r.stdout)
+
+
+class RepositoriesPortsIntegrationTests(unittest.TestCase):
+    """TDD §3.4：步骤 3 的 9 个方法（repositories、ports、integration 各对象
+    规则与必填键全表）。"""
+
+    def test_missing_required_keys(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            for path in REQUIRED_KEY_PATHS:
+                data, json_path, _ = make_fixture(tmp)
+                delete_key_path(data, path)
+                dump(data, json_path)
+                r = run_checker(json_path, "local")
+                with self.subTest(path=path):
+                    self.assertEqual(r.returncode, 1)
+                    self.assertIn(path, r.stdout.splitlines())
+                    self.assertNotIn("PASS", r.stdout)
+
+            # 两个定位键用例
+            data, json_path, _ = make_fixture(tmp)
+            del find_repo(data, "SPEC")["name"]
+            dump(data, json_path)
+            r = run_checker(json_path, "local")
+            with self.subTest(path="repositories[SPEC].name"):
+                self.assertEqual(r.returncode, 1)
+                self.assertIn("repositories", r.stdout.splitlines())
+                self.assertNotIn("PASS", r.stdout)
+
+            data, json_path, _ = make_fixture(tmp)
+            del find_port(data, "HTTP")["name"]
+            dump(data, json_path)
+            r = run_checker(json_path, "local")
+            with self.subTest(path="ports[HTTP].name"):
+                self.assertEqual(r.returncode, 1)
+                self.assertIn("ports", r.stdout.splitlines())
+                self.assertNotIn("PASS", r.stdout)
+
+    def test_repositories_rules(self):
+        contains_cases = [
+            (lambda d: find_repo(d, "SPEC").__setitem__("head", "ABC"), "repositories[SPEC].head"),
+            (lambda d: find_repo(d, "SPEC").__setitem__("head", "A" * 40), "repositories[SPEC].head"),
+            (lambda d: find_repo(d, "SPEC").__setitem__("dirty_entries", True), "repositories[SPEC].dirty_entries"),
+            (lambda d: find_repo(d, "SPEC").__setitem__("dirty_entries", -1), "repositories[SPEC].dirty_entries"),
+            (lambda d: find_repo(d, "SPEC").__setitem__("write_policy", "WRITE_ALL"), "repositories[SPEC].write_policy"),
+            (lambda d: find_repo(d, "NOTIFIER").__setitem__("write_policy", "PER_TASK_WHITELIST"),
+             "repositories[NOTIFIER].write_policy"),
+            (lambda d: find_repo(d, "MIGRATION").__setitem__("status", "AVAILABLE"), "repositories[MIGRATION].status"),
+            (lambda d: find_repo(d, "MIGRATION").__setitem__("write_policy", "PER_TASK_WHITELIST"),
+             "repositories[MIGRATION].write_policy"),
+            (lambda d: find_repo(d, "SPEC")["tests"].__setitem__("status", "SKIPPED"),
+             "repositories[SPEC].tests.status"),
+            (lambda d: (find_repo(d, "SPEC")["tests"].__setitem__("status", "NOT_RUN"),
+                        find_repo(d, "SPEC")["tests"].__setitem__("reason", "")),
+             "repositories[SPEC].tests.reason"),
+        ]
+        with tempfile.TemporaryDirectory() as tmp:
+            for mutate, expect in contains_cases:
+                data, json_path, _ = make_fixture(tmp)
+                mutate(data)
+                dump(data, json_path)
+                r = run_checker(json_path, "local")
+                with self.subTest(expect=expect):
+                    self.assertEqual(r.returncode, 1)
+                    self.assertIn(expect, r.stdout.splitlines())
+                    self.assertNotIn("PASS", r.stdout)
+
+            data, json_path, _ = make_fixture(tmp)
+            data["repositories"] = [it for it in data["repositories"] if it["name"] != "STORAGE"]
+            dump(data, json_path)
+            r = run_checker(json_path, "local")
+            self.assertEqual(r.returncode, 1)
+            self.assertEqual(r.stdout, "repositories\n")
+
+            data, json_path, _ = make_fixture(tmp)
+            data["repositories"].append(copy.deepcopy(find_repo(data, "SPEC")))
+            dump(data, json_path)
+            r = run_checker(json_path, "local")
+            self.assertEqual(r.returncode, 1)
+            self.assertEqual(r.stdout, "repositories\n")
+
+            data, json_path, _ = make_fixture(tmp)
+            data["repositories"][0] = "x"
+            dump(data, json_path)
+            r = run_checker(json_path, "local")
+            self.assertEqual(r.returncode, 1)
+            self.assertEqual(r.stdout, "repositories\n")
+
+    def test_ports_rules(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            data, json_path, _ = make_fixture(tmp)
+            data["ports"] = [it for it in data["ports"] if it["name"] != "MENTION"]
+            dump(data, json_path)
+            r = run_checker(json_path, "local")
+            self.assertEqual(r.returncode, 1)
+            self.assertEqual(r.stdout, "ports\n")
+
+            contains_cases = [
+                (lambda d: find_port(d, "HTTP").__setitem__("symbol", "42"), "ports[HTTP].symbol"),
+                (lambda d: find_port(d, "HTTP").__setitem__("symbol", "a.dart:42"), "ports[HTTP].symbol"),
+                (lambda d: find_port(d, "HTTP").__setitem__("file", "/no/such/file.dart"), "ports[HTTP].file"),
+                (lambda d: find_port(d, "HTTP").__setitem__("kind", "MOCK"), "ports[HTTP].kind"),
+            ]
+            for mutate, expect in contains_cases:
+                data, json_path, _ = make_fixture(tmp)
+                mutate(data)
+                dump(data, json_path)
+                r = run_checker(json_path, "local")
+                with self.subTest(expect=expect):
+                    self.assertEqual(r.returncode, 1)
+                    self.assertIn(expect, r.stdout.splitlines())
+                    self.assertNotIn("PASS", r.stdout)
+
+            data, json_path, _ = make_fixture(tmp)
+            data["ports"].append(copy.deepcopy(find_port(data, "HTTP")))
+            dump(data, json_path)
+            r = run_checker(json_path, "local")
+            self.assertEqual(r.returncode, 1)
+            self.assertEqual(r.stdout, "ports\n")
+
+    def test_emulator_constants(self):
+        cases = [
+            ({"firestore_config": ""}, "integration.emulator.firestore_config"),
+            ({"auth_config": None}, "integration.emulator.auth_config"),
+            ({"project_config": 123}, "integration.emulator.project_config"),
+            ({"status": "RUNNING"}, "integration.emulator.status"),
+        ]
+        with tempfile.TemporaryDirectory() as tmp:
+            for overrides, expect in cases:
+                data, json_path, _ = make_fixture(tmp)
+                data["integration"]["emulator"].update(copy.deepcopy(overrides))
+                dump(data, json_path)
+                r = run_checker(json_path, "local")
+                with self.subTest(overrides=overrides):
+                    self.assertEqual(r.returncode, 1)
+                    self.assertIn(expect, r.stdout.splitlines())
+                    self.assertNotIn("PASS", r.stdout)
+
+    def test_notification_presentation_rules(self):
+        cases = [
+            ({"choice": "OTHER"}, "integration.notification_presentation.choice"),
+            ({"file": "/no/such/file.dart"}, "integration.notification_presentation.file"),
+            ({"symbol": "42"}, "integration.notification_presentation.symbol"),
+            ({"status": "DONE"}, "integration.notification_presentation.status"),
+        ]
+        with tempfile.TemporaryDirectory() as tmp:
+            for overrides, expect in cases:
+                data, json_path, _ = make_fixture(tmp)
+                data["integration"]["notification_presentation"].update(copy.deepcopy(overrides))
+                dump(data, json_path)
+                r = run_checker(json_path, "local")
+                with self.subTest(overrides=overrides):
+                    self.assertEqual(r.returncode, 1)
+                    self.assertIn(expect, r.stdout.splitlines())
+                    self.assertNotIn("PASS", r.stdout)
+
+    def test_account_deletion_constants(self):
+        cases = [
+            ({"consumer": "NC-025"}, "integration.account_deletion.consumer"),
+            ({"blocked_scope": "X"}, "integration.account_deletion.blocked_scope"),
+            ({"status": "DONE"}, "integration.account_deletion.status"),
+        ]
+        with tempfile.TemporaryDirectory() as tmp:
+            for overrides, expect in cases:
+                data, json_path, _ = make_fixture(tmp)
+                data["integration"]["account_deletion"].update(copy.deepcopy(overrides))
+                dump(data, json_path)
+                r = run_checker(json_path, "local")
+                with self.subTest(overrides=overrides):
+                    self.assertEqual(r.returncode, 1)
+                    self.assertIn(expect, r.stdout.splitlines())
+                    self.assertNotIn("PASS", r.stdout)
+
+    def test_account_deletion_unverified_local(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            data, json_path, _ = make_fixture(tmp)
+            dump(data, json_path)
+            r = run_checker(json_path, "local")
+            self.assertEqual(r.returncode, 0)
+            self.assertEqual(r.stdout, "LOCAL_PREPARATION_PASS\n")
+
+            data["integration"]["account_deletion"]["test_command"] = "x"
+            dump(data, json_path)
+            r = run_checker(json_path, "local")
+            self.assertEqual(r.returncode, 1)
+            self.assertIn("integration.account_deletion.test_command", r.stdout.splitlines())
+            self.assertNotIn("PASS", r.stdout)
+
+    def test_half_filled_unverified_rejected(self):
+        cases = [
+            (("rules", "path", "x"), "integration.rules.path"),
+            (("backend", "project_id", "p"), "integration.backend.project_id"),
+            (("mute_aggregation", "aggregation", "SUPPORTED"), "integration.mute_aggregation.aggregation"),
+            (("backend", "status", "VERIFYING"), "integration.backend.status"),
+        ]
+        with tempfile.TemporaryDirectory() as tmp:
+            for (obj_name, field, value), expect in cases:
+                data, json_path, _ = make_fixture(tmp)
+                data["integration"][obj_name][field] = value
+                dump(data, json_path)
+                r = run_checker(json_path, "local")
+                with self.subTest(obj_name=obj_name, field=field):
+                    self.assertEqual(r.returncode, 1)
+                    self.assertIn(expect, r.stdout.splitlines())
+                    self.assertNotIn("PASS", r.stdout)
+
+    def test_inputs_unchanged(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            data, json_path, md_path = make_fixture(tmp)
+            before_json_hash = sha256_of(json_path)
+            before_md_hash = sha256_of(md_path)
+            before_listing = sorted(str(p.relative_to(tmp)) for p in Path(tmp).rglob("*"))
+
+            run_checker(json_path, "local")
+            run_checker(json_path, "integrated")
+
+            after_json_hash = sha256_of(json_path)
+            after_md_hash = sha256_of(md_path)
+            after_listing = sorted(str(p.relative_to(tmp)) for p in Path(tmp).rglob("*"))
+
+            self.assertEqual(before_json_hash, after_json_hash)
+            self.assertEqual(before_md_hash, after_md_hash)
+            self.assertEqual(before_listing, after_listing)
 
 
 if __name__ == "__main__":
