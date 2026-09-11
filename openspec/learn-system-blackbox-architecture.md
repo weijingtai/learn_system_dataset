@@ -804,6 +804,16 @@ Ledger 暂不可用时适用 §8.2 的 `suspended` 语义：Module 立即停止�
 
 所有步骤按以下事务执行：创建 StepRun、冻结输入、验证输入 Contract、执行、保存原始输出和日志、计算哈希、验证输出、记录 Transformation、封存 StepManifest、写入最终状态。失败和部分输出也必须封存；重跑创建新 StepRun。
 
+### 17.1 StageCheckpoint
+
+`StageCheckpoint` 是 Artifact Ledger 中的独立对象，不是 StagePackage 的前身或子集：StagePackage 是阶段封存后的不可变产物（§8），StageCheckpoint 是阶段进行中的可恢复进度快照。阶段封存时，该 Stage 的最后一个 StageCheckpoint 被 `StageManifest` 引用并随之冻结；此后不再创建新 Checkpoint。
+
+- **身份与修订**：StageCheckpoint 按 §8.1 的 Artifact 语义使用 `art_<32hex>` 作为逻辑身份、`rev_<32hex>` 作为每次落盘的物理修订；同一 EditionPart × Stage 只有一条 Checkpoint 链，每次落盘引用前一 Revision。
+- **落盘粒度**：人工阶段（M2 校订、M3 边界裁决、M4 类别裁决、M6 审核）在**每次人工决定被 Ledger 接受后即时**持久化一个新 Revision；非人工任务每完成一个 task 持久化一次；不允许以阶段结束为唯一落盘点，也不允许把多次人工决定合并到一次落盘。
+- **必含内容**：`edition_part_id`、`stage`（`m1`–`m8`）、`step_run_id`、已完成任务清单（task 标识与其输出 `artifact_revision_id`）、已封存人工决定清单（ReviewDecision 标识）、待办队列剩余项（含五个专用队列的残余，见 §5）、下一步指针（下一个 task 或队列项）、`actor_ref`、创建时间、前一 Checkpoint 的 `artifact_revision_id`、本轮 `ReworkImpactReport` 引用（若有，见 §14.1）。
+- **恢复语义**：从最近 StageCheckpoint 恢复时，已完成任务与已封存人工决定不重做；只重放待办队列；恢复动作作为 `recovery` 事件写入 Ledger，与本节 `suspended` 段的对账顺序一致。若最后一个 Checkpoint 早于最后一次已接受的人工决定，Orchestrator 必须先按 Ledger 事件补写 Checkpoint 再恢复，不得丢弃该决定。
+- **失败与部分输出**：失败任务的输出与错误同样进入 Checkpoint 的已完成任务清单（标记失败），保证 §20 第 2 条「历史失败不被覆盖」。
+
 ## 18. 双图与 Graph 无损要求
 
 状态：已确认设计
