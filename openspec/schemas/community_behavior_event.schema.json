@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CommunityBehaviorEvent",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "event_id": {
+      "$ref": "community_common.schema.json#/$defs/behaviorEventId"
+    },
+    "schema_version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "event_type": {
+      "type": "string",
+      "minLength": 1
+    },
+    "occurred_at": {
+      "$ref": "community_common.schema.json#/$defs/timestamp"
+    },
+    "received_at": {
+      "$ref": "community_common.schema.json#/$defs/timestamp"
+    },
+    "actor_pseudonym": {
+      "$ref": "community_common.schema.json#/$defs/actorPseudonym"
+    },
+    "object_type": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "object_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "note_ref": {
+      "oneOf": [
+        {
+          "$ref": "community_common.schema.json#/$defs/hex64"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "platform": {
+      "type": "string",
+      "minLength": 1
+    },
+    "app_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "attributes": {
+      "type": "object"
+    }
+  },
+  "required": [
+    "event_id",
+    "schema_version",
+    "event_type",
+    "occurred_at",
+    "received_at",
+    "actor_pseudonym",
+    "object_type",
+    "object_id",
+    "note_ref",
+    "platform",
+    "app_version",
+    "attributes"
+  ]
+}

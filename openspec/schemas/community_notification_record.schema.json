@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CommunityNotificationRecord",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "notification_id": {
+      "$ref": "community_common.schema.json#/$defs/notificationRecordId"
+    },
+    "event_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "recipient_id": {
+      "$ref": "community_common.schema.json#/$defs/accountId"
+    },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "content",
+            "comment"
+          ]
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "thread_id": {
+          "$ref": "community_common.schema.json#/$defs/threadId"
+        }
+      },
+      "required": [
+        "kind",
+        "id"
+      ]
+    },
+    "delivery_state": {
+      "type": "string",
+      "enum": [
+        "created",
+        "dispatching",
+        "delivered",
+        "failed",
+        "abandoned"
+      ]
+    },
+    "attempt_count": {
+      "$ref": "community_common.schema.json#/$defs/version"
+    },
+    "created_at": {
+      "$ref": "community_common.schema.json#/$defs/timestamp"
+    },
+    "updated_at": {
+      "$ref": "community_common.schema.json#/$defs/timestamp"
+    }
+  },
+  "required": [
+    "notification_id",
+    "event_id",
+    "recipient_id",
+    "target",
+    "delivery_state",
+    "attempt_count",
+    "created_at",
+    "updated_at"
+  ]
+}

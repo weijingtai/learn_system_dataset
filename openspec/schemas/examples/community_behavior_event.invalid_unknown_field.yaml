@@ -1,0 +1,14 @@
+event_id: bev_0123456789abcdef0123456789abcdef
+schema_version: 1
+event_type: note.view
+occurred_at: '2026-09-10T12:00:00Z'
+received_at: '2026-09-10T12:00:01Z'
+actor_pseudonym: psn_0123456789abcdef0123456789abcdef
+object_type: content
+object_id: note_0123456789abcdef0123456789abcdef
+note_ref: null
+platform: ios
+app_version: 1.0.0
+attributes:
+  source: feed
+unknown_field: forbidden

@@ -1,0 +1,14 @@
+owner_scope: user_scope_0123
+operation: content.publish
+command_id: cmd_00000000000040008000000000000000
+payload_hash: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+outcome: running
+resource_ids:
+  note_id: note_0123456789abcdef0123456789abcdef
+applied_version: 1
+result_http_status: 200
+result_code: null
+result_fields: {}
+committed_at: '2026-09-10T12:00:00Z'
+result_compact_after: '2026-09-24T12:00:00Z'
+result_compacted_at: null

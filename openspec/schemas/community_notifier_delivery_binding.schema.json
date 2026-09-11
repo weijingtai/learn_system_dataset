@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CommunityNotifierDeliveryBinding",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "notification_id": {
+      "$ref": "community_common.schema.json#/$defs/notificationRecordId"
+    },
+    "notifier_delivery_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "recipient_scope": {
+      "type": "string",
+      "minLength": 1
+    },
+    "device_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "channel_purpose": {
+      "type": "string",
+      "minLength": 1
+    },
+    "write_source": {
+      "type": "string",
+      "enum": [
+        "trusted_ingress",
+        "trusted_delivery_callback"
+      ]
+    },
+    "source_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "bound_at": {
+      "$ref": "community_common.schema.json#/$defs/timestamp"
+    }
+  },
+  "required": [
+    "notification_id",
+    "notifier_delivery_id",
+    "recipient_scope",
+    "device_id",
+    "channel_purpose",
+    "write_source",
+    "source_ref",
+    "bound_at"
+  ]
+}

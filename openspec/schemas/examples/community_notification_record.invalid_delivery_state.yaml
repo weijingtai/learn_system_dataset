@@ -1,0 +1,10 @@
+notification_id: ntf_0123456789abcdef0123456789abcdef
+event_id: evt_0123456789abcdef0123456789abcdef
+recipient_id: user_recipient_01
+target:
+  kind: content
+  id: note_0123456789abcdef0123456789abcdef
+delivery_state: unknown_delivery_state
+attempt_count: 0
+created_at: '2026-09-10T12:00:00Z'
+updated_at: '2026-09-10T12:00:00Z'

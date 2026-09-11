@@ -1,0 +1,135 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CommunityCommandRecord",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "owner_scope": {
+      "type": "string",
+      "minLength": 1
+    },
+    "operation": {
+      "$ref": "community_common.schema.json#/$defs/operationName"
+    },
+    "command_id": {
+      "$ref": "community_common.schema.json#/$defs/commandId"
+    },
+    "payload_hash": {
+      "$ref": "community_common.schema.json#/$defs/hex64"
+    },
+    "outcome": {
+      "type": "string",
+      "enum": [
+        "committed",
+        "rejected"
+      ]
+    },
+    "resource_ids": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "applied_version": {
+      "oneOf": [
+        {
+          "$ref": "community_common.schema.json#/$defs/version"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "result_http_status": {
+      "type": "integer",
+      "minimum": 100,
+      "maximum": 599
+    },
+    "result_code": {
+      "oneOf": [
+        {
+          "type": "string",
+          "minLength": 1
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "result_fields": {
+      "type": "object"
+    },
+    "committed_at": {
+      "$ref": "community_common.schema.json#/$defs/timestamp"
+    },
+    "result_compact_after": {
+      "$ref": "community_common.schema.json#/$defs/timestamp"
+    },
+    "result_compacted_at": {
+      "oneOf": [
+        {
+          "$ref": "community_common.schema.json#/$defs/timestamp"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "required": [
+    "owner_scope",
+    "operation",
+    "command_id",
+    "payload_hash",
+    "outcome",
+    "resource_ids",
+    "applied_version",
+    "result_http_status",
+    "result_code",
+    "result_fields",
+    "committed_at",
+    "result_compact_after",
+    "result_compacted_at"
+  ],
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "outcome": {
+            "const": "rejected"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "applied_version": {
+            "type": "null"
+          },
+          "result_code": {
+            "type": "string",
+            "minLength": 1
+          },
+          "result_http_status": {
+            "minimum": 400
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "result_compacted_at": {
+            "type": "string"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "result_fields": {
+            "maxProperties": 0
+          }
+        }
+      }
+    }
+  ]
+}

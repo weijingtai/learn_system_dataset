@@ -1,0 +1,9 @@
+notification_id: ntf_0123456789abcdef0123456789abcdef
+notifier_delivery_id: notif_del_0123456789
+recipient_scope: user_scope_0123
+device_id: device_0123
+channel_purpose: direct_message
+write_source: trusted_ingress
+source_ref: ref_0123456789
+bound_at: '2026-09-10T12:00:00Z'
+unknown_field: forbidden
