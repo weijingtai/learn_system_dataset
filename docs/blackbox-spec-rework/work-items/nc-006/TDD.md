@@ -14,7 +14,7 @@
 | 6 | `flutter test` | `+110: All tests passed!` |
 | 7 | `git diff <NC-005 末提交> HEAD --stat -- pubspec.yaml pubspec.lock lib/src/domain lib/src/persistence test/persistence test/contracts lib/src/editor/save_status.dart lib/src/editor/markdown_preview.dart test/editor/save_status_test.dart test/editor/markdown_preview_test.dart test/editor/note_editor_test.dart` | 空 |
 | 8 | `grep -nE '\b500\b|\b20\b|DateTime\.now\(|Timer\(|Stopwatch\(' lib/src/editor/editor_history_adapter.dart` | 无输出 |
-| 9 | `grep -c 'Shortcuts(' lib/src/editor/note_editor_page.dart` 与 `grep -rl 'UndoHistoryController' lib/src/editor/` | 恰 1；无文件 |
+| 9 | `test "$(grep -c 'Shortcuts(' lib/src/editor/note_editor_page.dart)" = 1`；另跑 `[ -z "$(grep -rl 'UndoHistoryController' lib/src/editor/)" ]` | 两条退出码均 0（恰 1 处；无匹配文件） |
 | 10 | `bash docs/blackbox-spec-rework/reviews/nc006_guard.sh --require-impl` | 0 |
 
 ## 2. act/01：adapter 分类、归组、IME、栈规则（契约 §3、§4）

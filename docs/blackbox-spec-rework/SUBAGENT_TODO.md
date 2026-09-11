@@ -598,10 +598,10 @@
   - [x] 六件套 `work-items/nc-005/`（act/01～04）与守卫 `reviews/nc005_guard.sh`
   - [x] wjt-react 四查：R1 REWORK 3 项 + 3 建议、R2 READY（`reviews/NC-005-REVIEW-R1.md`）；守卫 `nc005_guard.sh` 0
   - [ ] 用户派发外部执行 Agent（`work-items/nc-005/PROMPT.md`，act/01～04，四个提交在 reading-notes 仓库）；主 Agent 按 ACCEPTANCE.md 验收
-- [ ] NC-006：Undo/Redo 与 IME/焦点（状态：`DRAFT`，2026-09-11 六件套完成，待 wjt-react 四查；派发前置 NC-005 ACCEPTED）
+- [ ] NC-006：Undo/Redo 与 IME/焦点（状态：`READY`，2026-09-11；派发前置 NC-005 ACCEPTED 尚未满足，PROMPT 待 NC-005 验收通过后交用户）
   - [x] 规格侧契约（主 Agent）：`openspec/annotation-community/contracts/editor_history.md`（Flutter 3.44.6 平台事实：平台栈不可关闭、`Action.overridable` 覆盖、默认键表无 Ctrl+Y；adapter 接口、diff 分类与三条归组规则、IME 单元、页面接线、D-NC006-01～12）；`editor.md` §4 加指针
   - [x] 六件套 `work-items/nc-006/`（act/01 adapter、act/02 与控制器/自动保存交互、act/03 页面按键/按钮/焦点）与守卫 `reviews/nc006_guard.sh`；`nc005_guard.sh` 的 Shortcuts 扫描在 adapter 落地后自动跳过（D-NC006-12）
-  - [ ] wjt-react 四查
+  - [x] wjt-react 四查：R1 返工 1 项（act/03 校验命令 `&&` 链退出码误判）+ 2 建议，主 Agent 落实后 READY（`reviews/NC-006-REVIEW-R1.md`）；守卫 `nc006_guard.sh` 0
   - [ ] 用户派发外部执行 Agent（`work-items/nc-006/PROMPT.md`，三个提交在 reading-notes 仓库）；主 Agent 按 ACCEPTANCE.md 验收
 - [ ] NC-007：历史、差异、恢复与冲突处理旅程（状态：`BACKLOG`）
 

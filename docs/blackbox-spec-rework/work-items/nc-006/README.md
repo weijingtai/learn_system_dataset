@@ -1,6 +1,6 @@
 # NC-006：撤销、重做与输入法
 
-状态：`DRAFT`（2026-09-11，待 wjt-react 四查）。派发前置：**NC-005 ACCEPTED**（reading-notes 含 NC-005 四个提交、`flutter test +75`）。执行由用户交外部 Agent，PROMPT.md 原样发送。task_id：`NC-006`。权威需求来源：TASKS NC-006；DESIGN §3「撤销栈归属」、§3.1；PRD §4、§4.1 A11Y-05；契约 `openspec/annotation-community/contracts/editor_history.md`（本任务专属，主 Agent 编写）、`editor.md` §2/§4；NC-004 `limits.dart` 常量。
+状态：`READY`（2026-09-11 wjt-react R1：忠实性/覆盖性/独立性通过，可执行性 1 项返工——act/03 校验命令退出码语义——已由主 Agent 落实并空跑复核；记录见 `reviews/NC-006-REVIEW-R1.md`）。派发前置：**NC-005 ACCEPTED**（reading-notes 含 NC-005 四个提交、`flutter test +75`）。执行由用户交外部 Agent，PROMPT.md 原样发送。task_id：`NC-006`。权威需求来源：TASKS NC-006；DESIGN §3「撤销栈归属」、§3.1；PRD §4、§4.1 A11Y-05；契约 `openspec/annotation-community/contracts/editor_history.md`（本任务专属，主 Agent 编写）、`editor.md` §2/§4；NC-004 `limits.dart` 常量。
 
 ## 主 Agent 已核定的平台事实（执行者不再调研）
 

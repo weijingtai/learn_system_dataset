@@ -1,6 +1,6 @@
 TASK_ID: NC-006-B
 PARENT: NC-006
-STATUS: DRAFT
+STATUS: READY
 REPO: xuan-migration/reading-notes
 GOAL: adapter 与 NoteEditorController 的 applySnapshot/自动保存交互：撤销后照常保存、保存成功/失败/unchanged 不清栈、apply 守卫、重开清栈、title/summary 不入栈、调用集合，8 项测试
 DEPENDS_ON: [NC-006-A]

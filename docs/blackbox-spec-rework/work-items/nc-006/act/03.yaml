@@ -1,6 +1,6 @@
 TASK_ID: NC-006-C
 PARENT: NC-006
-STATUS: DRAFT
+STATUS: READY
 REPO: xuan-migration/reading-notes
 GOAL: 页面接线：history 参数、Shortcuts(Ctrl+Y 仅非 Apple)→Actions(UndoTextIntent/RedoTextIntent)→正文 TextField、按钮同一入口、监听器记录、applySnapshot 回写、dispose；10 项按键/焦点/按钮测试与 NC-005 一个测试改名
 DEPENDS_ON: [NC-006-B]
@@ -43,7 +43,8 @@ VERIFICATION:
   - "export PATH=/Users/jingtaiwei/flutter/bin:$PATH && cd /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes && flutter analyze"
   - "cd /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes && flutter test test/editor/editor_shortcuts_test.dart（期望 +10）"
   - "cd /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes && flutter test test/editor/note_editor_page_test.dart（期望 +6）"
-  - "cd /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes && grep -c 'Shortcuts(' lib/src/editor/note_editor_page.dart（期望 1）&& grep -rl 'UndoHistoryController' lib/src/editor/（期望无）"
+  - "cd /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes && test \"$(grep -c 'Shortcuts(' lib/src/editor/note_editor_page.dart)\" = 1（期望退出码 0）"
+  - "cd /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes && [ -z \"$(grep -rl 'UndoHistoryController' lib/src/editor/)\" ]（期望退出码 0，即无匹配文件）"
   - "cd /Users/jingtaiwei/Git/Public/learn_system && bash docs/blackbox-spec-rework/reviews/nc006_guard.sh --require-impl（期望 0）"
   - "cd /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes && flutter test（期望 +110）"
   - "git -C /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes status --short（提交后为空）"
