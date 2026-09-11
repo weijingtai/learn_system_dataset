@@ -83,7 +83,7 @@ check(not miss, "V08 PRD §9 登记 v1.5 与三项用户决策", f"缺 {miss}")
 
 # V09：四份文档升版到 1.5
 heads = {k: "\n".join(t.splitlines()[:12]) for k, t in (("PRD", prd), ("DESIGN", design), ("PLANS", plans), ("TASKS", tasks))}
-bad = [k for k, h in heads.items() if "版本：1.5" not in h]
+bad = [k for k, h in heads.items() if not re.search(r"版本：1\.[5-9]", h)]  # v1.6 起放宽（FIX_V1_6）
 check(not bad, "V09 四份文档版本为 1.5", f"未升版={bad}")
 
 # V10：PLANS 阶段、串行顺序、验收入口与复核清单

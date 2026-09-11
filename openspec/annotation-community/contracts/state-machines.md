@@ -91,7 +91,7 @@ hidden 不影响本机器：作者对 hidden 内容仍可 withdraw；moderation 
 | trashed | content.restore | 本人；距 T0 ≤ 30 天；lifecycle=trashed | active（保持 private；moderation 不变） | 超期 `409 conflict.lifecycle`；purge_pending `409 conflict.lifecycle` |
 | trashed | content.purge（本人明确彻底删除） | 本人 | purge_pending（PurgeTask queued） | 403 |
 | trashed | 30 天到期（服务端定时 / 本地定时） | T0 + 30 天 ≤ now | purge_pending（PurgeTask queued） | — |
-| purge_pending | PurgeTask succeeded | 正文/引用/附件/备份全部删除成功 | purged（保留无正文 tombstone） | — |
+| purge_pending | PurgeTask succeeded | 正文/引用/附件全部删除成功 | purged（保留无正文 tombstone） | — |
 | purge_pending | content.restore | — | ✘ | `409 conflict.lifecycle`（current_state=purge_pending） |
 | active | content.purge | — | ✘ | `409 conflict.lifecycle`（决定 D-NC002-07：彻底删除只能从回收站发起） |
 | active | content.restore | — | ✘ | 409 |

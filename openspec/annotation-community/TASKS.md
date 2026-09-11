@@ -1,6 +1,6 @@
 # 笔记、原句注解与讨论 Tasks
 
-版本：1.5；2026-09-10（新增 R-21 行为事件数据源，见 FIX_V1_5；待抽查确认）。状态：`APPROVED_DESIGN`；执行状态：`NOT_STARTED`。
+版本：1.6；2026-09-11（私人数据保护改为 S6 模型，NC-015～019 相应改写，见 FIX_V1_6；用户确认）。状态：`APPROVED_DESIGN`；执行状态：`NOT_STARTED`。
 权威需求：[PRD](PRD.md)，技术依据：[Design](DESIGN.md)，根路径与执行门禁：[Plans](PLANS.md)，审查缺陷登记：[REVIEW_R1](REVIEW_R1.md)。下面路径使用 Plans §1 的精确根路径标记；标为「新增」的路径是任务产物，不声称当前文件存在。
 
 **状态枚举直接引用 [工作包门禁](../subagent-delivery-gate.md) §7 的七值枚举**（`BACKLOG / PREPARING / READY / DISPATCHED / REVIEWING / ACCEPTED / BLOCKED`），本文件不再自造释义。总表「初始状态」是登记时的取值；**流转中的当前状态以仓库唯一监控表 [`SUBAGENT_TODO.md`](../../docs/blackbox-spec-rework/SUBAGENT_TODO.md) 为准**，NC-001～NC-026 须在该表登记「NC 注解社区线」章节后方可开始流转，避免两处状态源并存。
@@ -25,12 +25,12 @@
 | NC-012 | 赞踩/收藏/分享/@/关系与举报 | NC-003, NC-009, NC-011 | BACKLOG | 仅 BDD，TDD 待 NC-002/003 | R-09, R-10, R-20 |
 | NC-013 | 事务事件、投递、通知正文与补拉端点 | NC-003, NC-011, NC-012 | BACKLOG | 仅 BDD，TDD 待 NC-002/003 | R-11, R-20 |
 | NC-014 | Notification 宿主适配、去重与导航 | NC-010, NC-013 | BACKLOG | 仅 BDD，TDD 待 NC-013 | R-11, R-16 |
-| NC-015 | 密钥恢复、设备授权与删除窗口协议 | NC-001 | BACKLOG | BDD 可写，TDD 待协议样例格式确定 | R-12, R-13, R-14, R-20 |
+| NC-015 | 接入 S6：设备授权、传输一次一密与中转删除协议 | NC-001 | BACKLOG | BDD 可写，TDD 待接入面样例 | R-12, R-13, R-14, R-20 |
 | NC-025 | **生产 BlobGateway（公共 + 私有）** | NC-001, NC-003 | BACKLOG | BDD 可写，TDD 待 NC-003 | R-15, R-13, R-20 |
 | NC-026 | 行为事件数据源、假名化与私人笔记元数据上报 | NC-002, NC-003, NC-005, NC-009 | BACKLOG | 仅 BDD，TDD 待 NC-002/003 | R-21 |
 | NC-016 | 私人加密 mapper 与设备同步 | NC-004, NC-015 | BLOCKED | 仅「密文无明文」负向断言可先写 | R-12, R-20 |
-| NC-017 | 生产密文网关与备份清单 | NC-003, NC-015, NC-025, NC-009 | BLOCKED | 待 NC-015 | R-13, R-20 |
-| NC-018 | 备份设置、进度与恢复 | NC-008, NC-016, NC-017 | BLOCKED | 待 NC-015 | R-12, R-13 |
+| NC-017 | 口令加密导出文件格式与本机写入 | NC-004, NC-015 | BLOCKED | 待 NC-015 | R-13, R-20 |
+| NC-018 | 导出/导入 UI 与验证 | NC-016, NC-017 | BLOCKED | 待 NC-015 | R-12, R-13 |
 | NC-019 | 回收站、恢复、永久清理 | NC-007, NC-009, NC-018 | BLOCKED | 本地回收站子 ACT 可先写 | R-14, R-20 |
 | NC-020a | 消费端书籍契约核对清单 | 无 | BACKLOG | BDD+TDD 均可写（文档扫描型） | R-06, R-07, R-17 |
 | NC-020b | 上游书籍政策/Schema/D-06/样例冻结 | NC-020a, 既有上游交付 | BLOCKED | 均待上游 | R-06, R-07, R-17 |
@@ -83,7 +83,7 @@ NC-019 可先准备本地回收站子 ACT，但完整清理验收等待备份协
 ### NC-003：公共 API 与 Swagger
 
 - [ ] 修改 `REST/openapi/openapi.yaml`，新增社区公共资源/命令/错误/分页/ETag/幂等；请求头一律用 `in: header` 的 header parameters。**该文件由五个任务串行写入：NC-003 → NC-013 → NC-017 → NC-021 → NC-026**，后继任务以前一个产出为基线重跑契约测试。密码学/书籍扩展在 NC-017/021 合并至同一入口，不伪造已冻结字段。
-- [ ] **写入白名单必须包含既有的 `REST/test/openapi_validation_test.dart`**：该文件现有 8 处断言（第 147/148/161/217-218/239-240/292/307 行附近）正好**要求** operation 级 `headers:` 存在，修正结构必然弄红。README 记录改前基线（当前 `dart test` 退出码与用例数），ACT 中把「迁移 8 处断言到 `in: header`」作为独立步骤，以便区分既有失败与本任务新增失败。
+- [ ] **写入白名单必须包含既有的 `REST/test/openapi_validation_test.dart`**：该文件现有 14 行断言、分布在 12 个 `test(` 块（第 147/161/217/239/292/307/315/320/329/330/339/340/349/350 行；v1.6 勘误，原「8 处」不实）正好**要求** operation 级 `headers:` 存在，修正结构必然弄红。README 记录改前基线（当前 `dart test` 退出码与用例数），ACT 中把「迁移 14 行断言到 `in: header`」作为独立步骤，以便区分既有失败与本任务新增失败。
 - [ ] 落地 [Design §7.3](DESIGN.md) 的**错误目录**：每个场景唯一 HTTP 状态码 + 唯一 `code` + Problem Details 附加字段；不得保留「403 或 404」这类二选一。`conflict.idempotency` 沿用 SERVER 仓 `tests/test_playground_rest_writes.py` 的既有命名。限流阈值与 `retry_after_seconds` 填实值，未填实值前 `429` 不写入验收。
 - [ ] 按 Design §7.4 定义 command_id=Idempotency-Key、唯一键 (owner_scope, command_id)、payload_hash（含 operation）、命令查询端点与恢复错误。完整结果保留 14 天，精简账本持续去重；超期同键绝不新建业务。reaction If-Match、expected_access_version、原始 applied_version 与当前状态读取分别建 Schema/HTTP 正反例。
 - [ ] 新增 `REST/test/community_openapi_contract_test.dart` 与 `REST/tool/validate_openapi`；验证器名称/版本/安装方式/离线失败行为取自 NC-001 的实值，**不由本任务执行 Agent 选型**。Swagger UI 读取同一 3.1 契约；notifier 的 3.0.3 契约只引用不复制。
@@ -233,16 +233,15 @@ R1 核验发现的独立缺口：`STORAGE/firebase/lib/media/blob_gateway_fireba
 
 ## 6. 私人同步、备份与删除
 
-### NC-015：恢复、设备授权和清理协议设计
+### NC-015：接入 S6——设备授权、传输一次一密与中转删除协议（v1.6 改为接入型）
 
-- [ ] 新增 `SPEC/PRIVATE_SYNC_PROTOCOL.md` 与正反协议样例；读 STORAGE 真实 cipher/pairing/guard/row 网关，选成熟密码学组件与可恢复封装，不自创算法。
-- [ ] 明确密钥生成/保存/授权新设备/全旧设备丢失恢复/吊销/epoch/密码改变；认证绑定 scope、设备 ID、指纹、有效期。不得仅凭现有 guard 返回 authorized 放行。
-- [ ] **本任务是从零设计密码学协议，不是「复用」**：R1 核验确认 `xuan-storage/p2p/lib/device_key_store.dart` 只有单设备 Ed25519 身份种子（`_loadOrCreateIdentity/sign/verify/_fingerprintOf`），加密侧只有 `AesGcmBlobCipher`，**无 escrow、助记词、社会恢复或密钥分片任何原语**。Plans §3 的 30–60 分钟 ACT 粒度对本任务不适用，须按协议设计单独排期。
-- [ ] 明确恢复材料的**产品形态**并落到 PRD 旅程 7（用户已确认：**支持事后重新导出**，需当前设备已授权 + 本地生物识别或设备密码二次验证）；含回填验证、未通过不启用备份、后果说明页不可跳过、截图与云剪贴板风险提示。
-- [ ] 明确不可恢复失败行为（输入错误只提示「恢复材料不正确」，不提示错在第几位）、tombstone 保留窗口与离线重入、备份开关/删除/清理窗口、备份命令对 Design §7.4 账本恢复/结果精简规则的遵循。
-- [ ] 「全部旧设备丢失」定义为**可执行步骤序列**供 NC-018 直接消费，例如：在设备 B 全新安装 → 清空 keychain 与应用数据 → 仅输入用户保存的恢复材料 → 期望能解密备份中 `nrev_3` 的正文与 `img_1`。
-- [ ] 新增 `SPEC/tools/check_private_sync_protocol.py`。红条件：协议文档缺上述任一小节、或正反样例缺 `expected` 字段、或出现 `TBD`/`待定` 占位。运行该脚本退出 0。
-- [ ] 以攻击/故障场景审查并经主 Agent 接受后解锁 NC-016～019；不能用一句「复用 E2EE」通过。
+- [ ] 权威依据为 xuan-storage S6 设计稿 `xuan-storage/docs/superpowers/specs/2026-08-02-s6-p2p-sync-third-party-design.md` 的已生效裁决 D1/D9/D13～D21 与 §4.0～§4.2（**无长期密钥、同步完即删、中转不超过数分钟、双方在线、设备全丢即数据丢失**）；新增 `SPEC/openspec/annotation-community/contracts/private_sync.md`，只做接入契约与判据，**不重写密码学**，与 S6 冲突处以 S6 为准并回报。
+- [ ] 直接复用（列出文件与符号，逐项给「已核」证据）：`p2p/lib/device_key_store.dart`（Ed25519 设备身份、签名、指纹）、`p2p/lib/device_pairing.dart`（配对、nonce 挑战、channel binding 强制比对）、`core/lib/model/transport.dart`（Transport/PeerSession 状态机）、`drift/lib/blob/aes_gcm_blob_cipher.dart`（AES-256-GCM 分块）、`core/lib/sync/same_account_im_reconciliation.dart`（`SameAccountSessionGuard`）。
+- [ ] 需补的薄层（本任务定义接口与判据，实现归 NC-016）：① 中转一次一密——临时 X25519 ECDH + HKDF 包装本次 DEK（`cryptography 2.9.0` 支持，当前全库无 X25519/HKDF 实现）；② guard 补 `expiresAtUtcMs` 过期判断并**实际比较** `peerDeviceId`/`peerFingerprint`；③ AES-GCM 的 AAD 绑定 scope 与设备 ID；④ 中转对象删除三层（接收端主删、发送端兜底、存储生命周期 1 天）。中转通道二选一由主 Agent 裁定并写入契约：Firebase Storage `private/p2p/{uid}/{随机UUID}`（S6 §4.2.3）或 xuan-server notifier 阅后即焚中继信箱（`POST /v1/messages/relay`，ACK 即销毁）。
+- [ ] 明确不做并在 PRD 明示：恢复材料、密钥轮换、escrow、口令派生用于长期密钥、云端长期密文。单设备兜底为 R-13 手动导出（NC-017/018）。
+- [ ] 跨设备身份：P2P-EVAL（2026-08-23）确认 scopeUid 为设备内分区键、跨设备 `appUserId` 收敛层从未实现；本任务冻结「同账号两设备的 scope 映射」规则供 NC-016 消费，不在本任务实现。
+- [ ] 正反样例：合法配对/过期授权/指纹不符/错误 scope/重放 nonce/中转对象未删；新增 `SPEC/tools/check_private_sync_protocol.py`，红条件：契约缺上述任一小节、样例缺 `expected`、出现 `TBD`/`待定`。运行该脚本退出 0。
+- [ ] 以攻击/故障场景审查并经主 Agent 接受后解锁 NC-016～019。
 
 ### NC-016：加密 mapper 与双设备同步
 
@@ -251,28 +250,25 @@ R1 核验发现的独立缺口：`STORAGE/firebase/lib/media/blob_gateway_fireba
 - [ ] 云/P2P 重复投递去重，双方分支保留；错误账号/指纹/过期/吊销在交换正文前拒绝。**必须实际比较 `peerDeviceId` 与 `peerFingerprint`**：R1 核验确认 `xuan-storage/core/lib/sync/same_account_im_reconciliation.dart` 的 `verifyPeerSession` 收下这两个参数却在五步校验中从不使用，类名 `SameAccountSessionGuard` 不是授权证据；修复该缺口需写 STORAGE，属 [Plans §1.2](PLANS.md) 白名单内的显式例外。
 - [ ] 运行 `flutter test test/storage/private_note_sync_test.dart`；另建 `CLIENT/example/integration_test/private_device_sync_test.dart`，运行 `flutter test integration_test/private_device_sync_test.dart -d <NC-001 设备表中的 device_id>`，在**设备表登记的两台真实设备**上分别验证 LAN 与 WebRTC，各自记录证据。
 
-### NC-017：密文云网关与完整备份
+### NC-017：口令加密导出文件格式与本机写入（v1.6：替代原「密文云网关与完整备份」）
 
-- [ ] **RW-4，依赖 NC-009 command_service，按 Design §7.4 验收**：backup.begin/complete/delete 的会话登记、manifest 激活、清理登记各在对应命令事务中写终态结果；对象传输仍在事务外。分别注入提交后响应前崩溃，原 command_id 重试只产生一个会话/一次激活或一个清理任务与对应事件；14 天结果精简后仍不重复写入，同键异载荷 409、未知状态保留原键。断言完整/精简账本、manifest 与事件实际记录；纳入 test_private_note_backups.py。
+- [ ] 新增 `CLIENT/lib/src/export/export_bundle_format.dart`、`export_writer.dart`、`test/export/export_bundle_test.dart`；格式：外层 `BackupManifest`（DESIGN §2 字段）明文 JSON + 口令派生密钥（Argon2id 或 PBKDF2-HMAC-SHA256，参数写死并进契约）+ AES-256-GCM 分块密文（复用 `AesGcmBlobCipher` 分块与 nonce 规则，AAD 绑定 manifest digest）；口令不落盘、不上传。
+- [ ] 写入原子性（DESIGN §7.4）：临时文件写完并校验摘要后原子改名；中断只留临时文件。导出内容 = 选定 scope 的全部 Note/NoteRevision（含 parent_ids/restored_from/change_summary）与附件对象；不含 pending_op 与同步状态。
+- [ ] 「密文无明文」负向断言：对导出文件**原始字节**断言不含明文标题/正文片段/附件字节；错误口令只得到统一失败（无部分解密、无错位提示）。
+- [ ] 不依赖服务端与 BlobGateway；本任务不改 SERVER、不进 OpenAPI。运行 `flutter test test/export/export_bundle_test.dart`。
 
-- [ ] 新增 `SERVER/xuan/handlers/private_note_backups.py`、`tests/test_private_note_backups.py`；新增 `STORAGE/firebase/lib/media/private_backup_blob_gateway.dart`（**建立在 NC-025 的生产网关之上**，不是又一个内存 fake），补同源 3.1 OpenAPI 中密文上传/完成/下载/删除 Schema（串行顺序见 [Plans §1.2](PLANS.md)）；写入白名单含 `SERVER/tests/conftest.py`（仅追加 `COLLECTIONS` 键）。
-- [ ] 复用 bucket/Auth 基础，限定服务器推导 owner/path；密文对象全部存在/hash 匹配后原子激活完整 manifest。备份集合/路径/清理与 Playground 媒体及 relay 隔离。
-- [ ] 运行 `python3 -m pytest tests/test_private_note_backups.py -q`（需 Emulator）；验收跨账号、路径篡改、部分上传、错 hash、重试幂等、清理失败可重试。**真实上传/下载证据必须另外提供**：真实 bucket 名、对象路径、跨账号取访问被拒的原始 HTTP 响应；内存 BlobGateway 不足。
+### NC-018：导出/导入 UI 与验证（v1.6：替代原「备份设置、进度与恢复」）
 
-### NC-018：备份 UI 与恢复验证
-
-- [ ] 新增 `CLIENT/lib/src/storage/backup_controller.dart`、`backup_settings_page.dart`、`test/storage/backup_controller_test.dart`；新增 `CLIENT/example/integration_test/private_backup_restore_test.dart`。
-- [ ] 验收首次选择/启用自动/关闭仅停新传/单独删除云备份；三个状态按 PRD §6.1 的取值表分开呈现（含「状态未知（离线）」与「已关闭（存量保留）」）；跨版本修订与图片依赖恢复完整。
-- [ ] 实现 PRD 旅程 7/8：后果说明页不可跳过、恢复材料回填验证通过才启用、**事后重新导出入口**（设备已授权 + 本地二次验证）、新设备恢复的进度显示与中断续传、「暂不恢复」时明确告知云端备份仍保留且本设备新建笔记不会覆盖它。
-- [ ] 按 PRD §5.1 实现「删除云备份」「关闭云备份」两个确认层，数量为运行时真实值；提供「仅 Wi-Fi 备份」开关并在首次开启时告知流量影响。
-- [ ] 备份进度（PRD §6.3）：显示 n/m 与剩余量，可离开设置页后台继续，完成与失败各一次应用内提示；PARTIAL 态显示「已完成 8/12，其余可重试」。
-- [ ] 运行 `flutter test test/storage/backup_controller_test.dart`；再运行 `flutter test integration_test/private_backup_restore_test.dart -d <NC-001 设备表中的 device_id>`，按 NC-015 给出的可执行步骤序列分别演练「原设备在场」与「全部原设备丢失」。**后者的真实证据定义**：销毁进程与本地密钥存储、仅凭用户保存的恢复材料重建，并记录两次运行的时间戳与设备标识；在同一进程内保留密钥对象后「恢复」不算通过，仅新生成密钥打不开旧数据的测试也不算。
+- [ ] 新增 `CLIENT/lib/src/export/export_controller.dart`、`export_settings_page.dart`、`import_controller.dart`、`test/export/export_controller_test.dart`；新增 `CLIENT/example/integration_test/export_import_roundtrip_test.dart`。
+- [ ] 实现 PRD 旅程 7/8：后果说明页不可跳过、口令二次输入一致、保存位置选择、导出进度 n/m、完成后显示导出时间与文件摘要；导入选择文件 → 口令 → §5.1「导入备份」确认层（数量为运行时真实值）→ 进度 → 完成；口令错误统一提示「口令不正确」；中断续传不产生半份数据；同一笔记不同版本作为分支保留（复用 NC-007 冲突旅程）。
+- [ ] 三态指示第三维度按 PRD §6.1 v1.6 取值表重写：`未导出 / 导出中(x%) / 已导出至 <时间> / 有 N 处新修订未导出 / 导出失败`；**迁移 NC-005 已交付的 `CloudBackupStatus` 枚举、文案与测试**（`reading-notes/lib/src/editor/save_status.dart`、`test/editor/save_status_test.dart`、`note_editor_page_test.dart`），写入白名单须含这三个文件，并更新 `contracts/editor.md` §3 表。
+- [ ] 运行 `flutter test test/export/export_controller_test.dart`；再在 NC-001 设备表登记的两台真实设备上运行 `flutter test integration_test/export_import_roundtrip_test.dart -d <device_id>`：设备 A 导出 → 文件传到设备 B（任意方式）→ 设备 B 全新安装、清空应用数据后仅凭文件与口令导入 → 断言 `nrev_3` 正文与 `img_1` 可读、修订链完整。**这是 R-13 唯一的真实证据**。
 
 ### NC-019：30 天回收站与永久清理
 
 - [ ] **RW-6，Design §7.4 命令恢复**：服务器 trash/restore/purge 复用 NC-009 command_service；逐项测试提交后响应前中断并原键重试。尤其 purge 提交后、响应前中断，以同键重试只产生一个清理任务与一条 purge 请求事件，不能推进第二次生命周期；后续清理进展事件另按任务阶段去重。客户端重启恢复原键，410/503 不换键，`pending_op=purge_requested` 表示客户端已发出、服务端未确认；服务端 `lifecycle=purge_pending` 仅表示清理任务已登记，`PurgeTask.state=succeeded` 之前不显示 purged。纯本地私人 trash/restore 仍使用本地事务，不伪造云命令。覆盖 test_community_purge.py 与 note_trash_test.dart。
 
-- [ ] 新增 `CLIENT/lib/src/history/note_trash_page.dart`、`test/history/note_trash_test.dart`；新增 `SERVER/xuan/community/purge_service.py`、`tests/test_community_purge.py`，接入已冻结删除事件/备份清理。
+- [ ] 新增 `CLIENT/lib/src/history/note_trash_page.dart`、`test/history/note_trash_test.dart`；新增 `SERVER/xuan/community/purge_service.py`、`tests/test_community_purge.py`，接入已冻结删除事件。
 - [ ] **30 天的 T0 分两类，边界用例须分别构造**（[Design §4](DESIGN.md)）：曾公开的内容从服务端 trash 事件 `server_time` 起算；从未公开的纯本地笔记从本地持久 trash 事件起算并在首次上线时以服务端时间校正（只推后不提前）。
 - [ ] 测 30 天边界（可注入时钟，含第 30 天与第 31 天成对用例）、恢复保持私密、`purge_pending` 下 restore 返回 `409 conflict.lifecycle`、已公开离线删除时客户端 `pending_op=trash_requested` 且显示「正在停止公开，他人可能仍可访问」（禁止任何完成时态文案）、共享附件仍被引用时不删、清理重试、`PurgeTask.state=failed` 可重试且重试不产生第二个清理任务、旧离线设备不能复活已清理正文。
 - [ ] 按 PRD §5.1 实现「彻底删除」确认层（含 N 个历史版本、M 张图片的真实数量与「已被他人保存的公开副本无法收回」）；回收站显示「剩余 N 天」，剩余 3 天内在列表提醒。

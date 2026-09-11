@@ -30,7 +30,7 @@ ok03=(bids==[f"B{i:02d}" for i in range(1,28)] and all(30<=e<=60 for e in est) a
 check(ok03,"K03 六件套：BDD B01～B27、五个 ACT 30–60 分钟且依赖链/ON_FAIL/WORKLOAD、无模糊词、测试计数 35、README 二选一、契约 D-08/09 与注入点",f"bids={len(bids)} est={est} deps={deps} vague={hits}")
 todo=read(root/"docs/blackbox-spec-rework/SUBAGENT_TODO.md")
 check("NC-004" in todo and ("local-persistence" in todo or "NC-004-A" in todo),"K04 SUBAGENT_TODO 已登记 NC-004 工作包","")
-if not CLIENT.exists() and not req:
+if not req:  # NC-004 已 ACCEPTED（2026-09-11），仓库随 NC-005+ 增长，K05 只在 --require-impl 下按 NC-004 时点判据运行
     print("SKIP  K05 reading-notes 尚不存在（验收时加 --require-impl，必须 PASS）")
 else:
     det=[]; ok=True

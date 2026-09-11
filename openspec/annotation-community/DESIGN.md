@@ -1,6 +1,6 @@
 # 笔记、原句注解与讨论系统 Design
 
-版本：1.5；2026-09-10（新增 R-21 行为事件数据源，见 FIX_V1_5；待抽查确认）。状态：`APPROVED_DESIGN`；执行状态：`NOT_STARTED`。
+版本：1.6；2026-09-11（私人数据保护改为 S6 模型，见 FIX_V1_6；用户确认）。状态：`APPROVED_DESIGN`；执行状态：`NOT_STARTED`。
 产品依据：[PRD](PRD.md)；执行顺序 [Plans](PLANS.md)；审查缺陷登记 [REVIEW_R1](REVIEW_R1.md)。本设计确定模块与业务规则；§10 的外部契约未冻结，相关任务不能越过依赖。接口名称/目录为本期工程设计，不表示已有实现。执行范围由 [Tasks](TASKS.md) 与工作包控制。
 
 ## 1. 架构与职责（覆盖 R-18）
@@ -14,7 +14,7 @@ flowchart TD
   R --> L
   L --> E[客户端加密封装]
   E --> P[现有 LAN/WebRTC 同步]
-  E --> C[密文云备份]
+  E --> C[口令加密导出文件（本机）]
   L -->|显式选择公开修订| A[Python Community REST]
   R --> A
   T[Tooltip 原型] --> A
@@ -47,7 +47,7 @@ UGC 使用不透明稳定 ID，生成器沿用既有 UUID 能力；不占用上�
 | CommentRevision | id, comment_id, body, mentions, parent_id?, created_at | 编辑留痕；删除/审核不能通过历史接口泄漏正文 |
 | Reaction | target_type, target_id, actor_id, value`(like/dislike/null)`, version | 同目标同账号唯一；取消保留 value=null 的状态行与单调服务器 version，仅移除活跃关系/计数投影；排序见 §4.4 |
 | Bookmark / ShareLink | actor_id + target；share_id + target + revoked_at | 收藏个人可见；分享仅定位，不授予额外读取权 |
-| BackupManifest | backup_id, scope, protocol_version, encrypted_manifest_ref, object_refs, completeness, key_epoch | 外层最少元数据；完整依赖就绪后可恢复；密钥协议由 NC-015 冻结 |
+| BackupManifest | backup_id, scope, protocol_version, created_at, revision_count, attachment_count, digest | 导出文件内的清单（用户持有，不上云）；格式由 NC-017 冻结 |
 | NotificationRecord | notification_id, event_id, recipient_id, target, delivery_state`(created/dispatching/delivered/failed/abandoned)`, attempt_count | event+recipient 唯一的业务通知；与 notifier 每设备/用途投递一对多，见 §6.2 |
 | CommandRecord | owner_scope, operation, command_id, payload_hash, outcome(committed/rejected), resource_ids, applied_version, result_http_status, result_code?, result_fields, committed_at, result_compact_after, result_compacted_at? | (owner_scope, command_id) 唯一，operation 作为字段保存并纳入 payload_hash，同键不同 operation 按同键异载荷返回 409 conflict.idempotency；只存终态，与业务/outbox 同事务；精简不删除身份，不含正文；见 §7.4 |
 | NotifierDeliveryBinding | notification_id, notifier_delivery_id, recipient_scope, device_id, channel_purpose, write_source, source_ref, bound_at | notifier_delivery_id 唯一且作为字段原样保存，文档 ID 为其 SHA-256 hex（§2.1.1）；同一业务通知可有多条绑定；服务端可信来源写入，已有绑定冲突拒绝，不接受客户端声明归属；见 §6.2.1 |
@@ -222,9 +222,9 @@ NotifierDeliveryBinding：notification_id 按业务表；notifier_delivery_id �
 
 设备同步：既有 LAN/WebRTC + 实际同账号授权/签名/指纹/epoch 校验 → 密文/授权会话传输 → 去重应用。类名 SameAccountSessionGuard 不是授权证据；当前 guard 存在未比较设备 ID/指纹等缺口，必须在接线验收处理。
 
-云备份：首次选择 → 客户端加密 → 登记对象 → 上传密文 → 检验依赖 → 完整 manifest 激活 → 显示已备份。服务器只验证密文哈希/对象闭合，客户端解密后验证语义。P2P 中转、公开媒体孤儿清理和长期备份不共享生命周期。
+设备同步与导出（v1.6，S6 模型）：同账号已授权设备间直连（LAN/WebRTC，DTLS 临时密钥）或经中转（一次一密：随机 DEK 按 chunk AES-GCM，临时 X25519 ECDH + HKDF 包装 DEK；中转只持有密文与无法解开的包装 DEK）；接收端解密落库后立即删除中转对象，发送端会话超时/取消时兜底删除，存储生命周期规则 1 天终极兜底；双方必须在线。手动导出：客户端把修订链与附件按 NC-017 格式写成口令加密文件（口令派生密钥仅用于该文件，不保存）。P2P 中转与公开媒体孤儿清理不共享生命周期。
 
-关闭备份停止新上传；删除云备份单独确认范围并生成任务。密钥恢复不能依赖已丢失设备的唯一 DEK，不能把服务器持有明文恢复密钥称 E2EE。方案与真实“全旧设备丢失”恢复证据由 NC-015/018 提供，未通过不得宣称完整备份可用。
+本期不提供长期云端密文备份，不存在恢复材料、密钥轮换与 escrow；设备全丢且无导出文件即数据丢失（S6 D13，产品明示）。移动端不做应用层落盘加密（D16），桌面端每设备一把独立 DEK 存系统密钥库（D15/D17），严禁跨设备共享落盘密钥。「另一设备导入导出文件」的真实证据由 NC-018 提供，未通过不得宣称导出可用。
 
 ## 6. 社交、通知与 Tooltip（覆盖 R-07, R-08, R-09, R-10, R-11, R-19）
 
@@ -280,7 +280,7 @@ Tooltip 原型在独立运行宿主中接真实 REST：来源摘要 → 注解/�
 | thread/comment create/edit/delete | thread/root/reply_to、正文、mentions、observed publication；编辑前置版本、创建时 expected_access_version、command_id | 评论/墓碑、ETag、权威计数 |
 | reaction/bookmark set | target、最终 value 或布尔状态、command_id；reaction 必带 If-Match | 原始命令结果含 applied_version；当前状态另读；同键异载荷冲突 |
 | share create/revoke/resolve、report create | 目标、原因（举报）、command_id（create/revoke/report） | 受 ACL 定位或报告结果，不含永久正文权限 |
-| backup begin/complete/download/delete | 认证 scope、不透明对象/备份 ID、密文 hash/大小/依赖 | 上传会话、完整状态、授权密文下载或清理任务 |
+| backup begin/complete/download/delete | **v1.6 保留为枚举值，本期无端点**（S6 模型无云端备份） | — |
 | notification body/backfill/read（**本系统实现，进 3.1 契约**） | body: notifier_delivery_id；backfill/read: notification_id、游标 | 当前接收人投递正文与结果；上游 notifier 明确不提供这两个端点 |
 | notification receipt/ACK（**notifier 契约，3.0.3，只引用不复制**） | ACK 批次 | 整批原子，任一 id 失败则整批 4xx；不在本系统 OpenAPI 中重定义 |
 | library import/validate/activate/query/resolve | release/manifest/hash、对象集合、固定修订 | 导入状态、报告、固定版阅读数据或明确不可用原因 |
@@ -363,7 +363,7 @@ DESIGN 不再给出「403 或 404」这类二选一。每个场景固定唯一 H
 | publish 跨对象存储 + Firestore | **非原子**：先上传对象并校验 → 再事务提交指针 | 孤儿对象由清理任务回收；未提交指针的对象无任何公共入口可访问 |
 | 命令账本 | 完整结果保留 14 天；最小身份/结果持续保留 | 旧键返回既有结果或 result_expired，绝不变新写入 |
 | 评论/发布/互动写命令 | 业务记录、计数、outbox、命令结果、行为事件同事务 | 事务回调纯数据库操作；重跑不执行外部副作用 |
-| 备份激活 | 全部密文对象存在且 hash 匹配后才原子激活 manifest | 部分上传保持上一份完整备份不变 |
+| 导出文件写入 | 临时文件写完、摘要校验通过后原子改名 | 中断只留临时文件，不产生半份导出 |
 
 **命令恢复协议（R2-03，NC-009 实现，NC-011/012 复用）：**
 
@@ -374,9 +374,9 @@ DESIGN 不再给出「403 或 404」这类二选一。每个场景固定唯一 H
 5. NC-003 定义认证的 `GET /v1/community/commands/{command_id}`（按认证账号查询，响应含 operation），返回 committed/rejected 的最小结果，未见记录返回 `404 not_found.command`。查无记录不等于操作最终不可能提交，只允许同键重试，不依据一次查询换新键。超过 14 天的待办先查询对账；不以用户确认代替结果核实。
 6. 重放结果是原始 applied_version，不承诺当前状态。账本结果不返回历史正文，资源详情另行当前 ACL 查询；客户端按版本防止迟到响应回滚 UI。取消本地待办不撤销已发送命令，应先核实结果。永久目标墓碑与命令账本共同防复活。
 
-错误目录见 §7.3，为唯一权威；私有备份涉及密码学字段的精确类型由 NC-015 补齐后经 NC-017 进 OpenAPI。限流阈值与 `retry_after_seconds` 的实值由 NC-003 填入，未填实值前 `429` 不可测，不得写入验收。
+错误目录见 §7.3，为唯一权威；本期无私有备份端点；backup.* 操作保留为枚举值不实现（NC-003 D-NC003-09）。限流阈值与 `retry_after_seconds` 的实值由 NC-003 填入，未填实值前 `429` 不可测，不得写入验收。
 
-OpenAPI 必须用 `in: header` 的 header parameters 表示请求头。现有 `repository-rest-adapter/openapi/openapi.yaml` 有 **35 处 operation 级 `headers:`、0 处 `in: header`**，属非法结构，不能原样复制。**注意其既有 `test/openapi_validation_test.dart` 有 8 处断言正好要求这个非法形式存在**，修正结构必然弄红既有测试——该文件因此必须进入 NC-003 的写入白名单，并在工作包 README 中记录改前基线（当前 `dart test` 退出码与用例数），以便区分既有失败与新增失败。
+OpenAPI 必须用 `in: header` 的 header parameters 表示请求头。现有 `repository-rest-adapter/openapi/openapi.yaml` 有 **22 个 operation（全部）带非法 operation 级 `headers:`、0 处 `in: header`**（v1.6 勘误：原「35 处」为全文 grep 把 response 级与 components 级合并计入），属非法结构，不能原样复制。**注意其既有 `test/openapi_validation_test.dart` 有 8 处断言正好要求这个非法形式存在**，修正结构必然弄红既有测试——该文件因此必须进入 NC-003 的写入白名单，并在工作包 README 中记录改前基线（当前 `dart test` 退出码与用例数），以便区分既有失败与新增失败。
 
 **权威文档为两份，不是一份**：本系统 3.1.0 契约在 REST 仓；ACK/relay 契约在 `xuan-server/notifier/api/openapi.yaml`（3.0.3）。Swagger UI 与客户端契约测试各自消费对应的那一份，JSON Schema 不维护第二套含义相反的字段。
 
@@ -425,8 +425,8 @@ selector 候选为有序 ranges，每段固定 block_id/artifact_revision_id/tex
 | 客户端实际目录/导出/宿主/SDK 版本/渲染器版本/OpenAPI 验证器选型/设备与测试后端清单 | E-WIRING | NC-001 | 客户端代码工作包的派发 |
 | 新增 UGC 对象 ID 前缀（§2.1，需用户确认） | — | NC-002 | 全部模型与 Schema 工作包 |
 | 公共 DTO/工程限额/状态机/canonical 编码/错误目录/OpenAPI | E-WIRING | NC-002/003 | 公共实现契约，独立本地模型可先准备 |
-| 恢复密钥/设备授权/清理窗口/tombstone epoch | E-CRYPTO | NC-015 | 私人跨设备同步、完整备份、永久清理上线；**NC-004 的 outbox 信封与 NC-009 的 tombstone 窗口亦受其约束** |
-| **生产 BlobGateway（公共 + 私有）** | E-BLOB | **NC-025（本版新增）** | 公共图片真实链路、私人备份上传；NC-008/017 均以其为前置 |
+| 设备授权/传输一次一密/中转删除/tombstone epoch | E-CRYPTO | NC-015 | 私人跨设备同步、导出导入、永久清理上线；**NC-004 的 outbox 信封与 NC-009 的 tombstone 窗口亦受其约束** |
+| **生产 BlobGateway（公共 + 私有）** | E-BLOB | **NC-025（本版新增）** | 公共图片真实链路；NC-008 以其为前置（NC-017 已改为本机导出，不再依赖） |
 | **notifier 服务端契约与 3.0.3/3.1 版本裂口** | E-NOTIFIER | NC-013/014 | ACK 与 relay 的契约引用方式；拉正文/补拉端点由本系统实现 |
 | **`notification` 包的 8 个 adapter 与 `dedup_retention_ms`** | E-DEDUP | NC-014 | 通知落盘、去重与回跳；上游文档明写「本包⛔不含任何具体 adapter」「你必须实现的 8 个端口」 |
 | 书籍 Schema/发布规则/D-06/样例 | E-BOOK | NC-020b | 书籍导入/原句与真实关联 Tooltip 验收 |
@@ -465,7 +465,7 @@ selector 候选为有序 ranges，每段固定 block_id/artifact_revision_id/tex
 - `PseudonymMapping` 保存 account_id 到 actor_pseudonym 的对应关系，一账号一假名。actor_pseudonym 在该账号首次产生事件时由密码学安全随机数生成，**禁止由账号 ID 哈希或加密推导**：否则删除映射后，拿账号 ID 重算一遍即可重新关联。
 - 事件表只写 actor_pseudonym，不写 account_id。PseudonymMapping 只有事件写入服务可读，数据分析侧无读取权限。
 - 宿主账号注销，或本人彻底删除账号时，按顺序执行：
-  1. 删除该账号的 PseudonymMapping 记录及其备份副本；
+  1. 删除该账号的 PseudonymMapping 记录及其副本；
   2. 本系统业务数据中不再保留该 account_id：本人公开内容与评论的作者字段改为统一的「已注销用户」标识；Reaction、Bookmark、ShareLink、NotificationRecord、NotifierDeliveryBinding、CommandRecord 等以该账号为主体的记录删除；其余含该 account_id 的字段删除或改为注销标识；
   3. 行为事件保留不动。
 - 第 2 步不能省略：否则事件里的 object_id 可以关联业务表反查出作者，假名化失效。注销事件的来源由 NC-001 登记（§10）。

@@ -54,7 +54,8 @@ check(rows and fmt, "RW-3 命令与传输桥接模型行及 command_id 格式", 
 row17 = next((l for l in tasks.splitlines() if l.startswith("| NC-017 |")), "")
 dep17 = "NC-009" in (row17.split("|")[3] if row17.count("|") > 4 else "")
 sec17 = section(tasks, r"^### NC-017", r"^### ")
-check(dep17 and "§7.4" in sec17, "RW-4 NC-017 依赖 NC-009 并含命令恢复验收", f"依赖={dep17}，§7.4={'§7.4' in sec17}")
+v16 = ("NC-015" in (row17.split("|")[3] if row17.count("|") > 4 else "")) and "导出" in sec17  # v1.6：NC-017 改为本机导出（FIX_V1_6）
+check((dep17 and "§7.4" in sec17) or v16, "RW-4 NC-017 依赖 NC-009 并含命令恢复验收（v1.6 起：依赖 NC-015 且为导出文件）", f"依赖={dep17}，§7.4={'§7.4' in sec17}，v16={v16}")
 
 # RW-5：NC-010 含客户端持久 command_id 验收
 check("command_id" in section(tasks, r"^### NC-010", r"^### "), "RW-5 NC-010 含持久 command_id 验收")

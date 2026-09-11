@@ -18,13 +18,13 @@
 下一步（第一件事）：拿到用户确认 → 派发 g5-01 → 验收 → `PROJECT_COLD_START_HANDOFF.md` 状态改 `IMPLEMENTATION_PHASE` → 写首纵切第一批（Artifact Ledger，§17，判据 `run_all.sh 20.2 20.3`）六件套；之后 M3 → M5 → M8，判据 `run_all.sh 20.N` 由 BLOCKED 变 PASS。
 已知的坑：PLAN.md 时间窗已向 C/S 解除；PLAN 的 D-16 节要求「零删行」，今后改 PLAN 只能追加或把 `- [ ]` 改 `- [x]` 并附取代者；验收仍在 `git archive` 导出树上跑。 **`check_d16.py` 刚性缺陷**：R3 把表 B 行数写死为 43、R4 要求黑箱节任何新 `- [ ]` 都登记进表 B，因此现在无法往 PLAN 黑箱节新增未勾选项（G5 记录条目因此只写在 SUBAGENT_TODO/HANDOFF）；首纵切第一批 ACT 必须先把 R3 改为「≥ 43」并允许表 B 追加行，再往 PLAN 加实现条目。
 
-## G6 服务端线启动：NC-003 契约 DRAFT；NC-015 改为接入 xuan-storage（C/S 会话）
+## G6 规格 v1.6（S6 模型）已落地；NC-003 返工后待 R2（C/S 会话）
 
 更新时间：2026-09-11
 当前分支/worktree：`codex/docs/knowledge-compilation`；`/Users/jingtaiwei/Git/Public/learn_system`
-刚完成：用户指示 ① NC-003 按 Firebase 方向写并与 `xuan-server/functions-py` 统一；② NC-015 不重写，接入 xuan-storage（用户口述「Sourceage」）现成端到端能力；③ 客户端/服务端继续推进。主 Agent 派 Sonnet 只读盘点两仓库，写出 `contracts/community_api.md`（沿用表、20 端点、错误目录、命令账本、限流实值、D-NC003-01～11）与 `work-items/nc-003/` 六件套、`reviews/nc003_guard.sh`；安装 `openapi-spec-validator 0.9.0` 到 `openspec/annotation-community/.venv-openapi`（已入 .gitignore），实测既有 REST 契约验证失败（35 处 operation 级 `headers:`），REST 仓 `dart test +50` 为改前基线。
-进行到一半的事（精确到文件和章节）：NC-003 wjt-react R1 四查进行中（Sonnet）。NC-015：xuan-storage 盘点结论已记 PLAN；可复用（设备身份、配对、传输、AES-GCM、同账号 guard 需补过期判断）与确实缺失（恢复材料、密钥轮换、吊销持久化、口令派生、删除窗口）已向用户报告，等用户裁定缺失项是「按 PRD 旅程 7 设计」还是「本期降级」，之后重写 NC-015 为接入型工作包。
-下一步（第一件事）：NC-003 R1 返回 → 落实返工/登记 READY → 交用户派发。并行：按用户裁定重写 NC-015；准备 NC-009（服务端 command_service、发布/收回/ACL 18 例）契约草案，其 SERVER 侧以 functions-py 盘点为基线。
+刚完成：① 用户确认私人数据保护采用 xuan-storage S6 模型（无长期密钥、同步完即删、中转≤数分钟、设备全丢即丢失、手动导出兜底）——规格升 v1.6：PRD R-13 改「手动导出与导入」、旅程 7/8 重写、§6.1 第三维度改「导出备份」；DESIGN §5 改 S6；TASKS NC-015 改接入型、NC-017 改导出文件格式、NC-018 改导出/导入 UI（含迁移 NC-005 的 `CloudBackupStatus`）；`FIX_V1_6.md`、`review_v1_6_guard.sh`（包裹 v1.5）；旧守卫三处放宽（V09 版本 1.5～1.9、RW-4 接受导出型、nc005 K02 只核前 8 文案），记忆文件 `private-data-encryption-model.md` 已写。② NC-003 R1 返工 6 项落实：op 级 `headers` 实为 22 个 operation（全部）、既有断言 14 行 12 块（DESIGN/TASKS 勘误）；`type` 改按 `errors.py` `_L0_MAP` 真实集合；410 仅用于同键重放过期、R5 恒 200；新增 access_version 与「原始 applied_version 对当前状态」示例；act/02 拆为组件/端点两步（共 5 ACT，全量 +65）；D-NC003-12。
+进行到一半的事（精确到文件和章节）：NC-003 R2 四查待派（Sonnet）；NC-015 契约 `contracts/private_sync.md` 与六件套未写（输入已齐：S6 设计稿 D 裁决与 §4.2、P2P-EVAL 四个硬缺口、notifier relay 端点、xuan-storage 盘点）。
+下一步（第一件事）：NC-003 R2 → READY → 交用户派发。然后写 NC-015 接入契约（中转通道二选一裁定：Firebase Storage `private/p2p/` 或 notifier 阅后即焚信箱；X25519/HKDF 包装；guard 过期与设备 ID/指纹比较；scope 映射规则）。
 已知的坑：PLAN.md 今后只能追加或把 `- [ ]` 改 `- [x]`（D-16 零删行判据；`check_d16.py` 只查黑箱侧条目，不查 G6 节）；G6 新条目不需登记进 D-16 映射表。一次性 Dart 盲测需 `import 'package:drift/drift.dart'` 才能用 `interceptWith`；执行方报告在 reading-notes 根目录未跟踪，验收不入库。
 
 ## G4 第二批验收通过：D-15 fixture、D-18 §20 判据化、前缀登记（Dataset 会话；黑箱线最新状态）

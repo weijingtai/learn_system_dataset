@@ -215,7 +215,7 @@
 
 字段与类型逐字取自 DESIGN §2.1.1（CommandRecord、NotifierDeliveryBinding）与 §11.2（BehaviorEvent）；本文不复制以免两处漂移。Schema 约束补充：
 
-- CommandRecord.operation 取 DESIGN §2.1.1 列出的 17 个操作字符串闭集（content.publish/update/withdraw/trash/restore/purge、comment.create/edit/delete、reaction.set、bookmark.set、share.create/revoke、report.create、backup.begin/complete/delete）；`outcome ∈ {committed, rejected}`；`applied_version` 为 integer ≥ 0 或 null；`result_http_status` integer 100–599；`payload_hash` 64 hex。终态约束：`outcome=rejected` ⇒ `applied_version=null` 且 `result_code` 为非空字符串且 `result_http_status ≥ 400`；`result_compacted_at` 非 null ⇒ `result_fields` 为空对象（精简账本不含响应体）。按 operation 的 `result_fields` 完整/精简白名单与 HTTP 响应同源，由 NC-003 随 OpenAPI 产出（NC-002 ACT.yaml `DEFERRED` 登记）。
+- CommandRecord.operation 取 DESIGN §2.1.1 列出的 17 个操作字符串闭集（content.publish/update/withdraw/trash/restore/purge、comment.create/edit/delete、reaction.set、bookmark.set、share.create/revoke、report.create、backup.begin/complete/delete；**v1.6：backup.* 三个值保留为枚举值，本期无对应端点与命令**）；`outcome ∈ {committed, rejected}`；`applied_version` 为 integer ≥ 0 或 null；`result_http_status` integer 100–599；`payload_hash` 64 hex。终态约束：`outcome=rejected` ⇒ `applied_version=null` 且 `result_code` 为非空字符串且 `result_http_status ≥ 400`；`result_compacted_at` 非 null ⇒ `result_fields` 为空对象（精简账本不含响应体）。按 operation 的 `result_fields` 完整/精简白名单与 HTTP 响应同源，由 NC-003 随 OpenAPI 产出（NC-002 ACT.yaml `DEFERRED` 登记）。
 - NotifierDeliveryBinding 文档 ID = `SHA256_hex(UTF8(notifier_delivery_id))`；`write_source ∈ {trusted_ingress, trusted_delivery_callback}`。
 - BehaviorEvent.attributes 的字段全集由 NC-026 冻结；NC-002 的 Schema 只约束 §11.2 的外层字段与 `event_id` 格式，`attributes` 暂为 `type: object`（NC-026 收紧）。
 - PseudonymMapping：`account_id`, `actor_pseudonym (psn_)`, `created_at`。
@@ -224,7 +224,7 @@
 
 | 归属 | 对象 / 字段 | 规则 |
 |---|---|---|
-| P 私人 | Note 全部、NoteRevision 全部（含 parent_ids、change_summary、restored_from）、EditorSnapshot、Note.pending_op、Note.trashed_at | 只在本地 Drift 与密文备份；任何公共查询、公共快照、通知正文、命令账本都不得包含 |
+| P 私人 | Note 全部、NoteRevision 全部（含 parent_ids、change_summary、restored_from）、EditorSnapshot、Note.pending_op、Note.trashed_at | 只在本地 Drift、口令加密的导出文件与设备间一次一密传输；任何公共查询、公共快照、通知正文、命令账本都不得包含 |
 | U 公共 | Publication、ContentAccess（除 author 私人信息）、ContentBinding、Thread、Comment、CommentRevision、Reaction、Bookmark（仅本人可读）、ShareLink | 服务器权威；读路径每次按 ContentAccess 重新鉴权 |
 | S 服务端内部 | CommandRecord、NotifierDeliveryBinding、PseudonymMapping、Report、PurgeTask | 客户端不可直读；CommandRecord 只经命令查询端点返回最小结果 |
 | A 分析 | BehaviorEvent | 只追加；不含任何内容字段（DESIGN §11.2 禁止清单） |

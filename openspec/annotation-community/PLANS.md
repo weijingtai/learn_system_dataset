@@ -2,13 +2,13 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development（获得派发授权后）或 superpowers:executing-plans 逐项执行；必须遵守本仓库工作包 READY 门禁，不能从本总计划直接开始业务实现。
 
-**Goal:** 交付可离线编辑、保留历史、私密同步备份、显式发布与真实讨论通知的 Flutter/Python 笔记系统。
+**Goal:** 交付可离线编辑、保留历史、私密设备同步与手动导出、显式发布与真实讨论通知的 Flutter/Python 笔记系统。
 
 **Architecture:** 独立学习领域模型消费只读书籍包，复用 Social、Notification、Storage 与 Repository。私人密文链和公共发布链隔离，原书与 Tooltip 共用讨论。
 
 **Tech Stack:** Flutter、flutter_markdown_plus、Drift、现有 Repository/Storage；Python Firebase Functions、Firestore、对象存储；REST/OpenAPI 3.1/Swagger。
 
-版本：1.5；2026-09-10（新增 R-21 行为事件数据源，见 FIX_V1_5；待抽查确认）。状态：`APPROVED_DESIGN`；执行状态：`NOT_STARTED`，尚非执行包 READY。
+版本：1.6；2026-09-11（私人数据保护改为 S6 模型，见 FIX_V1_6；用户确认）。状态：`APPROVED_DESIGN`；执行状态：`NOT_STARTED`，尚非执行包 READY。
 依据：[PRD](PRD.md)、[Design](DESIGN.md)、[Tasks](TASKS.md)；准出规则：[工作包门禁](../subagent-delivery-gate.md)；审查缺陷登记：[REVIEW_R1](REVIEW_R1.md)。
 
 ## 1. 目录与文件职责
@@ -22,7 +22,7 @@
 | SPEC | `/Users/jingtaiwei/Git/Public/learn_system/openspec/annotation-community` | 四份需求/设计/计划/任务文档及后续契约冻结记录 |
 | CLIENT | `/Users/jingtaiwei/Git/Public/xuan-migration/reading-notes`（拟新建） | Flutter 学习功能包；NC-001 核实是否已有等价包后冻结，不能当作现有目录 |
 | SERVER | `/Users/jingtaiwei/Git/Public/xuan-server/functions-py` | 既有 Python 服务；新增 `xuan/handlers/community_*`、领域服务与对应测试 |
-| STORAGE | `/Users/jingtaiwei/Git/Public/xuan-migration/xuan-storage` | 通道/加密/备份驱动和公共端口，不放笔记 UI |
+| STORAGE | `/Users/jingtaiwei/Git/Public/xuan-migration/xuan-storage` | 通道/加密/同步驱动和公共端口，不放笔记 UI |
 | SOCIAL | `/Users/jingtaiwei/Git/Public/xuan-migration/social` | 复用关系/私信/候选/交互组件；缺目标适配才局部修改 |
 | NOTIFICATION | `/Users/jingtaiwei/Git/Public/xuan-migration/notification` | 稳定管线及接入契约；业务适配优先放 CLIENT/SERVER |
 | REST | `/Users/jingtaiwei/Git/Public/xuan-migration/repository-rest-adapter` | HTTP 约定及权威 OpenAPI 入口，修正必要结构并加入社区资源 |
@@ -41,10 +41,10 @@ gate §3.2 第 8 条要求 PROMPT 含允许/禁止范围。每个 NC 的 `SCOPE.
 
 | 共享文件 | 写入顺序 | 说明 |
 |---|---|---|
-| `REST/openapi/openapi.yaml` | NC-003 → NC-013 → NC-017 → NC-021 → NC-026 | 唯一 3.1 权威入口；`NOTIFIER/api/openapi.yaml` 全程只读 |
+| `REST/openapi/openapi.yaml` | NC-003 → NC-013 → NC-021 → NC-026（v1.6：NC-017 改为本机导出，退出串行链） | 唯一 3.1 权威入口；`NOTIFIER/api/openapi.yaml` 全程只读 |
 | `REST/test/openapi_validation_test.dart` | NC-003（唯一） | 该文件现有 8 处断言要求非法的 operation 级 `headers:`，修正结构必然弄红；必须进入 NC-003 白名单并在 README 记录改前基线 |
-| `SERVER/tests/conftest.py` | NC-009 → NC-011 → NC-012 → NC-013 → NC-017 → NC-019 → NC-021 → NC-026 | **仅允许向 `COLLECTIONS` 追加键**，不得修改其他内容。该文件此前不在任何任务白名单内，会导致新增社区集合无法清理、用例互相污染 |
-| `SERVER/xuan/config.py`、`SERVER/main.py` | NC-009 → NC-013 → NC-017 → NC-021 | 仅追加路由/配置注册 |
+| `SERVER/tests/conftest.py` | NC-009 → NC-011 → NC-012 → NC-013 → NC-019 → NC-021 → NC-026 | **仅允许向 `COLLECTIONS` 追加键**，不得修改其他内容。该文件此前不在任何任务白名单内，会导致新增社区集合无法清理、用例互相污染 |
+| `SERVER/xuan/config.py`、`SERVER/main.py` | NC-009 → NC-013 → NC-021 | 仅追加路由/配置注册 |
 | `SPEC/contracts/`、`SPEC/fixtures/` | NC-002 → 各消费任务只读 | 消费任务不得修改 fixture 以迁就实现 |
 
 **跨仓库任务的 ACT 拆分：** 一项涉及多仓库时，六件套须拆为有序 ACT，每个 ACT 只持有一个仓库的写入权。其他 Agent 的改动不得回退。
@@ -57,11 +57,11 @@ gate §3.2 第 8 条要求 PROMPT 含允许/禁止范围。每个 NC 的 `SCOPE.
 | P1 独立本地笔记 | NC-004～007 | Drift 修订、Markdown 编辑、Undo/Redo、历史冲突 | 真文件重启恢复；IME/撤销/自动保存测试；不依赖书籍 |
 | P2 媒体与公开社交 | NC-025, NC-008～012, NC-026 | 私人图片本地引用、发布权限、页面、评论/互动 | 两账号真实 HTTP；私改不公开；收回不泄漏；计数幂等 |
 | P3 通知 | NC-013～014 | outbox/delivery API、Notification 与导航 | 回复/@ 去重、失败补拉、可靠 ACK、点击定位 |
-| P4 同步与备份 | NC-015～019 | 密钥协议先行、P2P/云网关/恢复/删除 | 两设备真实链路及全设备丢失恢复；删除无复活 |
+| P4 同步与导出 | NC-015～019 | S6 接入先行、P2P/导出导入/删除 | 两设备真实链路及另一设备导入；删除无复活 |
 | P5 书籍与 Tooltip | NC-020a/b～023 | 上游政策/Schema 后接导入、阅读、原句与原型 | 真实样例精准选区、跨版解释、两入口同讨论 |
 | P6 总验收 | NC-024 | 全链路及文档/任务核对 | 全部本期 R 项证据齐全；未完成不包装成全部交付 |
 
-P4 的协议设计、P5 的上游协调可与 P0/P1 并行准备；它们不阻断纯文本本地笔记。P2 公共图片发布需 NC-025 的生产 BlobGateway 与 NC-008 的资源接口——现有 firebase 实现是自述的内存 fake，没有 NC-025 就没有任何真实公共媒体链路；私人云图片需 P4。P3 依赖评论事务和正式通知契约。NC-019 的清理依赖云备份，不能只做本地软删后宣布删除全链完成。
+P4 的协议设计、P5 的上游协调可与 P0/P1 并行准备；它们不阻断纯文本本地笔记。P2 公共图片发布需 NC-025 的生产 BlobGateway 与 NC-008 的资源接口——现有 firebase 实现是自述的内存 fake，没有 NC-025 就没有任何真实公共媒体链路；私人图片跨设备靠 P4 同步。P3 依赖评论事务和正式通知契约。NC-019 的清理涉及公共副本与设备同步 tombstone，不能只做本地软删后宣布删除全链完成。
 
 各阶段是分别可验证的纵向结果，不意味着可以取消其他本期功能。P1 通过可称“本地笔记阶段通过”，不能称“整套笔记系统完成”。
 
@@ -96,7 +96,7 @@ Tasks 中 NC-xxx 是有范围和验收点的工作项；体积较大时拆为多
 1. NC-001 实际客户端位置、端口装配、设备与后端清单、OpenAPI 验证器选型；不需要用户重新讨论产品范围。
 2. NC-002 本地/公共模型契约、状态机转移表、canonical 编码与正反 fixture；**须先取得用户对 Design §2.1 的 UGC ID 前缀确认**，未确认前保持 `PREPARING`。书籍 AnchorRef 只引用待冻结边界，不自建影子模型。
 3. NC-003 公共 API 与错误目录；同时准备 NC-004 的本地修订与 NC-005/006 的编辑器/撤销工作包。
-4. 并行准备 NC-015 密钥恢复方案（**从零设计，不是复用**：`xuan-storage` 现有只有单设备 Ed25519 身份种子，无任何恢复原语，30–60 分钟 ACT 粒度对它不适用）与 NC-020a 消费端核对清单，完成后解锁依赖实现。
+4. 并行准备 NC-015（v1.6：接入 xuan-storage S6 现成能力，不重写密码学；需补中转一次一密与 guard 过期判断）与 NC-020a 消费端核对清单，完成后解锁依赖实现。
 5. NC-025 生产 BlobGateway 与 NC-002/003 并行准备，它是 NC-008/017 的硬前置。
 
 先解决目录与接口，不先开工再从 UI 反推数据库。用户已确认自动保存、回收站、图片与撤销规则，无需再作为产品问题阻断准备。
@@ -104,7 +104,7 @@ Tasks 中 NC-xxx 是有范围和验收点的工作项；体积较大时拆为多
 ## 6. 风险、退路与范围约束
 
 - 书籍未交付：独立笔记继续，源句和真实来源 Tooltip 保持 BLOCKED，不用模糊文本匹配假装通过。
-- 密钥协议未定：可测试本地加密组件，跨设备恢复保持 BLOCKED；不降级明文云备份。
+- S6 接入未验收：可测试本地加密组件与「密文无明文」断言，跨设备同步保持 BLOCKED；不降级为明文中转。
 - 云环境不可用：保留离线稿/待发操作，报告验收未执行；不以 Fake 替代生产链路。
 - 原公共媒体不可撤权：新增受控访问适配，不能降低用户已确认的隐私要求。
 - 现有 OpenAPI/通知文档矛盾：按源码记录事实，在对应契约任务修正并验证，不整体重写旧模块。
@@ -123,4 +123,4 @@ Tasks 中 NC-xxx 是有范围和验收点的工作项；体积较大时拆为多
 
 五项修订以 [Design](DESIGN.md) §4.4/§6.2.1/§7.2/§7.4 为准，具体反例已进入 NC-002/003/004/009/011/012/013/014；NC-007 的历史恢复也消费 v2 规则。先完成契约与成对 fixture，再执行依赖任务。通知可信映射缺证只阻断 NC-013/014 对应链路，书籍类型未冻结只阻断对应原句契约；不得凭本轮文档检查将任何任务升级为 READY 或 ACCEPTED。独立复核入口：[五项复核清单](REVIEW_R2_CHECKLIST.md)。
 
-RW-1～6 补全：NC-002 冻结集合排序、说明来源、命令/桥接类型及标识反例；NC-010 接客户端持久队列恢复；NC-017 显式依赖 NC-009 并复用命令服务；NC-019 验证删除清理命令恢复。v1.5 起验收顺序为 `review_v1_5_guard.sh`（内含 review_final_guard.sh 及 R2、R3 守卫回归）→ `verify.sh` → 按 [FIX_V1_5](FIX_V1_5.md) §6 的抽查点确认；脚本通过不等于业务验收。
+RW-1～6 补全：NC-002 冻结集合排序、说明来源、命令/桥接类型及标识反例；NC-010 接客户端持久队列恢复；NC-017 显式依赖 NC-009 并复用命令服务；NC-019 验证删除清理命令恢复。v1.6 起验收顺序为 `review_v1_6_guard.sh`（包裹 `review_v1_5_guard.sh`）；v1.5 起为 `review_v1_5_guard.sh`（内含 review_final_guard.sh 及 R2、R3 守卫回归）→ `verify.sh` → 按 [FIX_V1_5](FIX_V1_5.md) §6 的抽查点确认；脚本通过不等于业务验收。

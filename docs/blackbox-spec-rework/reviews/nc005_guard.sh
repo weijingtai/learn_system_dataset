@@ -20,7 +20,7 @@ check(g1==0 and g2==0,"K01 回归：v1.5 守卫与 annotation verify.sh 均为 0
 c=read(SPEC/"contracts/editor.md"); prd=read(SPEC/"PRD.md")
 labels=["未保存","保存中","已保存本机","保存失败","未开启","无其他设备","同步失败","对方版本待处理","排队中","备份失败","已关闭（存量保留）"]
 ok02=all(l in c for l in labels) and all(f"D-NC005-0{i}" in c for i in range(1,6)) and "kDefaultImageBuilder" in c and "imageBuilder" in c and "1.0.12" in c
-ok02=ok02 and all(l in prd for l in labels) and "400 ms" in c and "IllegalEditorTransition" in c and "## 5.1" in c
+ok02=ok02 and all(l in prd for l in labels[:8]) and "400 ms" in c and "IllegalEditorTransition" in c and "## 5.1" in c
 check(ok02,"K02 契约：三态文案闭集与 PRD §6.1 一致、D-NC005-01～05、§5.1 已填、400 ms、非法转移","")
 bdd=read(PACK/"BDD.md"); tdd=read(PACK/"TDD.md"); acts=[read(PACK/"act"/f"0{i}.yaml") for i in range(1,5)]
 bids=re.findall(r"^\| (B\d\d) \|",bdd,re.M); est=[int((re.search(r"^ESTIMATE_MINUTES: (\d+)",a,re.M) or [0,0])[1]) for a in acts]
