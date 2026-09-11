@@ -4,15 +4,15 @@
 
 ## 用户指示（2026-09-11，两次强调）
 
-私人数据保护走 xuan-storage S6 已生效方案（「绕过保存密钥」：同步时才加密、同步完即删、中转不超过数分钟、无长期密钥），**接入现成能力，不重写**。主 Agent 已盘点：可复用设备身份/配对/传输/AES-GCM/会话 guard；需补 X25519/HKDF 一次一密、guard 过期与设备 ID/指纹比较、AAD；无恢复材料。
+私人数据保护走 xuan-storage S6 已生效方案（「绕过保存密钥」：同步时才加密、同步完即删、中转不超过数分钟、无长期密钥），**接入现成能力，不重写**。主 Agent 已盘点：可复用设备身份/配对/传输/AES-GCM/会话 guard；需补 X25519/HKDF 一次一密、会话公钥签名绑定、guard 过期与设备 ID/指纹比较、AAD；无恢复材料。R1 审查后：密文一律走 Storage，notifier 只做信令（D-NC015-01 修订）。
 
 ## Goal
 
-在规格仓内交付：契约 §7 的 15 个正反样例（每项含 `expected`）与检查器 `tools/check_private_sync_protocol.py`（红条件按契约 §8）及其 unittest。执行者不做设计：字段、闭集、判定顺序全部来自契约。实现（guard 补丁、一次一密包装、中转配置、验收流水）归 NC-016。
+在规格仓内交付：契约 §7 的 18 个正反样例（每项含 `expected`）与检查器 `tools/check_private_sync_protocol.py`（红条件按契约 §8）及其 unittest。执行者不做设计：字段、闭集、判定顺序全部来自契约。实现（guard 补丁、一次一密包装、中转配置、验收流水）归 NC-016。
 
 ## Scope
 
-- 允许写：仅 `openspec/annotation-community/fixtures/private_sync/*.json`（15 个，文件名逐字按契约 §7）、`openspec/annotation-community/tools/check_private_sync_protocol.py`、`openspec/annotation-community/tools/test_check_private_sync_protocol.py`。
+- 允许写：仅 `openspec/annotation-community/fixtures/private_sync/*.json`（18 个，文件名逐字按契约 §7）、`openspec/annotation-community/tools/check_private_sync_protocol.py`、`openspec/annotation-community/tools/test_check_private_sync_protocol.py`。
 - 只读：契约 `private_sync.md`、`fixtures/community/content_hash_cases.json`（取第一个 case 的 `expected_hash`）、`tools/validate_fixtures.py`（风格参考）；xuan-storage、reading-notes、xuan-server 全部只读。
 - 禁止：改契约；改任何其他文件；新增 Python 依赖（只用标准库 + 本仓 `.venv` 已有 jsonschema）；用 `pytest`（本机无，用 unittest）；签名/密文用真实密码学库生成（D-NC015-07：格式级）；`skip`、永真断言；先实现后补测试。
 

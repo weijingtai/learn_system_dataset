@@ -4,13 +4,13 @@
 
 ---
 
-你执行 NC-015：在规格仓库 `/Users/jingtaiwei/Git/Public/learn_system`（分支 `codex/docs/knowledge-compilation`）内，按契约 `openspec/annotation-community/contracts/private_sync.md` 交付 15 个正反样例与检查器。这是规格侧产物，不写任何 Dart/Flutter 代码；xuan-storage、reading-notes、xuan-server 只读。Python 用 `/Users/jingtaiwei/Git/Public/learn_system/.venv/bin/python`，测试用 `unittest`（本机无 pytest）。
+你执行 NC-015：在规格仓库 `/Users/jingtaiwei/Git/Public/learn_system`（分支 `codex/docs/knowledge-compilation`）内，按契约 `openspec/annotation-community/contracts/private_sync.md` 交付 18 个正反样例与检查器。这是规格侧产物，不写任何 Dart/Flutter 代码；xuan-storage、reading-notes、xuan-server 只读。Python 用 `/Users/jingtaiwei/Git/Public/learn_system/.venv/bin/python`，测试用 `unittest`（本机无 pytest）。
 
 **先读**：`AGENTS.md`；`docs/blackbox-spec-rework/work-items/nc-015/` 下 README.md、BDD.md、TDD.md、ACT.yaml、act/01～02.yaml、ACCEPTANCE.md；契约 `private_sync.md` 全文（§7 样例表与 §8 红条件逐字照做）；`fixtures/community/content_hash_cases.json` 只读第一个 case 的 `expected_hash`。
 
-**先写测试再改实现**：act/02 先写 12 个 unittest 取得 ImportError 原文，再写检查器。
+**先写测试再改实现**：act/02 先写 15 个 unittest 取得 ImportError 原文，再写检查器。
 
-**只允许写**：`openspec/annotation-community/fixtures/private_sync/*.json`（15 个，文件名逐字按契约 §7）、`openspec/annotation-community/tools/check_private_sync_protocol.py`、`openspec/annotation-community/tools/test_check_private_sync_protocol.py`。禁止：改契约或任何其他文件；新增依赖；真实密码学库（签名/密文为格式级，D-NC015-07）；`skip`、永真断言。
+**只允许写**：`openspec/annotation-community/fixtures/private_sync/*.json`（18 个，文件名逐字按契约 §7）、`openspec/annotation-community/tools/check_private_sync_protocol.py`、`openspec/annotation-community/tools/test_check_private_sync_protocol.py`。禁止：改契约或任何其他文件；新增依赖；真实密码学库（签名/密文为格式级，D-NC015-07）；`skip`、永真断言。
 
 **判据**：只来自契约与 TDD/BDD。契约有两种以上解释、`content_hash_cases.json` 第一个 case 无 `expected_hash`、检查器需读契约以外文档：立即停止并原样报告。
 

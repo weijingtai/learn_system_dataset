@@ -2,17 +2,17 @@ TASK_ID: NC-015-A
 PARENT: NC-015
 STATUS: DRAFT
 REPO: learn_system
-GOAL: 按契约 §7 写 15 个正反样例（每项含 expected，字段按 BDD）
+GOAL: 按契约 §7 写 18 个正反样例（每项含 expected，字段按 BDD）
 DEPENDS_ON: []
 ESTIMATE_MINUTES: 30
-WORKLOAD: "15 个 JSON（8 授权、5 信封、2 配置），字段量小；content_hash 从 NC-002 fixture 读取"
+WORKLOAD: "18 个 JSON（8 授权、6 信封、1 会话公钥、1 配对、2 配置），字段量小；content_hash 从 NC-002 fixture 读取"
 SCOPE:
   READ:
     - /Users/jingtaiwei/Git/Public/learn_system/openspec/annotation-community/contracts/private_sync.md（§2、§3.2、§4.4、§6、§7）
     - /Users/jingtaiwei/Git/Public/learn_system/openspec/annotation-community/fixtures/community/content_hash_cases.json（只读第一个 case 的 expected_hash）
     - /Users/jingtaiwei/Git/Public/learn_system/docs/blackbox-spec-rework/work-items/nc-015/BDD.md、TDD.md
   WRITE_NEW:
-    - /Users/jingtaiwei/Git/Public/learn_system/openspec/annotation-community/fixtures/private_sync/（15 个文件，文件名逐字按契约 §7）
+    - /Users/jingtaiwei/Git/Public/learn_system/openspec/annotation-community/fixtures/private_sync/（18 个文件，文件名逐字按契约 §7）
   FORBIDDEN:
     - 上述目录以外的任何写入；改契约；新增依赖；真实密码学库
 DEPENDENCY_ALLOWLIST: [无]
@@ -22,10 +22,10 @@ RULES:
 TESTS_FIRST:
   - "本步无独立测试；提交前运行 TDD §2 的可解析检查并把 content_hash 取值贴入报告"
 STEPS:
-  - "写 15 个文件；确认 ls 计数 15"
+  - "写 18 个文件；确认 ls 计数 18"
   - "git add 并提交"
 VERIFICATION:
-  - "cd /Users/jingtaiwei/Git/Public/learn_system && ls openspec/annotation-community/fixtures/private_sync | wc -l（期望 15）"
+  - "cd /Users/jingtaiwei/Git/Public/learn_system && ls openspec/annotation-community/fixtures/private_sync | wc -l（期望 18）"
   - "cd /Users/jingtaiwei/Git/Public/learn_system && .venv/bin/python -c \"import json,glob;[json.load(open(f)) for f in glob.glob('openspec/annotation-community/fixtures/private_sync/*.json')]\"（期望无异常）"
   - "cd /Users/jingtaiwei/Git/Public/learn_system && git status --short（提交后不含本步文件）"
 ON_FAIL: "停止并报告；不改契约。content_hash_cases.json 第一个 case 无 expected_hash 为停止条件。"

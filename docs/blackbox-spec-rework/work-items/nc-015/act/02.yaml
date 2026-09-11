@@ -2,10 +2,10 @@ TASK_ID: NC-015-B
 PARENT: NC-015
 STATUS: DRAFT
 REPO: learn_system
-GOAL: 检查器 check_private_sync_protocol.py（契约 §8 红条件）与 ≥12 个 unittest
+GOAL: 检查器 check_private_sync_protocol.py（契约 §8 红条件）与 ≥15 个 unittest
 DEPENDS_ON: [NC-015-A]
 ESTIMATE_MINUTES: 50
-WORKLOAD: "检查器约 120 行（读 markdown 标题与 D 编号、扫描 TBD、读样例、闭集校验、TTL 校验、--contract/--fixtures 参数）；12 个 unittest 含临时副本注入"
+WORKLOAD: "检查器约 120 行（读 markdown 标题与 D 编号、扫描 TBD、读样例、闭集校验、TTL 校验、--contract/--fixtures 参数）；15 个 unittest 含临时副本注入"
 SCOPE:
   READ:
     - /Users/jingtaiwei/Git/Public/learn_system/openspec/annotation-community/contracts/private_sync.md（§7、§8）
@@ -22,17 +22,17 @@ RULES:
   - "红条件与 expected 闭集逐字取自契约 §8；自测通过 --contract/--fixtures 指向临时副本注入缺陷，不改真实文件"
   - "只 git add 本步两个文件；提交消息按 COMMIT_MESSAGE，末尾另起两行 Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 TESTS_FIRST:
-  - "先写 12 个自测并运行 TDD 命令 2，保存 ImportError/失败原文作为 Red"
+  - "先写 15 个自测并运行 TDD 命令 2，保存 ImportError/失败原文作为 Red"
 STEPS:
   - "实现检查器至命令 1 退出 0、命令 2 全过"
   - "git add 并提交"
   - "提交后运行一次 bash docs/blackbox-spec-rework/reviews/nc015_guard.sh --require-impl，退出码写入报告"
 VERIFICATION:
-  - "cd /Users/jingtaiwei/Git/Public/learn_system && .venv/bin/python openspec/annotation-community/tools/check_private_sync_protocol.py（期望 0，末行 samples=15）"
-  - "cd /Users/jingtaiwei/Git/Public/learn_system && .venv/bin/python -m unittest openspec/annotation-community/tools/test_check_private_sync_protocol.py（期望 OK，≥12）"
+  - "cd /Users/jingtaiwei/Git/Public/learn_system && .venv/bin/python openspec/annotation-community/tools/check_private_sync_protocol.py（期望 0，末行 samples=18）"
+  - "cd /Users/jingtaiwei/Git/Public/learn_system && .venv/bin/python -m unittest openspec/annotation-community/tools/test_check_private_sync_protocol.py（期望 OK，≥15）"
   - "cd /Users/jingtaiwei/Git/Public/learn_system && bash openspec/annotation-community/verify.sh（期望 0）"
   - "cd /Users/jingtaiwei/Git/Public/learn_system && bash docs/blackbox-spec-rework/reviews/nc015_guard.sh --require-impl（期望 0）"
   - "cd /Users/jingtaiwei/Git/Public/learn_system && git status --short（提交后不含本步文件）"
 ON_FAIL: "停止并报告；检查器需读契约以外文档才能判定为停止条件。"
-BASELINE_EXIT_CODES: "开工基线：act/01 提交（15 样例可解析）"
+BASELINE_EXIT_CODES: "开工基线：act/01 提交（18 样例可解析）"
 COMMIT_MESSAGE: "spec(nc-015): 私人同步协议检查器与自测（NC-015-B）"
