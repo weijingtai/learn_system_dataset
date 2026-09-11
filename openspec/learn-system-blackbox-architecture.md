@@ -547,8 +547,10 @@ M4 将 SemanticSpan 分别提取为候选：
 - 原子 Assertion；
 - PatternRecognitionRule / ApplicabilityRule；
 - 必要、加强、破坏和例外条件；
-- Interpretation、School、Alias；
+- Interpretation、SchoolView、Alias；
 - Case、注文和 EvidenceLink。
+
+`SchoolView` 是流派立场对象，由 M4 抽取为候选、经 §8.2 的 `review_school_attribution`（流派归属）审核类型裁决后进入正式知识。最小字段：`school_view_id`（`entity_id` 语义）、`school_id`、`subject_entity_id`（所属 Pattern / Concept / Assertion）、`claim_refs`（该流派主张归属的 Assertion 引用）、`conflict_group_id`（同一主题下相互冲突的 SchoolView 共享的冲突组标识）、`changes_current_judgment`（布尔：该分歧是否改变当前判断）、`source_refs`（Work / Edition / SourceSpan 引用）、Revision 与状态。`school_id` 只表示流派；Work / Edition 身份不得折叠进 School（现有工作台 `ge_ju_schools` 把书目与流派混存同表，属 §19 登记的历史缺口，迁移时必须拆开）。同一 Pattern 下允许多书、多流派、多主张与相反结论并存；M4 与 M7 不得以默认流派静默折叠，`changes_current_judgment=true` 的 SchoolView 在发布视图首层必须显示存在分歧（依 `knowledge_system/METAPHYSICS_KNOWLEDGE_COMPILATION_WORKFLOW_v1.2.md` §3.3）。`school_id` 与 `school_view_id` 的标识前缀待用户确认后登记到 §8.1 新对象表，在此之前规格不自造前缀。
 
 不同类别不得由一个模型一次混合完成。生产模型 A、B 独立工作且初次不可见彼此结果；复核模型 C 必须重读原文，不得只看两份答案。系统按证据比较，不采用多数票。未解决语义分歧进入人工队列，不能通过 M4 Gate。
 
@@ -714,6 +716,8 @@ GraphProjectionPack 与移动端数据必须来自同一 CanonicalKnowledgeSnaps
 - **客户端迁移规则**：客户端按 IdentityMigrationMap 的 Release 顺序逐条应用，不得猜测或模糊匹配；`retired` 锚点保持可读但不得新增回复或迁移到其他对象。
 - **验收项**：`ValidationReport` 计算「跨 Release 注解锚点可迁移率」= 经 `migrated`/`merged`/`split` 后仍可解析的锚点数 ÷ 上一 Release 全部白名单锚点数；`PUBLIC_RELEASE` 要求为 100%，`retired` 项必须在 `ReleaseManifest` 中逐条披露；未达标或缺少 IdentityMigrationMap 时 fail-closed。
 
+`SchoolViewPack` 是 `KnowledgeDataPack` 内 `school-views` 目录（§16.2 映射保持不变）的逻辑分包，不是独立顶层子包：承载全部正式 `SchoolView` 对象及其冲突组索引（`conflict_group_id` → SchoolView 列表），并为 §16.3.2 的 `school_variance_display` 与「是否改变当前判断」字段提供唯一数据来源；`changes_current_judgment=true` 的冲突组必须在包内标记为首层展示，客户端不得自行推导。
+
 `TechniqueProfilePack` 承载各术数领域确定性事实结构与规则语法标准，消除跨技法匹配歧义：
 
 - **FactSet Profile**：针对不同术数体系定义专用事实切片 Profile，包括八字 `BaziFactSet`、七政 `QizhengFactSet`、紫微 `ZiweiFactSet`、奇门 `QimenFactSet`、六壬 `LiuRenFactSet`；依 2026-09-08 用户裁定，首纵切内部验收包采用 `QizhengFactSet`；
@@ -830,7 +834,7 @@ Ledger 暂不可用时适用 §8.2 的 `suspended` 语义：Module 立即停止�
 
 系统同时维护：
 
-- `KnowledgeGraph`：Work、Edition、Pattern、Assertion、Rule、School 和 Evidence 关系，以及来自 `IdentityMigrationMap` 的「锚点迁移关系」边（`anchor_migration`，见 §16 `AnchorContractPack`）；
+- `KnowledgeGraph`：Work、Edition、Pattern、Assertion、Rule、SchoolView 和 Evidence 关系，以及来自 `IdentityMigrationMap` 的「锚点迁移关系」边（`anchor_migration`，见 §16 `AnchorContractPack`）；
 - `LineageGraph`：Artifact、Revision、运行、工具、模型、校验和审核决定的生产关系。
 
 重要关系必须有稳定 ID、Revision、状态和来源，不得只埋入自由文本。Graph 投影必须支持完整快照和增量输出，并通过实体/关系计数、哈希、悬空引用和往返重建校验。
