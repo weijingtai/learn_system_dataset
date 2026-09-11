@@ -32,7 +32,7 @@
 
 ## 执行顺序
 
-`act/01`（15 个样例）→ `act/02`（检查器 + unittest）。每步一个提交在 learn_system 仓库（只 `git add` 本步文件）。
+`act/01`（18 个样例）→ `act/02`（检查器 + unittest）。每步一个提交在 learn_system 仓库（只 `git add` 本步文件）。
 
 ## 一次性交付与阅读顺序
 
