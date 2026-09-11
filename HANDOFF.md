@@ -1,5 +1,14 @@
 # HANDOFF
 
+## G6 NC-004 验收通过；NC-005 审查中（C/S 会话）
+
+更新时间：2026-09-11
+当前分支/worktree：`codex/docs/knowledge-compilation`；`/Users/jingtaiwei/Git/Public/learn_system`
+刚完成：NC-004 由外部 Agent 在新仓库 `xuan-migration/reading-notes` 完成五个提交（`9ac96cc`→`957536c`），主 Agent 亲自验收通过（详见 `work-items/nc-004/ACCEPTANCE.md` 验收记录：守卫 `--require-impl` 0、35 测试、Dart/Python 交叉复算、sqlite3 直查、失败注入回滚）。SUBAGENT_TODO 记 NC-004 `ACCEPTED`。NC-005 契约 `contracts/editor.md` 与六件套已产出，第一轮四查 REWORK 3 项已落实（`651220d`），第二轮缩范围审查进行中。
+进行到一半的事（精确到文件和章节）：NC-005 R2 审查结果待回；`PLAN.md` 的 NC-004/NC-005 条目更新**暂缓**——已向 Dataset 会话承诺在其 D-16 改 PLAN.md 提交前不动该文件，收到其通知后补。
+下一步（第一件事）：NC-005 R2 READY → 登记并把 `work-items/nc-005/PROMPT.md` 交用户派发（前置 NC-004 ACCEPTED 已满足）。之后准备 NC-006（撤销/重做/IME）六件套。
+已知的坑：一次性 Dart 盲测需 `import 'package:drift/drift.dart'` 才能用 `interceptWith`；执行方报告在 reading-notes 根目录未跟踪，验收不入库。
+
 ## G4 第二批验收通过：D-15 fixture、D-18 §20 判据化、前缀登记（Dataset 会话；黑箱线最新状态）
 
 更新时间：2026-09-11
