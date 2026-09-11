@@ -12,15 +12,15 @@ task_id：`blackbox-g4-r1-spec-batch`
 
 ## 分组与并行
 
-三个执行 Agent 各在独立 git worktree 上工作，写入章节互不重叠：
+三组由用户交给外部执行 Agent，在主工作树 `codex/docs/knowledge-compilation` 上**串行**执行（同一文件，不得同时开工；A/B/C 之间顺序任意，组内顺序固定），写入章节互不重叠：
 
-| 组 | ACT 顺序 | 写入章节 | 分支/worktree |
+| 组 | ACT 顺序 | 写入章节 | Prompt |
 |---|---|---|---|
-| A | `act/d13.yaml` → `act/d10.yaml` → `act/d11.yaml` | §6.2、§14（新增 14.1）、§17（新增 17.1） | 由 Agent 工具自动创建 |
-| B | `act/d06.yaml` → `act/d08.yaml` | §12.2、§16（树 + 两个新块，位于 `TechniqueProfilePack` 起始行之前）、§18、§20 | 同上 |
-| C | `act/d14.yaml` | §19 主表新增「分期」列、新增 §22、根 `LEARN_SYSTEM_TARGET.md` §13 追加说明 | 同上 |
+| A | `act/d13.yaml` → `act/d10.yaml` → `act/d11.yaml` | §6.2、§14（新增 14.1）、§17（新增 17.1） | `PROMPT-A.md` |
+| B | `act/d06.yaml` → `act/d08.yaml` | §12.2、§16（树 + 两个新块，位于 `TechniqueProfilePack` 起始行之前）、§18、§20 | `PROMPT-B.md` |
+| C | `act/d14.yaml` | §19 主表新增「分期」列、新增 §22、根 `LEARN_SYSTEM_TARGET.md` §13 追加说明 | `PROMPT-C.md` |
 
-合并顺序由主 Agent 执行：A → B → C，逐个 `git merge --no-ff` 到 `codex/docs/knowledge-compilation`，每次合并后重跑全部门禁。
+每组交付后由主 Agent 独立验收（`ACCEPTANCE.md`），全部通过后统一更新协调文档。
 
 ## Scope
 
