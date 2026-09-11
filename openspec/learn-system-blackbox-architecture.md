@@ -156,15 +156,22 @@ ReleaseRun 读取既有 `CanonicalKnowledgeSnapshot` 与本次新增的一个或
 ```text
 既有 CanonicalKnowledgeSnapshot
 + 新 ReviewedEditionPackage
-→ M7 增量汇编
-→ Review Console（仅处理不能自动裁定的 M7 提案）
+→ M7 增量汇编（产出 MergeProposal / AliasProposal / ConflictProposal / EvidenceRelationProposal）
+→ 可自动裁定的提案直接进入封存队列
+→ Review Console（M7 模式）：仅处理不能自动裁定的提案，人工裁决产出归属本 ReleaseRun 的合并 ReviewDecision
+→ M7 回流：读取上述 ReviewDecision，重算受影响提案及其证据关系
 → M7 封存汇编结果
 → 新 CanonicalKnowledgeSnapshot Revision
 → M8 数据集编译
 → PublicationPackage
+（Review Console 挂起与恢复按 §7.1 的 `awaiting_human` 与 `resume_token` 语义执行）
 ```
 
 任何 Edition 都可以单独加入和单独发布；后续加入新版本时才执行可比部分的对勘。
+
+Review Console（M7 模式）在 ReleaseRun 内的运行归属规则：该次人工裁决产生的每条 ReviewDecision 归属本 ReleaseRun 及发起裁决的 M7 StepRun，记录目标对象的 `entity_id` 与所见 `artifact_revision_id`（§8.1）；M7 回流只消费这些 ReviewDecision，不得读取其他 ReleaseRun 的裁决结果。
+
+该回路不改变任何已封存 `ReviewedEditionPackage` 的封存状态与 `artifact_revision_id`（§8 已封存者不可变）。若裁决结论要求修改 Edition 级事实（原文、校勘、Candidate 或 Edition 内审核结论），必须以新的 EditionRun 返工产生新的 `ReviewedEditionPackage` Revision，再由后续 ReleaseRun 消费；本 ReleaseRun 只能在 Snapshot 层记录 ConflictProposal 的裁决结果与证据关系。
 
 ## 7. 统一 Module Interface
 
