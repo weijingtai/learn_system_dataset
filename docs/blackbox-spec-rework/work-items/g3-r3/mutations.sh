@@ -10,10 +10,10 @@
 #       该例才算 rejected。否则记为 not-rejected。
 #
 # 用法：
-#   bash docs/blackbox-spec-rework/work-items/g3-r3/mutations.sh d07       # 25 例
-#   bash docs/blackbox-spec-rework/work-items/g3-r3/mutations.sh t07       # 25 例
-#   bash docs/blackbox-spec-rework/work-items/g3-r3/mutations.sh t08       # 39 例
-#   bash docs/blackbox-spec-rework/work-items/g3-r3/mutations.sh all       # 89 例
+#   bash docs/blackbox-spec-rework/work-items/g3-r3/mutations.sh d07       # 34 例
+#   bash docs/blackbox-spec-rework/work-items/g3-r3/mutations.sh t07       # 28 例
+#   bash docs/blackbox-spec-rework/work-items/g3-r3/mutations.sh t08       # 47 例
+#   bash docs/blackbox-spec-rework/work-items/g3-r3/mutations.sh all       # 109 例
 #   bash docs/blackbox-spec-rework/work-items/g3-r3/mutations.sh selftest  # 自检
 #
 # 约束：
@@ -128,6 +128,21 @@ L_T08_40='4. `MarkContentBinding` 内容供给：由 `SourceAssetPack` 供给，
 L_T08_41='   - **附加来源**：由 `SearchIndexPack` 供给；'
 # t08-42：B1 正确硬限制行之后追加的例外声明
 L_T08_42='   - **例外**：最小盘面概念字典允许直接包含规则 DSL。'
+
+# ---- R5 区域边界封闭新增案例所需的常量（逐字照抄 g3-r5/TDD.md §1.1，禁止推导） ----
+# d07-32 / d07-33 / d07-34：三个封闭块之后隔空行追加的冲突段落（非列表行）
+L_D07_32='客户端仍可绕过 TechniqueProfilePack，使用任意自由字段参与确定性匹配。'
+L_D07_33='客户端可以绕过 QueryContractPack 直接读取底层文件。'
+L_D07_34='RuleIndexPack 中的规则允许附带 Python 代码块。'
+# t07-27 / t07-28：§16.2 正确数据行行尾追加的第三列
+V_T07_EXTRA_COL=' 冲突附加值 |'
+# t08-45：§16.3.1 标题与 B1 标题之间插入的块外正文
+L_T08_45='以上三个接口之外，Tag 系统还可以直接读取 `SourceAssetPack`。'
+# §16.3.1 标题与 B1/B2/B3 的其余条目（照抄 verify-T.sh 既有常量与规格第 734 行）
+C_T08_S1631_HEAD='#### 16.3.1 三个耦合接口规范与供给子包'
+C_T08_B1_SCOPE='   - **规模与范围**：规模控制在约 100–200 个概念（覆盖十天干、十二地支、九星、八门、八神等盘面基础元素），仅包含稳定 ID（`concept_id`）、名称与基础类象；'
+C_T08_B2_NOTE='   - **承接说明**：为 UI 标记提供内容与分歧数据，包括吉凶定性、条件槽位可供性与流派分歧展示。'
+C_T08_B3_NOTE='   - **承接说明**：为 AI 解盘与端侧证据高亮提供底层的无损证据链切片，确保标记内容能溯源至底本原页与字框坐标。'
 
 # ============================ 运行期状态 ============================
 CUR_TMP=""
@@ -314,7 +329,40 @@ del_block() { # file start_anchor end_heading_regex
   return 0
 }
 
-# ============================ 用例表（89 例） ============================
+# ---- append_gap_line(anchor, exact_line)：在 anchor 之后先插入一个空行，再插入 exact_line ----
+# 用于构造「封闭块结束后、下一 START 之前隔空行追加」的区域间隙绕过。
+# 断言：anchor 恰 1 次；总行数 +2；exact_line 命中次数 +1；anchor 仍恰 1 次。
+append_gap_line() { # file anchor exact_line
+  local f="$1" a="$2" l="$3" before_total after_total before after
+  [ "$(line_count "$f" "$a")" = 1 ] || return 1
+  before_total="$(total_lines "$f")"
+  before="$(line_count "$f" "$l")"
+  ANCHOR="$a" APPLINE="$l" LC_ALL=C awk '$0 == ENVIRON["ANCHOR"] { print; print ""; print ENVIRON["APPLINE"]; next } { print }' "$f" > "$f.t" || return 1
+  mv "$f.t" "$f" || return 1
+  after_total="$(total_lines "$f")"
+  [ "$after_total" = "$((before_total + 2))" ] || return 1
+  after="$(line_count "$f" "$l")"
+  [ "$after" = "$((before + 1))" ] || return 1
+  [ "$after" -ge 1 ] || return 1
+  [ "$(line_count "$f" "$a")" = 1 ] || return 1
+  return 0
+}
+
+# ---- append_suffix(anchor, suffix)：把 anchor 整行替换为 anchor+suffix（基于 replace_line） ----
+# 用于构造「表格数据行行尾追加第三列」的绕过。
+# 断言：anchor 恰 1 次；suffix 非空；新行恰 1 次；原行 0 次。
+append_suffix() { # file anchor suffix
+  local f="$1" a="$2" s="$3" new
+  [ "$(line_count "$f" "$a")" = 1 ] || return 1
+  [ -n "$s" ] || return 1
+  new="${a}${s}"
+  replace_line "$f" "$a" "$new" || return 1
+  [ "$(line_count "$f" "$new")" = 1 ] || return 1
+  [ "$(line_count "$f" "$a")" = 0 ] || return 1
+  return 0
+}
+
+# ============================ 用例表（109 例） ============================
 # 每个组合用例的每个子操作都必须独立满足命中次数断言，按 CASES.md 给出的顺序执行。
 apply_case() { # $1 = case id，操作 $CUR_TMP；任一子操作失败即返回非零
   local cid="$1"
@@ -356,6 +404,15 @@ apply_case() { # $1 = case id，操作 $CUR_TMP；任一子操作失败即返回
     # d07-29 / d07-30：Package 名中插入 form-feed / vertical-tab
     d07-29) replace_text "$CUR_TMP" "$C_D07_TP_START" 'TechniqueProfilePack' "$V_TP_FF" ;;
     d07-30) replace_text "$CUR_TMP" "$C_D07_TP_START" 'TechniqueProfilePack' "$V_TP_VT" ;;
+    # ----------------------- D-07（R5 区域间隙 4 例） -----------------------
+    # d07-31：TP 第四条目之后隔一个空行追加冲突 bullet（旧「遇空行即停」解析看不到它）
+    d07-31) append_gap_line "$CUR_TMP" "$C_D07_TP_AST" "$L_D07_27" ;;
+    # d07-32：TP 第四条目之后隔一个空行追加冲突段落（非列表行）
+    d07-32) append_gap_line "$CUR_TMP" "$C_D07_TP_AST" "$L_D07_32" ;;
+    # d07-33：QC 第五条目（向后兼容声明）之后隔一个空行追加冲突段落
+    d07-33) append_gap_line "$CUR_TMP" "$C_D07_QC_COMPAT" "$L_D07_33" ;;
+    # d07-34：RI 第二条目之后、### 16.2 之前隔一个空行追加冲突段落
+    d07-34) append_gap_line "$CUR_TMP" "$C_D07_RI_DECLARATIVE" "$L_D07_34" ;;
     # ------------------------------- T-07（25） -------------------------------
     t07-01) map_value "$CUR_TMP" "$C_T07_M01" "$V_WRONG_PACK" ;;
     t07-02) map_value "$CUR_TMP" "$C_T07_M02" "$V_WRONG_PACK" ;;
@@ -385,6 +442,11 @@ apply_case() { # $1 = case id，操作 $CUR_TMP；任一子操作失败即返回
     # ----------------------- T-07（R4 加固 1 例） -----------------------
     # t07-26：保留正确取代声明，再追加相反声明
     t07-26) append_line "$CUR_TMP" "$C_T07_REPLACEMENT" "$L_T07_26" ;;
+    # ----------------------- T-07（R5 表格额外列 2 例） -----------------------
+    # t07-27：release-manifest 正确数据行行尾追加第三列（key/value 字典比较看不到第三列）
+    t07-27) append_suffix "$CUR_TMP" "$C_T07_M01" "$V_T07_EXTRA_COL" ;;
+    # t07-28：query-contract 末行行尾追加第三列
+    t07-28) append_suffix "$CUR_TMP" "$C_T07_M15" "$V_T07_EXTRA_COL" ;;
     # ------------------------------- T-08（39） -------------------------------
     t08-01) field_cell "$CUR_TMP" "$C_T08_R04" module "$V_MODULE_M2" \
               && field_cell "$CUR_TMP" "$C_T08_R04_M2" package "$V_SOURCE_ASSET_PACK" ;;
@@ -438,6 +500,17 @@ apply_case() { # $1 = case id，操作 $CUR_TMP；任一子操作失败即返回
     t08-41) append_line "$CUR_TMP" "$C_T08_B3_SUPPLY" "$L_T08_41" ;;
     # t08-42：B1 正确硬限制行之后追加「允许规则 DSL」的例外声明
     t08-42) append_line "$CUR_TMP" "$C_T08_B1_LIMIT" "$L_T08_42" ;;
+    # ----------------------- T-08（R5 §16.3.1 区域封闭 5 例） -----------------------
+    # t08-43：B3 承接说明之后、#### 16.3.2 之前再插入同名 B3 标题（块解析以标题为界，重复标题块为空）
+    t08-43) append_line "$CUR_TMP" "$C_T08_B3_NOTE" "$C_T08_B3_HEAD" ;;
+    # t08-44：B1 硬限制约束之后重复 B1 标题
+    t08-44) append_line "$CUR_TMP" "$C_T08_B1_LIMIT" "$C_T08_B1_HEAD" ;;
+    # t08-45：§16.3.1 标题与 B1 标题之间插入块外正文
+    t08-45) append_line "$CUR_TMP" "$C_T08_S1631_HEAD" "$L_T08_45" ;;
+    # t08-46：B3 承接说明之后隔一个空行再重复 B3 标题
+    t08-46) append_gap_line "$CUR_TMP" "$C_T08_B3_NOTE" "$C_T08_B3_HEAD" ;;
+    # t08-47：B2 承接说明之后重复 B2 标题（B2 块尾）
+    t08-47) append_line "$CUR_TMP" "$C_T08_B2_NOTE" "$C_T08_B2_HEAD" ;;
     *) return 1 ;;
   esac
 }
@@ -460,6 +533,12 @@ case_ids() {
     t08-31|t08-39) printf 'G3-T08-G4\n' ;;
     t08-40) printf 'G3-T08-SEC1\n' ;;
     t08-41) printf 'G3-T08-BLOCK\n' ;;
+    # ---- R5 区域边界封闭新增绑定 ----
+    d07-31|d07-32) printf 'G3-D07-TP\n' ;;
+    d07-33) printf 'G3-D07-QC\n' ;;
+    d07-34) printf 'G3-D07-RI\n' ;;
+    t07-27|t07-28) printf 'G3-T07-MAP\n' ;;
+    t08-43|t08-44|t08-45|t08-46|t08-47) printf 'G3-T08-BLOCK\n' ;;
     *) return 1 ;;
   esac
 }
@@ -584,6 +663,7 @@ block_has_line() { block_lines "$1" "$2" | LC_ALL=C grep -F -x -q -- "$3"; }
 run_selftest() {
   local ok fx1 fx2 fx3 fx5 fx6 g1 g2 gm0 gm1 c1 c2 t1 t2 out
   local H1 H2 H3 H3B tail
+  local fx7a fx7b fx7c fx7d
   ST_PASS=0
   ST_TOTAL=0
 
@@ -735,6 +815,40 @@ FAIL  G3-T08-BLOCK  b' 'G3-T08-SEC1' 'G3-T08-BLOCK'; then ok=1; else ok=0; fi
      && [ "$(block_supply_count "$g2" "$H3")" = 1 ]; then ok=1; else ok=0; fi
   st "[6] 块2 内重复供给被检出，且相邻块不受影响" "$ok"
 
+  # ---- [7] R5 新增原语：append_gap_line / append_suffix ----
+  fx7a="$(new_tmp)"
+  mkfixture "$fx7a" 'one' 'two' 'three'
+  if append_gap_line "$fx7a" 'two' 'gap-target' \
+     && [ "$(total_lines "$fx7a")" = 5 ] \
+     && [ "$(LC_ALL=C awk 'NR == 2' "$fx7a")" = 'two' ] \
+     && [ "$(LC_ALL=C awk 'NR == 3' "$fx7a")" = '' ] \
+     && [ "$(LC_ALL=C awk 'NR == 4' "$fx7a")" = 'gap-target' ] \
+     && [ "$(LC_ALL=C awk 'NR == 5' "$fx7a")" = 'three' ] \
+     && [ "$(line_count "$fx7a" 'gap-target')" = 1 ]; then ok=1; else ok=0; fi
+  st "[7] append_gap_line 在 anchor 后恰插入「空行 + 目标行」且总行数 +2" "$ok"
+
+  fx7b="$(new_tmp)"
+  mkfixture "$fx7b" 'one' 'two'
+  if append_gap_line "$fx7b" 'NOPE-ANCHOR-§-不存在的行' 'gap-target'; then ok=0; else ok=1; fi
+  [ "$(total_lines "$fx7b")" = 2 ] || ok=0
+  [ "$(line_count "$fx7b" 'gap-target')" = 0 ] || ok=0
+  st "[7] append_gap_line anchor 缺失 -> 失败" "$ok"
+
+  fx7c="$(new_tmp)"
+  mkfixture "$fx7c" '| `k` | v |' 'other'
+  if append_suffix "$fx7c" '| `k` | v |' ' 冲突附加值 |' \
+     && [ "$(line_count "$fx7c" '| `k` | v | 冲突附加值 |')" = 1 ] \
+     && [ "$(line_count "$fx7c" '| `k` | v |')" = 0 ] \
+     && [ "$(total_lines "$fx7c")" = 2 ]; then ok=1; else ok=0; fi
+  st "[7] append_suffix 结果恰为 anchor+suffix 且原行消失" "$ok"
+
+  fx7d="$(new_tmp)"
+  mkfixture "$fx7d" 'dup' 'dup' 'other'
+  if append_suffix "$fx7d" 'dup' ' X'; then ok=0; else ok=1; fi
+  [ "$(line_count "$fx7d" 'dup')" = 2 ] || ok=0
+  [ "$(line_count "$fx7d" 'dup X')" = 0 ] || ok=0
+  st "[7] append_suffix anchor 命中 2 次 -> 失败" "$ok"
+
   printf '\nSELFTEST: %d/%d\n' "$ST_PASS" "$ST_TOTAL"
   if [ "$ST_PASS" = "$ST_TOTAL" ]; then return 0; else return 1; fi
 }
@@ -746,10 +860,10 @@ usage() {
 
 main() {
   case "${1:-}" in
-    d07) run_group d07 30 ;;
-    t07) run_group t07 26 ;;
-    t08) run_group t08 42 ;;
-    all) run_group d07 30; run_group t07 26; run_group t08 42 ;;
+    d07) run_group d07 34 ;;
+    t07) run_group t07 28 ;;
+    t08) run_group t08 47 ;;
+    all) run_group d07 34; run_group t07 28; run_group t08 47 ;;
     selftest) run_selftest; return $? ;;
     help|-h|--help) usage; return 0 ;;
     *) usage >&2; return 2 ;;
