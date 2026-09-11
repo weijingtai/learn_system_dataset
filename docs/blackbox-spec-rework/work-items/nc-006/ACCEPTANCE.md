@@ -22,3 +22,12 @@
 - **⑤ 组合中撤销**：adapter 不抛异常，但会清空正文且控制器仍停在 `imeComposing`——裁定为 D-NC006-14：组合中 `undo/redo` no-op。
 - **⑦ 页面层输入法组合（缺口）**：页面从未按 `TextEditingValue.composing` 调用 `onComposingChanged`，`updateEditingValue` 注入 `xn`/`xni`（composing）后 `state=dirty`、组合中 `pastUnits` 由 1 增到 2，提交后 3；PRD §4「组合过程作为整体」在页面层不成立。根因：NC-005 act/04 与 NC-006 act/03 都未把该接线列入 ACT（主 Agent 契约疏漏），不是执行方错误。处理：契约 §5.1 追加 D-NC006-13（接线顺序）与 D-NC006-14，新增 `act/04.yaml`（3 测试，全量 `+113`），守卫 K05 在 `--require-impl` 下要求页面含 `onComposingChanged` 且测试 ≥113。
 - 判定：act/01～03 `ACCEPTED`；NC-006 总状态 `REWORK_ACT04`，act/04 通过后复跑本文第 4 条 ⑦ 与 ⑤ 再关闭。
+
+## 验收记录 R2（主 Agent，2026-09-11）：act/04 通过，NC-006 ACCEPTED
+
+- 提交：reading-notes `00f6fc9`，只含 `note_editor_page.dart`、`editor_history_adapter.dart`、`editor_shortcuts_test.dart`；其余文件 diff 为空。
+- 守卫 `nc006_guard.sh --require-impl`（act/04 判据：页面含 `onComposingChanged`、测试 ≥113）K01～K05 全 PASS；`flutter test +113`，analyze 0。
+- 报告：Red 原文为 B37 断言 `imeComposing` 实得 `dirty`（与验收盲测 ⑦ 现象一致）；Green 五条命令退出码 0。
+- 源码核对：页面按契约 §5.1 D-NC006-13 的三段顺序调用（进入组合 before→`onComposingChanged(true)`→`onTextChanged`→`recordTextChange`；退出组合 `onTextChanged`→`onComposingChanged(false)`→`recordTextChange`）；adapter `undo()/redo()` 开头按 D-NC006-14 早返回。**未在报告点名的附加改动**：页面新增 `_isHandlingTextChange` 重入守卫，控制器在文本变更处理期间发出的通知不再回写 `TextEditingController.value`（否则组合区会被 `composing: empty` 覆盖）。属白名单文件内、为通过 B37 所必需的改动，接受；已补记入契约 §5.1。
+- 盲测（临时文件，已删除）：`updateEditingValue` 注入 `x`→`xn`(composing 1..2)→`xni`(1..3)→`x你`(空)：组合中 `state=imeComposing`、`canLeave=false`、`pastUnits=1`，组合中 Ctrl+Z 与撤销按钮均不改文本且 `undoCount=0`；提交后 `pastUnits=2`、`state=dirty`；`undo` → `x`，`redo` → `x你`；`x你n`(composing)→`x你`(空) 取消后 `pastUnits` 仍 2。
+- 判定：**NC-006 ACCEPTED**（act/01～04，reading-notes `afbe3a0`→`00f6fc9`，全量 113 测试）。遗留登记：D-NC006-06 iOS 原生 UndoManager 入口为设备级验收项（NC-024）。

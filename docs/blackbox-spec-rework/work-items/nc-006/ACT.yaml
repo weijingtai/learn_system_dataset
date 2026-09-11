@@ -1,5 +1,5 @@
 TASK_ID: NC-006
-STATUS: READY
+STATUS: ACCEPTED
 GOAL: 在 reading_notes 包内实现 EditorHistoryAdapter 唯一真源撤销栈、可判定归组、IME 单元、页面 Intent 覆盖与按键/按钮/焦点接线
 CONTRACTS:
   - openspec/annotation-community/contracts/editor_history.md

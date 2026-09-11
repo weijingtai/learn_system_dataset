@@ -1,6 +1,6 @@
 # NC-006：撤销、重做与输入法
 
-状态：`REWORK_ACT04`（2026-09-11 验收：act/01～03 通过，盲测 ⑦ 发现页面未接入输入法组合、⑤ 组合中撤销需裁定；追加 act/04，D-NC006-13/14）。原状态 `READY`（2026-09-11 wjt-react R1：忠实性/覆盖性/独立性通过，可执行性 1 项返工——act/03 校验命令退出码语义——已由主 Agent 落实并空跑复核；记录见 `reviews/NC-006-REVIEW-R1.md`）。派发前置：**NC-005 ACCEPTED**（reading-notes 含 NC-005 四个提交、`flutter test +75`）。执行由用户交外部 Agent，PROMPT.md 原样发送。task_id：`NC-006`。权威需求来源：TASKS NC-006；DESIGN §3「撤销栈归属」、§3.1；PRD §4、§4.1 A11Y-05；契约 `openspec/annotation-community/contracts/editor_history.md`（本任务专属，主 Agent 编写）、`editor.md` §2/§4；NC-004 `limits.dart` 常量。
+状态：`ACCEPTED`（2026-09-11；act/01～04，reading-notes `afbe3a0`→`00f6fc9`，113 测试；记录见 ACCEPTANCE.md R1/R2）。曾为 `REWORK_ACT04`（验收盲测发现页面未接入输入法组合、组合中撤销需裁定；追加 act/04，D-NC006-13/14）。原状态 `READY`（2026-09-11 wjt-react R1：忠实性/覆盖性/独立性通过，可执行性 1 项返工——act/03 校验命令退出码语义——已由主 Agent 落实并空跑复核；记录见 `reviews/NC-006-REVIEW-R1.md`）。派发前置：**NC-005 ACCEPTED**（reading-notes 含 NC-005 四个提交、`flutter test +75`）。执行由用户交外部 Agent，PROMPT.md 原样发送。task_id：`NC-006`。权威需求来源：TASKS NC-006；DESIGN §3「撤销栈归属」、§3.1；PRD §4、§4.1 A11Y-05；契约 `openspec/annotation-community/contracts/editor_history.md`（本任务专属，主 Agent 编写）、`editor.md` §2/§4；NC-004 `limits.dart` 常量。
 
 ## 主 Agent 已核定的平台事实（执行者不再调研）
 
