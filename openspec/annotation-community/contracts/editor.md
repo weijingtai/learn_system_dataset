@@ -6,7 +6,8 @@
 
 - 文件：`lib/src/editor/note_editor_controller.dart`、`note_editor_page.dart`、`markdown_preview.dart`、`save_status.dart`；测试 `test/editor/note_editor_test.dart`、`test/editor/markdown_preview_test.dart`、`test/editor/save_status_test.dart`。
 - 新增依赖：`flutter_markdown_plus: 1.0.12`（精确锁定；NC-001 基线用户指定）及其传递依赖 `markdown`（版本由 lock 固定，README 登记实际值）。不新增其他依赖。
-- 复用 NC-004：`NoteRepository`、`EditorSnapshot`、常量 `autosaveDebounceMs=2000`、错误类闭集；本任务不改 NC-004 文件。
+- 复用 NC-004：`NoteRepository`、`EditorSnapshot`、常量 `autosaveDebounceMs=2000`、错误类闭集；本任务不改 NC-004 文件。测试替身 `FakeNoteRepository` 用 Dart 隐式接口 `class FakeNoteRepository implements NoteRepository`（不调用其构造函数、不需要真实 `NoteDatabase`），只实现契约 §2 用到的方法，其余方法抛 `UnimplementedError`。
+- 不变式：本包不存在任何发布/Publication/ContentAccess 接口；自动保存只经 `NoteRepository.saveSnapshot` 写私人 head，不可能改变已发布正文（TASKS NC-005「自动保存不改变已发布正文」），测试以替身记录的方法调用集合证明。
 
 ## 2. 编辑态状态机实现面（SM-1）
 
@@ -28,7 +29,7 @@
 
 保存流程（`flush` 内）：`saving` → 调 `repository.saveSnapshot(noteId, snapshot, summaryTouched, expectedHeadId)`；成功（`saved` 或 `unchanged`）→ `clean`，更新 `expectedHeadId`（saved 时为新修订）；抛出任何异常 → `saveFailed`，`lastError` 置该异常，缓冲与 undo 栈都不清。`saving` 期间 `pendingDirty` 为 true 时，成功后立即再次 `flush(debounce)`。
 
-时间：去抖用注入的 `Ticker/Timer` 工厂（测试用 `FakeAsync`），常量取 `limits.dart`。
+时间：去抖与 400 ms 抑制一律经注入的 `TimerFactory`（`Timer Function(Duration, void Function())`）与 `Clock`；`lib/src/editor/` 内**禁止出现裸 `Timer(`/`Timer.periodic(`**（守卫扫描），测试用 `FakeAsync` 驱动；常量取 `limits.dart`。
 
 ## 3. 三态指示（PRD §6.1、§6.2；A11Y-04）
 
@@ -75,7 +76,7 @@
 | `imageBuilder` 签名 `Widget Function(Uri uri, String? title, String? alt)` | `lib/src/widget.dart:37` | **必须提供**（见下一行原因）；按 `uri.scheme` 分派：`attachment` → `attachmentResolver` + `Image.memory`；`http`/`https` → 占位按钮，不构造 `Image.network`/`NetworkImage`；其他 scheme → 占位「不支持的图片来源」 |
 | 默认图片处理：`imageBuilder == null` 时调用 `kDefaultImageBuilder`；`http/https` → `Image.network`；`data` → data URI；`resource` → `Image.asset`；**其余 scheme（含 `attachment://`）按 `imageDirectory` 拼接后走 `Image.file`** | `lib/src/builder.dart:616-643`；`lib/src/_functions_io.dart:19-68`（:25-31 network，:41-52 file） | 因此不提供 `imageBuilder` 会把 `attachment://` 当本地文件路径读取并把外部图片自动联网——两者都违反 §5，测试须证明 `imageBuilder` 被调用（对每个 img 节点计数） |
 | 内联 HTML：包不支持渲染（README:83「doesn't support inline HTML」；`builder.dart` 无 html 处理） | `README.md:83` | 不传任何 `builders`/`extensionSet` 引入 HTML；测试仍断言 `<script>` 文本不产生 Widget 以外副作用 |
-| 依赖 `markdown: ^7.3.1`（pub-cache 有 7.3.1）、`meta ^1.16.0`、`path ^1.9.1`；`environment: sdk ^3.4.0, flutter >=3.27.1` | `pubspec.yaml:12-19` | 与 reading_notes 的 Dart 3.12.2 / Flutter 3.44.6 兼容；lock 中 `markdown` 版本在 README 登记 |
+| 依赖 `markdown: ^7.3.1`（pub-cache 有 7.3.1）、`meta ^1.16.0`、`path ^1.9.1`；`environment: sdk ^3.4.0, flutter >=3.27.1` | `pubspec.yaml:11-19` | 与 reading_notes 的 Dart 3.12.2 / Flutter 3.44.6 兼容；lock 中 `markdown` 版本在 README 登记 |
 | Flutter `UndoHistoryController extends ValueNotifier<UndoHistoryValue>`，方法 `undo()`/`redo()`，`onUndo`/`onRedo` 通知；`TextField.undoController` | `~/flutter/packages/flutter/lib/src/widgets/undo_history.dart:361-390`；`material/text_field.dart:255,887` | NC-006 接线依据；NC-005 只把 `undoController` 参数位留给 adapter |
 
 ## 6. 无障碍断言（PRD §4.1，本任务承接 A11Y-04/05/07）
@@ -84,7 +85,7 @@
 |---|---|
 | A11Y-04 | 三态指示的 semantics label 含状态文字；读屏树中无仅图标节点 |
 | A11Y-05 | 撤销/重做按钮无历史时 `SemanticsFlag.isEnabled=false`，label 为「撤销」/「重做」，读屏朗读等价「撤销，已停用」；按钮常驻软键盘上方工具条（Widget 树位置断言） |
-| A11Y-07 | 编辑页在 320 逻辑像素宽、`textScaleFactor=2.0` 下无 `RenderFlex overflow`、无横向滚动（`tester.takeException()` 为 null；`Scrollable` 轴向断言） |
+| A11Y-07 | 编辑页在 320 逻辑像素宽、`MediaQueryData(textScaler: TextScaler.linear(2.0))`（Flutter 3.12 起 `textScaleFactor` 已弃用，不得使用）下无 `RenderFlex overflow`、无横向滚动（`tester.takeException()` 为 null；`Scrollable` 轴向断言） |
 
 ## 7. 决定登记（NC-005，主 Agent 裁定，可推翻）
 

@@ -20,7 +20,7 @@
 1. commit 哈希与 `git show --stat` 原文；
 2. Red：命令、退出码、失败原文；
 3. Green：该 ACT VERIFICATION 每条命令的退出码与输出末 20 行；
-4. act/01 另附 `pubspec.lock` 中 `flutter_markdown_plus` 与 `markdown` 的 version 行；act/04 另附 `flutter test` 全量末 5 行（应 `+74: All tests passed!`）与 `nc005_guard.sh --require-impl` 退出码；
+4. act/01 另附 `pubspec.lock` 中 `flutter_markdown_plus` 与 `markdown` 的 version 行；act/04 另附 `flutter test` 全量末 5 行（应 `+75: All tests passed!`）与 `nc005_guard.sh --require-impl` 退出码；
 5. 跳过项、未运行项与剩余风险。
 
 不要把本任务说成 NC-005 之外的任何任务完成：撤销栈、快捷键、历史旅程、同步与备份的真实状态都在后续任务。

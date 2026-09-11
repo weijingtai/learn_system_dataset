@@ -26,8 +26,8 @@ bdd=read(PACK/"BDD.md"); tdd=read(PACK/"TDD.md"); acts=[read(PACK/"act"/f"0{i}.y
 bids=re.findall(r"^\| (B\d\d) \|",bdd,re.M); est=[int((re.search(r"^ESTIMATE_MINUTES: (\d+)",a,re.M) or [0,0])[1]) for a in acts]
 deps=[(re.search(r"^DEPENDS_ON: (.*)$",a,re.M) or [0,""])[1].strip() for a in acts]
 vague=re.compile(r"适当|优雅|合理|必要时|酌情|尽量|大致|视情况"); hits=[f"{f}:{m.group(0)}" for f in ["README.md","BDD.md","TDD.md","ACT.yaml","PROMPT.md","ACCEPTANCE.md","act/01.yaml","act/02.yaml","act/03.yaml","act/04.yaml"] for m in vague.finditer(read(PACK/f))]
-ok03=(bids==[f"B{i:02d}" for i in range(1,31)] and all(30<=e<=60 for e in est) and deps==["[]","[NC-005-A]","[NC-005-B]","[NC-005-C]"] and all("ON_FAIL" in a and "WORKLOAD" in a for a in acts) and not hits and "+74" in tdd and "DISPATCH_PRECONDITION" in read(PACK/"ACT.yaml") and "方案 b" in read(PACK/"README.md") and "NC-004 已 ACCEPTED" in read(PACK/"PROMPT.md"))
-check(ok03,"K03 六件套：BDD B01～B30、四个 ACT 30–60 分钟且依赖链/ON_FAIL/WORKLOAD、无模糊词、计数 74、派发前置与撤销裁定",f"bids={len(bids)} est={est} deps={deps} vague={hits}")
+ok03=(bids==[f"B{i:02d}" for i in range(1,32)] and all(30<=e<=60 for e in est) and deps==["[]","[NC-005-A]","[NC-005-B]","[NC-005-C]"] and all("ON_FAIL" in a and "WORKLOAD" in a for a in acts) and not hits and "+75" in tdd and "+74" not in tdd and "Timer(" in tdd and "TextScaler" in tdd and "DISPATCH_PRECONDITION" in read(PACK/"ACT.yaml") and "方案 b" in read(PACK/"README.md") and "NC-004 已 ACCEPTED" in read(PACK/"PROMPT.md"))
+check(ok03,"K03 六件套：BDD B01～B31、四个 ACT 30–60 分钟且依赖链/ON_FAIL/WORKLOAD、无模糊词、计数 75、派发前置与撤销裁定",f"bids={len(bids)} est={est} deps={deps} vague={hits}")
 todo=read(root/"docs/blackbox-spec-rework/SUBAGENT_TODO.md"); check("NC-005" in todo and "editor.md" in todo,"K04 SUBAGENT_TODO 已登记 NC-005 工作包","")
 ed=CLIENT/"lib/src/editor"
 if not ed.exists() and not req:
@@ -38,14 +38,14 @@ else:
     det.append("files="+str(all((ed/f).is_file() for f in ["note_editor_controller.dart","save_status.dart","markdown_preview.dart","note_editor_page.dart"])))
     lock=read(CLIENT/"pubspec.lock"); okl=bool(re.search(r"^  flutter_markdown_plus:\n(?:    .*\n)*?    version: \"1\.0\.12\"",lock,re.M)) and bool(re.search(r"^  drift:\n(?:    .*\n)*?    version: \"2\.31\.0\"",lock,re.M)); ok&=okl; det.append(f"lock={okl}")
     src="".join(read(p) for p in (CLIENT/"test/editor").rglob("*.dart")) if (CLIENT/"test/editor").exists() else ""; lib="".join(read(p) for p in ed.rglob("*.dart"))
-    cheats=[p for p in ("skip:","skip(","expect(true, isTrue)") if p in src]; bad=[p for p in ("Image.network","NetworkImage","Shortcuts(","CallbackShortcuts(") if p in lib]
+    cheats=[p for p in ("skip:","skip(","expect(true, isTrue)") if p in src]; bad=[p for p in ("Image.network","NetworkImage","Shortcuts(","CallbackShortcuts(","Timer(","textScaleFactor") if p in lib]
     ok&=not cheats and not bad; det.append(f"cheats={cheats} bad={bad}")
     for f in ["lib/src/domain","lib/src/persistence","test/persistence","test/contracts"]:
         r=subprocess.run(["git","-C",str(CLIENT),"log","--format=%s","--",f],capture_output=True,text=True).stdout
         if "NC-005" in r: ok=False; det.append(f"NC-005 触碰了 {f}")
     env=dict(os.environ); env["PATH"]=FL+":"+env["PATH"]
     an=subprocess.run(["flutter","analyze"],cwd=CLIENT,capture_output=True,text=True,env=env); ok&=an.returncode==0; det.append(f"analyze={an.returncode}")
-    ft=subprocess.run(["flutter","test"],cwd=CLIENT,capture_output=True,text=True,env=env); m=re.search(r"\+(\d+): All tests passed!",ft.stdout); ok&=ft.returncode==0 and m is not None and int(m.group(1))>=74; det.append(f"test={ft.returncode}/{m.group(1) if m else '无'}")
-    check(ok,"K05 NC-005 产物：四文件、lock 1.0.12 且 NC-004 版本不变、无作弊/无 Image.network/无 Shortcuts、未触碰 NC-004 文件、analyze 0、flutter test ≥74","; ".join(det))
+    ft=subprocess.run(["flutter","test"],cwd=CLIENT,capture_output=True,text=True,env=env); m=re.search(r"\+(\d+): All tests passed!",ft.stdout); ok&=ft.returncode==0 and m is not None and int(m.group(1))>=75; det.append(f"test={ft.returncode}/{m.group(1) if m else '无'}")
+    check(ok,"K05 NC-005 产物：四文件、lock 1.0.12 且 NC-004 版本不变、无作弊/无 Image.network/无 Shortcuts、未触碰 NC-004 文件、analyze 0、flutter test ≥75","; ".join(det))
 print(f"\nNC-005 失败条数：{fails}"); sys.exit(fails)
 PY

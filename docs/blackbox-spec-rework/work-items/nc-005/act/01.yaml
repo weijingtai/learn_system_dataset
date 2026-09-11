@@ -24,7 +24,7 @@ SCOPE:
     - /Users/jingtaiwei/Git/Public/learn_system 下任何写入
     - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/lib/src/domain/、/Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/lib/src/persistence/、/Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/test/persistence/、/Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/test/contracts/（NC-004 文件）
     - xuan-migration 其他目录；父目录 git
-    - 契约外依赖；注册 Shortcuts/快捷键；实现 undo 栈；真实网络；skip；永真断言；先实现后补测试
+    - 契约外依赖；注册 Shortcuts/快捷键；实现 undo 栈；真实网络；skip；永真断言；先实现后补测试；lib/src/editor/ 内裸 Timer(（须经注入 TimerFactory）；已弃用的 textScaleFactor
 DEPENDENCY_ALLOWLIST: [flutter_markdown_plus 1.0.12（仅 act/01 追加到 pubspec）；其余沿用 NC-004 锁定版本]
 RULES:
   - "文案逐字取契约 §3 表；展示层只用表内词汇；notEnabled 不得使用失败样式"
