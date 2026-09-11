@@ -1,0 +1,45 @@
+TASK_ID: NC-009-D
+PARENT: NC-009
+STATUS: DRAFT
+REPO: xuan-server/functions-py
+GOAL: ACL 扫描矩阵 18 条（9 真实 + 9 xfail strict）、规则 jest 测试、可观测性与 outbox 兼容断言
+DEPENDS_ON: [NC-009-C]
+ESTIMATE_MINUTES: 50
+WORKLOAD: "acl sweep 参数化约 120 行 + 2 个附加测试 + TS 规则测试约 80 行"
+SCOPE:
+  READ:
+    - /Users/jingtaiwei/Git/Public/learn_system/openspec/annotation-community/contracts/community_server.md
+    - /Users/jingtaiwei/Git/Public/learn_system/openspec/annotation-community/contracts/community_api.md
+    - /Users/jingtaiwei/Git/Public/learn_system/openspec/schemas/community_command_record.schema.json、community_content_access.schema.json、community_publication.schema.json
+    - /Users/jingtaiwei/Git/Public/learn_system/docs/blackbox-spec-rework/work-items/nc-009/TDD.md、BDD.md
+    - /Users/jingtaiwei/Git/Public/xuan-server/functions-py/xuan/identity.py、errors.py、config.py、handlers/playground_rest.py（make_problem_details、_extract_auth_uid 只读）、tests/test_playground_rest_writes.py（create_test_id_token 用法只读）
+  WRITE_NEW:
+    - /Users/jingtaiwei/Git/Public/xuan-server/functions-py/tests/test_community_acl_sweep.py
+    - /Users/jingtaiwei/Git/Public/xuan-server/functions-py/tests/test_community_publications.py（追加 logs_never_contain_title_or_body、outbox_unknown_event_type_is_ignored）
+    - /Users/jingtaiwei/Git/Public/xuan-server/functions-py/xuan/community/access.py（仅当共用 404 体未达逐字节相同时修正）
+    - /Users/jingtaiwei/Git/Public/xuan-migration/xuan-server/server/functions/test/community_rules.test.ts（RULES 仓，单独提交，消息 test(rules): 社区集合默认拒绝（NC-009-D）+ Co-Authored-By）
+  FORBIDDEN:
+    - /Users/jingtaiwei/Git/Public/learn_system 下任何写入
+    - /Users/jingtaiwei/Git/Public/xuan-server/functions-py 内白名单以外文件（含 idempotency.py、playground_rest.py、notifications.py）；xuan-migration/xuan-server/server/functions-py（过期副本）
+    - firestore.rules；新增依赖；with_idempotency 包装社区命令；事务回调内上传/推送/sleep；skip；二选一断言；内存 fake
+DEPENDENCY_ALLOWLIST: [无新增；requirements.txt 三项]
+RULES:
+  - "集合、字段、判定顺序、错误码只来自 community_server.md 与 community_api.md；期望值只来自 TDD/BDD"
+  - "每步先写测试取得真实 Red 原文，再实现；不修改前步测试期望"
+  - "只 git add 本步文件；提交消息按 COMMIT_MESSAGE，末尾另起两行 Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
+TESTS_FIRST:
+  - "写 18 条参数化 + 2 个附加测试 + TS 规则测试；运行 TDD 命令 3/5 取得 Red 原文"
+STEPS:
+  - "实现至命令 3 为 9 passed, 9 xfailed；命令 5 通过；命令 4 0 failed"
+  - "SERVER 与 RULES 各提交一次"
+  - "提交后（仅此一次）：cd /Users/jingtaiwei/Git/Public/learn_system && bash docs/blackbox-spec-rework/reviews/nc009_guard.sh --require-impl，退出码写入报告"
+VERIFICATION:
+  - "cd /Users/jingtaiwei/Git/Public/xuan-server/functions-py && .venv/bin/python -m pytest tests/test_community_acl_sweep.py -q（期望 9 passed, 9 xfailed，无 skipped）"
+  - "cd /Users/jingtaiwei/Git/Public/xuan-migration/xuan-server/server/functions && FIRESTORE_EMULATOR_HOST=192.168.0.165:8080 FIREBASE_AUTH_EMULATOR_HOST=192.168.0.165:9099 npm test -- community_rules（期望通过）"
+  - "cd /Users/jingtaiwei/Git/Public/xuan-server/functions-py && .venv/bin/python -m pytest tests -q（期望 0 failed）"
+  - "git -C /Users/jingtaiwei/Git/Public/xuan-server/functions-py diff 30a868c HEAD --stat -- xuan/idempotency.py xuan/handlers/playground_rest.py xuan/handlers/notifications.py（期望空）"
+  - "cd /Users/jingtaiwei/Git/Public/learn_system && bash docs/blackbox-spec-rework/reviews/nc009_guard.sh --require-impl（期望 0）"
+  - "git -C /Users/jingtaiwei/Git/Public/xuan-server/functions-py status --short 与 git -C /Users/jingtaiwei/Git/Public/xuan-migration/xuan-server/server/.. status --short（提交后为空）"
+ON_FAIL: "停止并报告失败命令、退出码与原文；Emulator 不可达、.venv 缺失、需要改 firestore.rules/idempotency.py/playground_rest.py、契约两种解释均为停止条件。"
+BASELINE_EXIT_CODES: "开工基线：SERVER 30a868c；README 记录的既有 pytest 通过计数；Emulator 可达"
+COMMIT_MESSAGE: "test(community): ACL 扫描矩阵、可观测性与 outbox 兼容（NC-009-D）"

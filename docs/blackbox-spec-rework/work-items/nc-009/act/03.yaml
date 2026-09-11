@@ -1,0 +1,41 @@
+TASK_ID: NC-009-C
+PARENT: NC-009
+STATUS: DRAFT
+REPO: xuan-server/functions-py
+GOAL: trash/restore/purge 事务、R6 分页、R5 查询端点与每日精简任务；7 测试
+DEPENDS_ON: [NC-009-B]
+ESTIMATE_MINUTES: 50
+WORKLOAD: "content_service W4～W6 约 150 行 + R6 游标约 60 行 + community_commands 约 80 行 + 7 个测试"
+SCOPE:
+  READ:
+    - /Users/jingtaiwei/Git/Public/learn_system/openspec/annotation-community/contracts/community_server.md
+    - /Users/jingtaiwei/Git/Public/learn_system/openspec/annotation-community/contracts/community_api.md
+    - /Users/jingtaiwei/Git/Public/learn_system/openspec/schemas/community_command_record.schema.json、community_content_access.schema.json、community_publication.schema.json
+    - /Users/jingtaiwei/Git/Public/learn_system/docs/blackbox-spec-rework/work-items/nc-009/TDD.md、BDD.md
+    - /Users/jingtaiwei/Git/Public/xuan-server/functions-py/xuan/identity.py、errors.py、config.py、handlers/playground_rest.py（make_problem_details、_extract_auth_uid 只读）、tests/test_playground_rest_writes.py（create_test_id_token 用法只读）
+  WRITE_NEW:
+    - /Users/jingtaiwei/Git/Public/xuan-server/functions-py/xuan/community/content_service.py（追加 W4～W6）
+    - /Users/jingtaiwei/Git/Public/xuan-server/functions-py/xuan/handlers/community_contents.py（追加 W4～W6、R6）
+    - /Users/jingtaiwei/Git/Public/xuan-server/functions-py/xuan/handlers/community_commands.py（R5、compact_once、compact_community_commands_py）
+    - /Users/jingtaiwei/Git/Public/xuan-server/functions-py/tests/test_community_publications.py（追加 7 个）
+  FORBIDDEN:
+    - /Users/jingtaiwei/Git/Public/learn_system 下任何写入
+    - /Users/jingtaiwei/Git/Public/xuan-server/functions-py 内白名单以外文件（含 idempotency.py、playground_rest.py、notifications.py）；xuan-migration/xuan-server/server/functions-py（过期副本）
+    - firestore.rules；新增依赖；with_idempotency 包装社区命令；事务回调内上传/推送/sleep；skip；二选一断言；内存 fake
+DEPENDENCY_ALLOWLIST: [无新增；requirements.txt 三项]
+RULES:
+  - "集合、字段、判定顺序、错误码只来自 community_server.md 与 community_api.md；期望值只来自 TDD/BDD"
+  - "每步先写测试取得真实 Red 原文，再实现；不修改前步测试期望"
+  - "只 git add 本步文件；提交消息按 COMMIT_MESSAGE，末尾另起两行 Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
+TESTS_FIRST:
+  - "追加 7 个测试；运行 TDD 命令 2，保存 Red 原文"
+STEPS:
+  - "实现至 16 passed"
+  - "git add 本步文件并提交"
+VERIFICATION:
+  - "cd /Users/jingtaiwei/Git/Public/xuan-server/functions-py && .venv/bin/python -m pytest tests/test_community_publications.py -q（期望 16 passed）"
+  - "cd /Users/jingtaiwei/Git/Public/xuan-server/functions-py && .venv/bin/python -m pytest tests/test_community_commands.py -q（期望 10 passed）"
+  - "git -C /Users/jingtaiwei/Git/Public/xuan-server/functions-py status --short（提交后为空）"
+ON_FAIL: "停止并报告失败命令、退出码与原文；Emulator 不可达、.venv 缺失、需要改 firestore.rules/idempotency.py/playground_rest.py、契约两种解释均为停止条件。"
+BASELINE_EXIT_CODES: "开工基线：SERVER 30a868c；README 记录的既有 pytest 通过计数；Emulator 可达"
+COMMIT_MESSAGE: "feat(community): 回收站生命周期命令、命令查询与精简任务（NC-009-C）"
