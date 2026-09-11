@@ -22,7 +22,7 @@ Flutter 3.44.6 源码：`EditableText` 无条件内嵌平台 `UndoHistory` 栈�
 
 ## Dependencies / Baseline
 
-- **NC-005 ACCEPTED**：派发时主 Agent 在本节填写 NC-005 末提交 hash：`<待填>`；`flutter test +75`；`analyze` 0。
+- **NC-005 ACCEPTED**：NC-005 末提交 hash：`8b05a68`（2026-09-11 ACCEPTED）；`flutter test +75`；`analyze` 0。
 - 零新依赖；`pubspec.yaml`/`pubspec.lock` 不得变化。
 - 共享守卫：唯一 learn_system 侧命令 `bash docs/blackbox-spec-rework/reviews/nc006_guard.sh --require-impl`（只读）；K01 失败判外部失败，K02 及以后按本任务失败停工。
 

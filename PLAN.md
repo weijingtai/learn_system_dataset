@@ -110,8 +110,9 @@ G6 注解社区线各节（「G6 注解社区线」「NC-001 首包补齐」「�
 - [x] NC-004：契约 `local-persistence.md` 与六件套（act/01～05）完成，两轮四查 READY（2026-09-11）。
 - [x] NC-004：用户派发外部 Agent 执行；主 Agent 按 ACCEPTANCE.md 验收（`nc004_guard.sh --require-impl`、Dart/Python 交叉复算、持久化盲测）。已完成：`xuan-migration/reading-notes` 独立仓库五提交（`9ac96cc`…`957536c`），35 测试、守卫 0、5 快照 Dart/Python 交叉一致、sqlite3 直查与注入回滚盲测通过，ACCEPTED（`9cff646`，2026-09-11）。
 - [x] NC-005 六件套准备（Markdown 编辑预览、编辑态 SM-1、`flutter_markdown_plus` 接入、注入与外部图片安全测试）。 已完成：契约 `editor.md` 与六件套（act/01～04），两轮四查 READY（`e20c591`，2026-09-11），PROMPT 已交用户派发。
-- [ ] NC-005：外部 Agent 执行；主 Agent 按 ACCEPTANCE.md 验收（`nc005_guard.sh --require-impl`、去抖 1999/2000/2001 ms 与 400 ms 边界盲测、大写 scheme 外部图片不联网、三态文案与 PRD §6.1 逐字 diff）。
-- [ ] NC-006 六件套准备（撤销/重做/IME：`editor_history_adapter`，消费 nc-005 README 撤销归属裁定方案 b 与 `limits.dart` 常量）。
+- [x] NC-005：外部 Agent 执行；主 Agent 按 ACCEPTANCE.md 验收（`nc005_guard.sh --require-impl`、去抖 1999/2000/2001 ms 与 400 ms 边界盲测、大写 scheme 外部图片不联网、三态文案与 PRD §6.1 逐字 diff）。已完成：reading-notes 四提交（`10ef174`…`8b05a68`），75 测试、守卫 0、盲测全过，ACCEPTED（2026-09-11）。
+- [x] NC-006 六件套准备（撤销/重做/IME：`editor_history_adapter`，消费 nc-005 README 撤销归属裁定方案 b 与 `limits.dart` 常量）。已完成：契约 `editor_history.md`（Flutter 3.44.6 平台事实、`Actions` 覆盖 Intent、D-NC006-01～12）与六件套，wjt-react R1 返工 1 项后 READY（`936c5bc`）。
+- [ ] NC-006：外部 Agent 执行（三个提交）；主 Agent 按 ACCEPTANCE.md 验收（`nc006_guard.sh --require-impl`、归组阈值边界、全角空白、Android 平台按键、不双撤销双重计数、撤销后自动保存快照）。
 - [ ] NC-003 之前准备 Firebase 替代方案对比材料供用户决定；此前服务端规格一律供应商无关表述。NC-026 之前设计服务端删号路径，与 Firebase 决定一并处理。
 
 ## 项目冷启动交接

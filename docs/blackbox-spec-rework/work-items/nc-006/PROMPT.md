@@ -1,6 +1,6 @@
 # NC-006 执行提示
 
-发送前提：wjt-react 四查判定 READY；**NC-005 已 ACCEPTED**；README「Dependencies / Baseline」已填 NC-005 末提交 hash；主线程已在 `docs/blackbox-spec-rework/SUBAGENT_TODO.md` 登记。满足后，把分隔线以下全文原样发给执行 Agent。
+发送前提：wjt-react 四查判定 READY；**NC-005 已 ACCEPTED**；README「Dependencies / Baseline」已填 NC-005 末提交 hash（`8b05a68`）；主线程已在 `docs/blackbox-spec-rework/SUBAGENT_TODO.md` 登记。满足后，把分隔线以下全文原样发给执行 Agent。
 
 ---
 

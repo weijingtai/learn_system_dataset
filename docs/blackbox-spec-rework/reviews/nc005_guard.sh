@@ -40,7 +40,7 @@ else:
     src="".join(read(p) for p in (CLIENT/"test/editor").rglob("*.dart")) if (CLIENT/"test/editor").exists() else ""; lib="".join(read(p) for p in ed.rglob("*.dart"))
     # D-NC006-12：NC-006 落地（adapter 文件存在）后，Shortcuts 禁令由 nc006_guard 接管，本处不再扫描
     scan=("Image.network","NetworkImage","Timer(","textScaleFactor") if (ed/"editor_history_adapter.dart").is_file() else ("Image.network","NetworkImage","Shortcuts(","CallbackShortcuts(","Timer(","textScaleFactor")
-    cheats=[p for p in ("skip:","skip(","expect(true, isTrue)") if p in src]; bad=[p for p in scan if p in lib]
+    cheats=[p for p in ("skip:","skip(","expect(true, isTrue)") if p in src]; bad=[p for p in scan if (re.search(r"(?<![A-Za-z0-9_])Timer\(",lib) if p=="Timer(" else p in lib)]  # Timer( 只匹配裸构造，不匹配 _fooTimer(
     ok&=not cheats and not bad; det.append(f"cheats={cheats} bad={bad}")
     for f in ["lib/src/domain","lib/src/persistence","test/persistence","test/contracts"]:
         r=subprocess.run(["git","-C",str(CLIENT),"log","--format=%s","--",f],capture_output=True,text=True).stdout

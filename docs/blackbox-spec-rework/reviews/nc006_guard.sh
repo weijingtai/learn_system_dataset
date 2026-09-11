@@ -34,7 +34,7 @@ if not ad.exists() and not req:
     print("SKIP  K05 NC-006 产物尚不存在（验收时加 --require-impl，必须 PASS）")
 else:
     det=[]; ok=ad.is_file() and (CLIENT/"test/editor/editor_history_test.dart").is_file() and (CLIENT/"test/editor/editor_shortcuts_test.dart").is_file(); det.append(f"files={ok}")
-    a=read(ad); badc=re.findall(r"\b500\b|\b20\b|DateTime\.now\(|Timer\(|Stopwatch\(",a); okc=not badc and "undoMergeMaxGapMs" in a and "undoMergeMaxChars" in a; ok&=okc; det.append(f"adapter_literals={badc}")
+    a=read(ad); badc=re.findall(r"\b500\b|\b20\b|DateTime\.now\(|(?<![A-Za-z0-9_])Timer\(|(?<![A-Za-z0-9_])Stopwatch\(",a); okc=not badc and "undoMergeMaxGapMs" in a and "undoMergeMaxChars" in a; ok&=okc; det.append(f"adapter_literals={badc}")
     lib={p.name:read(p) for p in (CLIENT/"lib/src/editor").glob("*.dart")}
     sc={n:t.count("Shortcuts(")-t.count("CallbackShortcuts(") for n,t in lib.items()}; oks=sc.get("note_editor_page.dart",0)==1 and sum(sc.values())==1 and not any("UndoHistoryController" in t for t in lib.values()); ok&=oks; det.append(f"shortcuts={sc}")
     src="".join(read(p) for p in (CLIENT/"test/editor").glob("*.dart")); cheats=[p for p in ("skip:","skip(","expect(true, isTrue)") if p in src]; ok&=not cheats; det.append(f"cheats={cheats}")
