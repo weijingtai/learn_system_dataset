@@ -1,5 +1,14 @@
 # HANDOFF
 
+## G6 NC-001-01 验收通过（C/S 会话）
+
+更新时间：2026-09-10
+当前分支/worktree：`codex/docs/knowledge-compilation`；`/Users/jingtaiwei/Git/Public/learn_system`
+刚完成：Sonnet 执行 Agent 按 `work-items/nc-001/PROMPT.md` 完成四个提交（`272fb60`→`11b4e46`→`d75afb1`→`11edbc7`），只含两个工具文件。主 Agent 亲自验收：32 测试 OK；local 恰为 `LOCAL_PREPARATION_PASS`；integrated 与契约 §7 的 23 行逐字一致；`nc001_r2_guard.sh --require-impl` 0；方法集合与 TDD 相等、103 条必填键字面量与 TDD 相等；3 个必做变异 + 17 个矩阵外盲测全部符合契约（含退出 2 分支、根非 object、半填、form-feed 注入）；输入未被修改。执行方自报第 4 步先实现后补测试并还原取 Red 的流程偏差，已记入 ACCEPTANCE。NC-001-01 `ACCEPTED`；NC-001 总项仍 `PREPARING`。
+进行到一半的事（精确到文件和章节）：无。
+下一步（第一件事）：准备 NC-002 六件套（`openspec/annotation-community/TASKS.md` NC-002 条目；前缀表已由托管主 Agent 整表采用，需在 SUBAGENT_TODO 与 `READINESS_REVIEW.md` §3 写明）。NC-001-02 联调取证工作包需用户先决定 Firebase 去留。
+已知的坑：下一份 PROMPT 要明确「先写测试再改实现，违反即停」。`openspec/annotation-community/tools/__pycache__/` 由运行测试产生，已删除，不要提交。
+
 ## G6 NC-001-01 达 READY 并派发（C/S 会话）
 
 更新时间：2026-09-10

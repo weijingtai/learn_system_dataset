@@ -5,7 +5,8 @@
 - [x] 按 `AGENT_TAKEOVER_PROMPT.md` 冷启动、复跑 G3 与 G6 守卫、发出首次汇报；根 README 注解社区入口修正（`fe83bd8`）。
 - [x] 用户托管后主 Agent 代为拍板 CLIENT 独立 Git 仓库；R1 返工落实（`aadd1fc`，`nc001_r1_guard.sh` 0，亲自复跑）。
 - [x] 三轮独立 wjt-react 四查（R2 6 项、R3 3 项、R4 READY），返工由主 Agent 落实（`7ba3f35`、`3e5d1d8`、`cb1e3e9`），守卫 `nc001_r2_guard.sh` 0；SUBAGENT_TODO 登记 NC-001-01 DISPATCHED。
-- [ ] 执行 Agent 按 `work-items/nc-001/PROMPT.md` 完成 act/01～04 四个提交；主 Agent 按 ACCEPTANCE.md 与 `nc001_r2_guard.sh --require-impl` 验收，做矩阵外变异，通过后记 NC-001-01 ACCEPTED。
+- [x] 执行 Agent 完成 act/01～04 四个提交（`272fb60`、`11b4e46`、`d75afb1`、`11edbc7`）；主 Agent 亲自验收通过（32 测试、契约 §7 逐字一致、守卫 `--require-impl` 0、20 个变异/盲测），NC-001-01 `ACCEPTED`；总项等 NC-001-02。
+- [ ] 准备 NC-001-02 真实联调取证工作包（需用户先决定 Firebase 去留）。
 - [ ] NC-002：前缀表已由托管主 Agent 整表采用（2026-09-10），准备六件套时把结论写入 SUBAGENT_TODO 与 `READINESS_REVIEW.md` §3，消除两处矛盾。
 - [ ] NC-003 之前准备 Firebase 替代方案对比材料供用户决定；此前服务端规格一律供应商无关表述。NC-026 之前设计服务端删号路径，与 Firebase 决定一并处理。
 

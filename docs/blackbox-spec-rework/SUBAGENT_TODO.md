@@ -564,12 +564,12 @@
 
 ### 前置契约（可立即准备六件套）
 
-- [ ] NC-001：客户端位置、宿主、端口装配、设备与后端清单、验证器选型（总项状态：`PREPARING`；子项 NC-001-01 状态：`DISPATCHED`）
+- [ ] NC-001：客户端位置、宿主、端口装配、设备与后端清单、验证器选型（总项状态：`PREPARING`；子项 NC-001-01 状态：`ACCEPTED`）
   - [x] R1 审查（`reviews/NC-001-REVIEW-R1.md`）返工落实：14 个文件一次提交 `aadd1fc`，`nc001_r1_guard.sh` 为 0
   - [x] R2/R3/R4 三轮 wjt-react 四查（`reviews/NC-001-REVIEW-R2.md`）：6 + 3 项返工全部关闭，R4 判定 READY；`nc001_r2_guard.sh` 为 0
   - [x] 用户决定（2026-09-10 托管主 Agent 代为拍板）：CLIENT 用独立 Git 仓库（`client.vcs=NEW_GIT_REPOSITORY`）
   - [x] 派发 NC-001-01 执行 Agent：`work-items/nc-001/PROMPT.md`，act/01 → act/02 → act/03 → act/04 四个提交
-  - [ ] 主 Agent 验收 NC-001-01：按 `work-items/nc-001/ACCEPTANCE.md`，`nc001_r2_guard.sh --require-impl` 为 0，矩阵外变异
+  - [x] 主 Agent 验收 NC-001-01：执行提交 `272fb60`→`11b4e46`→`d75afb1`→`11edbc7`；32 测试、local/integrated 与契约一致、`nc001_r2_guard.sh --require-impl` 0、3 个必做变异 + 17 个盲测全部符合；记录见 `work-items/nc-001/ACCEPTANCE.md`
   - [ ] NC-001-02 完整联调取证（设备、后端、Emulator、真实测试）另行准备工作包；Firebase 去留须在此之前由用户决定
 - [ ] NC-002：非书籍模型、ID 前缀、状态机、限额、canonical 编码与 fixture（状态：`BACKLOG`；**须先取得用户对 Design §2.1 的 UGC ID 前缀确认，未确认前不得离开 `PREPARING`**）
 - [ ] NC-003：公共 REST/OpenAPI/Swagger 契约与错误目录（状态：`BACKLOG`）
