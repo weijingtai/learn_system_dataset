@@ -57,3 +57,9 @@ git diff --check
 建议 1～5 全部采纳：契约 §3 写明 status 枚举约束；`openapi_validator.evidence` 在 local 下不检查；`test_test_runs_set_rules` 补 command/count 负例；`test_integrated_fixture_evidence_removed` 的 11 条期望路径逐条写出；ACCEPTANCE 复述外部失败规则。
 
 第三轮审查若仍不 READY，按 wjt-react 规则停止并上报用户。
+
+## 5. 第三轮审查（R4，2026-09-10）：READY
+
+审查人：第三位独立只读 Agent（Opus）。R3 三项阻断全部 CLOSED，五条建议全部落实；`git diff 7ba3f35 3e5d1d8` 逐 hunk 无新矛盾（含「恰为一行」在完整夹具上的可判定性、§7 的 23 行独立复算吻合）；四查全 PASS；守卫 0、`--require-impl` 仅 K08 未实现（预期）、`git diff --check` 0、模糊词零命中。两条非阻断建议（ACCEPTANCE 的 B01～B22 → B23；七处豁免句 K02～K10 → K02～K11）已由主 Agent 落实。
+
+**决定记录：转译审查 R4：READY，4 个 ACT 可开工。** 主 Agent 在 SUBAGENT_TODO 登记 NC-001-01 为 READY 并派发 `work-items/nc-001/PROMPT.md`。

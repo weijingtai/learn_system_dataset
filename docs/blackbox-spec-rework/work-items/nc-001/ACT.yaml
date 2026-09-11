@@ -1,5 +1,5 @@
 TASK_ID: NC-001-01
-STATUS: PREPARING
+STATUS: READY
 GOAL: 实现集成基线校验器；local 档校验规划基线，integrated 档对未验证快照输出逐项缺证清单
 CONTRACT: docs/blackbox-spec-rework/work-items/nc-001/VALIDATION_CONTRACT.md
 SPLIT:

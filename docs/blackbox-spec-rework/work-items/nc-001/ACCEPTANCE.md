@@ -15,4 +15,4 @@ Terra同厂商证据快审：已核本地版本/身份决定；指出外部HEAD�
 
 ## v1.5 复核补充
 
-核对 VALIDATION_CONTRACT.md 与 JSON、BDD B01～B22、TDD §3 的 32 个方法及 act/01～act/04 的读写范围闭合。R2 返工项与裁定见 `reviews/NC-001-REVIEW-R2.md`。当前输入 account_deletion.status=UNVERIFIED，local 可通过但 integrated 必须拒绝；将状态单独改成 VERIFIED 仍须拒绝。注销缺证只保留对应子项阻塞，不把它扩大为笔记本地工作全部停止。
+核对 VALIDATION_CONTRACT.md 与 JSON、BDD B01～B23、TDD §3 的 32 个方法及 act/01～act/04 的读写范围闭合。R2 返工项与裁定见 `reviews/NC-001-REVIEW-R2.md`。当前输入 account_deletion.status=UNVERIFIED，local 可通过但 integrated 必须拒绝；将状态单独改成 VERIFIED 仍须拒绝。注销缺证只保留对应子项阻塞，不把它扩大为笔记本地工作全部停止。

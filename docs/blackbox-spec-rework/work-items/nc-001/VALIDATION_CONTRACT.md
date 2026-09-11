@@ -1,6 +1,6 @@
 # NC-001-01 校验字段契约
 
-状态：PREPARING（R2 返工版，见 [NC-001-REVIEW-R2](../../reviews/NC-001-REVIEW-R2.md)；R1 见 [NC-001-REVIEW-R1](../../reviews/NC-001-REVIEW-R1.md)）。这是 `openspec/annotation-community/tools/check_integration_baseline.py` 的输入契约，不是业务 REST Schema。权威规格为 PRD/DESIGN/TASKS v1.5 与 TASKS NC-001。本文列出的键、枚举与固定值就是全部判据：执行者不得从输入 JSON 反推必填项，也不得自行增删。
+状态：READY（R2 返工版，见 [NC-001-REVIEW-R2](../../reviews/NC-001-REVIEW-R2.md)；R1 见 [NC-001-REVIEW-R1](../../reviews/NC-001-REVIEW-R1.md)）。这是 `openspec/annotation-community/tools/check_integration_baseline.py` 的输入契约，不是业务 REST Schema。权威规格为 PRD/DESIGN/TASKS v1.5 与 TASKS NC-001。本文列出的键、枚举与固定值就是全部判据：执行者不得从输入 JSON 反推必填项，也不得自行增删。
 
 ## 1. 读取范围
 

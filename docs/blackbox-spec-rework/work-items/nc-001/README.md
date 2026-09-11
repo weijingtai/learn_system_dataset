@@ -1,6 +1,6 @@
 # NC-001：工程基线开工包
 
-状态：PREPARING。只交付 NC-001-01 本地规划基线的验证工具；NC-001 总项尚未 READY/ACCEPTED。依据：TASKS NC-001、INTEGRATION_BASELINE.md §6（本轮范围裁定）；书籍工作按用户最新指令暂缓。
+状态：NC-001-01 `READY`（2026-09-10 转译审查 R4 判定 READY，4 个 ACT 可开工；三轮审查记录见 [NC-001-REVIEW-R2](../../reviews/NC-001-REVIEW-R2.md)）。只交付 NC-001-01 本地规划基线的验证工具；NC-001 总项尚未 READY/ACCEPTED。依据：TASKS NC-001、INTEGRATION_BASELINE.md §6（本轮范围裁定）；书籍工作按用户最新指令暂缓。
 
 ## Goal
 
@@ -18,7 +18,7 @@
 
 父目录存在、CLIENT=PLANNED_NEW且创建归NC-004；当前没有 checker；Red 按 TDD §4 用空壳取得真实断言失败，文件不存在导致的退出 2 不算 Red。外部测试均未运行；不把本包通过声称成它们通过。
 
-开工基线（提交 `aadd1fc` 实测，执行者不必重验）：`LC_ALL=C bash openspec/annotation-community/review_v1_5_guard.sh`=0、`bash openspec/annotation-community/verify.sh`=0、`git diff --check`=0、`bash docs/blackbox-spec-rework/reviews/nc001_r2_guard.sh`=0（K08 为 SKIP）。前两条守卫读取共享文件 `docs/blackbox-spec-rework/SUBAGENT_TODO.md`，`git diff --check` 覆盖整个共享工作树；并行的 G3 线随时可能改动它们。执行者遇这三条失败时先 `git diff --stat`，失败来源不在本任务两个文件之内的判为外部失败，只记录、不返工、不停工。`nc001_r2_guard.sh` 的 K01 失败同样按外部失败处理；其 K02～K10 失败仍按本任务失败停工。
+开工基线（提交 `aadd1fc` 实测，执行者不必重验）：`LC_ALL=C bash openspec/annotation-community/review_v1_5_guard.sh`=0、`bash openspec/annotation-community/verify.sh`=0、`git diff --check`=0、`bash docs/blackbox-spec-rework/reviews/nc001_r2_guard.sh`=0（K08 为 SKIP）。前两条守卫读取共享文件 `docs/blackbox-spec-rework/SUBAGENT_TODO.md`，`git diff --check` 覆盖整个共享工作树；并行的 G3 线随时可能改动它们。执行者遇这三条失败时先 `git diff --stat`，失败来源不在本任务两个文件之内的判为外部失败，只记录、不返工、不停工。`nc001_r2_guard.sh` 的 K01 失败同样按外部失败处理；其 K02～K11 失败仍按本任务失败停工。
 
 ## Stop Conditions
 

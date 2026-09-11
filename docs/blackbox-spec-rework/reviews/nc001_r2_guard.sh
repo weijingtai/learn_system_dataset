@@ -135,7 +135,7 @@ miss = [s for s in need if s not in contract]
 check(not miss, "K09 契约含 R2 三条裁定（状态闸门范围、根类型输出、数组元素路径）", f"缺={miss}")
 
 # K11：外部失败豁免覆盖 R2 守卫 K01，且七处措辞一致
-EX = "`nc001_r2_guard.sh` 的 K01 失败同样按外部失败处理；其 K02～K10 失败仍按本任务失败停工。"
+EX = "`nc001_r2_guard.sh` 的 K01 失败同样按外部失败处理；其 K02～K11 失败仍按本任务失败停工。"
 miss11 = [f for f in ["README.md", "PROMPT.md", "TDD.md", "act/01.yaml", "act/02.yaml", "act/03.yaml", "act/04.yaml"] if EX not in read(pack / f)]
 check(not miss11, "K11 外部失败豁免含 R2 守卫 K01，七处逐字一致", f"缺={miss11}")
 

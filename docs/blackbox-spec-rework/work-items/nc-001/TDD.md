@@ -18,7 +18,7 @@
 1. `python3 -m unittest discover -s openspec/annotation-community/tools -p 'test_check_integration_baseline.py' -v` → 0。
 2. `python3 openspec/annotation-community/tools/check_integration_baseline.py --profile local --input openspec/annotation-community/integration_baseline.json` → 退出 0，stdout 恰为 `LOCAL_PREPARATION_PASS`。
 3. （步骤 4 起）同一命令改为 `--profile integrated` → 退出 1，stdout 与契约 §7 的 23 行逐字相同。
-4. `LC_ALL=C bash openspec/annotation-community/review_v1_5_guard.sh` → 0；`bash openspec/annotation-community/verify.sh` → 0；`git diff --check` → 0。开工基线（提交 `aadd1fc` 时实测）三者均为 0；其中前两条读取共享文件 `docs/blackbox-spec-rework/SUBAGENT_TODO.md`，`git diff --check` 覆盖整个工作树。任一失败时先运行 `git diff --stat`：失败来源不在本任务两个文件之内的，判为外部失败，只在报告中记录，不返工、不停工。`nc001_r2_guard.sh` 的 K01 失败同样按外部失败处理；其 K02～K10 失败仍按本任务失败停工。
+4. `LC_ALL=C bash openspec/annotation-community/review_v1_5_guard.sh` → 0；`bash openspec/annotation-community/verify.sh` → 0；`git diff --check` → 0。开工基线（提交 `aadd1fc` 时实测）三者均为 0；其中前两条读取共享文件 `docs/blackbox-spec-rework/SUBAGENT_TODO.md`，`git diff --check` 覆盖整个工作树。任一失败时先运行 `git diff --stat`：失败来源不在本任务两个文件之内的，判为外部失败，只在报告中记录，不返工、不停工。`nc001_r2_guard.sh` 的 K01 失败同样按外部失败处理；其 K02～K11 失败仍按本任务失败停工。
 5. （步骤 4 完成后）`bash docs/blackbox-spec-rework/reviews/nc001_r2_guard.sh --require-impl` → 0。
 
 ## 3. 测试文件与方法
