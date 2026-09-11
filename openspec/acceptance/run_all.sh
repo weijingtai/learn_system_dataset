@@ -51,21 +51,15 @@ FX_REASON=""
 fx() {
   FX_STATUS=""
   FX_REASON=""
-  if [ ! -f "$FIXTURE_DIR/verify.sh" ]; then
+  # 一律调用仓库内规范脚本，绝不执行被验目录自带的 verify.sh：
+  # 验收脚本不应信任被验对象自带的脚本，且仓库外副本的脚本推不出仓库根。
+  if [ ! -f "$REPO_ROOT/pipeline/corpus/_fixture/mini_ed01/verify.sh" ]; then
     FX_STATUS="MISSING"
     return 0
   fi
   local out rc
-  out="$(bash "$FIXTURE_DIR/verify.sh" 2>&1)"
+  out="$(FIXTURE_DIR="$FIXTURE_DIR" bash "$REPO_ROOT/pipeline/corpus/_fixture/mini_ed01/verify.sh" 2>&1)"
   rc=$?
-  # FIXTURE_DIR 指向仓库外副本时，副本自带的 verify.sh 无法由自身路径推出仓库根，
-  # 因而找不到 .venv（输出 BLOCKED_ENV、退出码 3）。此环境问题不代表副本内容有问题：
-  # 改用仓库内同一 fixture 的规范 verify.sh 复核同一 FIXTURE_DIR，避免把真 FAIL 吞成 BLOCKED。
-  if [ "$rc" -eq 3 ] && printf '%s\n' "$out" | grep -q 'BLOCKED_ENV' \
-     && [ -f "$CANON_VERIFY" ] && [ "$CANON_VERIFY" != "$FIXTURE_DIR/verify.sh" ]; then
-    out="$(bash "$CANON_VERIFY" 2>&1)"
-    rc=$?
-  fi
   case "$rc" in
     0) FX_STATUS="OK" ;;
     3) FX_STATUS="OK_NO_ASSET" ;;
