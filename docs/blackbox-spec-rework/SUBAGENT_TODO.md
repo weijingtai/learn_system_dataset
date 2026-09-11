@@ -592,11 +592,11 @@
   - [x] 六件套 `work-items/nc-004/`（act/01～04：建仓+nchash 一致性、模型+Drift 库、保存规则、恢复/回滚/会话隔离）与守卫 `reviews/nc004_guard.sh`
   - [x] wjt-react 四查：R1 REWORK 10 项 + 7 建议、R2 READY（`reviews/NC-004-REVIEW-R1.md`）；守卫 `nc004_guard.sh` 0
   - [x] 外部执行 Agent 完成 act/01～05（reading-notes 五个提交）；主 Agent 验收通过（守卫 `--require-impl` 0、analyze 0、35 测试、5 快照交叉复算、sqlite3 直查、note_heads 失败注入回滚），记录见 `work-items/nc-004/ACCEPTANCE.md`
-- [ ] NC-005：Markdown 编辑预览、状态与撤销栈裁定（状态：`PREPARING`；派发前置 NC-004 ACCEPTED **已满足**）
+- [ ] NC-005：Markdown 编辑预览、状态与撤销栈裁定（状态：`READY`，PROMPT 已交用户派发外部 Agent；派发前置 NC-004 ACCEPTED 已满足）
   - [x] 规格侧契约（主 Agent）：`openspec/annotation-community/contracts/editor.md`（控制器接口与 SM-1 边、三态文案闭集与 400 ms、撤销栈归属方案 b、`flutter_markdown_plus 1.0.12` 接线事实、A11Y-04/05/07、D-NC005-01～05）
   - [x] 六件套 `work-items/nc-005/`（act/01～04）与守卫 `reviews/nc005_guard.sh`
-  - [ ] wjt-react 四查 READY
-  - [ ] NC-004 ACCEPTED 后用户派发外部 Agent；主 Agent 按 ACCEPTANCE.md 验收
+  - [x] wjt-react 四查：R1 REWORK 3 项 + 3 建议、R2 READY（`reviews/NC-005-REVIEW-R1.md`）；守卫 `nc005_guard.sh` 0
+  - [ ] 用户派发外部执行 Agent（`work-items/nc-005/PROMPT.md`，act/01～04，四个提交在 reading-notes 仓库）；主 Agent 按 ACCEPTANCE.md 验收
 - [ ] NC-006：Undo/Redo 与 IME/焦点（状态：`BACKLOG`）
 - [ ] NC-007：历史、差异、恢复与冲突处理旅程（状态：`BACKLOG`）
 

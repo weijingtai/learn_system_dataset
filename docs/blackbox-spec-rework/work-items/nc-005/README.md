@@ -1,6 +1,6 @@
 # NC-005：Markdown 编辑、预览与保存状态
 
-状态：`PREPARING`（六件套已产出，待 wjt-react 四查；**派发前置：NC-004 已 ACCEPTED**，因为本任务写入的 `reading-notes` 包与 `NoteRepository`、`EditorSnapshot`、常量均由 NC-004 建立）。task_id：`NC-005`。权威需求来源：TASKS NC-005；DESIGN §3、§3.1、§5；PRD §4、§4.1（A11Y-04/05/07）、§6.1、§6.2；契约 `openspec/annotation-community/contracts/editor.md`（本任务专属，主 Agent 编写）、`local-persistence.md`、`state-machines.md` SM-1。
+状态：`READY`（2026-09-11 两轮 wjt-react 四查：R1 REWORK 3 项 + 3 建议、R2 READY；记录见 `reviews/NC-005-REVIEW-R1.md`）。派发前置 NC-004 ACCEPTED 已于 2026-09-11 满足（reading-notes `957536c`）。执行由用户交外部 Agent，PROMPT.md 原样发送。task_id：`NC-005`。权威需求来源：TASKS NC-005；DESIGN §3、§3.1、§5；PRD §4、§4.1（A11Y-04/05/07）、§6.1、§6.2；契约 `openspec/annotation-community/contracts/editor.md`（本任务专属，主 Agent 编写）、`local-persistence.md`、`state-machines.md` SM-1。
 
 ## 撤销栈归属裁定（TASKS NC-005 第 2 条，供 NC-006 直接消费）
 

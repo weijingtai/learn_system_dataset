@@ -1,5 +1,5 @@
 TASK_ID: NC-005
-STATUS: PREPARING
+STATUS: READY
 GOAL: 在 reading_notes 包内实现编辑态控制器、自动保存、三态指示、Markdown 预览安全与编辑页 A11Y
 CONTRACTS:
   - openspec/annotation-community/contracts/editor.md

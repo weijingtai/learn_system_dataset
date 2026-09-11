@@ -1,6 +1,6 @@
 TASK_ID: NC-005-D
 PARENT: NC-005
-STATUS: PREPARING
+STATUS: READY
 REPO: xuan-migration/reading-notes
 GOAL: 实现 NoteEditorPage：工具条、三态指示接线、失败动作、预览切换、undoController 参数位，A11Y-04/05/07 断言，6 项测试
 DEPENDS_ON: [NC-005-C]

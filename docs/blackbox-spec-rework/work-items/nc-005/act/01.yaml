@@ -1,6 +1,6 @@
 TASK_ID: NC-005-A
 PARENT: NC-005
-STATUS: PREPARING
+STATUS: READY
 REPO: xuan-migration/reading-notes
 GOAL: 追加 flutter_markdown_plus 依赖；实现三态保存指示的枚举、文案闭集、400 ms 抑制与 semantics，8 项测试
 DEPENDS_ON: []

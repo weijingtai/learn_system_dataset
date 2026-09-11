@@ -1,6 +1,6 @@
 TASK_ID: NC-005-C
 PARENT: NC-005
-STATUS: PREPARING
+STATUS: READY
 REPO: xuan-migration/reading-notes
 GOAL: 实现 MarkdownPreview：imageBuilder 按 scheme 分派、外部图片不自动加载、attachment 解析器、HTML 不执行、链接只回调，7 项测试
 DEPENDS_ON: [NC-005-B]
