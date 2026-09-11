@@ -24,3 +24,24 @@
 5. 跳过项、未运行项与剩余风险。
 
 不要把本任务说成 NC-007 之外的任何任务完成：图片清理、发布 UI、回收站与同步备份都在后续任务。
+
+
+# NC-007 act/05～06 返工执行提示（2026-09-11 验收后追加）
+
+发送前提：act/01～04 已在 reading-notes 提交（`29f6065`…`8a910a2`）。把分隔线以下全文原样发给执行 Agent。
+
+---
+
+你执行 NC-007 的返工步 act/05 与 act/06：在 `/Users/jingtaiwei/Git/Public/xuan-migration/reading-notes`（独立 Git 仓库；`xuan-migration` 父目录不是 Git 仓库，绝不在父目录执行 git；learn_system 只读）以 `8a910a2` 为基线修两处：① 长文差异中间区超过 2000 行时改为唯一公共行锚定递归，禁止无锚点以外的全删全插；② 手动合并工作区不再自动保存，持久化只经 `commitManualMerge`。`export PATH=/Users/jingtaiwei/flutter/bin:$PATH`。
+
+**先读**：`docs/blackbox-spec-rework/work-items/nc-007/act/05.yaml`、`act/06.yaml`、`TDD.md` §2.5/§2.6、`BDD.md` B33～B37；`openspec/annotation-community/contracts/revision_history.md` §6（两条规则与可观察断言逐字照做）；`reading-notes/lib/src/history/revision_compare.dart`、`conflict_banner.dart`；`test/persistence/note_repository_test.dart` 的 setUp 与「两 head」构造片段（向 `noteHeads` 插入既有修订）。
+
+**先写测试再改实现**：每步先追加本步测试并取得真实 Red 原文（贴入报告），再实现；一开始即绿的测试逐个说明原因。
+
+**只允许写**：act/05：`lib/src/history/revision_compare.dart`、`test/history/revision_compare_test.dart`；act/06：`lib/src/history/conflict_banner.dart`、`test/history/revision_conflict_test.dart`。禁止：其他任何文件；新增依赖；改既有测试期望；`lib/src/history/` 内裸 `Timer(` 构造；`skip`、永真断言。
+
+**判据**：契约 §6 与 TDD §2.5/§2.6。20k 行两处测试实现后仍 ≥ 2000 ms、真实库测试在 `test()` 下挂起或报 `StaleSessionError`：立即停止并原样报告。
+
+**提交**：两步各一个提交，只 `git add` 本步两个文件，不 push；提交消息按各 ACT 的 COMMIT_MESSAGE，末尾另起两行加 `Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>`。
+
+**交付报告**（每步一节）：commit 哈希与 `git show --stat`；Red 命令/退出码/原文；该 ACT VERIFICATION 每条命令的退出码与末 20 行；act/06 另附 `flutter test` 全量末 5 行（应 `+150: All tests passed!`）与 `nc007_guard.sh --require-impl` 退出码；跳过项与剩余风险。

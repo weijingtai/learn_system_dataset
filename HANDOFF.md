@@ -18,13 +18,13 @@
 下一步（第一件事）：拿到用户确认 → 派发 g5-01 → 验收 → `PROJECT_COLD_START_HANDOFF.md` 状态改 `IMPLEMENTATION_PHASE` → 写首纵切第一批（Artifact Ledger，§17，判据 `run_all.sh 20.2 20.3`）六件套；之后 M3 → M5 → M8，判据 `run_all.sh 20.N` 由 BLOCKED 变 PASS。
 已知的坑：PLAN.md 时间窗已向 C/S 解除；PLAN 的 D-16 节要求「零删行」，今后改 PLAN 只能追加或把 `- [ ]` 改 `- [x]` 并附取代者；验收仍在 `git archive` 导出树上跑。 **`check_d16.py` 刚性缺陷**：R3 把表 B 行数写死为 43、R4 要求黑箱节任何新 `- [ ]` 都登记进表 B，因此现在无法往 PLAN 黑箱节新增未勾选项（G5 记录条目因此只写在 SUBAGENT_TODO/HANDOFF）；首纵切第一批 ACT 必须先把 R3 改为「≥ 43」并允许表 B 追加行，再往 PLAN 加实现条目。
 
-## G6 NC-006 ACCEPTED；下一步 NC-007（C/S 会话）
+## G6 NC-007 验收 REWORK（act/05～06 派发中）（C/S 会话）
 
 更新时间：2026-09-11
 当前分支/worktree：`codex/docs/knowledge-compilation`；`/Users/jingtaiwei/Git/Public/learn_system`
-刚完成：NC-006 act/04 验收通过（reading-notes `00f6fc9`，守卫 `--require-impl` 0，113 测试，组合序列与组合中撤销盲测通过），NC-006 记 ACCEPTED（`work-items/nc-006/ACCEPTANCE.md` R2）。本地笔记线 NC-002/004/005/006 全部落地：reading-notes 独立仓库 13 个提交，修订库、编辑器控制器、三态指示、Markdown 预览、撤销栈与输入法接线齐备。
-进行到一半的事（精确到文件和章节）：无。
-下一步（第一件事）：准备 NC-007（历史、差异、恢复与冲突处理旅程）六件套——读 TASKS「### NC-007」、DESIGN §3「本地事务/恢复历史是显式新修订」与 §3.2、PRD 旅程 6；契约需覆盖：修订链遍历与差异展示、恢复旧版 = 新修订（含 parent_ids）、多 head 分支保留、对照页三选项与「稍后处理」、合并编辑区复用 NC-006 撤销；NC-004 仓储已有 `heads`/`restore`/merge 能力先核对接口。之后 NC-008（图片）前置 NC-003/NC-025 未满足，服务端线仍等 Firebase 决定。
+刚完成：NC-007 独立验收——形式门禁全过（守卫 0、145 测试、范围干净），盲测发现两处实质缺陷：① `revision_compare.dart` 在中间区 > 2000 行时无条件全删全插（20k 行改两处 → 变更行 39 962）；② `ManualMergePage` 的控制器用真实 Timer 自动保存到首选 head，真实库上 `commitManualMerge` 抛 `HeadConflictError`。此前 `4ea5105` 把 NC-007 标成 ACCEPTED 但没有盲测与源码审阅记录，已作废。契约追加 §6（D-NC007-06/07），新增 act/05（锚定递归，3 测试）、act/06（工作区不自动保存，2 测试，全量 `+150`），PROMPT.md 末尾追加派发段，守卫 K05 在 `--require-impl` 下要求返工落地。
+进行到一半的事（精确到文件和章节）：等 act/05～06 执行报告；验收时复跑 ACCEPTANCE R1 的盲测 ①（20k 两处变更行恰 4）、④（工作区 2.5 s 无 saveSnapshot）、⑤（真实 Drift 两 head 合并）。
+下一步（第一件事）：act/05～06 验收关闭 NC-007。之后本地线只剩依赖服务端/Firebase 决定的任务（NC-003、NC-008 起）；可先做 NC-003 前的 Firebase 替代对比材料。
 已知的坑：PLAN.md 今后只能追加或把 `- [ ]` 改 `- [x]`（D-16 零删行判据；`check_d16.py` 只查黑箱侧条目，不查 G6 节）；G6 新条目不需登记进 D-16 映射表。一次性 Dart 盲测需 `import 'package:drift/drift.dart'` 才能用 `interceptWith`；执行方报告在 reading-notes 根目录未跟踪，验收不入库。
 
 ## G4 第二批验收通过：D-15 fixture、D-18 §20 判据化、前缀登记（Dataset 会话；黑箱线最新状态）

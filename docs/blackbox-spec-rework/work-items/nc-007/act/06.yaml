@@ -1,0 +1,42 @@
+TASK_ID: NC-007-F
+PARENT: NC-007
+STATUS: READY
+REPO: xuan-migration/reading-notes
+GOAL: 验收返工：手动合并工作区不自动保存（契约 §6.2 D-NC007-07），持久化只经 commitManualMerge；2 项测试（替身 2.5 s 无 saveSnapshot；真实 Drift 两 head 合并成功）
+DEPENDS_ON: [NC-007-E]
+ESTIMATE_MINUTES: 35
+WORKLOAD: "conflict_banner.dart 内加永不触发 Timer 替身与工厂并用于 ManualMergePage 的控制器约 20 行；2 个测试（Widget 替身测试；真实 TempDb 纯 test）"
+SCOPE:
+  READ:
+    - /Users/jingtaiwei/Git/Public/learn_system/openspec/annotation-community/contracts/revision_history.md §4.2、§6.2
+    - /Users/jingtaiwei/Git/Public/learn_system/docs/blackbox-spec-rework/work-items/nc-007/TDD.md §2.6、BDD.md B36～B37
+    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/lib/src/history/conflict_banner.dart（ManualMergePage）、/Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/test/support/temp_db.dart、/Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/test/persistence/note_repository_test.dart（两 head 构造：向 noteHeads 插入既有修订）
+  WRITE_NEW:
+    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/lib/src/history/conflict_banner.dart（仅 ManualMergePage 的控制器构造与 Timer 替身）
+    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/test/history/revision_conflict_test.dart（追加 2 个测试）
+  FORBIDDEN:
+    - /Users/jingtaiwei/Git/Public/learn_system 下任何写入
+    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes 内上述两文件以外的任何文件
+    - xuan-migration 其他目录；父目录 git
+    - 新增依赖；改既有测试期望；skip；永真断言；先实现后补测试；lib/src/history/ 内裸 Timer( 构造
+DEPENDENCY_ALLOWLIST: [无新增]
+RULES:
+  - "真实 Drift 测试用 test()（非 testWidgets），构造方式照抄 note_repository_test.dart 的 setUp 与两 head 插入"
+  - "工作区内不得调用 flush；提交只经 commitManualMerge"
+  - "只在 reading-notes 内 git add 本步两个文件；提交消息按 COMMIT_MESSAGE，末尾另起两行 Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
+TESTS_FIRST:
+  - "追加 2 个测试；运行 flutter test test/history/revision_conflict_test.dart，保存失败原文作为 Red（替身测试应红；真实库测试若一开始即绿，如实说明其为回归守卫）"
+STEPS:
+  - "实现至 18 个冲突测试通过；flutter test 全量 +150；flutter analyze 0"
+  - "git add 两个文件并提交"
+  - "bash docs/blackbox-spec-rework/reviews/nc007_guard.sh --require-impl"
+VERIFICATION:
+  - "export PATH=/Users/jingtaiwei/flutter/bin:$PATH && cd /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes && flutter analyze"
+  - "cd /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes && flutter test test/history/revision_conflict_test.dart（期望 +18）"
+  - "cd /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes && flutter test（期望 +150）"
+  - "cd /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes && grep -nE '(^|[^A-Za-z0-9_])Timer\(' lib/src/history/*.dart（期望无输出）"
+  - "cd /Users/jingtaiwei/Git/Public/learn_system && bash docs/blackbox-spec-rework/reviews/nc007_guard.sh --require-impl（期望 0）"
+  - "git -C /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes status --short（提交后为空）"
+ON_FAIL: "停止并报告失败命令、退出码与原文；不改契约与既有测试期望。真实库测试在 test() 下仍挂起或报 StaleSessionError，停止并原样报告。"
+BASELINE_EXIT_CODES: "开工基线：act/05 提交（flutter test +148、analyze 0）"
+COMMIT_MESSAGE: "fix: 手动合并工作区不自动保存，持久化只经 mergeHeads（NC-007-F）"

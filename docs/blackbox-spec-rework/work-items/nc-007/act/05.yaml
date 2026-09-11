@@ -1,0 +1,39 @@
+TASK_ID: NC-007-E
+PARENT: NC-007
+STATUS: READY
+REPO: xuan-migration/reading-notes
+GOAL: 验收返工：差异算法中间区超过 2000 行时改为唯一公共行锚定递归（契约 §6.1 D-NC007-06），禁止无锚点以外的全删全插，3 项测试
+DEPENDS_ON: [NC-007-D]
+ESTIMATE_MINUTES: 55
+WORKLOAD: "revision_compare.dart 内新增锚定递归函数（唯一行统计、LIS、间隙递归）约 90 行；3 个纯 Dart 测试（20k 行两处、6k 行六处、无锚点全删插 + 行重组）"
+SCOPE:
+  READ:
+    - /Users/jingtaiwei/Git/Public/learn_system/openspec/annotation-community/contracts/revision_history.md §2、§6.1
+    - /Users/jingtaiwei/Git/Public/learn_system/docs/blackbox-spec-rework/work-items/nc-007/TDD.md §2.5、BDD.md B33～B35
+    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/lib/src/history/revision_compare.dart（现有 Myers 与分组逻辑）
+  WRITE_NEW:
+    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/lib/src/history/revision_compare.dart（仅中间区调度：去掉无条件退化，加入锚定递归）
+    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/test/history/revision_compare_test.dart（追加 3 个测试）
+  FORBIDDEN:
+    - /Users/jingtaiwei/Git/Public/learn_system 下任何写入
+    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes 内上述两文件以外的任何文件
+    - xuan-migration 其他目录；父目录 git
+    - 新增依赖；改既有 8 个测试的期望；skip；永真断言；先实现后补测试
+DEPENDENCY_ALLOWLIST: [无新增]
+RULES:
+  - "锚点定义、递归条件、唯一允许退化的条件逐字按契约 §6.1；期望值只取 TDD §2.5"
+  - "DiffBlock 结构、行号语义、折叠与导航函数不变；既有 8 个测试不得改期望"
+  - "只在 reading-notes 内 git add 本步两个文件；提交消息按 COMMIT_MESSAGE，末尾另起两行 Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
+TESTS_FIRST:
+  - "追加 3 个测试；运行 flutter test test/history/revision_compare_test.dart，保存失败原文作为 Red（20k 两处与 6k 六处应红）"
+STEPS:
+  - "实现锚定递归至 11 个测试通过；flutter analyze 0"
+  - "git add 两个文件并提交"
+VERIFICATION:
+  - "export PATH=/Users/jingtaiwei/flutter/bin:$PATH && cd /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes && flutter analyze"
+  - "cd /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes && flutter test test/history/revision_compare_test.dart（期望 +11）"
+  - "cd /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes && flutter test（期望 +148）"
+  - "git -C /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes status --short（提交后为空）"
+ON_FAIL: "停止并报告失败命令、退出码与原文；不改契约与既有测试期望。若 20k 行两处测试在锚定实现后耗时仍 ≥ 2000 ms，停止并报告实测耗时与实现要点。"
+BASELINE_EXIT_CODES: "开工基线：reading-notes 8a910a2（flutter test +145、analyze 0、nc007_guard --require-impl 0）"
+COMMIT_MESSAGE: "fix: 长文差异唯一行锚定递归，禁止无条件全删全插（NC-007-E）"

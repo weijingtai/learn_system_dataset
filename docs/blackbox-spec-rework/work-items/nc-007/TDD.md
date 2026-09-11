@@ -9,10 +9,10 @@
 | # | 命令 | 期望结果 |
 |---|---|---|
 | 1 | `flutter analyze` | 0 issues |
-| 2 | `flutter test test/history/revision_compare_test.dart` | act/01 完成后 `+8: All tests passed!` |
+| 2 | `flutter test test/history/revision_compare_test.dart` | act/01 完成后 `+8`；act/05 完成后 `+11: All tests passed!` |
 | 3 | `flutter test test/history/revision_history_test.dart` | act/02 完成后 `+8: All tests passed!` |
-| 4 | `flutter test test/history/revision_conflict_test.dart` | act/03 完成后 `+8`，act/04 完成后 `+16: All tests passed!` |
-| 5 | `flutter test` | 全量测试 `+145: All tests passed!` |
+| 4 | `flutter test test/history/revision_conflict_test.dart` | act/03 完成后 `+8`，act/04 完成后 `+16`，act/06 完成后 `+18: All tests passed!` |
+| 5 | `flutter test` | act/04 后 `+145`；act/05 后 `+148`；act/06 后 `+150: All tests passed!` |
 | 6 | `git diff <基线提交> HEAD --stat -- pubspec.yaml pubspec.lock` | 空（无依赖改动） |
 | 7 | `grep -rn 'http' lib/src/history/` | 无输出（零外部 HTTP API 调用） |
 | 8 | `bash docs/blackbox-spec-rework/reviews/nc007_guard.sh --require-impl` | 退出码 0，0 失败 |
@@ -73,3 +73,19 @@
   8. `manual merge workflow supports undo redo and commits merged head`（B31/B32）
 - Red 捕获：追加 8 个测试，运行命令 4 记录后 8 个测试的失败原文。
 - Green 验证：全量命令 1～8 必须全绿，全量测试达到 `+145: All tests passed!`。
+
+### 2.5 act/05：长文差异锚定递归（NC-007-E，验收返工；契约 §6.1）
+- 目标文件：`lib/src/history/revision_compare.dart`、`test/history/revision_compare_test.dart`
+- 追加 3 个测试（名称逐字）：
+  1. `diff keeps two far apart edits localized in 20k lines`（B33：`changedLines == 4`，`Stopwatch` < 2000 ms）
+  2. `diff anchors on unique lines across a 6k line middle`（B34：`changedLines == 12`）
+  3. `diff without anchors degrades but still reconstructs both sides`（B35：拼回相等、行号连续、< 2000 ms）
+- `changedLines` 定义：`type != unchanged` 的块的 `oldLineCount + newLineCount` 之和。
+- Red：先写 3 个测试，运行命令 2 记录失败原文（前两个应红）。
+
+### 2.6 act/06：手动合并工作区不自动保存（NC-007-F，验收返工；契约 §6.2）
+- 目标文件：`lib/src/history/conflict_banner.dart`、`test/history/revision_conflict_test.dart`
+- 追加 2 个测试（名称逐字）：
+  1. `manual merge workspace never autosaves while editing`（B36，`testWidgets` + 记录调用的仓储替身）
+  2. `manual merge commits against real repository heads`（B37，`test()` + `TempDb`，两 head 构造照抄 `note_repository_test.dart`）
+- Red：先写 2 个测试，运行命令 4 记录失败原文（B36 应红；B37 若一开始即绿，报告写明其为回归守卫）。

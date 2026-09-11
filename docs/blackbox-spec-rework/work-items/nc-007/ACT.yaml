@@ -1,5 +1,5 @@
 TASK_ID: NC-007
-STATUS: READY
+STATUS: REWORK
 GOAL: "实现历史修订列表、纯本地长文差异对比、多分支冲突检测与 PRD 旅程 6 四选项冲突处理完整路径"
 CONTRACTS:
   - openspec/annotation-community/contracts/revision_history.md
@@ -12,6 +12,8 @@ SPLIT:
   - act/02.yaml
   - act/03.yaml
   - act/04.yaml
+  - act/05.yaml（2026-09-11 验收返工：差异锚定）
+  - act/06.yaml（2026-09-11 验收返工：合并工作区不自动保存）
 ORDER: "严格按 act/01 → 02 → 03 → 04 顺序执行；每步独立提交；禁止并行"
 ESTIMATE_MINUTES_TOTAL: 190
 DEFERRED:

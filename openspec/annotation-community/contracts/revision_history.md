@@ -109,3 +109,20 @@
 | D-NC007-03 | 恢复旧版必须走 `restoreRevision` 产生新修订 | 恪守不可变历史原则，防止历史数据被篡改或丢失 |
 | D-NC007-04 | 冲突横幅不以 Modal 弹窗阻断编辑 | 恪守 PRD 旅程 6 体验要求，离线或急需记笔记时用户随时可输入保存 |
 | D-NC007-05 | 四选项文案闭集固定为「保留本机」「采用对方」「手动合并」「稍后处理」 | 保持与 PRD 逐字一致，便于自动化测试与多语言对齐 |
+
+---
+
+## 6. 验收返工补充（2026-09-11 主 Agent 验收后追加，act/05、act/06 消费）
+
+### 6.1 长文差异不得退化（D-NC007-06）
+- 验收盲测：20 000 行文档只改第 10 行与第 19 990 行，`computeDiff` 输出变更行数 39 962（整篇删除 + 整篇新增），原因是 `_myersDiff` 在中间区 `n + m > 2000` 时直接返回「全删全插」。这使 §2 的折叠与导航在长文上失效，违反 DESIGN「长文可读性」。
+- 规则：中间区（去掉公共前缀/后缀后）按下列递归函数计算，禁止无条件退化：
+  1. `n + m <= 2000`：现有 Myers。
+  2. 否则取**唯一公共行**（在 old 中恰出现 1 次且在 new 中恰出现 1 次的行），按 old 顺序取其在 new 位置的最长递增子序列作为锚点；锚点行输出为 `equal`，相邻锚点之间的间隙递归调用本函数。
+  3. 仅当 `n + m > 2000` 且**没有任何锚点**时，才允许该区整体「全删全插」。
+- 可观察断言：① 20 000 行改两处（第 10 行与第 19 990 行）→ 变更行数恰 4，耗时 < 2000 ms；② 6 000 行中间区每 1 000 行改一处（6 处）→ 变更行数恰 12；③ 3 000 行全 `x` 对 3 000 行全 `y`（无锚点）→ 允许全删全插，耗时 < 2000 ms，且块序列仍能逐行重组出 old 与 new（§2 的行号一致性不变）。
+
+### 6.2 手动合并工作区不得自动保存（D-NC007-07）
+- 验收盲测：`ManualMergePage` 以真实 `Timer` 与真实仓储构造 `NoteEditorController`，打字 2 秒后触发 `saveSnapshot(expectedHeadId: preferredHead)`；在真实 Drift 库上这会用新修订替换首选 head，随后 `commitManualMerge` 以过时的 `headIds` 调 `mergeHeads` 抛 `HeadConflictError: Head not in current heads`，手动合并无法提交。
+- 规则：合并工作区的 `NoteEditorController` 只作为撤销栈与缓冲载体：用 `lib/src/history/` 内定义的永不触发 `TimerFactory`（返回 `isActive=false`、`cancel()` 无效果的 `Timer` 替身）构造；工作区内不得调用 `flush`；持久化只经 `RevisionConflictController.commitManualMerge → repository.mergeHeads`。`lib/src/history/` 内不得出现裸 `Timer(` 构造。
+- 可观察断言：① 工作区打字后推进 2 500 ms，仓储替身的 `saveSnapshot` 调用为 0，随后点击「保存合并」恰调用一次 `mergeHeads` 且 `headIds` 为进入冲突时的全部 heads；② 真实 Drift 库两 head 场景下 `commitManualMerge` 成功，heads 变为恰一个，`parent_ids` 含原两个 head。
