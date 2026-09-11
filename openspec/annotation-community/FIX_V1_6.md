@@ -18,7 +18,7 @@ PRD（§1、§2、§3 R-13/R-14、§3.1、§4、§4.1 A11Y-04、§5、§5.1、§
 
 ## 2.1 勘误（NC-003 R1 审查发现）
 
-- REST 仓 `openapi/openapi.yaml` 非法 operation 级 `headers:` 为 **22 个 operation（全部）**，非 35（原计数把 response 级与 components 级一并算入）；既有 `test/openapi_validation_test.dart` 要求该非法形式的断言为 **14 行、12 个测试块**，非 8 处。DESIGN §7.4、TASKS NC-003、NC-003 六件套已同步。
+- REST 仓 `openapi/openapi.yaml` 非法 operation 级 `headers:` 为 **22 个 operation（全部）**，非 35（原计数把 response 级与 components 级一并算入）；既有 `test/openapi_validation_test.dart` 要求该非法形式的断言为 **14 行、10 个测试块**，非 8 处。DESIGN §7.4、TASKS NC-003、NC-003 六件套已同步。
 
 ## 3. 未变
 

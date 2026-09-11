@@ -1,5 +1,5 @@
 TASK_ID: NC-003
-STATUS: DRAFT
+STATUS: READY
 GOAL: 在 REST 仓库把 openapi.yaml 修成合法 3.1 并追加注解社区 20 端点、错误目录、命令账本与真实验证器/示例校验
 CONTRACTS:
   - openspec/annotation-community/contracts/community_api.md

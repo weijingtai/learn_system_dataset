@@ -1,6 +1,6 @@
 TASK_ID: NC-003-E
 PARENT: NC-003
-STATUS: DRAFT
+STATUS: READY
 REPO: xuan-migration/repository-rest-adapter
 GOAL: 示例校验工具 check_examples.py、8 个 JSON 示例与 manifest、info.version 1.1.0；2 项测试；全量 +65
 DEPENDS_ON: [NC-003-D]

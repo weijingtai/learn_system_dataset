@@ -1,11 +1,11 @@
 TASK_ID: NC-003-A
 PARENT: NC-003
-STATUS: DRAFT
+STATUS: READY
 REPO: xuan-migration/repository-rest-adapter
-GOAL: 接入 OpenAPI 3.1 验证器；迁移 22 个 operation 的 operation 级 headers 为 in: header 参数；迁移既有 14 行断言（12 个测试块）；2 项新测试
+GOAL: 接入 OpenAPI 3.1 验证器；迁移 22 个 operation 的 operation 级 headers 为 in: header 参数；迁移既有 14 行断言（10 个测试块）；2 项新测试
 DEPENDS_ON: []
 ESTIMATE_MINUTES: 60
-WORKLOAD: "bash 工具约 25 行；yaml 迁移 22 个 operation + 4 个参数定义；14 行断言改写（12 个块）+ 辅助函数；2 个测试；2 个红文档"
+WORKLOAD: "bash 工具约 25 行；yaml 迁移 22 个 operation + 4 个参数定义；14 行断言改写（10 个块）+ 辅助函数；2 个测试；2 个红文档"
 SCOPE:
   READ:
     - /Users/jingtaiwei/Git/Public/learn_system/openspec/annotation-community/contracts/community_api.md
@@ -18,7 +18,7 @@ SCOPE:
     - /Users/jingtaiwei/Git/Public/xuan-migration/repository-rest-adapter/test/fixtures/openapi/red_operation_headers.yaml
     - /Users/jingtaiwei/Git/Public/xuan-migration/repository-rest-adapter/test/fixtures/openapi/red_invalid_31.yaml
     - /Users/jingtaiwei/Git/Public/xuan-migration/repository-rest-adapter/openapi/openapi.yaml（仅 headers 迁移与 components/parameters 四项）
-    - /Users/jingtaiwei/Git/Public/xuan-migration/repository-rest-adapter/test/openapi_validation_test.dart（仅 14 行断言所在的 12 个测试块与辅助函数）
+    - /Users/jingtaiwei/Git/Public/xuan-migration/repository-rest-adapter/test/openapi_validation_test.dart（仅 14 行断言所在的 10 个测试块与辅助函数）
     - /Users/jingtaiwei/Git/Public/xuan-migration/repository-rest-adapter/test/community_openapi_contract_test.dart（新建，2 测试）
   FORBIDDEN:
     - /Users/jingtaiwei/Git/Public/learn_system 下任何写入

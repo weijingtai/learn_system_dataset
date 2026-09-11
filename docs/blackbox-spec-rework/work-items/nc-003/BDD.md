@@ -7,7 +7,7 @@
 | B01 | 改前 `openapi/openapi.yaml`（22 个 operation 全部带 operation 级 `headers:`；PyYAML 按 `paths.*.<method>` 计数） | 验证器 | 非零退出，输出含 `'headers' was unexpected`；迁移后同一命令退出 0 |
 | B02 | `test/fixtures/openapi/red_operation_headers.yaml`（含一处 operation 级 `headers:`） | 验证器 | 非零退出 |
 | B03 | `test/fixtures/openapi/red_invalid_31.yaml`（`info` 缺 `version`） | 验证器 | 非零退出 |
-| B04 | 既有 `test/openapi_validation_test.dart` | 14 行断言（12 个测试块）改为检查 `parameters` 中存在 `in: header` 且 `name` 相符（经 `$ref` 解析，辅助函数 `hasHeaderParam`） | 文件仍 19 个测试且全过；其余 7 个测试与第 50 行 `components['headers']` 未改 |
+| B04 | 既有 `test/openapi_validation_test.dart` | 14 行断言（10 个测试块）改为检查 `parameters` 中存在 `in: header` 且 `name` 相符（经 `$ref` 解析，辅助函数 `hasHeaderParam`） | 文件仍 19 个测试且全过；其余 9 个测试与第 50 行 `components['headers']` 未改 |
 | B05 | 迁移后文档 | 遍历全部 path/operation | 0 处 operation 级 `headers` 键 |
 | B06 | 社区部分 | 检查 `/v1/community` 路径 | 契约 §2 的 20 个路径与方法逐字存在，无多余社区路径 |
 | B07 | W1～W14 | 检查 `parameters` | 每个含 `$ref` 到 `IdempotencyKey` 且解析后 `required: true`、pattern 为 command_id 正则 |

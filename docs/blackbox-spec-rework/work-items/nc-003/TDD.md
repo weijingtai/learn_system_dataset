@@ -19,11 +19,11 @@
 
 ## 2. act/01：验证器接入与既有结构迁移
 
-文件：`tool/validate_openapi`（bash，可执行位）、`test/fixtures/openapi/red_operation_headers.yaml`、`test/fixtures/openapi/red_invalid_31.yaml`、`openapi/openapi.yaml`（新增 `components/parameters` 下 `IdempotencyKey`、`IfMatch`、`IfNoneMatch`、`Traceparent` 四个 `in: header` 参数；22 个 operation 的 `headers:` 逐一改为 `parameters` 中的 `$ref`；`components/headers` 只保留响应头 `ETag`）、`test/openapi_validation_test.dart`（14 行断言所在的 12 个测试块 + 一个 `hasHeaderParam(doc, op, name)` 辅助函数，解析 `$ref`；第 50 行 `components['headers']` 不改）、`test/community_openapi_contract_test.dart`（先建文件，含 2 个测试）。
+文件：`tool/validate_openapi`（bash，可执行位）、`test/fixtures/openapi/red_operation_headers.yaml`、`test/fixtures/openapi/red_invalid_31.yaml`、`openapi/openapi.yaml`（新增 `components/parameters` 下 `IdempotencyKey`、`IfMatch`、`IfNoneMatch`、`Traceparent` 四个 `in: header` 参数；22 个 operation 的 `headers:` 逐一改为 `parameters` 中的 `$ref`；`components/headers` 只保留响应头 `ETag`）、`test/openapi_validation_test.dart`（14 行断言所在的 10 个测试块 + 一个 `hasHeaderParam(doc, op, name)` 辅助函数，解析 `$ref`；第 50 行 `components['headers']` 不改）、`test/community_openapi_contract_test.dart`（先建文件，含 2 个测试）。
 
 2 个测试（名称逐字）：`no operation level headers anywhere`（B05，用 PyYAML 等价的 Dart 遍历 `paths.*.<method>`）、`validator accepts openapi and rejects red documents`（B01/B02/B03：`Process.run('tool/validate_openapi', …)` 三次，期望 0/非 0/非 0）。
 
-Red：先写 2 个测试、迁移后的 14 行断言、两个红文档与工具；对改前文档运行命令 2（非零）、命令 4（12 个块红）、命令 5（B05 红）取得原文；再迁移 yaml。
+Red：先写 2 个测试、迁移后的 14 行断言、两个红文档与工具；对改前文档运行命令 2（非零）、命令 4（10 个块红）、命令 5（B05 红）取得原文；再迁移 yaml。
 
 ## 3. act/02：社区参数、Schema、错误组件与 CommandResult
 

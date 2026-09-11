@@ -83,7 +83,7 @@ NC-019 可先准备本地回收站子 ACT，但完整清理验收等待备份协
 ### NC-003：公共 API 与 Swagger
 
 - [ ] 修改 `REST/openapi/openapi.yaml`，新增社区公共资源/命令/错误/分页/ETag/幂等；请求头一律用 `in: header` 的 header parameters。**该文件由五个任务串行写入：NC-003 → NC-013 → NC-017 → NC-021 → NC-026**，后继任务以前一个产出为基线重跑契约测试。密码学/书籍扩展在 NC-017/021 合并至同一入口，不伪造已冻结字段。
-- [ ] **写入白名单必须包含既有的 `REST/test/openapi_validation_test.dart`**：该文件现有 14 行断言、分布在 12 个 `test(` 块（第 147/161/217/239/292/307/315/320/329/330/339/340/349/350 行；v1.6 勘误，原「8 处」不实）正好**要求** operation 级 `headers:` 存在，修正结构必然弄红。README 记录改前基线（当前 `dart test` 退出码与用例数），ACT 中把「迁移 14 行断言到 `in: header`」作为独立步骤，以便区分既有失败与本任务新增失败。
+- [ ] **写入白名单必须包含既有的 `REST/test/openapi_validation_test.dart`**：该文件现有 14 行断言、分布在 10 个 `test(` 块（第 147/161/217/239/292/307/315/320/329/330/339/340/349/350 行；v1.6 勘误，原「8 处」不实）正好**要求** operation 级 `headers:` 存在，修正结构必然弄红。README 记录改前基线（当前 `dart test` 退出码与用例数），ACT 中把「迁移 14 行断言到 `in: header`」作为独立步骤，以便区分既有失败与本任务新增失败。
 - [ ] 落地 [Design §7.3](DESIGN.md) 的**错误目录**：每个场景唯一 HTTP 状态码 + 唯一 `code` + Problem Details 附加字段；不得保留「403 或 404」这类二选一。`conflict.idempotency` 沿用 SERVER 仓 `tests/test_playground_rest_writes.py` 的既有命名。限流阈值与 `retry_after_seconds` 填实值，未填实值前 `429` 不写入验收。
 - [ ] 按 Design §7.4 定义 command_id=Idempotency-Key、唯一键 (owner_scope, command_id)、payload_hash（含 operation）、命令查询端点与恢复错误。完整结果保留 14 天，精简账本持续去重；超期同键绝不新建业务。reaction If-Match、expected_access_version、原始 applied_version 与当前状态读取分别建 Schema/HTTP 正反例。
 - [ ] 新增 `REST/test/community_openapi_contract_test.dart` 与 `REST/tool/validate_openapi`；验证器名称/版本/安装方式/离线失败行为取自 NC-001 的实值，**不由本任务执行 Agent 选型**。Swagger UI 读取同一 3.1 契约；notifier 的 3.0.3 契约只引用不复制。

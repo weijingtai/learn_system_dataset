@@ -1,6 +1,6 @@
 TASK_ID: NC-003-B
 PARENT: NC-003
-STATUS: DRAFT
+STATUS: READY
 REPO: xuan-migration/repository-rest-adapter
 GOAL: 追加社区参数、Schema（契约 §5）、错误响应组件（含 NotFoundContent/RateLimited/GoneCommandResult）与 CommandResult；3 项测试
 DEPENDS_ON: [NC-003-A]

@@ -1,6 +1,6 @@
 TASK_ID: NC-003-C
 PARENT: NC-003
-STATUS: DRAFT
+STATUS: READY
 REPO: xuan-migration/repository-rest-adapter
 GOAL: 追加内容端点 W1～W6、R1、R6（引用 act/02 组件）；3 项测试
 DEPENDS_ON: [NC-003-B]

@@ -1,6 +1,6 @@
 # NC-003：公共 REST/OpenAPI 契约、错误目录与幂等命令面
 
-状态：`DRAFT`（2026-09-11，待 wjt-react 四查）。派发前置：无（NC-002 已 ACCEPTED；契约不依赖 Firebase 去留决定——身份策略见 D-NC003-02）。执行由用户交外部 Agent，PROMPT.md 原样发送。task_id：`NC-003`。权威需求来源：TASKS NC-003；DESIGN §2.1.1、§4、§7.3、§7.4；PRD R-05/R-18/R-20；契约 `openspec/annotation-community/contracts/community_api.md`（本任务专属，主 Agent 编写，含 SERVER functions-py 现状盘点结论）。
+状态：`READY`（2026-09-11：R1 返工 6 项、R2 返工 1 根因，均已落实并机械自证；记录见 `reviews/NC-003-REVIEW-R1.md`）。派发前置：无（NC-002 已 ACCEPTED；契约不依赖 Firebase 去留决定——身份策略见 D-NC003-02）。执行由用户交外部 Agent，PROMPT.md 原样发送。task_id：`NC-003`。权威需求来源：TASKS NC-003；DESIGN §2.1.1、§4、§7.3、§7.4；PRD R-05/R-18/R-20；契约 `openspec/annotation-community/contracts/community_api.md`（本任务专属，主 Agent 编写，含 SERVER functions-py 现状盘点结论）。
 
 ## 用户指示（2026-09-11）
 
@@ -8,11 +8,11 @@
 
 ## Goal
 
-在 REST 仓库 `repository-rest-adapter` 内：① 把既有 `openapi/openapi.yaml` 全部 22 个 operation 的非法 operation 级 `headers:` 迁移为 `in: header` 参数，并迁移既有测试的 14 行断言（12 个测试块）；② 追加注解社区 20 个端点（14 写命令 + 6 读）、Schema、错误目录、命令账本结果与限流实值；③ 接入真实 OpenAPI 3.1 验证器与 JSON Schema 示例校验工具；④ 新增社区契约测试。执行者不做设计：路径、方法、头、字段、错误码、枚举全部来自契约。
+在 REST 仓库 `repository-rest-adapter` 内：① 把既有 `openapi/openapi.yaml` 全部 22 个 operation 的非法 operation 级 `headers:` 迁移为 `in: header` 参数，并迁移既有测试的 14 行断言（10 个测试块）；② 追加注解社区 20 个端点（14 写命令 + 6 读）、Schema、错误目录、命令账本结果与限流实值；③ 接入真实 OpenAPI 3.1 验证器与 JSON Schema 示例校验工具；④ 新增社区契约测试。执行者不做设计：路径、方法、头、字段、错误码、枚举全部来自契约。
 
 ## Scope
 
-- 允许写：仅 `/Users/jingtaiwei/Git/Public/xuan-migration/repository-rest-adapter/` 内：`openapi/openapi.yaml`（原地修改）、`test/openapi_validation_test.dart`（仅 14 行断言所在的 12 个测试块与一个辅助函数）、新建 `test/community_openapi_contract_test.dart`、`tool/validate_openapi`、`tool/check_examples.py`、`test/fixtures/openapi/**`。
+- 允许写：仅 `/Users/jingtaiwei/Git/Public/xuan-migration/repository-rest-adapter/` 内：`openapi/openapi.yaml`（原地修改）、`test/openapi_validation_test.dart`（仅 14 行断言所在的 10 个测试块与一个辅助函数）、新建 `test/community_openapi_contract_test.dart`、`tool/validate_openapi`、`tool/check_examples.py`、`test/fixtures/openapi/**`。
 - 只读：REST 仓库 `lib/`、`pubspec.yaml`、`pubspec.lock`、其他测试；learn_system 全部；`xuan-server/notifier/api/openapi.yaml`；functions-py。
 - 禁止：写入 learn_system；改 `lib/`、`pubspec.*`；新增 Dart 依赖（`yaml` 已是 dev 依赖）；再写 yaml 字段检查器代替真实验证器；改 playground 既有字段名或语义（只改头的表达形式）；`skip`、永真断言；先实现后补测试。
 

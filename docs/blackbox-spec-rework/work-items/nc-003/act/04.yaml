@@ -1,6 +1,6 @@
 TASK_ID: NC-003-D
 PARENT: NC-003
-STATUS: DRAFT
+STATUS: READY
 REPO: xuan-migration/repository-rest-adapter
 GOAL: 追加评论、互动、分享、举报与命令端点 W7～W14、R2～R5；5 项目录级测试
 DEPENDS_ON: [NC-003-C]

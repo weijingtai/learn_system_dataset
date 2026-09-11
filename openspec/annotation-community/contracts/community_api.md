@@ -8,7 +8,7 @@
 
 - 契约文件：`/Users/jingtaiwei/Git/Public/xuan-migration/repository-rest-adapter/openapi/openapi.yaml`（既有 3.1.0 文档，**原地修改**：修正既有非法结构并追加社区部分；`info.version` 由 `1.0.0` 升为 `1.1.0`）。
 - 验证器：`openapi-spec-validator 0.9.0`，安装位置 `/Users/jingtaiwei/Git/Public/learn_system/openspec/annotation-community/.venv-openapi/bin/openapi-spec-validator`（NC-001 基线；主 Agent 2026-09-11 已安装并核实：既有 openapi.yaml **验证失败**——`'headers' was unexpected`；notifier 3.0.3 契约通过；故意非法文档被拒）。精确计数（PyYAML 按 `paths.*.<method>` 解析）：22 个 operation **全部**带非法 operation 级 `headers:`；全文 `grep -c headers:` 的 35 含 12 处合法 response 级与 1 处 `components/headers`，不可作判据。
-- REST 仓库测试基线（改前，主 Agent 实测）：`dart test` 退出码 0，`+50: All tests passed!`；`test/openapi_validation_test.dart` 含 19 个 `test(`，其中 **14 行断言、分布在 12 个测试块**要求 operation 级 `headers:`（第 147/161/217/239/292/307/315/320/329/330/339/340/349/350 行；第 50 行的 `components['headers']` 合法，不迁移）；其余 7 个测试不涉及。
+- REST 仓库测试基线（改前，主 Agent 实测）：`dart test` 退出码 0，`+50: All tests passed!`；`test/openapi_validation_test.dart` 含 19 个 `test(`，其中 **14 行断言、分布在 10 个测试块**要求 operation 级 `headers:`（第 147/161/217/239/292/307/315/320/329/330/339/340/349/350 行；第 50 行的 `components['headers']` 合法，不迁移）；其余 9 个测试不涉及。
 - 权威文档两份：本文对应 REST 仓 3.1.0；notifier ACK/relay 契约 `xuan-server/notifier/api/openapi.yaml`（3.0.3）只引用不复制。
 
 ### 1.2 Firebase 方向（用户 2026-09-11 指示：按 Firebase 方向写，与 functions-py 现有约定统一）
@@ -227,7 +227,7 @@ L0 闭合码全集：`invalid_argument, not_found, unauthenticated, permission_d
 | 产物 | 要求 |
 |---|---|
 | `openapi/openapi.yaml` | 0 处 operation 级 `headers:`；`openapi-spec-validator` 退出 0；社区路径 20 个（W1～W14、R1～R6）全部存在，方法逐字按 §2；每个写操作 `parameters` 含 `IdempotencyKey`（required）；§2 标注 If-Match 的操作含 `IfMatch`（required）；R1～R3 含 `IfNoneMatch` 与 200 响应 `ETag` 头、304 响应；R1～R4 的 404 均 `$ref` `NotFoundContent`；`ProblemDetails` 必填含 `code`；`CommandResult.operation` 枚举恰 17 个逐字；`limit` 参数 `maximum: 100`、`default: 20`；社区 Schema 属性名全部匹配 `^[a-z][a-z0-9_]*$` |
-| `test/openapi_validation_test.dart` | 8 处断言迁移为「`parameters` 中存在 `in: header` 且 `name` 相符」（可经 `$ref` 到 `components/parameters` 解析）；其余 11 个测试不变；文件仍 19 个 `test(` |
+| `test/openapi_validation_test.dart` | 14 行断言（10 个测试块）迁移为「`parameters` 中存在 `in: header` 且 `name` 相符」（可经 `$ref` 到 `components/parameters` 解析）；其余 9 个测试不变；文件仍 19 个 `test(` |
 | `test/community_openapi_contract_test.dart` | 上表全部结构判据各至少一个测试；另调用 `tool/validate_openapi` 对 `openapi/openapi.yaml` 期望退出 0，对 `test/fixtures/openapi/red_*.yaml` 每个期望非 0 |
 | `tool/validate_openapi` | bash：优先 `$OPENAPI_VALIDATOR`，否则 §1.1 的绝对路径；不存在时退出 2 并打印 `validator not installed (ENV_BLOCKED)`；否则透传验证器退出码 |
 | `tool/check_examples.py` | Python（`$PYTHON` 或 learn_system `.venv/bin/python`，需 `jsonschema`）：读 `test/fixtures/openapi/examples/manifest.json`（每项 `{file, schema, expect: valid|invalid}`），用 `components/schemas/<schema>` 校验，任一不符退出 1 |

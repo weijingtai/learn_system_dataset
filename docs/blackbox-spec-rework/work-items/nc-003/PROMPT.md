@@ -12,7 +12,7 @@
 
 **先写测试再改实现**：每步先写本步测试并取得真实 Red 原文（贴入报告，act/01 须含改前文档的验证器失败原文），再实现。先实现后补测试即违反流程，须如实写明。
 
-**只允许写**：各 ACT 的 WRITE_NEW 清单（`openapi/openapi.yaml` 原地修改；`test/openapi_validation_test.dart` 仅 14 行断言所在的 12 个测试块与辅助函数；新建 `test/community_openapi_contract_test.dart`、`tool/validate_openapi`、`tool/check_examples.py`、`test/fixtures/openapi/**`）。禁止：`lib/`、`pubspec.yaml`、`pubspec.lock`、其他测试；新增依赖；改 playground 字段语义；写 backup.* 路径；`skip`、永真断言。
+**只允许写**：各 ACT 的 WRITE_NEW 清单（`openapi/openapi.yaml` 原地修改；`test/openapi_validation_test.dart` 仅 14 行断言所在的 10 个测试块与辅助函数；新建 `test/community_openapi_contract_test.dart`、`tool/validate_openapi`、`tool/check_examples.py`、`test/fixtures/openapi/**`）。禁止：`lib/`、`pubspec.yaml`、`pubspec.lock`、其他测试；新增依赖；改 playground 字段语义；写 backup.* 路径；`skip`、永真断言。
 
 **判据来源**：只来自 `community_api.md` 与 TDD。契约有两种以上解释、验证器运行报错、迁移后出现契约未覆盖的验证错误、既有 7 个非迁移测试变红、需要改 `pubspec`：立即停止并原样报告，不自行裁定。
 
