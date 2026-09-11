@@ -1,0 +1,124 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CommunityComment",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "$ref": "community_common.schema.json#/$defs/commentId"
+    },
+    "thread_id": {
+      "$ref": "community_common.schema.json#/$defs/threadId"
+    },
+    "root_id": {
+      "oneOf": [
+        {
+          "$ref": "community_common.schema.json#/$defs/commentId"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "reply_to_id": {
+      "oneOf": [
+        {
+          "$ref": "community_common.schema.json#/$defs/commentId"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "depth": {
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ]
+    },
+    "author_id": {
+      "$ref": "community_common.schema.json#/$defs/accountId"
+    },
+    "current_revision_id": {
+      "$ref": "community_common.schema.json#/$defs/commentRevisionId"
+    },
+    "observed_publication_id": {
+      "oneOf": [
+        {
+          "$ref": "community_common.schema.json#/$defs/publicationId"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "visible",
+        "deleted",
+        "hidden"
+      ]
+    },
+    "created_at": {
+      "$ref": "community_common.schema.json#/$defs/timestamp"
+    },
+    "version": {
+      "$ref": "community_common.schema.json#/$defs/version"
+    }
+  },
+  "required": [
+    "id",
+    "thread_id",
+    "root_id",
+    "reply_to_id",
+    "depth",
+    "author_id",
+    "current_revision_id",
+    "observed_publication_id",
+    "status",
+    "created_at",
+    "version"
+  ],
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "depth": {
+            "const": 1
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "root_id": {
+            "$ref": "community_common.schema.json#/$defs/commentId"
+          },
+          "reply_to_id": {
+            "$ref": "community_common.schema.json#/$defs/commentId"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "depth": {
+            "const": 0
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "root_id": {
+            "type": "null"
+          },
+          "reply_to_id": {
+            "type": "null"
+          }
+        }
+      }
+    }
+  ]
+}

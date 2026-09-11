@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CommunityReaction",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "$ref": "community_common.schema.json#/$defs/reactionId"
+    },
+    "target_type": {
+      "type": "string",
+      "enum": [
+        "content",
+        "comment"
+      ]
+    },
+    "target_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "actor_id": {
+      "$ref": "community_common.schema.json#/$defs/accountId"
+    },
+    "value": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "enum": [
+        "like",
+        "dislike",
+        null
+      ]
+    },
+    "version": {
+      "$ref": "community_common.schema.json#/$defs/version"
+    },
+    "updated_at": {
+      "$ref": "community_common.schema.json#/$defs/timestamp"
+    }
+  },
+  "required": [
+    "id",
+    "target_type",
+    "target_id",
+    "actor_id",
+    "value",
+    "version",
+    "updated_at"
+  ]
+}

@@ -1,0 +1,11 @@
+id: cmt_0123456789abcdef0123456789abcdef
+thread_id: thr_0123456789abcdef0123456789abcdef
+root_id: cmt_0123456789abcdef0123456789abcdef
+reply_to_id: cmt_0123456789abcdef0123456789abcdef
+depth: 2
+author_id: user_author_01
+current_revision_id: crev_0123456789abcdef0123456789abcdef
+observed_publication_id: pub_0123456789abcdef0123456789abcdef
+status: visible
+created_at: '2026-09-10T12:00:00Z'
+version: 1

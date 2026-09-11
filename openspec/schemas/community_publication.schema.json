@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CommunityPublication",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "$ref": "community_common.schema.json#/$defs/publicationId"
+    },
+    "content_id": {
+      "$ref": "community_common.schema.json#/$defs/noteId"
+    },
+    "published_revision_id": {
+      "$ref": "community_common.schema.json#/$defs/noteRevisionId"
+    },
+    "public_snapshot_ref": {
+      "$ref": "community_common.schema.json#/$defs/attachmentId"
+    },
+    "state": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "live",
+        "superseded",
+        "retracted"
+      ]
+    },
+    "version": {
+      "$ref": "community_common.schema.json#/$defs/version"
+    },
+    "published_at": {
+      "oneOf": [
+        {
+          "$ref": "community_common.schema.json#/$defs/timestamp"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "required": [
+    "id",
+    "content_id",
+    "published_revision_id",
+    "public_snapshot_ref",
+    "state",
+    "version",
+    "published_at"
+  ],
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "state": {
+            "const": "draft"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "published_at": {
+            "type": "null"
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "published_at": {
+            "$ref": "community_common.schema.json#/$defs/timestamp"
+          }
+        }
+      }
+    }
+  ]
+}

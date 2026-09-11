@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CommunityContentAccess",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "$ref": "community_common.schema.json#/$defs/contentAccessId"
+    },
+    "content_id": {
+      "$ref": "community_common.schema.json#/$defs/noteId"
+    },
+    "author_id": {
+      "$ref": "community_common.schema.json#/$defs/accountId"
+    },
+    "visibility": {
+      "type": "string",
+      "enum": [
+        "never_published",
+        "published",
+        "withdrawn"
+      ]
+    },
+    "lifecycle": {
+      "type": "string",
+      "enum": [
+        "active",
+        "trashed",
+        "purge_pending",
+        "purged"
+      ]
+    },
+    "moderation_state": {
+      "type": "string",
+      "enum": [
+        "allowed",
+        "hidden"
+      ]
+    },
+    "current_publication_id": {
+      "oneOf": [
+        {
+          "$ref": "community_common.schema.json#/$defs/publicationId"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "version": {
+      "$ref": "community_common.schema.json#/$defs/version"
+    }
+  },
+  "required": [
+    "id",
+    "content_id",
+    "author_id",
+    "visibility",
+    "lifecycle",
+    "moderation_state",
+    "current_publication_id",
+    "version"
+  ],
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "visibility": {
+            "const": "never_published"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "moderation_state": {
+            "const": "allowed"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "visibility": {
+            "const": "published"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "lifecycle": {
+            "const": "active"
+          }
+        }
+      }
+    }
+  ]
+}
