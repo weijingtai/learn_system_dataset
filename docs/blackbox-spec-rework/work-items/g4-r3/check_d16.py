@@ -8,7 +8,7 @@
 对应 ACT `blackbox-g4-r3/01` 的 checker 六条规则（R1–R6）：
   R1 新节存在且位置在 `## G4 黑箱 D 类规格` 与 `## G6 注解社区线` 之间，恰 1 次；
   R2 表 A 首列与规格 §19 主表首列名多重集相等（各恰 1 次），且第 4 列为存在的路径；
-  R3 表 B 每行「开头文字」在 PLAN 中恰匹配 1 条 `- [ ] <开头>` 行，标注 ∈ 三值，行数 = 43；
+  R3 表 B 每行「开头文字」在 PLAN 中恰匹配 1 条 `- [ ] <开头>` 或 `- [x] <开头>` 行（未勾选与已勾选合计恰 1），标注 ∈ 三值，行数 = 43；
   R4 PLAN 其余 `- [ ]` 行要么在表 B、要么在新节 C、要么位于 G6/注解社区各节；
   R5 新节 C 恰 3 条 `- [ ]`，各含 `run_all.sh 20.`；
   R6 三个 owner 文件各恰 1 行含 `唯一登记处`，且含 `KnowledgeReleaseCompiler` 的行数各为 1。
@@ -223,7 +223,7 @@ def main():
             % (len(a_firsts), len(spec_firsts)),
         )
 
-    # ---- R3 表 B 每条未勾选项恰匹配 1 行 ----
+    # ---- R3 表 B 每条开头文字恰匹配 1 行（未勾选或已勾选） ----
     _, b_body = sub_region(body, "### B.", body_offset)
     b_rows = first_table_data_rows(b_body)
     if len(b_rows) != 43:
@@ -241,7 +241,10 @@ def main():
         if label not in LABELS:
             fail("R3", "表 B 标注非法: %s（%s）" % (label, prefix))
         hit_indices = [
-            i for i, line in enumerate(plan) if line.startswith("- [ ] " + prefix)
+            i
+            for i, line in enumerate(plan)
+            if line.startswith("- [ ] " + prefix)
+            or line.startswith("- [x] " + prefix)
         ]
         if len(hit_indices) != 1:
             fail(
@@ -262,6 +265,8 @@ def main():
         if is_heading(line):
             nearest = line[3:].strip()
         if line.startswith("- [ ]"):
+            # R4 只考察 `- [ ]` 行：R3 中匹配到 `- [x]` 的索引天然落不到本分支，
+            # 故「减去 R3 匹配到的且仍为 `- [ ]` 的行」等价于下面这一次判断。
             if index in matched_indices:
                 continue
             if index in c_indices:
