@@ -11,3 +11,6 @@ raw_books/**/*.epub
 raw_books/**/*.pdf
 pipeline/corpus/**/raw/*.epub
 pipeline/corpus/**/raw/*.pdf
+
+# Artifact Ledger 本地数据（Object Store + SQLite，不进 Git）
+var/
