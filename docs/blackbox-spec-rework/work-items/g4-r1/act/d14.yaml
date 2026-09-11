@@ -1,0 +1,104 @@
+act_id: blackbox-g4-r1/d14
+title: D-14 实施分期与首个纵切（§19 分期列 + 新增 §22 + TARGET §13 说明）
+estimated_minutes: 60
+group: C
+scope:
+  write: [openspec/learn-system-blackbox-architecture.md, LEARN_SYSTEM_TARGET.md]
+tests_first:
+  - TDD §1 d14 五条 Red 值（0 / 0 / 0 / 空 / 0）
+anchors:
+  table_header: '| 目标 Module | 层级 | 当前实现 | 当前差距 |'
+  table_sep: '|---|---|---|---|'    # §19 主表分隔行；文件中同形行不止一处，必须取 table_header 的下一行
+  table_note: '注：本表行序为盘点顺序，非施工顺序；施工顺序见上方拓扑，三个基础设施是前置层。'
+  s21_last_line: '- 要求三百页 Edition 在全部加工完成前不能产生任何可审核中间成果；系统按卷或连续页区间逐 Part 推进，但仍保留整本完成状态。'
+  target_after_block: '这条纵切通过后，再扩展十干十二月、十神和格局，随后复用相同 Interface 接入其他术数。'
+steps:
+  - 断言 table_header、table_note、s21_last_line 各恰 1 次；断言 target_after_block 在 LEARN_SYSTEM_TARGET.md 恰 1 次；断言 table_header 与 table_note 之间恰有 20 行以 `|` 开头（1 分隔行 + 19 数据行）
+  - 把 table_header 替换为 `| 目标 Module | 层级 | 当前实现 | 当前差距 | 分期 |`；把其紧邻下一行（分隔行）替换为 `|---|---|---|---|---|`
+  - 对 19 个数据行，按 labels 表在行尾 ` |` 之前追加 ` <标签>`，即把行末的 ` |` 改为 ` | <标签> |`；行的其余内容一个字节不改
+  - 在 table_note 行之后插入一行 legend_line（空行分隔：table_note → 空行 → legend_line）
+  - 在 s21_last_line 行之后插入一个空行，再插入 text_22 全文（文件末尾以单个换行结束）
+  - 在 LEARN_SYSTEM_TARGET.md 的 target_after_block 行之后插入一个空行，再插入 target_note（一段）
+labels:   # key = 数据行第一列的整段文字（含反引号）；value = 分期标签
+  'M1 Source Intake': 首纵切后
+  'M2 Digitization & Correction': 首纵切后
+  'M3 Corpus Compilation': 首纵切内
+  'M4 Knowledge Extraction': 首纵切后
+  'M5 Automatic Validation': 首纵切内
+  'M6 Review Workbench': 首纵切后
+  'M7 Incremental Assembly': 首纵切后
+  'M8 Dataset Compilation': 首纵切内
+  'Artifact Ledger': 首纵切内
+  'Local Orchestrator': 首纵切后
+  'Contract Registry': 首纵切后
+  '工作台唯一键限制': 本阶段暂缓
+  '流派与书目混部': 本阶段暂缓
+  '构建环境私有依赖': 本阶段暂缓
+  '数据状态管理缺陷': 本阶段暂缓
+  '测试宿主匮乏': 首纵切后
+  '测试 Golden 不足': 本阶段暂缓
+  'OCR 横排切分轴': 本阶段暂缓
+  '语义分层阻塞': 首纵切后
+legend_line: '「分期」列取值闭集：`首纵切内`（该差距必须在首纵切内关闭）、`首纵切后`（首纵切以最薄可用形态使用现有实现，差距在纵切通过后关闭）、`本阶段暂缓`（不在本阶段处理）；依据与取舍见 §22。'
+text_22: |
+  ## 22. 实施分期与首个纵切
+
+  状态：讨论候选
+
+  本节为主 Agent 依据 2026-09-08 用户裁定与 §19 差距表提出的分期方案，待用户过目确认；确认前保持讨论候选，不得据此启动 Module 实现任务。
+
+  ### 22.1 首纵切三元组（已裁定）
+
+  - `technique_id=qizheng`；`Work=三辰通载三十卷`；`Edition=影宋鈔本`；
+  - `SourceAsset=ocr/data_work/sanche_pages/page_001..010.png`（本机派生页图，按 `openspec/legacy-storage-transition.md` §6 登记到本地 Object Store；源 PDF 不进 Git；素材缺失时报 `BLOCKED_SOURCE_ASSET_MISSING`，不得伪造）；
+  - `evidence_level=glyphbox_level`；首纵切发布物为内部验收包，消费级别 `INTERNAL_DEMO`，`SourceAssetPack` 采用 `derived_page_images_only`（§16）。
+
+  ### 22.2 纵切终点（沿用 `LEARN_SYSTEM_TARGET.md` §13，八字改为七政）
+
+  ```text
+  《三辰通载》首个 EditionPart（卷一，取 page_001..010）
+  → M2 OCR 与人工校对（沿用现有 FastAPI + Vue 工具，输出字框）
+  → M3 CorpusPackage：双层 Span、严格 offset、完整 SourceAnchor
+  → M4 SourceSpan / Assertion / ApplicabilityRule 候选（沿用现有任务管线，少量条目人工签发）
+  → M5 Validator：G1–G3 与 glyphbox_level 证据门禁
+  → M8 PublicationPackage（KnowledgeDataPack + EvidenceMapPack + SourceAssetPack + QueryContractPack）
+  → QizhengFactSet 确定性匹配至少一条 Pattern 的全部适用主张（具体事实字段值在 M4 抽取后冻结，此处不预设）
+  → APP mock 展示原文
+  → 打开派生页图并高亮对应字框
+  → 对该原句保存私人注解与公开讨论锚点（AnchorContractPack）
+  ```
+
+  ### 22.3 分期表
+
+  | 阶段 | 内容 | 对应 §19 行 | 完成判据 |
+  |---|---|---|---|
+  | 阶段 0 前置 | Artifact Ledger 本地进程（Object Store + Metadata Ledger + StepRun 事务 + LineageGraph 最小写读） | Artifact Ledger（首纵切内） | §17 事务序列可对一个 StepRun 完整执行；`openspec/acceptance/` 对应脚本 exit 0 |
+  | 阶段 1 首纵切 | 关闭 M3、M5、M8 三行差距；M1/M2/M4/M6 以最薄可用形态接入（手工登记 SourceAsset、沿用现有 OCR 与任务管线、工作台只做只读对照与签发） | M3、M5、M8（首纵切内）；M1、M2、M4、M6（首纵切后，薄用） | §22.2 全链在 mini fixture（D-15）与真实前十页上各跑通一次；§20 第 1、3、4、8、9 条对该 EditionPart 成立 |
+  | 阶段 2 纵切后 | 关闭 M1、M2、M4、M6、M7、Local Orchestrator、Contract Registry、测试宿主、语义分层各行差距 | 标为「首纵切后」的 9 行 | 各行 §19.0 判据 exit 0 |
+  | 暂缓 | 工作台唯一键、流派与书目混部、构建环境（已遏制，只保留回归判据）、数据状态（已遏制）、非八字 Golden、OCR 横排 | 标为「本阶段暂缓」的 6 行 | 本阶段不设判据；回归判据保留 |
+
+  ### 22.4 取舍理由
+
+  - 「首纵切内」硬上限 4 行：只有 Ledger、M3、M5、M8 的差距不关闭就无法得到「原句 → 字框高亮 → 可锚定注解」这条链；其余 Module 现有实现足以在 10 页规模下薄用。
+  - M2 不入首纵切：现有 OCR 工具已输出页面 JSON 与字框（`ocr/data_work/`），首纵切直接消费；DigitizationPackage 的完整导出与电子文本清洗在纵切后关闭。
+  - M4 不入首纵切：10 页规模的候选可由现有任务管线产出并人工签发少量 `expert_verified` 条目，足以验证匹配与追溯；类别分层与跨模型裁决在纵切后关闭。
+  - Local Orchestrator 不入首纵切：单 EditionPart、单次运行可由脚本顺序驱动，StageCheckpoint（§17.1）与失效传播（§14.1）先以 Ledger 事件形式记录，状态机在纵切后实现。
+  - 不按 §19 行序逐行拆 epic（已否决）：会得到多条并行大工程而纵切为零。
+text_22_note: 'text_22 末行为 22.4 最后一条，文件以其后的单个换行结束。'
+target_note: '> 2026-09-08 用户裁定：首纵切改为七政《三辰通载三十卷》影宋鈔本（`technique_id=qizheng`，`evidence_level=glyphbox_level`）；上面流程中的「八字」「BaziFactSet」「十月丙火」按七政对应替换，权威分期与取舍见 `openspec/learn-system-blackbox-architecture.md` §22。本节原文保留作历史输入。'
+verify:
+  - export LC_ALL=en_US.UTF-8
+  - S=openspec/learn-system-blackbox-architecture.md
+  - awk '/^## 19\./,/^### 19\.0 /' $S | grep -c '^| .* | .* | .* | .* | \(首纵切内\|首纵切后\|本阶段暂缓\) |$'   # 19
+  - awk '/^## 19\./,/^### 19\.0 /' $S | grep -c '| 首纵切内 |$'      # 4
+  - awk '/^## 19\./,/^### 19\.0 /' $S | grep -c '| 首纵切后 |$'      # 9
+  - awk '/^## 19\./,/^### 19\.0 /' $S | grep -c '| 本阶段暂缓 |$'    # 6
+  - grep -c '^## 22\. 实施分期与首个纵切$' $S                        # 1
+  - awk '/^## 22\./{f=1;next} f && NF {print; exit}' $S             # 状态：讨论候选
+  - grep -c '§22' LEARN_SYSTEM_TARGET.md                            # 1
+  - bash docs/blackbox-spec-rework/verify-T.sh | grep -E '^(PASS|FAIL)  T-11'   # 全部 PASS（§19 事实与 19.0 判据未受影响）
+  - TDD §2 回归五条
+commit:
+  add: [openspec/learn-system-blackbox-architecture.md, LEARN_SYSTEM_TARGET.md]
+  message: "spec(D-14): add phasing column to §19 and §22 first vertical slice"
+on_fail: 停止并报告；若 T-11s 任一项变红，不得改 §19 既有单元格文字

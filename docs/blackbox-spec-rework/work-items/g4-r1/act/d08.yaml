@@ -1,0 +1,39 @@
+act_id: blackbox-g4-r1/d08
+title: D-08 SchoolView 对象与 SchoolViewPack 逻辑分包（§12.2 / §16 / §18）
+estimated_minutes: 45
+group: B
+depends_on: [blackbox-g4-r1/d06]
+scope:
+  write: [openspec/learn-system-blackbox-architecture.md]
+tests_first:
+  - TDD §1 d08 五条 Red 值（0 / 2 / 0 / 0 / 记录当前「待用户确认」计数）
+anchors:
+  list_line: '- Interpretation、School、Alias；'
+  para_after_list_prefix: '不同类别不得由一个模型一次混合完成。'   # 该段首句；整段为一行
+  anchor_pack_last_line: '- **验收项**：`ValidationReport` 计算「跨 Release 注解锚点可迁移率」= 经 `migrated`/`merged`/`split` 后仍可解析的锚点数 ÷ 上一 Release 全部白名单锚点数；`PUBLIC_RELEASE` 要求为 100%，`retired` 项必须在 `ReleaseManifest` 中逐条披露；未达标或缺少 IdentityMigrationMap 时 fail-closed。'
+  tp_start_line: '`TechniqueProfilePack` 承载各术数领域确定性事实结构与规则语法标准，消除跨技法匹配歧义：'
+  kg_line_after_d06: '- `KnowledgeGraph`：Work、Edition、Pattern、Assertion、Rule、School 和 Evidence 关系，以及来自 `IdentityMigrationMap` 的「锚点迁移关系」边（`anchor_migration`，见 §16 `AnchorContractPack`）；'
+steps:
+  - 断言 list_line、anchor_pack_last_line、tp_start_line、kg_line_after_d06 各恰 1 次；断言以 para_after_list_prefix 开头的行恰 1 次
+  - 把 list_line 整行替换为 `- Interpretation、SchoolView、Alias；`
+  - 在以 para_after_list_prefix 开头的那一行之前插入 text_schoolview 全文，并在其后保留一个空行（即 原列表 → 空行 → text_schoolview → 空行 → 原段落）
+  - 在 anchor_pack_last_line 行之后插入一个空行，再插入 text_svpack 全文；使其末行之后保留恰一个空行，再是 tp_start_line
+  - 把 kg_line_after_d06 中的 `School 和 Evidence` 替换为 `SchoolView 和 Evidence`（只改这一处子串）
+text_schoolview: |
+  `SchoolView` 是流派立场对象，由 M4 抽取为候选、经 §8.2 的 `review_school_attribution`（流派归属）审核类型裁决后进入正式知识。最小字段：`school_view_id`（`entity_id` 语义）、`school_id`、`subject_entity_id`（所属 Pattern / Concept / Assertion）、`claim_refs`（该流派主张归属的 Assertion 引用）、`conflict_group_id`（同一主题下相互冲突的 SchoolView 共享的冲突组标识）、`changes_current_judgment`（布尔：该分歧是否改变当前判断）、`source_refs`（Work / Edition / SourceSpan 引用）、Revision 与状态。`school_id` 只表示流派；Work / Edition 身份不得折叠进 School（现有工作台 `ge_ju_schools` 把书目与流派混存同表，属 §19 登记的历史缺口，迁移时必须拆开）。同一 Pattern 下允许多书、多流派、多主张与相反结论并存；M4 与 M7 不得以默认流派静默折叠，`changes_current_judgment=true` 的 SchoolView 在发布视图首层必须显示存在分歧（依 `knowledge_system/METAPHYSICS_KNOWLEDGE_COMPILATION_WORKFLOW_v1.2.md` §3.3）。`school_id` 与 `school_view_id` 的标识前缀待用户确认后登记到 §8.1 新对象表，在此之前规格不自造前缀。
+text_svpack: |
+  `SchoolViewPack` 是 `KnowledgeDataPack` 内 `school-views` 目录（§16.2 映射保持不变）的逻辑分包，不是独立顶层子包：承载全部正式 `SchoolView` 对象及其冲突组索引（`conflict_group_id` → SchoolView 列表），并为 §16.3.2 的 `school_variance_display` 与「是否改变当前判断」字段提供唯一数据来源；`changes_current_judgment=true` 的冲突组必须在包内标记为首层展示，客户端不得自行推导。
+verify:
+  - export LC_ALL=en_US.UTF-8
+  - S=openspec/learn-system-blackbox-architecture.md
+  - grep -c '^- Interpretation、SchoolView、Alias；$' $S        # 1
+  - grep -c 'SchoolView\|changes_current_judgment' $S           # >= 5
+  - grep -c 'SchoolViewPack' $S                                 # >= 1
+  - grep -c '^├── SchoolViewPack$' $S                           # 0
+  - grep -c 'SchoolView 和 Evidence' $S                         # 1
+  - awk '/^## 12\./{f=1;next} f && NF {print; exit}' $S        # 状态：待验证假设
+  - TDD §2 回归五条
+commit:
+  add: [openspec/learn-system-blackbox-architecture.md]
+  message: "spec(D-08): define SchoolView and SchoolViewPack as KnowledgeDataPack logical subpack"
+on_fail: 停止并报告；不得自造 school_id 前缀

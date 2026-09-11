@@ -147,7 +147,7 @@
 - [x] G3 R3/R4：精确结构门禁与永久变异套件（`1d4a6dc` → `ffe19df`，98 例）；`work-items/g3-r3/` 六件套草稿为 89 例旧版，已标 `SUPERSEDED`，只保留 `mutations.sh` 为现行文件
 - [x] G3 R5 区域边界封闭六件套：`work-items/g3-r5/`（状态 `ACCEPTED`；先红 `5de99fa` 11 例，后绿 `241c38c`；矩阵 109/109，selftest 41/41）
 - [x] 主 Agent 独立验收：正常规格 0 FAIL、13 例矩阵外盲测全部命中指定 FAIL ID、FAIL ID 超集测试通过、只读 Agent 复跑一致；证据见 `work-items/g3-r5/ACCEPTANCE.md`
-- [ ] G4 是否放行由用户决定；主 Agent 未启动 G4
+- [x] 用户 2026-09-10 决定启动 G4；第一批 `work-items/g4-r1/`（D-13/D-10/D-11 ｜ D-06/D-08 ｜ D-14）三组并行派发；D-15/D-16/D-18 第二批
 
 - [x] T-01：术语三层模型写入 M4（状态：`ACCEPTED`）
   - [x] README/范围/依赖/禁止项
@@ -358,7 +358,7 @@
   - [x] 既有交叉审查通过
   - [x] 无业务实现冒充规格完成
 
-- [ ] D-06：Annotation 锚点迁移（状态：`BACKLOG`）
+- [ ] D-06：Annotation 锚点迁移（状态：`DISPATCHED`；工作包 `work-items/g4-r1/act/d06.yaml`，B 组）
   - [ ] README/范围/依赖/禁止项
   - [ ] BDD 场景
   - [ ] TDD 正反用例与精确命令
@@ -392,7 +392,7 @@
   - [x] R3/R4：精确 Package 起始行与肯定兼容声明后复验（`1d4a6dc`、`ffe19df`）
   - [x] R5：三段区域到下一 START/§16.2 完整封闭，主 Agent 验收 `ACCEPTED`（`work-items/g3-r5/ACCEPTANCE.md`）
 
-- [ ] D-08：SchoolView（状态：`BACKLOG`）
+- [ ] D-08：SchoolView（状态：`DISPATCHED`；工作包 `work-items/g4-r1/act/d08.yaml`，B 组；`school_id` 前缀待用户确认）
   - [ ] README/范围/依赖/禁止项
   - [ ] BDD 场景
   - [ ] TDD 正反用例与精确命令
@@ -413,7 +413,7 @@
   - [x] 既有交叉审查通过
   - [x] 无业务实现冒充规格完成
 
-- [ ] D-10：精确失效传播（状态：`BACKLOG`）
+- [ ] D-10：精确失效传播（状态：`DISPATCHED`；工作包 `work-items/g4-r1/act/d10.yaml`，A 组）
   - [ ] README/范围/依赖/禁止项
   - [ ] BDD 场景
   - [ ] TDD 正反用例与精确命令
@@ -428,7 +428,7 @@
   - [ ] PLAN/HANDOFF 同步
   - [ ] 主 Agent 标记 `ACCEPTED`
 
-- [ ] D-11：StageCheckpoint（状态：`BACKLOG`）
+- [ ] D-11：StageCheckpoint（状态：`DISPATCHED`；工作包 `work-items/g4-r1/act/d11.yaml`，A 组）
   - [ ] README/范围/依赖/禁止项
   - [ ] BDD 场景
   - [ ] TDD 正反用例与精确命令
@@ -449,7 +449,7 @@
   - [x] 既有交叉审查通过
   - [x] 无业务实现冒充规格完成
 
-- [ ] D-13：ReleaseRun 人工回路（状态：`BACKLOG`）
+- [ ] D-13：ReleaseRun 人工回路（状态：`DISPATCHED`；工作包 `work-items/g4-r1/act/d13.yaml`，A 组）
   - [ ] README/范围/依赖/禁止项
   - [ ] BDD 场景
   - [ ] TDD 正反用例与精确命令
@@ -464,7 +464,7 @@
   - [ ] PLAN/HANDOFF 同步
   - [ ] 主 Agent 标记 `ACCEPTED`
 
-- [ ] D-14：实施分期与首纵切（状态：`BACKLOG`）
+- [ ] D-14：实施分期与首纵切（状态：`DISPATCHED`；工作包 `work-items/g4-r1/act/d14.yaml`，C 组；§22 分期待用户过目）
   - [ ] README/范围/依赖/禁止项
   - [ ] BDD 场景
   - [ ] TDD 正反用例与精确命令

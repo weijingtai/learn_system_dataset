@@ -1,0 +1,44 @@
+task_id: blackbox-g4-r1-spec-batch
+mode: documentation_spec_implementation
+status: READY
+goal: 按 D-design.md 已裁定结论，把 D-13/D-10/D-11/D-06/D-08/D-14 六条写入权威规格；文本由主 Agent 在各 act/*.yaml 给定
+depends_on:
+  - baseline_commit: e64f2a4
+  - accepted: [D-01, D-02, D-03, D-05, D-09, D-12, D-17, D-19, G3]
+groups:
+  A: { acts: [act/d13.yaml, act/d10.yaml, act/d11.yaml], prompt: PROMPT-A.md, sections: ["§6.2", "§14", "§17"] }
+  B: { acts: [act/d06.yaml, act/d08.yaml], prompt: PROMPT-B.md, sections: ["§12.2", "§16 树与新块", "§18", "§20"] }
+  C: { acts: [act/d14.yaml], prompt: PROMPT-C.md, sections: ["§19 主表", "§22", "LEARN_SYSTEM_TARGET.md §13"] }
+scope:
+  read:
+    - AGENTS.md
+    - docs/blackbox-spec-rework/work-items/g4-r1/README.md
+    - docs/blackbox-spec-rework/work-items/g4-r1/BDD.md
+    - docs/blackbox-spec-rework/work-items/g4-r1/TDD.md
+    - docs/blackbox-spec-rework/work-items/g4-r1/act/
+    - docs/blackbox-spec-rework/D-design.md
+    - docs/blackbox-spec-rework/verify-T.sh
+    - openspec/legacy-storage-transition.md
+  write:
+    - openspec/learn-system-blackbox-architecture.md
+    - LEARN_SYSTEM_TARGET.md   # 仅 C 组
+forbidden:
+  - 触动 G3 冻结区域或 §3–§18 的 状态 行；新造门禁代号或 ID 前缀
+  - 修改 verify-T.sh、mutations.sh、Schema、PLAN、HANDOFF、SUBAGENT_TODO、本工作包
+  - 删除或改写 ACT 未指定的既有句子
+  - git add -A / git add . / stash / reset / clean / rebase / push / 切回主工作树分支
+  - ACT 未写明的决定自行拍板
+env:
+  - export LC_ALL=en_US.UTF-8
+verification:
+  - bash docs/blackbox-spec-rework/verify-T.sh | tail -1                          # FAIL 合计: 0
+  - bash docs/blackbox-spec-rework/work-items/g3-r3/mutations.sh all | tail -1   # MUTATIONS: 109/109 rejected
+  - bash openspec/schemas/verify.sh                                                # exit 0
+  - git diff --check
+  - TDD §1 对应 ACT 的 Green 值
+on_fail: 停止，不扩大范围；报告 ACT id、锚点命中数、命令、退出码、原始输出、git status --short
+report:
+  - 每个 ACT 一个提交：hash、git show --stat --oneline、提交只含允许文件
+  - 基线五条输出；每 ACT 的 Red/Green 判据原始输出；回归五条输出
+  - 所在 worktree 路径与分支名（供主 Agent 合并）
+  - 明确写明「等待主 Agent 独立验收与合并」

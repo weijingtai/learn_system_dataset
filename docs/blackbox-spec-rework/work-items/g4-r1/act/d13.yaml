@@ -1,0 +1,43 @@
+act_id: blackbox-g4-r1/d13
+title: D-13 ReleaseRun 补 M6 人工回路（§6.2）
+estimated_minutes: 30
+group: A
+scope:
+  write: [openspec/learn-system-blackbox-architecture.md]
+tests_first:
+  - TDD §0 基线；TDD §1 d13 两条 Red 值（0 / 0）
+anchors:
+  block_first_line: '既有 CanonicalKnowledgeSnapshot'
+  block_last_line: '→ PublicationPackage'
+  after_block_sentence: '任何 Edition 都可以单独加入和单独发布；后续加入新版本时才执行可比部分的对勘。'
+steps:
+  - 断言三处锚点在文件中各恰出现 1 次（整行精确匹配，LC_ALL=C awk '$0 == ENVIRON["A"]'）
+  - 把 §6.2 的整个 ```text 流程块（从 block_first_line 到 block_last_line，共 9 行）替换为下面 replacement_block 的 11 行；围栏行 ``` 不变
+  - 在 after_block_sentence 行之后插入一个空行，再插入 text_after 的两段（段间空行）
+replacement_block: |
+  既有 CanonicalKnowledgeSnapshot
+  + 新 ReviewedEditionPackage
+  → M7 增量汇编（产出 MergeProposal / AliasProposal / ConflictProposal / EvidenceRelationProposal）
+  → 可自动裁定的提案直接进入封存队列
+  → Review Console（M7 模式）：仅处理不能自动裁定的提案，人工裁决产出归属本 ReleaseRun 的合并 ReviewDecision
+  → M7 回流：读取上述 ReviewDecision，重算受影响提案及其证据关系
+  → M7 封存汇编结果
+  → 新 CanonicalKnowledgeSnapshot Revision
+  → M8 数据集编译
+  → PublicationPackage
+  （Review Console 挂起与恢复按 §7.1 的 `awaiting_human` 与 `resume_token` 语义执行）
+text_after: |
+  Review Console（M7 模式）在 ReleaseRun 内的运行归属规则：该次人工裁决产生的每条 ReviewDecision 归属本 ReleaseRun 及发起裁决的 M7 StepRun，记录目标对象的 `entity_id` 与所见 `artifact_revision_id`（§8.1）；M7 回流只消费这些 ReviewDecision，不得读取其他 ReleaseRun 的裁决结果。
+
+  该回路不改变任何已封存 `ReviewedEditionPackage` 的封存状态与 `artifact_revision_id`（§8 已封存者不可变）。若裁决结论要求修改 Edition 级事实（原文、校勘、Candidate 或 Edition 内审核结论），必须以新的 EditionRun 返工产生新的 `ReviewedEditionPackage` Revision，再由后续 ReleaseRun 消费；本 ReleaseRun 只能在 Snapshot 层记录 ConflictProposal 的裁决结果与证据关系。
+verify:
+  - export LC_ALL=en_US.UTF-8
+  - S=openspec/learn-system-blackbox-architecture.md
+  - sed -n '/^### 6\.2 /,/^## 7\./p' $S | grep -c 'Review Console（M7 模式）\|M7 回流'   # 3（块内两行 + 块后归属段首句）
+  - sed -n '/^### 6\.2 /,/^## 7\./p' $S | grep -c '不改变任何已封存'                    # 1
+  - sed -n '/^### 6\.2 /,/^## 7\./p' $S | grep -c '^→ M6'                              # 0（M6 以 Review Console 形式出现，不新增 M6 阶段）
+  - TDD §2 回归五条
+commit:
+  add: [openspec/learn-system-blackbox-architecture.md]
+  message: "spec(D-13): add M7 → Review Console → M7 loop to ReleaseRun"
+on_fail: 锚点命中数不为 1 或回归变红：停止并报告，不改门禁脚本
