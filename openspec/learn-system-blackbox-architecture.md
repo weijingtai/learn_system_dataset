@@ -670,6 +670,7 @@ PublicationPackage
 ├── GraphProjectionPack
 ├── TechniqueProfilePack
 ├── QueryContractPack
+├── AnchorContractPack
 ├── ReleaseManifest
 └── ValidationReport
 ```
@@ -703,6 +704,15 @@ PublicationPackage
 客户端必须具备按 SourceAsset 引用打开原书的能力，但每个 Release 是否携带原图由 ReleasePolicy 决定。首纵切为内部验收包，采用 `derived_page_images_only`；它不自动取得公开分发权。
 
 GraphProjectionPack 与移动端数据必须来自同一 CanonicalKnowledgeSnapshot，并共享 `release_id`、`canonical_hash`、实体 ID 和关系 ID。
+
+`AnchorContractPack` 承载下游注解（Annotation）、笔记与社区内容的锚定契约及跨 Release 身份迁移，使注解不因发版而集体断锚：
+
+- **可锚定对象白名单**：`KnowledgeEntry`、`Assertion`、`SourceSpan`、`SourceAnchor`；白名单之外的对象（Pattern 内部结构、Candidate、机器态记录、索引条目）不得作为注解锚点。
+- **稳定性承诺等级**（闭集）：`permanent`（永久稳定：同一 Edition 内不因 Release 变化而换号）适用于 `SourceSpan` 与 `SourceAnchor`；`migratable`（可迁移：合并、拆分、废弃必须通过 IdentityMigrationMap 可追踪）适用于 `Assertion` 与 `KnowledgeEntry`（`entry_id` 跨 Release 稳定，内容随 Release 重编译）；`best_effort`（不保证）只用于白名单之外、本期不开放锚定的对象，禁止用于上述四类。
+- **锚点结构**：每个注解锚点必须同时记录目标 `entity_id`、创建时所见 `artifact_revision_id`（§8.1）与 `release_id`；缺任一项即不可重现当时内容，视为非法锚点。
+- **`IdentityMigrationMap`**：随每个 Release 发布，逐条记录自上一 Release 以来白名单对象的身份变化，`change_type` 闭集为 `migrated`（迁移：一旧对一新）、`merged`（合并：多旧对一新）、`split`（拆分：一旧对多新，并给出按 `SourceSpan` 范围分配旧锚点的规则）、`retired`（废弃：无后继，锚点转为孤儿并记录 `orphaned_reason`）；每条含 `from_entity_id`、`to_entity_ids`、`change_type`、`release_id`、`reason_ref`（对应 ReviewDecision 或 M7 Proposal 引用）。
+- **客户端迁移规则**：客户端按 IdentityMigrationMap 的 Release 顺序逐条应用，不得猜测或模糊匹配；`retired` 锚点保持可读但不得新增回复或迁移到其他对象。
+- **验收项**：`ValidationReport` 计算「跨 Release 注解锚点可迁移率」= 经 `migrated`/`merged`/`split` 后仍可解析的锚点数 ÷ 上一 Release 全部白名单锚点数；`PUBLIC_RELEASE` 要求为 100%，`retired` 项必须在 `ReleaseManifest` 中逐条披露；未达标或缺少 IdentityMigrationMap 时 fail-closed。
 
 `TechniqueProfilePack` 承载各术数领域确定性事实结构与规则语法标准，消除跨技法匹配歧义：
 
@@ -820,7 +830,7 @@ Ledger 暂不可用时适用 §8.2 的 `suspended` 语义：Module 立即停止�
 
 系统同时维护：
 
-- `KnowledgeGraph`：Work、Edition、Pattern、Assertion、Rule、School 和 Evidence 关系；
+- `KnowledgeGraph`：Work、Edition、Pattern、Assertion、Rule、School 和 Evidence 关系，以及来自 `IdentityMigrationMap` 的「锚点迁移关系」边（`anchor_migration`，见 §16 `AnchorContractPack`）；
 - `LineageGraph`：Artifact、Revision、运行、工具、模型、校验和审核决定的生产关系。
 
 重要关系必须有稳定 ID、Revision、状态和来源，不得只埋入自由文本。Graph 投影必须支持完整快照和增量输出，并通过实体/关系计数、哈希、悬空引用和往返重建校验。
@@ -909,6 +919,7 @@ L0 内核契约(ArtifactRef + §7 接口 + §8 信封)
 8. PublicationPackage 同时包含结构化知识、符合 ReleasePolicy 的 SourceAssetPack 及其关系。`reference_and_hash_only` 必须包含可由本地 Object Store 或受权后端解析的受控引用、SHA-256、页标识、权利说明和完整 Evidence 映射才满足本条；不要求携带原始文件字节。引用不可解析时验收失败。
 9. 移动端数据与 GraphProjectionPack 来自同一 Canonical Snapshot，Graph 往返无损。
 10. 更换 OCR、模型、索引或存储 Adapter 不改变相邻 Module 的 Interface。
+11. 跨 Release 注解锚点可迁移率按 §16 `AnchorContractPack` 定义计算并写入 ValidationReport；`PUBLIC_RELEASE` 必须为 100%，`retired` 项在 ReleaseManifest 逐条披露，缺少 IdentityMigrationMap 时验收失败。
 
 ## 21. 非目标
 
