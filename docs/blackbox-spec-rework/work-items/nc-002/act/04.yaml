@@ -2,10 +2,10 @@ TASK_ID: NC-002-D
 PARENT: NC-002
 STATUS: PREPARING
 REPO: learn_system
-GOAL: 建立 CommandRecord（含 rejected/compacted 约束）、NotificationRecord、NotifierDeliveryBinding、BehaviorEvent 四个 Schema 及 16 个示例
+GOAL: 建立 CommandRecord（含 rejected/compacted 约束）、NotificationRecord、NotifierDeliveryBinding、BehaviorEvent 四个 Schema 及 18 个示例
 DEPENDS_ON: [NC-002-C]
 ESTIMATE_MINUTES: 50
-WORKLOAD: "4 个 Schema（command_record 13 字段、17 值 operation 枚举、两组 if/then）+ 16 个示例文件"
+WORKLOAD: "4 个 Schema（command_record 13 字段、17 值 operation 枚举、两组 if/then）+ 18 个示例文件"
 SCOPE:
   READ:
     - openspec/annotation-community/contracts/community-models.md
@@ -21,7 +21,7 @@ SCOPE:
     - openspec/schemas/community_notification_record.schema.json
     - openspec/schemas/community_notifier_delivery_binding.schema.json
     - openspec/schemas/community_behavior_event.schema.json
-    - openspec/schemas/examples/community_command_record.*.yaml（7）
+    - openspec/schemas/examples/community_command_record.*.yaml（9，含 valid_rejected 与 valid_compacted）
     - openspec/schemas/examples/community_notification_record.*.yaml（3）
     - openspec/schemas/examples/community_notifier_delivery_binding.*.yaml（3）
     - openspec/schemas/examples/community_behavior_event.*.yaml（3）

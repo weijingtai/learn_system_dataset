@@ -13,8 +13,7 @@ SCOPE:
     - openspec/annotation-community/fixtures/community/
     - docs/blackbox-spec-rework/work-items/nc-002/TDD.md
     - docs/blackbox-spec-rework/work-items/nc-002/BDD.md
-    - openspec/schemas/verify.sh（写法参考；全任务不改）
-    - openspec/schemas/artifact_ref.schema.json（仅参考写法）
+
   WRITE_NEW:
     - openspec/annotation-community/tools/validate_fixtures.py
     - openspec/annotation-community/tools/test_validate_fixtures.py

@@ -69,7 +69,7 @@
 | created_at | timestamp | ✔ | 否 |
 | created_on_device | string（设备 ID，宿主格式） | ✔ | 否 |
 
-语义投影 `snapshot` = 上表「进 content_hash = 是」的六个字段；`project_revision` 只取这六个键，记录中出现的其他键（含同步进度、备份状态等运行时字段）一律忽略、不报错。规范化与编码见 DESIGN §7.2 与 `tools/nchash_reference.py`。解析层职责：原始 JSON 的 `-0` 与重复键必须在解析时拒绝（`json.loads` 之后已不可见），各端的 JSON 解析入口须实现同样的拒绝（TDD §4 `load_snapshot_json`）。
+语义投影 `snapshot` = 上表「进 content_hash = 是」的六个字段；`project_revision` 只取这六个键，记录中出现的其他键（含同步进度、备份状态等运行时字段）一律忽略、不报错。规范化与编码见 DESIGN §7.2 与 `tools/nchash_reference.py`。解析层职责：原始 JSON 的 `-0`、重复键与 `NaN`/`Infinity` 常量必须在解析时拒绝（`json.loads` 之后前两者已不可见，后者会变成浮点），各端的 JSON 解析入口须实现同样的拒绝（TDD §4 `load_snapshot_json`；DESIGN §7.2「拒绝浮点/NaN/Infinity」「-0 拒绝」「重复键拒绝」）。
 
 **AttachmentRef**（`attachment_id` 是唯一规范字段名）：
 
@@ -256,4 +256,4 @@
 | D-NC002-05 | Note.trashed_at 记设备时间，首次同步只允许被服务器时间推后 | DESIGN §4.4 回收站 T0 两类起算 |
 | D-NC002-06 | Comment.created_at 为服务器时间；编辑不改 created_at | DESIGN §4.4 排序不跳动 |
 | D-NC002-11 | 社区 Schema 由 `openspec/schemas/verify_community.sh` 独立校验，**不**向 `openspec/schemas/verify.sh` 追加调用（TASKS NC-002 原文「在 openspec/schemas/verify.sh 追加成对判据」的实现方式变更） | verify.sh 是 D-02 已验收的 L0 唯一验证命令（规格 §8），且其 `set -e` 会把社区 fixture 的红误报成黑箱线阻断；黑箱线（Dataset 会话）2026-09-11 明确要求，主 Agent 采纳。主 Agent 守卫依次运行两个脚本 |
-| D-NC002-10 | 客户端本地错误类名闭集（NC-002 裁定，NC-004/005 沿用）：`NoteSizeLimitExceeded`（DESIGN §7.1 原文）、`AttachmentCountExceeded`、`DuplicateReferenceItem`、`IllegalEditorTransition`、`IllegalLifecycleTransition`、`TombstoneRejected`、`TrashRequiresWithdraw`、`PendingOpConflict` | DESIGN 只给出第一个类名；其余为本地状态机非法边与限额的可断言标识，fixture 已引用；与 §7.3 HTTP 错误码严格分域 |
+| D-NC002-10 | 客户端本地错误类名闭集（NC-002 裁定，NC-004/005 沿用）：`NoteSizeLimitExceeded`（DESIGN §7.1 原文）、`AttachmentCountExceeded`、`DuplicateReferenceItem`、`IllegalEditorTransition`、`IllegalLifecycleTransition`、`TombstoneRejected`、`TrashRequiresWithdraw`、`PendingOpConflict` | DESIGN 只给出第一个类名；其余为本地状态机非法边与限额的可断言标识，契约转移表已引用（其中五个亦被 fixture 引用）；与 §7.3 HTTP 错误码严格分域 |

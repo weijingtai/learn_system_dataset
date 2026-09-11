@@ -45,3 +45,22 @@
 ## 4. 完成标准
 
 `bash docs/blackbox-spec-rework/reviews/nc002_guard.sh` 与 `git diff --check` 均为 0；第二轮审查由另一位未参与者执行。
+
+## 5. 第二轮审查（R2，2026-09-11）与落实
+
+审查人：另一独立只读 Agent（Opus）。R1 的 28 项中 25 项 CLOSED；未闭合 R8（act/04 示例数）、R15（SM-3 映射引用了不存在的 fixture 事实）、S5（模板噪音）。新报 9 项（1 阻断）+ 4 建议，全部落实：
+
+| # | 问题 | 落实 |
+|---|---|---|
+| 1（阻断） | act/04 漏 R10 新增的 `valid_rejected`/`valid_compacted`，示例 7→9、16→18 | 改正；守卫 K08 增 command_record 示例 = 9、B23 四文件存在、示例总数 = 62 |
+| 2 | 结构块 4(b) glob 命中 note_revision | 改精确 glob `community_note.*.yaml`（7 个） |
+| 3 | SM-3 映射表引用「local: true 只取 409 分支」空集 | 改为只按 HTTP 状态码映射，不引用 fixture 标记 |
+| 4 | act/02 结构块 Red 无可观察原文 | 结构块打印 `CHECK 4(x) <文件> <PASS/FAIL>`；Red 原文为三行错误放行；守卫 K05 断言 TDD 含该形态 |
+| 5 | §2.2 正反例拆分 14+44 错 | 改 16+42；守卫断言 |
+| 6 | act/01 残留「verify.sh 追加行」 | 删除；守卫模式加 `verify.sh 追加` |
+| 7 | command_record required 13 未列字段 | 逐字列出 |
+| 8 | 4(a) 豁免表达不可机械判定 | 改为 JSON Pointer 前缀豁免，`then`/`allOf` 内一律 false |
+| 9 | 契约 §1.2 解析层句漏 NaN/Infinity | 补齐 |
+| 建议 | S5 收尾、K07 改判据、D-NC002-10 理由措辞、$defs 29 | 全部落实（K07 改为「最近触碰 verify.sh 的提交不属于 nc-002 且无未提交改动且不含 verify_community」） |
+
+第三轮审查缩小为：复核本节 9 项 + 对 `4205a03..HEAD` 的 diff 做回归；仍不 READY 则停止并上报用户。

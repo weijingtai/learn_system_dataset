@@ -117,7 +117,7 @@ hits = [f"{f}:{m.group(0)}" for f in ["README.md","BDD.md","TDD.md","ACT.yaml","
 ok05 = (bids == [f"B{i:02d}" for i in range(1, 24)] and all(30 <= e <= 60 for e in est) and deps == ["[]","[NC-002-A]","[NC-002-B]","[NC-002-C]","[NC-002-D]","[NC-002-E]"]
         and all("外部失败" in a and "WORKLOAD" in a and "ON_FAIL" in a for a in acts) and not hits and "198" in tdd and "196" not in tdd and "155" not in tdd
         and read(PACK / "ACT.yaml").count("- act/0") == 6 and read(PACK / "ACT.yaml").count("DEFERRED") == 1 and "NC-003" in read(PACK / "ACT.yaml")
-        and not any("verify.sh 末尾追加" in a or "追加一行" in a for a in acts) and not (PACK / "act" / "07.yaml").exists())
+        and not any("verify.sh 末尾追加" in a or "追加一行" in a or "verify.sh 追加" in a for a in acts) and "CHECK 4(" in tdd and "正例 16 + 反例 42" in tdd and not (PACK / "act" / "07.yaml").exists())
 check(ok05, "K05 六件套：BDD B01～B23、六个 ACT 30–60 分钟且依赖链/ON_FAIL/WORKLOAD 齐全、无模糊词、计数 198、两项推迟登记、不改 verify.sh", f"bids={len(bids)} est={est} deps={deps} vague={hits}")
 
 # K06 前缀结论两处登记
@@ -127,8 +127,9 @@ check("前缀整表采用" in todo and "NC-002" in todo and "前缀整表采用"
 # K08 执行产物
 schemas = sorted(p.name for p in (root / "openspec/schemas").glob("community_*.schema.json"))
 vs = read(root / "openspec/schemas/verify.sh")
-vs_head = subprocess.run(["git", "-C", str(root), "show", "437571b:openspec/schemas/verify.sh"], capture_output=True, text=True).stdout
-check("verify_community" not in vs and vs == vs_head, "K07 openspec/schemas/verify.sh 未被本线改动（D-NC002-11）", "与 437571b 版本不同或含 verify_community")
+vs_last = subprocess.run(["git", "-C", str(root), "log", "-1", "--format=%s", "--", "openspec/schemas/verify.sh"], capture_output=True, text=True).stdout.strip()
+vs_dirty = subprocess.run(["git", "-C", str(root), "status", "--short", "--", "openspec/schemas/verify.sh"], capture_output=True, text=True).stdout.strip()
+check("verify_community" not in vs and "nc-002" not in vs_last.lower() and not vs_dirty, "K07 openspec/schemas/verify.sh 未被本线改动（D-NC002-11）", f"最近提交={vs_last!r} 未提交改动={vs_dirty!r}")
 if not schemas and not req:
     print("SKIP  K08 执行产物尚未存在（验收时加 --require-impl，必须 PASS）")
 else:
@@ -136,6 +137,8 @@ else:
     ok08 = len(schemas) == 12
     det.append(f"schemas={len(schemas)}")
     r = subprocess.run(["bash", "openspec/schemas/verify_community.sh"], cwd=root, capture_output=True, text=True); ok08 &= r.returncode == 0 and "PASS community_all" in r.stdout; det.append(f"verify_community={r.returncode}")
+    ex = root / "openspec/schemas/examples"; b23 = ["community_command_record.valid_rejected.yaml","community_command_record.valid_compacted.yaml","community_command_record.invalid_rejected_with_version.yaml","community_command_record.invalid_compacted_with_fields.yaml"]
+    ok08 &= len(list(ex.glob("community_command_record.*.yaml"))) == 9 and all((ex / f).is_file() for f in b23) and len(list(ex.glob("community_*.yaml"))) == 62; det.append(f"examples={len(list(ex.glob('community_*.yaml')))}/cr={len(list(ex.glob('community_command_record.*.yaml')))}")
     r = subprocess.run([sys.executable, str(SPEC / "tools/validate_fixtures.py"), str(FX)], capture_output=True, text=True); ok08 &= r.returncode == 0 and r.stdout.strip().endswith("FIXTURES_OK 9 files 198 cases"); det.append(f"validate={r.returncode}/{r.stdout.strip().splitlines()[-1] if r.stdout.strip() else ''}")
     # 变异：临时副本
     with tempfile.TemporaryDirectory() as tmp:

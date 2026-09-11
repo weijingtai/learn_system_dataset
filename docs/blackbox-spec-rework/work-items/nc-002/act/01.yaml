@@ -5,7 +5,7 @@ REPO: learn_system
 GOAL: 建立 community_common $defs 与 community_note Schema、note 的 7 个示例，以及 verify_community.sh 前三步（metaschema / 正例 / 反例）
 DEPENDS_ON: []
 ESTIMATE_MINUTES: 45
-WORKLOAD: "common 约 30 个 $defs + note 9 字段 + 7 个示例 + verify_community.sh 前三步（含文件名推断与配对/结构专属文件的排除）"
+WORKLOAD: "common 29 个 $defs + note 9 字段 + 7 个示例 + verify_community.sh 前三步（含文件名推断与配对/结构专属文件的排除）"
 SCOPE:
   READ:
     - openspec/annotation-community/contracts/community-models.md
@@ -29,9 +29,8 @@ SCOPE:
 DEPENDENCY_ALLOWLIST: [Python 标准库, 仓库既有 .venv/bin/check-jsonschema 0.38.0, 仓库既有 .venv 内 jsonschema 4.26.0 与 PyYAML 6.0.3（仅 verify_community.sh 的结构块 import，不安装、不升级）]
 RULES:
   - "所有 Schema 对象节点 additionalProperties: false，豁免仅 TDD §2.3 步 4(a) 列出的三处开放对象；ID 一律 pattern 精确匹配"
-  - "verify_community.sh 用 --base-uri file://$REPO_ROOT/openspec/schemas/ 解析跨文件 $ref；按 TDD §2.3 通用化，新增示例无需改脚本；本步不写结构块（步 4）与 verify.sh 追加行"
+  - "verify_community.sh 用 --base-uri file://$REPO_ROOT/openspec/schemas/ 解析跨文件 $ref；按 TDD §2.3 通用化，新增示例无需改脚本；本步不写结构块（步 4）"
   - "判据只取两份契约与 fixture；契约未写明的行为触发停止条件，不自行裁定"
-  - "不修改前几步已有示例、测试与脚本的期望；只追加本步内容"
   - "只允许新建本步 WRITE_NEW 列出的文件；不创建目录"
 TESTS_FIRST:
   - "先写本步全部示例并把本步 Schema 写成 {\"$schema\", \"type\": \"object\"} 空壳，运行 bash openspec/schemas/verify_community.sh，保存首个 FAIL: … should have failed 原文作为 Red"
