@@ -30,6 +30,16 @@ fi
 SPEC="openspec/learn-system-blackbox-architecture.md"
 FIXTURE_DIR="${FIXTURE_DIR:-$REPO_ROOT/pipeline/corpus/_fixture/mini_ed01}"
 CANON_VERIFY="$REPO_ROOT/pipeline/corpus/_fixture/mini_ed01/verify.sh"
+# 20.2 / 20.3 的宿主判定：在临时 Ledger 上经真实写路径灌入 mini_ed01 后跑场景判定。
+ledger_check() {   # $1 条目号 $2 检查名(20_2|20_3) $3 说明
+  if [ ! -x "$PY" ]; then block_line "$1" "测试宿主匮乏" ".venv 缺失"; return 0; fi
+  out="$(cd "$REPO_ROOT" && "$PY" -m pipeline.ledger.acceptance --fixture "$FIXTURE_DIR" --check "$2" 2>&1)"; rc=$?
+  case "$rc" in
+    0) pass_line "$1" "$3" ;;
+    1) fail_line "$1" "$3" "$(printf '%s\n' "$out" | grep -m1 '^FAIL' )" ;;
+    *) block_line "$1" "测试宿主匮乏" "pipeline.ledger 不可用（退出码 $rc）" ;;
+  esac
+}
 PY="$REPO_ROOT/.venv/bin/python"
 export FIXTURE_DIR
 DB="pattern_knowledge_workbench/assets/ge_ju_database.sqlite"
@@ -177,7 +187,7 @@ run_item() {
         fail_line "$n" "统一验收宿主校验未通过" "$FX_REASON"
         return 0
       fi
-      block_line "$n" "Artifact Ledger" "StageCheckpoint §17.1 未实现"
+      ledger_check "$n" 20_2 "最近 StageCheckpoint 可恢复且历史失败保留（宿主 mini_ed01 真实 Ledger）"
       ;;
     20.3)
       fx
@@ -194,7 +204,7 @@ run_item() {
         return 0
       fi
       case "$(probe_status "$n")" in
-        OK) block_line "$n" "Artifact Ledger" "真实 StepRun 记录未实现" ;;
+        OK) ledger_check "$n" 20_3 "每个语义转换的输入/输出/工具/配置/校验/人工决定记录齐全（宿主 mini_ed01 真实 Ledger）" ;;
         FAIL) fail_line "$n" "语义转换记录不完整" "$(probe_reason "$n")" ;;
         *) block_line "$n" "测试宿主匮乏" "判据探针无输出" ;;
       esac
