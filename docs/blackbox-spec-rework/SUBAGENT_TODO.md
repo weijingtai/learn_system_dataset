@@ -480,7 +480,7 @@
   - [x] PLAN/HANDOFF 同步
   - [x] 主 Agent 标记 `ACCEPTED`
 
-- [ ] D-15：最小可跑 fixture（状态：`DISPATCHED`，工作包 `work-items/g4-r2/` ACT 02，D 组；用户 2026-09-10 裁定：《三辰通载》派生页图不进 Git，fixture 只含转录文本与锚点，页图走本地 Object Store 引用，缺图报 `BLOCKED_SOURCE_ASSET_MISSING`）
+- [x] D-15：最小可跑 fixture（状态：`ACCEPTED`，`6fc8536`，工作包 `work-items/g4-r2/` ACT 02；主 Agent 验收见 `g4-r2/ACCEPTANCE.md` §5.3，含 8 例矩阵外篡改；前缀登记 ACT 01 同时 `ACCEPTED`，`851fa70`；用户 2026-09-10 裁定：《三辰通载》派生页图不进 Git，fixture 只含转录文本与锚点，页图走本地 Object Store 引用，缺图报 `BLOCKED_SOURCE_ASSET_MISSING`）
   - [ ] README/范围/依赖/禁止项
   - [ ] BDD 场景
   - [ ] TDD 正反用例与精确命令
@@ -516,7 +516,7 @@
   - [x] 既有交叉审查通过
   - [x] 无业务实现冒充规格完成
 
-- [ ] D-18：完成标准判据化（状态：`DISPATCHED`，工作包 `work-items/g4-r2/` ACT 03，E 组，串行于 D 组之后）
+- [ ] D-18：完成标准判据化（状态：`REVIEWING`，`4884b6a` 判据全绿；返工一处 `run_all.sh fx()` 一律用规范 `verify.sh`，见 `g4-r2/PROMPT-E2.md`；主 Agent 验收见 `g4-r2/ACCEPTANCE.md` §5.4）
   - [ ] README/范围/依赖/禁止项
   - [ ] BDD 场景
   - [ ] TDD 正反用例与精确命令

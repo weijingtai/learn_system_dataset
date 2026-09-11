@@ -28,7 +28,7 @@ script_spec: |
     BLOCKED  20.N  前置缺失: <§19 差距行名>；<说明>
   末行：SUMMARY pass=<n> fail=<n> blocked=<n>；退出码 = fail 数
   只用 bash + python3/.venv；.venv 缺失时凡依赖它的条目报 BLOCKED（前置缺失: 测试宿主匮乏；.venv 缺失），不报「无法执行」
-  fixture 子检查：fx() 运行 bash "$FIXTURE_DIR/verify.sh" 捕获退出码：0 → 宿主 OK；3 → 宿主 OK 但素材缺失（记录）；1 → 宿主 FAIL（原因取其 FAIL 行）；脚本缺失 → BLOCKED（前置缺失: M3 Corpus Compilation；fixture 缺失）
+  fixture 子检查：fx() 一律运行仓库内规范脚本 bash "$REPO_ROOT/pipeline/corpus/_fixture/mini_ed01/verify.sh"，把 FIXTURE_DIR 以环境变量透传给它，永远不执行 "$FIXTURE_DIR/verify.sh"（裁定 2026-09-11：原文写的是运行 $FIXTURE_DIR/verify.sh，仓库外副本的脚本推不出仓库根会把真 FAIL 吞成 BLOCKED_ENV，且验收脚本不应信任被验对象自带的脚本；不允许用「回退分支」补救）。捕获退出码：0 → 宿主 OK；3 → 宿主 OK 但素材缺失（记录）；1 → 宿主 FAIL（原因取其 FAIL 行）；规范脚本缺失 → BLOCKED（前置缺失: M3 Corpus Compilation；fixture 缺失）
   各条规则（严格按此，不得写成 PASS）：
     20.1  fx 为 1 → FAIL；fx OK → 检查 expected/m1..m3 三包 stage 递增且 lineage 串联（m2 输入 = m1 输出、m3 输入 = m2 输出），不满足 → FAIL；满足 → BLOCKED 前置缺失: Local Orchestrator（M4–M6 Gate 未实现）
     20.2  fx 为 1 → FAIL；否则 BLOCKED 前置缺失: Artifact Ledger（StageCheckpoint §17.1 未实现）

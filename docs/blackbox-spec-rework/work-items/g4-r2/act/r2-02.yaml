@@ -48,7 +48,7 @@ formats:
     release_policy: derived_page_images_only
     edition_part: { artifact_id, label, pages: [page_001, page_002, page_003] }
     source_assets: 三项，每项 { page, path_ref: "<asset_root_default>/<file>", sha256, width, height, object_store: local, in_git: false }
-    files: 逐项 { path, role, sha256 }，role ∈ ocr_page / transcript / anomalies / spans / expected_stage_package；覆盖 pages/*.json、source/transcript_v1.md、anomalies.yaml、spans.yaml、expected/*.yaml
+    files: 逐项 { path, role, sha256 }，role ∈ ocr_page / transcript / anomalies / spans；只覆盖 6 个文件：pages/*.json、source/transcript_v1.md、anomalies.yaml、spans.yaml。（裁定 2026-09-11：原文还要求覆盖 expected/*.yaml，但 m1 的 content_sha256 = sha256(manifest.yaml)，二者互相引用构成哈希环，不可解，属 ACT 缺陷；三个期望包改由 V5 Schema + V6 哈希重算与 counts 钉死，判据未变松）
     conversion: { tool: tools/build_fixture.py, inputs: [ocr/data_work/data/page_00{1,2,3}.json, ocr/data_work/logs/anomalies.jsonl], note: "一行 OCR = 一个 span；机器转录未人工校对；仅作结构验收宿主" }
     content_status: machine_extracted
   source/transcript_v1.md: |
@@ -62,7 +62,7 @@ formats:
     spans: 按 page_001 行序 4 条、page_003 行序 39 条，共 43 条；每条：
       span_id: ss_sanche_ed01_p<NNNN>_s<NN>（页号 4 位、行序 2 位，均从 01 起）
       batch_id: sanche_b001（page_001 全部）；page_003 第 1–10 行 sanche_b002、11–20 行 sanche_b003、21–30 行 sanche_b004、31–39 行 sanche_b005
-      page, line_index（0 起）, start_offset, end_offset（相对该页在 transcript 中 `## page` 节文本块的字符偏移，块 = 行以 "\n" 连接；end 不含）, text（= lines[i].text）
+      page, line_index（0 起）, start_offset, end_offset（相对该页在 transcript 中 `## page` 节文本块的字符偏移，块 = 行以 "\n" 连接；end 不含；裁定 2026-09-11：严格 offset，block[start:end] == text）, text（= lines[i].text）
       source_anchor: { page, image_sha256（= 该页 sha256）, line_id（= lines[i].id）, bbox: {x,y,w,h}（= lines[i].box）, chars: [ { char_index（在 chars 数组中的下标）, glyph_id（= chars[j].id）, char, box: {x,y,w,h} } … 该行全部字：取 chars[j].parent == line_id 的全部 j，按数组顺序 ] }
   expected/mN.stage_package.yaml: |
     结构照抄 openspec/schemas/examples/qtbj_ed01.m1.stage_package.valid.yaml，替换为 expected_ids 常量；stage 分别 m1/m2/m3；status sealed

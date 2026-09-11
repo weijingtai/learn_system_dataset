@@ -1,6 +1,6 @@
 # ACCEPTANCE：G4 第二批（前缀登记 / D-15 / D-18）
 
-状态：`READY`（待用户交外部 Agent 执行）
+状态：r2-01 / r2-02 `ACCEPTED`（`851fa70`、`6fc8536`）；r2-03 `REVIEWING`（`4884b6a` 判据全绿，仅回退分支需按裁定 3 返工，见 §5 与 `PROMPT-E2.md`）
 
 ## 0. 转译审查（原规划者四查，2026-09-10）
 
@@ -33,3 +33,27 @@
 ## 4. 结论
 
 通过后主 Agent 更新 `SUBAGENT_TODO.md`（D-15、D-18 → `ACCEPTED`；前缀登记记入 D-08 条目）、`PLAN.md`、`HANDOFF.md`；G4 仅剩 D-16。
+
+## 5. 验收记录（主 Agent，2026-09-11）
+
+方法：把待验提交 `git archive` 到 scratchpad 干净目录（软链 `.venv`），避免同工作树 C/S 会话未提交文件干扰；页图根用 `FIXTURE_ASSET_ROOT` 指向本机 `ocr/data_work/sanche_pages`。
+
+### 5.1 三件裁定（执行者上报）
+
+1. 哈希环：ACT 缺陷，采纳执行者解法（`manifest.files` 限 6 个非 expected 文件，期望包由 V5+V6 钉死）。已回写 `act/r2-02.yaml`。
+2. offset 读法：严格 offset，采纳。已回写 `act/r2-02.yaml`。
+3. 仓库外副本 `verify.sh` 推不出仓库根：script_spec 缺陷；裁定 `fx()` 一律调用仓库内规范脚本并透传 `FIXTURE_DIR`，不接受回退分支。已回写 `act/r2-03.yaml`；E 组按 `PROMPT-E2.md` 返工一处。
+
+并发提交非线性（nc-002 的 `301a99c` 夹在 D 组两提交之间）：文件范围无交集，不影响验收。
+
+### 5.2 r2-01（`851fa70`）ACCEPTED
+
+范围 2 文件；TDD §1 五条全 Green；`text_3b` 与 `replacement_substring` 逐字一致，3b 节后接空行再接 `#### 4.`；§8 状态行仍为「待验证假设」；门禁绿。
+
+### 5.3 r2-02（`6fc8536`）ACCEPTED
+
+范围 14 文件、无图像；TDD §2 十三条全 Green（`FIXTURE OK` exit 0；缺图 exit 3 且 3 行 BLOCKED；`43 5`；页集 `['page_001','page_003']`；Schema ok-m1..m3；三页 JSON 与 OCR 原件逐字节相同；`REPRO_OK`；§22.1 命中 1）。矩阵外篡改 6 例全部 exit 1 并命中对应 V 项：删 span → coverage；页 JSON 改 1 字节 → manifest_sha256+anchors；`end_offset`+1 → coverage；改 `glyph_id` → anchors（把 manifest/m3 哈希同步改掉后仍被 anchors 抓住，证明 V4 独立于 V1）；改 m2 `content_sha256` → expected_hash；改 bbox.w → anchors；改 `span_id` 前缀 → ids（V2）；改 anomalies 终态 → coverage。`verify.sh` 六处 `continue` 均在追加失败记录之后，非跳过；退出逻辑 1/3/0 与定义一致；`build_fixture.py` 只用标准库 + yaml，无时间戳/随机；`--ocr-data /nonexistent` → `BLOCKED_SOURCE_ASSET_MISSING` exit 3 且不建目录。主 Agent 自误两条已撤回（传绝对路径 `--asset-root` 导致 path_ref 差异；页图不是生成器输入）。
+
+### 5.4 r2-03（`4884b6a`）REVIEWING → 返工一处
+
+范围 2 文件；门禁绿；TDD §3 十一条全 Green（11 行 + SUMMARY、exit 1、`FAIL  20.7` 含 `0/496`、BLOCKED 全带「前置缺失: 」且 5 个行名逐字属于 §19 第一列、副本删 span 后 `20.1` 为 FAIL、未篡改副本仍 BLOCKED）；§20 除第 7 条替换外各条原文不变、11 条编号连续、判据后缀齐全、intro 段逐字一致。唯一不通过：`run_all.sh` `fx()` 先跑 `$FIXTURE_DIR/verify.sh`，仅在 `BLOCKED_ENV` 时回退到规范脚本，违反裁定 3。返工后主 Agent 复验 TDD §3 全部判据 + 「副本 verify.sh 被篡改为直接打印 FIXTURE OK 时 20.1 仍按规范脚本判定」。
