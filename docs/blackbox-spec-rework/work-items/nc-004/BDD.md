@@ -22,8 +22,12 @@
 | B16 | expectedHeadId 不是当前头 | 保存 | 抛 `HeadConflictError`，行数不变 |
 | B17 | 执行器在 `outbox_envelopes` 插入时抛异常 | 保存 | 抛 `SaveFailed`；`note_revisions`/`note_heads`/`outbox_envelopes` 行数与事务前相等，`preferred_head_id` 未变 |
 | B18 | 三次保存后关闭库 | 重新打开同文件 | 修订数、头、附件引用、outbox 全部不丢 |
-| B19 | 仓储 sessionGeneration=1；库 `retireSession()` 后 | 任一写方法 | 抛 `StaleSessionError`，无新行 |
+| B19 | 仓储 sessionGeneration=1；库 `retireSession()` 后 | 任一公开方法（含只读） | 抛 `StaleSessionError`，无新行 |
 | B20 | 显式恢复到与当前 head 同文的旧修订 | `restoreRevision` | 新修订产生，`restored_from` 指向来源，hash 与来源相同 |
-| B21 | 两个头 | `mergeHeads` | 新修订 parent_ids 恰为两头，`note_heads` 只剩新修订，outbox 增 `heads_merged` |
+| B21 | 两个头 | `mergeHeads` | 新修订 parent_ids 恰为两头，`note_heads` 只剩新修订，`preferred_head_id` 为新修订，outbox 增 `heads_merged` |
 | B22 | 任意写操作后 | `pendingEnvelopes` | 按 seq 升序；每行 op ∈ 闭集；无标题/正文/附件名字段 |
 | B23 | `flutter analyze` | 运行 | 0 issue |
+| B24 | head 说明为 X；新会话碰过说明框（summaryTouched=true）但最终六字段与 head 全等 | 保存 | `unchanged`（去重规则 ①） |
+| B25 | 注入固定 Clock `2026-09-11T00:00:00.000Z` | 保存 | `created_at`/`updated_at` 逐字等于该值，匹配 `^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$` |
+| B26 | 51 个 mention / title 201 code point / change_summary 501 code point | 保存 | 分别抛 `MentionCountExceeded` / `FieldLengthExceeded('title')` / `FieldLengthExceeded('change_summary')`，行数不变 |
+| B27 | 快照 title 为字符串 `"NaN"`、markdown 含 `-0 Infinity` 文字 | `loadSnapshotJson` 与 `contentHash` | 解析成功且可计算 hash（字符串内容不受扫描器影响） |

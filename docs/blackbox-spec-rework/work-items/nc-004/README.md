@@ -2,6 +2,16 @@
 
 状态：`PREPARING`（六件套已产出，待 wjt-react 四查）。task_id：`NC-004`。权威需求来源：`openspec/annotation-community/TASKS.md` NC-004；DESIGN §3、§3.1、§3.2、§4.4、§5、§7.1、§7.2；契约 `openspec/annotation-community/contracts/local-persistence.md`（本任务专属，主 Agent 编写）、`community-models.md` §1、`state-machines.md` SM-1/3/5；fixture `fixtures/community/content_hash_cases.json`。分支（learn_system）：`codex/docs/knowledge-compilation`。
 
+## outbox 二选一（TASKS NC-004 第 4 条、TASKS 第 46 行）
+
+**选择 A：本任务冻结与加密无关的 outbox 外层信封 schema（契约 §4，决定 D-NC004-01），并声明信封内容（密文引用、key_epoch 语义）由 NC-016 填充。** 不选择 B（直接依赖 NC-015 冻结产物），因此本任务不再被 NC-015 阻塞。
+
+## 与 TASKS 的偏离登记
+
+- 领域文件按 TASKS 命名 `note.dart`、`note_revision.dart`（D-NC004-08）。
+- `example/` 验收宿主推迟到 NC-010（D-NC004-09）。
+- 编辑态 `save_failed` 的呈现属 SM-1（NC-005）；本任务只保证「失败不写半个 head/outbox」并抛出可断言的错误。
+
 ## Goal
 
 建立独立 Flutter 包 `reading_notes`（新 Git 仓库），实现 Dart 侧 nchash/v2 与跨端一致性测试、Drift 修订库、事务保存仓储与 outbox 外层信封，全部以真文件数据库测试通过。执行者不做设计：表、接口、规则、错误类名、常量全部来自 `local-persistence.md`。
@@ -22,7 +32,7 @@
 - Flutter 3.44.6 / Dart 3.12.2 位于 `/Users/jingtaiwei/flutter/bin`；执行者用 `export PATH=/Users/jingtaiwei/flutter/bin:$PATH`。
 - pub-cache 已有 drift 2.31.0、drift_dev 2.31.0、drift_flutter 0.2.8、sqlite3 2.9.4、sqlite3_flutter_libs 0.5.42、path_provider 2.1.6、build_runner 2.15.1、crypto 3.0.7、flutter_lints 6.0.0（主 Agent 2026-09-11 核对 `~/.pub-cache/hosted/pub.dev`）；`flutter pub get` 允许联网解析传递依赖，但不得改变上述精确版本。
 - `reading-notes` 目录当前不存在（NC-001 基线 `client.state=PLANNED_NEW`）；父目录 `xuan-migration` 存在且不是 Git 仓库。
-- 宿主机 macOS 自带 `libsqlite3`，`persistence_drift` 的 131 个测试即以此运行；若 `flutter test` 报无法加载 sqlite3 → 停止上报。
+- 宿主机 macOS 自带 `libsqlite3`，`persistence_drift` 的测试中有 35 处以真文件 `NativeDatabase(File)` 运行；若 `flutter test` 报无法加载 sqlite3 → 停止上报。
 - 共享守卫：本任务不触碰 learn_system，唯一的 learn_system 侧命令是 `bash docs/blackbox-spec-rework/reviews/nc004_guard.sh --require-impl`（只读）；其 K01 因并行线改动失败判外部失败，K02 及以后按本任务失败停工。
 
 ## Stop Conditions
@@ -31,8 +41,8 @@
 
 ## 执行顺序
 
-`act/01`（建仓 + nchash Dart + 一致性测试）→ `act/02`（模型、错误、Drift 库与生成文件）→ `act/03`（仓储保存规则）→ `act/04`（恢复/合并、失败回滚、重开、会话隔离、outbox）。每步一个提交在 `reading-notes` 仓库。
+`act/01`（建仓 + nchash 编码/规范化 + 7 项一致性测试）→ `act/02`（严格 JSON 扫描器 + 2 项测试）→ `act/03`（模型、错误、Drift 库与生成文件）→ `act/04`（仓储保存规则）→ `act/05`（恢复/合并、失败回滚、重开、会话隔离、outbox、计数/长度预校验）。每步一个提交在 `reading-notes` 仓库。
 
 ## 一次性交付与阅读顺序
 
-1. 本 README；2. `local-persistence.md`；3. [BDD](BDD.md)、[TDD](TDD.md)；4. [ACT](ACT.yaml) 与 act/01～04；5. [ACCEPTANCE](ACCEPTANCE.md)；6. [PROMPT](PROMPT.md)（READY 后原样发送）。
+1. 本 README；2. `local-persistence.md`；3. [BDD](BDD.md)、[TDD](TDD.md)；4. [ACT](ACT.yaml) 与 act/01～05；5. [ACCEPTANCE](ACCEPTANCE.md)；6. [PROMPT](PROMPT.md)（READY 后原样发送）。

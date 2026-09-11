@@ -8,9 +8,11 @@ SPLIT:
   - act/02.yaml
   - act/03.yaml
   - act/04.yaml
-ORDER: "严格按 act/01 → 02 → 03 → 04；全部提交在 /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes 仓库；每步以上一步提交为基线；禁止并行"
-ESTIMATE_MINUTES_TOTAL: 220
+  - act/05.yaml
+ORDER: "严格按 act/01 → 02 → 03 → 04 → 05；全部提交在 /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes 仓库；每步以上一步提交为基线；禁止并行"
+ESTIMATE_MINUTES_TOTAL: 250
 DEFERRED:
   - "outbox 信封内容、密文引用与 key_epoch 语义：NC-016（D-NC004-01）"
   - "编辑器状态机 SM-1 与 Undo 归组：NC-005/NC-006（本任务只提供常量）"
   - "回收站 lifecycle 转移（trash/restore/purge）与 pending_op：NC-007/NC-019（本任务只建列与默认值）"
+  - "example/ 独立验收宿主：NC-010（D-NC004-09）"

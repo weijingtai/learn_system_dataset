@@ -38,10 +38,10 @@ JSON 列保存 community-models §1.2 定义的结构（AttachmentRef / MentionR
 
 ## 3. 领域模型与错误（`lib/src/domain/`）
 
-- `Note`、`NoteRevision`、`AttachmentRef`、`MentionRef`、`BindingRef`、`AnchorRef`、`Selector`、`SelectorRange`：字段、类型、枚举与 community-models §1 逐字一致；不可变（`final` 字段 + `const` 构造）。
+- `Note`（`lib/src/domain/note.dart`）字段清单（Dart 名 ← 列/来源）：`id`、`ownerScope`、`kind`、`headRevisionIds: List<String>`（← `note_heads` 表 hydrate，非 `notes` 列）、`preferredHeadId`、`lifecycle`、`pendingOp`、`createdAt`、`trashedAt: String?`、`updatedAt`（本地新增列，不在 community-models §1.1，只用于列表排序，不上传）。`NoteRevision`（`note_revision.dart`，同文件含 `AttachmentRef`、`MentionRef`、`BindingRef`、`AnchorRef`、`Selector`、`SelectorRange`）字段、类型、枚举与 community-models §1.2 逐字一致。全部不可变（`final` 字段 + `const` 构造）。
 - `EditorSnapshot`（community-models §1.3）：`title, text, selectionBase, selectionExtent, composing, attachmentRefs, mentionRefs, bindings, changeSummary`。`summary_touched` 不属于快照，由调用方作参数传入。
 - 常量（`lib/src/domain/limits.dart`）：`noteMarkdownMaxBytes = 1048576`、`attachmentsPerRevisionMax = 20`、`mentionsPerSubmitMax = 50`、`autosaveDebounceMs = 2000`、`undoMergeMaxGapMs = 500`、`undoMergeMaxChars = 20`（community-models §1.3、§5）。
-- 本地错误类（D-NC002-10 闭集，全部 `implements Exception`，类名逐字）：`NoteSizeLimitExceeded`、`AttachmentCountExceeded`、`DuplicateReferenceItem`、`IllegalEditorTransition`、`IllegalLifecycleTransition`、`TombstoneRejected`、`TrashRequiresWithdraw`、`PendingOpConflict`；另加 NC-004 新增（决定 D-NC004-05）：`StaleSessionError`（会话代数不符）、`HeadConflictError`（`expectedHeadId` 不是当前头）、`SaveFailed`（包裹底层数据库异常，携带 `cause`）。
+- 本地错误类（D-NC002-10 闭集，全部 `implements Exception`，类名逐字）：`NoteSizeLimitExceeded`、`AttachmentCountExceeded`、`DuplicateReferenceItem`、`IllegalEditorTransition`、`IllegalLifecycleTransition`、`TombstoneRejected`、`TrashRequiresWithdraw`、`PendingOpConflict`；另加 NC-004 新增（决定 D-NC004-05）：`StaleSessionError`（会话代数不符）、`HeadConflictError`（`expectedHeadId` 不是当前头）、`SaveFailed`（包裹底层数据库异常，携带 `cause`）、`MentionCountExceeded`（mention 超过 50）、`FieldLengthExceeded`（title 超过 200 或 change_summary 超过 500 code point；携带字段名）。
 - ID 生成：`IdGenerator` 接口 `String newId(String prefix)` → `<prefix><uuid v4 hex 32>`；默认实现用 `dart:math` `Random.secure()` 生成 UUIDv4；测试可注入固定序列。
 - 时钟：`Clock` 接口 `String nowUtc()`（RFC 3339 `Z`，毫秒精度 `.fff`）；测试注入。
 
@@ -105,18 +105,18 @@ enum SaveOutcome { saved, unchanged }
 
 ### 5.1 保存规则（逐条，执行者不得自行增删）
 
-1. **会话代数**：每个公开方法开始时比较 `sessionGeneration` 与 `db.activeGeneration`；不等则抛 `StaleSessionError`，不进入事务、不写任何行。宿主切换账号时调用 `db.retireSession()`：`activeGeneration += 1` 并关闭连接（DESIGN §3.2「旧响应不能写入新账号」）。
-2. **预校验（事务外，抛错不写行）**：`utf8.encode(snapshot.text).length > noteMarkdownMaxBytes` → `NoteSizeLimitExceeded`；`attachmentRefs.length > attachmentsPerRevisionMax` → `AttachmentCountExceeded`；三类数组任一存在完全相同重复项（按 nchash 编码字节判等）→ `DuplicateReferenceItem`；`mentionRefs.length > mentionsPerSubmitMax` → `DuplicateReferenceItem` 不适用，抛 `ArgumentError`（HTTP 侧才有 400；本地由编辑器阻止，本条只作防御）。调用方保留缓冲、编辑态置 `save_failed`（SM-1）。
+1. **会话代数**：每个公开方法（含 `getNote`、`headIds`、`getRevision`、`listRevisions`、`pendingEnvelopes` 等只读方法）开始时比较 `sessionGeneration` 与 `db.activeGeneration`；不等则抛 `StaleSessionError`，不进入事务、不写任何行。宿主切换账号时调用 `db.retireSession()`：`activeGeneration += 1` 并关闭连接（DESIGN §3.2「旧响应不能写入新账号」）。
+2. **预校验（事务外，抛错不写行）**：`utf8.encode(snapshot.text).length > noteMarkdownMaxBytes` → `NoteSizeLimitExceeded`；`attachmentRefs.length > attachmentsPerRevisionMax` → `AttachmentCountExceeded`；三类数组任一存在完全相同重复项（按 nchash 编码字节判等）→ `DuplicateReferenceItem`；`mentionRefs.length > mentionsPerSubmitMax` → `MentionCountExceeded`；`title` 超过 200 code point 或 `change_summary` 超过 500 code point → `FieldLengthExceeded(field)`（community-models §1.2 上限，按 `runes.length`）。调用方保留缓冲、编辑态置 `save_failed`（SM-1）。
 3. **头校验**：`expectedHeadId ∉ headIds(noteId)` → `HeadConflictError`。
-4. **去重**：`projection = 六字段投影(snapshot)`；`hash = contentHash(projection)`；令 `head = getRevision(expectedHeadId)`。若 `projection 除 change_summary 外 == head 的对应字段` 且 `summaryTouched == false` → 返回 `unchanged`，不写行；否则若 `hash == head.contentHash` 且 `summaryTouched == false` → `unchanged`；其余 → 进入第 5 条（含「仅改说明且 summaryTouched」→ saved）。
+4. **去重**（DESIGN §7.2）：令 `P = 六字段投影(snapshot)`，`H = 六字段投影(head)`，`head = getRevision(expectedHeadId)`。按顺序判定：① `P == H`（六字段全等，等价于 hash 相等）→ `unchanged`，**无论 summaryTouched**（没有任何变化的保存不新增修订，即使用户碰过说明框又改回原文）；② `P` 与 `H` 只在 `change_summary` 不同且 `summaryTouched == false` → `unchanged`（新会话说明初值为空串、不继承 head 造成的差异不算修改）；③ 其余全部 → 进入第 5 条 `saved`（含：只改说明且 `summaryTouched == true`；改正文；改附件/mention/binding）。
 5. **事务（`db.transaction`，全部成功或全部回滚）**：① 插入 `note_revisions`（`parent_ids=[expectedHeadId]`，`created_on_device=deviceId`）；② `note_heads` 删除 `expectedHeadId` 行、插入新修订行；③ `notes.preferred_head_id=新修订`，`updated_at=now`；④ 插入 `outbox_envelopes(op=revision_saved, revision_id=新修订, state=pending)`。任一语句异常 → 事务回滚 → 抛 `SaveFailed(cause)`；回滚后 `note_revisions`/`note_heads`/`outbox_envelopes` 行数与事务前相等。
 6. **新会话说明初值**：`change_summary` 由调用方传入，编辑器在新会话初始化为空串（不继承 head）；仓储不做继承。
-7. **恢复/合并**：不走第 4 条去重；`restoreRevision` 的快照取自来源修订六字段，`change_summary` 置空串。
+7. **恢复/合并**：不走第 4 条去重。`restoreRevision`：快照取自来源修订六字段、`change_summary` 置空串、`parent_ids=[preferred_head_id]`、`restored_from=sourceRevisionId`，事务四步同第 5 条（outbox op=`revision_saved`）。`mergeHeads(headIds ≥ 2，且每个 ∈ 当前 heads，否则 `HeadConflictError`)`：事务 ① 插入新修订（`parent_ids=headIds` 原顺序）；② 删除该笔记 `note_heads` 全部行，插入新修订一行；③ `notes.preferred_head_id=新修订`，`updated_at=now`；④ 插入 outbox（op=`heads_merged`，revision_id=新修订）。
 8. **时间**：`created_at`/`updated_at` 一律 `clock.nowUtc()`；不用设备时间判胜负。
 
 ### 5.2 事务原子性的测试注入点
 
-`NoteDatabase` 构造接受 `QueryExecutor`；测试用 `FailingExecutor(inner, failOnStatementContaining: 'outbox_envelopes')` 包装真文件执行器，在第 ④ 步抛 `SqliteException` 模拟磁盘失败，验证第 5 条回滚断言。不得用「先写一半再手工删」模拟。
+`NoteDatabase` 构造接受 `QueryExecutor`。测试用 Drift 2.31 官方拦截器：`NativeDatabase(file).interceptWith(FailingInterceptor(failOnStatementContaining: 'outbox_envelopes'))`，其中 `FailingInterceptor extends QueryInterceptor` 覆盖 `runInsert`、`runUpdate`、`runDelete`、`runCustom`、`runBatched` 五个方法：当 `statement` 含目标子串时抛 `SqliteException(1, 'injected failure')`，否则转发。Drift 的 `_InterceptedExecutor` 会把同一拦截器套用到 `beginTransaction()` 返回的事务执行器，因此第 ④ 步（事务内 INSERT）会被拦截；测试须先断言拦截确实发生（捕获到 `SaveFailed` 且其 `cause` 为注入异常），再断言回滚。若实测拦截器未作用于事务内语句，视为停止条件上报，不得改用「先写一半再手工删」模拟。
 
 ## 6. nchash/v2 Dart 实现（`lib/src/domain/nchash.dart`）
 
@@ -128,7 +128,7 @@ enum SaveOutcome { saved, unchanged }
 | `Uint8List encode(Object? value)` | E 编码；整数 `int`（拒绝 `double`、`±(2^53−1)` 外）；字符串按 UTF-8 字节；拒绝孤立 surrogate（`String.runes` 中出现 0xD800–0xDFFF 即拒绝）；对象键按 UTF-8 字节序排序 |
 | `Map<String,Object?> normalizeSnapshot(Map<String,Object?>)` | 补默认值、字段全集、三数组规范排序（比较键用 `Uint8List` 逐字节无符号比较，最终平局键为 E 字节）、重复项拒绝 |
 | `Uint8List canonicalBytes(Map)`、`String contentHash(Map)` | `sha256(domain 字节 + canonicalBytes)` 小写 hex；Dart 标准库无 SHA-256，用 `package:crypto`（决定 D-NC004-06：`crypto: 3.0.7`，pub-cache 现有，精确锁定，仅用于 SHA-256） |
-| `Object? loadSnapshotJson(String text)` | 解析层：先用最小严格扫描器检出重复键、原始 `-0`、`NaN`/`Infinity` 字面量并抛 `SnapshotValidationError`，再 `jsonDecode`（Dart 的 `jsonDecode` 同样会静默合并重复键、把 `-0` 解析为 0） |
+| `Object? loadSnapshotJson(String text)` | 解析层：先按下列三条写死的规则扫描原文，命中即抛 `SnapshotValidationError`，再 `jsonDecode`（Dart 的 `jsonDecode` 会静默合并重复键、把 `-0` 解析为 0、对 `NaN` 抛 FormatException）。扫描器是一个只识别 JSON 词法的单遍扫描：(a) **字符串内容不检查**——遇 `"` 进入字符串态，处理 `\` 转义直到闭合引号，字符串内的 `NaN`、`-0`、重复文本一律合法；(b) **裸字面量**：字符串态之外出现 token `NaN`、`Infinity`、`-Infinity` → 拒绝；(c) **数字 token**：字符串态之外以 `-`/数字开头、到下一个非 `[0-9eE+.-]` 字符为止的 token，若整体等于 `-0`，或含 `.`、`e`、`E`（浮点）→ 拒绝；(d) **重复键**：维护对象栈，每进入 `{` 压入空集合，遇到「字符串 token 后紧跟 `:`」即为键，同一层重复 → 拒绝，`}` 弹栈；数组内的对象同样入栈，因此嵌套任意深度都检查。fixture `invalid_json_texts` 三例必须被拒绝，且含 `"NaN"`/`"-0"` 字符串值的快照必须解析成功（TDD 有正例） |
 | `Map projectRevision(Map revision)` | 只取六个语义键，忽略其余 |
 | 异常 | `CanonicalEncodingError`、`SnapshotValidationError`（均 `implements Exception`） |
 
@@ -142,6 +142,8 @@ mention 的 `start_offset`/`length` 与所有长度计量按 code point（`Strin
 | D-NC004-02 | Drift 生成的 `.g.dart` 提交进仓库 | 与 `persistence_drift` 一致；验收者无需先生成即可 `flutter test` |
 | D-NC004-03 | 提交 `pubspec.lock` | 固定验收版本；包用作应用内子模块而非发布到 pub |
 | D-NC004-04 | 数据库文件 `reading_notes_<scopeUid>.sqlite`，目录由宿主注入 | 沿用宿主每 scope 一文件的隔离方案 |
-| D-NC004-05 | 新增本地错误 `StaleSessionError`、`HeadConflictError`、`SaveFailed` | D-NC002-10 闭集未覆盖会话代数、头冲突与底层失败三种情况 |
+| D-NC004-05 | 新增本地错误 `StaleSessionError`、`HeadConflictError`、`SaveFailed`、`MentionCountExceeded`、`FieldLengthExceeded` | D-NC002-10 闭集未覆盖会话代数、头冲突、底层失败、mention 计数与字段长度 |
 | D-NC004-06 | 允许依赖 `crypto: 3.0.7`（精确锁定；2026-09-11 核对 pub-cache 现有） | Dart 标准库无 SHA-256；`crypto` 为 dart.dev 官方包 |
-| D-NC004-07 | 测试用真文件 `NativeDatabase(File)`，依赖宿主机可加载 `libsqlite3` | TASKS「不只测内存 Fake」；macOS 系统自带 libsqlite3，加载失败即停止上报 |
+| D-NC004-07 | 测试用真文件 `NativeDatabase(File)`，依赖宿主机可加载 `libsqlite3` | TASKS「不只测内存 Fake」；`persistence_drift` 测试中有 35 处真文件用例可作对照；加载失败即停止上报 |
+| D-NC004-08 | 领域文件按 TASKS 命名拆为 `note.dart`、`note_revision.dart`（后者含引用结构），不用单一 `models.dart` | 与 TASKS NC-004 第 2 条文件名一致 |
+| D-NC004-09 | `example/` 独立验收宿主推迟到 NC-010（首个 UI 任务） | INTEGRATION_BASELINE §1 提到由 NC-004 承接建包及 example；本任务无 UI，空 example 无意义 |

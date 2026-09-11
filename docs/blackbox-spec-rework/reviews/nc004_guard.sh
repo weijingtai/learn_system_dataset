@@ -22,12 +22,12 @@ c=read(SPEC/"contracts/local-persistence.md")
 PINS={"crypto":"3.0.7","drift":"2.31.0","drift_flutter":"0.2.8","sqlite3":"2.9.4","sqlite3_flutter_libs":"0.5.42","path_provider":"2.1.6","drift_dev":"2.31.0","build_runner":"2.15.1","flutter_lints":"6.0.0"}
 ok02=all(f"`{k}: {v}`" in c for k,v in PINS.items()) and all(f"D-NC004-0{i}" in c for i in range(1,8)) and all(s in c for s in ["## 2.1 表","## 4. outbox 外层信封","## 5. 仓储接口","### 5.1 保存规则","## 6. nchash/v2 Dart"]) and c.count("| `notes` |")==1 and "outbox_envelopes" in c
 check(ok02,"K02 契约：9 个精确版本、D-NC004-01～07、表/信封/仓储/nchash 各节齐全","")
-bdd=read(PACK/"BDD.md"); tdd=read(PACK/"TDD.md"); acts=[read(PACK/"act"/f"0{i}.yaml") for i in range(1,5)]
+bdd=read(PACK/"BDD.md"); tdd=read(PACK/"TDD.md"); acts=[read(PACK/"act"/f"0{i}.yaml") for i in range(1,6)]
 bids=re.findall(r"^\| (B\d\d) \|",bdd,re.M); est=[int((re.search(r"^ESTIMATE_MINUTES: (\d+)",a,re.M) or [0,0])[1]) for a in acts]
 deps=[(re.search(r"^DEPENDS_ON: (.*)$",a,re.M) or [0,""])[1].strip() for a in acts]
-vague=re.compile(r"适当|优雅|合理|必要时|酌情|尽量|大致|视情况"); hits=[f"{f}:{m.group(0)}" for f in ["README.md","BDD.md","TDD.md","ACT.yaml","PROMPT.md","ACCEPTANCE.md","act/01.yaml","act/02.yaml","act/03.yaml","act/04.yaml"] for m in vague.finditer(read(PACK/f))]
-ok03=(bids==[f"B{i:02d}" for i in range(1,24)] and all(30<=e<=60 for e in est) and deps==["[]","[NC-004-A]","[NC-004-B]","[NC-004-C]"] and all("ON_FAIL" in a and "WORKLOAD" in a for a in acts) and not hits and "+30" in tdd and "+11" not in tdd and read(PACK/"ACT.yaml").count("- act/0")==4 and "DEFERRED" in read(PACK/"ACT.yaml"))
-check(ok03,"K03 六件套：BDD B01～B23、四个 ACT 30–60 分钟且依赖链/ON_FAIL/WORKLOAD、无模糊词、测试计数 30",f"bids={len(bids)} est={est} deps={deps} vague={hits}")
+vague=re.compile(r"适当|优雅|合理|必要时|酌情|尽量|大致|视情况"); hits=[f"{f}:{m.group(0)}" for f in ["README.md","BDD.md","TDD.md","ACT.yaml","PROMPT.md","ACCEPTANCE.md","act/01.yaml","act/02.yaml","act/03.yaml","act/04.yaml","act/05.yaml"] for m in vague.finditer(read(PACK/f))]
+ok03=(bids==[f"B{i:02d}" for i in range(1,28)] and all(30<=e<=60 for e in est) and deps==["[]","[NC-004-A]","[NC-004-B]","[NC-004-C]","[NC-004-D]"] and all("ON_FAIL" in a and "WORKLOAD" in a for a in acts) and not hits and "+35" in tdd and "+30" not in tdd and "+11" not in tdd and read(PACK/"ACT.yaml").count("- act/0")==5 and "DEFERRED" in read(PACK/"ACT.yaml") and "二选一" in read(PACK/"README.md") and all(s in c for s in ["D-NC004-08","D-NC004-09","MentionCountExceeded","FieldLengthExceeded","interceptWith"]))
+check(ok03,"K03 六件套：BDD B01～B27、五个 ACT 30–60 分钟且依赖链/ON_FAIL/WORKLOAD、无模糊词、测试计数 35、README 二选一、契约 D-08/09 与注入点",f"bids={len(bids)} est={est} deps={deps} vague={hits}")
 todo=read(root/"docs/blackbox-spec-rework/SUBAGENT_TODO.md")
 check("NC-004" in todo and ("local-persistence" in todo or "NC-004-A" in todo),"K04 SUBAGENT_TODO 已登记 NC-004 工作包","")
 if not CLIENT.exists() and not req:
@@ -43,13 +43,14 @@ else:
     lock=read(CLIENT/"pubspec.lock"); okl=all(re.search(rf"^  {re.escape(k)}:\n(?:    .*\n)*?    version: \"{re.escape(v)}\"",lock,re.M) for k,v in PINS.items()); ok&=okl; det.append(f"lock={okl}")
     okf=(CLIENT/"test/fixtures/community_content_hash_cases.json").is_file() and (CLIENT/"test/fixtures/community_content_hash_cases.json").read_bytes()==(SPEC/"fixtures/community/content_hash_cases.json").read_bytes(); ok&=okf; det.append(f"fixture={okf}")
     tracked=subprocess.run(["git","-C",str(CLIENT),"ls-files"],capture_output=True,text=True).stdout.split(); okg="lib/src/persistence/note_database.g.dart" in tracked and "pubspec.lock" in tracked; ok&=okg; det.append(f"g.dart+lock tracked={okg}")
-    ncommits=len(subprocess.run(["git","-C",str(CLIENT),"log","--format=%h"],capture_output=True,text=True).stdout.split()); ok&= ncommits>=4; det.append(f"commits={ncommits}")
+    ncommits=len(subprocess.run(["git","-C",str(CLIENT),"log","--format=%h"],capture_output=True,text=True).stdout.split()); ok&= ncommits==5; det.append(f"commits={ncommits}")
     src="".join(read(p) for p in (CLIENT/"test").rglob("*.dart")) if (CLIENT/"test").exists() else ""
     cheats=[p for p in ("skip:","skip(","expect(true, isTrue)") if p in src]; nch=read(CLIENT/"lib/src/domain/nchash.dart")
-    okc=not cheats and "jsonEncode" not in nch and "JsonEncoder" not in nch and "NativeDatabase.memory" not in src; ok&=okc; det.append(f"cheats={cheats} memory={('NativeDatabase.memory' in src)}")
+    libsrc="".join(read(p) for p in (CLIENT/"lib").rglob("*.dart")) if (CLIENT/"lib").exists() else ""
+    okc=not cheats and "jsonEncode" not in nch and "JsonEncoder" not in nch and "NativeDatabase.memory" not in src and "NativeDatabase.memory" not in libsrc; ok&=okc; det.append(f"cheats={cheats} memory={('NativeDatabase.memory' in src)}")
     env=dict(__import__("os").environ); env["PATH"]=FL+":"+env["PATH"]
     an=subprocess.run(["flutter","analyze"],cwd=CLIENT,capture_output=True,text=True,env=env); ok&= an.returncode==0; det.append(f"analyze={an.returncode}")
-    ft=subprocess.run(["flutter","test"],cwd=CLIENT,capture_output=True,text=True,env=env); m=re.search(r"\+(\d+): All tests passed!",ft.stdout); ok&= ft.returncode==0 and m is not None and int(m.group(1))>=30; det.append(f"test={ft.returncode}/{m.group(1) if m else '无'}")
-    check(ok,"K05 reading-notes：独立仓库、pubspec/lock 精确版本、fixture 副本一致、生成文件与 lock 已提交、≥4 提交、无作弊、analyze 0、flutter test ≥30 全过","; ".join(det))
+    ft=subprocess.run(["flutter","test"],cwd=CLIENT,capture_output=True,text=True,env=env); m=re.search(r"\+(\d+): All tests passed!",ft.stdout); ok&= ft.returncode==0 and m is not None and int(m.group(1))>=35; det.append(f"test={ft.returncode}/{m.group(1) if m else '无'}")
+    check(ok,"K05 reading-notes：独立仓库、pubspec/lock 精确版本、fixture 副本一致、生成文件与 lock 已提交、恰 5 提交、无作弊、analyze 0、flutter test ≥35 全过","; ".join(det))
 print(f"\nNC-004 失败条数：{fails}"); sys.exit(fails)
 PY
