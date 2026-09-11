@@ -304,6 +304,18 @@ ReviewDecision 与 EvidenceLink 必须同时记录目标对象的 `entity_id`，
 4. **前缀命名与冲突规避**：ProcessingRun 必须使用 `prun_`。严禁将 `pr_` 复用于 ProcessingRun，否则判为非法。
 5. **非法格式可判定**：缺前缀、十六进制非32位、包含大写字母（必须全小写十六进制 `[0-9a-f]{32}`）、`<stage>` 取值超出 `m1` 至 `m8` 闭集范围、或数字位数不符者，校验器与消费者一律判定为非法标识。
 
+#### 3b. 流派与视图标识格式（用户 2026-09-10 确认）
+
+以下三类标识随 D-08 `SchoolView` 引入，含义、家族与使用规则见 `openspec/id-prefix-registry.md` §3.3；本表冻结格式，校验器按 §8.1 第 5 条判定非法：
+
+| 对象 | 冻结格式 | 语义归属 | 说明 |
+|---|---|---|---|
+| School（流派） | `sch_<technique>_<3位数字>` | 稳定身份（`school_id`，`entity_id` 语义） | 按技法命名空间、人工闭集、从 `001` 起顺序编号且不复用；同名流派在不同技法下是不同对象；只能引用 Contract Registry 已登记值 |
+| SchoolView（流派视图） | `sv_<32hex>` | 稳定身份（`school_view_id`，`entity_id` 语义） | M4 批量产出，UUIDv4 家族；内容变化以 `rev_<32hex>` 表达，不换号 |
+| ConflictGroup（冲突组） | `cg_<32hex>` | 分组标识（`conflict_group_id`） | 同一主题下相互冲突的一组 SchoolView 共享；M4 / M7 产出，UUIDv4 家族 |
+
+旧工作台 slug（`qin_tang`、`tian_guan`）迁移时作为别名保留，不作 `school_id`；`guo_lao` 在旧表中类型为 book，不是流派。
+
 #### 4. 版本轴分离规则（Schema Version 与 Content Revision）
 
 架构确立 **Schema 版本与 content Revision 分离**（Schema Version 与 Content Revision 分离）原则：
@@ -550,7 +562,7 @@ M4 将 SemanticSpan 分别提取为候选：
 - Interpretation、SchoolView、Alias；
 - Case、注文和 EvidenceLink。
 
-`SchoolView` 是流派立场对象，由 M4 抽取为候选、经 §8.2 的 `review_school_attribution`（流派归属）审核类型裁决后进入正式知识。最小字段：`school_view_id`（`entity_id` 语义）、`school_id`、`subject_entity_id`（所属 Pattern / Concept / Assertion）、`claim_refs`（该流派主张归属的 Assertion 引用）、`conflict_group_id`（同一主题下相互冲突的 SchoolView 共享的冲突组标识）、`changes_current_judgment`（布尔：该分歧是否改变当前判断）、`source_refs`（Work / Edition / SourceSpan 引用）、Revision 与状态。`school_id` 只表示流派；Work / Edition 身份不得折叠进 School（现有工作台 `ge_ju_schools` 把书目与流派混存同表，属 §19 登记的历史缺口，迁移时必须拆开）。同一 Pattern 下允许多书、多流派、多主张与相反结论并存；M4 与 M7 不得以默认流派静默折叠，`changes_current_judgment=true` 的 SchoolView 在发布视图首层必须显示存在分歧（依 `knowledge_system/METAPHYSICS_KNOWLEDGE_COMPILATION_WORKFLOW_v1.2.md` §3.3）。`school_id` 与 `school_view_id` 的标识前缀待用户确认后登记到 §8.1 新对象表，在此之前规格不自造前缀。
+`SchoolView` 是流派立场对象，由 M4 抽取为候选、经 §8.2 的 `review_school_attribution`（流派归属）审核类型裁决后进入正式知识。最小字段：`school_view_id`（`entity_id` 语义）、`school_id`、`subject_entity_id`（所属 Pattern / Concept / Assertion）、`claim_refs`（该流派主张归属的 Assertion 引用）、`conflict_group_id`（同一主题下相互冲突的 SchoolView 共享的冲突组标识）、`changes_current_judgment`（布尔：该分歧是否改变当前判断）、`source_refs`（Work / Edition / SourceSpan 引用）、Revision 与状态。`school_id` 只表示流派；Work / Edition 身份不得折叠进 School（现有工作台 `ge_ju_schools` 把书目与流派混存同表，属 §19 登记的历史缺口，迁移时必须拆开）。同一 Pattern 下允许多书、多流派、多主张与相反结论并存；M4 与 M7 不得以默认流派静默折叠，`changes_current_judgment=true` 的 SchoolView 在发布视图首层必须显示存在分歧（依 `knowledge_system/METAPHYSICS_KNOWLEDGE_COMPILATION_WORKFLOW_v1.2.md` §3.3）。`school_id`、`school_view_id` 与 `conflict_group_id` 的标识格式见 §8.1 第 3b 节与 `openspec/id-prefix-registry.md` §3.3。
 
 不同类别不得由一个模型一次混合完成。生产模型 A、B 独立工作且初次不可见彼此结果；复核模型 C 必须重读原文，不得只看两份答案。系统按证据比较，不采用多数票。未解决语义分歧进入人工队列，不能通过 M4 Gate。
 
