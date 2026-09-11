@@ -1,0 +1,101 @@
+{
+  "$comment": "DESIGN §2.1.1",
+  "regex": "^cmd_[0-9a-f]{12}4[0-9a-f]{3}[89ab][0-9a-f]{15}$",
+  "cases": [
+    {
+      "name": "valid_fixture_only",
+      "value": "cmd_00000000000040008000000000000000",
+      "expected": {
+        "valid": true
+      }
+    },
+    {
+      "name": "valid_random_shape",
+      "value": "cmd_9f1c2e3d4b5a46c7a9d0e1f2a3b4c5d6",
+      "expected": {
+        "valid": true
+      }
+    },
+    {
+      "name": "uppercase",
+      "value": "cmd_0000000000004000800000000000000A",
+      "expected": {
+        "valid": false,
+        "http": 400,
+        "code": "invalid_argument.command_id",
+        "reason": "大写"
+      }
+    },
+    {
+      "name": "missing_prefix",
+      "value": "00000000000040008000000000000000",
+      "expected": {
+        "valid": false,
+        "http": 400,
+        "code": "invalid_argument.command_id",
+        "reason": "缺前缀"
+      }
+    },
+    {
+      "name": "len31",
+      "value": "cmd_0000000000004000800000000000000",
+      "expected": {
+        "valid": false,
+        "http": 400,
+        "code": "invalid_argument.command_id",
+        "reason": "31 位"
+      }
+    },
+    {
+      "name": "len33",
+      "value": "cmd_000000000000400080000000000000000",
+      "expected": {
+        "valid": false,
+        "http": 400,
+        "code": "invalid_argument.command_id",
+        "reason": "33 位"
+      }
+    },
+    {
+      "name": "version_not_4",
+      "value": "cmd_00000000000030008000000000000000",
+      "expected": {
+        "valid": false,
+        "http": 400,
+        "code": "invalid_argument.command_id",
+        "reason": "版本位非 4"
+      }
+    },
+    {
+      "name": "variant_not_89ab",
+      "value": "cmd_00000000000040007000000000000000",
+      "expected": {
+        "valid": false,
+        "http": 400,
+        "code": "invalid_argument.command_id",
+        "reason": "variant 位非 8/9/a/b"
+      }
+    },
+    {
+      "name": "with_hyphens",
+      "value": "cmd_00000000-0000-4000-8000-000000000000",
+      "expected": {
+        "valid": false,
+        "http": 400,
+        "code": "invalid_argument.command_id",
+        "reason": "带连字符"
+      }
+    },
+    {
+      "name": "header_body_mismatch",
+      "header": "cmd_00000000000040008000000000000000",
+      "body": "cmd_00000000000040008000000000000001",
+      "expected": {
+        "valid": false,
+        "http": 400,
+        "code": "invalid_argument.idempotency_key",
+        "reason": "Idempotency-Key 与 body.command_id 不同"
+      }
+    }
+  ]
+}

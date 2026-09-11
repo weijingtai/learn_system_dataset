@@ -1,0 +1,240 @@
+{
+  "$comment": "DESIGN §6：offset/length 按 code point；四类无效 mention；格式非法与语义无效分开",
+  "cases": [
+    {
+      "name": "valid_basic",
+      "markdown": "你好 @张三 再见",
+      "mention": {
+        "user_id": "pg_user_张三",
+        "display_name": "张三",
+        "start_offset": 3,
+        "length": 3
+      },
+      "directory": {
+        "pg_user_张三": "active"
+      },
+      "expected": {
+        "valid": true,
+        "event": true
+      }
+    },
+    {
+      "name": "valid_after_astral_char",
+      "markdown": "𠀀@张三",
+      "mention": {
+        "user_id": "pg_user_张三",
+        "display_name": "张三",
+        "start_offset": 1,
+        "length": 3
+      },
+      "directory": {
+        "pg_user_张三": "active"
+      },
+      "expected": {
+        "valid": true,
+        "note": "UTF-16 下标为 2，code point 下标为 1；Dart 须用 runes"
+      }
+    },
+    {
+      "name": "valid_same_name_twice_independent",
+      "markdown": "@张三 和 @张三",
+      "mentions": [
+        {
+          "user_id": "pg_user_张三",
+          "display_name": "张三",
+          "start_offset": 0,
+          "length": 3
+        },
+        {
+          "user_id": "pg_user_张三",
+          "display_name": "张三",
+          "start_offset": 6,
+          "length": 3
+        }
+      ],
+      "directory": {
+        "pg_user_张三": "active"
+      },
+      "expected": {
+        "valid": [
+          true,
+          true
+        ],
+        "note": "同昵称两处各自独立判定"
+      }
+    },
+    {
+      "name": "invalid_user_not_found",
+      "markdown": "@王五 在吗",
+      "mention": {
+        "user_id": "pg_user_王五",
+        "display_name": "王五",
+        "start_offset": 0,
+        "length": 3
+      },
+      "directory": {},
+      "expected": {
+        "valid": false,
+        "reason": "user_id 不存在",
+        "relation_removed": true,
+        "event": false
+      }
+    },
+    {
+      "name": "invalid_account_deleted",
+      "markdown": "@赵六",
+      "mention": {
+        "user_id": "pg_user_赵六",
+        "display_name": "赵六",
+        "start_offset": 0,
+        "length": 3
+      },
+      "directory": {
+        "pg_user_赵六": "deleted"
+      },
+      "expected": {
+        "valid": false,
+        "reason": "账号已注销",
+        "relation_removed": true
+      }
+    },
+    {
+      "name": "invalid_blocked_by_target",
+      "markdown": "@钱七",
+      "mention": {
+        "user_id": "pg_user_钱七",
+        "display_name": "钱七",
+        "start_offset": 0,
+        "length": 3
+      },
+      "directory": {
+        "pg_user_钱七": "active"
+      },
+      "blocks": [
+        {
+          "blocker": "pg_user_钱七",
+          "blocked": "author"
+        }
+      ],
+      "expected": {
+        "valid": false,
+        "reason": "已被目标拉黑",
+        "relation_removed": true
+      }
+    },
+    {
+      "name": "invalid_text_no_longer_matches_partial_delete",
+      "markdown": "你好 @张 再见",
+      "mention": {
+        "user_id": "pg_user_张三",
+        "display_name": "张三",
+        "start_offset": 3,
+        "length": 3
+      },
+      "directory": {
+        "pg_user_张三": "active"
+      },
+      "expected": {
+        "valid": false,
+        "reason": "文本不再匹配（部分删除）",
+        "relation_removed": true
+      }
+    },
+    {
+      "name": "invalid_text_no_longer_matches_offset_shift",
+      "markdown": "你好呀 @张三",
+      "mention": {
+        "user_id": "pg_user_张三",
+        "display_name": "张三",
+        "start_offset": 3,
+        "length": 3
+      },
+      "directory": {
+        "pg_user_张三": "active"
+      },
+      "expected": {
+        "valid": false,
+        "reason": "文本不再匹配（偏移漂移，子串为「呀 @」）",
+        "relation_removed": true
+      }
+    },
+    {
+      "name": "invalid_text_no_longer_matches_renamed",
+      "markdown": "你好 @张三丰",
+      "mention": {
+        "user_id": "pg_user_张三",
+        "display_name": "张三",
+        "start_offset": 3,
+        "length": 3
+      },
+      "directory": {
+        "pg_user_张三": "active"
+      },
+      "expected": {
+        "valid": true,
+        "note": "子串仍为「@张三」，长度按创建时 display_name 判定；后缀「丰」不影响"
+      }
+    },
+    {
+      "name": "plain_at_text_not_a_mention",
+      "markdown": "发邮件到 a@b.com",
+      "mentions": [],
+      "expected": {
+        "recipients": [],
+        "note": "手打 @ 不自动成为收件人"
+      }
+    },
+    {
+      "name": "resave_same_mention_no_new_event",
+      "markdown": "@张三",
+      "mention": {
+        "user_id": "pg_user_张三",
+        "display_name": "张三",
+        "start_offset": 0,
+        "length": 3
+      },
+      "previous_revision_mentions": [
+        {
+          "user_id": "pg_user_张三",
+          "start_offset": 0,
+          "length": 3
+        }
+      ],
+      "directory": {
+        "pg_user_张三": "active"
+      },
+      "expected": {
+        "valid": true,
+        "event": false,
+        "note": "只有新增的有效 mention 才产生事件"
+      }
+    },
+    {
+      "name": "format_length_1_rejected",
+      "markdown": "@",
+      "mention": {
+        "user_id": "pg_user_x",
+        "display_name": "",
+        "start_offset": 0,
+        "length": 1
+      },
+      "expected": {
+        "schema_valid": false,
+        "reason": "display_name 至少 1 字符、length ≥ 2"
+      }
+    },
+    {
+      "name": "format_negative_offset_rejected",
+      "markdown": "@张三",
+      "mention": {
+        "user_id": "pg_user_张三",
+        "display_name": "张三",
+        "start_offset": -1,
+        "length": 3
+      },
+      "expected": {
+        "schema_valid": false
+      }
+    }
+  ]
+}

@@ -1,0 +1,165 @@
+{
+  "$comment": "DESIGN §2 Note/NoteRevision 不变量、§3、§7.2 去重规则",
+  "cases": [
+    {
+      "name": "private_edit_after_publish_not_public",
+      "given": {
+        "note": "note_0123456789abcdef0123456789abcdef",
+        "published_revision_id": "nrev_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "heads": [
+          "nrev_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        ],
+        "B_parent": [
+          "nrev_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      },
+      "expected": {
+        "public_snapshot_revision": "nrev_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "public_sees_B": false,
+        "note": "私改未发布"
+      }
+    },
+    {
+      "name": "restore_same_content_creates_new_revision",
+      "given": {
+        "heads": [
+          "nrev_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        ],
+        "restore_source": "nrev_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "hash_A_equals_hash_new": true
+      },
+      "expected": {
+        "new_revision": true,
+        "restored_from": "nrev_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "parent_ids": [
+          "nrev_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        ],
+        "head_becomes": "new",
+        "note": "恢复同文仍新建修订，hash 相同不折叠"
+      }
+    },
+    {
+      "name": "two_concurrent_heads_kept",
+      "given": {
+        "device1_head": "nrev_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "device2_head": "nrev_cccccccccccccccccccccccccccccccc",
+        "both_parent": [
+          "nrev_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        ]
+      },
+      "expected": {
+        "heads": [
+          "nrev_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "nrev_cccccccccccccccccccccccccccccccc"
+        ],
+        "preferred_head": "user_choice",
+        "no_last_write_wins": true
+      }
+    },
+    {
+      "name": "merge_two_heads",
+      "given": {
+        "heads": [
+          "nrev_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "nrev_cccccccccccccccccccccccccccccccc"
+        ],
+        "merge_result": "nrev_dddddddddddddddddddddddddddddddd"
+      },
+      "expected": {
+        "M_parent_ids": [
+          "nrev_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "nrev_cccccccccccccccccccccccccccccccc"
+        ],
+        "heads_after": [
+          "nrev_dddddddddddddddddddddddddddddddd"
+        ]
+      }
+    },
+    {
+      "name": "no_change_autosave_no_revision",
+      "given": {
+        "projection_equals_head": true,
+        "summary_touched": false
+      },
+      "expected": {
+        "new_revision": false
+      }
+    },
+    {
+      "name": "summary_only_change_creates_revision",
+      "given": {
+        "projection_equals_head_except_summary": true,
+        "summary_touched": true
+      },
+      "expected": {
+        "new_revision": true,
+        "note": "仅改修改说明也是有效修改"
+      }
+    },
+    {
+      "name": "new_session_summary_starts_empty",
+      "given": {
+        "head_change_summary": "上次说明"
+      },
+      "expected": {
+        "initial_change_summary": "",
+        "summary_touched": false
+      }
+    },
+    {
+      "name": "preferred_head_must_be_in_heads",
+      "given": {
+        "heads": [
+          "nrev_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        ],
+        "preferred_head_id": "nrev_cccccccccccccccccccccccccccccccc"
+      },
+      "expected": {
+        "schema_valid": false
+      }
+    },
+    {
+      "name": "root_revision_has_empty_parents",
+      "given": {
+        "parent_ids": []
+      },
+      "expected": {
+        "schema_valid": true
+      }
+    },
+    {
+      "name": "annotation_requires_anchor_binding",
+      "given": {
+        "kind": "annotation",
+        "bindings": [
+          {
+            "relation": "about",
+            "target_kind": "knowledge_entry",
+            "target_ref": "ku_x",
+            "anchor": null
+          }
+        ]
+      },
+      "expected": {
+        "schema_valid": false,
+        "reason": "kind=annotation 至少一个带 anchor 的 binding"
+      }
+    },
+    {
+      "name": "quotes_requires_anchor",
+      "given": {
+        "bindings": [
+          {
+            "relation": "quotes",
+            "target_kind": "source_span",
+            "target_ref": "ss_x",
+            "anchor": null
+          }
+        ]
+      },
+      "expected": {
+        "schema_valid": false
+      }
+    }
+  ]
+}

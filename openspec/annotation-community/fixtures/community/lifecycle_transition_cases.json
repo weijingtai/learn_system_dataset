@@ -1,0 +1,470 @@
+{
+  "$comment": "state-machines.md 各表的代表性边（含非法边）；状态值必须在枚举总表内",
+  "cases": [
+    {
+      "name": "publish_from_never",
+      "machine": "SM-2a",
+      "from": "never_published",
+      "event": "content.publish",
+      "preconditions": {
+        "owner": true,
+        "lifecycle": "active",
+        "images_uploaded": true
+      },
+      "expected": {
+        "legal": true,
+        "to": "published"
+      }
+    },
+    {
+      "name": "publish_not_owner",
+      "machine": "SM-2a",
+      "from": "never_published",
+      "event": "content.publish",
+      "preconditions": {
+        "owner": false
+      },
+      "expected": {
+        "legal": false,
+        "http": 403,
+        "code": "forbidden.not_owner"
+      }
+    },
+    {
+      "name": "publish_lifecycle_trashed",
+      "machine": "SM-2a",
+      "from": "never_published",
+      "event": "content.publish",
+      "preconditions": {
+        "owner": true,
+        "lifecycle": "trashed"
+      },
+      "expected": {
+        "legal": false,
+        "http": 409,
+        "code": "conflict.lifecycle"
+      }
+    },
+    {
+      "name": "update_version_mismatch",
+      "machine": "SM-2a",
+      "from": "published",
+      "event": "content.update",
+      "preconditions": {
+        "owner": true,
+        "if_match_matches": false
+      },
+      "expected": {
+        "legal": false,
+        "http": 412,
+        "code": "conflict.version"
+      }
+    },
+    {
+      "name": "withdraw_ok",
+      "machine": "SM-2a",
+      "from": "published",
+      "event": "content.withdraw",
+      "preconditions": {
+        "owner": true,
+        "if_match_matches": true
+      },
+      "expected": {
+        "legal": true,
+        "to": "withdrawn"
+      }
+    },
+    {
+      "name": "republish_from_withdrawn",
+      "machine": "SM-2a",
+      "from": "withdrawn",
+      "event": "content.publish",
+      "preconditions": {
+        "owner": true,
+        "lifecycle": "active",
+        "if_match_matches": true
+      },
+      "expected": {
+        "legal": true,
+        "to": "published",
+        "note": "新 Publication，沿用 content_id"
+      }
+    },
+    {
+      "name": "withdraw_never_published",
+      "machine": "SM-2a",
+      "from": "never_published",
+      "event": "content.withdraw",
+      "preconditions": {},
+      "expected": {
+        "legal": false,
+        "http": 404,
+        "code": "not_found.content"
+      }
+    },
+    {
+      "name": "withdraw_twice",
+      "machine": "SM-2a",
+      "from": "withdrawn",
+      "event": "content.withdraw",
+      "preconditions": {
+        "owner": true
+      },
+      "expected": {
+        "legal": false,
+        "http": 409,
+        "code": "conflict.lifecycle"
+      }
+    },
+    {
+      "name": "trash_published_requires_withdraw",
+      "machine": "SM-3",
+      "from": "active",
+      "event": "content.trash",
+      "preconditions": {
+        "owner": true,
+        "visibility": "published"
+      },
+      "expected": {
+        "legal": false,
+        "http": 409,
+        "code": "conflict.lifecycle"
+      }
+    },
+    {
+      "name": "trash_after_withdraw",
+      "machine": "SM-3",
+      "from": "active",
+      "event": "content.trash",
+      "preconditions": {
+        "owner": true,
+        "visibility": "withdrawn"
+      },
+      "expected": {
+        "legal": true,
+        "to": "trashed"
+      }
+    },
+    {
+      "name": "trash_never_published_local",
+      "machine": "SM-3",
+      "from": "active",
+      "event": "content.trash",
+      "preconditions": {
+        "owner": true,
+        "visibility": "never_published",
+        "local": true
+      },
+      "expected": {
+        "legal": true,
+        "to": "trashed"
+      }
+    },
+    {
+      "name": "restore_within_30_days",
+      "machine": "SM-3",
+      "from": "trashed",
+      "event": "content.restore",
+      "preconditions": {
+        "owner": true,
+        "days_since_t0": 29
+      },
+      "expected": {
+        "legal": true,
+        "to": "active",
+        "note": "保持 private，moderation 不变"
+      }
+    },
+    {
+      "name": "restore_day_30_boundary",
+      "machine": "SM-3",
+      "from": "trashed",
+      "event": "content.restore",
+      "preconditions": {
+        "owner": true,
+        "days_since_t0": 30
+      },
+      "expected": {
+        "legal": true,
+        "to": "active",
+        "note": "≤ 30 天，闭区间"
+      }
+    },
+    {
+      "name": "restore_after_30_days",
+      "machine": "SM-3",
+      "from": "trashed",
+      "event": "content.restore",
+      "preconditions": {
+        "owner": true,
+        "days_since_t0": 31
+      },
+      "expected": {
+        "legal": false,
+        "http": 409,
+        "code": "conflict.lifecycle"
+      }
+    },
+    {
+      "name": "restore_from_purge_pending",
+      "machine": "SM-3",
+      "from": "purge_pending",
+      "event": "content.restore",
+      "preconditions": {
+        "owner": true
+      },
+      "expected": {
+        "legal": false,
+        "http": 409,
+        "code": "conflict.lifecycle"
+      }
+    },
+    {
+      "name": "purge_from_trashed",
+      "machine": "SM-3",
+      "from": "trashed",
+      "event": "content.purge",
+      "preconditions": {
+        "owner": true
+      },
+      "expected": {
+        "legal": true,
+        "to": "purge_pending"
+      }
+    },
+    {
+      "name": "purge_from_active_illegal",
+      "machine": "SM-3",
+      "from": "active",
+      "event": "content.purge",
+      "preconditions": {
+        "owner": true
+      },
+      "expected": {
+        "legal": false,
+        "http": 409,
+        "code": "conflict.lifecycle",
+        "note": "D-NC002-07"
+      }
+    },
+    {
+      "name": "purged_write_is_404",
+      "machine": "SM-3",
+      "from": "purged",
+      "event": "content.restore",
+      "preconditions": {
+        "owner": true
+      },
+      "expected": {
+        "legal": false,
+        "http": 404,
+        "code": "not_found.content"
+      }
+    },
+    {
+      "name": "purge_task_success_moves_to_purged",
+      "machine": "SM-3",
+      "from": "purge_pending",
+      "event": "PurgeTask.succeeded",
+      "preconditions": {},
+      "expected": {
+        "legal": true,
+        "to": "purged"
+      }
+    },
+    {
+      "name": "hidden_stays_after_restore",
+      "machine": "SM-4",
+      "from": "hidden",
+      "event": "content.restore",
+      "preconditions": {
+        "owner": true
+      },
+      "expected": {
+        "legal": true,
+        "to": "hidden",
+        "note": "作者操作不清除审核态"
+      }
+    },
+    {
+      "name": "hide_never_published_illegal",
+      "machine": "SM-4",
+      "from": "allowed",
+      "event": "moderation.hide",
+      "preconditions": {
+        "moderator": true,
+        "visibility": "never_published"
+      },
+      "expected": {
+        "legal": false,
+        "http": 409,
+        "code": "conflict.lifecycle"
+      }
+    },
+    {
+      "name": "pending_withdraw_enqueue",
+      "machine": "SM-5",
+      "from": "none",
+      "event": "enqueue withdraw",
+      "preconditions": {
+        "visibility": "published"
+      },
+      "expected": {
+        "legal": true,
+        "to": "withdraw_requested"
+      }
+    },
+    {
+      "name": "pending_conflict",
+      "machine": "SM-5",
+      "from": "withdraw_requested",
+      "event": "enqueue trash",
+      "preconditions": {},
+      "expected": {
+        "legal": false,
+        "local_error": "PendingOpConflict"
+      }
+    },
+    {
+      "name": "pending_trash_requires_withdraw",
+      "machine": "SM-5",
+      "from": "none",
+      "event": "enqueue trash",
+      "preconditions": {
+        "visibility": "published",
+        "ever_published": true
+      },
+      "expected": {
+        "legal": false,
+        "local_error": "TrashRequiresWithdraw"
+      }
+    },
+    {
+      "name": "pending_cleared_on_committed",
+      "machine": "SM-5",
+      "from": "trash_requested",
+      "event": "server committed",
+      "preconditions": {},
+      "expected": {
+        "legal": true,
+        "to": "none"
+      }
+    },
+    {
+      "name": "pending_restart_keeps_key",
+      "machine": "SM-5",
+      "from": "purge_requested",
+      "event": "app restart",
+      "preconditions": {},
+      "expected": {
+        "legal": true,
+        "to": "purge_requested",
+        "note": "不生成新 command_id"
+      }
+    },
+    {
+      "name": "editor_clean_to_dirty",
+      "machine": "SM-1",
+      "from": "clean",
+      "event": "onTextChanged",
+      "preconditions": {},
+      "expected": {
+        "legal": true,
+        "to": "dirty"
+      }
+    },
+    {
+      "name": "editor_saving_fail_keeps_undo",
+      "machine": "SM-1",
+      "from": "saving",
+      "event": "持久化失败",
+      "preconditions": {},
+      "expected": {
+        "legal": true,
+        "to": "save_failed",
+        "note": "undo 栈不清"
+      }
+    },
+    {
+      "name": "editor_retry_while_saving_illegal",
+      "machine": "SM-1",
+      "from": "saving",
+      "event": "点击重试",
+      "preconditions": {},
+      "expected": {
+        "legal": false,
+        "local_error": "IllegalEditorTransition"
+      }
+    },
+    {
+      "name": "editor_ime_no_autosave",
+      "machine": "SM-1",
+      "from": "ime_composing",
+      "event": "去抖到期",
+      "preconditions": {},
+      "expected": {
+        "legal": false,
+        "local_error": "IllegalEditorTransition"
+      }
+    },
+    {
+      "name": "delivery_abandon_after_5",
+      "machine": "SM-7",
+      "from": "failed",
+      "event": "attempt_count=5",
+      "preconditions": {},
+      "expected": {
+        "legal": true,
+        "to": "abandoned"
+      }
+    },
+    {
+      "name": "delivery_retry_under_5",
+      "machine": "SM-7",
+      "from": "failed",
+      "event": "重试到期",
+      "preconditions": {
+        "attempt_count": 3
+      },
+      "expected": {
+        "legal": true,
+        "to": "dispatching"
+      }
+    },
+    {
+      "name": "import_activate_from_ready",
+      "machine": "SM-8",
+      "from": "ready",
+      "event": "library.activate",
+      "preconditions": {},
+      "expected": {
+        "legal": true,
+        "to": "active"
+      }
+    },
+    {
+      "name": "import_activate_retained_illegal",
+      "machine": "SM-8",
+      "from": "retained",
+      "event": "library.activate",
+      "preconditions": {},
+      "expected": {
+        "legal": false,
+        "http": 409,
+        "code": "conflict.lifecycle",
+        "note": "D-NC002-08"
+      }
+    },
+    {
+      "name": "purge_task_failed_retry",
+      "machine": "SM-6",
+      "from": "failed",
+      "event": "重试",
+      "preconditions": {},
+      "expected": {
+        "legal": true,
+        "to": "queued"
+      }
+    }
+  ]
+}

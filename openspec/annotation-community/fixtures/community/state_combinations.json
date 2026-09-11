@@ -1,0 +1,305 @@
+{
+  "$comment": "DESIGN §4.1；state-machines.md §SM-C，24 组合 14 合法",
+  "cases": [
+    {
+      "visibility": "never_published",
+      "lifecycle": "active",
+      "moderation_state": "allowed",
+      "expected": {
+        "legal": true,
+        "on_read": null,
+        "on_write": null
+      }
+    },
+    {
+      "visibility": "never_published",
+      "lifecycle": "active",
+      "moderation_state": "hidden",
+      "expected": {
+        "legal": false,
+        "on_read": {
+          "http": 500,
+          "alert": true
+        },
+        "on_write": {
+          "http": 409,
+          "code": "conflict.lifecycle"
+        }
+      }
+    },
+    {
+      "visibility": "never_published",
+      "lifecycle": "trashed",
+      "moderation_state": "allowed",
+      "expected": {
+        "legal": true,
+        "on_read": null,
+        "on_write": null
+      }
+    },
+    {
+      "visibility": "never_published",
+      "lifecycle": "trashed",
+      "moderation_state": "hidden",
+      "expected": {
+        "legal": false,
+        "on_read": {
+          "http": 500,
+          "alert": true
+        },
+        "on_write": {
+          "http": 409,
+          "code": "conflict.lifecycle"
+        }
+      }
+    },
+    {
+      "visibility": "never_published",
+      "lifecycle": "purge_pending",
+      "moderation_state": "allowed",
+      "expected": {
+        "legal": true,
+        "on_read": null,
+        "on_write": null
+      }
+    },
+    {
+      "visibility": "never_published",
+      "lifecycle": "purge_pending",
+      "moderation_state": "hidden",
+      "expected": {
+        "legal": false,
+        "on_read": {
+          "http": 500,
+          "alert": true
+        },
+        "on_write": {
+          "http": 409,
+          "code": "conflict.lifecycle"
+        }
+      }
+    },
+    {
+      "visibility": "never_published",
+      "lifecycle": "purged",
+      "moderation_state": "allowed",
+      "expected": {
+        "legal": true,
+        "on_read": null,
+        "on_write": null
+      }
+    },
+    {
+      "visibility": "never_published",
+      "lifecycle": "purged",
+      "moderation_state": "hidden",
+      "expected": {
+        "legal": false,
+        "on_read": {
+          "http": 500,
+          "alert": true
+        },
+        "on_write": {
+          "http": 409,
+          "code": "conflict.lifecycle"
+        }
+      }
+    },
+    {
+      "visibility": "published",
+      "lifecycle": "active",
+      "moderation_state": "allowed",
+      "expected": {
+        "legal": true,
+        "on_read": null,
+        "on_write": null
+      }
+    },
+    {
+      "visibility": "published",
+      "lifecycle": "active",
+      "moderation_state": "hidden",
+      "expected": {
+        "legal": true,
+        "on_read": null,
+        "on_write": null
+      }
+    },
+    {
+      "visibility": "published",
+      "lifecycle": "trashed",
+      "moderation_state": "allowed",
+      "expected": {
+        "legal": false,
+        "on_read": {
+          "http": 500,
+          "alert": true
+        },
+        "on_write": {
+          "http": 409,
+          "code": "conflict.lifecycle"
+        }
+      }
+    },
+    {
+      "visibility": "published",
+      "lifecycle": "trashed",
+      "moderation_state": "hidden",
+      "expected": {
+        "legal": false,
+        "on_read": {
+          "http": 500,
+          "alert": true
+        },
+        "on_write": {
+          "http": 409,
+          "code": "conflict.lifecycle"
+        }
+      }
+    },
+    {
+      "visibility": "published",
+      "lifecycle": "purge_pending",
+      "moderation_state": "allowed",
+      "expected": {
+        "legal": false,
+        "on_read": {
+          "http": 500,
+          "alert": true
+        },
+        "on_write": {
+          "http": 409,
+          "code": "conflict.lifecycle"
+        }
+      }
+    },
+    {
+      "visibility": "published",
+      "lifecycle": "purge_pending",
+      "moderation_state": "hidden",
+      "expected": {
+        "legal": false,
+        "on_read": {
+          "http": 500,
+          "alert": true
+        },
+        "on_write": {
+          "http": 409,
+          "code": "conflict.lifecycle"
+        }
+      }
+    },
+    {
+      "visibility": "published",
+      "lifecycle": "purged",
+      "moderation_state": "allowed",
+      "expected": {
+        "legal": false,
+        "on_read": {
+          "http": 500,
+          "alert": true
+        },
+        "on_write": {
+          "http": 409,
+          "code": "conflict.lifecycle"
+        }
+      }
+    },
+    {
+      "visibility": "published",
+      "lifecycle": "purged",
+      "moderation_state": "hidden",
+      "expected": {
+        "legal": false,
+        "on_read": {
+          "http": 500,
+          "alert": true
+        },
+        "on_write": {
+          "http": 409,
+          "code": "conflict.lifecycle"
+        }
+      }
+    },
+    {
+      "visibility": "withdrawn",
+      "lifecycle": "active",
+      "moderation_state": "allowed",
+      "expected": {
+        "legal": true,
+        "on_read": null,
+        "on_write": null
+      }
+    },
+    {
+      "visibility": "withdrawn",
+      "lifecycle": "active",
+      "moderation_state": "hidden",
+      "expected": {
+        "legal": true,
+        "on_read": null,
+        "on_write": null
+      }
+    },
+    {
+      "visibility": "withdrawn",
+      "lifecycle": "trashed",
+      "moderation_state": "allowed",
+      "expected": {
+        "legal": true,
+        "on_read": null,
+        "on_write": null
+      }
+    },
+    {
+      "visibility": "withdrawn",
+      "lifecycle": "trashed",
+      "moderation_state": "hidden",
+      "expected": {
+        "legal": true,
+        "on_read": null,
+        "on_write": null
+      }
+    },
+    {
+      "visibility": "withdrawn",
+      "lifecycle": "purge_pending",
+      "moderation_state": "allowed",
+      "expected": {
+        "legal": true,
+        "on_read": null,
+        "on_write": null
+      }
+    },
+    {
+      "visibility": "withdrawn",
+      "lifecycle": "purge_pending",
+      "moderation_state": "hidden",
+      "expected": {
+        "legal": true,
+        "on_read": null,
+        "on_write": null
+      }
+    },
+    {
+      "visibility": "withdrawn",
+      "lifecycle": "purged",
+      "moderation_state": "allowed",
+      "expected": {
+        "legal": true,
+        "on_read": null,
+        "on_write": null
+      }
+    },
+    {
+      "visibility": "withdrawn",
+      "lifecycle": "purged",
+      "moderation_state": "hidden",
+      "expected": {
+        "legal": true,
+        "on_read": null,
+        "on_write": null
+      }
+    }
+  ]
+}

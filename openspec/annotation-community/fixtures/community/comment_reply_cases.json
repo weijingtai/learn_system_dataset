@@ -1,0 +1,232 @@
+{
+  "$comment": "DESIGN §2 Comment 不变量、§4.4 收回 vs 评论、§7.3 错误码",
+  "cases": [
+    {
+      "name": "root_comment",
+      "request": {
+        "thread_id": "thr_0123456789abcdef0123456789abcdef",
+        "root_id": null,
+        "reply_to_id": null
+      },
+      "context": {},
+      "expected": {
+        "http": 201,
+        "depth": 0
+      }
+    },
+    {
+      "name": "reply_to_root_same_thread",
+      "request": {
+        "thread_id": "thr_0123456789abcdef0123456789abcdef",
+        "root_id": "cmt_11111111111111111111111111111111",
+        "reply_to_id": "cmt_11111111111111111111111111111111"
+      },
+      "context": {
+        "cmt_11111111111111111111111111111111": {
+          "thread_id": "thr_0123456789abcdef0123456789abcdef",
+          "depth": 0,
+          "status": "visible"
+        }
+      },
+      "expected": {
+        "http": 201,
+        "depth": 1
+      }
+    },
+    {
+      "name": "reply_to_inner_comment_keeps_depth_1",
+      "request": {
+        "thread_id": "thr_0123456789abcdef0123456789abcdef",
+        "root_id": "cmt_11111111111111111111111111111111",
+        "reply_to_id": "cmt_33333333333333333333333333333333"
+      },
+      "context": {
+        "cmt_11111111111111111111111111111111": {
+          "thread_id": "thr_0123456789abcdef0123456789abcdef",
+          "depth": 0,
+          "status": "visible"
+        },
+        "cmt_33333333333333333333333333333333": {
+          "thread_id": "thr_0123456789abcdef0123456789abcdef",
+          "depth": 1,
+          "root_id": "cmt_11111111111111111111111111111111",
+          "status": "visible"
+        }
+      },
+      "expected": {
+        "http": 201,
+        "depth": 1
+      }
+    },
+    {
+      "name": "cross_thread_root_illegal",
+      "request": {
+        "thread_id": "thr_0123456789abcdef0123456789abcdef",
+        "root_id": "cmt_22222222222222222222222222222222",
+        "reply_to_id": "cmt_22222222222222222222222222222222"
+      },
+      "context": {
+        "cmt_22222222222222222222222222222222": {
+          "thread_id": "thr_fedcba9876543210fedcba9876543210",
+          "depth": 0,
+          "status": "visible"
+        }
+      },
+      "expected": {
+        "http": 400,
+        "code": "invalid_argument.root_id"
+      }
+    },
+    {
+      "name": "reply_to_in_other_root_illegal",
+      "request": {
+        "thread_id": "thr_0123456789abcdef0123456789abcdef",
+        "root_id": "cmt_11111111111111111111111111111111",
+        "reply_to_id": "cmt_33333333333333333333333333333333"
+      },
+      "context": {
+        "cmt_11111111111111111111111111111111": {
+          "thread_id": "thr_0123456789abcdef0123456789abcdef",
+          "depth": 0,
+          "status": "visible"
+        },
+        "cmt_33333333333333333333333333333333": {
+          "thread_id": "thr_0123456789abcdef0123456789abcdef",
+          "depth": 1,
+          "root_id": "cmt_22222222222222222222222222222222",
+          "status": "visible"
+        }
+      },
+      "expected": {
+        "http": 400,
+        "code": "invalid_argument.reply_to_id"
+      }
+    },
+    {
+      "name": "root_is_depth_1_illegal",
+      "request": {
+        "thread_id": "thr_0123456789abcdef0123456789abcdef",
+        "root_id": "cmt_33333333333333333333333333333333",
+        "reply_to_id": "cmt_33333333333333333333333333333333"
+      },
+      "context": {
+        "cmt_33333333333333333333333333333333": {
+          "thread_id": "thr_0123456789abcdef0123456789abcdef",
+          "depth": 1,
+          "root_id": "cmt_11111111111111111111111111111111",
+          "status": "visible"
+        }
+      },
+      "expected": {
+        "http": 400,
+        "code": "invalid_argument.root_id"
+      }
+    },
+    {
+      "name": "reply_to_deleted_root",
+      "request": {
+        "thread_id": "thr_0123456789abcdef0123456789abcdef",
+        "root_id": "cmt_11111111111111111111111111111111",
+        "reply_to_id": "cmt_11111111111111111111111111111111"
+      },
+      "context": {
+        "cmt_11111111111111111111111111111111": {
+          "thread_id": "thr_0123456789abcdef0123456789abcdef",
+          "depth": 0,
+          "status": "deleted"
+        }
+      },
+      "expected": {
+        "http": 403,
+        "code": "forbidden.thread_closed"
+      }
+    },
+    {
+      "name": "reply_to_deleted_target",
+      "request": {
+        "thread_id": "thr_0123456789abcdef0123456789abcdef",
+        "root_id": "cmt_11111111111111111111111111111111",
+        "reply_to_id": "cmt_33333333333333333333333333333333"
+      },
+      "context": {
+        "cmt_11111111111111111111111111111111": {
+          "thread_id": "thr_0123456789abcdef0123456789abcdef",
+          "depth": 0,
+          "status": "visible"
+        },
+        "cmt_33333333333333333333333333333333": {
+          "thread_id": "thr_0123456789abcdef0123456789abcdef",
+          "depth": 1,
+          "root_id": "cmt_11111111111111111111111111111111",
+          "status": "deleted"
+        }
+      },
+      "expected": {
+        "http": 403,
+        "code": "forbidden.thread_closed"
+      }
+    },
+    {
+      "name": "depth_field_must_be_0_or_1",
+      "request": {
+        "thread_id": "thr_0123456789abcdef0123456789abcdef",
+        "root_id": "cmt_11111111111111111111111111111111",
+        "reply_to_id": "cmt_33333333333333333333333333333333",
+        "depth": 2
+      },
+      "context": {},
+      "expected": {
+        "schema_valid": false
+      }
+    },
+    {
+      "name": "withdrawn_content_author_comment",
+      "request": {
+        "thread_id": "thr_0123456789abcdef0123456789abcdef",
+        "root_id": null,
+        "reply_to_id": null
+      },
+      "context": {
+        "content_visibility": "withdrawn",
+        "caller_is_author": true
+      },
+      "expected": {
+        "http": 403,
+        "code": "forbidden.thread_closed"
+      }
+    },
+    {
+      "name": "withdrawn_content_other_comment",
+      "request": {
+        "thread_id": "thr_0123456789abcdef0123456789abcdef",
+        "root_id": null,
+        "reply_to_id": null
+      },
+      "context": {
+        "content_visibility": "withdrawn",
+        "caller_is_author": false
+      },
+      "expected": {
+        "http": 404,
+        "code": "not_found.content"
+      }
+    },
+    {
+      "name": "access_version_mismatch_keeps_draft",
+      "request": {
+        "thread_id": "thr_0123456789abcdef0123456789abcdef",
+        "expected_access_version": 3
+      },
+      "context": {
+        "current_access_version": 4,
+        "content_visibility": "published"
+      },
+      "expected": {
+        "http": 409,
+        "code": "conflict.access_version",
+        "current_access_version": 4,
+        "draft_retained": true
+      }
+    }
+  ]
+}

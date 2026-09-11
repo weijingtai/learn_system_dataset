@@ -1,0 +1,16 @@
+TASK_ID: NC-002
+STATUS: PREPARING
+GOAL: 把 NC-002 契约与 fixture 落为 JSON Schema、fixture 校验器与 SERVER nchash/v2 实现
+CONTRACTS:
+  - openspec/annotation-community/contracts/community-models.md
+  - openspec/annotation-community/contracts/state-machines.md
+SPLIT:
+  - act/01.yaml
+  - act/02.yaml
+  - act/03.yaml
+  - act/04.yaml
+  - act/05.yaml
+ORDER: "严格按 act/01 → 02 → 03 → 04 → 05；前四步各一个 learn_system 提交，第五步一个 SERVER 提交；每步以上一步提交为基线；禁止并行"
+ESTIMATE_MINUTES_TOTAL: 255
+DEFERRED:
+  - "CLIENT/test/contracts/content_hash_parity_test.dart：CLIENT 不存在，推迟为 NC-004 的第一条 ACT"

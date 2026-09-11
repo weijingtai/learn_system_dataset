@@ -1,0 +1,299 @@
+{
+  "$comment": "DESIGN §2.1 五类非法格式；community-models.md §0.1。字段名 → 允许前缀由 Schema $defs 固定。",
+  "cases": [
+    {
+      "name": "valid_note",
+      "field": "note_id",
+      "value": "note_0123456789abcdef0123456789abcdef",
+      "expected": {
+        "valid": true
+      }
+    },
+    {
+      "name": "valid_note_revision",
+      "field": "note_revision_id",
+      "value": "nrev_0123456789abcdef0123456789abcdef",
+      "expected": {
+        "valid": true
+      }
+    },
+    {
+      "name": "valid_publication",
+      "field": "publication_id",
+      "value": "pub_0123456789abcdef0123456789abcdef",
+      "expected": {
+        "valid": true
+      }
+    },
+    {
+      "name": "valid_content_access",
+      "field": "content_access_id",
+      "value": "cacc_0123456789abcdef0123456789abcdef",
+      "expected": {
+        "valid": true
+      }
+    },
+    {
+      "name": "valid_content_binding",
+      "field": "content_binding_id",
+      "value": "cbnd_0123456789abcdef0123456789abcdef",
+      "expected": {
+        "valid": true
+      }
+    },
+    {
+      "name": "valid_anchor_ref",
+      "field": "anchor_ref_id",
+      "value": "anc_0123456789abcdef0123456789abcdef",
+      "expected": {
+        "valid": true
+      }
+    },
+    {
+      "name": "valid_anchor_resolution",
+      "field": "anchor_resolution_id",
+      "value": "ares_0123456789abcdef0123456789abcdef",
+      "expected": {
+        "valid": true
+      }
+    },
+    {
+      "name": "valid_thread",
+      "field": "thread_id",
+      "value": "thr_0123456789abcdef0123456789abcdef",
+      "expected": {
+        "valid": true
+      }
+    },
+    {
+      "name": "valid_comment",
+      "field": "comment_id",
+      "value": "cmt_0123456789abcdef0123456789abcdef",
+      "expected": {
+        "valid": true
+      }
+    },
+    {
+      "name": "valid_comment_revision",
+      "field": "comment_revision_id",
+      "value": "crev_0123456789abcdef0123456789abcdef",
+      "expected": {
+        "valid": true
+      }
+    },
+    {
+      "name": "valid_reaction",
+      "field": "reaction_id",
+      "value": "rct_0123456789abcdef0123456789abcdef",
+      "expected": {
+        "valid": true
+      }
+    },
+    {
+      "name": "valid_bookmark",
+      "field": "bookmark_id",
+      "value": "bmk_0123456789abcdef0123456789abcdef",
+      "expected": {
+        "valid": true
+      }
+    },
+    {
+      "name": "valid_share_link",
+      "field": "share_link_id",
+      "value": "shr_0123456789abcdef0123456789abcdef",
+      "expected": {
+        "valid": true
+      }
+    },
+    {
+      "name": "valid_backup_manifest",
+      "field": "backup_manifest_id",
+      "value": "bkm_0123456789abcdef0123456789abcdef",
+      "expected": {
+        "valid": true
+      }
+    },
+    {
+      "name": "valid_notification_record",
+      "field": "notification_record_id",
+      "value": "ntf_0123456789abcdef0123456789abcdef",
+      "expected": {
+        "valid": true
+      }
+    },
+    {
+      "name": "valid_behavior_event",
+      "field": "behavior_event_id",
+      "value": "bev_0123456789abcdef0123456789abcdef",
+      "expected": {
+        "valid": true
+      }
+    },
+    {
+      "name": "valid_actor_pseudonym",
+      "field": "actor_pseudonym",
+      "value": "psn_0123456789abcdef0123456789abcdef",
+      "expected": {
+        "valid": true
+      }
+    },
+    {
+      "name": "unknown_prefix",
+      "field": "note_id",
+      "value": "xyz_0123456789abcdef0123456789abcdef",
+      "expected": {
+        "valid": false,
+        "error_class": "①",
+        "reason": "① 前缀不在表中"
+      }
+    },
+    {
+      "name": "hex_too_short",
+      "field": "note_id",
+      "value": "note_0123456789abcdef0123456789abcde",
+      "expected": {
+        "valid": false,
+        "error_class": "②",
+        "reason": "② hex 段长度 31"
+      }
+    },
+    {
+      "name": "hex_too_long",
+      "field": "note_id",
+      "value": "note_0123456789abcdef0123456789abcdef0",
+      "expected": {
+        "valid": false,
+        "error_class": "②",
+        "reason": "② hex 段长度 33"
+      }
+    },
+    {
+      "name": "uppercase_hex",
+      "field": "comment_id",
+      "value": "cmt_0123456789ABCDEF0123456789ABCDEF",
+      "expected": {
+        "valid": false,
+        "error_class": "③",
+        "reason": "③ 含大写"
+      }
+    },
+    {
+      "name": "non_hex_char",
+      "field": "thread_id",
+      "value": "thr_0123456789abcdef0123456789abcdeg",
+      "expected": {
+        "valid": false,
+        "error_class": "③",
+        "reason": "③ 非 hex 字符"
+      }
+    },
+    {
+      "name": "upstream_art_prefix",
+      "field": "note_id",
+      "value": "art_0123456789abcdef0123456789abcdef",
+      "expected": {
+        "valid": false,
+        "error_class": "④",
+        "reason": "④ 上游保留前缀 art_"
+      }
+    },
+    {
+      "name": "upstream_rev_as_note_revision",
+      "field": "note_revision_id",
+      "value": "rev_0123456789abcdef0123456789abcdef",
+      "expected": {
+        "valid": false,
+        "error_class": "④",
+        "reason": "④ rev_ 误用作 NoteRevision（与 nrev_ 仅差一字母，必须显式覆盖）"
+      }
+    },
+    {
+      "name": "upstream_rel_prefix",
+      "field": "publication_id",
+      "value": "rel_0123456789abcdef0123456789abcdef",
+      "expected": {
+        "valid": false,
+        "error_class": "④",
+        "reason": "④ 上游保留前缀 rel_"
+      }
+    },
+    {
+      "name": "upstream_pr_prefix",
+      "field": "comment_id",
+      "value": "pr_0123456789abcdef0123456789abcdef",
+      "expected": {
+        "valid": false,
+        "error_class": "④",
+        "reason": "④ 上游保留前缀 pr_"
+      }
+    },
+    {
+      "name": "upstream_prun_prefix",
+      "field": "thread_id",
+      "value": "prun_0123456789abcdef0123456789abcdef",
+      "expected": {
+        "valid": false,
+        "error_class": "④",
+        "reason": "④ 上游保留前缀 prun_"
+      }
+    },
+    {
+      "name": "prefix_field_mismatch_cmt_in_thread",
+      "field": "thread_id",
+      "value": "cmt_0123456789abcdef0123456789abcdef",
+      "expected": {
+        "valid": false,
+        "error_class": "⑤",
+        "reason": "⑤ thread_id 收到 cmt_"
+      }
+    },
+    {
+      "name": "prefix_field_mismatch_note_in_publication",
+      "field": "publication_id",
+      "value": "note_0123456789abcdef0123456789abcdef",
+      "expected": {
+        "valid": false,
+        "error_class": "⑤",
+        "reason": "⑤ publication_id 收到 note_"
+      }
+    },
+    {
+      "name": "empty",
+      "field": "note_id",
+      "value": "",
+      "expected": {
+        "valid": false,
+        "error_class": "②",
+        "reason": "② 空串"
+      }
+    },
+    {
+      "name": "missing_underscore",
+      "field": "note_id",
+      "value": "note0123456789abcdef0123456789abcdef",
+      "expected": {
+        "valid": false,
+        "error_class": "①",
+        "reason": "① 无下划线分隔"
+      }
+    },
+    {
+      "name": "content_id_is_note_id",
+      "field": "content_id",
+      "value": "note_0123456789abcdef0123456789abcdef",
+      "expected": {
+        "valid": true
+      }
+    },
+    {
+      "name": "content_id_rejects_pub_prefix",
+      "field": "content_id",
+      "value": "pub_0123456789abcdef0123456789abcdef",
+      "expected": {
+        "valid": false,
+        "error_class": "⑤",
+        "reason": "content_id 取值即 note_ ID"
+      }
+    }
+  ]
+}

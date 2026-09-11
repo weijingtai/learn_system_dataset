@@ -103,3 +103,7 @@ FIX_V1_4 §4 的有界账本备选未获选择，继续 UUIDv4/永久保留基�
 - 目录核对无 nc-* 执行包和社区机器契约；与 G6 BACKLOG/BLOCKED 一致。不能把守卫只证明的结构/关键词覆盖升级为业务测试通过。
 - 三角色意见一致：可准备工作包；UI 实测、真实通知/存储/设备链路与业务实现尚未验收。
 - 本轮只输出此准入报告并更新交接，不批量将 NC 标为 READY/ACCEPTED，也不改写已通过的四份总规格。
+
+## 附：NC-002 前缀结论（2026-09-10 增补）
+
+DESIGN §2.1 的十七个 UGC ID 前缀由用户全权托管主 Agent 于 2026-09-10 **前缀整表采用**并冻结，记录于 `contracts/community-models.md` §0.1 与 `docs/blackbox-spec-rework/SUBAGENT_TODO.md` G6 节 NC-002 条目；本节与 SUBAGENT_TODO 结论一致，消除 §3「不应重问全部命名」与 SUBAGENT_TODO「须先取得确认」两处表述的矛盾。用户可推翻，推翻时同步修改三处。
