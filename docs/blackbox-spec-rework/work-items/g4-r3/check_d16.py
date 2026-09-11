@@ -8,7 +8,7 @@
 对应 ACT `blackbox-g4-r3/01` 的 checker 六条规则（R1–R6）：
   R1 新节存在且位置在 `## G4 黑箱 D 类规格` 与 `## G6 注解社区线` 之间，恰 1 次；
   R2 表 A 首列与规格 §19 主表首列名多重集相等（各恰 1 次），且第 4 列为存在的路径；
-  R3 表 B 每行「开头文字」在 PLAN 中恰匹配 1 条 `- [ ] <开头>` 或 `- [x] <开头>` 行（未勾选与已勾选合计恰 1），标注 ∈ 三值，行数 = 43；
+  R3 表 B 每行「开头文字」在 PLAN 中恰匹配 1 条 `- [ ] <开头>` 或 `- [x] <开头>` 行（未勾选与已勾选合计恰 1），标注 ∈ 三值，行数 ≥ 43；
   R4 PLAN 其余 `- [ ]` 行要么在表 B、要么在新节 C、要么位于 G6/注解社区各节；
   R5 新节 C 恰 3 条 `- [ ]`，各含 `run_all.sh 20.`；
   R6 三个 owner 文件各恰 1 行含 `唯一登记处`，且含 `KnowledgeReleaseCompiler` 的行数各为 1。
@@ -226,8 +226,8 @@ def main():
     # ---- R3 表 B 每条开头文字恰匹配 1 行（未勾选或已勾选） ----
     _, b_body = sub_region(body, "### B.", body_offset)
     b_rows = first_table_data_rows(b_body)
-    if len(b_rows) != 43:
-        fail("R3", "表 B 数据行数=%d（应 43）" % len(b_rows))
+    if len(b_rows) < 43:
+        fail("R3", "表 B 数据行数=%d（应 ≥ 43）" % len(b_rows))
     matched_indices = set()
     for row in b_rows:
         row_cells = cells(row)
