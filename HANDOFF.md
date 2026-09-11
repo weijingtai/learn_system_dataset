@@ -14,7 +14,7 @@
 更新时间：2026-09-11
 当前分支/worktree：`codex/docs/knowledge-compilation`；`/Users/jingtaiwei/Git/Public/learn_system`
 刚完成：NC-005 两轮四查 READY（`e20c591`），PROMPT 已交用户派发；Dataset 通知 D-16 落地（`76bc4b4`）后按「只追加/只勾选、零删行」补 PLAN.md 的 NC-004 ACCEPTED、NC-005 READY/派发、NC-006 准备条目。此前 NC-004 由外部 Agent 在新仓库 `xuan-migration/reading-notes` 完成五个提交（`9ac96cc`→`957536c`），主 Agent 亲自验收通过（详见 `work-items/nc-004/ACCEPTANCE.md` 验收记录：守卫 `--require-impl` 0、35 测试、Dart/Python 交叉复算、sqlite3 直查、失败注入回滚）。SUBAGENT_TODO 记 NC-004 `ACCEPTED`。NC-005 契约 `contracts/editor.md` 与六件套已产出，第一轮四查 REWORK 3 项已落实（`651220d`），第二轮缩范围审查进行中。
-进行到一半的事（精确到文件和章节）：等 NC-005 执行报告，按 `work-items/nc-005/ACCEPTANCE.md` 验收；NC-006（撤销/重做/IME）六件套在 `work-items/nc-006/` 准备中。
+进行到一半的事（精确到文件和章节）：等 NC-005 执行报告（执行方已提交 act/01 `10ef174`，act/02 进行中），按 `work-items/nc-005/ACCEPTANCE.md` 验收；NC-006 契约 `contracts/editor_history.md` 与六件套已落盘 `DRAFT`（`a478257`，守卫 `nc006_guard.sh` 0），wjt-react R1 四查进行中。关键平台事实已核 Flutter 3.44.6 源码并写入契约 §2：平台 `UndoHistory` 栈不可关闭、`undoController.undo()` 弹平台栈、`Action.overridable` 可被祖先 `Actions` 覆盖、默认键表无 Ctrl+Y。
 下一步（第一件事）：NC-005 报告回来 → `nc005_guard.sh --require-impl` + 盲测（去抖 1999/2000/2001 ms、400 ms 边界、大写 scheme 外部图片不联网、三态文案与 PRD §6.1 逐字 diff）。并行完成 NC-006 六件套并送四查。
 已知的坑：PLAN.md 今后只能追加或把 `- [ ]` 改 `- [x]`（D-16 零删行判据；`check_d16.py` 只查黑箱侧条目，不查 G6 节）；G6 新条目不需登记进 D-16 映射表。一次性 Dart 盲测需 `import 'package:drift/drift.dart'` 才能用 `interceptWith`；执行方报告在 reading-notes 根目录未跟踪，验收不入库。
 
