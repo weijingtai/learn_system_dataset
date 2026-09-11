@@ -1,5 +1,12 @@
 # PLAN
 
+## G4 黑箱 D 类规格（Dataset 会话）
+
+- [x] 第一批 `work-items/g4-r1/`：D-13/D-10/D-11、D-06/D-08、D-14 六项由外部 Agent 落实，主 Agent 验收 `ACCEPTED`（2026-09-10；证据 `docs/blackbox-spec-rework/work-items/g4-r1/ACCEPTANCE.md`）。
+- [ ] 用户拍板：`school_id`/`school_view_id` 前缀；§22 分期方案；D-15 fixture 页图是否进 Git。
+- [ ] 第二批：D-15 mini fixture → D-18 §20 判据化与 `openspec/acceptance/run_all.sh`；D-16 PLAN 映射表（与 C/S 会话约定时间窗后执行）。
+- [ ] G5 总准出：G4 D 类全部 `ACCEPTED` 后复核 BDD 总验收包、机器门禁与 ACT 覆盖映射。
+
 ## G6 注解社区线（C/S 会话；与 Dataset 会话的 G3 线并行、互不暂存）
 
 - [x] 按 `AGENT_TAKEOVER_PROMPT.md` 冷启动、复跑 G3 与 G6 守卫、发出首次汇报；根 README 注解社区入口修正（`fe83bd8`）。

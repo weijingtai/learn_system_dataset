@@ -27,7 +27,7 @@ bash openspec/schemas/verify.sh >/dev/null; echo "schemas exit=$?"    # 0
 | d06 | `grep -c '^├── AnchorContractPack$' $S` | 0 | 1 |
 | d06 | `grep -c 'AnchorContractPack\|IdentityMigrationMap' $S` | 1 | ≥ 8 |
 | d06 | `sed -n '/^## 20\./,/^## 21\./p' $S \| grep -c '^11\. '` | 0 | 1 |
-| d06 | `grep -c '锚点迁移关系' $S` | 0 | ≥ 2 |
+| d06 | `grep -c '锚点迁移关系' $S` | 0 | 1（验收勘误：原写 ≥2 是主 Agent 笔误，ACT 文本中该词只在 §18 一行出现） |
 | d08 | `grep -c '^- Interpretation、SchoolView、Alias；$' $S` | 0 | 1 |
 | d08 | `grep -c 'SchoolView\|changes_current_judgment' $S` | 2 | ≥ 5（新增：列表行、定义段、SchoolViewPack 段、§18 行） |
 | d08 | `grep -c 'SchoolViewPack' $S` | 0 | ≥ 1 |

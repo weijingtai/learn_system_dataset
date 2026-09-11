@@ -1,6 +1,15 @@
 # ACCEPTANCE：G4 第一批（D-13 / D-10 / D-11 / D-06 / D-08 / D-14）
 
-状态：`DISPATCHED`（2026-09-10，三组并行，各自 worktree）
+状态：`ACCEPTED`（2026-09-10；六个提交 `4086c2c` D-13、`015e34f` D-10、`3598ea8` D-11、`e474ae4` D-06、`07f79dd` D-08、`d36a202` D-14，由用户交外部 Agent 在主工作树串行完成，主 Agent 独立验收通过；D-14 §22 分期与 D-08 前缀仍待用户确认）
+
+## 验收实得（主 Agent，HEAD `d36a202`，`LC_ALL=en_US.UTF-8`）
+
+- **范围**：六个提交各只含 `openspec/learn-system-blackbox-architecture.md`（D-14 另含 `LEARN_SYSTEM_TARGET.md`）；`git diff --check 8ebadac HEAD` 通过；删除行仅为 ACT 指定的替换目标（§6.2 两行、§14 一句、§19 表头/分隔/19 行改写为五列）。
+- **门禁**：`verify-T.sh` `FAIL 合计: 0`、`PASS  G3-` 12、T-04s/T-06s/T-11/T-13 34 行全 PASS；`mutations.sh all` `109/109 rejected`，无 not-rejected/NOT_APPLIED；`openspec/schemas/verify.sh` exit 0；`LC_ALL=C` 下仅既有 `T-06s` 环境误报。
+- **判据**：TDD §1 共 26 条，25 条符合；`锚点迁移关系 ≥2` 实得 1，系主 Agent 期望值写错（ACT 文本中该词只在 §18 一行出现），非执行缺陷，TDD 已加注。
+- **逐字核对**：脚本抽取六个 ACT 的全部块标量与单行字段共 75 行，逐行 `grep -Fxc` 均恰 1（`状态：讨论候选` 因其他章节同文出现 5 次属预期；D-06 的 KnowledgeGraph 行已按 D-08 改为 SchoolView 版本且旧版残留 0）；§19 的 19 个数据行 `-`/`+` 去掉行尾标签后逐一配对，既有单元格字节未变。
+- **语义审查**：通读 243 行 diff，插入位置、空行、代码围栏、表格与 ACT 一致；§3–§18 `状态：` 行映射与合并前相同；§22 首非空行 `状态：讨论候选`；两个新块位于 TP 冻结区之前且仅隔一个空行；D-08 未自造前缀，占位句存在。
+- **备注**：六个规格提交未附 `Co-Authored-By` 署名（外部 Agent 执行，Prompt 未要求），不构成验收项。
 
 ## 0. 转译审查（原规划者四查，2026-09-10）
 

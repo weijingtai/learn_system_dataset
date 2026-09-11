@@ -1,5 +1,14 @@
 # HANDOFF
 
+## G4 第一批六项规格验收通过（Dataset 会话；黑箱线最新状态）
+
+更新时间：2026-09-10
+当前分支/worktree：`codex/docs/knowledge-compilation`；`/Users/jingtaiwei/Git/Public/learn_system`
+刚完成：用户把 `work-items/g4-r1/` 的三份 Prompt 交外部 Agent 串行执行，产生六个规格提交（D-13 `4086c2c`、D-10 `015e34f`、D-11 `3598ea8`、D-06 `e474ae4`、D-08 `07f79dd`、D-14 `d36a202`）。主 Agent 独立验收：门禁 0 FAIL / 109/109 / schemas 0 / diff --check 通过；TDD 26 条判据 25 条符合、1 条为主 Agent 期望笔误已勘误；75 行 ACT 文本逐字命中；243 行 diff 逐句审查无偏差。六项 `ACCEPTED`，证据 `work-items/g4-r1/ACCEPTANCE.md`。
+进行到一半的事（精确到文件和章节）：G4 还剩 D-15（mini fixture）、D-16（PLAN 映射表）、D-18（§20 判据化 + `openspec/acceptance/run_all.sh`），均 `BACKLOG`，第二批工作包未写。
+下一步（第一件事）：等用户拍板三件事后写第二批：① `school_id`/`school_view_id` 前缀（登记 §8.1）；② §22 分期方案（首纵切内 = Artifact Ledger、M3、M5、M8）是否认可，认可后 §22 状态改「已确认设计」；③ D-15 fixture 的《三辰通载》page_001..003 派生页图是否进 Git（建议不进，走本地 Object Store 引用）。D-16 改 `PLAN.md` 前须与 C/S 会话约定时间窗。
+已知的坑：仓库内残留主 Agent 早先停掉的空 worktree `.claude/worktrees/agent-ad7f6f7bb2ae5215e`（无提交，分支停在 `cb175c4`），导致 `git status` 出现 `?? .claude/`；AGENTS.md 禁止 `git branch -D`，清理由用户决定。外部 Agent 的六个提交未带 `Co-Authored-By`，非验收项。
+
 ## G6 NC-001-01 验收通过（C/S 会话）
 
 更新时间：2026-09-10

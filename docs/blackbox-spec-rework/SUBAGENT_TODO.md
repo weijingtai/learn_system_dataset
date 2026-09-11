@@ -358,20 +358,20 @@
   - [x] 既有交叉审查通过
   - [x] 无业务实现冒充规格完成
 
-- [ ] D-06：Annotation 锚点迁移（状态：`DISPATCHED`；工作包 `work-items/g4-r1/act/d06.yaml`，B 组）
-  - [ ] README/范围/依赖/禁止项
-  - [ ] BDD 场景
-  - [ ] TDD 正反用例与精确命令
-  - [ ] ACT.yaml（含 SCOPE、ON_FAIL、VERIFICATION）
-  - [ ] Executor Prompt
-  - [ ] Acceptance 清单
-  - [ ] `wjt-react` 判定 READY
-  - [ ] 派发执行 Agent
-  - [ ] 执行提交与原始证据
-  - [ ] 主 Agent 规格审查
-  - [ ] 主 Agent 质量审查
-  - [ ] PLAN/HANDOFF 同步
-  - [ ] 主 Agent 标记 `ACCEPTED`
+- [x] D-06：Annotation 锚点迁移（状态：`ACCEPTED`；`e474ae4`，`work-items/g4-r1/act/d06.yaml`，验收见 `work-items/g4-r1/ACCEPTANCE.md`）
+  - [x] README/范围/依赖/禁止项
+  - [x] BDD 场景
+  - [x] TDD 正反用例与精确命令
+  - [x] ACT.yaml（含 SCOPE、ON_FAIL、VERIFICATION）
+  - [x] Executor Prompt
+  - [x] Acceptance 清单
+  - [x] `wjt-react` 判定 READY
+  - [x] 派发执行 Agent
+  - [x] 执行提交与原始证据
+  - [x] 主 Agent 规格审查
+  - [x] 主 Agent 质量审查
+  - [x] PLAN/HANDOFF 同步
+  - [x] 主 Agent 标记 `ACCEPTED`
 
 - [x] D-07：TechniqueProfile 与 QueryContract（状态：`ACCEPTED`；R4 `ffe19df` 三个封闭块 + R5 `241c38c` 三段区域到下一 START 封闭，d07 34/34）
   - [x] README/范围/依赖/禁止项
@@ -392,20 +392,20 @@
   - [x] R3/R4：精确 Package 起始行与肯定兼容声明后复验（`1d4a6dc`、`ffe19df`）
   - [x] R5：三段区域到下一 START/§16.2 完整封闭，主 Agent 验收 `ACCEPTED`（`work-items/g3-r5/ACCEPTANCE.md`）
 
-- [ ] D-08：SchoolView（状态：`DISPATCHED`；工作包 `work-items/g4-r1/act/d08.yaml`，B 组；`school_id` 前缀待用户确认）
-  - [ ] README/范围/依赖/禁止项
-  - [ ] BDD 场景
-  - [ ] TDD 正反用例与精确命令
-  - [ ] ACT.yaml（含 SCOPE、ON_FAIL、VERIFICATION）
-  - [ ] Executor Prompt
-  - [ ] Acceptance 清单
-  - [ ] `wjt-react` 判定 READY
-  - [ ] 派发执行 Agent
-  - [ ] 执行提交与原始证据
-  - [ ] 主 Agent 规格审查
-  - [ ] 主 Agent 质量审查
-  - [ ] PLAN/HANDOFF 同步
-  - [ ] 主 Agent 标记 `ACCEPTED`
+- [x] D-08：SchoolView（状态：`ACCEPTED`；`07f79dd`，`work-items/g4-r1/act/d08.yaml`；`school_id`/`school_view_id` 前缀待用户确认后登记 §8.1）
+  - [x] README/范围/依赖/禁止项
+  - [x] BDD 场景
+  - [x] TDD 正反用例与精确命令
+  - [x] ACT.yaml（含 SCOPE、ON_FAIL、VERIFICATION）
+  - [x] Executor Prompt
+  - [x] Acceptance 清单
+  - [x] `wjt-react` 判定 READY
+  - [x] 派发执行 Agent
+  - [x] 执行提交与原始证据
+  - [x] 主 Agent 规格审查
+  - [x] 主 Agent 质量审查
+  - [x] PLAN/HANDOFF 同步
+  - [x] 主 Agent 标记 `ACCEPTED`
 
 - [x] D-09：EditionPart Gate 口径（状态：`ACCEPTED`；旧流程豁免补制标准工作包）
   - [x] 已确认设计写入规格
@@ -413,35 +413,35 @@
   - [x] 既有交叉审查通过
   - [x] 无业务实现冒充规格完成
 
-- [ ] D-10：精确失效传播（状态：`DISPATCHED`；工作包 `work-items/g4-r1/act/d10.yaml`，A 组）
-  - [ ] README/范围/依赖/禁止项
-  - [ ] BDD 场景
-  - [ ] TDD 正反用例与精确命令
-  - [ ] ACT.yaml（含 SCOPE、ON_FAIL、VERIFICATION）
-  - [ ] Executor Prompt
-  - [ ] Acceptance 清单
-  - [ ] `wjt-react` 判定 READY
-  - [ ] 派发执行 Agent
-  - [ ] 执行提交与原始证据
-  - [ ] 主 Agent 规格审查
-  - [ ] 主 Agent 质量审查
-  - [ ] PLAN/HANDOFF 同步
-  - [ ] 主 Agent 标记 `ACCEPTED`
+- [x] D-10：精确失效传播（状态：`ACCEPTED`；`015e34f`，`work-items/g4-r1/act/d10.yaml`）
+  - [x] README/范围/依赖/禁止项
+  - [x] BDD 场景
+  - [x] TDD 正反用例与精确命令
+  - [x] ACT.yaml（含 SCOPE、ON_FAIL、VERIFICATION）
+  - [x] Executor Prompt
+  - [x] Acceptance 清单
+  - [x] `wjt-react` 判定 READY
+  - [x] 派发执行 Agent
+  - [x] 执行提交与原始证据
+  - [x] 主 Agent 规格审查
+  - [x] 主 Agent 质量审查
+  - [x] PLAN/HANDOFF 同步
+  - [x] 主 Agent 标记 `ACCEPTED`
 
-- [ ] D-11：StageCheckpoint（状态：`DISPATCHED`；工作包 `work-items/g4-r1/act/d11.yaml`，A 组）
-  - [ ] README/范围/依赖/禁止项
-  - [ ] BDD 场景
-  - [ ] TDD 正反用例与精确命令
-  - [ ] ACT.yaml（含 SCOPE、ON_FAIL、VERIFICATION）
-  - [ ] Executor Prompt
-  - [ ] Acceptance 清单
-  - [ ] `wjt-react` 判定 READY
-  - [ ] 派发执行 Agent
-  - [ ] 执行提交与原始证据
-  - [ ] 主 Agent 规格审查
-  - [ ] 主 Agent 质量审查
-  - [ ] PLAN/HANDOFF 同步
-  - [ ] 主 Agent 标记 `ACCEPTED`
+- [x] D-11：StageCheckpoint（状态：`ACCEPTED`；`3598ea8`，`work-items/g4-r1/act/d11.yaml`）
+  - [x] README/范围/依赖/禁止项
+  - [x] BDD 场景
+  - [x] TDD 正反用例与精确命令
+  - [x] ACT.yaml（含 SCOPE、ON_FAIL、VERIFICATION）
+  - [x] Executor Prompt
+  - [x] Acceptance 清单
+  - [x] `wjt-react` 判定 READY
+  - [x] 派发执行 Agent
+  - [x] 执行提交与原始证据
+  - [x] 主 Agent 规格审查
+  - [x] 主 Agent 质量审查
+  - [x] PLAN/HANDOFF 同步
+  - [x] 主 Agent 标记 `ACCEPTED`
 
 - [x] D-12：跨阶段 Review Console（状态：`ACCEPTED`；旧流程豁免补制标准工作包）
   - [x] 已确认设计写入规格
@@ -449,35 +449,35 @@
   - [x] 既有交叉审查通过
   - [x] 无业务实现冒充规格完成
 
-- [ ] D-13：ReleaseRun 人工回路（状态：`DISPATCHED`；工作包 `work-items/g4-r1/act/d13.yaml`，A 组）
-  - [ ] README/范围/依赖/禁止项
-  - [ ] BDD 场景
-  - [ ] TDD 正反用例与精确命令
-  - [ ] ACT.yaml（含 SCOPE、ON_FAIL、VERIFICATION）
-  - [ ] Executor Prompt
-  - [ ] Acceptance 清单
-  - [ ] `wjt-react` 判定 READY
-  - [ ] 派发执行 Agent
-  - [ ] 执行提交与原始证据
-  - [ ] 主 Agent 规格审查
-  - [ ] 主 Agent 质量审查
-  - [ ] PLAN/HANDOFF 同步
-  - [ ] 主 Agent 标记 `ACCEPTED`
+- [x] D-13：ReleaseRun 人工回路（状态：`ACCEPTED`；`4086c2c`，`work-items/g4-r1/act/d13.yaml`）
+  - [x] README/范围/依赖/禁止项
+  - [x] BDD 场景
+  - [x] TDD 正反用例与精确命令
+  - [x] ACT.yaml（含 SCOPE、ON_FAIL、VERIFICATION）
+  - [x] Executor Prompt
+  - [x] Acceptance 清单
+  - [x] `wjt-react` 判定 READY
+  - [x] 派发执行 Agent
+  - [x] 执行提交与原始证据
+  - [x] 主 Agent 规格审查
+  - [x] 主 Agent 质量审查
+  - [x] PLAN/HANDOFF 同步
+  - [x] 主 Agent 标记 `ACCEPTED`
 
-- [ ] D-14：实施分期与首纵切（状态：`DISPATCHED`；工作包 `work-items/g4-r1/act/d14.yaml`，C 组；§22 分期待用户过目）
-  - [ ] README/范围/依赖/禁止项
-  - [ ] BDD 场景
-  - [ ] TDD 正反用例与精确命令
-  - [ ] ACT.yaml（含 SCOPE、ON_FAIL、VERIFICATION）
-  - [ ] Executor Prompt
-  - [ ] Acceptance 清单
-  - [ ] `wjt-react` 判定 READY
-  - [ ] 派发执行 Agent
-  - [ ] 执行提交与原始证据
-  - [ ] 主 Agent 规格审查
-  - [ ] 主 Agent 质量审查
-  - [ ] PLAN/HANDOFF 同步
-  - [ ] 主 Agent 标记 `ACCEPTED`
+- [x] D-14：实施分期与首纵切（状态：`ACCEPTED`；`d36a202`，`work-items/g4-r1/act/d14.yaml`；§22 分期为讨论候选，待用户过目）
+  - [x] README/范围/依赖/禁止项
+  - [x] BDD 场景
+  - [x] TDD 正反用例与精确命令
+  - [x] ACT.yaml（含 SCOPE、ON_FAIL、VERIFICATION）
+  - [x] Executor Prompt
+  - [x] Acceptance 清单
+  - [x] `wjt-react` 判定 READY
+  - [x] 派发执行 Agent
+  - [x] 执行提交与原始证据
+  - [x] 主 Agent 规格审查
+  - [x] 主 Agent 质量审查
+  - [x] PLAN/HANDOFF 同步
+  - [x] 主 Agent 标记 `ACCEPTED`
 
 - [ ] D-15：最小可跑 fixture（状态：`BACKLOG`）
   - [ ] README/范围/依赖/禁止项
