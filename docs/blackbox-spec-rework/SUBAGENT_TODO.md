@@ -560,7 +560,7 @@
 
 ## G7 首纵切实现（Dataset 会话；§22 顺序 Artifact Ledger → M3 → M5 → M8）
 
-- [ ] impl-01：Artifact Ledger §17（状态：`READY`；工作包 `work-items/impl-01-ledger/`，六个 ACT 分 H1（00–02）/H2（03–05）两轮派发；完成判据 `openspec/acceptance/run_all.sh` 20.2/20.3 由 BLOCKED 变 PASS，`SUMMARY pass=2 fail=1 blocked=8`）
+- [ ] impl-01：Artifact Ledger §17（状态：`DISPATCHED`，H1 `ACCEPTED`、H2 派发中；工作包 `work-items/impl-01-ledger/`，六个 ACT 分 H1（00–02）/H2（03–05）两轮派发；完成判据 `openspec/acceptance/run_all.sh` 20.2/20.3 由 BLOCKED 变 PASS，`SUMMARY pass=2 fail=1 blocked=8`）
   - [x] README/范围/依赖/禁止项
   - [x] BDD 场景
   - [x] TDD 正反用例与精确命令
@@ -568,10 +568,10 @@
   - [x] Executor Prompt（H1、H2）
   - [x] Acceptance 清单
   - [x] `wjt-react` 判定 READY（2026-09-11）
-  - [ ] 派发 H1 执行 Agent
-  - [ ] H1 执行提交与原始证据（ACT 00/01/02）
-  - [ ] 主 Agent 验收 H1
-  - [ ] 派发 H2 执行 Agent
+  - [x] 派发 H1 执行 Agent（2026-09-11）
+  - [x] H1 执行提交与原始证据（ACT 00/01/02：`ba9b68e`、`823bead`、`0dff35d`）
+  - [x] 主 Agent 验收 H1（`impl-01-ledger/ACCEPTANCE.md` §5.1；三点裁定：16 表、from_status/to_status、insert_stage_package）
+  - [x] 派发 H2 执行 Agent（2026-09-11）
   - [ ] H2 执行提交与原始证据（ACT 03/04/05）
   - [ ] 主 Agent 规格审查
   - [ ] 主 Agent 质量审查

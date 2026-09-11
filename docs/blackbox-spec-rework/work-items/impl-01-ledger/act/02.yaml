@@ -49,7 +49,8 @@ contract:
     class MetadataStore(path: Path)
       open() / close()；migrate()（幂等建表，写 schema_meta）
       transaction() 上下文管理器：BEGIN IMMEDIATE；异常回滚
-      低层 CRUD（供 service 调用，不做业务校验）：insert_artifact/insert_revision/update_revision_status(rev, from, to, reason, actor)（用 UPDATE … WHERE status=from 且 rowcount==1 否则 IllegalTransition）/get_revision/insert_processing_run/insert_step_run/update_step_run_status(step_run_id, from, to, expected_status_version, …)（乐观锁：WHERE status=from AND status_version=expected；成功后 status_version+1）/append_step_run_event/add_frozen_inputs/insert_transformation(+inputs/outputs/human_events)/insert_human_event/insert_checkpoint/latest_checkpoint(edition_part_id, stage)/list_checkpoints/append_audit/get_step_run/list_step_run_events/list_transformations(step_run_id)
+      低层 CRUD（供 service 调用，不做业务校验）：insert_artifact/insert_revision/update_revision_status(rev, from_status, to_status, reason, actor)（`from`/`to` 是 Python 关键字，裁定用 from_status/to_status，与 revision_status_events 列名一致）（用 UPDATE … WHERE status=from 且 rowcount==1 否则 IllegalTransition）/get_revision/insert_processing_run/insert_step_run/update_step_run_status(step_run_id, from_status, to_status, expected_status_version, fields=None)（乐观锁：WHERE status=from AND status_version=expected；成功后 status_version+1）/append_step_run_event/add_frozen_inputs/insert_transformation(+inputs/outputs/human_events)/insert_human_event/insert_checkpoint/latest_checkpoint(edition_part_id, stage)/list_checkpoints/append_audit/get_step_run/list_step_run_events/list_transformations(step_run_id)
+      另含（裁定 2026-09-11 采纳执行者补充，供 ACT 03 register_stage_package 使用）：insert_stage_package / get_stage_package / list_transformation_inputs / list_transformation_outputs / count_audit
       只读打开：MetadataStore.open_readonly(path) 用 `file:...?mode=ro` URI，不取写锁
 tests:
   test_objects.py:
@@ -59,7 +60,7 @@ tests:
     - test_tmp_file_not_left_behind_on_success
     - test_verify_detects_tampered_object（直接改文件一字节 → verify False）
   test_store.py:
-    - test_migrate_creates_all_tables（sqlite_master 表名集合 == DDL 15 张表）
+    - test_migrate_creates_all_tables（sqlite_master 表名集合 == DDL 16 张表；原写 15 为主 Agent 数错，执行者上报后订正）
     - test_wal_and_foreign_keys_enabled
     - test_update_revision_status_rejects_stale_from_status（IllegalTransition）
     - test_step_run_optimistic_lock（两次以同一 expected_status_version 更新，第二次 IllegalTransition）

@@ -1,6 +1,6 @@
 # ACCEPTANCE：impl-01 Artifact Ledger
 
-状态：`READY`（H1 待用户交外部 Agent；H2 在 H1 `ACCEPTED` 后派发）
+状态：H1（ACT 00/01/02）`ACCEPTED`（`ba9b68e`、`823bead`、`0dff35d`，见 §5）；H2 `DISPATCHED`（`PROMPT-H2.md`）
 
 ## 0. 转译审查（主 Agent 四查，2026-09-11）
 
@@ -32,3 +32,17 @@
 ## 4. 结论
 
 H1、H2 各自通过后记 `ACCEPTED`；全部通过后：SUBAGENT_TODO G7 impl-01 `ACCEPTED`、PLAN D-16 节 C「Artifact Ledger」条目勾选（附提交）、HANDOFF 同步；下一批 impl-02（M3 Corpus Compilation 在 Ledger 上的真实编译，目标 `run_all.sh 20.1` 的 fixture 部分）。
+
+## 5. 验收记录
+
+### 5.1 H1（2026-09-11，`git archive 0dff35d` 干净树，软链 `.venv`）
+
+执行者上报三点，裁定：① DDL 表数 16 是对的，ACT/TDD 的「15」为主 Agent 数错，已订正；② `from`/`to` 为 Python 关键字，采纳 `from_status`/`to_status`；③ 采纳 `insert_stage_package` 与四个只读 helper（`stage_packages` 表在 contract 内，H2 需用而 ACT 03 scope 不含 `store.py`）。三点已回写 `act/02.yaml`/`TDD.md`。
+
+- 范围：三提交分别 1 / 8 / 6 文件，只含 `commit.add` 路径；无 `var/`、`__pycache__`；`git diff --check` 通过；`.gitignore` +3 行（空行、中文注释、`var/`）。
+- 门禁：`verify-T.sh` 0 FAIL、`mutations.sh` 109/109、`schemas/verify.sh` 0、`check_d16.py` `D16 OK`（R3 已为 `< 43` 才 FAIL）。
+- ACT 00 篡改：表 B 追加合法行（44）→ `D16 OK`；删一行（42）→ `FAIL R3 …=42（应 ≥ 43）`。
+- ACT 01：`unittest` 26/26；`ids.PATTERNS` 19 项与 ACT 逐字相等；`ARTIFACT_TRANSITIONS`/`STEP_RUN_TRANSITIONS` 与 §8.2 表逐字相等；5×5 与 6×6 迁移穷举结果与表一致；表外取值 `SCH_002`；`ERROR_CODES` 九码逐字；`kind_of` 最长前缀（`co_shared_`、`prun_` 优先）；`pr_`+hex32 冒充 processing_run_id → `ID_001`；`LocalActorProvider` 返回 `local_owner`。
+- ACT 02：`sqlite_master` 16 张表逐字；抽查四表列名齐全；外键 20 条；`journal_mode=wal`；`schema_meta` 1.0.0；Object Store 去重、篡改一字节 `verify` False、缺对象 `REF_001`、无 tmp 残留；跨进程第二写入者 `WriterLocked`、释放后可取得；只读连接写入 `OperationalError`；乐观锁过期版本 `IllegalTransition`、成功后 `status_version` 递增；异常事务回滚审计计数不变。
+- 质量：导入只有标准库 + 自身包；中文 docstring；测试只用 `tempfile`。
+- 主 Agent 自误：验收脚本用 `multiprocessing` 从 stdin 起子进程在 macOS 失败，改为 `subprocess` 复验，与执行者无关。

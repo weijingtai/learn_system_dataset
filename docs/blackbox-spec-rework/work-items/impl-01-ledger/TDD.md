@@ -21,7 +21,7 @@ $PY --version                                                                   
 |---|---|---|
 | 00 | `check_d16.py --plan 副本(表 B 44 行)` → `D16 FAIL R3 表 B 数据行数=44` | `D16 OK`；副本 42 行 → `FAIL R3 …=42` |
 | 01 | `$T` → ImportError（用例名已存在） | `$T` OK，用例 ≥ 13；`ids.PATTERNS` 19 项与 ACT 逐字相等（脚本比对） |
-| 02 | `$T` 新增用例全 ERROR | 用例 ≥ 26；`sqlite_master` 15 张表；`grep -Fxc 'var/' .gitignore` = 1 |
+| 02 | `$T` 新增用例全 ERROR | 用例 ≥ 26；`sqlite_master` 16 张表（原写 15 为主 Agent 数错）；`grep -Fxc 'var/' .gitignore` = 1 |
 | 03 | 新增用例全 ERROR | 用例 ≥ 54；`test_checkpoint` 8 条全过 |
 | 04 | 新增用例全 ERROR | 用例 ≥ 61；`cli init/status` 可用 |
 | 05 | `run_all.sh` 20.2/20.3 为 BLOCKED；新增用例全 ERROR | 用例 ≥ 71；`run_all.sh` → `PASS  20.2`、`PASS  20.3`、`SUMMARY pass=2 fail=1 blocked=8`、exit 1 |
