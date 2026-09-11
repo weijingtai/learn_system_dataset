@@ -464,7 +464,7 @@
   - [x] PLAN/HANDOFF 同步
   - [x] 主 Agent 标记 `ACCEPTED`
 
-- [x] D-14：实施分期与首纵切（状态：`ACCEPTED`；`d36a202`，`work-items/g4-r1/act/d14.yaml`；§22 分期为讨论候选，待用户过目）
+- [x] D-14：实施分期与首纵切（状态：`ACCEPTED`；`d36a202`，`work-items/g4-r1/act/d14.yaml`；§22 分期用户 2026-09-10 确认，状态已改「已确认设计」）
   - [x] README/范围/依赖/禁止项
   - [x] BDD 场景
   - [x] TDD 正反用例与精确命令
@@ -479,7 +479,7 @@
   - [x] PLAN/HANDOFF 同步
   - [x] 主 Agent 标记 `ACCEPTED`
 
-- [ ] D-15：最小可跑 fixture（状态：`BACKLOG`）
+- [ ] D-15：最小可跑 fixture（状态：`PREPARING`；用户 2026-09-10 裁定：《三辰通载》派生页图不进 Git，fixture 只含转录文本与锚点，页图走本地 Object Store 引用，缺图报 `BLOCKED_SOURCE_ASSET_MISSING`）
   - [ ] README/范围/依赖/禁止项
   - [ ] BDD 场景
   - [ ] TDD 正反用例与精确命令
