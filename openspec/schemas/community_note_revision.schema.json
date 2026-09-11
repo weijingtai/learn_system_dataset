@@ -1,0 +1,301 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CommunityNoteRevision",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "$ref": "community_common.schema.json#/$defs/noteRevisionId"
+    },
+    "note_id": {
+      "$ref": "community_common.schema.json#/$defs/noteId"
+    },
+    "parent_ids": {
+      "type": "array",
+      "items": {
+        "$ref": "community_common.schema.json#/$defs/noteRevisionId"
+      },
+      "uniqueItems": true
+    },
+    "title": {
+      "type": "string",
+      "maxLength": 200
+    },
+    "markdown": {
+      "type": "string"
+    },
+    "attachment_refs": {
+      "type": "array",
+      "maxItems": 20,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/attachmentRef"
+      }
+    },
+    "mentions": {
+      "type": "array",
+      "maxItems": 50,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/mentionRef"
+      }
+    },
+    "bindings": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/bindingRef"
+      }
+    },
+    "content_hash": {
+      "$ref": "community_common.schema.json#/$defs/hex64"
+    },
+    "change_summary": {
+      "type": "string",
+      "maxLength": 500
+    },
+    "restored_from": {
+      "oneOf": [
+        {
+          "$ref": "community_common.schema.json#/$defs/noteRevisionId"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "created_at": {
+      "$ref": "community_common.schema.json#/$defs/timestamp"
+    },
+    "created_on_device": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "required": [
+    "id",
+    "note_id",
+    "parent_ids",
+    "title",
+    "markdown",
+    "attachment_refs",
+    "mentions",
+    "bindings",
+    "content_hash",
+    "change_summary",
+    "restored_from",
+    "created_at",
+    "created_on_device"
+  ],
+  "$defs": {
+    "attachmentRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "attachment_id": {
+          "$ref": "community_common.schema.json#/$defs/attachmentId"
+        },
+        "object_version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "content_digest": {
+          "$ref": "community_common.schema.json#/$defs/hex64"
+        },
+        "alt": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "caption": {
+          "type": "string",
+          "maxLength": 500
+        }
+      },
+      "required": [
+        "attachment_id",
+        "object_version",
+        "content_digest",
+        "alt",
+        "caption"
+      ]
+    },
+    "mentionRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "user_id": {
+          "$ref": "community_common.schema.json#/$defs/accountId"
+        },
+        "display_name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "start_offset": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "length": {
+          "type": "integer",
+          "minimum": 2
+        }
+      },
+      "required": [
+        "user_id",
+        "display_name",
+        "start_offset",
+        "length"
+      ]
+    },
+    "bindingRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "relation": {
+          "$ref": "community_common.schema.json#/$defs/relation"
+        },
+        "target_kind": {
+          "$ref": "community_common.schema.json#/$defs/targetKind"
+        },
+        "target_ref": {
+          "$ref": "community_common.schema.json#/$defs/targetRef"
+        },
+        "anchor": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/anchorRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "relation",
+        "target_kind",
+        "target_ref",
+        "anchor"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "relation": {
+                "const": "quotes"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "anchor": {
+                "$ref": "#/$defs/anchorRef"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "anchorRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "anchor_id": {
+          "$ref": "community_common.schema.json#/$defs/anchorRefId"
+        },
+        "target_type": {
+          "$ref": "community_common.schema.json#/$defs/targetKind"
+        },
+        "entity_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "artifact_revision_id": {
+          "$ref": "community_common.schema.json#/$defs/upstreamRevisionId"
+        },
+        "release_id": {
+          "$ref": "community_common.schema.json#/$defs/upstreamReleaseId"
+        },
+        "context": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "before": {
+              "type": "string",
+              "maxLength": 64
+            },
+            "after": {
+              "type": "string",
+              "maxLength": 64
+            }
+          },
+          "required": [
+            "before",
+            "after"
+          ]
+        },
+        "selector": {
+          "$ref": "#/$defs/selector"
+        }
+      },
+      "required": [
+        "anchor_id",
+        "target_type",
+        "entity_id",
+        "artifact_revision_id",
+        "release_id",
+        "context",
+        "selector"
+      ]
+    },
+    "selector": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schema": {
+          "type": "string",
+          "const": "selector/v0-provisional"
+        },
+        "ranges": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "block_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "artifact_revision_id": {
+                "$ref": "community_common.schema.json#/$defs/upstreamRevisionId"
+              },
+              "text_hash": {
+                "$ref": "community_common.schema.json#/$defs/hex64"
+              },
+              "start": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "end": {
+                "type": "integer",
+                "minimum": 0
+              }
+            },
+            "required": [
+              "block_id",
+              "artifact_revision_id",
+              "text_hash",
+              "start",
+              "end"
+            ]
+          }
+        }
+      },
+      "required": [
+        "schema",
+        "ranges"
+      ]
+    }
+  }
+}

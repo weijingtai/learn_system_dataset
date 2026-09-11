@@ -1,0 +1,51 @@
+id: nrev_0123456789abcdef0123456789abcdef
+note_id: note_0123456789abcdef0123456789abcdef
+parent_ids: []
+title: "十月丙火"
+markdown: "丙火生于亥月，@张三 请看 ![图](attachment://img-a1)"
+attachment_refs:
+  - attachment_id: img-a1
+    object_version: 1
+    content_digest: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+    alt: "图例"
+    caption: "图例说明"
+mentions:
+  - user_id: user_0123456789
+    display_name: "张三"
+    start_offset: 7
+    length: 3
+bindings:
+  - relation: quotes
+    target_kind: source_span
+    target_ref: ku_0123456789
+    anchor:
+      anchor_id: anc_0123456789abcdef0123456789abcdef
+      target_type: source_span
+      entity_id: ku_0123456789
+      artifact_revision_id: rev_0123456789abcdef0123456789abcdef
+      release_id: rel_0123456789abcdef0123456789abcdef
+      context:
+        before: "前文"
+        after: "后文"
+      selector:
+        schema: selector/v0-provisional
+        ranges:
+          - block_id: blk_01
+            artifact_revision_id: rev_0123456789abcdef0123456789abcdef
+            text_hash: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+            start: 0
+            end: 10
+          - block_id: blk_02
+            artifact_revision_id: rev_0123456789abcdef0123456789abcdef
+            text_hash: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+            start: 10
+            end: 20
+  - relation: about
+    target_kind: assertion
+    target_ref: ku_0123456789
+    anchor: null
+content_hash: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+change_summary: "初始创建"
+restored_from: null
+created_at: '2026-09-10T12:00:00Z'
+created_on_device: device_01

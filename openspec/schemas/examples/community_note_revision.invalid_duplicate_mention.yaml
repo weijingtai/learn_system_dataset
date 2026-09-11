@@ -1,0 +1,21 @@
+id: nrev_0123456789abcdef0123456789abcdef
+note_id: note_0123456789abcdef0123456789abcdef
+parent_ids: []
+title: "十月丙火"
+markdown: "丙火生于亥月"
+attachment_refs: []
+mentions:
+  - user_id: user_0123456789
+    display_name: "张三"
+    start_offset: 0
+    length: 3
+  - user_id: user_0123456789
+    display_name: "张三"
+    start_offset: 0
+    length: 3
+bindings: []
+content_hash: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+change_summary: "初始创建"
+restored_from: null
+created_at: '2026-09-10T12:00:00Z'
+created_on_device: device_01

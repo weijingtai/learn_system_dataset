@@ -1,0 +1,29 @@
+note:
+  id: note_0123456789abcdef0123456789abcdef
+  owner_scope: user_scope_0123
+  kind: annotation
+  head_revision_ids:
+    - nrev_0123456789abcdef0123456789abcdef
+  preferred_head_id: nrev_0123456789abcdef0123456789abcdef
+  lifecycle: active
+  pending_op: none
+  created_at: '2026-09-10T12:00:00Z'
+  trashed_at: null
+revision:
+  id: nrev_0123456789abcdef0123456789abcdef
+  note_id: note_0123456789abcdef0123456789abcdef
+  parent_ids: []
+  title: "十月丙火"
+  markdown: "丙火生于亥月，@张三 请看"
+  attachment_refs: []
+  mentions: []
+  bindings:
+    - relation: about
+      target_kind: assertion
+      target_ref: ku_0123456789
+      anchor: null
+  content_hash: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+  change_summary: "注解修订"
+  restored_from: null
+  created_at: '2026-09-10T12:00:00Z'
+  created_on_device: device_01

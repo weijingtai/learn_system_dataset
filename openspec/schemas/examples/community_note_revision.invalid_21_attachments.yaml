@@ -1,0 +1,118 @@
+id: nrev_0123456789abcdef0123456789abcdef
+note_id: note_0123456789abcdef0123456789abcdef
+parent_ids: []
+title: "十月丙火"
+markdown: "丙火生于亥月"
+attachment_refs:
+  - attachment_id: att-01
+    object_version: 1
+    content_digest: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+    alt: ""
+    caption: ""
+  - attachment_id: att-02
+    object_version: 1
+    content_digest: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+    alt: ""
+    caption: ""
+  - attachment_id: att-03
+    object_version: 1
+    content_digest: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+    alt: ""
+    caption: ""
+  - attachment_id: att-04
+    object_version: 1
+    content_digest: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+    alt: ""
+    caption: ""
+  - attachment_id: att-05
+    object_version: 1
+    content_digest: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+    alt: ""
+    caption: ""
+  - attachment_id: att-06
+    object_version: 1
+    content_digest: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+    alt: ""
+    caption: ""
+  - attachment_id: att-07
+    object_version: 1
+    content_digest: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+    alt: ""
+    caption: ""
+  - attachment_id: att-08
+    object_version: 1
+    content_digest: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+    alt: ""
+    caption: ""
+  - attachment_id: att-09
+    object_version: 1
+    content_digest: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+    alt: ""
+    caption: ""
+  - attachment_id: att-10
+    object_version: 1
+    content_digest: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+    alt: ""
+    caption: ""
+  - attachment_id: att-11
+    object_version: 1
+    content_digest: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+    alt: ""
+    caption: ""
+  - attachment_id: att-12
+    object_version: 1
+    content_digest: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+    alt: ""
+    caption: ""
+  - attachment_id: att-13
+    object_version: 1
+    content_digest: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+    alt: ""
+    caption: ""
+  - attachment_id: att-14
+    object_version: 1
+    content_digest: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+    alt: ""
+    caption: ""
+  - attachment_id: att-15
+    object_version: 1
+    content_digest: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+    alt: ""
+    caption: ""
+  - attachment_id: att-16
+    object_version: 1
+    content_digest: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+    alt: ""
+    caption: ""
+  - attachment_id: att-17
+    object_version: 1
+    content_digest: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+    alt: ""
+    caption: ""
+  - attachment_id: att-18
+    object_version: 1
+    content_digest: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+    alt: ""
+    caption: ""
+  - attachment_id: att-19
+    object_version: 1
+    content_digest: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+    alt: ""
+    caption: ""
+  - attachment_id: att-20
+    object_version: 1
+    content_digest: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+    alt: ""
+    caption: ""
+  - attachment_id: att-21
+    object_version: 1
+    content_digest: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+    alt: ""
+    caption: ""
+mentions: []
+bindings: []
+content_hash: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+change_summary: "初始创建"
+restored_from: null
+created_at: '2026-09-10T12:00:00Z'
+created_on_device: device_01
