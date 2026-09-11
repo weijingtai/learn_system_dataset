@@ -38,7 +38,9 @@ else:
     det.append("files="+str(all((ed/f).is_file() for f in ["note_editor_controller.dart","save_status.dart","markdown_preview.dart","note_editor_page.dart"])))
     lock=read(CLIENT/"pubspec.lock"); okl=bool(re.search(r"^  flutter_markdown_plus:\n(?:    .*\n)*?    version: \"1\.0\.12\"",lock,re.M)) and bool(re.search(r"^  drift:\n(?:    .*\n)*?    version: \"2\.31\.0\"",lock,re.M)); ok&=okl; det.append(f"lock={okl}")
     src="".join(read(p) for p in (CLIENT/"test/editor").rglob("*.dart")) if (CLIENT/"test/editor").exists() else ""; lib="".join(read(p) for p in ed.rglob("*.dart"))
-    cheats=[p for p in ("skip:","skip(","expect(true, isTrue)") if p in src]; bad=[p for p in ("Image.network","NetworkImage","Shortcuts(","CallbackShortcuts(","Timer(","textScaleFactor") if p in lib]
+    # D-NC006-12：NC-006 落地（adapter 文件存在）后，Shortcuts 禁令由 nc006_guard 接管，本处不再扫描
+    scan=("Image.network","NetworkImage","Timer(","textScaleFactor") if (ed/"editor_history_adapter.dart").is_file() else ("Image.network","NetworkImage","Shortcuts(","CallbackShortcuts(","Timer(","textScaleFactor")
+    cheats=[p for p in ("skip:","skip(","expect(true, isTrue)") if p in src]; bad=[p for p in scan if p in lib]
     ok&=not cheats and not bad; det.append(f"cheats={cheats} bad={bad}")
     for f in ["lib/src/domain","lib/src/persistence","test/persistence","test/contracts"]:
         r=subprocess.run(["git","-C",str(CLIENT),"log","--format=%s","--",f],capture_output=True,text=True).stdout

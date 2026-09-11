@@ -55,6 +55,7 @@
 - 平台按键映射（PRD §4 表）由 NC-006 实现；NC-005 不注册任何快捷键，不禁用系统输入行为。
 - 撤销不触发远端命令、不删除仍被历史引用的图片；自动保存成功不清栈；重开页面栈为空（持久历史在修订库）。
 - 可观察断言（NC-006）：按一次 Ctrl+Z，`undoCount` 增 1 且文本仅回退一个 undo 单元；空编辑器以 100 ms 间隔输入 a、b、c 后 Ctrl+Z 一次 → 文本空串、canRedo=true、canUndo=false。
+- NC-006 落地细则（adapter 接口、归组判定、Intent 覆盖、Ctrl+Y 补映射、焦点边界）见 [editor_history.md](editor_history.md)；本节「`TextField(undoController: adapterController)`」一句以该文 §2 第二行为准：页面 `undoController` 保持 `null`，撤销经 `Actions` 覆盖 `UndoTextIntent/RedoTextIntent`，不经 `UndoHistoryController`。
 
 ## 5. Markdown 预览与安全（DESIGN §5、TASKS NC-005 安全断言）
 

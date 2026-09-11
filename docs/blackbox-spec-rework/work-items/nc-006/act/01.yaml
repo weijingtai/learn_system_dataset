@@ -1,0 +1,47 @@
+TASK_ID: NC-006-A
+PARENT: NC-006
+STATUS: DRAFT
+REPO: xuan-migration/reading-notes
+GOAL: 实现 EditorHistoryAdapter：diff 分类、三条归组规则与连续性、IME 单元、封闭、重做清空、计数与 clear，17 项测试
+DEPENDS_ON: []
+ESTIMATE_MINUTES: 60
+WORKLOAD: "adapter 约 220 行（单元结构、前后缀 diff、归组判定、undo/redo/clear、ValueNotifier）+ 17 个纯 Dart 测试与 type() 辅助函数"
+SCOPE:
+  READ:
+    - /Users/jingtaiwei/Git/Public/learn_system/openspec/annotation-community/contracts/editor_history.md
+    - /Users/jingtaiwei/Git/Public/learn_system/openspec/annotation-community/contracts/editor.md §2、§4
+    - /Users/jingtaiwei/Git/Public/learn_system/docs/blackbox-spec-rework/work-items/nc-006/TDD.md、BDD.md
+    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/lib/src/editor/（NC-005 产物）、/Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/lib/src/domain/limits.dart、editor_snapshot.dart、note_revision.dart（只读）
+    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/test/support/（NC-005 替身，只读复用）
+    - /Users/jingtaiwei/flutter/packages/flutter/lib/src/widgets/undo_history.dart、default_text_editing_shortcuts.dart（只看不复制）
+  WRITE_NEW:
+    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/lib/src/editor/editor_history_adapter.dart
+    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/test/editor/editor_history_test.dart
+    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/lib/reading_notes.dart（追加导出）
+  FORBIDDEN:
+    - /Users/jingtaiwei/Git/Public/learn_system 下任何写入
+    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/lib/src/domain/、lib/src/persistence/、test/persistence/、test/contracts/（NC-004 文件）
+    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/lib/src/editor/save_status.dart、markdown_preview.dart；test/editor/save_status_test.dart、markdown_preview_test.dart、note_editor_test.dart（NC-005 文件）
+    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/pubspec.yaml、pubspec.lock（零新依赖）
+    - xuan-migration 其他目录；父目录 git
+    - UndoHistoryController 驱动撤销；adapter 内 DateTime.now()/Timer(/Stopwatch(/字面量 500 与 20；Ctrl+Y 之外任何新键；skip；永真断言；先实现后补测试
+DEPENDENCY_ALLOWLIST: [无新增；沿用 NC-005 锁定版本]
+RULES:
+  - "分类、归组、键表、Widget 树位置只来自 editor_history.md；期望值只来自 TDD；契约未写明的行为触发停止条件，不自行裁定"
+  - "归组常量只引用 limits.dart 的 undoMergeMaxGapMs / undoMergeMaxChars"
+  - "每步先写测试取得真实 Red 原文，再实现；不修改前步测试期望"
+  - "只在 reading-notes 内 git add 本步文件；提交消息按 COMMIT_MESSAGE，末尾另起两行 Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
+ON_FAIL: "停止并报告失败命令、退出码与原文；不改契约、测试期望，不新增依赖，不扩大范围。NC-005 的 applySnapshot 不存在、页面构造无法增加 history 参数、Action.overridable 覆盖在 flutter test 下未生效、需要改 NC-004 文件，均为停止条件。learn_system 侧 nc006_guard.sh 的 K01 失败判外部失败只记录；K02 及以后按本任务失败停工。"
+BASELINE_EXIT_CODES: "开工基线：NC-005 ACCEPTED（reading-notes flutter test +75、analyze 0；末提交 hash 见 README）；learn_system nc006_guard.sh=0（K05 SKIP）"
+TESTS_FIRST:
+  - "写 17 个测试与仅含类型骨架、方法抛 UnimplementedError 的 adapter；运行 flutter test test/editor/editor_history_test.dart，保存失败原文作为 Red"
+STEPS:
+  - "实现 adapter 至 17 个测试通过；flutter analyze 0"
+  - "git add 本步文件并提交"
+VERIFICATION:
+  - "export PATH=/Users/jingtaiwei/flutter/bin:$PATH && cd /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes && flutter analyze"
+  - "cd /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes && flutter test test/editor/editor_history_test.dart（期望 +17）"
+  - "cd /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes && grep -nE '\\b500\\b|\\b20\\b|DateTime\\.now\\(|Timer\\(|Stopwatch\\(' lib/src/editor/editor_history_adapter.dart（期望无输出）"
+  - "cd /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes && flutter test（期望 +92）"
+  - "git -C /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes status --short（提交后为空）"
+COMMIT_MESSAGE: "feat: 撤销栈 adapter 与可判定归组（NC-006-A）"
