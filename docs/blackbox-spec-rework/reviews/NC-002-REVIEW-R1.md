@@ -64,3 +64,9 @@
 | 建议 | S5 收尾、K07 改判据、D-NC002-10 理由措辞、$defs 29 | 全部落实（K07 改为「最近触碰 verify.sh 的提交不属于 nc-002 且无未提交改动且不含 verify_community」） |
 
 第三轮审查缩小为：复核本节 9 项 + 对 `4205a03..HEAD` 的 diff 做回归；仍不 READY 则停止并上报用户。
+
+## 6. 第三轮审查（R3，2026-09-11）：READY
+
+审查人：第三位独立只读 Agent（Opus，缩范围）。R2 的 9 项 + 4 建议全部 CLOSED；`4205a03..301a99c` 无新矛盾；守卫 0、`--require-impl` 仅 K08、`git diff --check` 0、模糊词零命中；六个 ACT 可被 `yaml.safe_load` 解析。六条非阻断建议已由主 Agent 落实（4(b) 只判两个文件、act/02 键名、K07 未提交改动子条件只在 `--require-impl` 启用、act/04 then 分支说明、act/05 空行；社区前缀入登记册待黑箱线回复后追加）。
+
+**决定记录：转译审查 R3：READY，6 个 ACT 可开工。** 执行 Prompt 为 `work-items/nc-002/PROMPT.md`，由用户交外部 Agent；主 Agent 按 ACCEPTANCE.md 验收。

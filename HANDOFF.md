@@ -1,5 +1,14 @@
 # HANDOFF
 
+## G6 NC-002 达 READY（C/S 会话；黑箱之外全部归本线）
+
+更新时间：2026-09-11
+当前分支/worktree：`codex/docs/knowledge-compilation`；`/Users/jingtaiwei/Git/Public/learn_system`
+刚完成：用户明确分工——黑箱规格与实现归 Dataset 会话，其余（注解社区前后端、APP 消费接入、Tag 展示）归本线；编码一律外派、我只写 Prompt 与契约，调研用最省 token 的模型。用户决定 Firebase 去留暂缓（账号模型未成型）。NC-002 规格侧产物由我编写：`openspec/annotation-community/contracts/community-models.md`、`state-machines.md`、`tools/nchash_reference.py`（含解析层 `load_snapshot_json`）、`fixtures/community/` 9 文件 198 项；六件套 `work-items/nc-002/`（act/01～06：Schema×4 步、fixture 校验器、SERVER nchash/v2）；守卫 `reviews/nc002_guard.sh`。三轮独立四查（R1 20 项、R2 9 项、R3 READY），记录 `reviews/NC-002-REVIEW-R1.md`。裁定：不改 `openspec/schemas/verify.sh`（D-NC002-11，应 Dataset 要求）；本地错误类名闭集 D-NC002-10；`-0`/重复键/NaN 在解析层拒绝；CLIENT Dart 一致性测试推迟 NC-004；CommandRecord 按操作成对 Schema 推迟 NC-003。黑箱侧 AnchorContractPack 已落地（e474ae4），与本线 target_kind/AnchorRef 一致。
+进行到一半的事（精确到文件和章节）：NC-002 待用户把 `work-items/nc-002/PROMPT.md` 交外部 Agent 执行；社区 17 个前缀尚未写入 `openspec/id-prefix-registry.md`（已向 Dataset 提出追加 §3.5，等回复）。
+下一步（第一件事）：收到 NC-002 执行报告后按 `work-items/nc-002/ACCEPTANCE.md` 验收（`nc002_guard.sh --require-impl` 0、参考编码器交叉复算、Schema/校验器盲测）。并行可做：NC-004 六件套准备（CLIENT 建仓 + Drift 修订 + Dart 一致性测试第一条 ACT）。
+已知的坑：本机无可用 pytest，SERVER 测试用 unittest 写法；`openspec/schemas/verify.sh` 全线不改；执行者若报契约歧义，由我裁定。
+
 ## G4 第一批六项规格验收通过（Dataset 会话；黑箱线最新状态）
 
 更新时间：2026-09-10

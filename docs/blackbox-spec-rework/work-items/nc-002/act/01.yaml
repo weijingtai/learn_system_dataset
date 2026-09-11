@@ -1,6 +1,6 @@
 TASK_ID: NC-002-A
 PARENT: NC-002
-STATUS: PREPARING
+STATUS: READY
 REPO: learn_system
 GOAL: 建立 community_common $defs 与 community_note Schema、note 的 7 个示例，以及 verify_community.sh 前三步（metaschema / 正例 / 反例）
 DEPENDS_ON: []

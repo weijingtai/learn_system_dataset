@@ -129,7 +129,7 @@ schemas = sorted(p.name for p in (root / "openspec/schemas").glob("community_*.s
 vs = read(root / "openspec/schemas/verify.sh")
 vs_last = subprocess.run(["git", "-C", str(root), "log", "-1", "--format=%s", "--", "openspec/schemas/verify.sh"], capture_output=True, text=True).stdout.strip()
 vs_dirty = subprocess.run(["git", "-C", str(root), "status", "--short", "--", "openspec/schemas/verify.sh"], capture_output=True, text=True).stdout.strip()
-check("verify_community" not in vs and "nc-002" not in vs_last.lower() and not vs_dirty, "K07 openspec/schemas/verify.sh 未被本线改动（D-NC002-11）", f"最近提交={vs_last!r} 未提交改动={vs_dirty!r}")
+check("verify_community" not in vs and "nc-002" not in vs_last.lower() and (not vs_dirty or not req), "K07 openspec/schemas/verify.sh 未被本线改动（D-NC002-11）", f"最近提交={vs_last!r} 未提交改动={vs_dirty!r}")
 if not schemas and not req:
     print("SKIP  K08 执行产物尚未存在（验收时加 --require-impl，必须 PASS）")
 else:

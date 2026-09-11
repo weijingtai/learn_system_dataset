@@ -1,6 +1,6 @@
 TASK_ID: NC-002-F
 PARENT: NC-002
-STATUS: PREPARING
+STATUS: READY
 REPO: xuan-server/functions-py
 GOAL: 在 SERVER 独立实现 nchash/v2（xuan/community_hash.py，含解析层拒绝）与跨端一致性 unittest，并复制 fixture 副本
 DEPENDS_ON: [NC-002-E]

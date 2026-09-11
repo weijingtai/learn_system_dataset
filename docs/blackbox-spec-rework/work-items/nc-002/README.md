@@ -1,6 +1,6 @@
 # NC-002：非书籍模型、ID 前缀、状态机、限额、canonical 编码与 fixture
 
-状态：`PREPARING`（六件套已产出，待 wjt-react 四查）。task_id：`NC-002`。权威需求来源：`openspec/annotation-community/TASKS.md` NC-002 条目；DESIGN §2、§2.1、§2.1.1、§2.2、§3、§4、§6、§7、§11。分支：`codex/docs/knowledge-compilation`。
+状态：`READY`（2026-09-11 三轮 wjt-react 四查：R1 REWORK 20 项、R2 REWORK 9 项、R3 READY；记录见 `reviews/NC-002-REVIEW-R1.md`）。执行由用户交外部 Agent，PROMPT.md 原样发送。task_id：`NC-002`。权威需求来源：`openspec/annotation-community/TASKS.md` NC-002 条目；DESIGN §2、§2.1、§2.1.1、§2.2、§3、§4、§6、§7、§11。分支：`codex/docs/knowledge-compilation`。
 
 ## 规格侧已交付（主 Agent 编写，执行者只读）
 

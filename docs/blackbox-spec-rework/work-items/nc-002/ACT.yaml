@@ -1,5 +1,5 @@
 TASK_ID: NC-002
-STATUS: PREPARING
+STATUS: READY
 GOAL: 把 NC-002 契约与 fixture 落为 JSON Schema、fixture 校验器与 SERVER nchash/v2 实现
 CONTRACTS:
   - openspec/annotation-community/contracts/community-models.md

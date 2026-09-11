@@ -68,7 +68,7 @@
 3. 对每个未被排除的 `examples/community_*.invalid_*.yaml`：校验必须失败（失败即通过）→ `PASS community_<schema>_<reason>`；若意外通过则 `FAIL: <文件> should have failed` 并 `exit 1`。
 4. Python 结构块（`"$PY" - <<'PY'`，act/02 起；可 import jsonschema、yaml）：
    (a) 递归遍历全部 `community_*.schema.json`（glob），所有 `type: object` 节点（含 `$defs`、`items`、`then`、`allOf` 内）必须 `additionalProperties: false`，**豁免按 JSON Pointer 前缀**：`community_command_record.schema.json#/properties/resource_ids`、`community_command_record.schema.json#/properties/result_fields`、`community_behavior_event.schema.json#/properties/attributes`，这三个指针及其下任意深度的节点豁免（并照仓库既有 `verify.sh` 对 `payload`/`counts` 的写法断言其 `additionalProperties` 不为 false）；其余位置（含 `then`/`allOf` 分支内）出现的 `type: object` 一律必须为 false；
-   (b) 读取 glob `examples/community_note.*.yaml`（恰 7 个；不含 `community_note_revision.` 与配对文件）：`preferred_head_id ∈ head_revision_ids` 对其中 `valid.yaml` 必须成立，对 `invalid_preferred_head_not_in_heads.yaml` 必须不成立；
+   (b) 读取 glob `examples/community_note.*.yaml`（恰 7 个；不含 `community_note_revision.` 与配对文件）：`preferred_head_id ∈ head_revision_ids` 只判定两个文件：对 `valid.yaml` 必须成立，对 `invalid_preferred_head_not_in_heads.yaml` 必须不成立；其余 5 个反例不参与 4(b)、不打印 CHECK 行；
    (c) 配对文件：用 jsonschema 库（RefResolver/registry 以 `openspec/schemas/` 为基）分别校验 note/revision 通过后，`note.kind=annotation ⇒ revision.bindings 存在 anchor 为 object 的项`；valid 必须成立，invalid 必须不成立；
    (d) glob `examples/community_note_revision.*.yaml`（12 个）加上两个 `community_pair_annotation.*.yaml` 内的 `revision` 对象：所有 `bindings[*].anchor.selector.ranges[*]` 满足 `end > start`；对 `invalid_range_end_le_start.yaml` 必须不成立，其余必须成立。
    结构块对每个被检查文件打印一行 `CHECK 4(<a|b|c|d>) <文件名> <PASS|FAIL>`；四项全部满足 → `PASS community_structure`；任一 FAIL 则在打印后 `exit 1`。

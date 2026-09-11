@@ -15,7 +15,9 @@
 - [x] 执行 Agent 完成 act/01～04 四个提交（`272fb60`、`11b4e46`、`d75afb1`、`11edbc7`）；主 Agent 亲自验收通过（32 测试、契约 §7 逐字一致、守卫 `--require-impl` 0、20 个变异/盲测），NC-001-01 `ACCEPTED`；总项等 NC-001-02。
 - [ ] 准备 NC-001-02 真实联调取证工作包（需用户先决定 Firebase 去留）。
 - [ ] **用户决定（2026-09-10）：Firebase 去留暂缓。** 原因：多个既有系统依赖 Firebase；自有账号管理方案（同时支持在线用户与匿名用户）尚未成型。后果：NC-001-02、NC-003 的服务端部分、NC-009 及之后全部服务端任务暂不派发；NC-002、NC-004～NC-007 本地笔记线照常推进；新写服务端规格一律供应商无关。前置设计项：账号模型（在线 + 匿名）需先有方案，再议 Firebase 替换。
-- [ ] NC-002：前缀表已由托管主 Agent 整表采用（2026-09-10），准备六件套时把结论写入 SUBAGENT_TODO 与 `READINESS_REVIEW.md` §3，消除两处矛盾。
+- [x] NC-002：规格侧产物（两份契约、参考编码器、198 项 fixture）与六件套完成，三轮四查 READY；前缀结论已写入 SUBAGENT_TODO 与 READINESS_REVIEW §3。
+- [ ] NC-002：用户派发外部 Agent 执行 act/01～06；主 Agent 按 ACCEPTANCE.md 验收；社区 17 前缀追加进 `openspec/id-prefix-registry.md` §3.5（待 Dataset 回复）。
+- [ ] NC-004 六件套准备（CLIENT 建仓、Drift 修订、Dart nchash 一致性测试为第一条 ACT）。
 - [ ] NC-003 之前准备 Firebase 替代方案对比材料供用户决定；此前服务端规格一律供应商无关表述。NC-026 之前设计服务端删号路径，与 Firebase 决定一并处理。
 
 ## 项目冷启动交接

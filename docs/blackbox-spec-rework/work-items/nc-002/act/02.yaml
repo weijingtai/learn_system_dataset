@@ -1,6 +1,6 @@
 TASK_ID: NC-002-B
 PARENT: NC-002
-STATUS: PREPARING
+STATUS: READY
 REPO: learn_system
 GOAL: 建立 community_note_revision Schema（含五个嵌套 $defs 与 if/then）、其 12 个示例、配对示例与 verify_community.sh 结构块
 DEPENDS_ON: [NC-002-A]
@@ -33,7 +33,7 @@ RULES:
   - "结构块按 TDD §2.3 步 4(a)～(d) 逐条实现；开放对象豁免清单照抄"
   - "判据只取两份契约与 fixture；契约未写明的行为触发停止条件，不自行裁定"
   - "不修改前几步已有示例、测试与脚本的期望；只追加本步内容"
-  - "只允许新建本步 WRITE_NEW 列出的文件；不创建目录"
+  - "只允许新建/追加本步 WRITE 列出的文件；不创建目录"
 TESTS_FIRST:
   - "先写本步全部示例并把本步 Schema 写成 {\"$schema\", \"type\": \"object\"} 空壳，运行 bash openspec/schemas/verify_community.sh，保存首个 FAIL: … should have failed 原文作为 Red；结构块的 Red：先写配对/结构专属示例，运行脚本确认 4(b)(c)(d) 各自把 invalid 文件判为 FAIL 前脚本会因缺少检查而错误放行"
 STEPS:
