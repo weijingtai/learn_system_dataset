@@ -541,21 +541,21 @@
 
 ## G5 R1 总准出
 
-- [ ] R1 架构规格达到下一阶段准出条件（状态：`BLOCKED`）
-  - [ ] G1 规格内核全部 `ACCEPTED`
-  - [ ] G2 R0 工作台数据安全全部 `ACCEPTED`
+- [ ] R1 架构规格达到下一阶段准出条件（状态：`PENDING_USER`；13/14 条已满足，记录 `reviews/G5-EXIT-REVIEW.md`；待用户确认进入实现阶段后派发 `work-items/g5/PROMPT-G.md` 翻转文档级状态）
+  - [x] G1 规格内核全部 `ACCEPTED`
+  - [x] G2 R0 工作台数据安全全部 `ACCEPTED`
   - [x] G3 T 类全部 `ACCEPTED`（T-01～T-13；D-07/T-07/T-08 假绿经 R5 关闭，2026-09-10）
-  - [ ] G4 D 类全部 `ACCEPTED`
-  - [ ] BDD 总验收包完整
-  - [ ] TDD/机器门禁可执行
-  - [ ] ACT 覆盖映射无遗漏
-  - [ ] 所有 Executor Prompt 已归档
-  - [ ] `verify-T.sh` 无假绿且全部应通过项 PASS
-  - [ ] `openspec/acceptance/run_all.sh` 可运行并逐条报告
-  - [ ] 最终规格符合性审查通过
-  - [ ] 最终质量审查通过
-  - [ ] PLAN/HANDOFF 已同步
-  - [ ] 用户确认进入实现阶段
+  - [x] G4 D 类全部 `ACCEPTED`
+  - [x] BDD 总验收包完整
+  - [x] TDD/机器门禁可执行
+  - [x] ACT 覆盖映射无遗漏
+  - [x] 所有 Executor Prompt 已归档（D-01/04/05/09/12/17/19 旧流程豁免登记，判据实跑见 G5-EXIT-REVIEW §2）
+  - [x] `verify-T.sh` 无假绿且全部应通过项 PASS
+  - [x] `openspec/acceptance/run_all.sh` 可运行并逐条报告
+  - [x] 最终规格符合性审查通过
+  - [x] 最终质量审查通过
+  - [x] PLAN/HANDOFF 已同步
+  - [ ] 用户确认进入实现阶段（待用户；确认后 g5-01 翻转 `REVIEW_FAILED_R1` → `R1_REWORK_CLOSED`）
 
 
 ## G6 NC 注解社区线

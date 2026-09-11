@@ -1,0 +1,13 @@
+package: blackbox-g5
+title: G5 R1 总准出：文档级状态翻转（用户确认后）
+status: READY_PENDING_USER_CONFIRMATION
+acts:
+  - file: act/g5-01.yaml
+    id: blackbox-g5/01
+    writes: [openspec/learn-system-blackbox-architecture.md, docs/blackbox-spec-rework/README.md]
+gates:
+  - bash docs/blackbox-spec-rework/verify-T.sh | tail -1          # FAIL 合计: 0
+  - bash docs/blackbox-spec-rework/work-items/g3-r3/mutations.sh all | tail -1   # 109/109
+  - bash openspec/schemas/verify.sh; echo $?                      # 0
+  - git diff --check
+on_fail: 停止并报告

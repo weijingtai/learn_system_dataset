@@ -96,7 +96,7 @@
   - 必须与 `§2 原则 2`「Module 不直接读取或修改其他 Module 的数据库」自洽。
 - **判据**：规格中出现进程模型的明确选择 + 三个消费者的接入说明 + 锁策略。
   ```bash
-  grep -c "本地服务\|库内调用\|文件协议" openspec/learn-system-blackbox-architecture.md  # >= 1
+  grep -c "单机本地进程\|本地客户端" openspec/learn-system-blackbox-architecture.md  # >= 1（G5 订正：原措辞「本地服务/库内调用/文件协议」为决议前的三选一候选词，§17 定稿用词为「单机本地进程」）
   grep -c "Flutter\|Dart" openspec/learn-system-blackbox-architecture.md                  # >= 1
   ```
 - **已否决**：不要让工作台直接读写 Ledger 的 SQLite 文件——`§14` 已规定工作台 SQLite
