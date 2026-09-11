@@ -1,21 +1,23 @@
 # Learn System 项目冷启动交接
 
-更新时间：2026-09-10
+更新时间：2026-09-11
 
 仓库：`/Users/jingtaiwei/Git/Public/learn_system`
 
 分支：`codex/docs/knowledge-compilation`
 
-当前 HEAD：`241c38c` 及其后（R5 完成时）
-当前主线状态：`G3_ACCEPTED`（2026-09-10 R5 验收通过）；G4 是否启动由用户决定，尚未启动
+当前 HEAD：`70c05cd` 及其后（G5 准出完成时）
+当前主线状态：`IMPLEMENTATION_PHASE`（2026-09-11 G5 总准出通过，用户确认进入实现阶段；规格文档级状态 `R1_REWORK_CLOSED`）
 
+> 2026-09-11 更新：G4 D 类 D-01～D-19 全部 `ACCEPTED`（`work-items/g4-r1/`、`g4-r2/`、`g4-r3/`），G5 总准出记录 `docs/blackbox-spec-rework/reviews/G5-EXIT-REVIEW.md` 14/14 满足，规格头部翻为 `R1_REWORK_CLOSED`（`70c05cd`）。下一任务：首纵切第一批 Artifact Ledger（§17，判据 `openspec/acceptance/run_all.sh 20.2 20.3` 由 BLOCKED 变 PASS，宿主 `pipeline/corpus/_fixture/mini_ed01/`）。派发方式不变：主 Agent 写六件套与 Prompt，用户交外部 Agent，主 Agent 在 `git archive` 干净树上独立验收。
+>
 > 2026-09-10 更新：§5 三个阻断已由 `work-items/g3-r5/` 关闭（先红 `5de99fa`、后绿 `241c38c`），验收证据见 `docs/blackbox-spec-rework/work-items/g3-r5/ACCEPTANCE.md`。§4–§9 保留为历史记录，供理解 G3 门禁的设计约束；§6 的机械任务已完成，不得重复派发。
 
 ## 1. 冷启动顺序
 
 1. 完整阅读 `AGENTS.md`、本文件、`HANDOFF.md`、`PLAN.md`。
 2. 运行 `git status --short`、`git log --oneline -12`；保留所有并行工作，不 reset、clean、stash、切分支或批量暂存。
-3. 当前第一优先级是关闭 G3 剩余三类假绿。用户要求主 Agent只写执行 Prompt 和做独立验收，不亲自修改实现。
+3. 当前第一优先级是首纵切第一批 Artifact Ledger（见顶部 2026-09-11 更新；历史：G3 假绿已于 R5 关闭）。用户要求主 Agent只写执行 Prompt 和做独立验收，不亲自修改实现。
 4. 执行 Agent只允许修改 `verify-T.sh` 与 `mutations.sh`；完成后必须由不同的只读 Agent加主 Agent矩阵外盲测。
 
 完成标准：后任无需聊天记录即可说明项目目标、模块关系、当前阻断、下一任务和验收门禁。

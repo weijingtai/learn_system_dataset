@@ -1,6 +1,10 @@
 # ACCEPTANCE：G5 文档级状态翻转
 
-状态：`READY`，待用户确认进入实现阶段后派发（README §2 填日期即为派发许可）。
+状态：`ACCEPTED`（`70c05cd`，2026-09-11）。
+
+## 验收记录（主 Agent，2026-09-11）
+
+`git archive 70c05cd` 干净树：范围恰 2 文件；numstat 规格 3/2、README 1/1（ACT 原写 +5/−4 为主 Agent 算术错误，执行者上报后订正 `375ff8b`）；规格第 3 行、第 5–8 行、README 第 5 行与 ACT `new_status`/`new_quote`/`readme_new` 逐字相等（`<日期>`=2026-09-11）；规格 diff 仅一个 hunk；`REVIEW_FAILED_R1` 0、`^状态：` 19 不变、`最终规范` 0；`verify-T.sh` 0 FAIL、`mutations.sh` 109/109、`schemas/verify.sh` 0；`git diff --check` 通过。
 
 ## 0. 四查（主 Agent，2026-09-11）
 

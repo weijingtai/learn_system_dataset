@@ -541,7 +541,7 @@
 
 ## G5 R1 总准出
 
-- [ ] R1 架构规格达到下一阶段准出条件（状态：`DISPATCHED`；14/14 条已满足，待 g5-01 落盘验收，记录 `reviews/G5-EXIT-REVIEW.md`；待用户确认进入实现阶段后派发 `work-items/g5/PROMPT-G.md` 翻转文档级状态）
+- [x] R1 架构规格达到下一阶段准出条件（状态：`ACCEPTED`；14/14 条满足，g5-01 `70c05cd` 已验收，规格文档级状态 `R1_REWORK_CLOSED`，记录 `reviews/G5-EXIT-REVIEW.md`；待用户确认进入实现阶段后派发 `work-items/g5/PROMPT-G.md` 翻转文档级状态）
   - [x] G1 规格内核全部 `ACCEPTED`
   - [x] G2 R0 工作台数据安全全部 `ACCEPTED`
   - [x] G3 T 类全部 `ACCEPTED`（T-01～T-13；D-07/T-07/T-08 假绿经 R5 关闭，2026-09-10）
