@@ -1,13 +1,13 @@
 # HANDOFF
 
-## impl-02 结构层 ACCEPTED；黑箱剩余模块工作包并行起草中（Dataset 会话；黑箱线最新状态）
+## G7 W3 实现中：M5（impl-03）与 M8（impl-04）两路并行，K1 均已验收（Dataset 会话；黑箱线最新状态）
 
 更新时间：2026-09-12
 当前分支/worktree：`codex/docs/knowledge-compilation`；`/Users/jingtaiwei/Git/Public/learn_system`
-刚完成：impl-02 J3 返工 `c5f744c` 经主 Agent 干净树独立验收通过（28 项矩阵外检查 + 回归门禁），impl-02 结构层 `ACCEPTED`，记录 `work-items/impl-02-corpus/ACCEPTANCE.md` §5.3。登记下游约束：下游只接受 StepRun `succeeded` 的上游 StagePackage（`finish_step_run` 失败会遗留已封存包）。
-进行到一半的事（精确到文件和章节）：① 跟进 ACT 06（缺 PyYAML → exit 3、失败用例直查 m3 包）`eee3c35` 已验收通过（ACCEPTANCE §5.4）；② 曾一次派 12 个子 Agent 并行，全部撞会话限额中断，用户纠正：回到 tmux+agy、同时最多 2～3 路，按 `docs/blackbox-spec-rework/G7-PLAN.md` 分波推进。已中断的 9 个草稿原样提交为 DRAFT 快照（完整度不一，impl-03 缺 ACT）：`work-items/impl-00-interfaces`（接口总表/新 Schema/fixture m4..m8 规划）、`impl-03-validation`（M5）、`impl-04-dataset`（M8）、`impl-05-knowledge`（M4 薄接入）、`impl-06-review`（M6 薄接入）、`impl-07-assembly`（M7）、`impl-08-orchestrator`（Orchestrator + Contract Registry）、`impl-09-intake`（M1/M2 真实接入）、`impl-10-corpus-semantic`（M3 语义层）。
-下一步（第一件事）：G7-PLAN W1 两路 agy——A 补全 impl-00 与 impl-03 草稿、B 对账审查 impl-04～10 并汇总待裁决 → 主 Agent 一次性裁决写 `G7-RULINGS.md` → W2 契约 ACT 与 M5/M8 定稿 → W3 起实现（每波 ≤3 路）。
-已知的坑：外部执行方会越权改台账（`ad20ed6`）；执行方可能改测试断言迁就实现，验收要读断言。tmux+agy 额度耗尽时会假 Working，15 分钟无产出即关掉改派子 Agent。起草 Agent 未必遵守「不提交」，收稿时先 `git log` 检查。Haiku 适合只读盘点与跑门禁，编码返工用 Sonnet。
+刚完成：W1 草稿补全与对账（`1f32177`、R1/R2 审查）；统一裁决 `docs/blackbox-spec-rework/G7-RULINGS.md`（P1 首纵切只走 Ledger→M3→M5→M8，M8 尾链首切片不依赖 M4–M7）；W2：impl-00 裁剪并执行 act/10 闭集登记（`ea90ca8`，已验收）；impl-04 定稿+四查 READY；impl-03 定稿、四查 REWORK→返工→R2 READY。W3：M8 K1（`a64d0e9`/`000386e`/`4a79ef5`）、M5 K1（`25b2fcc`/`48ebbfb`/`1fab5b1`/`0a77975`）主 Agent 干净树验收通过。
+进行到一半的事（精确到文件和章节）：tmux 会话 `w3f`（M8，`impl-04-dataset/PROMPT-F1.md`，K2 ACT 03–06）与 `w3e`（M5，`impl-03-validation/PROMPT-E1.md`，K2 ACT 04–06），执行器 `cmd --yolo` DeepSeek V4.1 Flash；每组完成停下等主 Agent 验收放行；回报 `~/tmux-agents/runs/w3f.report.md`、`w3e.report.md`。验收脚本在会话 scratchpad `accept_m8.sh`/`accept_m5.sh`（git archive 干净树，只输出结论行）。
+下一步（第一件事）：两路 K2 回报 → 跑验收脚本 → 放行 K3（M8 ACT 07–08 含 run_all 20.4/20.8；M5 K2 即收尾）→ 端到端矩阵外篡改验收 → impl-03/impl-04 `ACCEPTED` → W4（M6 薄接入、Orchestrator、M1/M2 真实接入，定稿前先按 G7-RULINGS 裁剪）。
+已知的坑：agy 额度不稳（静默结束回合即没 token），已改用 cmd；cmd 回合结束会停在 `Ask your question`，派发时要求每组停下写回报。执行方可能改测试断言迁就实现，验收要读断言。起草与审查换不同厂商模型。本机 zsh 下 `echo =====` 会报错、变量后紧跟全角字符需写 `${VAR}`。用户待办：W4 前写真实前十页人工终态决定表；W5 前确认 SemanticSpan 前缀。
 
 ## G4 D 类全部 ACCEPTED：D-16 映射表与 pat_/ent_ 登记验收通过（Dataset 会话；黑箱线最新状态）
 

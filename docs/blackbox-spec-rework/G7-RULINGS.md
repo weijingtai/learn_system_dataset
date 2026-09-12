@@ -82,6 +82,24 @@ Q49 按 P8 须用户确认前缀；Q52/Q53/Q55/Q57/Q62 推迟到 W5 定稿；Q50
 | 22 | impl-03 D-12 G4/G5/G6 | 采纳推荐：`not_evaluated`，验收判 BLOCKED |
 | 23 | impl-03 D-15 上游终态过滤 | 采纳（P5） |
 
+### 9.1 W2 定稿中新发现的三条（`ac21b30` 回报）
+
+| # | 问题 | 裁决 |
+|---|---|---|
+| 24 | `validator_report` 是否入闭集 | 不入。impl-03 定稿（`1a189ae`）已改为复用通用 `validation_report`；首纵切 M5 新类型只有 `gate_results`、`validation_package`。INTERFACES §4 M5 行残留的 `gate_report` 由 impl-00/10 删除。 |
+| 25 | Ledger 只读查询缺口（`frozen_inputs`、`artifacts.artifact_type`、`stage_packages` 按 StepRun 取包） | 按第 13 条：首纵切允许只读 SELECT，impl-00 README §5.2 为唯一缺口清单；impl-08 以公开读方法补齐后回改调用方。 |
+| 26 | impl-03 `count_mismatch`/`unproofread_glyphs`/`replay_tool_mismatch` 无对应错误码 | 按第 17 条填 `code: null`，缺口清单并入 impl-00 README §5.2，错误码闭集扩充随 impl-08 Contract Registry。 |
+
+### 9.2 W3 实现 K1 回报中的裁定（2026-09-12）
+
+| # | 来源 | 裁决 |
+|---|---|---|
+| 27 | M8 w3f：回归命令 `| tail -1` 误取验收输出 | 各包回归命令取行统一为 `2>&1 \| grep -E "^(Ran\|OK\|FAILED)"` |
+| 28 | M5 w3e：amend 未推送的 ACT 00 提交 | 接受并登记；已推送或已被他人引用的提交一律不得 amend |
+| 29 | M5 w3e：`CHECK_CODES` 映射由实现推导 | 接受；`registry.py` 模块 docstring 必须列出完整「检查名 → 错误码/None」表，主 Agent 验收时核对 |
+| 30 | M5 w3e：`build_context` 键集超出 act/04 字面 | 以 K1 `fixture_context()` 键集为准，K2 新增用例断言两者键集相等 |
+| 31 | M5 w3e：`g1_frozen_bytes` 附加 `fail_closed`；`g3_references` 的 relation/subject 承载 | 接受；`gate_results.broken_relations` 汇总 `g3_references` 全部发现的 (from, to, relation) |
+
 ## 10. 用户待办
 
 1. W4-J 前：撰写真实前十页人工终态决定表（P7，Q37）。

@@ -53,3 +53,13 @@
 定稿轮交付：`impl-00` 状态 `READY_FOR_REVIEW`；首纵切保留 ACT 1 个（`impl-00/10`，文档登记 ACT）；`DEFERRED` ACT 10 个（`impl-00/00–09`），文件内容保留。派发 `impl-00/10` 后按其报告独立验收，结论回填 §5。
 
 ## 5. 验收记录由主 Agent 填写
+
+### 5.1 act/10（2026-09-12，主 Agent 独立验收，`git archive ea90ca8` 干净树）
+
+执行者：tmux 中的 cmd（DeepSeek V4.1 Flash），先按 G7-RULINGS §9.1 第 24–26 条修订 act/10（`d19589b`），再执行（`ea90ca8`）。
+
+- 范围：`ea90ca8` 恰为 `INTERFACES.md`、`check_interfaces.py`、`tests/__init__.py`、`tests/test_check_interfaces.py` 4 文件；`openspec/schemas`、fixture、`pipeline/ledger` 未动。
+- 复验：`check_interfaces.py` 18 PASS、exit 0；`unittest` 8 OK；§4 表内 `gate_report`/`validator_report` 0 处。矩阵外篡改：副本删去含 `release_manifest` 的 §4 行 → `FAIL IF01 数据行=14`、`FAIL IF06 source_asset_pack 出现 0 次`，检查器能拦截漏登记。
+- 执行方报告的 `schemas/verify.sh` 0、`run_all.sh` `pass=2 fail=1 blocked=8` 与主 Agent 前序门禁一致。
+
+act/10 `ACCEPTED`。impl-00 其余 10 个 ACT 为 `DEFERRED`（纵切后）。
