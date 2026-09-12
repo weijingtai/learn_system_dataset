@@ -20,6 +20,7 @@ import yaml
 
 from pipeline.corpus_compiler.compiler import compile_structural
 from pipeline.corpus_compiler.errors import CompileRefused
+from pipeline.corpus_compiler.inputs import resolve_m3_inputs
 from pipeline.ledger.errors import (
     NotConsumable,
     SchemaViolation,
@@ -56,6 +57,24 @@ class StepTestBase(unittest.TestCase):
 
     def count(self, sql, params=()):
         return self.service.store.conn.execute(sql, params).fetchone()[0]
+
+    def _tamper_object(self, revision_id):
+        """篡改某修订对应的对象字节：翻转其中一个十六进制字符（保持文本可解析）。
+
+        用于模拟「Object Store 中的物理内容与 Ledger 登记的 sha256 不符」——
+        即 J2 独立验收发现的冻结输入被篡改场景（J3 返工 C1/C2/C4）。
+        """
+        rev = self.service.get_revision(revision_id)
+        path = self.service.objects.path_for(rev["sha256"])
+        text = path.read_text(encoding="utf-8")
+        for i, ch in enumerate(text):
+            if ch in "0123456789abcdef":
+                new_ch = "1" if ch == "0" else "0"
+                text = text[:i] + new_ch + text[i + 1:]
+                break
+        else:
+            text += " "
+        path.write_text(text, encoding="utf-8")
 
 
 class TestRunM3Succeeds(StepTestBase):
@@ -277,6 +296,117 @@ class TestRunM3Failure(StepTestBase):
             self.assertIn(result["failed_check"], ("compile", "input_contract"))
         finally:
             step_mod.resolve_m3_inputs = original_resolve
+
+
+class TestRunM3J3Rework(StepTestBase):
+    """J3 返工（act/05）：冻结输入完整性、终态严格比对、begin 后异常封存。"""
+
+    def test_manifest_object_tamper_fails_input_contract(self):
+        from pipeline.corpus_compiler.step import run_m3
+
+        inputs = resolve_m3_inputs(self.service, self.edition_part_id)
+        self._tamper_object(inputs["manifest_revision_id"])
+        result = run_m3(self.service, self.edition_part_id)
+        self.assertEqual(result["status"], "failed")
+        self.assertEqual(result["failed_check"], "input_contract")
+        failure_rev = self.service.get_revision(result["failure_revision_id"])
+        self.assertEqual(failure_rev["status"], "sealed")
+        self.assertNotIn("stage_package_id", result)
+
+    def test_page_set_object_tamper_fails_input_contract(self):
+        from pipeline.corpus_compiler.step import run_m3
+
+        inputs = resolve_m3_inputs(self.service, self.edition_part_id)
+        self._tamper_object(inputs["ocr_page_set_revision_id"])
+        result = run_m3(self.service, self.edition_part_id)
+        self.assertEqual(result["status"], "failed")
+        self.assertEqual(result["failed_check"], "input_contract")
+        failure_rev = self.service.get_revision(result["failure_revision_id"])
+        self.assertEqual(failure_rev["status"], "sealed")
+        self.assertNotIn("stage_package_id", result)
+
+    def test_human_event_object_tamper_fails_input_contract(self):
+        from pipeline.corpus_compiler.step import run_m3
+
+        inputs = resolve_m3_inputs(self.service, self.edition_part_id)
+        self.assertTrue(inputs["human_event_revision_ids"])
+        self._tamper_object(inputs["human_event_revision_ids"][0])
+        result = run_m3(self.service, self.edition_part_id)
+        self.assertEqual(result["status"], "failed")
+        self.assertEqual(result["failed_check"], "input_contract")
+        failure_rev = self.service.get_revision(result["failure_revision_id"])
+        self.assertEqual(failure_rev["status"], "sealed")
+        self.assertNotIn("stage_package_id", result)
+
+    def test_terminal_states_mismatch_fails_input_contract(self):
+        from pipeline.corpus_compiler import step as step_mod
+
+        original_resolve = step_mod.resolve_m3_inputs
+
+        def tampered_resolve(reader, edition_part_id):
+            result = original_resolve(reader, edition_part_id)
+            result["terminal_states"] = {}
+            return result
+
+        step_mod.resolve_m3_inputs = tampered_resolve
+        try:
+            result = step_mod.run_m3(self.service, self.edition_part_id)
+            self.assertEqual(result["status"], "failed")
+            self.assertEqual(result["failed_check"], "input_contract")
+        finally:
+            step_mod.resolve_m3_inputs = original_resolve
+
+    def test_page_set_entry_missing_fails_input_contract(self):
+        from pipeline.corpus_compiler import step as step_mod
+
+        original_resolve = step_mod.resolve_m3_inputs
+
+        def tampered_resolve(reader, edition_part_id):
+            result = original_resolve(reader, edition_part_id)
+            result["page_revision_ids"].pop("page_001", None)
+            return result
+
+        step_mod.resolve_m3_inputs = tampered_resolve
+        try:
+            result = step_mod.run_m3(self.service, self.edition_part_id)
+            self.assertEqual(result["status"], "failed")
+            self.assertEqual(result["failed_check"], "input_contract")
+        finally:
+            step_mod.resolve_m3_inputs = original_resolve
+
+    def test_post_begin_exception_seals_failure(self):
+        from pipeline.corpus_compiler import step as step_mod
+
+        original = LedgerService.record_transformation
+
+        def boom(self, *args, **kwargs):
+            raise RuntimeError("模拟 record_transformation 失败")
+
+        LedgerService.record_transformation = boom
+        try:
+            result = step_mod.run_m3(self.service, self.edition_part_id)
+            self.assertEqual(result["status"], "failed")
+            self.assertEqual(result["failed_check"], "internal")
+            step_run = self.service.get_step_run(result["step_run_id"])
+            self.assertEqual(step_run["status"], "failed")
+            failure_rev = self.service.get_revision(result["failure_revision_id"])
+            self.assertEqual(failure_rev["status"], "sealed")
+            self.assertNotIn("stage_package_id", result)
+        finally:
+            LedgerService.record_transformation = original
+
+    def test_pre_begin_refusal_type_preserved(self):
+        from pipeline.corpus_compiler.step import run_m3
+        from pipeline.ledger.fixture_ingest import ingest as do_ingest
+
+        tmp2 = tempfile.mkdtemp(prefix="m3-refusal-type-")
+        self.addCleanup(shutil.rmtree, tmp2, True)
+        svc2 = LedgerService(Path(tmp2) / "ledger")
+        self.addCleanup(svc2.close)
+        sum2 = do_ingest(FIXTURE_DIR, svc2, stages=("m1",))
+        with self.assertRaises(CompileRefused) as ctx:
+            run_m3(svc2, sum2["edition_part_id"])
+        self.assertFalse(str(ctx.exception).startswith("M3 编译异常"))
 
 
 class TestCLIExitCodes(unittest.TestCase):

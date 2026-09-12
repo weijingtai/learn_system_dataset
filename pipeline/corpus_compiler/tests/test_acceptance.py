@@ -101,7 +101,16 @@ class TestAcceptanceUnit(unittest.TestCase):
     def test_missing_fixture_exit_3(self):
         from pipeline.corpus_compiler.acceptance import main
         rc = main(["--fixture", "/nonexistent/path/fixture"])
-        self.assertEqual(rc, 1)
+        self.assertEqual(rc, 3)
+
+    def test_missing_manifest_exit_3(self):
+        from pipeline.corpus_compiler.acceptance import main
+        tmp = tempfile.mkdtemp(prefix="m3-acc-nomanifest-")
+        try:
+            rc = main(["--fixture", tmp])
+            self.assertEqual(rc, 3)
+        finally:
+            shutil.rmtree(tmp, True)
 
 
 class TestShellScript(unittest.TestCase):

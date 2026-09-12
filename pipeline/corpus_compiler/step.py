@@ -3,11 +3,14 @@
 本模块实现从冻结输入解析到 StagePackage 封存的完整写路径。
 """
 
+import hashlib
 import json
+import re
 
 import yaml
 
 from pipeline.ledger import ids
+from pipeline.ledger.errors import HashMismatch
 
 from . import M3_TOOL, M3_TOOL_VERSION
 from .compiler import compile_structural
@@ -38,12 +41,18 @@ def run_m3(service, edition_part_id, *, batch_size=10):
         batch_size：每批最大行数。
 
     返回 summary dict。
+
+    异常分层（J3 返工 C5）：
+        - ``resolve_m3_inputs`` 与本函数「M3 已封存」检查产生的异常原样抛出（不改类型）；
+        - ``put_run_artifact``/``begin_step_run`` 本身抛出的异常原样抛出（此时尚无 StepRun）；
+        - ``begin_step_run`` 成功之后的任何异常一律转为失败封存（检查名 ``internal``），
+          返回 status ``failed`` 的 summary，不再向外抛出。
     """
-    # ---- 1) 解析输入 ----
+    # ---- 1) 解析输入（异常原样抛出）----
     inputs = resolve_m3_inputs(service, edition_part_id)
     processing_run_id = inputs["processing_run_id"]
 
-    # 检查 M3 是否已封存
+    # 检查 M3 是否已封存（异常原样抛出）
     m3_checkpoints = service.list_checkpoints(edition_part_id, "m3")
     for cp in m3_checkpoints:
         step_run = service.get_step_run(cp["content"]["step_run_id"])
@@ -52,16 +61,11 @@ def run_m3(service, edition_part_id, *, batch_size=10):
                 "M3 已封存：StepRun %s 已 succeeded" % cp["content"]["step_run_id"]
             )
 
-    try:
-        return _run_m3_inner(service, edition_part_id, inputs, batch_size)
-    except Exception as exc:
-        raise CompileRefused(
-            "M3 编译异常: %s: %s" % (type(exc).__name__, exc)
-        )
+    return _run_m3_inner(service, edition_part_id, inputs, batch_size)
 
 
 def _run_m3_inner(service, edition_part_id, inputs, batch_size):
-    """内部实现：begin 之后的错误走失败封存。"""
+    """begin_step_run 之前：解析/写入异常原样抛出；之后：任何异常转为失败封存。"""
     processing_run_id = inputs["processing_run_id"]
     technique_id = inputs["technique_id"]
     manifest_revision_id = inputs["manifest_revision_id"]
@@ -70,7 +74,7 @@ def _run_m3_inner(service, edition_part_id, inputs, batch_size):
     terminal_states = inputs["terminal_states"]
     human_event_revision_ids = inputs["human_event_revision_ids"]
 
-    # ---- 2) 配置修订 ----
+    # ---- 2) 配置修订（begin 之前，异常原样抛出）----
     config_data = json.dumps(
         {
             "stage": "m3",
@@ -90,7 +94,7 @@ def _run_m3_inner(service, edition_part_id, inputs, batch_size):
         producer_version=M3_TOOL_VERSION,
     )
 
-    # ---- 3) 冻结输入 ----
+    # ---- 3) 冻结输入（begin 之前，异常原样抛出）----
     # ocr_page_set + manifest + 各页修订 + 人工事件修订
     frozen = [ocr_page_set_revision_id, manifest_revision_id]
     pages_manifest = _read_manifest_content(service, manifest_revision_id)
@@ -110,23 +114,62 @@ def _run_m3_inner(service, edition_part_id, inputs, batch_size):
         }
     )
 
-    # ---- 4) 输入契约校验 ----
+    # ---- begin 之后：任何异常一律转为失败封存（检查名 "internal"）----
     try:
-        _validate_input_contract(
-            service, step_run_id, frozen, manifest_revision_id,
-            ocr_page_set_revision_id, page_revision_ids, terminal_states,
-            human_event_revision_ids
+        return _run_m3_after_begin(
+            service, edition_part_id, step_run_id, processing_run_id,
+            manifest_revision_id, ocr_page_set_revision_id, page_revision_ids,
+            terminal_states, human_event_revision_ids, frozen,
+            config_revision_id, batch_size,
+        )
+    except Exception as exc:
+        try:
+            return _fail(
+                service, step_run_id, "internal",
+                "%s: %s" % (type(exc).__name__, exc),
+            )
+        except Exception as fail_exc:
+            # _fail 自身失败：抛出原始异常，链上保留 _fail 的异常信息。
+            raise exc from fail_exc
+
+
+def _run_m3_after_begin(
+    service, edition_part_id, step_run_id, processing_run_id,
+    manifest_revision_id, ocr_page_set_revision_id, page_revision_ids,
+    terminal_states, human_event_revision_ids, frozen,
+    config_revision_id, batch_size,
+):
+    """begin_step_run 成功之后的完整流程（§17 步骤 4–14）。
+
+    ``input_contract``/``compile``/``structural_gate`` 三个检查名下的失败在此就地
+    封存并直接返回失败 summary（不向外抛出）；其余未预期异常向外传播，交由
+    调用方 ``_run_m3_inner`` 统一转为 ``internal`` 失败封存。
+    """
+    # ---- 4) 输入契约校验 ----
+    # C1：begin 之后、读取任何冻结输入内容之前，对每个冻结修订一次性读取对象
+    #     字节并校验 sha256；之后所有内容解析只使用这份已校验字节，不得再次
+    #     从 Object Store 读取未校验字节。
+    # C2/C3/C4：ocr_page_set 页登记、终态、人工事件的语义校验。
+    try:
+        frozen_bytes = _read_and_verify_frozen(service, frozen)
+        manifest = yaml.safe_load(frozen_bytes[manifest_revision_id].decode("utf-8"))
+        ocr_page_set = json.loads(
+            frozen_bytes[ocr_page_set_revision_id].decode("utf-8")
+        )
+        evidence_pages = _validate_input_contract(
+            service, manifest, ocr_page_set, page_revision_ids, terminal_states,
+            human_event_revision_ids, frozen_bytes,
         )
     except Exception as exc:
         return _fail(service, step_run_id, "input_contract", str(exc))
 
-    # ---- 5) 编译 ----
-    manifest = _read_manifest_content(service, manifest_revision_id)
-    ocr_page_set = _read_revision_json(service, ocr_page_set_revision_id)
+    # ---- 5) 编译（只使用 C1 已校验的冻结字节，不再读 Object Store）----
     page_docs = {}
     for page in manifest["edition_part"]["pages"]:
         if page in page_revision_ids:
-            page_docs[page] = _read_revision_json(service, page_revision_ids[page])
+            page_docs[page] = json.loads(
+                frozen_bytes[page_revision_ids[page]].decode("utf-8")
+            )
 
     try:
         result = compile_structural(
@@ -137,12 +180,6 @@ def _run_m3_inner(service, edition_part_id, inputs, batch_size):
         )
     except Exception as exc:
         return _fail(service, step_run_id, "compile", str(exc))
-
-    evidence_pages = set()
-    for event_id in human_event_revision_ids:
-        event_data = _read_revision_json(service, event_id)
-        if isinstance(event_data, dict) and "page" in event_data:
-            evidence_pages.add(event_data["page"])
 
     # ---- 6) 批次写入 ----
     checkpoint_revision_ids = []
@@ -300,7 +337,7 @@ def _run_m3_inner(service, edition_part_id, inputs, batch_size):
         "lineage": {
             "upstream_artifacts": [
                 _artifact_ref(ocr_page_set_revision_id, artifacts_map),
-                _artifact_ref(inputs["manifest_revision_id"], artifacts_map),
+                _artifact_ref(manifest_revision_id, artifacts_map),
             ],
             "transformations": [{
                 "operation": "compile_corpus",
@@ -385,80 +422,105 @@ def _fail(service, step_run_id, check, detail):
 
 
 def _read_manifest_content(service, manifest_revision_id):
-    """读取 manifest 修订的内容（YAML 格式）。"""
+    """读取 manifest 修订的内容（YAML 格式）。
+
+    仅用于 begin_step_run 之前构造冻结列表（此时尚未冻结，无法先行校验）；
+    begin 之后一律改用 ``_read_and_verify_frozen`` 产出的已校验字节。
+    """
     rev = service.get_revision(manifest_revision_id)
     return yaml.safe_load(service.objects.get(rev["sha256"]).decode("utf-8"))
 
 
-def _read_revision_json(service, revision_id):
-    """读取修订的 JSON 内容。"""
-    rev = service.get_revision(revision_id)
-    return json.loads(service.objects.get(rev["sha256"]).decode("utf-8"))
+def _read_and_verify_frozen(service, frozen):
+    """一次性读取并校验每个冻结修订的对象字节（C1）。
+
+    对 ``frozen`` 中每个修订：读取其登记 ``sha256`` 对应的对象字节，重算
+    ``sha256`` 并与登记值比对；不一致说明 Object Store 中的物理内容已被
+    篡改（内容与 Ledger 记录的 Revision 元数据不符），抛出 ``HashMismatch``
+    （``SRC_003``）。返回 ``{artifact_revision_id: 已校验字节}``；调用方之后
+    所有对冻结输入内容的解析必须复用这份字典，不得再次访问 Object Store。
+    """
+    frozen_bytes = {}
+    for revision_id in frozen:
+        rev = service.get_revision(revision_id)
+        data = service.objects.get(rev["sha256"])
+        actual_sha256 = hashlib.sha256(data).hexdigest()
+        if actual_sha256 != rev["sha256"]:
+            raise HashMismatch(
+                "冻结修订 %s 对象内容哈希不一致（SRC_003）：登记 %s，实得 %s"
+                % (revision_id, rev["sha256"], actual_sha256),
+                code="SRC_003",
+            )
+        frozen_bytes[revision_id] = data
+    return frozen_bytes
 
 
 def _validate_input_contract(
-    service, step_run_id, frozen, manifest_revision_id,
-    ocr_page_set_revision_id, page_revision_ids, terminal_states,
-    human_event_revision_ids
+    service, manifest, ocr_page_set, page_revision_ids, terminal_states,
+    human_event_revision_ids, frozen_bytes,
 ):
-    """输入契约校验（§17 步骤 4）。"""
-    import hashlib
+    """输入契约校验（§17 步骤 4，C2/C3/C4）。
 
-    manifest = _read_manifest_content(service, manifest_revision_id)
-    ocr_page_set = _read_revision_json(service, ocr_page_set_revision_id)
+    只使用 C1 已校验的冻结字节（``frozen_bytes``）与 Ledger 元数据（修订的
+    登记 ``sha256``），不得再次访问 Object Store。返回 ``evidence_pages``
+    （人工事件顶层 ``page`` 字段集合），供 Gate 判定复用。
+    """
+    # C2：ocr_page_set["ocr_pages"] 必须是非空列表，每项含 page 与 sha256；
+    # 页集合与 page_revision_ids 键集合严格相等；每页修订登记 sha256 == 该项
+    # sha256（否则 HashMismatch SRC_003）。删除按 manifest.files 比对的逻辑
+    # 与所有「缺失即跳过」分支。
+    ocr_pages_raw = ocr_page_set.get("ocr_pages")
+    if not isinstance(ocr_pages_raw, list) or not ocr_pages_raw:
+        raise CompileRefused("ocr_page_set.ocr_pages 缺失或为空")
 
-    # ocr_page_set 页集合 == page_revision_ids 键集合
-    ocr_pages_raw = ocr_page_set.get("ocr_pages", [])
-    if isinstance(ocr_pages_raw, list):
-        ocr_pages = {item["page"] for item in ocr_pages_raw if "page" in item}
-    elif isinstance(ocr_pages_raw, dict):
-        ocr_pages = set(ocr_pages_raw.keys())
-    else:
-        ocr_pages = set()
+    entries = {}
+    for item in ocr_pages_raw:
+        if not isinstance(item, dict) or "page" not in item or "sha256" not in item:
+            raise CompileRefused(
+                "ocr_page_set.ocr_pages 条目缺少 page 或 sha256: %r" % (item,)
+            )
+        entries[item["page"]] = item["sha256"]
+
     prid_pages = set(page_revision_ids.keys())
-    if ocr_pages and ocr_pages != prid_pages:
+    if set(entries.keys()) != prid_pages:
         raise CompileRefused(
-            "ocr_page_set 页集合 %r != page_revision_ids 键集合 %r" % (ocr_pages, prid_pages)
+            "ocr_page_set 页集合 %r != page_revision_ids 键集合 %r"
+            % (set(entries.keys()), prid_pages)
         )
 
-    # 每页修订 sha256 == 该页登记 sha256
-    page_hashes = {}
     for page, rev_id in page_revision_ids.items():
         rev = service.get_revision(rev_id)
-        data = service.objects.get(rev["sha256"])
-        page_hashes[page] = hashlib.sha256(data).hexdigest()
-
-    # 从 manifest files 中获取期望哈希
-    files_hash = {f["path"]: f["sha256"] for f in manifest.get("files", [])}
-    for page in page_revision_ids:
-        expected = files_hash.get("pages/%s.json" % page)
-        if expected and page_hashes.get(page) != expected:
-            raise CompileRefused(
-                "页 %s 修订哈希 %s != manifest 登记 %s" % (page, page_hashes[page], expected),
+        if rev["sha256"] != entries[page]:
+            raise HashMismatch(
+                "页 %s 修订登记哈希 %s != ocr_page_set 登记 %s（SRC_003）"
+                % (page, rev["sha256"], entries[page]),
                 code="SRC_003",
             )
 
-    # terminal_states == ocr_page_set.terminal_states
-    ocr_terminal = ocr_page_set.get("terminal_states", {})
-    if isinstance(ocr_terminal, dict) and ocr_terminal != terminal_states:
-        # 不严格比对，允许从 anomalies 推导
-        pass
+    # C3：终态必须与 m2 Checkpoint 解析结果严格相等。
+    ocr_terminal = ocr_page_set.get("terminal_states")
+    if not isinstance(ocr_terminal, dict) or ocr_terminal != terminal_states:
+        raise CompileRefused(
+            "ocr_page_set.terminal_states %r != terminal_states %r"
+            % (ocr_terminal, terminal_states)
+        )
 
-    # 每个人工事件内容 JSON 的 "page" 字段收集为 evidence_pages
+    # C4：每个人工事件内容必须是含顶层 "page" 的 dict；evidence_pages 取该字段。
+    evidence_pages = set()
     for event_id in human_event_revision_ids:
-        event_data = _read_revision_json(service, event_id)
+        event_data = json.loads(frozen_bytes[event_id].decode("utf-8"))
         if not isinstance(event_data, dict) or "page" not in event_data:
-            raise CompileRefused(
-                "人工事件 %s 缺少 page 字段" % event_id
-            )
+            raise CompileRefused("人工事件 %s 缺少顶层 page 字段" % event_id)
+        evidence_pages.add(event_data["page"])
 
-    # manifest 页序中每个页名匹配 ^page_[0-9]{3,4}$
-    import re
+    # manifest 页序中每个页名必须匹配 ^page_[0-9]{3,4}$
     for page in manifest["edition_part"]["pages"]:
         if not re.match(r"^page_[0-9]{3,4}$", page):
             raise CompileRefused(
                 "页名 %s 格式非法（应匹配 ^page_[0-9]{3,4}$）" % page
             )
+
+    return evidence_pages
 
 
 def _build_artifacts_map(service, step_run_id, frozen_ids, own_ids):

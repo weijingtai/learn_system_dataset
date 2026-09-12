@@ -45,7 +45,7 @@ def main(argv=None):
     fixture_dir = Path(args.fixture)
     if not fixture_dir.is_dir():
         print("FAIL m3_acceptance 宿主准备失败: FileNotFoundError: fixture 目录不存在: %s" % fixture_dir)
-        return 1
+        return 3
 
     # 检查 manifest.yaml 是否可读
     manifest_path = fixture_dir / "manifest.yaml"
