@@ -10,7 +10,10 @@
   R2 表 A 首列与规格 §19 主表首列名多重集相等（各恰 1 次），且第 4 列为存在的路径；
   R3 表 B 每行「开头文字」在 PLAN 中恰匹配 1 条 `- [ ] <开头>` 或 `- [x] <开头>` 行（未勾选与已勾选合计恰 1），标注 ∈ 三值，行数 ≥ 43；
   R4 PLAN 其余 `- [ ]` 行要么在表 B、要么在新节 C、要么位于 G6/注解社区各节；
-  R5 新节 C 恰 3 条 `- [ ]`，各含 `run_all.sh 20.`；
+  R5 新节 C 内以 `- [ ] ` 或 `- [x] ` 开头的行合计恰 3 条；每条含 `run_all.sh 20.`；每条
+     `- [x]` 行必须含至少一个反引号包裹的 7–40 位小写十六进制提交号（正则
+     `[0-9a-f]{7,40}` 夹在反引号内），否则 FAIL R5（R4 不变，仍只考察 `- [ ]` 行，
+     节 C 的 `- [x]` 行不参与 R4）；
   R6 三个 owner 文件各恰 1 行含 `唯一登记处`，且含 `KnowledgeReleaseCompiler` 的行数各为 1。
 
 任一失败输出 `D16 FAIL <规则号> <原因>` 并退出 1；全部通过输出 `D16 OK` 并退出 0。
@@ -19,6 +22,7 @@
 
 import argparse
 import os
+import re
 import sys
 
 # 新节标题（逐字来自 ACT plan_section）
@@ -32,6 +36,9 @@ SPEC_END_PREFIX = "## 20."
 
 # 表 B 第 2 列的合法标注集合
 LABELS = {"mapped", "superseded-by", "out-of-scope"}
+
+# R5：反引号夹住的 7-40 位小写十六进制提交号
+COMMIT_HASH_RE = re.compile(r"`[0-9a-f]{7,40}`")
 
 # R6 的三个 owner 文件
 OWNER_FILES = [
@@ -258,7 +265,11 @@ def main():
     c_indices = {
         c_start + i for i, line in enumerate(c_body) if line.startswith("- [ ]")
     }
-    c_lines = [line for line in c_body if line.startswith("- [ ]")]
+    c_lines = [
+        line
+        for line in c_body
+        if line.startswith("- [ ] ") or line.startswith("- [x] ")
+    ]
 
     nearest = None
     for index, line in enumerate(plan):
@@ -274,12 +285,15 @@ def main():
             if nearest not in CLOSED_HEADS:
                 fail("R4", "未覆盖未勾选项（节=%s）: %s" % (nearest, line))
 
-    # ---- R5 新节 C 恰 3 条新增登记，各含 run_all.sh 20. ----
+    # ---- R5 新节 C 恰 3 条（`- [ ] ` 与 `- [x] ` 合计），各含 run_all.sh 20.，
+    #      已勾选行须附反引号提交号 ----
     if len(c_lines) != 3:
         fail("R5", "新节 C 未勾选项数=%d（应 3）" % len(c_lines))
     for line in c_lines:
         if "run_all.sh 20." not in line:
             fail("R5", "新节 C 缺 run_all.sh 20. 判据: %s" % line)
+        if line.startswith("- [x] ") and COMMIT_HASH_RE.search(line) is None:
+            fail("R5", "新节 C 已勾选行缺反引号提交号: %s" % line)
 
     # ---- R6 唯一 owner 收敛 ----
     for path in OWNER_FILES:
