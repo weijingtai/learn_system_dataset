@@ -1,6 +1,6 @@
 TASK_ID: NC-015-A
 PARENT: NC-015
-STATUS: READY
+STATUS: ACCEPTED
 REPO: learn_system
 GOAL: 按契约 §7 写 18 个正反样例（每项含 expected，字段按 BDD）
 DEPENDS_ON: []

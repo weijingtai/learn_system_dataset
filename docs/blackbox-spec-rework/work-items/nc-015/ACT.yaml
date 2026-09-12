@@ -1,5 +1,5 @@
 TASK_ID: NC-015
-STATUS: READY
+STATUS: ACCEPTED
 GOAL: 按 private_sync.md 交付 18 个正反样例与检查器（红条件闭集），供 NC-016 实现与攻击场景审查消费
 CONTRACTS:
   - openspec/annotation-community/contracts/private_sync.md

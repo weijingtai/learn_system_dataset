@@ -1,6 +1,6 @@
 TASK_ID: NC-015-B
 PARENT: NC-015
-STATUS: READY
+STATUS: ACCEPTED
 REPO: learn_system
 GOAL: 检查器 check_private_sync_protocol.py（契约 §8 红条件）与 ≥16 个 unittest
 DEPENDS_ON: [NC-015-A]

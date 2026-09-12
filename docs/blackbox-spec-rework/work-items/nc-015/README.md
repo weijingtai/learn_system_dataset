@@ -1,6 +1,6 @@
 # NC-015：接入 S6——设备授权、传输一次一密与中转删除协议（v1.6 接入型）
 
-状态：`READY`（2026-09-11：R1 四查 + 十二场景审查返工 5 项、R2 返工 1 项，均已落实；记录见 `reviews/NC-015-REVIEW-R1.md`）。派发前置：无（规格仓内产物；不依赖 Firebase 去留）。执行由用户交外部 Agent，PROMPT.md 原样发送。task_id：`NC-015`。权威需求来源：TASKS v1.6 NC-015；PRD v1.6 R-12/R-13/R-14、§8 E-CRYPTO；DESIGN v1.6 §5；xuan-storage S6 设计稿裁决；契约 `openspec/annotation-community/contracts/private_sync.md`（本任务专属，主 Agent 编写）。
+状态：`ACCEPTED`（2026-09-11，验收 R1：learn_system `2d3a366`、`b39d4f6`；samples=18、unittest 16 OK、守卫 0、盲测全 PASS；契约 §5 第 95 行 TTL 文案冲突已由主 Agent 修正；记录见 [ACCEPTANCE](ACCEPTANCE.md)）。历次状态：`READY`（2026-09-11：R1 四查 + 十二场景审查返工 5 项、R2 返工 1 项，均已落实；记录见 `reviews/NC-015-REVIEW-R1.md`）。派发前置：无（规格仓内产物；不依赖 Firebase 去留）。执行由用户交外部 Agent，PROMPT.md 原样发送。task_id：`NC-015`。权威需求来源：TASKS v1.6 NC-015；PRD v1.6 R-12/R-13/R-14、§8 E-CRYPTO；DESIGN v1.6 §5；xuan-storage S6 设计稿裁决；契约 `openspec/annotation-community/contracts/private_sync.md`（本任务专属，主 Agent 编写）。
 
 ## 用户指示（2026-09-11，两次强调）
 

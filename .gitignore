@@ -17,3 +17,6 @@ var/
 
 # NC-001 基线指定的 OpenAPI 验证器 venv
 openspec/annotation-community/.venv-openapi/
+
+# 规格仓 Python 工具导入时生成的字节码缓存（NC-015 验收 R1）
+openspec/annotation-community/tools/__pycache__/
