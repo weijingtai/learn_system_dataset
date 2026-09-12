@@ -1,6 +1,6 @@
 # INTERFACES：M1–M8 跨模块接口总表（impl-00 草案）
 
-状态：`DRAFT`。本表是 M1/M2 薄接入、M3 语义层、M4、M5、M6、M7、M8、Orchestrator/Contract Registry 各并行草案的对账基准。
+状态：`READY_FOR_REVIEW`（`impl-00/10` 已登记 §4 临时闭集并同步首纵切裁决；W2-C1 定稿 2026-09-12）。本表是 M1/M2 薄接入、M3 语义层、M4、M5、M6、M7、M8、Orchestrator/Contract Registry 各并行草案的对账基准。
 
 图例：
 - 【规格】规格原文可引，给出行号（`openspec/learn-system-blackbox-architecture.md`，共 1001 行）；
@@ -29,6 +29,10 @@
 | 失败封存 | 写 `failure_report` 修订 → `fail_step_run` | 【实际】step.py 373 |
 | 人工事件 | `record_human_event(step_run_id, resume_token, event_rev, decision_type=None)`；事件修订的 artifact_type 必须为 `human_event`；`decision_type` 取 §8.2 的 8 类 | 【实际】service.py 824、922–930；【规格】349–364 |
 | 进度事件 | 各 Module 须向 Orchestrator 实时上报 | 【规格】226；【未定义】事件形状（Orchestrator 包定义） |
+| 热点文件写权 | `fixture_ingest.py` 首纵切不改（P9）；`openspec/schemas/**` 首纵切不新增文件（P3） | G7-RULINGS §9 第 5/13 条 |
+| Ledger 只读查询缺口 | 优先 `LedgerReader` 公开方法；缺口（`frozen_inputs`、`artifacts.artifact_type`、`stage_packages`、按 `step_run_id` 取 sealed `stage_package`）允许 `reader.store.conn` 只读 SELECT，清单见 impl-00 README §5.2，impl-08 补公开读方法 | G7-RULINGS §9 第 13 条、§9.1 第 25 条 |
+| 页图字节 | SourceAssetPack 页图字节登记进 Ledger（薄 M1 `source_asset_page`，`rights_scope=internal`）；fixture 内不出现图像 | G7-RULINGS §9 第 16 条 |
+| M5 包下游消费 | 消费 M5 包须同时满足所属 StepRun `succeeded` 与 `validation.passed == true` | G7-RULINGS §9 第 21 条 |
 
 ### 1.2 StagePackage 信封
 
@@ -54,7 +58,7 @@
 - 必含字段【规格】844：`edition_part_id, stage, step_run_id`、已完成任务、已封存人工决定、待办剩余（含五个专用队列）、下一步指针、`actor_ref`、时间、前一 Checkpoint 修订、ReworkImpactReport 引用。
 - 粒度【规格】843：人工阶段（M2 校订、M3 边界、M4 类别、M6 审核）每接受一个人工决定就落盘一次；非人工任务每完成一个 task 落盘一次。
 - 【实际】签名 `write_checkpoint(step_run_id, *, edition_part_id, stage, completed_tasks, human_decisions, pending_queue, next_pointer, rework_impact_report_revision_id=None, artifact_id=None, artifact_revision_id=None)`（service.py 1364–1377）；`completed_tasks` 元素键为 `{task_id, artifact_revision_id, status, terminal_state}`（fixture_ingest.py 240–246）。
-- 链键「EditionPart × Stage」只有一条链（842）；ReleaseRun 下的 m7/m8 如何取链键 → 【未定义】D-04。
+- 链键「EditionPart × Stage」只有一条链（842）；【G7-RULINGS §9 第 4 条】ReleaseRun（m7/m8）首纵切单 Part：`edition_part_id` 取该 Part，跨 Part Release 纵切后改 Ledger 再议。
 
 ### 1.4 标识
 
@@ -122,7 +126,7 @@
 | 下游消费键 | 【草案】M4：`spans[].span_id/.text/.page`；M5：全部 span 与锚点字段；M8：`source_anchor` 整体随包发布（713） |
 | 未定义 | SemanticSpan 形状（504、513–519）→ D-12；spans 没有 quote hash（527、G3 67）→ D-12 取 A 时由 M4 以 `sha256(quote)` 写入 evidence |
 
-### 2.4 M4 Knowledge Extraction（首纵切：薄接入）
+### 2.4 M4 Knowledge Extraction（纵切后，不在首纵切）
 
 | 项 | 内容 |
 |---|---|
@@ -143,17 +147,18 @@
 | 项 | 内容 |
 |---|---|
 | 运行归属 | EditionRun，`stage=m5` |
-| 冻结输入 | 【未定义→D-02，推荐 B】m4 `candidate_package` + `candidate_set`、m3 `corpus_package` + `corpus_spans`、m2 `ocr_page_set`、m1 `source_manifest`；配置修订增加 `target_consumption_level` |
+| 冻结输入 | 【G7-RULINGS §9 第 2 条】`scope: corpus_only`：m3 包及其血缘输入（含 M3 自身冻结的 M1/M2），共 17 个修订；配置修订增加 `target_consumption_level` |
 | 任务与 Checkpoint【草案】 | 每个门禁一个 task：`g1_source_replay, g2_coverage, g3_identity_evidence, g4_layering, g5_concept_retrieval, g6_rule_executability`，共 6 个 Checkpoint；无人工队列 |
-| 输出 artifact_type【草案】 | 任务级 `gate_report`；主内容 `gate_results`；阶段输出 `validation_package`；另有 `validation_report`、`step_log` |
+| 输出 artifact_type【草案】 | 主内容 `gate_results`；阶段输出索引 `validation_package`；每 task 复用通用 `validation_report`（G7-RULINGS §9.1 第 24 条）；另有 `step_log` |
 | payload【草案】 | `stage_payload_m5`：`{gate_results_revision_id, target_consumption_level, gate_status{G1..G6: passed/failed/blocked}, m5_gate_passed}` |
 | counts【草案】 | `{checks_passed, checks_failed, checks_blocked, warnings, broken_relations, rework_tasks}`；content_sha256 = sha256(gate_results)；operation `validate_candidates` |
 | Gate | G1–G5 全部、G6 前半由 M5 执行（【规格】588–603）；放行条件 606；fail-closed 608；blocked 的放行语义 → D-09 |
 | 约束 | 不修改 Candidate、不生产 Tag 字段（580、610）；规则只用声明式 AST/YAML/JSON（612）；不用模型替代规则判断（580） |
+| 下游消费约束 | 【G7-RULINGS §9 第 21 条】M5 StagePackage `validation.passed` 如实反映 Gate；下游消费 M5 包须同时满足所属 StepRun `succeeded` 与 `validation.passed == true` |
 | 下游消费键 | M6：`gate_results.gates[].checks[]`、`rework_tasks[]`、`broken_relations[]`；M8：`known_defects` 取 blocked 项 |
 | 未定义 | 输入清单、目标消费级别入参（D-02）；新失败类别的错误码（D-17） |
 
-### 2.6 M6 Review & Curation（首纵切：薄接入，只读对照与签发）
+### 2.6 M6 Review & Curation（纵切后，不在首纵切）
 
 | 项 | 内容 |
 |---|---|
@@ -169,7 +174,7 @@
 | 失效传播 | CorrectionRequest → M2 返工 → 按 §14.1 635–645 精确失效；`rework_round ≥ 3` 或单轮失效 ≥ 30% 时登记 `rework_threshold_exceeded`（642） |
 | 未定义 | verdict 枚举与 content_status 迁移（D-14）；Review Console 与 Ledger 的写入通道（620，Flutter 客户端纵切后） |
 
-### 2.7 M7 Incremental Knowledge Assembly（首纵切：推荐薄直通，D-03）
+### 2.7 M7 Incremental Knowledge Assembly（纵切后，不在首纵切）
 
 | 项 | 内容 |
 |---|---|
@@ -189,18 +194,20 @@
 | 项 | 内容 |
 |---|---|
 | 运行归属 | ReleaseRun，`stage=m8` |
-| 冻结输入 | 【规格】661–666：Snapshot 修订、发布范围、TechniqueProfile、ReleasePolicy、消费级别；【草案】发布范围、ReleasePolicy、消费级别写进配置修订键 `release_scope, release_policy, consumption_level`；TechniqueProfile 用 `technique_profile` 修订；另冻结 m3 `corpus_spans` 与 m1 `source_manifest`（D-03） |
-| 任务与 Checkpoint【草案】 | 每个子包一个 task（`task_id` = 子包 artifact_type），首纵切 6 个子包 + release_manifest = 7 个 Checkpoint |
-| 输出 artifact_type【草案】 | `knowledge_data_pack, evidence_map_pack, source_asset_pack, query_contract_pack, anchor_contract_pack, release_validation_report, release_manifest`；纵切后另有 `rule_index_pack, search_index_pack, graph_projection_pack, technique_profile_pack`；阶段输出 `publication_package`。每个子包都是独立 Artifact（699） |
+| 冻结输入 | 【G7-RULINGS §2 D1-A 尾链、§9 第 3/15 条】首切片只读 M3 StagePackage 及其血缘输入（m1 `source_manifest`、m2 `ocr_page_set`/`ocr_page`）+ 薄 M1 登记的派生页图；TechniqueProfile 只有 `technique_profile_id="qizheng"` 字符串；发布范围/ReleasePolicy/消费级别写进配置修订键 `release_scope, release_policy, consumption_level` |
+| 任务与 Checkpoint【草案】 | 首切片 4 个 task（`source_asset_pack, evidence_map_pack, release_manifest, validation_report`），每 task 一个 Checkpoint；纵切后随子包集合扩展 |
+| 输出 artifact_type【草案】 | 首切片 5 个独立 Artifact（699）：`source_asset_pack`、`evidence_map_pack`、`release_manifest`（主内容）、`validation_report`、`publication_package`（阶段输出）；纵切后另有 `knowledge_data_pack`、`query_contract_pack`、`anchor_contract_pack`、`rule_index_pack`、`search_index_pack`、`graph_projection_pack`、`technique_profile_pack` |
 | payload【草案】 | `stage_payload_m8`：`{release_id, consumption_level, release_manifest_revision_id, subpack_revision_ids{type: rev}, canonical_snapshot_revision_id}` |
 | counts【草案】 | `{entries, assertions, evidence_chains, source_assets, subpacks}`；content_sha256 = sha256(release_manifest)；operation `compile_dataset` |
-| Gate | G6 复验（603，需要 RuleIndex/SearchIndex，首纵切 blocked）、G7（604）；EvidenceMap 七段闭合 fail-closed（705–715）；锚点可迁移率（734）；拒绝 `source_release=dev` 进入 PUBLIC_RELEASE（697）；消费级别准入（670–678） |
+| Gate | 首切片只闭合尾链四段 SourceSpan→SourceAnchor→OcrPage→SourceAsset（705–713），三段知识链（KnowledgeEntry/Assertion/EvidenceLink）记 `knowledge_chain: "not_compiled"`；G6 复验（603）blocked、G7（604）；拒绝 `source_release=dev` 进入 PUBLIC_RELEASE（697）；消费级别只签发 `INTERNAL_DEMO`，`DEV_SEARCH`/`PUBLIC_RELEASE` 在 begin 之后以 `admission` 失败封存（670–678） |
 | 下游 | APP 后端与客户端（黑箱外，§1 22–27）、注解社区锚点（`openspec/annotation-community`，`anc_` 三要素 731） |
 | 未定义 | 子包范围、`min_app_version`、`source_release` 闭集（D-15）；KnowledgeEntry 主体选 Concept 还是 Pattern 的规则（86 只说「一个 Concept 或 Pattern」）；GraphProjectionPack 格式（纵切后） |
 
 ---
 
 ## 3. 需要新增的 JSON Schema（草案）
+
+> 纵切后（P3）：首纵切内不向 `openspec/schemas/` 新增文件，以下结构以代码内草案契约表达，正式化随 impl-08 Contract Registry。
 
 通用约束：Draft 2020-12；除特别说明外均为 `additionalProperties: false`；`schema_version` 复用 `artifact_ref.schema.json#/$defs/schemaVersion`（const `"1.0.0"`）；ID 与枚举复用 §3.1 的 `$defs`。文件平铺在 `openspec/schemas/` 下（便于 `verify.sh` 的 `--check-metaschema *.schema.json` 自动覆盖，并与 check-jsonschema 的相对 `$ref` 解析一致）。
 
@@ -317,20 +324,25 @@
 
 ## 4. artifact_type 总表（在 Contract Registry 落地前充当临时闭集，D-10）
 
+登记纪律：唯一登记处为本表，直至 impl-08 Contract Registry 接管（P2）；同一时刻只有一路写本表。未入本表的类型名，实现不得使用；M5 任务级报告已按 G7-RULINGS §9.1 第 24/26 条删除，每 task 复用通用 `validation_report`。
+
 | 阶段 | artifact_type | 角色 | 内容 Schema | 状态 |
 |---|---|---|---|---|
 | 通用 | `configuration` / `technique_profile` | 运行配置（put_run_artifact） | — | 【实际】 |
-| 通用 | `validation_report` / `step_log` / `failure_report` | 每个 StepRun 的自检、日志、失败 | — | 【实际】 |
-| 通用 | `human_event` | 人工决定（含 ReviewDecision） | `review_decision`（m3/m4/m6/m7 决定） | 【实际】类型；【草案】内容 |
+| 通用 | `validation_report` / `step_log` / `failure_report` | 每个 StepRun 的自检、日志、失败；M5 每 task 复用 `validation_report` | — | 【实际】 |
+| 通用 | `human_event` | 人工决定（含 ReviewDecision） | `review_decision`（纵切后，M6） | 【实际】类型；【草案】内容 |
 | Ledger | StepManifest、StageCheckpoint、StagePackage 修订 | Ledger 内部 | — | 【实际】以 service.py 为准 |
 | M1 | `source_manifest` | 任务级 + 阶段输出 | — | 【实际】 |
+| 薄 M1 | `source_asset_page` / `source_asset_register` | 派生页图字节（rights_scope=internal）/ 页图登记 | 代码草案（P3） | 首纵切（impl-04 shim，D2；impl-09 M1 落地后替换） |
 | M2 | `ocr_page` / `ocr_page_set` | 任务级 / 阶段输出 | — | 【实际】 |
 | M3 | `corpus_batch` / `corpus_spans` / `coverage_report` / `corpus_package` | 任务级 / 主内容 / 报告 / 阶段输出 | — | 【实际】 |
-| M4 | `candidate_batch` / `model_run` / `candidate_diff_report` / `candidate_set` / `candidate_package` | 任务级 / 模型留痕 / 差异 / 主内容 / 阶段输出 | candidate_set | 【草案】 |
-| M5 | `gate_report` / `gate_results` / `validation_package` | 任务级 / 主内容 / 阶段输出 | gate_results | 【草案】 |
-| M6 | `review_queue` / `correction_request` / `rework_impact_report` / `reviewed_edition` / `reviewed_edition_package` | 队列 / 退回 / 失效报告 / 主内容 / 阶段输出 | rework_impact_report、reviewed_edition | 【草案】 |
-| M7 | `merge_proposal` / `alias_proposal` / `conflict_proposal` / `evidence_relation_proposal` / `canonical_snapshot` / `assembly_package` | 提案 / 主内容 / 阶段输出 | canonical_snapshot | 【草案】 |
-| M8 | `knowledge_data_pack` / `evidence_map_pack` / `source_asset_pack` / `query_contract_pack` / `anchor_contract_pack` / `release_validation_report` / `release_manifest` / `publication_package` | 子包 / 主内容（release_manifest）/ 阶段输出 | 同名 Schema；release_validation_report 用 gate_results | 【草案】 |
+| M4 | `candidate_batch` / `model_run` / `candidate_diff_report` / `candidate_set` / `candidate_package` | 任务级 / 模型留痕 / 差异 / 主内容 / 阶段输出 | candidate_set | 纵切后（D-11） |
+| M5 | `gate_results` | 主内容 | 代码草案 0.1.0-draft（P3） | 首纵切（§9 第 10 条） |
+| M5 | `validation_package` | 阶段输出索引 | 代码草案（P3） | 首纵切（§9 第 10 条） |
+| M6 | `review_queue` / `correction_request` / `rework_impact_report` / `reviewed_edition` / `reviewed_edition_package` | 队列 / 退回 / 失效报告 / 主内容 / 阶段输出 | rework_impact_report、reviewed_edition | 纵切后（D-14） |
+| M7 | `merge_proposal` / `alias_proposal` / `conflict_proposal` / `evidence_relation_proposal` / `canonical_snapshot` / `assembly_package` | 提案 / 主内容 / 阶段输出 | canonical_snapshot | 纵切后（§9 第 3 条） |
+| M8（首纵切） | `source_asset_pack` / `evidence_map_pack` / `release_manifest` / `publication_package` | 子包 / 主内容（release_manifest）/ 阶段输出 | 代码草案（P3）；ValidationReport 复用通用 `validation_report` | 首纵切（D4、§9 第 15 条） |
+| M8（纵切后） | `knowledge_data_pack` / `query_contract_pack` / `anchor_contract_pack` / `rule_index_pack` / `search_index_pack` / `graph_projection_pack` / `technique_profile_pack` | 子包 | 纵切后 | 纵切后（D-15） |
 
 ---
 
@@ -339,7 +351,8 @@
 ```text
 L0 契约（已冻结）  L1 Ledger（impl-01 ACCEPTED）  M3 结构层（impl-02 返工中）
         │
-批次 0（串行）impl-00：K1 Schema → K2 金标 + verify → K3 golden ingest
+批次 0（串行）impl-00/10：INTERFACES §4 临时闭集登记与首纵切裁决对齐（首纵切唯一 ACT）
+        │         （纵切后）原 K1 Schema → K2 金标 + verify → K3 golden ingest 全部 DEFERRED
         │         （并行进行：impl-02 ACT 05 返工，只写 corpus_compiler，与本包无写冲突）
         ▼
 批次 1（契约冻结后并行；每个包都用 ingest(stages=前缀) 灌金标上游作输入，比对本阶段金标投影）
