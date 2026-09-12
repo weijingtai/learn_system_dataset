@@ -1,6 +1,6 @@
 # NC-017 独立验收
 
-当前：未验收。派发前置：NC-004、NC-015 ACCEPTED；NC-011 CLIENT 线 act/06 已提交；wjt-react 四查 READY。
+当前：`ACCEPTED`（2026-09-12 主 Agent 验收 R1，见文末）。派发前置：NC-004、NC-015 ACCEPTED；NC-011 CLIENT 线 act/06 已提交；wjt-react 四查 READY。
 
 1. ACT 审查：未参与编写者做 wjt-react 四查（`reviews/NC-017-REVIEW-R1.md`，派 agy）。
 2. 范围（`git diff-tree -r --name-only`）：reading-notes 在 NC-011-F 提交之后恰 2 个提交，只含契约 §2 白名单文件；`pubspec.yaml` 相对基线只多 `  cryptography: 2.9.0` 一行；`pubspec.lock` 只多 cryptography 一段。

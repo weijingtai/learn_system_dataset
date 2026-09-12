@@ -219,7 +219,7 @@ P1～P5 通过后，逐条保留满足 `0 <= m["start_offset"]` 且 `body[m["sta
 
 ### 8.1 验收 R1 修订：确定性 Aborted 注入替代线程屏障（2026-09-12，替代上文 T31～T34 与「停手条件」，D-NC011-21、D-NC011-22）
 
-act/04 执行方实测（`work-items/nc-011/DELIVERY_REPORT_SERVER.md`「待裁决」）：Firestore Emulator 对事务读锁是「写者等待读者、不中止较年轻事务」，锁等待后事务以 `NotFound` 失效；上文依赖 wound-wait 的线程屏障在 T31 互等超时、T32/T33 收回得 503、T34 未触发重跑。改为以下写法（仍经 `run_command`、仍用真实 Emulator）：
+act/04 执行方实测（`work-items/nc-011/DELIVERY_REPORT_SERVER.md`）：Firestore Emulator 对事务读锁是「写者等待读者、不中止较年轻事务」，上文依赖 wound-wait 的线程屏障在 T31 互等至 `wait(10)` 超时、T34 未触发回调重跑。（首轮报告中 T32/T33 收回得 503 `NotFound` 经执行方复查为**测试种子缺陷**：`seed_access` 写了 `current_publication_id` 却未写对应 `community_publications` 文档，`content_withdraw` 对不存在文档 `update` 而抛 `NotFound`；补种后即 200，与锁语义无关。）改为以下写法（仍经 `run_command`、仍用真实 Emulator）：
 
 - **注入点**：`google-cloud-firestore 2.30.0` 的 `_Transactional.__call__` 循环为 `_pre_commit`（`transaction._clean_up()` → `transaction._begin(retry_id)` → 回调）→ `transaction._commit()`，捕获 `google.api_core.exceptions.Aborted` 后重跑回调。测试以 `monkeypatch.setattr(google.cloud.firestore_v1.transaction.Transaction, "_commit", patched)` 注入：`patched(self)` 在「已布防且未触发」时先置为已触发，再调用 `self._rollback()` 释放本事务的锁，执行下文规定的插入动作，最后 `raise Aborted("injected by test")`；其余情况调用原 `_commit(self)`。
 - **T31 withdraw 先提交、评论回调重跑**：`after_access_read_hook` 第 1 次被调用时布防；插入动作 = 同线程同步执行 `run_command(wctx, content_service.content_withdraw)` 并断言 200。期望：评论命令 404 `not_found.content`；hook 恰被调用 2 次；该主题零评论、零 revision、无 thread 文档、outbox 无 `comment.created`、行为事件无 `comment.create`；评论命令账本 `outcome=rejected`、`result_code=not_found.content`；收回命令账本 `outcome=committed`。
@@ -453,5 +453,5 @@ ID 中的 `…` 表示补零到 32 位 hex。
 | D-NC011-18 | W7 409 改为 access_version 与 idempotency 的 oneOf 组件 | 原组件要求 `current_access_version`，幂等冲突体会被契约拒收 |
 | D-NC011-19 | 规则测试纳入本任务（65 → 89） | 新增三集合须证明默认拒绝仍生效（沿用 NC-009 §6） |
 | D-NC011-20 | 延后：网关路由、复合索引部署、限流开启、通知（NC-013）、mention 深度校验（NC-012）、审核隐藏的计数维护 | 本任务 TASKS 验收命令为 Emulator pytest 与 flutter test |
-| D-NC011-21 | R2-05 并发测试改为确定性 `Aborted` 注入（T31、T34）、顺序执行（T32）与同键重试的真实竞争（T33），替代 §8 线程屏障 | act/04 实测 Emulator 读锁为写者等读者、锁等待后 `NotFound`，线程屏障无法确定性产生契约假设的提交顺序（主 Agent 契约缺陷；执行方按停手协议上报正确） |
+| D-NC011-21 | R2-05 并发测试改为确定性 `Aborted` 注入（T31、T34）、顺序执行（T32）与同键重试的真实竞争（T33），替代 §8 线程屏障 | act/04 实测 Emulator 读锁为写者等读者，线程屏障在 T31 互等超时、T34 不重跑，无法确定性产生契约假设的提交顺序（主 Agent 契约缺陷；执行方按停手协议上报正确）。T32/T33 的 503 后经复查为测试未种 publication 文档所致，与锁语义无关 |
 | D-NC011-22 | hook 调用须在 `not_found` 早返回之前；竞争下的 503 以同一 command_id 重试 | §5.1 原意；503 在客户端命令队列中本就以同键重试（community_client §4.2） |

@@ -16,7 +16,7 @@ ID 与契约 `private_sync_impl.md` §3.3（X）、§8（S）一一对应，期�
 |---|---|---|---|
 | S01 | 8 个 `auth_*.json` 副本 | `decideAuthorization` | 决定名等于 `expected` |
 | S02 | `auth_valid.json` 三字段 | `accountBindingCertHash` | 等于 `c2d5f307…0504` |
-| S03 | `pairing_anonymous.json`、`relay_ttl.json`、`deletion_layers.json` | 调用 `pairingGate` 并读常量 | 匿名拒绝码；三常量等于样例；删除分层样例 `layers_ok` |
+| S03 | `pairing_anonymous.json`、`relay_ttl.json`、`deletion_layers.json` | 调用 `pairingGate` 并读常量 | 匿名拒绝码；三常量等于样例；删除分层样例 `layers_ok`；两个 entityType 分别为 private/shared |
 | S04 | 本机无该笔记 | 应用远端首条修订，再应用两条同父修订，再重复应用 | 建笔记；两个头、preferred 为先到者；outbox 不变；重复返回 `duplicate` |
 | S05 | 父修订缺失 / 头表插入被拦截失败 | `applyRemoteRevision` | `RemoteParentMissing` 且零写入 / `SaveFailed` 且回滚 |
 | S06 | outbox 行 | `markEnvelope` 各转移 | 只允许 pending→sent→acked 与 sent→pending |
@@ -24,7 +24,7 @@ ID 与契约 `private_sync_impl.md` §3.3（X）、§8（S）一一对应，期�
 | S08 | 契约 §9 固定输入 | 计算签名摘要、密钥、包装、首块 | 全部等于参考值 |
 | S09 | 发送与接收两个仓库，真实密钥 | `openSession` → `seal` → `receive` | `accept`，修订 13 字段一致 |
 | S10 | 合法信封 | 比较签名字段并改 `contentHash` 一位 | 字段表等于样例；`reject:bad_signature` |
-| S11 | 发给 dev_b 的信封 | dev_c 接收 | `reject:aad_mismatch` |
+| S11 | 发给 dev_b 的信封与 dev_b 的会话对象 | dev_c 的接收器用同一会话对象接收 | `reject:aad_mismatch` |
 | S12 | 发送端修订被写成错误 content_hash | `seal` 后接收 | `reject:hash_mismatch` |
 | S13 | 已接收的信封 | 再次接收 | `duplicate_ack`，零写入 |
 | S14 | 明文 > 262144 字节 | 接收 | `reject:schema_invalid`，未调用验签 |

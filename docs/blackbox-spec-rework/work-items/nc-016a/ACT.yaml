@@ -13,5 +13,6 @@ ORDER: "两线并行：STORAGE act/01 ｜ CLIENT act/02 → act/03；CLIENT 与�
 ESTIMATE_MINUTES_TOTAL: 165
 DEFERRED:
   - "NC-016b：两台真实设备 LAN/WebRTC 集成测试、中转上传与 notifier 信令、宿主装配与 SyncRuntime entityType 注册（BLOCKED，等 NC-001 设备表）"
+  - "中转对象三层删除的执行（接收端落库后主删、发送端 300 秒兜底、Storage 1 天生命周期规则）：NC-016b；16a 只落常量与 deletion_layers.json 断言（审查 R1 待裁决 C4）"
   - "STORAGE 分支 fix/nc016-guard-aad 合并到 main：仓库所有者决定"
   - "生命周期 op（note_trashed/restored/purged）同步与 tombstone 窗口：NC-019"

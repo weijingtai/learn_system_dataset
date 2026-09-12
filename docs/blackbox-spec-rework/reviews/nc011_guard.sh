@@ -21,8 +21,8 @@ RN = Path("/Users/jingtaiwei/Git/Public/xuan-migration/reading-notes"); FL = "/U
 H = ["abe571820b1717be2379d8a60bfa8fc454b6e5158591f62fe1d31876b7eab428",
      "fdbb995205743586e29d5b1bf187b09cd71e332d25059345532ab76991dc37fb",
      "d65171fd03000501a18ad405e805a494b9a6717e27c03306a51fe5ada9dc7bb2"]
+# C1（…0001 的游标）只作契约 §6.3 编码示例，§9.2 无测试断言它（T25 夹具不可能产生），故不列入测试字面量要求（act/04 执行方指出，验收 R1 裁定 B）
 REFS = ["thr_29d9aa55fe9a6205547731ea3b3dc1a7", "3:b713c1d13d46bdb5", "3:bbe031c2c1299d8c",
-        "bmV3ZXN0fC18MjAyNi0wOS0xMVQwODowMDowMC4wMDAwMDFafGNtdF8wMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMQ",
         "bmV3ZXN0fC18MjAyNi0wOS0xMVQwODowMDowMC4wMDAwMDJafGNtdF8wMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMg",
         "b2xkZXN0fGNtdF8wMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAyMXwyMDI2LTA5LTExVDA4OjAwOjAxLjAwMDAwNVp8Y210XzAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMTA1"]
 SERVER_TESTS = """create_root_comment_writes_comment_revision_thread_outbox_event_atomically comment_payload_hashes_match_reference

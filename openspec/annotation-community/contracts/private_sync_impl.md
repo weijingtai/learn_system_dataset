@@ -114,9 +114,9 @@ Future<RemoteApplyOutcome> applyRemoteRevision({required String noteId, required
 Future<void> markEnvelope(int seq, OutboxState state);
 ```
 
-`applyRemoteRevision` 固定步骤：① 会话代数检查（同 §5.1 第 1 条）；② `revision.noteId != noteId` → `ArgumentError`；③ `getRevision(revision.id)` 已存在 → 返回 `duplicate`，不写任何行；④ 笔记不存在：`revision.parentIds` 必须为空，否则抛 `RemoteParentMissing(第一个父 ID)`；笔记存在：每个父 ID 必须是本笔记已有修订，否则抛 `RemoteParentMissing`；⑤ `db.transaction` 内：笔记不存在时插入 `notes`（`id=noteId`、`owner_scope=ownerScope`、`kind`、`preferred_head_id=revision.id`、`lifecycle=active`、`pending_op=none`、`created_at=noteCreatedAt`、`updated_at=clock.nowUtc()`）；插入 `note_revisions`（13 字段逐字取自 `revision`，含 `content_hash` 与 `created_on_device`）；删除本笔记 `note_heads` 中 `revision_id ∈ revision.parentIds` 的行，插入 `(noteId, revision.id)`；笔记已存在时，若 `revision.parentIds` 含当前 `preferred_head_id` 则改为 `revision.id`，否则保持（分支保留，由 NC-007 冲突横幅呈现）；写 `updated_at`。**不写 outbox**（不回声）。任一语句异常 → 回滚并抛 `SaveFailed(cause)`；⑥ 返回 `applied`。
+`applyRemoteRevision` 固定步骤：① 会话代数检查（同 §5.1 第 1 条）；② `revision.noteId != noteId` → `ArgumentError`；③ `getRevision(revision.id)` 已存在 → 返回 `duplicate`，不写任何行；④ 笔记不存在：`revision.parentIds` 必须为空，否则抛 `RemoteParentMissing(第一个父 ID)`；笔记存在：每个父 ID 必须是本笔记已有修订，否则抛 `RemoteParentMissing`；⑤ `db.transaction` 内依次（外键 `notes.preferred_head_id REFERENCES note_revisions(id)` 已开启，顺序同既有 `createNote`，审查 R1 返工项 1）：插入 `note_revisions`（13 字段逐字取自 `revision`，含 `content_hash` 与 `created_on_device`）；笔记不存在时插入 `notes`（`id=noteId`、`owner_scope=ownerScope`、`kind`、`preferred_head_id=revision.id`、`lifecycle=active`、`pending_op=none`、`created_at=noteCreatedAt`、`updated_at=clock.nowUtc()`）；删除本笔记 `note_heads` 中 `revision_id ∈ revision.parentIds` 的行，插入 `(noteId, revision.id)`；笔记已存在时，若 `revision.parentIds` 含当前 `preferred_head_id` 则改为 `revision.id`，否则保持（分支保留，由 NC-007 冲突横幅呈现）；写 `updated_at`。**不写 outbox**（不回声）。任一语句异常 → 回滚并抛 `SaveFailed(cause)`；⑥ 返回 `applied`。
 
-`markEnvelope`：会话代数检查；只允许 `pending→sent`、`sent→acked`、`sent→pending`，其余抛 `StateError('illegal outbox transition')`；`seq` 不存在抛 `StateError('unknown outbox seq')`。
+`markEnvelope`：会话代数检查；只允许 `pending→sent`、`sent→acked`、`sent→pending`（最后一条为发送端超时未获 ACK 后退回重发，扩展 local-persistence §4 的状态推进，审查 R1 待裁决 C2 确认），其余抛 `StateError('illegal outbox transition')`；`seq` 不存在抛 `StateError('unknown outbox seq')`。
 
 ## 6. 一次一密与信封（`private_note_sync.dart`）
 
@@ -151,21 +151,21 @@ const List<String> signedFieldNames = ['envelope_version', 'owner', 'sender_devi
 1. `outbox.op ∉ syncedOutboxOps` → `UnsupportedSyncOp`；取 `repository.getNote(outbox.noteId)` 与 `repository.getRevision(outbox.revisionId!)`。
 2. `plain = encodeSyncPayload(note, revision)`。
 3. 随机数（均经 `randomBytes`，缺省 `Random.secure()`）按此顺序取：`dek = randomBytes(32)`、`seed = randomBytes(16)`、`nonceW = randomBytes(16)`、`ephSeed = randomBytes(32)`；`eph = X25519().newKeyPairFromSeed(ephSeed)`。
-4. `aad = UTF8(appUserId + "|" + signer.deviceId + "|" + recipientDeviceId + "|" + seq 十进制)`。按 1048576 字节切块（末块 1～1048576，不产生空块）；第 i 块：`nonce_i = SHA256(seed ‖ UTF8(i 十进制))[0:12]`，`aad_i = aad ‖ i（4 B 大端）‖ final（末块 0x01，其余 0x00）`（D-NC016-05），`box = AesGcm.with256bits(nonceLength: 12).encrypt(plain_i, secretKey: dek, nonce: nonce_i, aad: aad_i)`，块字节 = `box.cipherText ‖ box.mac.bytes`；`payload = Σ（块长 4 B 大端 ‖ 块字节）`。
+4. `aad = UTF8(appUserId + "|" + signer.deviceId + "|" + recipientDeviceId + "|" + seq 十进制)`。按 1048576 字节切块（末块 1～1048576，不产生空块）；第 i 块：`nonce_i = SHA256(seed ‖ UTF8(i 十进制))[0:12]`，`aad_i = aad ‖ i（4 B 大端）‖ final（末块 0x01，其余 0x00）`（D-NC016-05），`box = AesGcm.with256bits(nonceLength: 12).encrypt(plain_i, secretKey: SecretKey(dek), nonce: nonce_i, aad: aad_i)`，块字节 = `box.cipherText ‖ box.mac.bytes`；`payload = Σ（块长 4 B 大端 ‖ 块字节）`。
 5. `shared = X25519().sharedSecretKey(keyPair: eph, remotePublicKey: SimplePublicKey(offer.sessionPub, type: KeyPairType.x25519))`；`wrapKey = Hkdf(hmac: Hmac.sha256(), outputLength: 32).deriveKey(secretKey: shared, nonce: nonceW, info: UTF8("xuan-private-sync/v1/" + appUserId + "/" + seq 十进制))`；`wrapped = AesGcm.with256bits(nonceLength: 12).encrypt(dek, secretKey: wrapKey, nonce: nonceW[0:12], aad: aad)`，`wrappedDek = cipherText ‖ mac`（48 B）。
 6. `signed = {signedFieldNames 各字段}`（`created_at = DateTime.parse(outbox.createdAt).toUtc().millisecondsSinceEpoch`，`content_hash = revision.contentHash`，`op = outbox.op` 数据库值）；`digest = SHA256(encode(signed))`（`encode` 为 reading-notes `nchash.dart` 的 E）；`signature = signer.sign(digest)`。
 7. 返回 `SealedEnvelope`（`payloadCipherRef = "inline"`、`chunkCount`、各 hex 小写）。
 
 ### 6.3 接收端 `PrivateNoteSyncReceiver`
 
-`PrivateNoteSyncReceiver({required NoteRepository repository, required TrustedDeviceDirectory directory, required DeviceSignatureVerifier verifier, required DeviceSigner signer, required String appUserId, required int Function() nowUtcMs, List<int> Function(int length)? randomBytes})`：
+`PrivateNoteSyncReceiver({required NoteRepository repository, required TrustedDeviceDirectory directory, required DeviceSignatureVerifier verifier, required DeviceSigner signer, required String appUserId, required int Function() nowUtcMs, List<int> Function(int length)? randomBytes, @visibleForTesting int maxInlineBytes = maxInlinePayloadBytes})`（`maxInlineBytes` 只供验收盲测构造多块信封以到达第 3 步，生产装配不得传入，审查 R1 返工项 2）：
 
 - `Future<(SessionOffer, ReceiverSession)> openSession({required String senderDeviceId})`：`sessionId = 'sess_' + 32 hex`（`randomBytes(16)`），`keyPair = X25519().newKeyPairFromSeed(randomBytes(32))`，`sessionPubSig = signer.sign(SHA256(UTF8(appUserId|signer.deviceId|senderDeviceId|sessionId)) ‖ sessionPub)`。
 - `Future<String> receive(SealedEnvelope env, ReceiverSession session)` 返回结果码，判定顺序固定（private_sync §6，前置第 0 步见 D-NC016-07）：
 
 | 步 | 判定 | 结果码 |
 |---|---|---|
-| 0 结构 | `envelopeVersion != 1`；`payloadCipherRef != "inline"`；`payload.length > maxInlinePayloadBytes`；`op ∉ syncedOutboxOps`；hex 长度不为 `nonceSeed 32 / wrappedDek 96 / ephPub 64 / nonceW 32 / signature 128`；`contentHash` 非 64 位小写 hex；`chunkCount < 1`；`senderDeviceId != session.senderDeviceId` | `reject:schema_invalid` |
+| 0 结构 | `envelopeVersion != 1`；`payloadCipherRef != "inline"`；`payload.length > maxInlineBytes`；`op ∉ syncedOutboxOps`；hex 长度不为 `nonceSeed 32 / wrappedDek 96 / ephPub 64 / nonceW 32 / signature 128`；`contentHash` 非 64 位小写 hex；`chunkCount < 1`；`senderDeviceId != session.senderDeviceId` | `reject:schema_invalid` |
 | 1 来源 | `env.owner != appUserId`；或 `directory.lookup` 为 null；或记录 `scopeUid != appUserId`、`peerDeviceId != env.senderDeviceId`、`trustState != 'active'`、`nowUtcMs() >= expiresAtUtcMs`、`keyEpoch != 1` 任一成立（D-NC016-11） | `reject:source_untrusted` |
 | 2 签名 | `verifier.verify(deviceId: env.senderDeviceId, payload: SHA256(encode(signed)), signature)` 为 false | `reject:bad_signature` |
 | 3 解密 | 以本机视角 `aad = UTF8(appUserId|env.senderDeviceId|signer.deviceId|env.seq)` 解包 `wrappedDek` 与逐块解密（`aad_i` 同 §6.2）；任何认证失败、分块帧不完整、块数 ≠ `chunkCount` | `reject:aad_mismatch` |
@@ -184,7 +184,7 @@ const List<String> signedFieldNames = ['envelope_version', 'owner', 'sender_devi
 |---|---|---|---|
 | 02 | S01 | `authorization_decisions_match_private_sync_fixtures` | 读 `test/fixtures/private_sync/auth_*.json` 8 个，`decideAuthorization(...).name == expected` |
 | 02 | S02 | `account_binding_cert_hash_matches_fixture` | `accountBindingCertHash` 对 `auth_valid.json` 三字段 == `c2d5f307efbc443185626250f07131b798736e02c7732b1dc417171d30c30504` |
-| 02 | S03 | `pairing_gate_and_relay_config_match_fixtures` | `pairingGate(isAnonymous: true) == 'pairing_refused_anonymous'`（`pairing_anonymous.json`）；三个中转常量等于 `relay_ttl.json` 字段；`deletion_layers.json` 可解析且 `expected == 'layers_ok'` |
+| 02 | S03 | `pairing_gate_and_relay_config_match_fixtures` | `pairingGate(isAnonymous: true) == 'pairing_refused_anonymous'`（`pairing_anonymous.json`）；三个中转常量等于 `relay_ttl.json` 字段；`deletion_layers.json` 可解析且 `expected == 'layers_ok'`；`privateSyncEntityPolicies` 恰两键、两 entityType 不同，且分别为 `'private'`、`'shared'`（审查 R1 建议 A1） |
 | 02 | S04 | `apply_remote_revision_creates_note_keeps_branches_and_writes_no_outbox` | 新笔记首条远端修订建笔记；两条同父远端修订 → 两个头，preferred 为先到者；outbox 行数不变；再次应用同修订 → `duplicate` |
 | 02 | S05 | `apply_remote_revision_rejects_missing_parent_and_is_atomic` | 父缺失 → `RemoteParentMissing` 且三表行数不变；`FailingInterceptor`（local-persistence §5.2 写法）在 `note_heads` 插入失败 → `SaveFailed` 且回滚 |
 | 02 | S06 | `mark_envelope_allows_only_forward_transitions` | pending→sent→acked 成功；acked→sent、pending→acked 抛 `StateError` |
@@ -192,7 +192,7 @@ const List<String> signedFieldNames = ['envelope_version', 'owner', 'sender_devi
 | 03 | S08 | `wrap_and_chunk_match_python_reference_vectors` | §9 全部参考值逐字相等 |
 | 03 | S09 | `seal_receive_roundtrip_accepts_with_real_keys` | 两个仓库（发送、接收），真实 Ed25519 设备密钥与 X25519 会话；`receive` → `accept`；接收端修订 13 字段与发送端相等 |
 | 03 | S10 | `signed_fields_match_fixture_and_tampered_content_hash_is_bad_signature` | `signedFieldNames` 等于 `envelope_valid.json` 的 `signed_fields`；改 `contentHash` 一位 → `reject:bad_signature` |
-| 03 | S11 | `recipient_mismatch_is_aad_mismatch` | 发给 `dev_b` 的信封由 `dev_c`（同样受信、签名有效、同一会话）接收 → `reject:aad_mismatch` |
+| 03 | S11 | `recipient_mismatch_is_aad_mismatch` | `dev_b` 的接收器 `openSession` 得到 offer 与 `ReceiverSession`，发送端据此 `seal` 给 `dev_b`；另建 `signer.deviceId = dev_c` 的接收器（目录同样信任发送端），把**同一个** `ReceiverSession` 对象传入其 `receive` → 第 0～2 步通过、第 3 步以本机 `dev_c` 组 AAD 认证失败 → `reject:aad_mismatch`（不需替身验签，审查 R1 建议 A2） |
 | 03 | S12 | `stored_wrong_content_hash_is_hash_mismatch` | 测试经 Drift API 把发送端修订的 `content_hash` 改为 64 个 `f` 再 `seal` → `reject:hash_mismatch` |
 | 03 | S13 | `replay_same_revision_is_duplicate_ack_without_write` | 同信封第二次 `receive` → `duplicate_ack`，三表行数不变 |
 | 03 | S14 | `oversize_inline_payload_is_schema_invalid` | 正文使明文 > 262144 字节 → `reject:schema_invalid`（第 0 步，未调用 verifier） |
