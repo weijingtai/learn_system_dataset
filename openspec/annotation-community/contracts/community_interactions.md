@@ -56,7 +56,7 @@
 
 ### 2.3 REST（repository-rest-adapter）
 
-`openapi/openapi.yaml`（§12.1）；`test/community_openapi_contract_test.dart`（只在末尾 `group` 内追加 §12.2 四个测试）；`test/fixtures/openapi/examples/` 新增 §12.3 四个文件并在 `manifest.json` 末尾追加四项。其他文件禁止。
+`openapi/openapi.yaml`（§12.1）；`test/community_openapi_contract_test.dart`（只在末尾 `group` 内追加 §12.2 四个测试；另按 D-NC012-22 只改两处既有断言：① 测试 `community paths and methods match the catalog` 的 `expectedCatalog` 中 bookmarks 行方法集合由 `{'put'}` 改为 `{'get', 'put'}`，并在 `'/v1/community/me/contents': {'get'},` 之后新增一行 `'/v1/community/me/share-links': {'get'},`；② 测试 `comment examples manifest has thirteen entries and validates` 的 `expect(manifestList.length, equals(13), reason: 'manifest.json 必须恰好包含 13 项');` 改为 `expect(manifestList.length, greaterThanOrEqualTo(13), reason: 'manifest.json 至少包含 NC-011 登记的 13 项');`，其余行不动）；`test/fixtures/openapi/examples/` 新增 §12.3 四个文件并在 `manifest.json` 末尾追加四项。其他文件禁止。
 
 ## 3. 集合与文档（SERVER）
 
@@ -518,3 +518,4 @@ List<MentionRef> reconcileMentions(String text, List<MentionRef> mentions);
 | D-NC012-19 | 规则测试纳入（89 → 129）；ACL 扫描 E4 转为真实断言（xfail 9 → 6） | 新集合须证明默认拒绝；community_server §5 E4 所有者为 NC-012 |
 | D-NC012-20 | 延后：复合索引部署、限流开启、收藏列表页、分享 URL 格式（宿主注入 `shareUrlBuilder`）、举报进入审核队列、目标 purge 时清理互动文档（NC-019） | 本任务验收命令为 Emulator pytest 与 flutter test；URL 与审核由宿主与运营侧决定 |
 | D-NC012-21 | 10 并发 reaction 测试以同一 ctx 重试 503 最多 5 次 | 同 D-NC011-22；Emulator 事务竞争会以 503 结束，客户端本就以同键重试 |
+| D-NC012-22 | REST 既有路径目录测试同步新增 R7、R8；NC-011 示例清单测试的恰 13 项改为至少 13 项，恰好项数由本任务 A04（17 项）断言；nc011_guard K05 同步为 ≥13 | act/01 执行中实测两条既有测试把端点目录与示例数写死，契约新增端点与示例必然使其变红（主 Agent 规格遗漏，执行方停手正确）；目录测试编码的就是 community_api §2 目录，随 §12.2 更新属同步而非放宽 |

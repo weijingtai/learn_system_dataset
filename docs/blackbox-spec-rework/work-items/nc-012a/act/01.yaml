@@ -17,7 +17,7 @@ SCOPE:
     - /Users/jingtaiwei/Git/Public/xuan-migration/repository-rest-adapter/test/fixtures/openapi/examples/manifest.json
   WRITE_NEW:
     - /Users/jingtaiwei/Git/Public/xuan-migration/repository-rest-adapter/openapi/openapi.yaml
-    - /Users/jingtaiwei/Git/Public/xuan-migration/repository-rest-adapter/test/community_openapi_contract_test.dart（只在末尾追加 4 个 test）
+    - /Users/jingtaiwei/Git/Public/xuan-migration/repository-rest-adapter/test/community_openapi_contract_test.dart（只在末尾追加 4 个 test；另按契约 §2.3 与 D-NC012-22 只改两处既有断言：路径目录新增 R7/R8、NC-011 示例数改为至少 13）
     - /Users/jingtaiwei/Git/Public/xuan-migration/repository-rest-adapter/test/fixtures/openapi/examples/reaction_response_like.json
     - /Users/jingtaiwei/Git/Public/xuan-migration/repository-rest-adapter/test/fixtures/openapi/examples/bookmark_response_active.json
     - /Users/jingtaiwei/Git/Public/xuan-migration/repository-rest-adapter/test/fixtures/openapi/examples/share_link_page_with_revoked.json

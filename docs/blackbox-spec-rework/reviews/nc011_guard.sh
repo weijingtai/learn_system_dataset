@@ -106,13 +106,13 @@ if "rest" in req:
     miss = [n for n in REST_TESTS if n not in t]; ok &= not miss; det.append(f"tests_missing={miss}")
     try:
         man = json.loads(read(REST / "test/fixtures/openapi/examples/manifest.json")); names = [m.get("file") for m in man]
-        ok &= len(man) == 13 and all(f in names for f in ("comment_page_with_reply_previews.json", "comment_page_reply_previews_six.json", "comment_tombstone_deleted.json"))
+        ok &= len(man) >= 13 and all(f in names for f in ("comment_page_with_reply_previews.json", "comment_page_reply_previews_six.json", "comment_tombstone_deleted.json"))
         det.append(f"manifest={len(man)}")
     except Exception as e:
         ok = False; det.append(f"manifest_error={type(e).__name__}")
     rc, out = run(["dart", "test"], REST, {"PATH": FL + ":" + os.environ["PATH"]})
     m = re.search(r"\+(\d+): All tests passed!", out); ok &= rc == 0 and m is not None and int(m.group(1)) >= 73; det.append(f"dart_test={rc}/{m.group(1) if m else '无'}")
-    check(ok, "K05 REST 产物：openapi 增量、4 个测试、manifest 13 项、dart test ≥73", "; ".join(det))
+    check(ok, "K05 REST 产物：openapi 增量、4 个测试、manifest ≥13 项（NC-012a D-NC012-22）、dart test ≥73", "; ".join(det))
 else:
     print("SKIP  K05 REST 产物（验收时 --require-impl rest，必须 PASS）")
 
