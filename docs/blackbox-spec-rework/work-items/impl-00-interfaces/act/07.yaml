@@ -1,4 +1,5 @@
 act_id: impl-00/07
+status: DEFERRED   # W2-C1 按 G7-RULINGS §9 移出首纵切执行组；纵切后另立波次，内容不删除
 title: 生成器产出 m8 七个子包 + release_manifest + m8 包 + expected/SHA256SUMS
 estimated_minutes: 90
 group: K2

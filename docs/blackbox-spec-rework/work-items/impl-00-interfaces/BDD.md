@@ -1,5 +1,17 @@
 # BDD：impl-00 跨模块契约与金标
 
+状态：`DEFERRED`（W2-C1 按 `G7-RULINGS.md` §9 裁剪：本文档整体属**纵切后**；首纵切唯一 ACT 为 `impl-00/10`）
+
+## 纵切后（DEFERRED）
+
+- 本文件 §0–§6 描述的 ACT 00–09 行为（检查器 C00–C09、12 份内容 Schema 与 5 份 payload Schema 的样例、m4–m8 金标生成、`verify.sh` 12 项与篡改矩阵、`fixture_ingest` 灌入 m1–m8）**首纵切内一律不执行**，整体移入「纵切后」（P1/P3/P9；README §5）。
+- 首纵切内 `INTERFACES.md` §4 只登记 M5/M8 新 `artifact_type`（`impl-00/10`），结构以代码草案表达（P3）。
+- 下文原文逐字保留，供纵切后执行。
+
+---
+
+（以下为纵切后执行的原文，逐字保留）
+
 ## 0. 契约检查器（ACT 00）
 
 - 0.1 Given 当前仓库，When `check_i00.py --upto 00`，Then `PASS C00`，C01–C09 为 `SKIP`，exit 0。

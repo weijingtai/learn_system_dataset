@@ -1,4 +1,5 @@
 act_id: impl-00/01
+status: DEFERRED   # W2-C1 按 G7-RULINGS §9 移出首纵切执行组；纵切后另立波次，内容不删除
 title: 公共部件 contract_common.schema.json + M4 主内容 candidate_set.schema.json + 样例 + verify.sh 追加
 estimated_minutes: 75
 group: K1

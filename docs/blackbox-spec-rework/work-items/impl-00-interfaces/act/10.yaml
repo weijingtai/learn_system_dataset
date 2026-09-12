@@ -1,0 +1,74 @@
+act_id: impl-00/10
+title: INTERFACES §4 临时闭集登记与首纵切裁决对齐（文档 ACT）
+estimated_minutes: 45
+group: K1
+depends_on: []
+decisions_required: []   # 全部裁决已由主 Agent 写入 README §4；执行者不重议
+scope:
+  write: [docs/blackbox-spec-rework/work-items/impl-00-interfaces/INTERFACES.md, docs/blackbox-spec-rework/work-items/impl-00-interfaces/check_interfaces.py, docs/blackbox-spec-rework/work-items/impl-00-interfaces/tests/__init__.py, docs/blackbox-spec-rework/work-items/impl-00-interfaces/tests/test_check_interfaces.py]
+tests_first:
+  - 先写 check_interfaces.py 与 tests/test_check_interfaces.py，运行 `.venv/bin/python -m unittest discover -s docs/blackbox-spec-rework/work-items/impl-00-interfaces/tests -t docs/blackbox-spec-rework/work-items/impl-00-interfaces` 全红、`python3 check_interfaces.py` 报 §4 缺 8 个新类型（Red 原文入报告）；再改 INTERFACES.md 转 Green
+contract: |
+  只改 INTERFACES.md 与本 ACT 的 check_interfaces.py / tests。不得改任何代码、Schema、fixture、ledger、acceptance。
+  A. INTERFACES.md §4 表（artifact_type 总表）新增/更新行，名称逐字取 README §5.1：
+    - M5：`gate_results`（角色：主内容；内容 Schema：代码草案 0.1.0-draft，P3）、`validation_package`（角色：阶段输出索引；内容 Schema：代码草案）
+    - 薄 M1（impl-04 shim，D2；impl-09 M1 落地后替换）：`source_asset_page`（页图字节，rights_scope=internal）、`source_asset_register`
+    - M8：`source_asset_pack`、`evidence_map_pack`、`release_manifest`、`publication_package`
+    这些行的「状态」列不得写 DEFERRED/纵切后；其余纵切后类型（candidate_set、candidate_package、canonical_snapshot、assembly_package、reviewed_edition、reviewed_edition_package、四类 proposal、rule_index_pack、search_index_pack、graph_projection_pack、technique_profile_pack 等）保留但状态列标「纵切后」
+  B. §4 表头下方加一行说明：唯一登记处为 INTERFACES §4 临时闭集，直至 impl-08 Contract Registry 接管（P2）；同一时刻只有一路写本表。并把 INTERFACES.md 顶部状态行由 `DRAFT` 改为 `READY_FOR_REVIEW`（首纵切 §4 登记完成）
+  C. §2.8 M8 卡片同步裁决（§2 D1-A、G7-RULINGS §9 第 3/15 条）：
+    - 冻结输入：首切片只读 M3 StagePackage 及其血缘输入（m1 source_manifest、m2 ocr_page_set/ocr_page）+ 薄 M1 登记的派生页图；TechniqueProfile 只有 `technique_profile_id="qizheng"` 字符串
+    - EvidenceMapPack 只闭合尾链四段 SourceSpan→SourceAnchor→OcrPage→SourceAsset；KnowledgeEntry/Assertion/EvidenceLink 三段记 `knowledge_chain: "not_compiled"`（知识链前三段纵切后）
+    - 首切片子包集合 = SourceAssetPack（derived_page_images_only）+ EvidenceMapPack + ReleaseManifest + ValidationReport + PublicationPackage；QueryContractPack/SearchIndexPack/KnowledgeDataPack/GraphProjectionPack/AnchorContractPack 标「纵切后」
+    - 消费级别只签发 INTERNAL_DEMO；DEV_SEARCH/PUBLIC_RELEASE 在 begin 之后以 admission 失败封存
+  D. §2.5 M5 卡片同步裁决（§9 第 2/10/12/21 条）：
+    - 冻结输入：m3 包及其血缘输入（含 M3 自身冻结的 M1/M2），共 17 个修订，`scope: corpus_only`；配置带 `target_consumption_level`
+    - 输出：主内容 `gate_results` + 阶段输出索引 `validation_package` + 每 task `validator_report`（`validator_report` 的登记状态见 README §5.2 待裁决 1，本 ACT 不改闭集登记结论，只在卡片标注）
+    - quote hash：M5 按 `sha256(quote)` 复算，不改 M3 `spans.yaml`（P9）
+    - **追加约束（P5 的 M5 特例）**：M5 StagePackage `validation.passed` 如实反映 Gate；下游消费 M5 包须同时满足所属 StepRun `succeeded` 与 `validation.passed == true`
+  E. §2.4 M4 / §2.6 M6 / §2.7 M7 卡片各加「纵切后（不在首纵切）」标记（§9 第 3/11/14 条）
+  F. §1.1/§1.3 同步裁决：
+    - §9 第 13 条：`fixture_ingest.py` 首纵切不改（P9）；Ledger 读优先用 `LedgerReader` 公开方法，缺口处允许 `reader.store.conn` 只读 SELECT，并在 README §5.2 登记缺口清单（frozen_inputs / artifacts.artifact_type / stage_packages / 按 step_run_id 取 sealed stage_package），供 impl-08 补读接口
+    - §9 第 16 条：SourceAssetPack 页图字节登记进 Ledger（薄 M1 `source_asset_page`，rights_scope=internal），fixture 内不出现图像
+    - §9 第 21 条：M5 `validation.passed` 与上游 `succeeded` 双条件（见 D）
+  G. §3「需要新增的 JSON Schema」整节标题下加注「纵切后（P3）：首纵切内不向 openspec/schemas/ 新增文件，以下结构以代码内草案契约表达，正式化随 impl-08 Contract Registry」
+  H. §5 依赖图/批次：批次 0 改为「impl-00/10 INTERFACES §4 登记」；原 K1–K3 的 Schema/金标/ingest 标「纵切后」
+  I. 不得改动 INTERFACES.md 中 m1–m3 的【实际】事实（以现有代码与 fixture 为准）
+tests:
+  check_interfaces.py: |
+    CLI：python check_interfaces.py [--file <INTERFACES.md>]；默认文件 = 脚本同目录 / INTERFACES.md
+    输出：每项一行 `PASS IFnn <名>` / `FAIL IFnn <名> <原因>`；末行 `I00-IF SUMMARY pass=<n> fail=<n>`；文件缺失 → 末行 `I00-IF BLOCKED 前置缺失: INTERFACES.md 不存在` 并 exit 3；有 FAIL → exit 1；否则 0
+    只用标准库（pathlib/re/sys）；模块可 import：main(argv=None) -> int；run_checks(path: Path) -> list[tuple[str, str, str]]
+    解析 §4 表：取 `## 4.` 与 `## 5.` 之间以 `|` 开头、去掉表头与 `|---|` 分隔行后的数据行；第一列 阶段、第二列 artifact_type（反引号内名字）、末列 状态
+    检查项：
+      IF01 §4 表存在且数据行 ≥ 15
+      IF02–IF09 8 个 required 类型各在 §4 表中出现一次（缺任一 → FAIL 该项）
+      IF10 §4 表内 artifact_type 名字无重复
+      IF11 8 个 required 类型所在行的状态列不含 `DEFERRED` 与 `纵切后`
+      IF12 `not_compiled` 出现（M8 尾链前三段）
+      IF13 `corpus_only` 出现（M5 冻结输入边界）
+      IF14 `只读 SELECT` 出现（Ledger 读缺口）
+      IF15 `页图字节登记进 Ledger` 出现（§9 第 16 条）
+      IF16 `validation.passed` 出现（§9 第 21 条）
+      IF17 `succeeded` 出现（P5 上游终态过滤）
+tests/test_check_interfaces.py: |
+    - test_if01_passes_on_repo_copy（复制仓库 INTERFACES.md → IF01 PASS）
+    - test_required_type_missing_fails（副本删去 `gate_results` 行 → FAIL IF03 或对应项）
+    - test_duplicate_type_fails（副本复制一行 `source_asset_pack` → FAIL IF10）
+    - test_required_type_marked_deferred_fails（副本把 `release_manifest` 行状态改为 `纵切后` → FAIL IF11）
+    - test_ruling_marker_missing_fails（副本删去 `corpus_only` → FAIL IF13）
+    - test_missing_file_exit_3（--file 指向不存在路径 → exit 3）
+    - test_summary_line_format（末行匹配 ^I00-IF SUMMARY pass=\d+ fail=\d+$）
+verify:
+  - python3 docs/blackbox-spec-rework/work-items/impl-00-interfaces/check_interfaces.py; echo exit=$?   # exit=0，末行 I00-IF SUMMARY pass=17 fail=0
+  - .venv/bin/python -m unittest discover -s docs/blackbox-spec-rework/work-items/impl-00-interfaces/tests -t docs/blackbox-spec-rework/work-items/impl-00-interfaces 2>&1 | tail -3   # OK，用例 ≥ 7
+  - grep -c '^| M5 ' docs/blackbox-spec-rework/work-items/impl-00-interfaces/INTERFACES.md   # ≥ 2（gate_results / validation_package）
+  - grep -c 'not_compiled' docs/blackbox-spec-rework/work-items/impl-00-interfaces/INTERFACES.md   # ≥ 1
+  - git status --short openspec/schemas pipeline/corpus/_fixture pipeline/ledger   # 空
+  - bash openspec/schemas/verify.sh >/dev/null; echo $?                            # 0
+  - export LC_ALL=en_US.UTF-8; bash openspec/acceptance/run_all.sh | tail -1       # SUMMARY pass=2 fail=1 blocked=8
+  - git diff --check
+commit:
+  add: [docs/blackbox-spec-rework/work-items/impl-00-interfaces/INTERFACES.md, docs/blackbox-spec-rework/work-items/impl-00-interfaces/check_interfaces.py, docs/blackbox-spec-rework/work-items/impl-00-interfaces/tests]
+  message: "docs(impl-00): register M5/M8 artifact_type closed set and align INTERFACES to first vertical slice"
+on_fail: 停止并报告；§4 闭集名称与 README §5.1 不一致、impl-03/impl-04 引用到未登记类型、需要写 scope 外文件、需要改 schemas/fixture/ledger 才能通过 → 停手上报

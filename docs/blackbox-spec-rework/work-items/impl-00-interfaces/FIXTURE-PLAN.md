@@ -1,6 +1,17 @@
 # FIXTURE-PLAN：mini_ed01 的 m4–m8 金标、verify 扩展与 §19.0 判据草案
 
-状态：`DRAFT`（按 README §4 各条「推荐」项撰写；D-01、D-05、D-06、D-09、D-15 任一取其他选项，本文件 §2–§5 需重写）
+状态：`DEFERRED`（W2-C1 按 `G7-RULINGS.md` §9 裁剪：本文档整体属**纵切后**；首纵切唯一 ACT 为 `impl-00/10`）
+
+## 纵切后（DEFERRED）
+
+- 本文件 §1–§6 描述的全部工作——`mini_ed01/expected/` 的 m4–m8 金标（ACT 05–07）、`verify.sh` 由 8 扩到 12 项与 20 例篡改矩阵（ACT 08）、`expected/SHA256SUMS` 冻结（ACT 07）——**首纵切内一律不执行**，整体移入「纵切后」（P1/P3/P9；README §5）。
+- 冻结实体：`fixture_ingest.py` 首纵切不改（§9 第 13 条）；`openspec/schemas/` 首纵切不新增文件（§9 第 5 条）；m4/m6/m7 金标推迟（§9「impl-00 的首纵切裁剪」）。
+- 依据：impl-03（`pipeline/validation/**`）与 impl-04（`pipeline/dataset_compiler/**`）的 verify/tests **未引用** `pipeline/corpus/_fixture/mini_ed01/expected/` 下 m5/m8 期望产物（证据见 `ACCEPTANCE.md` §1），故按 §9 不保留任何生成金标的 ACT。
+- 下文原文逐字保留，供纵切后执行；其 `DRAFT` 期的 ID 构造、常量表与 §19.0 判据草案仍是纵切后的设计基线。
+
+---
+
+（以下为纵切后执行的原文，逐字保留）
 
 ## 1. 现状基线（2026-09-11 本机实测）
 

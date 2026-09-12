@@ -1,4 +1,5 @@
 act_id: impl-00/00
+status: DEFERRED   # W2-C1 按 G7-RULINGS §9 移出首纵切执行组；纵切后另立波次，内容不删除
 title: 契约检查器 check_i00.py（C00 基线不变量 + C01–C09 逐 ACT 终态判定）
 estimated_minutes: 60
 group: K1

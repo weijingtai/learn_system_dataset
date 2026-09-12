@@ -1,5 +1,17 @@
 # TDD：impl-00 跨模块契约与金标
 
+状态：`DEFERRED`（W2-C1 按 `G7-RULINGS.md` §9 裁剪：本文档整体属**纵切后**；首纵切唯一 ACT 为 `impl-00/10`）
+
+## 纵切后（DEFERRED）
+
+- 本文件 §0–§3 描述的 ACT 00–09（契约检查器、Schema、金标、`verify.sh` 扩项与篡改矩阵、`fixture_ingest` 灌入 m1–m8）**首纵切内一律不执行**，整体移入「纵切后」（P1/P3/P9；README §5）。
+- 首纵切唯一 ACT `impl-00/10` 的 Red→Green 与回归见其 `act/10.yaml` 的 `tests_first`/`verify`；它只写 `INTERFACES.md`、`check_interfaces.py`、`tests/`，不触 `openspec/schemas/`、fixture、`pipeline/ledger/`。
+- 下文原文逐字保留，供纵切后执行。
+
+---
+
+（以下为纵切后执行的原文，逐字保留）
+
 `export LC_ALL=en_US.UTF-8`；`PY=.venv/bin/python`；`W=docs/blackbox-spec-rework/work-items/impl-00-interfaces`；`FX=pipeline/corpus/_fixture/mini_ed01`；在仓库根运行。
 
 ## 0. 开工基线（K1、K2、K3 各一次）

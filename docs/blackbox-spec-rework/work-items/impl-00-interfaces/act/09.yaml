@@ -1,4 +1,5 @@
 act_id: impl-00/09
+status: DEFERRED   # W2-C1 按 G7-RULINGS §9 移出首纵切执行组；纵切后另立波次，内容不删除
 title: 金标灌入：fixture_ingest 支持 stages=m1..m8，8 个 StepRun / 2 个 ProcessingRun / 30 Checkpoint
 estimated_minutes: 80
 group: K3

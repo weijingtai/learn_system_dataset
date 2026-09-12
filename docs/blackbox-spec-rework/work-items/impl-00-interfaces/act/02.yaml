@@ -1,4 +1,5 @@
 act_id: impl-00/02
+status: DEFERRED   # W2-C1 按 G7-RULINGS §9 移出首纵切执行组；纵切后另立波次，内容不删除
 title: M5 gate_results + M6 review_decision / reviewed_edition / rework_impact_report Schema + 样例
 estimated_minutes: 80
 group: K1

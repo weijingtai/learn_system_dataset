@@ -1,4 +1,5 @@
 act_id: impl-00/08
+status: DEFERRED   # W2-C1 按 G7-RULINGS §9 移出首纵切执行组；纵切后另立波次，内容不删除
 title: verify.sh 由 8 项扩展到 12 项 + fixture_mutations.sh 20 例篡改矩阵 + fixture README
 estimated_minutes: 85
 group: K2

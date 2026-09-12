@@ -1,73 +1,73 @@
 package: blackbox-impl-00-interfaces
-title: 跨模块接口契约冻结：新增内容 Schema + mini_ed01 m4–m8 金标 + verify 扩展 + 金标灌入
-status: DRAFT   # README §4 的 17 条裁决完成、按裁决修订 ACT、wjt-react 判 READY 后才可派发
-risk: high      # 改 openspec/schemas 与统一验收宿主 fixture；m1–m3 金标一字节不得变
+title: 跨模块接口契约：INTERFACES §4 临时闭集登记与首纵切裁决对齐（按 G7 裁决裁剪）
+status: READY_FOR_REVIEW   # W2-C1 定稿 2026-09-12，依 G7-RULINGS §9；仅 impl-00/10 可派
+risk: low      # 首纵切只改 INTERFACES.md 与本目录；openspec/schemas、fixture、ledger 一字不动
 executor_groups:
-  K1: [impl-00/00, impl-00/01, impl-00/02, impl-00/03, impl-00/04]   # 一个执行 Agent 串行；K1 全部 ACCEPTED 后才派 K2
-  K2: [impl-00/05, impl-00/06, impl-00/07, impl-00/08]               # 一个执行 Agent 串行
-  K3: [impl-00/09]                                                   # 视 D-13；K2 ACCEPTED 后派发
-decisions_required:   # ACT 依赖的裁决条目（README §4）；取非推荐项时必须先改 ACT
-  impl-00/00: []
-  impl-00/01: [D-05, D-08, D-11, D-12, D-17]
-  impl-00/02: [D-02, D-09, D-10, D-14, D-17]
-  impl-00/03: [D-03, D-04, D-15]
-  impl-00/04: [D-05, D-15, D-16]
-  impl-00/05: [D-01, D-02, D-07, D-09, D-12]
-  impl-00/06: [D-03, D-04, D-14]
-  impl-00/07: [D-15, D-16]
-  impl-00/08: [D-06, D-09]
-  impl-00/09: [D-04, D-13]
+  K1: [impl-00/10]                                  # 首纵切唯一 ACT
+deferred_groups:   # 原分组保留，全部 DEFERRED，纵切后另立波次（见 README §5）
+  K1: [impl-00/00, impl-00/01, impl-00/02, impl-00/03, impl-00/04]
+  K2: [impl-00/05, impl-00/06, impl-00/07, impl-00/08]
+  K3: [impl-00/09]
+decisions_required:   # 全部裁决已由主 Agent 写入 README §4（执行者不重议）；本 ACT 无新增待裁决
+  impl-00/10: []
 acts:
   - file: act/00.yaml
     id: impl-00/00
+    status: DEFERRED
     writes: ["docs/blackbox-spec-rework/work-items/impl-00-interfaces/check_i00.py", "docs/blackbox-spec-rework/work-items/impl-00-interfaces/tests/__init__.py", "docs/blackbox-spec-rework/work-items/impl-00-interfaces/tests/test_check_i00.py"]
   - file: act/01.yaml
     id: impl-00/01
+    status: DEFERRED
     writes: ["openspec/schemas/contract_common.schema.json", "openspec/schemas/candidate_set.schema.json", "openspec/schemas/examples/candidate_set.*.yaml", "openspec/schemas/verify.sh"]
   - file: act/02.yaml
     id: impl-00/02
+    status: DEFERRED
     writes: ["openspec/schemas/gate_results.schema.json", "openspec/schemas/review_decision.schema.json", "openspec/schemas/reviewed_edition.schema.json", "openspec/schemas/rework_impact_report.schema.json", "openspec/schemas/examples/{gate_results,review_decision,reviewed_edition,rework_impact_report}.*.yaml", "openspec/schemas/verify.sh"]
   - file: act/03.yaml
     id: impl-00/03
+    status: DEFERRED
     writes: ["openspec/schemas/canonical_snapshot.schema.json", "openspec/schemas/release_manifest.schema.json", "openspec/schemas/knowledge_data_pack.schema.json", "openspec/schemas/evidence_map_pack.schema.json", "openspec/schemas/examples/{canonical_snapshot,release_manifest,knowledge_data_pack,evidence_map_pack}.*.yaml", "openspec/schemas/verify.sh"]
   - file: act/04.yaml
     id: impl-00/04
+    status: DEFERRED
     writes: ["openspec/schemas/source_asset_pack.schema.json", "openspec/schemas/anchor_contract_pack.schema.json", "openspec/schemas/query_contract_pack.schema.json", "openspec/schemas/stage_payload_m4.schema.json", "openspec/schemas/stage_payload_m5.schema.json", "openspec/schemas/stage_payload_m6.schema.json", "openspec/schemas/stage_payload_m7.schema.json", "openspec/schemas/stage_payload_m8.schema.json", "openspec/schemas/examples/{source_asset_pack,anchor_contract_pack,query_contract_pack,stage_payload_m4,stage_payload_m5,stage_payload_m6,stage_payload_m7,stage_payload_m8}.*.yaml", "openspec/schemas/verify.sh"]
   - file: act/05.yaml
     id: impl-00/05
+    status: DEFERRED
     writes: ["pipeline/corpus/_fixture/mini_ed01/tools/build_fixture.py", "pipeline/corpus/_fixture/mini_ed01/expected/m4.candidate_set.yaml", "pipeline/corpus/_fixture/mini_ed01/expected/m4.stage_package.yaml", "pipeline/corpus/_fixture/mini_ed01/expected/m5.gate_results.yaml", "pipeline/corpus/_fixture/mini_ed01/expected/m5.stage_package.yaml"]
   - file: act/06.yaml
     id: impl-00/06
+    status: DEFERRED
     writes: ["pipeline/corpus/_fixture/mini_ed01/tools/build_fixture.py", "pipeline/corpus/_fixture/mini_ed01/expected/m6.review_decision_0[1-5].yaml", "pipeline/corpus/_fixture/mini_ed01/expected/m6.reviewed_edition.yaml", "pipeline/corpus/_fixture/mini_ed01/expected/m6.stage_package.yaml", "pipeline/corpus/_fixture/mini_ed01/expected/m7.canonical_snapshot.yaml", "pipeline/corpus/_fixture/mini_ed01/expected/m7.stage_package.yaml"]
   - file: act/07.yaml
     id: impl-00/07
+    status: DEFERRED
     writes: ["pipeline/corpus/_fixture/mini_ed01/tools/build_fixture.py", "pipeline/corpus/_fixture/mini_ed01/expected/m8/*.yaml", "pipeline/corpus/_fixture/mini_ed01/expected/m8.stage_package.yaml", "pipeline/corpus/_fixture/mini_ed01/expected/SHA256SUMS"]
   - file: act/08.yaml
     id: impl-00/08
+    status: DEFERRED
     writes: ["pipeline/corpus/_fixture/mini_ed01/tools/build_fixture.py", "pipeline/corpus/_fixture/mini_ed01/verify.sh", "pipeline/corpus/_fixture/mini_ed01/README.md", "docs/blackbox-spec-rework/work-items/impl-00-interfaces/fixture_mutations.sh"]
   - file: act/09.yaml
     id: impl-00/09
+    status: DEFERRED
     writes: ["pipeline/ledger/fixture_ingest.py", "pipeline/ledger/tests/test_ingest.py"]
+  - file: act/10.yaml
+    id: impl-00/10
+    status: READY
+    writes: ["docs/blackbox-spec-rework/work-items/impl-00-interfaces/INTERFACES.md", "docs/blackbox-spec-rework/work-items/impl-00-interfaces/check_interfaces.py", "docs/blackbox-spec-rework/work-items/impl-00-interfaces/tests/__init__.py", "docs/blackbox-spec-rework/work-items/impl-00-interfaces/tests/test_check_interfaces.py"]
 global_rules:
-  - 每个 ACT 先取得 Red（check_i00.py 对应项 FAIL 或测试 ERROR，原文写入报告）再实现
-  - 只用标准库 + PyYAML + jsonschema（+ 现有 .venv 的 check-jsonschema CLI）；不新增依赖、不新增 ID 前缀、不调用模型 API
-  - 不得修改 manifest.yaml、spans.yaml、anomalies.yaml、pages/、source/、expected/m1..m3 的任何字节；fixture 内不得出现图像
-  - 不得修改 artifact_ref / stage_package / step_request / step_result 四份 L0 Schema；openspec/schemas/verify.sh 只能在末尾追加
-  - fixture 的 verify.sh 是生成物：只能改 build_fixture.py 中的 VERIFY_SH 模板后重新生成，禁止手改 verify.sh
-  - 每次改动生成器后，必须把重放 diff 为空作为提交前条件（TDD §0 最后一行）
-  - Schema 文件为 2 空格缩进 JSON、键序与 contract 列表一致；description 用中文
-  - 中文注释与 docstring；contract 中的文件名、$defs 名、键名、检查名、枚举值逐字一致
+  - 首纵切只允许写 ACT 10 的 scope.write；openspec/schemas、pipeline/corpus/_fixture、pipeline/ledger、pipeline/corpus_compiler、pipeline/validation、pipeline/dataset_compiler、openspec/acceptance 一律一字不动
+  - 每个 ACT 先取得 Red 再实现；Red 原文与 Green 输出写报告
+  - 只用标准库（check_interfaces.py 不 import yaml/jsonschema）；不新增依赖、不新增 ID 前缀、不调用模型 API（P6/P8）
+  - INTERFACES.md 的 §4 闭集名称逐字取 README §5.1；不得使用未入闭集的类型名（P2）
+  - 中文注释与 docstring；公开函数名、检查名、常量名与 ACT contract 逐字一致
   - 每个 ACT 一个提交；只 add scope.write 中的路径；不得 git add -A / git add .；不得写台账或 ACCEPTED
+  - DEFERRED 的 ACT（00–09）在本波不执行；其 act 文件保留原样，仅由 ACT.yaml 标 status: DEFERRED
 gates:
-  - bash docs/blackbox-spec-rework/verify-T.sh | tail -1                           # FAIL 合计: 0
-  - bash docs/blackbox-spec-rework/work-items/g3-r3/mutations.sh all | tail -1     # 109/109
-  - bash openspec/schemas/verify.sh >/dev/null; echo $?                            # 0
-  - python3 docs/blackbox-spec-rework/work-items/g4-r3/check_d16.py                # D16 OK
-  - .venv/bin/python -m unittest discover -s pipeline/ledger/tests -t .            # OK
-  - .venv/bin/python -m unittest discover -s pipeline/corpus_compiler/tests -t .   # OK
-  - .venv/bin/python docs/blackbox-spec-rework/work-items/impl-00-interfaces/check_i00.py --upto <本 ACT 号> | tail -1   # fail=0
-  - export LC_ALL=en_US.UTF-8; bash pipeline/corpus/_fixture/mini_ed01/verify.sh | tail -1   # FIXTURE OK
-  - export LC_ALL=en_US.UTF-8; bash openspec/acceptance/run_all.sh | tail -1       # SUMMARY pass=2 fail=1 blocked=8
-  - export LC_ALL=en_US.UTF-8; bash openspec/acceptance/m3-coverage.sh >/dev/null; echo $?   # 2
+  - python3 docs/blackbox-spec-rework/work-items/impl-00-interfaces/check_interfaces.py; echo exit=$?   # exit=0，末行 I00-IF SUMMARY pass=<n> fail=0
+  - .venv/bin/python -m unittest discover -s docs/blackbox-spec-rework/work-items/impl-00-interfaces/tests -t docs/blackbox-spec-rework/work-items/impl-00-interfaces 2>&1 | tail -3   # OK
+  - bash openspec/schemas/verify.sh >/dev/null; echo $?                     # 0（未改 schemas）
+  - export LC_ALL=en_US.UTF-8; bash openspec/acceptance/run_all.sh | tail -1   # SUMMARY pass=2 fail=1 blocked=8（未改 acceptance）
+  - git status --short openspec/schemas pipeline/corpus/_fixture pipeline/ledger   # 空（未写热点）
   - git diff --check
-on_fail: 停止并报告；contract 有两种理解、金标内容与 spans/transcript 对不上、需要改 scope 外文件、五个基线哈希任一变化、重放 diff 非空 → 一律停手上报，不得「顺手」修 fixture
+on_fail: 停止并报告；§4 闭集名称与 README §5.1 不一致、impl-03/impl-04 引用到未登记类型、需要写 scope 外文件、需要改 schemas/fixture/ledger 才能通过 → 一律停手上报

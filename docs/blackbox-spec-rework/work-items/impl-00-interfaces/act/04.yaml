@@ -1,4 +1,5 @@
 act_id: impl-00/04
+status: DEFERRED   # W2-C1 按 G7-RULINGS §9 移出首纵切执行组；纵切后另立波次，内容不删除
 title: M8 source_asset_pack / anchor_contract_pack / query_contract_pack + stage_payload_m4..m8 Schema + 样例
 estimated_minutes: 85
 group: K1

@@ -1,4 +1,5 @@
 act_id: impl-00/03
+status: DEFERRED   # W2-C1 按 G7-RULINGS §9 移出首纵切执行组；纵切后另立波次，内容不删除
 title: M7 canonical_snapshot + M8 release_manifest / knowledge_data_pack / evidence_map_pack Schema + 样例
 estimated_minutes: 90
 group: K1
