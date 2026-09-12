@@ -1,0 +1,6 @@
+{
+  "notifier_role": "signaling_only",
+  "sender_fallback_seconds": 300,
+  "storage_lifecycle_days": 1,
+  "expected": "config_ok"
+}

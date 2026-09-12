@@ -1,0 +1,35 @@
+{
+  "envelope_version": 1,
+  "owner": "usr_test_account_001",
+  "sender_device_id": "dev_sender_001",
+  "recipient_device_id": "dev_recipient_002",
+  "seq": 2,
+  "note_id": "note_0123456789abcdef0123456789abcdef",
+  "revision_id": "nrev_0123456789abcdef0123456789abcdef",
+  "op": "upsert",
+  "created_at": 1760000000000,
+  "content_hash": "8c883808e4347144b7a0c86e86cc3f6d1bc594f5f10cbc251bf1e61758f09cba",
+  "signed_fields": [
+    "envelope_version",
+    "owner",
+    "sender_device_id",
+    "recipient_device_id",
+    "seq",
+    "note_id",
+    "revision_id",
+    "op",
+    "created_at",
+    "content_hash"
+  ],
+  "cipher": {
+    "alg": "AES-256-GCM",
+    "chunk_count": 1,
+    "nonce_seed": "0123456789abcdef0123456789abcdef",
+    "wrapped_dek": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+    "eph_pub": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+    "nonce_w": "0123456789abcdef0123456789abcdef"
+  },
+  "payload_cipher_ref": "private/p2p/usr_test_account_001/3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "signature": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+  "expected": "duplicate_ack"
+}

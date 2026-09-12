@@ -1,0 +1,9 @@
+{
+  "session_id": "sess_0123456789abcdef",
+  "app_user_id": "usr_test_account_001",
+  "sender_device_id": "dev_sender_001",
+  "recipient_device_id": "dev_recipient_002",
+  "session_pub": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+  "session_pub_sig": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+  "expected": "session_key_unbound"
+}

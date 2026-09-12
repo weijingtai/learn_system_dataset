@@ -1,0 +1,6 @@
+{
+  "app_user_id": "usr_anon_0123456789abcdef",
+  "device_id": "dev_peer_001",
+  "is_anonymous": true,
+  "expected": "pairing_refused_anonymous"
+}

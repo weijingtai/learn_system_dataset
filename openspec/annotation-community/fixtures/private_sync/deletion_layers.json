@@ -1,0 +1,26 @@
+{
+  "layers": [
+    {
+      "layer": "primary",
+      "executor": "receiver",
+      "timing": "after_db_transaction_commit",
+      "trigger": "post_receipt_ack",
+      "description": "接收端§6验收通过并落库后立即ACK/删除"
+    },
+    {
+      "layer": "fallback",
+      "executor": "sender",
+      "timing": "session_timeout_or_cancel",
+      "trigger": "timeout_300s_or_cancel",
+      "description": "发送端300秒会话超时或用户取消兜底删除"
+    },
+    {
+      "layer": "ultimate",
+      "executor": "platform",
+      "timing": "storage_lifecycle_policy",
+      "trigger": "storage_lifecycle_1d",
+      "description": "Storage生命周期1天终极兜底"
+    }
+  ],
+  "expected": "layers_ok"
+}

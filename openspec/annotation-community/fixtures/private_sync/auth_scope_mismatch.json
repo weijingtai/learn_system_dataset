@@ -1,0 +1,22 @@
+{
+  "peer_auth": {
+    "scopeUid": "usr_test_account_001",
+    "peerDeviceId": "dev_peer_001",
+    "peerPublicKeyFingerprint": "1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+    "accountBindingCertHash": "c2d5f307efbc443185626250f07131b798736e02c7732b1dc417171d30c30504",
+    "keyEpoch": 1,
+    "trustState": "active",
+    "expiresAtUtcMs": 1773000000000
+  },
+  "session": {
+    "localScopeUid": "usr_test_account_001",
+    "peerScopeUid": "usr_test_account_other",
+    "peerDeviceId": "dev_peer_001",
+    "peerFingerprint": "1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+    "peerKeyEpoch": 1,
+    "dtlsBindingValid": true,
+    "signatureValid": true,
+    "nowUtcMs": 1760000000000
+  },
+  "expected": "deniedScopeMismatch"
+}
