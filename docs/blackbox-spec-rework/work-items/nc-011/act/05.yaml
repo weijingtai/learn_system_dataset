@@ -1,6 +1,6 @@
 TASK_ID: NC-011-E
 PARENT: NC-011
-STATUS: READY_FOR_REVIEW
+STATUS: DISPATCHED
 REPO: xuan-migration/reading-notes
 GOAL: 评论模型与 API 方法、命令队列接入（create 豁免冲突、410 仅 content）、待处理页评论摘要、评论计数端口；K01～K10
 DEPENDS_ON: []

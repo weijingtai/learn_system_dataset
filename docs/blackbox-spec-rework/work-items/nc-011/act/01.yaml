@@ -1,6 +1,6 @@
 TASK_ID: NC-011-A
 PARENT: NC-011
-STATUS: READY_FOR_REVIEW
+STATUS: DISPATCHED
 REPO: xuan-migration/repository-rest-adapter
 GOAL: OpenAPI 补 R2 的 root_id/order、CommentPage 回复预览与计数、W7 409 组件；4 个结构测试与 3 个示例
 DEPENDS_ON: []

@@ -1,6 +1,6 @@
 TASK_ID: NC-011-C
 PARENT: NC-011
-STATUS: READY_FOR_REVIEW
+STATUS: DISPATCHED
 REPO: xuan-server/functions-py
 GOAL: 评论编辑 W8、删除 W9（墓碑与计数）与评论列表 R2（一级/楼内分页、回复预览、游标、ETag 与 304）；handler 补齐三条路由；T19～T30
 DEPENDS_ON: [NC-011-B]

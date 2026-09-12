@@ -676,10 +676,10 @@
   - [x] 六件套 `work-items/nc-010/`（act/01 API 客户端、act/02 数据库与队列、act/03 控制器、act/04 页面与确认层、act/05 七状态）与守卫 `reviews/nc010_guard.sh`
   - [x] wjt-react 四查：R1 返工 7 项 + 2 建议、R2 返工 2 项，READY（`reviews/NC-010-REVIEW-R1.md`）
   - [ ] 用户派发；主 Agent 按 ACCEPTANCE.md 验收
-- [ ] NC-011：两级评论/回复与编辑删除（状态：`READY_FOR_REVIEW`，2026-09-12）
+- [ ] NC-011：两级评论/回复与编辑删除（状态：`DISPATCHED`，2026-09-12；tmux nc011s = REST+SERVER，nc011c = CLIENT）
   - [x] 规格侧契约（主 Agent）：`openspec/annotation-community/contracts/community_discussion.md`（集合与 Thread ID、W7～W9 判定顺序、R2 分页/游标/ETag、R2-05 受控屏障、客户端队列接入/控制器/面板/七状态、参考值、D-NC011-01～20）；`community_api.md` §11 补丁；DESIGN §7.1 mention 上限改 413
   - [x] 六件套 `work-items/nc-011/`（三线并行：REST act/01 ｜ SERVER act/02→03→04 ｜ CLIENT act/05→06）与守卫 `reviews/nc011_guard.sh`
-  - [ ] wjt-react 四查（`reviews/NC-011-REVIEW-R1.md`）
+  - [x] wjt-react 四查（agy）：R1 返工 4 项（游标写法、K11 可测性、ownerScope 来源、待发送跟踪集合），R2 READY（`reviews/NC-011-REVIEW-R1.md`）
   - [ ] 三线派发；主 Agent 按 ACCEPTANCE.md 验收
 - [ ] NC-012：赞踩/收藏/分享/@/关系与举报（状态：`BACKLOG`）
 
@@ -691,7 +691,11 @@
 ### 私人同步、备份与删除
 
 - [ ] NC-016：私人加密 mapper 与设备同步（状态：`BLOCKED`，等 NC-015）
-- [ ] NC-017：生产密文网关与备份清单（状态：`BLOCKED`，等 NC-015/NC-025/NC-009 命令恢复服务）
+- [ ] NC-017：口令加密导出文件格式与本机写入（v1.6；状态：`READY_FOR_REVIEW`，2026-09-12；执行须等 NC-011 CLIENT 线完成）
+  - [x] 规格侧契约（主 Agent）：`openspec/annotation-community/contracts/private_export.md`（容器/清单、Argon2id m65536 t3 p1 经 OpenSSL 交叉核对、带 AAD 分块 AES-GCM、统一失败、`.partial` 原子写入、参考值、D-NC017-01～11）
+  - [x] 六件套 `work-items/nc-017/`（act/01 格式层、act/02 写入器）与守卫 `reviews/nc017_guard.sh`
+  - [ ] wjt-react 四查（派 agy）
+  - [ ] 派发（NC-011 CLIENT 线提交后）；主 Agent 按 ACCEPTANCE.md 验收
 - [ ] NC-018：备份设置、进度与恢复（状态：`BLOCKED`，等 NC-015）
 - [ ] NC-019：回收站、恢复、永久清理（状态：`BLOCKED`，等 NC-018；本地回收站子 ACT 可先准备）
 

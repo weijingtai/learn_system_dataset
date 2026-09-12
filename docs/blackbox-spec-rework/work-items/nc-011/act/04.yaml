@@ -1,6 +1,6 @@
 TASK_ID: NC-011-D
 PARENT: NC-011
-STATUS: READY_FOR_REVIEW
+STATUS: DISPATCHED
 REPO: xuan-server/functions-py + xuan-migration/xuan-server
 GOAL: R2-05 受控屏障（withdraw 先提交/comment 先提交/三方竞争/回调重跑新 ID 固定）、日志不含正文 T31～T35；规则测试新增三集合（65 → 89）
 DEPENDS_ON: [NC-011-C]

@@ -1,5 +1,5 @@
 TASK_ID: NC-011
-STATUS: READY_FOR_REVIEW
+STATUS: DISPATCHED
 GOAL: 两级评论与讨论区——REST 契约增量、服务端 W7～W9/R2 与收回并发屏障、客户端队列接入/控制器/面板/七状态
 CONTRACTS:
   - openspec/annotation-community/contracts/community_discussion.md

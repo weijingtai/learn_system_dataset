@@ -1,6 +1,6 @@
 # NC-011：两级评论、排序分页、修改历史与收回并发
 
-状态：`READY_FOR_REVIEW`（2026-09-12 主 Agent 写就契约与六件套，待 wjt-react 四查）。派发前置：NC-003、NC-009、NC-010 均 `ACCEPTED`（已满足）。task_id：`NC-011`。权威需求来源：TASKS NC-011 与 NC-009「R2-05 提交顺序」原文；PRD §5.1、§6.3、§6.4；DESIGN §4.3、§4.4、§6、§7.1、§7.3；契约 `contracts/community_discussion.md`（本任务专属）与 `community_api.md` §11。
+状态：`DISPATCHED`（2026-09-12：agy 四查 R1 返工 4 项、R2 READY，见 `reviews/NC-011-REVIEW-R1.md`；tmux 会话 nc011s = REST+SERVER、nc011c = CLIENT 并行）。派发前置：NC-003、NC-009、NC-010 均 `ACCEPTED`（已满足）。task_id：`NC-011`。权威需求来源：TASKS NC-011 与 NC-009「R2-05 提交顺序」原文；PRD §5.1、§6.3、§6.4；DESIGN §4.3、§4.4、§6、§7.1、§7.3；契约 `contracts/community_discussion.md`（本任务专属）与 `community_api.md` §11。
 
 ## Goal
 

@@ -3,7 +3,7 @@
 审查日期：2026-09-12  
 审查对象：NC-011（两级评论与讨论区）契约与六件套  
 审查者：转译审查员（wjt-react 四查，单线只读审查）  
-审查判定：**返工（4 项）**
+审查判定：**READY**（R1 判定返工 4 项，经 R2 复核全部关闭达标）
 
 ---
 
@@ -16,6 +16,7 @@
 5. [返工项清单（按严重程度排序）](#5-返工项清单按严重程度排序)
 6. [建议清单（非阻断）](#6-建议清单非阻断)
 7. [待裁决事项](#7-待裁决事项)
+8. [R2 复核（2026-09-12）](#8-r2-复核2026-09-12)
 
 ---
 
@@ -223,8 +224,40 @@
 
 ## 7. 待裁决事项
 
-无新增架构分歧。上述 4 项返工项均为标准技术工程层面的规格明晰化，符合设计基线与现有代码既有模式，主 Agent 批准修正后即可达到 `READY`。
+无新增架构分歧。R1 提出的 4 项问题已在 R2 阶段全部按标准闭环，无遗留待裁决事项。
+
+---
+
+## 8. R2 复核（2026-09-12）
+
+主 Agent 已针对 R1 审查报告指出的 4 项问题完成逐项修正。经对修改后的契约与六件套进行精准复核（对照代码与规格上下文）：
+
+### 8.1 逐项复核结论
+
+1. **返工项 1 复核（契约 §6.4 第 191 行）**：
+   - 检查内容：契约已修改为 `有游标时 start_after([c, i])（按 order_by 字段顺序传值列表，与 handlers/community_contents.py 既有写法一致；禁止传字典，审查 R1 返工项 1）`。
+   - 判定：**PASS**。彻底消除了 Google Cloud Firestore Python SDK 底层 `_cursor_pb` 将字典键作为游标字段名的阻断缺陷，与既有实现风格完全统一，无新歧义。
+
+2. **返工项 2 复核（契约 §12 K11、BDD.md K11）**：
+   - 检查内容：契约 §12 K11 修改为默认测试视口下先断言 `scrollController.position.maxScrollExtent > 0`，`jumpTo(maxScrollExtent)` 后记录 `pixels` 与 `tester.getTopLeft(find.byKey(ValueKey('comment-<第 20 条 id>')))`；追加后断言 `pixels` 与第 20 条的 `TopLeft` 均保持不变，明确注明「不断言屏幕外 Element，审查 R1 返工项 2」。BDD.md K11 同样对齐。
+   - 判定：**PASS**。通过测试可测的滚动范围、滚动位置与处于视口底部的锚点 Item 相对坐标，严谨且可重复地证明了「加载更多时不跳动」，彻底规避了 Flutter Widget 视口自动回收机制导致的断言失败，无新歧义。
+
+3. **返工项 3 复核（契约 §11.6 `refreshPending`）**：
+   - 检查内容：契约 §11.6 明确写明「本 owner 取 `queue.ownerScope`（构造函数签名不变，审查 R1 返工项 3）」，并在查询中指定 `ownerScope == queue.ownerScope`。
+   - 判定：**PASS**。在不改动已定构造函数签名和破坏既有外部调用的前提下，消除了执行者无法获取当前 `ownerScope` 的歧义，无新歧义。
+
+4. **返工项 4 复核（契约 §11.6 `refreshPending`）**：
+   - 检查内容：契约 §11.6 增加规范「控制器持有 `final Set<String> _trackedCommandIds = {}`。读 db.communityCommands... 非终态 → 加入 `_trackedCommandIds`... 仅对 `_trackedCommandIds` 中的行判定终态并随即移出集合... 本次有任一 committed → 调用一次 load()；cancelled → 只移出；rejected → 处理提示」。
+   - 判定：**PASS**。精确定义了状态机跃迁的记忆跟踪集合，杜绝了多次调用 `refreshPending()` 时因历史 committed 行反复触发 `load()` 的死循环风险，批处理单次 `load()` 调用逻辑清晰明确，无新歧义。
+
+### 8.2 守卫回归验证
+在 learn_system 根目录运行 `bash docs/blackbox-spec-rework/reviews/nc011_guard.sh`：
+输出 `K01~K04 全部 PASS，失败条数：0`。
+
+### 8.3 最终判定
+全部 4 项返工项均已达到修正标准，未引入任何新歧义，契约与六件套达到 wjt-react 四查基线要求，判定：**READY**。
 
 ---
 
 审查结论确认行见对话结束输出。
+

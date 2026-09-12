@@ -1,0 +1,44 @@
+TASK_ID: NC-017-B
+PARENT: NC-017
+STATUS: READY_FOR_REVIEW
+REPO: xuan-migration/reading-notes
+GOAL: 导出写入器——AttachmentBytesSource 端口、收集 active/trashed 修订链与附件、.partial 流式写入与重读校验、原子改名、进度与结果；E09～E14
+DEPENDS_ON: [NC-017-A]
+ESTIMATE_MINUTES: 50
+WORKLOAD: "export_writer.dart 约 230 行；6 个测试约 320 行（真实 Drift 文件库构造三种生命周期笔记与合并修订、debugHook 注入）"
+SCOPE:
+  READ:
+    - /Users/jingtaiwei/Git/Public/learn_system/openspec/annotation-community/contracts/private_export.md（§4.2、§6、§8 E09～E14、§9）
+    - /Users/jingtaiwei/Git/Public/learn_system/docs/blackbox-spec-rework/work-items/nc-017/BDD.md（E09～E14）、TDD.md（§3）
+    - act/01 已提交的 export_bundle_format.dart 与测试
+    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/lib/src/persistence/note_repository.dart、note_database.dart、tables.dart（只读）
+    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/lib/src/domain/{note,note_revision,clock,ids}.dart（只读）
+    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/lib/src/community/pending_op_writer.dart（经 repository.db 只读查询 notes 的写法参考，只读）
+    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/test/persistence/（临时目录真实文件库与合并修订的构造写法参考，只读）
+  WRITE_NEW:
+    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/lib/src/export/export_writer.dart
+    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/lib/reading_notes.dart（追加 `export 'src/export/export_writer.dart';`）
+    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/test/export/export_bundle_test.dart（追加 E09～E14，不改 E01～E08 期望）
+  FORBIDDEN:
+    - act/01 格式层文件（发现缺陷停手上报）；契约 §2 禁止清单；learn_system 写入（交付报告除外）；新依赖；真实网络；skip；永真断言；git push；删除文件
+DEPENDENCY_ALLOWLIST: [同 act/01]
+RULES:
+  - "写入步骤 1～7、异常类、debugHook 阶段名逐字按契约 §6"
+  - "收集笔记经 repository.db 的 Drift 只读查询；修订与头经 repository.listRevisions/headIds；不修改仓库状态"
+  - "只 git add WRITE_NEW 文件；提交消息按 COMMIT_MESSAGE，末尾空一行加 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
+TESTS_FIRST:
+  - "先追加 E09～E14，运行 VERIFICATION 第 2 条，保存失败原文作为 Red"
+STEPS:
+  - "实现至 VERIFICATION 全部符合期望"
+  - "git add 并提交"
+  - "提交后运行一次 learn_system 守卫 `--require-impl`，退出码写入报告"
+VERIFICATION:
+  - "cd /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes && PATH=/Users/jingtaiwei/flutter/bin:$PATH flutter analyze（期望 No issues found!）"
+  - "cd /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes && PATH=/Users/jingtaiwei/flutter/bin:$PATH flutter test test/export/export_bundle_test.dart（期望 +14: All tests passed!）"
+  - "cd /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes && PATH=/Users/jingtaiwei/flutter/bin:$PATH flutter test（期望 +253: All tests passed!）"
+  - "cd /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes && git diff-tree -r --name-only HEAD~1 HEAD（期望恰为 WRITE_NEW 三个文件）"
+  - "git -C /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes status --short（期望空）"
+  - "cd /Users/jingtaiwei/Git/Public/learn_system && bash docs/blackbox-spec-rework/reviews/nc017_guard.sh --require-impl（期望 0）"
+ON_FAIL: "停止并在 DELIVERY_REPORT.md 追加「## 待裁决」。NoteRepository 无契约假定的只读查询途径、需改格式层或禁止清单文件、E10/E11 在当前平台无法可靠模拟、既有测试变红，均为停止条件。"
+BASELINE_EXIT_CODES: "开工基线：act/01 提交，flutter test +247、analyze 0"
+COMMIT_MESSAGE: "feat(export): 导出写入器与原子写入（NC-017-B）"

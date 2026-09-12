@@ -1,6 +1,6 @@
 TASK_ID: NC-011-F
 PARENT: NC-011
-STATUS: READY_FOR_REVIEW
+STATUS: DISPATCHED
 REPO: xuan-migration/reading-notes
 GOAL: 讨论区控制器与面板（分页不跳动、楼内展开、两种空态、离线重启待发送、4000 字、409 保留草稿、迟到成功重读、墓碑）、七状态、详情页可选挂载；K11～K25
 DEPENDS_ON: [NC-011-E]

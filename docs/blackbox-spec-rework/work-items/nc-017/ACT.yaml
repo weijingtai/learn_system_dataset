@@ -1,0 +1,15 @@
+TASK_ID: NC-017
+STATUS: READY_FOR_REVIEW
+GOAL: reading-notes 口令加密导出文件——格式层（容器/清单/Argon2id/带 AAD 分块 AES-GCM/统一失败）与本机原子写入器
+CONTRACTS:
+  - openspec/annotation-community/contracts/private_export.md
+DISPATCH_PRECONDITION: "NC-004、NC-015 ACCEPTED（已满足）；NC-011 CLIENT 线 act/06 已提交；wjt-react 四查 READY"
+SPLIT:
+  - act/01.yaml（格式层，NC-017-A）
+  - act/02.yaml（写入器，NC-017-B）
+ORDER: "严格 act/01 → act/02；仓库 /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes；与 NC-011 CLIENT、NC-016 不并行（同一工作树）"
+ESTIMATE_MINUTES_TOTAL: 100
+DEFERRED:
+  - "导出/导入 UI、流式导入、三态指示与两台真实设备往返：NC-018"
+  - "附件字节生产端口：NC-008/NC-025（本任务以 AttachmentBytesSource 注入）"
+  - "口令强度策略与二次输入：NC-018（D-NC017-02）"

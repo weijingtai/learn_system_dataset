@@ -1,6 +1,6 @@
 TASK_ID: NC-011-B
 PARENT: NC-011
-STATUS: READY_FOR_REVIEW
+STATUS: DISPATCHED
 REPO: xuan-server/functions-py
 GOAL: 评论创建 W7——集合注册、载荷 Schema 与 mention 过滤、comment_create 事务（计数、outbox、账本）、handler POST 路由；T01～T18
 DEPENDS_ON: []
