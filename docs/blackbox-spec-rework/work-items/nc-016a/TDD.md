@@ -9,8 +9,8 @@
 | 1 | xuan-storage 根 | `git worktree add .worktrees/nc016-guard-aad -b fix/nc016-guard-aad 8ddb877` | 退出 0（act/01 开工时一次） |
 | 2 | `W/core`、`W/drift`、`W/p2p` | `flutter pub get` | 各退出 0 |
 | 3 | `W/core` | `flutter test test/private_sync_guard_fixtures_test.dart` | act/01 后 `+2` |
-| 4 | `W/core` | `flutter test test/same_account_im_reconciliation_test.dart` | 前后均 `+4` |
-| 5 | `W/p2p` | `flutter test test/same_account_security_boundary_test.dart` | 前后均 `+3` |
+| 4 | `W/core` | `flutter test test/same_account_im_reconciliation_test.dart` | 前后均 `+4`（改动后含 D-NC016-14 的到期时间替换） |
+| 5 | `W/p2p` | `flutter test test/same_account_security_boundary_test.dart` | 前后均 `+3`（改动后含 D-NC016-14 的到期时间替换） |
 | 6 | `W/drift` | `flutter test test/blob/aes_gcm_aad_test.dart` | act/01 后 `+1` |
 | 7 | `W/drift` | `flutter test test/blob/aes_gcm_blob_cipher_test.dart test/blob/blob_cipher_test.dart` | 通过数与改动前相同（改动前在 act/01 Red 段记录） |
 | 8 | CLIENT | `flutter analyze` | `No issues found!` |

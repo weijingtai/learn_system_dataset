@@ -23,6 +23,8 @@ SCOPE:
     - <worktree>/core/test/private_sync_guard_fixtures_test.dart
     - <worktree>/core/test/fixtures/private_sync/auth_*.json（8 个，逐字节复制自 learn_system openspec/annotation-community/fixtures/private_sync/）
     - <worktree>/drift/test/blob/aes_gcm_aad_test.dart
+    - <worktree>/core/test/same_account_im_reconciliation_test.dart（D-NC016-14：只把第 77 行 `expiresAtUtcMs: 1724720400000 + 86400000,` 换成 `expiresAtUtcMs: 4102444800000,`，恰 1 增 1 删）
+    - <worktree>/p2p/test/same_account_security_boundary_test.dart（D-NC016-14：只把第 16 行同一替换，恰 1 增 1 删）
   FORBIDDEN:
     - xuan-storage main 分支上的任何写入、merge、rebase、push；其他 worktree；白名单外文件；pubspec.yaml；新依赖；改既有断言；skip；永真断言；learn_system 写入（交付报告除外）；删除文件
 DEPENDENCY_ALLOWLIST: [沿用 xuan-storage 各包 pubspec；worktree 内 flutter pub get 生成的 pubspec.lock 与 .dart_tool 不入库]

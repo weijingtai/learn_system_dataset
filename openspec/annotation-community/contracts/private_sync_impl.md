@@ -25,6 +25,8 @@
 | `drift/lib/blob/aes_gcm_blob_cipher.dart` | 把该参数传入 `encrypt`/`decrypt` 的 `aad` |
 | `drift/lib/blob/identity_blob_cipher.dart` | 签名跟随接口，参数忽略 |
 | `drift/test/blob/blob_cipher_test.dart` | 只改 `TestPrivateCipher` 两个方法签名跟随接口，不改任何断言 |
+| `core/test/same_account_im_reconciliation_test.dart` | 只改第 77 行 `activeAuth` 的 `expiresAtUtcMs: 1724720400000 + 86400000,` → `expiresAtUtcMs: 4102444800000,`（D-NC016-14），恰 1 行增 1 行删，不改任何断言与其他记录 |
+| `p2p/test/same_account_security_boundary_test.dart` | 只改第 16 行（测试 `validates and permits authorized same-account session`）同一替换（D-NC016-14），恰 1 行增 1 行删，不改任何断言与其他记录 |
 | `core/test/private_sync_guard_fixtures_test.dart` | 新增（§3.3） |
 | `core/test/fixtures/private_sync/auth_*.json` | 新增：learn_system `openspec/annotation-community/fixtures/private_sync/` 下 8 个 `auth_*.json` 逐字节复制 |
 | `drift/test/blob/aes_gcm_aad_test.dart` | 新增（§3.3） |
@@ -52,7 +54,7 @@
 7. `peerAuth.peerPublicKeyFingerprint != peerFingerprint` → `AuthorizationDecision.deniedBadSignature`
 8. `now >= peerAuth.expiresAtUtcMs` → `AuthorizationDecision.deniedRevokedOrUntrusted`
 
-`AuthorizationDecision` 枚举不新增值；既有调用方（`SameAccountIMReconciler` 与 p2p 测试）不改。
+`AuthorizationDecision` 枚举不新增值；既有调用方（`SameAccountIMReconciler` 与 p2p 测试）的调用方式不改。缺省时钟为真实时钟，既有两条测试中「应授权通过」的记录到期时间是 2024 年占位值，按 D-NC016-14 只替换该字面量（§2.1），不改断言。
 
 ### 3.2 BlobCipher AAD（D-NC015-05）
 
@@ -71,7 +73,7 @@ Future<List<int>> decryptChunk(List<int> cipherBytes, {required int chunkIndex, 
 | X02 | 同上 | `guard_patch_order_device_then_fingerprint_then_expiry` | 设备 ID、指纹均不符且已过期 → `deniedRevokedOrUntrusted`；只指纹不符且已过期 → `deniedBadSignature`；只过期 → `deniedRevokedOrUntrusted`；`nowUtcMs == expiresAtUtcMs` → `deniedRevokedOrUntrusted` |
 | X03 | `drift/test/blob/aes_gcm_aad_test.dart` | `aes_gcm_aad_binds_ciphertext_and_empty_aad_is_backward_compatible` | 同 AAD 往返相等；解密时换 AAD → `BlobUndecryptableError`；两端都缺省 AAD 往返相等；加密缺省、解密带 AAD → `BlobUndecryptableError` |
 
-计数：`core` 新文件 `+2`，`same_account_im_reconciliation_test.dart` 仍 `+4`；`drift` 新文件 `+1`，`aes_gcm_blob_cipher_test.dart` 仍 `+10`，`blob_cipher_test.dart` 通过数不变；`p2p/test/same_account_security_boundary_test.dart` 仍 `+3`。
+计数：`core` 新文件 `+2`，`same_account_im_reconciliation_test.dart` 仍 `+4`；`drift` 新文件 `+1`，`aes_gcm_blob_cipher_test.dart` 仍 `+10`，`blob_cipher_test.dart` 通过数不变；`p2p/test/same_account_security_boundary_test.dart` 仍 `+3`（core、p2p 两处计数均在 D-NC016-14 到期时间替换之后成立）。
 
 ## 4. CLIENT mapper 与纯函数（`private_note_mapper.dart`）
 
@@ -242,3 +244,4 @@ payload JSON 规范化同 private_export §3.1（等价 Python `json.dumps(sort_
 | D-NC016-11 | 信封层来源可信 = 目录记录存在、scope 与设备 ID 相符、active、未过期、epoch 1；DTLS 与指纹属会话层 guard | 信封本身不携带指纹与 DTLS 观测值 |
 | D-NC016-12 | 新测试一律用真实 Ed25519/X25519 密钥；覆盖 NC-015 验收交接的匿名拦截、AAD 失败、会话公钥签名 | NC-015 ACCEPTANCE 4b |
 | D-NC016-13 | 参考值由 pyca 计算、测试用字面量 | 跨实现核对；16b 宿主若另写实现须通过同一组值 |
+| D-NC016-14 | guard 第 8 步缺省用真实时钟；既有 core `activeAuth` 与 p2p「授权通过」测试的 `expiresAtUtcMs: 1724720400000 + 86400000` 换成 `4102444800000`（2100-01-01T00:00:00Z），各恰 1 增 1 删，不改断言 | STORAGE 执行中实测：原值 2024-08-28 已过期，两条既有测试变红（NC-016a-A 第二次停手）。不采用「缺省跳过过期」：生产调用方不传 `nowUtcMs` 会永不查过期；不采用「接受计数下降」：掩盖回归。`revoked` 与跨账号记录在第 1～4 步已拒绝，保持原值 |

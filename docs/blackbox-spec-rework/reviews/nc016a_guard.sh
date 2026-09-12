@@ -81,8 +81,18 @@ if "storage" in req:
     allowed = {"core/lib/sync/same_account_im_reconciliation.dart", "core/lib/model/blob_cipher.dart", "drift/lib/blob/aes_gcm_blob_cipher.dart",
                "drift/lib/blob/identity_blob_cipher.dart", "drift/test/blob/blob_cipher_test.dart", "core/test/private_sync_guard_fixtures_test.dart",
                "drift/test/blob/aes_gcm_aad_test.dart"} | {f"core/test/fixtures/private_sync/{n}" for n in AUTH}
+    # D-NC016-14：两条既有测试只允许把授权记录到期时间换成 4102444800000，恰 1 增 1 删
+    old_tests = ("core/test/same_account_im_reconciliation_test.dart", "p2p/test/same_account_security_boundary_test.dart")
+    allowed |= set(old_tests)
     changed = set(git(WT, "diff-tree", "-r", "--name-only", "8ddb877", "HEAD").split()) if WT.is_dir() else {"<无>"}
     ok &= bool(changed) and changed <= allowed; det.append(f"extra={sorted(changed - allowed)[:3]}")
+    for f in old_tests:
+        if f in changed:
+            ns = git(WT, "diff", "--numstat", "8ddb877", "HEAD", "--", f).split("\t")[:2]
+            d = git(WT, "diff", "-U0", "8ddb877", "HEAD", "--", f)
+            good = (ns == ["1", "1"] and re.search(r"^-\s+expiresAtUtcMs: 1724720400000 \+ 86400000,$", d, re.M) is not None
+                    and re.search(r"^\+\s+expiresAtUtcMs: 4102444800000,$", d, re.M) is not None)
+            ok &= good; det.append(f"{f.split('/')[-1]}_expiry_only={good}")
     ok &= all(sha(WT / "core/test/fixtures/private_sync" / n) == sha(FIX / n) for n in AUTH)
     t = read(WT / "core/test/private_sync_guard_fixtures_test.dart") + read(WT / "drift/test/blob/aes_gcm_aad_test.dart")
     ok &= all(n in t for n in STORAGE_TESTS) and "skip:" not in t
