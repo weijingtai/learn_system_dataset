@@ -1,0 +1,22 @@
+TASK_ID: NC-010
+STATUS: DRAFT
+GOAL: 在 reading-notes 实现社区 API 客户端、持久命令队列、发布状态与控制器、四个页面、确认层与七状态矩阵
+CONTRACTS:
+  - openspec/annotation-community/contracts/community_client.md
+  - openspec/annotation-community/contracts/community_api.md（§2～§7、§10）
+DISPATCH_PRECONDITION: "NC-003 已 ACCEPTED（2026-09-11 满足）"
+SPLIT:
+  - act/01.yaml
+  - act/02.yaml
+  - act/03.yaml
+  - act/04.yaml
+  - act/05.yaml
+ORDER: "严格按 act/01 → 02 → 03 → 04 → 05；全部提交在 /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes；每步以上一步提交为基线；禁止并行"
+ESTIMATE_MINUTES_TOTAL: 265
+DEFERRED:
+  - "真实宿主 example/ 与 Functions Emulator 端到端：NC-024（D-NC010-06）"
+  - "图片就绪生产端口与上传：NC-008/NC-025（D-NC010-04）"
+  - "评论计数端口实现：NC-011（D-NC010-05）"
+  - "comment.* / reaction.set / bookmark.set / share.* / report.create 入队：NC-011/NC-012 复用本队列"
+  - "清除未完成 · 点此重试（PurgeTask.state）：NC-019"
+  - "导出/导入确认层：NC-018；拉黑确认层：NC-012"

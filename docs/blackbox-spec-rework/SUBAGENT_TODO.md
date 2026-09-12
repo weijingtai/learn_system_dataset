@@ -654,7 +654,11 @@
   - [ ] wjt-react 四查
   - [ ] 环境：用户清理磁盘（剩余 427 MiB）→ 主 Agent 重建 `.venv` 并填既有 pytest 基线
   - [ ] 用户派发；主 Agent 按 ACCEPTANCE.md 验收
-- [ ] NC-010：笔记列表、公开详情与发布 UI（状态：`BACKLOG`）
+- [ ] NC-010：客户端命令队列、公共 API 客户端、发布状态与页面（状态：`DRAFT`，2026-09-11 契约与六件套完成，待四查；派发前置 NC-003 ACCEPTED 已满足）
+  - [x] 规格侧契约（主 Agent）：`openspec/annotation-community/contracts/community_client.md`（独立 CommunityDatabase、IdTokenProvider、API 客户端、命令队列状态机与 R5 对账、payload_hash 跨端参考值、作者视角八档文案、发布流程、四屏七状态、三个确认层、D-NC010-01～07）
+  - [x] 六件套 `work-items/nc-010/`（act/01 API 客户端、act/02 数据库与队列、act/03 控制器、act/04 页面与确认层、act/05 七状态）与守卫 `reviews/nc010_guard.sh`
+  - [ ] wjt-react 四查
+  - [ ] 用户派发；主 Agent 按 ACCEPTANCE.md 验收
 - [ ] NC-011：两级评论/回复与编辑删除（状态：`BACKLOG`）
 - [ ] NC-012：赞踩/收藏/分享/@/关系与举报（状态：`BACKLOG`）
 

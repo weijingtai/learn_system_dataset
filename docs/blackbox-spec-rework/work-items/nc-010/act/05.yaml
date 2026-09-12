@@ -1,0 +1,42 @@
+TASK_ID: NC-010-E
+PARENT: NC-010
+STATUS: DRAFT
+REPO: xuan-migration/reading-notes
+GOAL: 四屏七状态矩阵参数化 25 例；仅在缺文案时补 act/04 页面文件
+DEPENDS_ON: [NC-010-D]
+ESTIMATE_MINUTES: 45
+WORKLOAD: "25 个参数化 testWidgets 约 250 行；页面文案补齐（如需）"
+SCOPE:
+  READ:
+    - /Users/jingtaiwei/Git/Public/learn_system/openspec/annotation-community/contracts/community_client.md
+    - /Users/jingtaiwei/Git/Public/learn_system/openspec/annotation-community/contracts/community_api.md §2～§7、§10
+    - /Users/jingtaiwei/Git/Public/learn_system/docs/blackbox-spec-rework/work-items/nc-010/TDD.md、BDD.md
+    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/lib/src/domain/、lib/src/persistence/note_repository.dart、lib/src/editor/markdown_preview.dart、lib/src/history/（只读）
+  WRITE_NEW:
+    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/test/community/seven_states_test.dart
+    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/lib/src/community/note_list_page.dart、content_detail_page.dart、publish_preview_page.dart、pending_queue_page.dart（仅补齐契约 §6 表文案）
+  FORBIDDEN:
+    - /Users/jingtaiwei/Git/Public/learn_system 下任何写入
+    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/lib/src/{domain,persistence,editor,history}/ 与 test/{persistence,contracts,editor,history,support}/（NC-004～NC-007 文件）
+    - firebase_auth、cloud_firestore、契约外依赖；真实网络；skip；永真断言；测试内计算 payload_hash 期望值；先实现后补测试
+DEPENDENCY_ALLOWLIST: [http 1.6.0（仅 act/01 追加）；其余沿用 reading-notes 锁定版本]
+RULES:
+  - "表、状态、文案、头、路径只来自 community_client.md 与 community_api.md；期望值只来自 TDD/BDD"
+  - "每步先写测试取得真实 Red 原文，再实现；不修改前步测试期望"
+  - "只 git add 本步文件；提交消息按 COMMIT_MESSAGE，末尾另起两行 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
+TESTS_FIRST:
+  - "写 25 例；运行 TDD 命令 5，保存失败原文作为 Red，逐例列出一开始即绿的名称与原因"
+STEPS:
+  - "补齐文案至 25 例通过；flutter analyze 0"
+  - "git add 本步文件并提交"
+  - "提交后（仅此一次）：cd /Users/jingtaiwei/Git/Public/learn_system && bash docs/blackbox-spec-rework/reviews/nc010_guard.sh --require-impl，退出码写入报告"
+VERIFICATION:
+    - "export PATH=/Users/jingtaiwei/flutter/bin:$PATH && cd /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes && flutter analyze"
+    - "cd /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes && flutter test test/community/seven_states_test.dart（期望 +25）"
+    - "cd /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes && flutter test（期望 +204）"
+    - "cd /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes && git diff 9b35e97 HEAD --stat -- lib/src/domain lib/src/persistence lib/src/editor lib/src/history test/persistence test/contracts test/editor test/history test/support（期望空）"
+    - "cd /Users/jingtaiwei/Git/Public/learn_system && bash docs/blackbox-spec-rework/reviews/nc010_guard.sh --require-impl（期望 0）"
+    - "git -C /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes status --short（提交后除未跟踪报告外为空）"
+ON_FAIL: "停止并报告失败命令、退出码与原文；不改契约与测试期望。http 1.6.0 改变既有锁定版本、需改 NC-004～NC-007 文件、build_runner 改动 note_database.g.dart、契约两种解释，均为停止条件。learn_system 侧 nc010_guard.sh 的 K01 失败判外部失败只记录。"
+BASELINE_EXIT_CODES: "开工基线：reading-notes 9b35e97（flutter test +150、analyze 0）或上一步提交"
+COMMIT_MESSAGE: "test(community): 四屏七状态矩阵（NC-010-E）"
