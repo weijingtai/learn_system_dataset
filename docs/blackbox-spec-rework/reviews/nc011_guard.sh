@@ -150,11 +150,13 @@ if "client" in req:
     miss = [n for n in CLIENT_TESTS if n not in t]; ok &= not miss; det.append(f"tests_missing={miss[:3]}")
     cheats = [p for p in ("skip:", "expect(true, isTrue)") if p in t]; ok &= not cheats; det.append(f"cheats={cheats}")
     ok &= all(h in t for h in H); det.append(f"hash_literals={all(h in t for h in H)}")
-    prot = tree_changes(RN, "4588f78", ["lib/src/domain", "lib/src/persistence", "lib/src/editor", "lib/src/history", "test/persistence", "test/contracts",
+    # 终点固定为 NC-011-F 提交：之后的 NC-017 等任务可合法修改 pubspec（验收 R1 发现 HEAD 比较会误判）
+    end_c = subprocess.run(["git", "-C", str(RN), "log", "--format=%h", "--grep=NC-011-F", "-1"], capture_output=True, text=True).stdout.strip() or "HEAD"
+    prot = subprocess.run(["git", "-C", str(RN), "diff-tree", "-r", "--name-only", "4588f78", end_c, "--", "lib/src/domain", "lib/src/persistence", "lib/src/editor", "lib/src/history", "test/persistence", "test/contracts",
                         "test/editor", "test/history", "test/support", "test/community/command_queue_test.dart", "test/community/community_api_test.dart",
                         "test/community/publication_flow_test.dart", "test/community/seven_states_test.dart", "pubspec.yaml", "pubspec.lock",
-                        "lib/src/community/community_database.dart"])
-    ok &= prot == ""; det.append(f"protected_empty={prot == ''}")
+                        "lib/src/community/community_database.dart"], capture_output=True, text=True).stdout.strip()
+    ok &= prot == ""; det.append(f"protected_empty={prot == ''} end={end_c}")
     envf = {"PATH": FL + ":" + os.environ["PATH"]}
     rc, out = run(["flutter", "analyze"], RN, envf); ok &= rc == 0; det.append(f"analyze={rc}")
     rc, out = run(["flutter", "test", "test/community/discussion_test.dart", "--reporter", "expanded"], RN, envf)
