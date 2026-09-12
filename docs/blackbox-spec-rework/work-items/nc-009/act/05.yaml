@@ -1,0 +1,46 @@
+TASK_ID: NC-009-E
+PARENT: NC-009
+STATUS: READY
+REPO: xuan-server/functions-py
+GOAL: 验收返工：W1/W2 快照按逐字节复制的 NC-002 Schema 校验（jsonschema 4.26.0）、mentions 超 50 为 413、畸形 If-Match 请求级 400、503 不泄露异常；修正既有测试的非法绑定取值；7 测试，全量 457 passed
+DEPENDS_ON: [NC-009-D]
+ESTIMATE_MINUTES: 55
+WORKLOAD: "validation.py 约 80 行；content_service 载荷阶段两处插入约 40 行；handler If-Match 预检约 15 行；command_service 503 两行；12 份 Schema 复制；7 个 Emulator 测试；两个测试文件绑定取值修正"
+SCOPE:
+  READ:
+    - /Users/jingtaiwei/Git/Public/learn_system/openspec/annotation-community/contracts/community_server.md §4、§10
+    - /Users/jingtaiwei/Git/Public/learn_system/openspec/schemas/community_*.schema.json（复制来源，只读）
+    - /Users/jingtaiwei/Git/Public/learn_system/docs/blackbox-spec-rework/work-items/nc-009/TDD.md §5b、BDD.md B31～B37、ACCEPTANCE.md 验收记录 R1
+  WRITE_NEW:
+    - /Users/jingtaiwei/Git/Public/xuan-server/functions-py/requirements.txt（仅追加 jsonschema==4.26.0）
+    - /Users/jingtaiwei/Git/Public/xuan-server/functions-py/xuan/community/schemas/（12 份 community_*.schema.json，逐字节复制）
+    - /Users/jingtaiwei/Git/Public/xuan-server/functions-py/xuan/community/validation.py
+    - /Users/jingtaiwei/Git/Public/xuan-server/functions-py/xuan/community/content_service.py（仅 W1/W2 载荷阶段）
+    - /Users/jingtaiwei/Git/Public/xuan-server/functions-py/xuan/community/command_service.py（仅 503 响应 detail 与日志）
+    - /Users/jingtaiwei/Git/Public/xuan-server/functions-py/xuan/handlers/community_contents.py（仅 If-Match 请求级校验）
+    - /Users/jingtaiwei/Git/Public/xuan-server/functions-py/tests/test_community_validation.py
+    - /Users/jingtaiwei/Git/Public/xuan-server/functions-py/tests/test_community_publications.py、/Users/jingtaiwei/Git/Public/xuan-server/functions-py/tests/test_community_acl_sweep.py（仅契约 §10.4 绑定取值）
+  FORBIDDEN:
+    - /Users/jingtaiwei/Git/Public/learn_system 下任何写入
+    - 其他 SERVER 文件（含 idempotency.py、playground_rest.py、notifications.py、test_config.py、test_registration.py）；RULES 仓
+    - jsonschema 以外的新依赖；改动 Schema 复制品内容；skip；二选一断言；改既有测试除绑定取值外的断言
+DEPENDENCY_ALLOWLIST: [jsonschema==4.26.0（及其自动带入的 attrs、jsonschema-specifications、referencing、rpds-py）]
+RULES:
+  - "载荷阶段顺序、错误码、field 指针、503 文案逐字按契约 §10"
+  - "先写测试取得真实 Red 原文再实现"
+  - "只 git add 本步文件；提交消息按 COMMIT_MESSAGE，末尾另起两行 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
+TESTS_FIRST:
+  - "写 7 个测试并按 §10.4 改绑定取值；运行 TDD 命令 4b，保存失败原文作为 Red"
+STEPS:
+  - ".venv/bin/python -m pip install jsonschema==4.26.0；复制 12 份 Schema；实现至命令 4b 为 7 passed、命令 4 为 457 passed, 5 failed, 9 xfailed"
+  - "git add 本步文件并提交"
+  - "提交后（仅此一次）：cd /Users/jingtaiwei/Git/Public/learn_system && bash docs/blackbox-spec-rework/reviews/nc009_guard.sh --require-impl，退出码写入报告"
+VERIFICATION:
+  - "cd /Users/jingtaiwei/Git/Public/xuan-server/functions-py && XUAN_EMULATOR_HOST=192.168.0.165:8080 FIREBASE_AUTH_EMULATOR_HOST=192.168.0.165:9099 .venv/bin/python -m pytest tests/test_community_validation.py -q（期望 7 passed）"
+  - "cd /Users/jingtaiwei/Git/Public/xuan-server/functions-py && XUAN_EMULATOR_HOST=192.168.0.165:8080 FIREBASE_AUTH_EMULATOR_HOST=192.168.0.165:9099 .venv/bin/python -m pytest tests -q（期望 457 passed, 5 failed, 9 xfailed；失败名称同 README 基线）"
+  - "cd /Users/jingtaiwei/Git/Public/xuan-server/functions-py && for f in xuan/community/schemas/*.json; do cmp -s $f /Users/jingtaiwei/Git/Public/learn_system/openspec/schemas/$(basename $f) || echo DIFF $f; done（期望无输出）"
+  - "cd /Users/jingtaiwei/Git/Public/learn_system && bash docs/blackbox-spec-rework/reviews/nc009_guard.sh --require-impl（期望 0）"
+  - "git -C /Users/jingtaiwei/Git/Public/xuan-server/functions-py status --short（提交后为空）"
+ON_FAIL: "停止并报告失败命令、退出码与原文；jsonschema 4.26.0 无法安装、复制品与规格不一致、需要改契约 §10 未列出的文件或断言，均为停止条件。"
+BASELINE_EXIT_CODES: "开工基线：SERVER 55f3980（450 passed, 5 failed, 9 xfailed）"
+COMMIT_MESSAGE: "fix(community): 快照 Schema 校验、畸形 If-Match 400、503 不泄露异常（NC-009-E）"

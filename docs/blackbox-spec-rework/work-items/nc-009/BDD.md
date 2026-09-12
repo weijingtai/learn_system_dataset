@@ -34,3 +34,10 @@
 | B28 | outbox 新事件类型 | 现有 `handle_outbox_event` 收到 `content.published` | 返回 None，不抛错（已核 `notifications.py` 末尾「未知事件类型：静默忽略」） |
 | B29 | 同 scope 两次命令、另一 scope 一次命令 | 查映射与事件 | 同 scope 同一 `actor_pseudonym`；两 scope 不同；假名 ≠ `psn_`+SHA-256(scope)[:32]；事件文档无 `owner_scope`/`app_user_id` 字段 |
 | B30 | `fn` 首次执行时由另一客户端改写其事务读过的文档 | W1 | 回调被重跑；两次回调的 `new_ids` 相同；最终 Publication/事件各一份；事件文档 ID 等于 `"bev_" + sha256(community_hash.encode([scope, command_id, "content.publish"])).hexdigest()[:32]` |
+| B31 | 快照 `bindings[0].relation = "cites"` | W1 | 400 `invalid_argument.snapshot`，`field = "/snapshot/bindings/0/relation"`；无 access/publication/binding 文档；账本 `rejected` |
+| B32 | 标题 201 个 code point（「中」×201）/ 200 个 | W1 | 400 `invalid_argument.snapshot`，`field = "/snapshot/title"` / 201 |
+| B33 | 快照含未知键 `foo`；另一例 `mentions[0].length = 1` | W1 | 两者均 400 `invalid_argument.snapshot`，`field` 分别为 `/snapshot` 与 `/snapshot/mentions/0/length` |
+| B34 | 51 个合法且互不相同的 mention / 50 个 | W1 | 413 `too_large.mentions`，`limit = 50` / 201 |
+| B35 | `If-Match: abc`；`If-Match: 1`（无引号） | W3 | 两者均 400 `invalid_argument.if_match`；`community_commands` 集合无该 command_id 文档 |
+| B36 | `fn` 内抛 `RuntimeError("SECRET-XYZ")` | W1 | 503 `unavailable`；响应体与 `caplog` 全文均不含 `SECRET-XYZ` |
+| B37 | `xuan/community/schemas/` 12 份文件 | 计算 SHA-256 | 与契约 §10.1 清单逐项相等 |

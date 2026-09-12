@@ -1,5 +1,5 @@
 TASK_ID: NC-009
-STATUS: READY
+STATUS: REWORK
 GOAL: 在 canonical functions-py 实现命令账本服务、内容命令 W1～W6 与 R1/R5/R6、ACL 扫描矩阵、规则单测与可观测性断言
 CONTRACTS:
   - openspec/annotation-community/contracts/community_server.md
@@ -10,8 +10,9 @@ SPLIT:
   - act/02.yaml
   - act/03.yaml
   - act/04.yaml
-ORDER: "严格按 act/01 → 02 → 03 → 04；SERVER 仓每步一个提交；act/04 另在 RULES 仓一个提交；禁止并行"
-ESTIMATE_MINUTES_TOTAL: 220
+  - act/05.yaml（2026-09-11 验收返工：快照 Schema、畸形 If-Match、503 文案）
+ORDER: "严格按 act/01 → 02 → 03 → 04 → 05；SERVER 仓每步一个提交；act/04 另在 RULES 仓一个提交；禁止并行"
+ESTIMATE_MINUTES_TOTAL: 275
 DEFERRED:
   - "附件与外置正文的发布：NC-008/NC-025（本任务 409 conflict.object_missing）"
   - "purge 清理执行与 SM-6：NC-019"

@@ -23,7 +23,7 @@
 更新时间：2026-09-11
 当前分支/worktree：`codex/docs/knowledge-compilation`；`/Users/jingtaiwei/Git/Public/learn_system`
 刚完成：NC-003 act/06 验收通过（REST 仓 `5730ed9`，守卫 0、69 测试、原样 3.1 盲测六项全过，交付报告 `work-items/nc-003/DELIVERY_REPORT.md` 未入库），NC-003 ACCEPTED，NC-009 派发前置满足。NC-010 客户端契约 `contracts/community_client.md` 已写（独立 `CommunityDatabase`、`IdTokenProvider` 注入、命令队列状态机与 payload_hash 跨端参考值 `c8e2c2b0…b72b5`、作者视角八档文案、四屏七状态、D-NC010-01～07）。
-进行到一半的事（精确到文件和章节）：NC-009 READY、NC-010 READY（全量目标 +212），两份 PROMPT 已交用户，可并行执行；NC-015 执行方尚未提交。
+进行到一半的事（精确到文件和章节）：NC-009 验收 R1 判 REWORK（act/01～04 全量 450/5/9、规则 65、守卫 0、盲测 9 项通过；快照未按 Schema 校验、畸形 If-Match 412、503 泄露异常 → 契约 §10 D-NC009-15～17 + act/05，全量目标 457，PROMPT 末尾追加），等 act/05 报告；NC-010 执行中；NC-015 执行方尚未提交。
 下一步（第一件事）：收 NC-009 执行报告 → 按 ACCEPTANCE 验收（Emulator 盲测七项，失败集合须等于基线 5 个）。NC-010 四查回来 → 落实返工 → READY → 交用户派发（可与 NC-009 并行，NC-010 全用 MockClient）。NC-015 报告回来按 ACCEPTANCE 七项篡改盲测。
 已知的坑：工作树里 `pipeline/ledger/*` 的未提交改动属 Dataset 会话，不要暂存；python 批量替换脚本任一处不匹配会中途退出但已写入前面的修改，务必检查 `git status` 后再提交。
 已知的坑：PLAN.md 今后只能追加或把 `- [ ]` 改 `- [x]`（D-16 零删行判据；`check_d16.py` 只查黑箱侧条目，不查 G6 节）；G6 新条目不需登记进 D-16 映射表。一次性 Dart 盲测需 `import 'package:drift/drift.dart'` 才能用 `interceptWith`；执行方报告在 reading-notes 根目录未跟踪，验收不入库。

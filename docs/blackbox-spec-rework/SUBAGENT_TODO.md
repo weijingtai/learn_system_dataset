@@ -664,7 +664,7 @@
 ### 图片与公开社区
 
 - [ ] NC-008：本地图片与公共资源适配（状态：`BACKLOG`）
-- [ ] NC-009：公共发布事务、权限扫描与命令账本服务（状态：`READY`，2026-09-11；派发前置 NC-003 ACCEPTED 与 `.venv` 基线均已满足；PROMPT 已交用户）
+- [ ] NC-009：公共发布事务、权限扫描与命令账本服务（状态：`REWORK_ACT05`，2026-09-11：act/01～04 已交付 SERVER `c29a31a`…`55f3980`、RULES `ea8c9b8`，全量 450/5/9、规则 65、守卫 0；盲测发现快照未按 Schema 校验、畸形 If-Match 412、503 泄露异常，追加 act/05，PROMPT 已交用户）
   - [x] 规格侧契约（主 Agent）：`openspec/annotation-community/contracts/community_server.md`（canonical SERVER 与 RULES 仓实值、六集合与文档、账本事务六步、W1～W6 前置顺序与写集、读路径与 ACL 18 条矩阵、规则 jest、测试名、D-NC009-01～08）
   - [x] 六件套 `work-items/nc-009/`（act/01 账本、act/02 发布/更新/收回、act/03 回收站/查询/精简、act/04 ACL/规则/可观测）与守卫 `reviews/nc009_guard.sh`
   - [x] 自审 5 项 + wjt-react R1 返工 3 项 + R2 返工 1 项，READY（`reviews/NC-009-REVIEW-R1.md`）

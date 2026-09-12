@@ -1,6 +1,6 @@
 # NC-009：公共发布事务、权限扫描与命令账本服务（服务端）
 
-状态：`READY`（2026-09-11：主 Agent 自审 5 项、R1 返工 3 项 + 2 建议、R2 返工 1 项均落实；记录见 `reviews/NC-009-REVIEW-R1.md`）。派发前置：**NC-003 ACCEPTED（含 act/06，已合入契约 §9 P1/P2）——2026-09-11 已满足（REST 仓 `5730ed9`）**；环境阻塞已于 2026-09-11 解除（见 Baseline）。执行由用户交外部 Agent，PROMPT.md 原样发送。task_id：`NC-009`。权威需求来源：TASKS NC-009；DESIGN §4、§7.3、§7.4、§11.4～11.5；PRD R-05/R-20、§6.2；契约 `contracts/community_server.md`（本任务专属，主 Agent 编写）与 `community_api.md`（NC-003）。
+状态：`REWORK_ACT05`（2026-09-11 主 Agent 验收 R1：act/01～04 全量与守卫通过，盲测发现快照未按 Schema 校验、畸形 If-Match 412、503 泄露异常，追加 act/05；记录见 ACCEPTANCE.md）。曾为 `READY`（2026-09-11：主 Agent 自审 5 项、R1 返工 3 项 + 2 建议、R2 返工 1 项均落实；记录见 `reviews/NC-009-REVIEW-R1.md`）。派发前置：**NC-003 ACCEPTED（含 act/06，已合入契约 §9 P1/P2）——2026-09-11 已满足（REST 仓 `5730ed9`）**；环境阻塞已于 2026-09-11 解除（见 Baseline）。执行由用户交外部 Agent，PROMPT.md 原样发送。task_id：`NC-009`。权威需求来源：TASKS NC-009；DESIGN §4、§7.3、§7.4、§11.4～11.5；PRD R-05/R-20、§6.2；契约 `contracts/community_server.md`（本任务专属，主 Agent 编写）与 `community_api.md`（NC-003）。
 
 ## Goal
 
@@ -29,7 +29,7 @@
 
 ## 执行顺序
 
-`act/01`（账本服务 + 注册 + 12 测试）→ `act/02`（publish/update/withdraw + access + R1 + 9 测试）→ `act/03`（trash/restore/purge + R5/R6 + 精简 + 7 测试）→ `act/04`（ACL 18 条 + 规则 jest + 可观测性）。每步一个提交在 SERVER 仓；act/04 另在 RULES 仓一个提交。
+返工：`act/05`（快照 Schema 校验、畸形 If-Match、503 文案，7 测试，全量 457 passed），以 `55f3980` 为基线。首轮：`act/01`（账本服务 + 注册 + 12 测试）→ `act/02`（publish/update/withdraw + access + R1 + 9 测试）→ `act/03`（trash/restore/purge + R5/R6 + 精简 + 7 测试）→ `act/04`（ACL 18 条 + 规则 jest + 可观测性）。每步一个提交在 SERVER 仓；act/04 另在 RULES 仓一个提交。
 
 ## 一次性交付与阅读顺序
 

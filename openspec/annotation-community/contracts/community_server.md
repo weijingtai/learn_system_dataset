@@ -173,3 +173,43 @@ Red：每个测试文件先于实现提交；`from xuan.community import command
 - **P1**：`POST /v1/community/contents`（W1）`parameters` 增加 `IfMatch`，`required: false`，描述写明「首次发布缺省；重新发布必带」；NC-003 B08 的「W1 不含 IfMatch」断言改为「W1 含 IfMatch 且 required=false」。
 - **P2**：错误目录增 `500 internal.state_corrupted`（`type: internal`），`ProblemDetails.type` 枚举增 `internal`（与 `_L0_MAP` 的 `internal` 一致），R1 响应增 500。
 - 实际落地：P1 以参数组件 `IfMatchOptional` 实现；P2 以响应组件 `500StateCorrupted` 实现；社区错误体改为 `CommunityProblemDetails`（community_api §10.2），NC-009 的 Problem Details 输出须满足它（含 `code`），遗留 `make_problem_details` 不变。
+
+## 10. 验收返工补充（2026-09-11 主 Agent 验收 R1 后追加，NC-009 act/05 消费）
+
+### 10.1 快照按 NC-002 Schema 校验（D-NC009-15）
+- 依赖：`requirements.txt` 追加一行 `jsonschema==4.26.0`（同 learn_system `.venv`；实测会带入 `attrs`、`jsonschema-specifications`、`referencing`、`rpds-py`）。这是本任务唯一允许新增的依赖。
+- Schema 来源：把 learn_system `openspec/schemas/community_*.schema.json` 12 份文件**逐字节复制**到 `xuan/community/schemas/`；`xuan/community/validation.py` 以 `referencing.Registry` 按文件名注册全部 12 份（与文件内 `$ref` 的相对名一致），Draft 2020-12。复制品的 SHA-256 必须等于下列清单（规格 2026-09-11 状态），测试以字面量断言：
+
+```
+18fa523596f7b255536841f7eec0fa1b31c3820df7ee728f9a4080c25ce28de8 community_behavior_event.schema.json
+cd380d7d7b6e2f258a4df480ed18995a41d4be2e287a182f8fe0a1ce15de4afd community_command_record.schema.json
+e30294c02cc5ac93fb9e98860e0eaff62d170631e58c079ba608e903052117b1 community_comment.schema.json
+6095350a1afc4365d7a659570158174c8f951f2ebd5aa54642990c8665e1a859 community_comment_revision.schema.json
+93317099162908fb8bb9419e1925f9a254fd7a19b54d1760d936b6a3a84f415f community_common.schema.json
+5b0241e56bbffefdf5e5559f22dcc51a75605e8efc0e9fac64e4326322e3cd0d community_content_access.schema.json
+4d3002f963e6f6ece9ab511f63566b2af10ecf2aac76cdd427c9ef8a621baa85 community_note.schema.json
+257d90ecdfe5df948f53650c721134efd33c4efdb0466f883dad782aa7e4d74f community_note_revision.schema.json
+3c72fca76ef1ccb923299a55cd85e162427a568776b1230cc35dae05a35d5929 community_notification_record.schema.json
+45d81ffdb2c6c52b4605c4f76db29c8704f8ff4615486877a4acae015ae088ee community_notifier_delivery_binding.schema.json
+eccded6817c95dd88c0535e1ed4d72a1246a355c8710abe2da9fd60256b1b478 community_publication.schema.json
+44a9e6d32ad742487ed6185cff00b1d0eaa71820101b52a0905990a53ed6f7f1 community_reaction.schema.json
+```
+
+- W1、W2 的快照校验 Schema（在 `validation.py` 内组装）：`{"type":"object","additionalProperties":false,"required":["title","attachments","mentions","bindings"],"properties":{"title":{"type":"string","maxLength":200},"markdown":{"type":"string"},"public_body_ref":{"type":"string"},"attachments":{"type":"array","maxItems":20},"mentions":{"type":"array","uniqueItems":true,"items":{"$ref":"community_note_revision.schema.json#/$defs/mentionRef"}},"bindings":{"type":"array","uniqueItems":true,"items":{"$ref":"community_note_revision.schema.json#/$defs/bindingRef"}}}}`；`content_hash` 另按 `community_common.schema.json#/$defs/hex64`（`^[0-9a-f]{64}$`）校验。
+- 载荷阶段固定顺序（§4 表「载荷」一格，W1/W2 相同）：① `snapshot.mentions` 条数 > 50 → `413 too_large.mentions`，`limit=50`；② 快照 Schema 不通过 → `400 invalid_argument.snapshot`，`field` 为首个错误的 JSON Pointer（按 `list(error.absolute_path)` 升序取第一个，前缀 `/snapshot`，例 `/snapshot/bindings/0/relation`）；③ `content_hash` 非 hex64 → `400 invalid_argument.content_hash`；④ 附件或 `public_body_ref` → 既有 `409 conflict.object_missing`；⑤ markdown 字节 → 既有 `413 too_large.markdown`。拒绝均按 §3.2 记拒绝终态。
+
+### 10.2 畸形 If-Match（D-NC009-16）
+W1～W6 的 `If-Match` 头存在但不匹配 `^"[0-9]+"$`（含未加引号的数字、`abc`、空引号）→ 在调用 `run_command` **之前**返回 `400 invalid_argument.if_match`（`field: "if_match"`），不写账本（与 `command_id` 格式错误同类，属请求级校验）。缺失的处理不变（W2～W6 缺失 → 400 在事务内记拒绝终态；W1 缺失表示首次发布）。
+
+### 10.3 503 不泄露异常（D-NC009-17）
+`run_command` 捕获事务异常时，响应体 `detail` 固定为 `"command could not be completed; retry with the same Idempotency-Key"`；日志只记 `type(exc).__name__` 与 `command_id`，不得记 `str(exc)`、请求体或快照任何字段。
+
+### 10.4 既有测试取值修正
+执行方 act/02、act/04 的测试请求体用了不在枚举内的绑定（`relation: "cites"`、`target_kind: "passage"`，且缺必填 `anchor`）。act/05 允许且只允许把这些绑定改为 `{"relation": "about", "target_kind": "knowledge_entry", "target_ref": "<原值>", "anchor": null}`，不得改动其他断言。
+
+### 10.5 决定
+| 编号 | 决定 | 理由 |
+|---|---|---|
+| D-NC009-15 | 服务端用 jsonschema 4.26.0 按逐字节复制的 NC-002 Schema 校验快照 | 验收盲测：非法枚举与 201 code point 标题均 201 且写入公共关联索引；NC-002 Schema 含锚点/选择器深层结构，手写校验必然漂移 |
+| D-NC009-16 | 畸形 If-Match 为请求级 400，不入账本 | 盲测：`abc` 被当作版本不符返回 412；契约原先只写了缺失，未写畸形（主 Agent 缺口） |
+| D-NC009-17 | 503 响应与日志不含异常文本 | 盲测发现 `detail=str(exc)`；异常文本可能含文档字段与内部路径 |

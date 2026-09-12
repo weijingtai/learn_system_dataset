@@ -9,7 +9,8 @@ SERVER：`cd /Users/jingtaiwei/Git/Public/xuan-server/functions-py && export XUA
 | 1 | `$PY -m pytest tests/test_community_commands.py -q` | act/01 后 `12 passed` |
 | 2 | `$PY -m pytest tests/test_community_publications.py -q` | act/02 后 `9 passed`；act/03 后 `16 passed`；act/04 后 `18 passed` |
 | 3 | `$PY -m pytest tests/test_community_acl_sweep.py -q` | act/04 后 `9 passed, 9 xfailed`（无 skipped） |
-| 4 | `$PY -m pytest tests -q` | `450 passed, 5 failed, 9 xfailed`（411 基线 + 39 新增；5 个失败名称与 README 基线清单逐一相同） |
+| 4 | `$PY -m pytest tests -q` | act/04 后 `450 passed, 5 failed, 9 xfailed`；act/05 后 `457 passed, 5 failed, 9 xfailed`（5 个失败名称与 README 基线清单逐一相同） |
+| 4b | `$PY -m pytest tests/test_community_validation.py -q` | act/05 后 `7 passed` |
 | 5 | `npm test -- community_rules`（RULES 仓） | 1 suite passed，≥ 65 断言 |
 | 6 | `$PY -c "import main"` | 无异常（导出注册） |
 | 7 | `git -C <SERVER> diff 30a868c HEAD --stat -- xuan/idempotency.py xuan/handlers/playground_rest.py xuan/handlers/notifications.py` | 空 |
@@ -38,6 +39,14 @@ Red：先写 7 个测试，运行命令 2 取得原文。
 文件：`tests/test_community_acl_sweep.py`（参数化 `[(entry, reason)]` 18 条；E1/E2/E5 真实请求，E3/E4/E6 `pytest.mark.xfail(strict=True, reason="owner: NC-0xx")`）、`test_community_publications.py` 追加 `logs_never_contain_title_or_body` 与 `outbox_unknown_event_type_is_ignored`（B27/B28）；RULES 仓 `functions/test/community_rules.test.ts`（8 个集合 × 匿名/alice × get/set/update/delete 循环生成 64 个 `assertFails` + 1 个 `assertSucceeds`）。
 
 Red：ACL 9 条真实用例在 access 层未按契约 §5 共用响应体前应红（先用一个故意含 `reason` 字段的响应验证测试能抓到差异，再实现）。
+
+## 5b. act/05：验收返工（契约 §10）
+
+文件：`requirements.txt`（追加 `jsonschema==4.26.0` 一行）、`xuan/community/schemas/`（12 份逐字节复制）、`xuan/community/validation.py`、`xuan/community/content_service.py`（仅 W1/W2 载荷阶段）、`xuan/community/command_service.py`（仅 503 体与日志）、`xuan/handlers/community_contents.py`（仅 If-Match 请求级校验）、`tests/test_community_validation.py`（新建）、`tests/test_community_publications.py` 与 `tests/test_community_acl_sweep.py`（仅契约 §10.4 的绑定取值）。环境：`.venv/bin/python -m pip install jsonschema==4.26.0`。
+
+7 个测试（名称逐字）：`snapshot_binding_enum_violation_is_400_with_pointer`（B31）、`snapshot_title_over_200_code_points_is_400`（B32）、`snapshot_unknown_key_and_short_mention_are_400`（B33）、`mentions_over_50_is_413`（B34）、`malformed_if_match_is_400_and_not_recorded`（B35）、`transaction_failure_503_has_no_exception_text`（B36）、`vendored_schemas_match_spec_hashes`（B37）。
+
+Red：先写 7 个测试并改 §10.4 绑定取值，对 `55f3980` 运行命令 4b 取得失败原文（B37 因 schemas 目录不存在而红）。
 
 ## 6. 禁止
 
