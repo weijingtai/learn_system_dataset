@@ -377,7 +377,8 @@ def validate_glyphbox_anchor(ctx):
                 )
 
         expected_chars = [
-            char for char in (doc.get("chars") or [])
+            (index, char)
+            for index, char in enumerate(doc.get("chars") or [])
             if char.get("parent") == anchor.get("line_id")
         ]
         got_chars = anchor.get("chars") or []
@@ -390,14 +391,14 @@ def validate_glyphbox_anchor(ctx):
                 )
             )
         else:
-            for got, expect in zip(got_chars, expected_chars):
+            for got, (index, expect) in zip(got_chars, expected_chars):
                 if (
                     got.get("char_index"),
                     got.get("glyph_id"),
                     got.get("char"),
                     got.get("box"),
                 ) != (
-                    expect.get("char_index"),
+                    index,
                     expect.get("id"),
                     expect.get("char"),
                     expect.get("box"),
