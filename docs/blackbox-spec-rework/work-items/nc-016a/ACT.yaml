@@ -1,5 +1,5 @@
 TASK_ID: NC-016a
-STATUS: READY_FOR_REVIEW
+STATUS: READY
 GOAL: S6 私人同步进程内实现——STORAGE guard 三条比较与 BlobCipher 可选 AAD；CLIENT mapper、授权判定、一次一密信封、接收七步验收与远端修订落库
 CONTRACTS:
   - openspec/annotation-community/contracts/private_sync_impl.md

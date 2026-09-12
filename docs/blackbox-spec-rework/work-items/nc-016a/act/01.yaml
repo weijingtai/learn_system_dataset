@@ -1,6 +1,6 @@
 TASK_ID: NC-016a-A
 PARENT: NC-016a
-STATUS: READY_FOR_REVIEW
+STATUS: READY
 REPO: xuan-migration/xuan-storage（worktree .worktrees/nc016-guard-aad，分支 fix/nc016-guard-aad）
 GOAL: SameAccountSessionGuard 补设备 ID/指纹/过期三条比较（可选 nowUtcMs）；BlobCipher 接口与 AesGcm/Identity 实现加可选 associatedData；X01～X03
 DEPENDS_ON: []

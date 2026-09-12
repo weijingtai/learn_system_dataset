@@ -1,6 +1,6 @@
 TASK_ID: NC-016a-C
 PARENT: NC-016a
-STATUS: READY_FOR_REVIEW
+STATUS: READY
 REPO: xuan-migration/reading-notes
 GOAL: private_note_sync.dart——端口、SealedEnvelope、发送端 seal（会话公钥验签、X25519+HKDF 包装、分块 AES-GCM、Ed25519 签名）、接收端 openSession/receive（第 0～7 步）；S07～S17
 DEPENDS_ON: [NC-016a-B]

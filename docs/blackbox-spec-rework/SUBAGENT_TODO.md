@@ -700,7 +700,7 @@
 ### 私人同步、备份与删除
 
 - [ ] NC-016：私人加密 mapper 与设备同步（2026-09-12 拆分，D-NC016-01）
-  - [ ] NC-016a：guard 补丁、AES-GCM AAD、一次一密信封与接收验收（状态：`READY_FOR_REVIEW`；契约 `openspec/annotation-community/contracts/private_sync_impl.md`，六件套 `work-items/nc-016a/`，守卫 `reviews/nc016a_guard.sh`；两线：STORAGE act/01 ｜ CLIENT act/02→03）
+  - [ ] NC-016a：guard 补丁、AES-GCM AAD、一次一密信封与接收验收（状态：`READY`，四查 R1 返工 2 项、R2 READY（`reviews/NC-016a-REVIEW-R1.md`）；契约 `openspec/annotation-community/contracts/private_sync_impl.md`，六件套 `work-items/nc-016a/`，守卫 `reviews/nc016a_guard.sh`；两线：STORAGE act/01 ｜ CLIENT act/02→03）
   - [ ] NC-016b：两台真实设备 LAN/WebRTC 集成、中转上传与宿主装配（状态：`BLOCKED`，等 NC-001 设备表）
 - [x] NC-017：口令加密导出文件格式与本机写入（v1.6；状态：`ACCEPTED`，2026-09-12 R1；reading-notes `e913b14`→`4a0d70a`，flutter test +253，Python 独立解码 28 项与盲测 ②～⑥ 全部通过）
   - [x] 规格侧契约（主 Agent）：`openspec/annotation-community/contracts/private_export.md`（容器/清单、Argon2id m65536 t3 p1 经 OpenSSL 交叉核对、带 AAD 分块 AES-GCM、统一失败、`.partial` 原子写入、参考值、D-NC017-01～11）

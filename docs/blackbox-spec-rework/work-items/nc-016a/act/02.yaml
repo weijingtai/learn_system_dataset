@@ -1,6 +1,6 @@
 TASK_ID: NC-016a-B
 PARENT: NC-016a
-STATUS: READY_FOR_REVIEW
+STATUS: READY
 REPO: xuan-migration/reading-notes
 GOAL: private_note_mapper.dart（常量、线上修订映射、payload 编码、证书哈希、授权判定镜像、配对闸门）与 NoteRepository 追加 applyRemoteRevision、markEnvelope；S01～S06
 DEPENDS_ON: []
