@@ -1,6 +1,6 @@
 # ACCEPTANCE：impl-01 Artifact Ledger
 
-状态：H1（ACT 00/01/02）`ACCEPTED`（`ba9b68e`、`823bead`、`0dff35d`，见 §5）；H2 `DISPATCHED`（`PROMPT-H2.md`）
+状态：H1（ACT 00/01/02）`ACCEPTED`；H2 的 ACT 03/04 `ACCEPTED`（`401b449`、`01d32ca`），ACT 05（`45d99a1`）判据全绿但有一处缺陷，返工 ACT 06 `DISPATCHED`（`PROMPT-H3.md`）；见 §5
 
 ## 0. 转译审查（主 Agent 四查，2026-09-11）
 
@@ -46,3 +46,19 @@ H1、H2 各自通过后记 `ACCEPTED`；全部通过后：SUBAGENT_TODO G7 impl-
 - ACT 02：`sqlite_master` 16 张表逐字；抽查四表列名齐全；外键 20 条；`journal_mode=wal`；`schema_meta` 1.0.0；Object Store 去重、篡改一字节 `verify` False、缺对象 `REF_001`、无 tmp 残留；跨进程第二写入者 `WriterLocked`、释放后可取得；只读连接写入 `OperationalError`；乐观锁过期版本 `IllegalTransition`、成功后 `status_version` 递增；异常事务回滚审计计数不变。
 - 质量：导入只有标准库 + 自身包；中文 docstring；测试只用 `tempfile`。
 - 主 Agent 自误：验收脚本用 `multiprocessing` 从 stdin 起子进程在 macOS 失败，改为 `subprocess` 复验，与执行者无关。
+
+### 5.2 H2（2026-09-11，`git archive 45d99a1` 干净树，软链 `.venv` 与工作台 assets，`FIXTURE_ASSET_ROOT` 指本机页图）
+
+执行者登记六点，裁定：① m3 输出类型 `corpus_package` 以 fixture 为准（`e2ecc9c` 已回写）；② `step_runs.stage` 从配置修订内容的 `stage` 键推导——采纳，但属主 Agent ACT 03 契约缺口（StepRequest 无 stage 字段），登记为已知缺口，待后续批次改 L0 Schema 时显式化，本批不动 Schema；③ `StepResult.status_version` 取迁移后值（当前 + 1），以 Schema `minimum: 1` 为准；④ `put_run_artifact` 提交归属提前到 `401b449`，如实登记，不 rebase；⑤ `LedgerReadMixin` 让两类共享九个只读方法，采纳；⑥ `--asset-root` 本切片只保留接口，采纳。
+
+- 范围：`401b449` 3 文件、`01d32ca` 4 文件、`45d99a1` 5 文件，均只含 `commit.add` 路径；fixture、Schema、规格、`.gitignore` 未动；无 `var/`、`__pycache__`；`git diff --check`（限 `pipeline`、`openspec/acceptance`）通过。
+- `run_all.sh`：+12/−2，只有 `ledger_check` 定义与两行替换，20.3 的 lineage 预检保留。
+- 门禁：`verify-T.sh` 0 FAIL、`mutations.sh` 109/109、`schemas/verify.sh` 0、`check_d16.py` OK；`unittest` 71/71。
+- 完成判据：`run_all.sh` → `PASS 20.2`、`PASS 20.3`、`SUMMARY pass=2 fail=1 blocked=8`、exit 1；BLOCKED 行名 4 个逐字属 §19 第一列；`acceptance --check 20_2` 5 PASS、`20_3` 8 PASS；fixture 副本删 span → `FAIL 20.2`、`FAIL 20.3`；缺 fixture exit 3。
+- 签名：ACT 03 `contract.methods` 22 个方法在 `service.py` 各恰 1 个 `def`，`inspect` 参数名与顺序零差异。
+- 矩阵外篡改 8 例全部精确命中且只命中该项：删 m2 中间 Checkpoint → `chain_lengths`；改 m3 第三个 Checkpoint 的 prev 指针 → `chain_lengths`；把原 m3 StepRun 改 failed → `failed_run_preserved`；删 m2 人工决定关联 → `human_decisions_recorded`；配置修订类型改 step_log → `config_recorded`；m3 塞入非冻结输入 → `inputs_recorded`；m1 tool_version 置空 → `tool_recorded`；m1 输出改 quarantined → `outputs_recorded`。
+- 半成品：`finish_step_run` 内注入 `_seal_step_manifest` 崩溃 → status `running`、version 0、无 StepManifest、无 succeeded 事件、`result_json` NULL。
+- Object 篡改：封存前改一字节 → `SRC_003` 且 `quarantined`。
+- 恢复凭据：库内只存 `v<version>:<sha256>`，明文不落库；错凭据与二次 `resume` 均 `InvalidResumeToken`。
+- 质量：判定函数异常经 `_safe` 一律转 FAIL；场景失败时三个场景判定均 FAIL；无 `except: pass`；字符串中出现的前缀全部属登记册 19 个。
+- **缺陷（返工 ACT 06）**：注入 `fixture_ingest.ingest` 抛异常 → `acceptance.main` 返回 3，`run_all.sh` 显示 `BLOCKED 测试宿主匮乏`。Ledger 写路径的真实回归会被显示为「前置缺失」而非 FAIL，违反 ACT 05「3 仅用于 fixture 不存在或缺依赖」。修法：准备或判定异常一律退出码 1。

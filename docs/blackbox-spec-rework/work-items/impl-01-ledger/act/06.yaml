@@ -1,0 +1,35 @@
+act_id: impl-01/06
+title: acceptance.py 宿主准备失败按 FAIL（退出码 1）处理，不得冒充环境缺失（主 Agent 验收发现）
+estimated_minutes: 20
+group: H3
+depends_on: [impl-01/05]
+scope:
+  write: [pipeline/ledger/acceptance.py, pipeline/ledger/tests/test_acceptance.py]
+background: |
+  主 Agent 验收 45d99a1 时注入 fixture_ingest.ingest 抛 RuntimeError：acceptance.main 返回 3，
+  run_all.sh 的 ledger_check 把非 0/1 映射为 BLOCKED「测试宿主匮乏」。于是 Ledger 写路径的真实回归会让
+  20.2/20.3 从 PASS 退成 BLOCKED 而不是 FAIL。ACT 05 contract 规定退出码 3 只用于「fixture 不存在或缺 yaml/jsonschema」。
+tests_first:
+  - 先在 tests/test_acceptance.py 追加 test_prepare_failure_exits_1，运行确认 Red（当前返回 3）
+contract:
+  exit_codes: |
+    3：仅两种情形——`<fixture>/manifest.yaml` 不存在；`_environment_error()` 非 None
+    1：prepare()（含灌入）或 evaluate() 抛出任何异常；或任一判定 FAIL
+    0：全部判定 PASS
+  output: '宿主准备/判定异常时打印一行 `FAIL <check> 宿主准备失败: <异常类名>: <消息>`（文字保持现状），随后返回 1'
+  docstring: 模块头部「退出码」说明同步改为上述三条
+tests:
+  test_acceptance.py 追加:
+    - 'test_prepare_failure_exits_1（unittest.mock.patch 把 pipeline.ledger.fixture_ingest.ingest 替换为抛 RuntimeError 的函数 → main 返回 1，输出首行以 `FAIL 20_2 宿主准备失败: RuntimeError` 开头）'
+    - 'test_evaluate_failure_exits_1（patch acceptance.evaluate 抛 RuntimeError → main 返回 1）'
+  既有: 'test_missing_fixture_exit_3 保持通过'
+verify:
+  - '.venv/bin/python -m unittest discover -s pipeline/ledger/tests -t . 2>&1 | tail -3     # OK，用例数 ≥ 73'
+  - 'export LC_ALL=en_US.UTF-8; bash openspec/acceptance/run_all.sh | tail -1                # SUMMARY pass=2 fail=1 blocked=8'
+  - '.venv/bin/python -m pipeline.ledger.acceptance --fixture /nonexistent --check 20_2; echo $?   # 3'
+  - "grep -c 'return 3' pipeline/ledger/acceptance.py                                        # 2"
+  - TDD §3 回归
+commit:
+  add: [pipeline/ledger/acceptance.py, pipeline/ledger/tests/test_acceptance.py]
+  message: "fix(ledger): acceptance treats host preparation failure as FAIL (exit 1), not missing environment"
+on_fail: 停止并报告；不得改 run_all.sh 的映射规则
