@@ -158,7 +158,7 @@ R1 核验发现的独立缺口：`STORAGE/firebase/lib/media/blob_gateway_fireba
 - [ ] Firestore 安全规则测试（此前有交付物无所有者）：规则文件路径取自 NC-001，命令形如 `firebase emulators:exec --only firestore '<规则测试命令>'`，作为本任务的第二条验证命令。
 - [ ] 实现选定快照发布、更新、收回、当前权限查询。**原子边界按 [Design §4.3](DESIGN.md)**：事务内包含发布记录 + 当前指针 + 公共绑定 + outbox + command 终态结果；对象上传在事务**之前**完成并校验，孤儿由清理任务回收；不得笼统声称跨对象存储原子。社区命令新增事务级 command_service，不套用既有 claim/fn/result 包装器；不修改其他旧业务幂等路径。
 - [ ] **R2-03 命令恢复**：新增 `SERVER/xuan/community/command_service.py`、`xuan/handlers/community_commands.py`、`tests/test_community_commands.py`，纳入写入白名单和命令集合清理注册；实现 Design §7.4。Firestore Emulator 注入提交前异常、提交后响应前中断、响应丢失、结果 14 天后精简，再以同键重试；断言只有一个业务对象/事件、计数正确、可恢复 applied_version，异载荷 409。捕获业务、outbox、账本原始记录；不接受补偿记录替代同事务原子性。
-- [ ] **R2-05 提交顺序**：受控屏障分别强制 withdraw 先提交与 comment 先提交，含 Firestore 回调重跑。前者评论 404 not_found.content 且零评论/事件；后者评论可成功，随后 withdraw 成功并隐藏主题。仍可访问且 expected_access_version 过时才 409；迟到评论成功不恢复公开 UI，通知正文重新鉴权。2 评论 + 1 收回另做三方竞争。
+- [ ] **R2-05 提交顺序（2026-09-11 起由 NC-011 承接，D-NC009-10；本条保留原文作为 NC-011 的验收来源，NC-009 只交付 withdraw 同事务提升 `ContentAccess.version`）**：受控屏障分别强制 withdraw 先提交与 comment 先提交，含 Firestore 回调重跑。前者评论 404 not_found.content 且零评论/事件；后者评论可成功，随后 withdraw 成功并隐藏主题。仍可访问且 expected_access_version 过时才 409；迟到评论成功不恢复公开 UI，通知正文重新鉴权。2 评论 + 1 收回另做三方竞争。
 - [ ] 先测私改不公开、旧 ETag、同键重试/异载荷、他人操作拒绝、收回与写评论并发。
 - [ ] 可观测性断言（此前无所有者）：捕获 log sink，断言日志不含 fixture 中的标题与正文子串、不含密钥或完整敏感路径。
 - [ ] 运行 `python3 -m pytest tests/test_community_publications.py tests/test_community_acl_sweep.py tests/test_community_commands.py -q`（需 Emulator）；原始 HTTP 测试按 [Design §7.3](DESIGN.md) 的错误目录断言**唯一** code，不接受 `assert status in (403, 404)` 这类二选一；直接服务函数成功不等于 REST 已通。
@@ -184,6 +184,8 @@ R1 核验发现的独立缺口：`STORAGE/firebase/lib/media/blob_gateway_fireba
 - [ ] 测跨 thread/root 拒绝、回复楼内仍 depth1、删除 root 留墓碑（`Comment.status = deleted`）/已有回复但禁止新回复（返回 403 `forbidden.thread_closed`）、编辑不改 created_at、收回并发按 Design §4.4 两种提交顺序及仍可读旧版本分别断言、评论正文 4,000 与 4,001 code points 的成对边界（含 4 字节 emoji 用例）。
 - [ ] 讨论区空态区分「还没有人评论，来写第一条」与「该内容不接受新评论」（已收回 / root 已删除）。
 - [ ] 写入白名单含 `SERVER/tests/conftest.py`（仅追加 `COLLECTIONS` 键）。运行 `python3 -m pytest tests/test_community_comments.py -q`（需 Emulator）、`flutter test test/community/discussion_test.dart`。
+
+- [ ] **R2-05 并发屏障（自 NC-009 移入，D-NC009-10）**：按 NC-009 章节 R2-05 条原文实现受控屏障测试（withdraw 先提交 / comment 先提交 / 回调重跑 / 2 评论 + 1 收回三方竞争），依赖 NC-009 已交付的 `ContentAccess.version` 同事务提升。
 
 ### NC-012：互动、关系与结构化 mention
 

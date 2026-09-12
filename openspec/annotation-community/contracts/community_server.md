@@ -28,9 +28,9 @@
 | `xuan/community/access.py` | §5（读路径鉴权：`resolve_access(content_id, viewer)` → `visible / not_found`） |
 | `xuan/handlers/community_contents.py` | `community_contents_py`（`on_request`）：路由 W1～W6、R1、R6 |
 | `xuan/handlers/community_commands.py` | `community_commands_py`（`on_request`）：R5；`compact_community_commands_py`（`on_schedule` 每日）：§3.5 |
-| `xuan/config.py` | `COLLECTIONS` 追加 §2.2 六个键 |
+| `xuan/config.py` | `COLLECTIONS` 追加 §2.2 八个键 |
 | `main.py` | 导出上述三个函数 |
-| `tests/conftest.py` | `clean_collections` 的 `names` 追加六个社区集合（**只追加**） |
+| `tests/conftest.py` | `clean_collections` 的 `names` 追加八个社区集合（**只追加**） |
 | `tests/test_community_commands.py`、`tests/test_community_publications.py`、`tests/test_community_acl_sweep.py`、`tests/community_helpers.py` | §7 |
 | RULES 仓 `functions/test/community_rules.test.ts` | §6 |
 
@@ -44,10 +44,12 @@
 | `community_content_bindings` | `community_content_bindings` | `cbnd_` ID | §2.3 字段；每次 publish/update 事务内删旧插新（按 `content_id` 查询） |
 | `community_commands` | `community_commands` | `f"{owner_scope}__{command_id}"` | NC-002 `community_command_record.schema.json` 全部必填字段（`owner_scope, operation, command_id, payload_hash, outcome, resource_ids, applied_version, result_http_status, result_code, result_fields, committed_at, result_compact_after, result_compacted_at`） |
 | `community_behavior_events` | `community_behavior_events` | `bev_` ID | DESIGN §11.2 外层字段 + `attributes`（§11.4 服务端事件） |
+| `community_pseudonym_mappings` | `community_pseudonym_mappings` | `owner_scope` | `actor_pseudonym`（`psn_` + `secrets.token_hex(16)`，DESIGN §11.3：密码学随机，禁止由账号 ID 推导）、`created_at` |
+| `community_purge_tasks` | `community_purge_tasks` | `content_id` | `state`（SM-6，本任务只写 `queued`）、`created_at` |
 
 outbox 沿用 `COLLECTIONS["outbox"]`（`playground_outbox`），事件文档 `{id, event_type, content_id, publication_id?, actor_app_user_id, created_at}`；`event_type` 取 `content.published / content.updated / content.withdrawn / content.trashed / content.restored / content.purge_requested`。通知消费归 NC-013（`notifications.py` 现有分支不识别这些类型时必须原样忽略，本任务测试断言不抛错）。
 
-Firestore 安全规则：以上六个集合**不新增任何 match**，由顶层默认拒绝覆盖（客户端不可直读写；全部经 HTTP 函数）。
+Firestore 安全规则：以上八个集合**不新增任何 match**，由顶层默认拒绝覆盖（客户端不可直读写；全部经 HTTP 函数）。
 
 ## 3. 命令账本服务（DESIGN §7.4 逐条落地）
 
@@ -55,7 +57,7 @@ Firestore 安全规则：以上六个集合**不新增任何 match**，由顶层
 
 ```python
 @dataclass
-class CommandContext: owner_scope: str; command_id: str; operation: str; payload: dict; now: datetime
+class CommandContext: owner_scope: str; command_id: str; operation: str; payload: dict; if_match: int | None; new_ids: dict; payload_hash: str; now: datetime
 @dataclass
 class CommandOutcome: status: int; code: str | None; resource_ids: dict; applied_version: int | None; body: dict  # code 为 None 表示 committed
 
@@ -66,7 +68,8 @@ def run_command(ctx: CommandContext, fn: Callable[[Transaction, CommandContext],
 
 ### 3.2 事务流程（单个 `@transactional` 回调，可被 Firestore 自动重跑）
 
-1. `payload_hash = SHA-256_hex(canonical_json({"operation": ctx.operation, "payload": ctx.payload}))`，`canonical_json` = `json.dumps(sort_keys=True, separators=(",",":"), ensure_ascii=False)`（D-NC009-01；不复用 `hashing.hash_payload` 的插入序语义）。
+0. **事务外、进入 `@transactional` 之前**（D-NC009-12）：`payload = {"path": 路径参数, "body": 请求体, "if_match": If-Match 解析后的整数或 null}`；`payload_hash = SHA-256_hex(canonical_json({"operation": ctx.operation, "payload": payload}))`，`canonical_json` = `json.dumps(sort_keys=True, separators=(",",":"), ensure_ascii=False)`（D-NC009-01；不复用 `hashing.hash_payload` 的插入序语义）；`new_ids` 一次性生成本命令可能创建的全部对象 ID（`publication_id`、`len(snapshot.bindings)` 个 `cbnd_`、`event_id`、候选 `actor_pseudonym`），事务回调被 Firestore 重跑时复用同一组 ID。
+1. 事务回调内不再生成任何 ID，只读 `ctx.new_ids`。
 2. 事务内读 `community_commands/{owner_scope}__{command_id}`：
    - 存在且 `payload_hash` 相同 → **重放**：`result_compacted_at is None` → 返回原 `result_http_status` 与 `result_fields`；已精简 → `410 gone.command_result` + `command`（最小结果）。不执行 `fn`。
    - 存在且 `payload_hash` 不同 → `409 conflict.idempotency`，`original_request_hash` = 存储值。不写任何东西。
@@ -78,7 +81,7 @@ def run_command(ctx: CommandContext, fn: Callable[[Transaction, CommandContext],
 
 ### 3.3 行为事件（DESIGN §11.4/§11.5）
 
-`fn` 在 committed 路径内写一条 `community_behavior_events`：`{event_id: bev_…, event_type: ctx.operation, actor_pseudonym: 由 owner_scope 派生（本任务用 SHA-256(owner_scope)[:32] 冒名 psn_ 前缀，D-NC009-04，NC-026 替换为真实假名表）, occurred_at, schema_version: 1, attributes}`；`attributes` 不含标题/正文/附件名/note_id 原值；rejected 不写事件。
+`fn` 在 committed 路径内：事务读 `community_pseudonym_mappings/{owner_scope}`，不存在则用 `ctx.new_ids["actor_pseudonym"]` 创建（D-NC009-04）；写一条 `community_behavior_events`：`{event_id: ctx.new_ids["event_id"], event_type: ctx.operation, actor_pseudonym: 映射值, occurred_at, schema_version: 1, attributes}`；事件表不写 `owner_scope`/`app_user_id`；`attributes` 不含标题/正文/附件名/note_id 原值；rejected 不写事件。
 
 ### 3.4 R5 命令查询
 
@@ -94,7 +97,7 @@ def run_command(ctx: CommandContext, fn: Callable[[Transaction, CommandContext],
 
 | 操作 | 前置（按顺序） | 事务写 | 结果 |
 |---|---|---|---|
-| `content.publish`（W1） | `content_id/revision_id/content_hash/snapshot` 通过 Schema；access 不存在或 `visibility=withdrawn`；存在时 `author_id == owner_scope`（否则 403 `forbidden.not_owner`）；`lifecycle == active`（否则 409 `conflict.lifecycle`）；`visibility == published` → 409 `conflict.lifecycle`（重复 publish）；`snapshot.attachments == []` 且无 `public_body_ref`（否则 409 `conflict.object_missing`，`missing_refs` 列全部 `attachment_id`/ref，D-NC009-03）；`markdown` UTF-8 ≤ 262144（否则 413 `too_large.markdown`） | 新 `pub_`（state live, version 1, published_at now）；快照文档；access 创建或更新（`visibility=published, current_publication_id, version+1`；新建时 version=1, lifecycle=active, moderation_state 保留既有或 allowed）；旧 live Publication → superseded（重新发布时旧为 retracted 不变）；bindings 删旧插新；outbox `content.published`；行为事件 `{is_republish}` | 201 `PublicationResponse`，ETag = access.version |
+| `content.publish`（W1） | `content_id/revision_id/content_hash/snapshot` 通过 Schema；access 不存在或 `visibility=withdrawn`；存在时 `author_id == owner_scope`（否则 403 `forbidden.not_owner`）；**If-Match（D-NC009-09）**：access 不存在时必须缺省（带了 → 412 `conflict.version`，`current_version=0`）；access 存在（重新发布）时必须携带且等于 `access.version`（缺失 → 400 `invalid_argument.if_match`，不等 → 412 `conflict.version`）；`lifecycle == active`（否则 409 `conflict.lifecycle`）；`visibility == published` → 409 `conflict.lifecycle`（重复 publish）；`snapshot.attachments == []` 且无 `public_body_ref`（否则 409 `conflict.object_missing`，`missing_refs` 列全部 `attachment_id`/ref，D-NC009-03）；`markdown` UTF-8 ≤ 262144（否则 413 `too_large.markdown`） | 新 `pub_`（state live, version 1, published_at now）；快照文档；access 创建或更新（`visibility=published, current_publication_id, version+1`；新建时 version=1, lifecycle=active, moderation_state 保留既有或 allowed）；旧 live Publication → superseded（重新发布时旧为 retracted 不变）；bindings 删旧插新；outbox `content.published`；行为事件 `{is_republish}` | 201 `PublicationResponse`，ETag = access.version |
 | `content.update`（W2） | access 存在且 `visibility == published`（否则 409 `conflict.lifecycle`；不存在 404 `not_found.content`）；归属；`If-Match == access.version`（否则 412 `conflict.version`）；`lifecycle == active`；载荷同 W1 | 新 Publication live、旧 live → superseded、access.version+1、快照、bindings、outbox `content.updated`、事件 | 200 |
 | `content.withdraw`（W3） | 存在；归属；`If-Match`；`visibility == published`（否则 409） | live → retracted；`visibility=withdrawn`、`current_publication_id=null`、version+1；bindings 全删；outbox `content.withdrawn`；事件 | 200 `AccessResponse` |
 | `content.trash`（W4） | 存在；归属；`If-Match`；`lifecycle == active`；`visibility != published`（否则 409，`current_state` 三元组） | `lifecycle=trashed`、`trashed_at=now`、version+1；outbox `content.trashed`；事件 | 200 |
@@ -110,7 +113,7 @@ def run_command(ctx: CommandContext, fn: Callable[[Transaction, CommandContext],
 - `author_id == viewer_scope` → `owner`（作者可读任何状态，用于 R6 与作者视角）；
 - 否则须同时满足 `visibility == published` 且 `lifecycle == active` 且 `moderation_state == allowed` → `visible`；任一不满足 → `not_found`。
 
-R1 `GET /contents/{content_id}`：`visible` 或 `owner` → 200 `ContentDetail`（他人视角下 `access` 只含 community_api §5.1 公共字段；`snapshot` 为当前 live 快照，无 live 时 `null`）；`not_found` → **共用同一响应体** `{"type":"not_found","title":"Not Found","status":404,"code":"not_found.content"}`，逐字节相同，无 `detail`、无原因字段。ETag = `"<access.version>"`；`If-None-Match` 相等 → 304。
+R1 `GET /contents/{content_id}`：`visible` 或 `owner` → 200 `ContentDetail`（他人视角下 `access` 只含 community_api §5.1 公共字段；`snapshot` 为当前 live 快照，无 live 时 `null`）；非法三元组（SM-C 白名单外）→ `500`，体 `{"type":"internal","title":"Internal","status":500,"code":"internal.state_corrupted"}` 并以 `logging.error` 记 `COMMUNITY_STATE_CORRUPTED content_id=…`（不含正文，D-NC009-11）；`not_found` → **共用同一响应体** `{"type":"not_found","title":"Not Found","status":404,"code":"not_found.content"}`，逐字节相同，无 `detail`、无原因字段。ETag = `"<access.version>"`；`If-None-Match` 相等 → 304。
 
 R6 `GET /me/contents?cursor&limit`：`author_id == owner_scope` 的 access 列表，按 `updated_at desc, content_id` 排序，游标 = base64url(`updated_at|content_id`)；`limit` 越界 → 400 `invalid_argument.limit`。
 
@@ -137,8 +140,8 @@ R6 `GET /me/contents?cursor&limit`：`author_id == owner_scope` 的 access 列�
 
 | 文件 | 测试（名称逐字） |
 |---|---|
-| `test_community_commands.py` | `command_publish_commits_ledger_business_outbox_event_atomically`、`same_key_same_payload_replays_original_response`、`same_key_different_payload_returns_409_idempotency`、`rejected_precondition_writes_rejected_ledger_and_no_business`、`crash_before_commit_leaves_nothing_and_retry_succeeds`（在 `fn` 末尾注入异常一次）、`crash_after_commit_before_response_replays_on_retry`（提交后抛异常，再同键重试）、`compact_after_14_days_then_replay_returns_410_with_command`、`get_command_returns_minimal_result_and_404_unknown`、`command_id_format_invalid_returns_400`、`payload_hash_is_operation_bound`（同载荷不同 operation → 409） |
-| `test_community_publications.py` | `publish_creates_access_publication_snapshot_bindings`、`publish_by_other_scope_is_403_not_owner`、`publish_twice_is_409_lifecycle`、`publish_with_attachment_is_409_object_missing`、`publish_oversize_markdown_is_413`、`update_requires_if_match_and_bumps_version`、`update_stale_if_match_is_412_with_current_version`、`withdraw_retracts_and_clears_bindings`、`republish_after_withdraw_keeps_content_id`、`trash_published_is_409_until_withdrawn`、`restore_after_30_days_is_409`、`restore_keeps_hidden`、`purge_from_active_is_409_and_from_trashed_queues_task`、`detail_etag_and_304`、`me_contents_pagination_limit_101_is_400`、`illegal_state_combination_reads_500`（直接写坏 access 三元组后 R1 → 500） |
+| `test_community_commands.py` | `command_publish_commits_ledger_business_outbox_event_atomically`、`same_key_same_payload_replays_original_response`、`same_key_different_payload_returns_409_idempotency`、`rejected_precondition_writes_rejected_ledger_and_no_business`、`crash_before_commit_leaves_nothing_and_retry_succeeds`（在 `fn` 末尾注入异常一次）、`crash_after_commit_before_response_replays_on_retry`（提交后抛异常，再同键重试）、`compact_after_14_days_then_replay_returns_410_with_command`、`get_command_returns_minimal_result_and_404_unknown`、`command_id_format_invalid_returns_400`、`payload_hash_is_operation_bound`（同载荷不同 operation → 409）、`pseudonym_is_random_and_stable_per_scope`（同 scope 两次命令同一假名；两 scope 假名不同；假名 ≠ `psn_`+SHA-256(scope)[:32]；事件文档不含 owner_scope）、`new_object_ids_are_fixed_across_transaction_retry`（`fn` 首次执行时用另一个客户端改写其已事务读的文档，迫使 Emulator 重跑回调；两次回调观察到的 `new_ids` 相同且最终只有一份业务对象） |
+| `test_community_publications.py` | `publish_creates_access_publication_snapshot_bindings`、`publish_by_other_scope_is_403_not_owner`、`publish_twice_is_409_lifecycle`、`publish_with_attachment_is_409_object_missing`、`publish_oversize_markdown_is_413`、`update_requires_if_match_and_bumps_version`、`update_stale_if_match_is_412_with_current_version`、`withdraw_retracts_clears_bindings_and_bumps_access_version`、`republish_after_withdraw_requires_if_match_and_keeps_content_id`（缺 If-Match → 400，过时 → 412，正确 → 201 且 `content_id` 不变）、`trash_published_is_409_until_withdrawn`、`restore_after_30_days_is_409`、`restore_keeps_hidden`、`purge_from_active_is_409_and_from_trashed_queues_task`、`detail_etag_304_and_returns_published_snapshot_not_later_revision`（发布修订 A 后，不调用 W2 时 R1 快照恒为 A：私改不公开）、`me_contents_pagination_limit_101_is_400`、`illegal_state_combination_reads_500`（直接写坏 access 三元组后 R1 → 500 `internal.state_corrupted` 且日志含标记） |
 | `test_community_acl_sweep.py` | 18 条参数化（§5） |
 | 可观测性 | `logs_never_contain_title_or_body`（`caplog` 捕获全部 handler 日志，断言不含 fixture 标题与正文前 20 字） |
 
@@ -151,8 +154,18 @@ Red：每个测试文件先于实现提交；`from xuan.community import command
 | D-NC009-01 | `payload_hash` 用排序键 canonical JSON，含 `operation` | DESIGN §7.4 要求 operation 纳入；`hashing.hash_payload` 依赖插入序，不适合跨客户端 |
 | D-NC009-02 | 账本文档 ID = `owner_scope__command_id` | (owner_scope, command_id) 唯一键落成单文档，事务内一次读即可判重放/冲突 |
 | D-NC009-03 | 本任务只接受无附件、内联正文 ≤ 256 KiB 的发布；附件或外置正文一律 409 `conflict.object_missing` | 生产 BlobGateway（NC-025）与图片接口（NC-008）未交付，不用内存 fake 冒充 |
-| D-NC009-04 | 行为事件的 `actor_pseudonym` 暂以 `psn_` + SHA-256(owner_scope)[:32] 生成 | NC-026 才冻结假名映射表；本任务保证事件与业务同事务的结构，不造假 |
+| D-NC009-04 | `actor_pseudonym` 为密码学随机 `psn_`，映射存 `community_pseudonym_mappings`（文档 ID = owner_scope），同事务首次创建 | DESIGN §11.3 禁止由账号 ID 哈希推导（自审发现初稿违反）；NC-026 接管注销删除映射 |
 | D-NC009-05 | ACL 扫描未实现入口用 `xfail(strict=True, reason="owner: NC-0xx")` | 让 18 条矩阵从本任务起就存在且可运行，接手任务实现后必须删标记，否则测试失败 |
 | D-NC009-06 | `purge` 只登记 `community_purge_tasks`，不执行清理 | 清理任务与状态机 SM-6 归 NC-019 |
 | D-NC009-07 | 规则测试写在 RULES 仓归档的 TS 测试目录 | 该目录仍有可用的 jest + `@firebase/rules-unit-testing`，Python admin SDK 绕过规则无法测；不复活 TS 业务代码 |
 | D-NC009-08 | 限流不开启；429 不在本任务验收 | community_api §6；`rate_limit.py` 默认关闭 |
+| D-NC009-09 | W1 的 `If-Match`：首次发布缺省，重新发布必带且等于 access.version | NC-002 冻结 fixture `republish_from_withdrawn` 要求 `if_match_matches`，SM-2a 同；NC-003 W1 未声明该头，由 §9 补丁 P1 补上 |
+| D-NC009-10 | R2-05「收回 vs 评论」并发屏障测试移至 NC-011 | `comment.create` 在 NC-011 实现；NC-009 只保证 withdraw 在同事务提升 `ContentAccess.version`（`withdraw_retracts_clears_bindings_and_bumps_access_version` 断言），为 NC-011 的屏障提供前提 |
+| D-NC009-11 | 非法三元组读取返回 500 `internal.state_corrupted` | DESIGN §4.1 要求读 500 并告警；NC-003 错误目录无 500 行，由 §9 补丁 P2 补上 |
+| D-NC009-12 | `payload_hash` 在事务外计算且含 If-Match；新对象 ID 在事务外一次性生成 | DESIGN §7.4 第 2 条「新对象 ID 在事务重跑前固定」；同键异 If-Match 必须判为异载荷 |
+
+## 9. 对 NC-003 契约的前置补丁（NC-003 验收通过后由主 Agent 另立 act/06，NC-009 派发前置）
+
+- **P1**：`POST /v1/community/contents`（W1）`parameters` 增加 `IfMatch`，`required: false`，描述写明「首次发布缺省；重新发布必带」；NC-003 B08 的「W1 不含 IfMatch」断言改为「W1 含 IfMatch 且 required=false」。
+- **P2**：错误目录增 `500 internal.state_corrupted`（`type: internal`），`ProblemDetails.type` 枚举增 `internal`（与 `_L0_MAP` 的 `internal` 一致），R1 响应增 500。
+- 补丁不改 NC-003 已冻结的其余端点、字段与计数外的测试；act/06 估 30 分钟，全量 `dart test` 由 +65 变为 +66（新增 P2 断言一个）。

@@ -1,6 +1,6 @@
 # NC-009：公共发布事务、权限扫描与命令账本服务（服务端）
 
-状态：`DRAFT`（2026-09-11，待 wjt-react 四查）。派发前置：**NC-003 ACCEPTED**（OpenAPI 契约冻结）+ **环境阻塞解除**（见 Baseline：磁盘剩余 < 0.5 GiB 时无法安装 functions-py 依赖）。执行由用户交外部 Agent，PROMPT.md 原样发送。task_id：`NC-009`。权威需求来源：TASKS NC-009；DESIGN §4、§7.3、§7.4、§11.4～11.5；PRD R-05/R-20、§6.2；契约 `contracts/community_server.md`（本任务专属，主 Agent 编写）与 `community_api.md`（NC-003）。
+状态：`DRAFT`（2026-09-11，待 wjt-react 四查）。派发前置：**NC-003 ACCEPTED 且其补丁 act/06（契约 §9 P1/P2）ACCEPTED** + **环境阻塞解除**（见 Baseline：磁盘剩余 < 0.5 GiB 时无法安装 functions-py 依赖）。执行由用户交外部 Agent，PROMPT.md 原样发送。task_id：`NC-009`。权威需求来源：TASKS NC-009；DESIGN §4、§7.3、§7.4、§11.4～11.5；PRD R-05/R-20、§6.2；契约 `contracts/community_server.md`（本任务专属，主 Agent 编写）与 `community_api.md`（NC-003）。
 
 ## Goal
 
@@ -29,7 +29,7 @@
 
 ## 执行顺序
 
-`act/01`（账本服务 + 注册 + 10 测试）→ `act/02`（publish/update/withdraw + access + R1 + 9 测试）→ `act/03`（trash/restore/purge + R5/R6 + 精简 + 7 测试）→ `act/04`（ACL 18 条 + 规则 jest + 可观测性）。每步一个提交在 SERVER 仓；act/04 另在 RULES 仓一个提交。
+`act/01`（账本服务 + 注册 + 12 测试）→ `act/02`（publish/update/withdraw + access + R1 + 9 测试）→ `act/03`（trash/restore/purge + R5/R6 + 精简 + 7 测试）→ `act/04`（ACL 18 条 + 规则 jest + 可观测性）。每步一个提交在 SERVER 仓；act/04 另在 RULES 仓一个提交。
 
 ## 一次性交付与阅读顺序
 

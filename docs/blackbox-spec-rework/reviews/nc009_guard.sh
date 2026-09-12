@@ -18,16 +18,16 @@ def check(ok,name,detail=""):
 def read(p): return p.read_text(encoding="utf-8") if p.is_file() else ""
 check(g1==0 and g2==0,"K01 回归：v1.6 守卫与 verify.sh 均为 0",f"{g1},{g2}")
 c=read(SPEC/"contracts/community_server.md")
-need=["run_command","community_commands","owner_scope__","result_compact_after","compact_once","conflict.object_missing","xfail(strict=True","community_rules.test.ts","transactional","身份 → 存在性 → 归属 → 版本 → 生命周期 → 载荷","192.168.0.165:8080","30a868c"]
-ok02=all(n in c for n in need) and all(f"D-NC009-{i:02d}" in c for i in range(1,9)) and all(f"## {i}." in c for i in range(1,9))
-check(ok02,"K02 契约：账本流程、集合、判定顺序、ACL xfail、规则测试、D-NC009-01～08、八节",[n for n in need if n not in c])
+need=["run_command","community_commands","owner_scope__","result_compact_after","compact_once","conflict.object_missing","xfail(strict=True","community_rules.test.ts","transactional","身份 → 存在性 → 归属 → 版本 → 生命周期 → 载荷","192.168.0.165:8080","30a868c","community_pseudonym_mappings","secrets.token_hex","new_ids","internal.state_corrupted","R2-05"]
+ok02=all(n in c for n in need) and all(f"D-NC009-{i:02d}" in c for i in range(1,13)) and all(f"## {i}." in c for i in range(1,10)) and "SHA-256(owner_scope)[:32] 冒名" not in c
+check(ok02,"K02 契约：账本流程、集合、判定顺序、ACL xfail、规则测试、D-NC009-01～12、九节、假名非推导",[n for n in need if n not in c])
 bdd=read(PACK/"BDD.md"); tdd=read(PACK/"TDD.md"); acts=[read(PACK/"act"/f"0{i}.yaml") for i in range(1,5)]
 bids=re.findall(r"^\| (B\d\d) \|",bdd,re.M); est=[int((re.search(r"^ESTIMATE_MINUTES: (\d+)",a,re.M) or [0,0])[1]) for a in acts]
 deps=[(re.search(r"^DEPENDS_ON: (.*)$",a,re.M) or [0,""])[1].strip() for a in acts]
 vague=re.compile(r"适当|优雅|合理|必要时|酌情|尽量|大致|视情况"); files=["README.md","BDD.md","TDD.md","ACT.yaml","PROMPT.md","ACCEPTANCE.md","act/01.yaml","act/02.yaml","act/03.yaml","act/04.yaml"]
 hits=[f"{f}:{m.group(0)}" for f in files for m in vague.finditer(read(PACK/f))]
-ok03=(bids==[f"B{i:02d}" for i in range(1,29)] and all(30<=e<=60 for e in est) and deps==["[]","[NC-009-A]","[NC-009-B]","[NC-009-C]"] and all("ON_FAIL" in a and "WORKLOAD" in a for a in acts) and not hits and "9 passed, 9 xfailed" in tdd and "DISPATCH_PRECONDITION" in read(PACK/"ACT.yaml") and "过期副本" in read(PACK/"PROMPT.md"))
-check(ok03,"K03 六件套：BDD B01～B28、四个 ACT 30–60 分钟、依赖链/ON_FAIL/WORKLOAD、无模糊词、xfail 计数、派发前置",f"bids={len(bids)} est={est} deps={deps} vague={hits}")
+ok03=(bids==[f"B{i:02d}" for i in range(1,31)] and all(30<=e<=60 for e in est) and deps==["[]","[NC-009-A]","[NC-009-B]","[NC-009-C]"] and all("ON_FAIL" in a and "WORKLOAD" in a for a in acts) and not hits and "9 passed, 9 xfailed" in tdd and "DISPATCH_PRECONDITION" in read(PACK/"ACT.yaml") and "过期副本" in read(PACK/"PROMPT.md"))
+check(ok03,"K03 六件套：BDD B01～B30、四个 ACT 30–60 分钟、依赖链/ON_FAIL/WORKLOAD、无模糊词、xfail 计数、派发前置",f"bids={len(bids)} est={est} deps={deps} vague={hits}")
 todo=read(root/"docs/blackbox-spec-rework/SUBAGENT_TODO.md"); check("NC-009" in todo and "community_server.md" in todo,"K04 SUBAGENT_TODO 已登记 NC-009 工作包与契约","")
 cs=SV/"xuan/community/command_service.py"
 if not cs.exists() and not req:
@@ -48,7 +48,7 @@ else:
     else:
         env=dict(os.environ); env["XUAN_EMULATOR_HOST"]="192.168.0.165:8080"; env["FIREBASE_AUTH_EMULATOR_HOST"]="192.168.0.165:9099"
         pt=subprocess.run([str(py),"-m","pytest","tests/test_community_commands.py","tests/test_community_publications.py","tests/test_community_acl_sweep.py","-q"],cwd=SV,capture_output=True,text=True,env=env,timeout=1800)
-        last=pt.stdout.strip().splitlines()[-1] if pt.stdout.strip() else ""; ok&=pt.returncode==0 and "36 passed" in last and "9 xfailed" in last and "skipped" not in last; det.append(f"pytest={pt.returncode}/{last[:80]}")
-    check(ok,"K05 NC-009 产物：文件齐全、无 with_idempotency/有 transactional、无作弊、xfail strict ≥9、未触碰保护文件、36 passed + 9 xfailed","; ".join(det))
+        last=pt.stdout.strip().splitlines()[-1] if pt.stdout.strip() else ""; ok&=pt.returncode==0 and "39 passed" in last and "9 xfailed" in last and "skipped" not in last; det.append(f"pytest={pt.returncode}/{last[:80]}")
+    check(ok,"K05 NC-009 产物：文件齐全、无 with_idempotency/有 transactional、无作弊、xfail strict ≥9、未触碰保护文件、39 passed + 9 xfailed","; ".join(det))
 print(f"\nNC-009 失败条数：{fails}"); sys.exit(fails)
 PY

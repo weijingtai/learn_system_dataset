@@ -4,7 +4,7 @@ GOAL: 在 canonical functions-py 实现命令账本服务、内容命令 W1～W6
 CONTRACTS:
   - openspec/annotation-community/contracts/community_server.md
   - openspec/annotation-community/contracts/community_api.md
-DISPATCH_PRECONDITION: "NC-003 已 ACCEPTED；磁盘清理后 functions-py/.venv 已重建且既有 pytest 全过（README 基线已填）"
+DISPATCH_PRECONDITION: "NC-003 已 ACCEPTED 且补丁 act/06（community_server.md §9 P1/P2）已 ACCEPTED；磁盘清理后 functions-py/.venv 已重建且既有 pytest 全过（README 基线已填）"
 SPLIT:
   - act/01.yaml
   - act/02.yaml
@@ -18,3 +18,4 @@ DEFERRED:
   - "评论/互动/分享/举报命令：NC-011/012（复用 command_service）"
   - "通知消费与补拉：NC-013；行为事件假名表：NC-026"
   - "限流开启与 429 行为验收：后续运维任务"
+  - "R2-05 收回 vs 评论并发屏障：NC-011（D-NC009-10）"

@@ -1,6 +1,6 @@
 # NC-009 执行提示
 
-发送前提：wjt-react 四查 READY；**NC-003 已 ACCEPTED**；磁盘已清理且 `functions-py/.venv` 由主 Agent 重建、README 基线已填；SUBAGENT_TODO 登记。满足后，把分隔线以下全文原样发给执行 Agent。
+发送前提：wjt-react 四查 READY；**NC-003 与其补丁 act/06 已 ACCEPTED**；磁盘已清理且 `functions-py/.venv` 由主 Agent 重建、README 基线已填；SUBAGENT_TODO 登记。满足后，把分隔线以下全文原样发给执行 Agent。
 
 ---
 

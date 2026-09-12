@@ -2,10 +2,10 @@ TASK_ID: NC-009-A
 PARENT: NC-009
 STATUS: DRAFT
 REPO: xuan-server/functions-py
-GOAL: 命令账本服务：事务流程、重放/冲突/拒绝终态、14 天精简、R5 查询函数；注册集合与导出；10 测试
+GOAL: 命令账本服务：事务流程、重放/冲突/拒绝终态、14 天精简、R5 查询函数、随机假名映射、事务外固定对象 ID；注册集合与导出；12 测试
 DEPENDS_ON: []
 ESTIMATE_MINUTES: 60
-WORKLOAD: "command_service 约 200 行 + errors/ids 约 80 行 + 注册三处 + helpers 约 80 行 + 10 个 Emulator 测试"
+WORKLOAD: "command_service 约 200 行 + errors/ids 约 80 行 + 注册三处 + helpers 约 80 行 + 12 个 Emulator 测试"
 SCOPE:
   READ:
     - /Users/jingtaiwei/Git/Public/learn_system/openspec/annotation-community/contracts/community_server.md
@@ -16,7 +16,7 @@ SCOPE:
   WRITE_NEW:
     - /Users/jingtaiwei/Git/Public/xuan-server/functions-py/xuan/community/__init__.py、errors.py、ids.py、command_service.py
     - /Users/jingtaiwei/Git/Public/xuan-server/functions-py/xuan/handlers/community_commands.py（壳：R5 返回 503，act/03 完成）
-    - /Users/jingtaiwei/Git/Public/xuan-server/functions-py/xuan/config.py（仅追加 COLLECTIONS 7 键）、/Users/jingtaiwei/Git/Public/xuan-server/functions-py/main.py（仅追加导出）、/Users/jingtaiwei/Git/Public/xuan-server/functions-py/tests/conftest.py（仅追加 names）
+    - /Users/jingtaiwei/Git/Public/xuan-server/functions-py/xuan/config.py（仅追加 COLLECTIONS 8 键）、/Users/jingtaiwei/Git/Public/xuan-server/functions-py/main.py（仅追加导出）、/Users/jingtaiwei/Git/Public/xuan-server/functions-py/tests/conftest.py（仅追加 names）
     - /Users/jingtaiwei/Git/Public/xuan-server/functions-py/tests/community_helpers.py、/Users/jingtaiwei/Git/Public/xuan-server/functions-py/tests/test_community_commands.py
   FORBIDDEN:
     - /Users/jingtaiwei/Git/Public/learn_system 下任何写入
@@ -28,12 +28,12 @@ RULES:
   - "每步先写测试取得真实 Red 原文，再实现；不修改前步测试期望"
   - "只 git add 本步文件；提交消息按 COMMIT_MESSAGE，末尾另起两行 Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 TESTS_FIRST:
-  - "写 helpers 与 10 个测试；运行 TDD 命令 1，保存 ImportError 原文作为 Red"
+  - "写 helpers 与 12 个测试；运行 TDD 命令 1，保存 ImportError 原文作为 Red"
 STEPS:
-  - "实现至 10 passed；python -c 'import main' 无异常"
+  - "实现至 12 passed；python -c 'import main' 无异常"
   - "git add 本步文件并提交"
 VERIFICATION:
-  - "cd /Users/jingtaiwei/Git/Public/xuan-server/functions-py && .venv/bin/python -m pytest tests/test_community_commands.py -q（期望 10 passed）"
+  - "cd /Users/jingtaiwei/Git/Public/xuan-server/functions-py && .venv/bin/python -m pytest tests/test_community_commands.py -q（期望 12 passed）"
   - "cd /Users/jingtaiwei/Git/Public/xuan-server/functions-py && .venv/bin/python -c 'import main'（期望无异常）"
   - "cd /Users/jingtaiwei/Git/Public/xuan-server/functions-py && .venv/bin/python -m pytest tests -q（期望 0 failed）"
   - "git -C /Users/jingtaiwei/Git/Public/xuan-server/functions-py status --short（提交后为空）"
