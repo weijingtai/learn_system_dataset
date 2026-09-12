@@ -18,13 +18,13 @@
 下一步（第一件事）：拿到用户确认 → 派发 g5-01 → 验收 → `PROJECT_COLD_START_HANDOFF.md` 状态改 `IMPLEMENTATION_PHASE` → 写首纵切第一批（Artifact Ledger，§17，判据 `run_all.sh 20.2 20.3`）六件套；之后 M3 → M5 → M8，判据 `run_all.sh 20.N` 由 BLOCKED 变 PASS。
 已知的坑：PLAN.md 时间窗已向 C/S 解除；PLAN 的 D-16 节要求「零删行」，今后改 PLAN 只能追加或把 `- [ ]` 改 `- [x]` 并附取代者；验收仍在 `git archive` 导出树上跑。 **`check_d16.py` 刚性缺陷**：R3 把表 B 行数写死为 43、R4 要求黑箱节任何新 `- [ ]` 都登记进表 B，因此现在无法往 PLAN 黑箱节新增未勾选项（G5 记录条目因此只写在 SUBAGENT_TODO/HANDOFF）；首纵切第一批 ACT 必须先把 R3 改为「≥ 43」并允许表 B 追加行，再往 PLAN 加实现条目。
 
-## G6 NC-003 验收 REWORK（act/06 待派）；NC-015 待执行；NC-009 R2 复核中（C/S 会话）
+## G6 NC-003 ACCEPTED；NC-009 R2 复核中；NC-010 契约已写；NC-015 待执行（C/S 会话）
 
 更新时间：2026-09-11
 当前分支/worktree：`codex/docs/knowledge-compilation`；`/Users/jingtaiwei/Git/Public/learn_system`
-刚完成：① NC-003 act/01～05 交付（REST 仓 `67910c3`…`89cc68d`），守卫与五项盲测通过，但原样 3.1 校验发现社区 Schema 用 `nullable`（null 被拒、check_examples 改写掩盖）、共享 `ProblemDetails` 被加必填 `code`（遗留端点契约与服务端不符，主 Agent 契约缺陷）、markdown 字节上限用 `maxLength` 表达——判 REWORK，契约 §10（D-NC003-13～15）+ act/06（合入 NC-009 前置补丁 P1 `IfMatchOptional`、P2 `500StateCorrupted`，全量 +69），PROMPT 末尾已追加，执行方需补交 act/01～05 报告。② 磁盘清理后重建 functions-py `.venv`：基线 411 passed / 5 个既有失败（test_config 读已删除 TS 文件、test_registration 清单过期），写入 NC-009 README。③ NC-009 自审五项 + R1 返工三项（event_id 按 §11.2 确定性哈希、§6 八集合 65 断言、他人写入 403/404 边界）落实（`7f0bc84`），R2 复核（Sonnet）进行中。
-进行到一半的事（精确到文件和章节）：等 NC-003 act/06 与 NC-015 执行报告；NC-009 R2 结果；NC-010（客户端笔记列表/公开详情/发布页）契约准备中。
-下一步（第一件事）：NC-003 act/06 回来 → 复跑 R1 盲测 + null 原样校验 + 遗留组件与 `0f8bf52` 逐项比较 → ACCEPTED 后 NC-009 可派发。NC-015 回来 → 七项篡改副本盲测。
+刚完成：NC-003 act/06 验收通过（REST 仓 `5730ed9`，守卫 0、69 测试、原样 3.1 盲测六项全过，交付报告 `work-items/nc-003/DELIVERY_REPORT.md` 未入库），NC-003 ACCEPTED，NC-009 派发前置满足。NC-010 客户端契约 `contracts/community_client.md` 已写（独立 `CommunityDatabase`、`IdTokenProvider` 注入、命令队列状态机与 payload_hash 跨端参考值 `c8e2c2b0…b72b5`、作者视角八档文案、四屏七状态、D-NC010-01～07）。
+进行到一半的事（精确到文件和章节）：NC-009 R2 复核（Sonnet）结果待回；NC-010 六件套（work-items/nc-010/）未写；NC-015 执行方尚未提交。
+下一步（第一件事）：NC-009 R2 → READY → 交用户派发（前置已满足）。写 NC-010 六件套（建议 5 个 ACT：库与队列、API 客户端、状态派生与控制器、页面与确认层、七状态参数化），送四查。NC-015 报告回来按 ACCEPTANCE 七项篡改盲测。
 已知的坑：工作树里 `pipeline/ledger/*` 的未提交改动属 Dataset 会话，不要暂存；python 批量替换脚本任一处不匹配会中途退出但已写入前面的修改，务必检查 `git status` 后再提交。
 已知的坑：PLAN.md 今后只能追加或把 `- [ ]` 改 `- [x]`（D-16 零删行判据；`check_d16.py` 只查黑箱侧条目，不查 G6 节）；G6 新条目不需登记进 D-16 映射表。一次性 Dart 盲测需 `import 'package:drift/drift.dart'` 才能用 `interceptWith`；执行方报告在 reading-notes 根目录未跟踪，验收不入库。
 

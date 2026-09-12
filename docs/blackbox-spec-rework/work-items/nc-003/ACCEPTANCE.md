@@ -26,3 +26,12 @@
 - **缺陷 3**：`PublicSnapshot.markdown` 的 256 KiB 字节上限以 `maxLength` 表达（按 code point 计），多字节文本可超字节上限而通过 Schema。
 - 另：`ProblemDetails.type` enum 保留遗留 10 值而非契约写的 6 值——契约要求与共享 Schema 冲突，执行方选择保留正确，契约 §10.2 已改。
 - 处理：契约新增 §10（D-NC003-13～15）并把 NC-009 前置补丁 P1/P2 合入 `act/06.yaml`（全量 +69）。判定 **REWORK**；act/06 通过后复跑本记录盲测与 null 原样校验、遗留组件与基线逐项比较，再关闭 NC-003。
+
+
+## 验收记录 R2（主 Agent，2026-09-11）：act/06 通过，NC-003 ACCEPTED
+
+- 提交：REST 仓 `5730ed9`（NC-003-F），只含 `openapi/openapi.yaml`、`tool/check_examples.py`、两个 null 示例与 manifest、`test/community_openapi_contract_test.dart`；白名单外 diff 为空；`openapi_validation_test.dart` 仍 19 个 `test(`；`check_examples.py` 不再含 `nullable`。
+- 守卫 `nc003_guard.sh --require-impl`（act/06 判据：`CommunityProblemDetails` 存在、社区 Schema 无 `nullable`、遗留组件与 `0f8bf52` 逐项相等、`dart test ≥69`）K01～K05 全 PASS。
+- 交付报告：`work-items/nc-003/DELIVERY_REPORT.md`（执行方写入，未入库）补齐 act/01～06 每步 `git show --stat`、Red 与 Green 原文。act/06 Red 原文与本记录 R1 缺陷逐条对应：B08 断言失败、`nullable` 检查失败、遗留 `ProblemDetails.required` 为 `code` 而非 `detail`、W1 无可选 If-Match、无 `x-max-utf8-bytes`；`check_examples.py` 删除改写后三份 null 示例原样校验失败（含既有 `command_replay_original_version.json`，印证缺陷 1 曾被掩盖）。Green：`dart test +69`、社区契约测试 `+19`、`check_examples.py` 10 项全过、验证器 OK。act/01～05 Red 原文亦齐全（改前文档验证器 `'headers' was unexpected`、各步契约测试首个失败断言）。
+- 盲测（jsonschema 原样 3.1，无任何改写）：① `ProblemDetails` 与 8 个遗留响应组件与基线逐项相等；② 20 个社区操作的错误响应零引用遗留组件，`CommunityProblemDetails.required == [type,title,status,code]`；③ 社区 Schema 零 `nullable`；`ContentAccessPublic.current_publication_id=null`、`ReactionState.value=null`、`Comment.root_id=null`、`CommandResult.applied_version=null` 均 VALID，`ReactionState.value="love"` 被拒；④ W1 恰含 `IfMatchOptional`（`required: false`），必填 If-Match 集合仍恰为 W2～W6/W8～W11；⑤ `PublicSnapshot.markdown` 含 `x-max-utf8-bytes: 262144`，R1 `500` 引用 `500StateCorrupted`（`code` const `internal.state_corrupted`）；⑥ 回归：operation 级 `headers` 0、社区操作 20、operation 枚举 17。
+- 判定：**NC-003 ACCEPTED**（REST 仓 `67910c3`→`5730ed9`，全量 69 测试）。NC-009 前置补丁 P1/P2 已随 act/06 落地。
