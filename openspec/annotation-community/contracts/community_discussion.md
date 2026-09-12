@@ -217,6 +217,18 @@ P1～P5 通过后，逐条保留满足 `0 <= m["start_offset"]` 且 `body[m["sta
 - **回调重跑新 ID 固定**（T34）：照抄 `test_community_commands.py` 第 513 行附近 `new_object_ids_are_fixed_across_transaction_retry` 的竞争线程写法，竞争对象为已有 thread 文档（竞争事务读后 `sleep(0.5)`，再 `tx.update(thread_ref, {"updated_at": <原值>})`，不改变字段集合）；被测回调包装 `comment_create` 并记录每次的 `ctx.new_ids`。期望：回调 ≥ 2 次；前两次 `comment_id`、`comment_revision_id` 相同；该 ID 评论恰一份；thread `visible_comment_count` 恰加 1。
 - **停手条件**：若 hook 中任一 `wait(10)` 超时（Emulator 锁语义与 wound-wait 不符）或期望的提交顺序不出现，立即停手上报原始输出与 Emulator 日志，不得改屏障设计、不得放宽断言。
 
+### 8.1 验收 R1 修订：确定性 Aborted 注入替代线程屏障（2026-09-12，替代上文 T31～T34 与「停手条件」，D-NC011-21、D-NC011-22）
+
+act/04 执行方实测（`work-items/nc-011/DELIVERY_REPORT_SERVER.md`「待裁决」）：Firestore Emulator 对事务读锁是「写者等待读者、不中止较年轻事务」，锁等待后事务以 `NotFound` 失效；上文依赖 wound-wait 的线程屏障在 T31 互等超时、T32/T33 收回得 503、T34 未触发重跑。改为以下写法（仍经 `run_command`、仍用真实 Emulator）：
+
+- **注入点**：`google-cloud-firestore 2.30.0` 的 `_Transactional.__call__` 循环为 `_pre_commit`（`transaction._clean_up()` → `transaction._begin(retry_id)` → 回调）→ `transaction._commit()`，捕获 `google.api_core.exceptions.Aborted` 后重跑回调。测试以 `monkeypatch.setattr(google.cloud.firestore_v1.transaction.Transaction, "_commit", patched)` 注入：`patched(self)` 在「已布防且未触发」时先置为已触发，再调用 `self._rollback()` 释放本事务的锁，执行下文规定的插入动作，最后 `raise Aborted("injected by test")`；其余情况调用原 `_commit(self)`。
+- **T31 withdraw 先提交、评论回调重跑**：`after_access_read_hook` 第 1 次被调用时布防；插入动作 = 同线程同步执行 `run_command(wctx, content_service.content_withdraw)` 并断言 200。期望：评论命令 404 `not_found.content`；hook 恰被调用 2 次；该主题零评论、零 revision、无 thread 文档、outbox 无 `comment.created`、行为事件无 `comment.create`；评论命令账本 `outcome=rejected`、`result_code=not_found.content`；收回命令账本 `outcome=committed`。
+- **T32 评论先提交、随后收回成功**：不注入。依次 `run_command(cctx, comment_create)` → 201，`run_command(wctx, content_withdraw)` → 200。期望：hook 恰 1 次；随后非作者 R2 → 404 `not_found.content`；内容作者 R2 → 200 且含该评论；评论 `observed_publication_id` 等于收回前 `current_publication_id`。
+- **T33 三方竞争**：保留 `threading.Barrier(3)` 与 3 轮。任一命令返回 503 `unavailable` 时，在同一线程以**同一个 ctx（同一 command_id）**重试，最多 3 次；3 次后仍 503 判失败。重试结束后：收回 200；每个评论 ∈ {201, 404 `not_found.content`}；评论文档数 = revision 数 = thread `visible_comment_count` = outbox `comment.created` 条数 = 行为事件 `comment.create` 条数 = 201 个数（为 0 时 thread 文档不存在）；每个 201 评论的 `observed_publication_id` 等于收回前 publication id；每个 command_id 的账本恰一条。
+- **T34 回调重跑新 ID 固定**：被测回调包装 `comment_create` 并记录每次的 `ctx.new_ids`，在包装回调**第 1 次**被调用时布防；插入动作 = 无。期望：回调恰 2 次；两次的 `comment_id`、`comment_revision_id` 相同；该 ID 评论恰一份；thread `visible_comment_count` 恰加 1；账本一条 `committed`。
+- **hook 位置修正（D-NC011-22）**：`comment_create` 必须在 `access.resolve_access(...)` 返回后、判断 `not_found` 之前调用 `after_access_read_hook(ctx)`（§5.1「—」行原意）。act/02 提交 `7d1163c` 把它放在 404 早返回之后；act/04 允许且只允许移动这一处调用。
+- **停手条件（替代上文）**：`patched` 未被触发；回调或 hook 次数与上文不符；T33 重试 3 次仍 503；需要修改 `discussion_service.py` 中 hook 位置以外的任何实现。
+
 ## 9. SERVER 测试判据（`tests/test_community_comments.py`，Emulator）
 
 ### 9.1 辅助（`community_helpers.py` 追加）
@@ -441,3 +453,5 @@ ID 中的 `…` 表示补零到 32 位 hex。
 | D-NC011-18 | W7 409 改为 access_version 与 idempotency 的 oneOf 组件 | 原组件要求 `current_access_version`，幂等冲突体会被契约拒收 |
 | D-NC011-19 | 规则测试纳入本任务（65 → 89） | 新增三集合须证明默认拒绝仍生效（沿用 NC-009 §6） |
 | D-NC011-20 | 延后：网关路由、复合索引部署、限流开启、通知（NC-013）、mention 深度校验（NC-012）、审核隐藏的计数维护 | 本任务 TASKS 验收命令为 Emulator pytest 与 flutter test |
+| D-NC011-21 | R2-05 并发测试改为确定性 `Aborted` 注入（T31、T34）、顺序执行（T32）与同键重试的真实竞争（T33），替代 §8 线程屏障 | act/04 实测 Emulator 读锁为写者等读者、锁等待后 `NotFound`，线程屏障无法确定性产生契约假设的提交顺序（主 Agent 契约缺陷；执行方按停手协议上报正确） |
+| D-NC011-22 | hook 调用须在 `not_found` 早返回之前；竞争下的 503 以同一 command_id 重试 | §5.1 原意；503 在客户端命令队列中本就以同键重试（community_client §4.2） |

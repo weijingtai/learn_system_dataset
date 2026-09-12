@@ -1,6 +1,6 @@
 TASK_ID: NC-017-B
 PARENT: NC-017
-STATUS: READY
+STATUS: DISPATCHED
 REPO: xuan-migration/reading-notes
 GOAL: 导出写入器——AttachmentBytesSource 端口、收集 active/trashed 修订链与附件、.partial 流式写入与重读校验、原子改名、进度与结果；E09～E14
 DEPENDS_ON: [NC-017-A]

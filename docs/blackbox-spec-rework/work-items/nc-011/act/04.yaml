@@ -16,13 +16,14 @@ SCOPE:
     - /Users/jingtaiwei/Git/Public/xuan-migration/xuan-server/server/functions/test/community_rules.test.ts
   WRITE_NEW:
     - /Users/jingtaiwei/Git/Public/xuan-server/functions-py/tests/test_community_comments.py（追加 T31～T35）
+    - /Users/jingtaiwei/Git/Public/xuan-server/functions-py/xuan/community/discussion_service.py（仅按契约 §8.1 D-NC011-22 移动 after_access_read_hook 调用这一处）
     - /Users/jingtaiwei/Git/Public/xuan-migration/xuan-server/server/functions/test/community_rules.test.ts（COMMUNITY_COLLECTIONS 追加 3 项）
   FORBIDDEN:
-    - discussion_service.py 与其他实现文件（若 T31～T35 暴露实现缺陷，停手上报，不自行修改）
+    - 其他实现文件，以及 discussion_service.py 中 hook 位置以外的任何改动（T31～T35 暴露其他实现缺陷时停手上报，不自行修改）
     - 契约 §2.1 禁止清单；改屏障设计或放宽断言；learn_system 写入（交付报告除外）；新依赖；skip/xfail；永真断言；git push
 DEPENDENCY_ALLOWLIST: [同 act/02；RULES 沿用已装 node_modules]
 RULES:
-  - "屏障逐字按契约 §8；Event 等待一律 wait(10) 并断言返回 True"
+  - "并发测试逐字按契约 §8.1（T31/T34 确定性 Aborted 注入、T32 顺序执行、T33 同键重试 ≤ 3 次）；§8 原线程屏障作废（D-NC011-21）"
   - "两个仓库各一个提交；只 git add 本步文件；提交消息按 COMMIT_MESSAGE，末尾空一行加 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 TESTS_FIRST:
   - "先写 T31～T35，运行 VERIFICATION 第 1 条；预期实现已满足而直接通过的测试逐个列名，并说明为何非永真（例如临时注释 hook 调用时的失败原文）"
@@ -36,6 +37,6 @@ VERIFICATION:
   - "cd /Users/jingtaiwei/Git/Public/xuan-migration/xuan-server/server/functions && FIRESTORE_EMULATOR_HOST=192.168.0.165:8080 FIREBASE_AUTH_EMULATOR_HOST=192.168.0.165:9099 npm test -- community_rules（期望 Tests: 89 passed）"
   - "git -C /Users/jingtaiwei/Git/Public/xuan-server/functions-py status --short；git -C /Users/jingtaiwei/Git/Public/xuan-migration/xuan-server status --short（期望均空）"
   - "cd /Users/jingtaiwei/Git/Public/learn_system && bash docs/blackbox-spec-rework/reviews/nc011_guard.sh --require-impl server（期望 0）"
-ON_FAIL: "停止并在 DELIVERY_REPORT_SERVER.md 追加「## 待裁决」。任一 wait(10) 超时、提交顺序与契约不符、T31～T35 暴露实现缺陷、FAILED 集合变化，均为停止条件（契约 §8）。"
+ON_FAIL: "停止并在 DELIVERY_REPORT_SERVER.md 追加「## 待裁决」。契约 §8.1 所列停手条件、T31～T35 暴露 hook 位置以外的实现缺陷、FAILED 集合变化，均为停止条件。"
 BASELINE_EXIT_CODES: "开工基线：act/03 提交（5 failed / 491 passed / 9 xfailed）；RULES ea8c9b8（65 passed）"
 COMMIT_MESSAGE: "SERVER：test(community): 收回并发屏障、三方竞争与日志脱敏（NC-011-D）；RULES：test(rules): 评论三集合默认拒绝（NC-011-D）"

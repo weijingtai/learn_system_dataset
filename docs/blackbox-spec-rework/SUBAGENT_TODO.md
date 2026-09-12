@@ -704,7 +704,8 @@
   - [x] 规格侧契约（主 Agent）：`openspec/annotation-community/contracts/private_export.md`（容器/清单、Argon2id m65536 t3 p1 经 OpenSSL 交叉核对、带 AAD 分块 AES-GCM、统一失败、`.partial` 原子写入、参考值、D-NC017-01～11）
   - [x] 六件套 `work-items/nc-017/`（act/01 格式层、act/02 写入器）与守卫 `reviews/nc017_guard.sh`
   - [x] wjt-react 四查（agy）：R1 READY、返工 0 项，K/D/文件摘要经 OpenSSL 与 Python 独立复算吻合（`reviews/NC-017-REVIEW-R1.md`）
-  - [ ] 派发（NC-011 CLIENT 线提交后）；主 Agent 按 ACCEPTANCE.md 验收
+  - [x] 派发：NC-011 CLIENT 线 `463835e` 提交后经 tmux + cmd（deepseek/deepseek-v4.1-flash）派发，会话 nc017（2026-09-12）
+  - [ ] 主 Agent 按 ACCEPTANCE.md 验收
 - [ ] NC-018：备份设置、进度与恢复（状态：`BLOCKED`，等 NC-015）
 - [ ] NC-019：回收站、恢复、永久清理（状态：`BLOCKED`，等 NC-018；本地回收站子 ACT 可先准备）
 
