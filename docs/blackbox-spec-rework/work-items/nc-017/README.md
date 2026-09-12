@@ -1,6 +1,6 @@
 # NC-017：口令加密导出文件格式与本机原子写入
 
-状态：`READY_FOR_REVIEW`（2026-09-12 主 Agent 写就契约与六件套，待 wjt-react 四查）。派发前置：NC-004、NC-015 `ACCEPTED`（已满足）；**NC-011 CLIENT 线（act/06）已提交**（同一 reading-notes 工作树，D-NC017-11）。task_id：`NC-017`。权威需求来源：TASKS NC-017；PRD R-13、旅程 7；DESIGN 第 50 行 BackupManifest、§5（S6）、§7.4；契约 `contracts/private_export.md`（本任务专属）。
+状态：`READY`（2026-09-12：agy 四查 R1 READY、返工 0 项，参考值经审查者独立复算吻合，见 `reviews/NC-017-REVIEW-R1.md`；等 NC-011 CLIENT 线提交后派发）。派发前置：NC-004、NC-015 `ACCEPTED`（已满足）；**NC-011 CLIENT 线（act/06）已提交**（同一 reading-notes 工作树，D-NC017-11）。task_id：`NC-017`。权威需求来源：TASKS NC-017；PRD R-13、旅程 7；DESIGN 第 50 行 BackupManifest、§5（S6）、§7.4；契约 `contracts/private_export.md`（本任务专属）。
 
 ## Goal
 

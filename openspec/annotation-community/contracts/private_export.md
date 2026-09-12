@@ -76,7 +76,7 @@ chunk*        每块：chunk_len（4 B 无符号大端）‖ chunk（chunk_len B
 | type | payload |
 |---|---|
 | `0x01` 笔记 | `canonicalJson`，键恰为 `id, kind, head_revision_ids, preferred_head_id, lifecycle, created_at, trashed_at, updated_at`（`kind` 为 `note`/`annotation`；`head_revision_ids` 按 UTF-8 字节序升序；不含 `owner_scope`、`pending_op`） |
-| `0x02` 修订 | `canonicalJson`，键恰为 `community_note_revision.schema.json` 的 13 个必填字段（`id, note_id, parent_ids, title, markdown, attachment_refs, mentions, bindings, content_hash, change_summary, restored_from, created_at, created_on_device`），嵌套结构的键与 NC-002 Schema 一致（snake_case） |
+| `0x02` 修订 | `canonicalJson`，键恰为 `community_note_revision.schema.json` 的 13 个必填字段（`id, note_id, parent_ids, title, markdown, attachment_refs, mentions, bindings, content_hash, change_summary, restored_from, created_at, created_on_device`），嵌套结构的键与 NC-002 Schema 一致（snake_case）。`NoteRevision` 本身没有 `toMap`：按 13 个字段显式映射，`attachment_refs`/`mentions`/`bindings` 各元素调用 `AttachmentRef`/`MentionRef`/`BindingRef` 已有的 `toMap()`（审查 R1 建议 1） |
 | `0x03` 附件元数据 | `canonicalJson`，键恰为 `attachment_id, object_version, content_digest, byte_length` |
 | `0x04` 附件字节 | 原始字节；紧跟在对应 `0x03` 之后，长度等于其 `byte_length` |
 | `0x7F` 结束 | `canonicalJson({"note_count", "revision_count", "attachment_count"})`，恰出现一次且为最后一条 |
