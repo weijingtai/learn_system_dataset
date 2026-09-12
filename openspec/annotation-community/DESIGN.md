@@ -300,7 +300,7 @@ Tooltip 原型在独立运行宿主中接真实 REST：来源摘要 → 注解/�
 | 评论正文 | 4,000 | 201 Created | 413 + `too_large.comment_body` | HTTP | **Unicode code points**：Dart 用 `runes.length`，Python 用 `len(s)`。UTF-8 字节数与 UTF-16 长度均不作判据 |
 | 每修订图片数 | 20 | 保存成功 | 第 21 张被拒，前 20 引用不变 | 本地 | 张数 |
 | 单张图片 | 10 MiB = 10485760 B | 通过 | 拒绝 | 本地 | **加密前明文字节**；密文膨胀不计入用户配额 |
-| 单次提交有效 mention | 50 | 通过 | 400 + `invalid_argument.mentions` | HTTP | 去重后的有效 mention 数 |
+| 单次提交 mention | 50 | 通过 | 413 + `too_large.mentions`（`limit=50`；NC-011 D-NC011-07 与 community_api §4.1、NC-009 §10.1 对齐，原写 400） | HTTP | 请求中 mentions 数组条数（重复项先被 Schema 以 400 拒绝） |
 | 列表 limit | 默认 20，上限 100 | `limit=100` → 200 | `limit=101` → **400 + `invalid_argument.limit`**（不钳制） | HTTP | 整数 |
 
 NC-002 的 fixture 必须包含「4,000 个 4 字节 emoji 的评论」这一用例，期望通过；其 UTF-8 字节数 16000、UTF-16 长度 8000 均不得成为拒绝理由。原书 JSONL 分片上限独立由书籍共同契约确定。

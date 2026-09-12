@@ -271,3 +271,25 @@ L0 闭合码全集：`invalid_argument, not_found, unauthenticated, permission_d
 
 ### 10.5 前置补丁 P2：数据损坏 500（NC-009 D-NC009-11）
 新增响应组件 `500StateCorrupted`，schema `allOf CommunityProblemDetails` 且 `code: {const: internal.state_corrupted}`、`type: {const: internal}`；R1 的 `500` 引用它。§4.1 错误目录增行：数据损坏（状态组合白名单外）｜500｜`internal.state_corrupted`｜—。
+
+## 11. NC-011 补丁（2026-09-12，评论与讨论区；逐项落地见 [community_discussion.md](community_discussion.md)）
+
+### 11.1 R2 参数与响应（D-NC011-04、D-NC011-11）
+- R2 追加 query 参数组件 `RootId`（`root_id`，可选，`^cmt_[0-9a-f]{32}$`）与 `CommentOrder`（`order`，可选，`newest | oldest`，不写 default）。无 `root_id` 为一级评论，缺省 `newest`；带 `root_id` 为楼内回复，缺省且只允许 `oldest`，显式 `newest` → 400 `invalid_argument.order`。§2 R2 行路径读作 `GET /contents/{content_id}/comments?root_id&order&cursor&limit`。
+- `CommentPage` 必填为 `items, next_cursor, reply_previews, visible_comment_count, visible_commenter_count`。`reply_previews`：对象，键为本页一级评论 ID，值为新增 `CommentReplyPreview{items (Comment[] ≤ 5), next_cursor (string/null)}`；楼内查询时为 `{}`。两计数为主题内 `status=visible` 的评论数与其不同作者数（integer ≥ 0）。
+- `root_id` 不存在、不属于该主题或不是一级评论 → 404 `not_found.comment`（响应仍引用 `NotFoundContent` 组件，其 Schema 不限定 code）。
+
+### 11.2 R2 ETag（替代 §3.3 末条与 D-NC003-07，D-NC011-05）
+`"<ContentAccess.version>:<h>"`，`h = SHA-256_hex(E([thread_version, root_id 或 "", order, cursor 或 "", limit]))` 前 16 位；E 为 DESIGN §7.2 编码；`thread_version` 为 Thread.version（主题无评论为 0）；`order`、`limit` 为生效值，`cursor` 为请求原串。形状仍为 `^"[0-9]+:[0-9a-f]{16}"$`。鉴权先于 304（D-NC011-06）。参考：access 3 与 `[0,"","newest","",20]` → `"3:b713c1d13d46bdb5"`；access 3 与 `[3,"cmt_00000000000000000000000000000001","oldest","",5]` → `"3:bbe031c2c1299d8c"`。
+
+### 11.3 评论游标
+`base64url 去 padding(UTF-8("<order>|<root_id 或 ->|<created_at 6 位微秒>|<comment_id>"))`；四段、order 与 root 与本次查询一致、时间与 ID 格式合法，否则 400 `invalid_argument.cursor`。仍满足 §6 的 `Cursor` pattern。
+
+### 11.4 错误目录增补（§4.1）
+- `forbidden.not_owner` 行的操作列增加 `comment.edit`、`comment.delete`（非评论作者）。
+- 413 行：评论正文的 code 逐字为 `too_large.comment_body`（`limit=4000`），mentions 为 `too_large.mentions`（`limit=50`；DESIGN §7.1 同步，D-NC011-07）。
+- 400 行增加：评论请求体 Schema 不通过 `invalid_argument.comment`（`field` 为 JSON Pointer）；正文去空白后为空 `invalid_argument.comment_body`；`order` 非法或与 `root_id` 冲突 `invalid_argument.order`；`root_id` 格式非法或有 `reply_to_id` 无 `root_id` 时为 `invalid_argument.root_id`。
+- W7 的 409 可能为 `conflict.access_version` 或 `conflict.idempotency`：新增响应组件 `409ConflictCommentCreate`（`oneOf` 两个 Problem Schema），W7 引用它（D-NC011-18）。W7 404：主题不可见 `not_found.content`；root/回复目标不存在或跨主题 `not_found.comment`。
+
+### 11.5 决定
+本节决定编号 D-NC011-04、05、06、07、11、18，登记于 community_discussion.md §14。
