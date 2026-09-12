@@ -1,0 +1,66 @@
+act_id: impl-02/01
+title: 纯函数结构编译器 compile_structural（StructuralSpan + SourceAnchor + 批次 + 金标序列化）
+estimated_minutes: 60
+group: J1
+depends_on: [impl-02/00]
+scope:
+  write: [pipeline/corpus_compiler/__init__.py, pipeline/corpus_compiler/errors.py, pipeline/corpus_compiler/serialize.py, pipeline/corpus_compiler/compiler.py, pipeline/corpus_compiler/tests/__init__.py, pipeline/corpus_compiler/tests/test_compiler.py]
+tests_first:
+  - 先写 tests/test_compiler.py（用例名与下文逐字），运行 `.venv/bin/python -m unittest discover -s pipeline/corpus_compiler/tests -t .` 因 ImportError 全红，记录 Red；再实现
+contract: |
+  __init__.py：M3_TOOL = "pipeline.corpus_compiler"；M3_TOOL_VERSION = "0.1.0"
+  errors.py：class CompileRefused(pipeline.ledger.errors.LedgerError)，构造 CompileRefused(message, code=None)
+  serialize.py：dump_yaml(obj) -> bytes
+    规则与 fixture build_fixture.dump_yaml 逐项相同：yaml.dump(obj, Dumper=_M3Dumper, allow_unicode=True, sort_keys=False, default_flow_style=False, width=10**9, indent=2).encode("utf-8")
+    _M3Dumper 为 yaml.SafeDumper 的私有子类；不得向 yaml.SafeDumper 注册任何 representer
+  compiler.py（纯函数：不读文件、不访问 Ledger、不取时间、不用随机数）：
+    parse_source_id(source_id) -> tuple[str, str]
+      正则 ^src_([a-z][a-z0-9]*)_ed([0-9]{2})$ → (work, edition)；不匹配 raise InvalidIdentifier(code="ID_001")
+    page_number(page) -> int
+      正则 ^page_([0-9]{3,4})$；不匹配 raise SchemaViolation(code="SCH_002")
+    page_block(page_doc) -> str
+      "\n".join(line["text"] for line in page_doc["lines"])
+    compile_structural(*, manifest, page_docs, terminal_states, batch_size=10) -> dict
+      参数：manifest = M1 manifest.yaml 解析后的 dict；page_docs = {page: OCR 页 JSON dict}；terminal_states = {page: 终态}；batch_size ≥ 1（否则 SchemaViolation SCH_002）
+      R1 页序 = manifest["edition_part"]["pages"]；页序中的页不在 page_docs → CompileRefused(code="REF_001")；page_docs 有页序外的页 → CompileRefused(code="SCH_002")
+      R2 逐页终态：state = terminal_states.get(page)
+         state == "deferred" → CompileRefused（message 含 "deferred" 与 "§10.1"）
+         state 不在 {None, "manually_transcribed", "known_unrecognizable"} → SchemaViolation(code="SCH_002")
+         state == "known_unrecognizable"：该页 lines 必须为空（否则 CompileRefused）→ 记入 excluded_pages，不产出 Span
+         其余：该页 lines 必须非空（否则 CompileRefused，message 含「漏编」）→ 记入 covered
+      R3 图像哈希取 manifest["source_assets"] 中 page 相同项的 sha256；缺失 → CompileRefused(code="REF_001")
+      R4 覆盖页逐行（idx 从 0）：start = pos；end = start + len(text)；pos = end + (1 if idx < len(lines)-1 else 0)；编译结束断言 pos == len(page_block)
+         span_id = "ss_%s_ed%s_p%04d_s%02d" % (work, edition, page_number(page), idx + 1)，再经 pipeline.ledger.ids.validate("source_span_id", …)；idx + 1 > 99 → InvalidIdentifier(code="ID_001")
+      R5 批次：页序内逐个覆盖页，每页按 lines 顺序每 batch_size 行一组；全局计数 n 从 1 递增；batch_id = "%s_b%03d" % (work, n)
+      R6 source_anchor = {"page": page, "image_sha256": 页哈希, "line_id": line["id"], "bbox": dict(line["box"]), "chars": [{"char_index": ci, "glyph_id": ch["id"], "char": ch["char"], "box": dict(ch["box"])} for ci, ch in enumerate(page_doc["chars"]) if ch["parent"] == line["id"]]}
+      R7 Span 键序逐字：span_id, batch_id, page, line_index, start_offset, end_offset, text, source_anchor
+      R8 spans_doc 键序逐字：work(= manifest["work_title"]), source_id, edition_part_artifact_id(= manifest["edition_part"]["artifact_id"]), evidence_level("glyphbox_level"), content_status("machine_extracted"), span_count, batch_count, spans
+      返回 dict 键：spans, spans_doc, spans_bytes(= serialize.dump_yaml(spans_doc)), spans_sha256, page_blocks({覆盖页: 页块}), coverage({覆盖页: 1.0}), excluded_pages({排除页: 终态}), batches([批号，按出现顺序])
+tests:
+  test_compiler.py: |
+    测试可读 fixture 文件作为纯函数输入（manifest.yaml、pages/*.json、anomalies.yaml、spans.yaml、source/transcript_v1.md）；terminal_states 取自 anomalies.yaml entries
+    - test_golden_spans_bytes_equal_fixture（spans_bytes == fixture spans.yaml 字节）
+    - test_golden_sha256（spans_sha256 == "ec6d77b90aa1408d040465babc28a81f59aadf6d6edd9ba8db66ff8ead0b44ef"）
+    - test_counts_batches_coverage_excluded（43 条；batches == ["sanche_b001", …, "sanche_b005"]；coverage == {"page_001": 1.0, "page_003": 1.0}；excluded_pages == {"page_002": "known_unrecognizable"}）
+    - test_page_blocks_equal_fixture_transcript_sections（transcript 中 `## page_001`、`## page_003` 两节正文行以 "\n" 连接 == page_blocks）
+    - test_deterministic_twice_identical_bytes
+    - test_deferred_page_refused
+    - test_known_unrecognizable_page_with_lines_refused
+    - test_text_page_without_lines_refused（page_002 不给终态）
+    - test_missing_page_doc_refused_REF_001
+    - test_extra_page_doc_refused_SCH_002
+    - test_unknown_terminal_state_SCH_002
+    - test_missing_image_sha_refused_REF_001
+    - test_batch_size_20_gives_three_batches（page_003 分 2 批，合计 3）
+    - test_span_id_overflow_ID_001（合成 100 行的页）
+    - test_invalid_source_id_ID_001
+    - test_dump_yaml_does_not_touch_global_safedumper（导入与调用前后 yaml.SafeDumper.yaml_representers 相等）
+verify:
+  - .venv/bin/python -m unittest discover -s pipeline/corpus_compiler/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 16
+  - grep -rE 'import .*_fixture|from .*_fixture|build_fixture' pipeline/corpus_compiler --include='*.py' | grep -v '/tests/' | wc -l   # 0
+  - grep -rE '^\s*(import|from) (requests|openai|anthropic|httpx)' pipeline/corpus_compiler | wc -l   # 0
+  - TDD §3 回归
+commit:
+  add: [pipeline/corpus_compiler]
+  message: "feat(m3): pure structural corpus compiler with glyphbox anchors and golden serialization (spec §11/§11.1)"
+on_fail: 停止并报告；金标字节不一致时不得修改 fixture，报告首个差异位置

@@ -1,0 +1,70 @@
+act_id: impl-02/02
+title: 独立结构 Gate evaluate_structural（不依赖 compiler）
+estimated_minutes: 75
+group: J1
+depends_on: [impl-02/01]
+scope:
+  write: [pipeline/corpus_compiler/gate.py, pipeline/corpus_compiler/tests/test_gate.py]
+tests_first:
+  - 先写 tests/test_gate.py（用例名逐字）并全红，再实现
+contract: |
+  gate.py（纯函数；不得 import compiler.py 或 serialize.py；可 import pipeline.ledger.ids）：
+  evaluate_structural(*, manifest, page_docs, terminal_states, evidence_pages, spans_doc, batch_size) -> dict
+    evidence_pages：有人工事件证据的页名集合
+    返回：
+      {"gate_profile": "structural_only",
+       "structural": "passed" | "failed",
+       "semantic": "not_evaluated",
+       "checks": {<名>: {"ok": bool, "failures": [{"page": str|None, "span_id": str|None, "detail": str}]}},
+       "pages": {<页>: {"status": "covered"|"excluded"|"invalid", "terminal_state": str|None, "line_count": int, "span_count": int, "coverage": float, "gaps": [[a, b]], "overlaps": [[a, b]]}}}
+    structural == "passed" 当且仅当 8 项 checks 全部 ok
+  8 项检查（名称与顺序固定）：
+    page_accounting：页序 = manifest.edition_part.pages；
+      终态 known_unrecognizable → 该页 0 行、0 Span、且在 evidence_pages（否则 detail 含「裸标」）
+      终态 deferred → 失败；终态不在三值 → 失败
+      无终态或 manually_transcribed → 至少 1 行（否则「裸空页」）且至少 1 Span（否则「漏编」）
+      spans 中出现页序外的页 → 失败
+    contiguous_coverage：对每个覆盖页，页块 = 行文本以 "\n" 连接（本文件内自行实现）；Span 按 start_offset 排序；
+      首条 start == 0；相邻 next.start == prev.end + 1 且 block[prev.end] == "\n"；末条 end == len(block)；
+      next.start > prev.end + 1 记 gap [prev.end, next.start]；next.start <= prev.end 记 overlap [next.start, prev.end]；
+      coverage = 被 Span 覆盖的非换行字符位置数 / 页块中非换行字符数（区间并集计算）；ok 需 coverage == 1.0 且无 gap/overlap
+    strict_offset：每条 block[start_offset:end_offset] == text，且 0 <= start <= end <= len(block)
+    concat_equals_block：按 start 排序后 "\n".join(text) == block
+    glyphbox_anchors：source_anchor.page == page；image_sha256 == manifest.source_assets 同页 sha256；line_id 存在于该页 lines；
+      line_index == 该 line 在 lines 中的下标；text == 该 line 的 text；bbox == line.box；
+      chars == [(ci, ch.id, ch.char, ch.box) for ci, ch in enumerate(chars) if ch.parent == line_id]（逐项比较四元组，顺序一致）
+    span_identity：span_id 匹配 ids.PATTERNS["source_span_id"]；全体唯一；p<4位> == 页号；s<2位> == line_index + 1；work/ed 段 == manifest.source_id 解析值
+    batch_rules：batch_id 匹配 ^<work>_b[0-9]{3}$；同批 Span 同页且 line_index 连续；每批 ≤ batch_size；批号按首次出现顺序从 001 起逐一递增
+    header_counts：span_count == len(spans)；batch_count == 不同批号数；work == manifest.work_title；source_id == manifest.source_id；edition_part_artifact_id == manifest.edition_part.artifact_id；evidence_level == "glyphbox_level"
+tests:
+  test_gate.py: |
+    输入取 fixture：manifest.yaml、pages/*.json、anomalies.yaml（终态）、spans.yaml（spans_doc）；evidence_pages 默认 {"page_002"}；batch_size 默认 10
+    每个篡改用例断言：structural == "failed" 且指定检查 ok 为 False
+    - test_fixture_spans_pass_all_eight_checks
+    - test_semantic_always_not_evaluated_and_profile_structural_only
+    - test_pages_report_coverage_one_and_excluded_page_002
+    - test_drop_span_fails_contiguous_coverage（删 page_003 第 8 条）
+    - test_overlap_fails_contiguous_coverage（第 2 条 start 改为第 1 条 end）
+    - test_shift_end_offset_fails_strict_offset
+    - test_changed_text_fails_strict_offset
+    - test_bbox_change_fails_glyphbox_anchors
+    - test_glyph_id_change_fails_glyphbox_anchors
+    - test_image_sha_change_fails_glyphbox_anchors
+    - test_line_index_mismatch_fails_glyphbox_anchors
+    - test_span_id_page_mismatch_fails_span_identity
+    - test_duplicate_span_id_fails_span_identity
+    - test_batch_over_size_fails_batch_rules（batch_size=3）
+    - test_batch_cross_page_fails_batch_rules（page_001 首条批号改 sanche_b002）
+    - test_header_span_count_fails_header_counts
+    - test_remove_all_page_003_spans_fails_page_accounting
+    - test_unlabeled_empty_page_fails_page_accounting（terminal_states 为空）
+    - test_known_unrecognizable_without_evidence_fails_page_accounting（evidence_pages 为空，detail 含「裸标」）
+    - test_deferred_page_fails_page_accounting
+    - test_gate_does_not_import_compiler（ast 解析 gate.py 的 import，不含 compiler / serialize）
+verify:
+  - .venv/bin/python -m unittest discover -s pipeline/corpus_compiler/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 37
+  - TDD §3 回归
+commit:
+  add: [pipeline/corpus_compiler]
+  message: "feat(m3): independent structural gate with coverage, strict offset and glyphbox anchor checks (spec §11 Gate)"
+on_fail: 停止并报告；不得为让篡改用例通过而放宽检查

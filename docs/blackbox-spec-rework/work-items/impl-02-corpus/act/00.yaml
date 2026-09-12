@@ -1,0 +1,24 @@
+act_id: impl-02/00
+title: check_d16.py R5 允许节 C 条目勾选（未勾选与已勾选合计 3 条，已勾选须附提交号）
+estimated_minutes: 15
+group: J1
+scope:
+  write: [docs/blackbox-spec-rework/work-items/g4-r3/check_d16.py]
+background: |
+  impl-01 已 ACCEPTED，需要把 PLAN.md D-16 节 C「Artifact Ledger」条目由 `- [ ]` 改 `- [x]`。
+  现行 R5 要求节 C 恰 3 条 `- [ ]`，勾选后会误报 FAIL。缺陷在主 Agent 当初的规则。勾选本身由主 Agent 在验收后做，本 ACT 只改脚本。
+tests_first:
+  - Red：临时副本 PLAN 把节 C「Artifact Ledger」行的 `- [ ]` 改为 `- [x]` 并在行末追加「（已完成：`c939575`）」，现行脚本 `--plan 副本` 报 `D16 FAIL R5 新节 C 未勾选项数=2（应 3）`
+rule_change: |
+  R5：节 C 内以 `- [ ] ` 或 `- [x] ` 开头的行合计恰 3 条；每条含 `run_all.sh 20.`；每条 `- [x]` 行必须含至少一个反引号包裹的 7–40 位小写十六进制提交号（正则 `[0-9a-f]{7,40}` 夹在反引号内），否则 FAIL R5。
+  R4 不变（仍只考察 `- [ ]` 行；节 C 的 `- [x]` 行不参与 R4）。其余规则不变；不加 try/except。
+verify:
+  - python3 docs/blackbox-spec-rework/work-items/g4-r3/check_d16.py            # D16 OK（当前 PLAN 未改）
+  - 副本 A：Artifact Ledger 行勾选并附反引号提交号 → D16 OK
+  - 副本 B：勾选但不附提交号 → D16 FAIL R5
+  - 副本 C：删除节 C 一条 → D16 FAIL R5（合计 2）
+  - git diff --check
+commit:
+  add: [docs/blackbox-spec-rework/work-items/g4-r3/check_d16.py]
+  message: "fix(D-16): check_d16.py R5 accepts ticked section C items with commit evidence"
+on_fail: 停止并报告

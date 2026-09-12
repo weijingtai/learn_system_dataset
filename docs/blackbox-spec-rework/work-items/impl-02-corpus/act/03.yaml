@@ -1,0 +1,95 @@
+act_id: impl-02/03
+title: M3 在 Ledger 上真实编译：输入解析 + run_m3 事务序列 + CLI；fixture_ingest 支持阶段前缀
+estimated_minutes: 120
+group: J2
+depends_on: [impl-02/02]
+scope:
+  write: [pipeline/ledger/fixture_ingest.py, pipeline/ledger/tests/test_ingest.py, pipeline/corpus_compiler/inputs.py, pipeline/corpus_compiler/step.py, pipeline/corpus_compiler/__main__.py, pipeline/corpus_compiler/tests/test_step.py]
+tests_first:
+  - 先在 test_ingest.py 追加 test_ingest_stage_prefix_m1_m2，并写 tests/test_step.py（用例名逐字），全部 Red 后再实现
+contract: |
+  fixture_ingest.py（只做这一处扩展，现有行为与测试不变）：
+    ingest(fixture_dir, service, asset_root=None, *, stages=STAGES)
+    stages 必须是 STAGES 的前缀：("m1",)、("m1","m2")、("m1","m2","m3")，否则 SchemaViolation(code="SCH_002")
+    只为 stages 内的阶段写配置修订、StepRun、Checkpoint、Transformation、StagePackage；summary 结构不变（只含这些阶段）
+    CLI 追加 --stages（逗号分隔，默认 m1,m2,m3）
+
+  inputs.py：resolve_m3_inputs(reader, edition_part_id) -> dict（只调用 LedgerReadMixin 公开方法；查 artifact_type 允许经 reader.store.conn 执行只读 SELECT）
+    返回键：processing_run_id, technique_id, m1_step_run_id, m2_step_run_id, manifest_revision_id, ocr_page_set_revision_id,
+            page_revision_ids({页: 修订}), terminal_states({页: 终态}), human_event_revision_ids([...])
+    规则：
+      m1：list_checkpoints(ep, "m1") 非空；全部 completed_tasks 中 task_id == "ingest_source" 且 status == "succeeded" 的恰 1 项 → manifest_revision_id，其 artifact_type 必须为 source_manifest
+      m2：list_checkpoints(ep, "m2") 非空；遍历全部 Checkpoint 的 completed_tasks（status == "succeeded"）→ page_revision_ids；terminal_state 非空者 → terminal_states；最新 m2 Checkpoint 的 human_decisions → human_event_revision_ids
+      m2_step_run_id = 最新 m2 Checkpoint 的 step_run_id；get_step_run(m2).status 必须 == "succeeded"（否则 CompileRefused，message 含「M2 未通过」）
+      list_transformations(m2_step_run_id) 的输出中 artifact_type == "ocr_page_set" 的恰 1 个 → ocr_page_set_revision_id
+      processing_run_id = m2 StepRun 的 processing_run_id；technique_id = manifest 内容的 technique_id
+      以上所有修订必须 status == "sealed"（否则 NotConsumable）；缺失 → MissingReference(REF_001) 或 CompileRefused
+      若 list_checkpoints(ep, "m3") 中已有属于 succeeded StepRun 的 Checkpoint → CompileRefused（message 含「M3 已封存」；本批不支持重跑）
+      本函数不做任何写入
+
+  step.py：run_m3(service, edition_part_id, *, batch_size=10) -> dict
+    顺序（任何一步之前的解析错误直接抛出且 Ledger 无新增写入；begin_step_run 之后的错误一律走失败封存）：
+      1 inputs = resolve_m3_inputs(service, edition_part_id)
+      2 config = service.put_run_artifact(processing_run_id, "configuration", json {"stage": "m3", "tool": M3_TOOL, "tool_version": M3_TOOL_VERSION, "batch_size": batch_size, "gate_profile": "structural_only"}（sort_keys, ensure_ascii=False）, producer_module=M3_TOOL, producer_version=M3_TOOL_VERSION)
+      3 frozen = [ocr_page_set, manifest] + [页修订 按 manifest 页序中存在修订的页] + human_event_revision_ids
+        step = service.begin_step_run({"schema_version": "1.0.0", "processing_run_id", "step_run_id": ids.new_id("step_run_id"), "input_artifact_ids": frozen, "technique_profile_id": technique_id, "configuration_artifact_id": config})
+      4 输入契约（失败检查名 input_contract）：经 service.read_object / objects 读取冻结修订字节；manifest = yaml.safe_load；ocr_page_set = json.loads；
+        ocr_page_set["ocr_pages"] 的页集合 == page_revision_ids 键集合；每页修订 sha256 == 该页登记 sha256（否则 HashMismatch SRC_003）；
+        ocr_page_set["terminal_states"] == terminal_states；每个人工事件内容 JSON 的 "page" 字段收集为 evidence_pages
+      5 result = compiler.compile_structural(manifest=…, page_docs=…, terminal_states=…, batch_size=…)（异常检查名 compile）
+      6 每个批次：put_artifact(step, "corpus_batch", json.dumps(该批 Span 列表, sort_keys=True, ensure_ascii=False).encode()) → seal；
+        write_checkpoint(step, edition_part_id=…, stage="m3", completed_tasks=[{"task_id": 批号, "artifact_revision_id": 修订, "status": "succeeded", "terminal_state": None}], human_decisions=[], pending_queue=[{"task_id": 其后批号} …], next_pointer=首个待办或 None)
+      7 spans = put_artifact(step, "corpus_spans", result["spans_bytes"]) → seal
+      8 gate = gate.evaluate_structural(manifest, page_docs, terminal_states, evidence_pages, spans_doc=result["spans_doc"], batch_size)
+      9 coverage_report = put "coverage_report"（json.dumps(gate, sort_keys, ensure_ascii False)）→ seal；
+        validation_report = put "validation_report"（json {"gate_profile": "structural_only", "structural": gate.structural, "semantic": "not_evaluated", "failed_checks": [未通过检查名]}）→ seal；
+        log = put "step_log"（每步一行的 UTF-8 文本，不含时间戳）→ seal
+      10 若 gate.structural == "failed"：走失败封存（检查名 structural_gate）
+      11 corpus_package = put "corpus_package"（json {"spans_revision_id", "coverage_report_revision_id", "coverage", "excluded_pages", "gate_profile": "structural_only", "semantic": "not_evaluated"}）→ seal
+      12 transformation_id = record_transformation(step, operation="compile_corpus", tool=M3_TOOL, tool_version=M3_TOOL_VERSION, configuration_revision_id=config, input_revision_ids=frozen, output_revision_ids=[corpus_package, spans, coverage_report], validation_report_revision_id=validation_report, human_event_revision_ids=[])
+      13 StagePackage：stage_package_id = ids.new_id("stage_package_id", stage="m3")；package_revision_id = ids.new_id("artifact_revision_id")；
+         ref(rev) = {"schema_version": "1.0.0", "artifact_kind": "artifact", "artifact_id": 修订所属 artifact_id, "artifact_revision_id": rev, "artifact_type": 该 artifact_type}
+         package = {"schema_version": "1.0.0", "stage_package_id", "artifact_revision_id": package_revision_id, "stage": "m3", "status": "sealed",
+           "payload": {"spans_revision_id", "coverage": result.coverage, "excluded_pages": result.excluded_pages, "gate_profile": "structural_only"},
+           "manifest": {"schema_version": "1.0.0", "processing_run_id", "step_run_id": step, "input_artifacts": [ref(x) for x in frozen], "output_artifacts": [ref(corpus_package)], "counts": {"spans": n, "batches": m}, "content_sha256": result.spans_sha256},
+           "validation": {"passed": True, "report_artifacts": [ref(validation_report)]},
+           "lineage": {"upstream_artifacts": [ref(ocr_page_set), ref(manifest)], "transformations": [{"operation": "compile_corpus", "step_run_id": step, "configuration_artifact_revision_id": config, "input_artifact_revision_ids": frozen, "output_artifact_revision_ids": [corpus_package, spans, coverage_report]}]},
+           "logs": [ref(log)], "failures": []}
+         register_stage_package(step, package, json.dumps(package, sort_keys=True, ensure_ascii=False).encode(), stage_package_id=…, artifact_revision_id=…) → seal
+      14 manifest_revision_id = finish_step_run(step, {"schema_version": "1.0.0", "processing_run_id", "step_run_id": step, "status_version": 当前值 + 1, "status": "succeeded",
+           "output_artifact_ids": [corpus_package, spans, coverage_report, package_revision_id], "validation_report_ids": [validation_report], "log_artifact_ids": [log], "failure_artifact_ids": []})
+    失败封存 _fail(step, check, detail)：put "failure_report"（json {"check", "detail"}）→ seal；fail_step_run(step, [失败修订], "M3 %s: %s" % (check, detail))；返回 summary（status "failed"）
+    返回 summary 键：status("succeeded"|"failed"), processing_run_id, step_run_id, configuration_revision_id, frozen_input_revision_ids,
+      以及成功时：stage_package_id, package_revision_id, corpus_package_revision_id, spans_revision_id, spans_sha256, coverage_report_revision_id, validation_report_revision_id, log_revision_id, step_manifest_revision_id, transformation_id, checkpoint_revision_ids, batches, counts, coverage, excluded_pages, gate；
+      失败时：failed_check, failure_revision_id, reason
+
+  __main__.py：python -m pipeline.corpus_compiler --root <ledger_root> --edition-part <art_id> [--batch-size 10]
+    LedgerService(<root>/ledger)（与 acceptance.prepare 的布局一致）→ run_m3 → stdout 末行：
+      成功 `M3 OK <step_run_id> spans=<n> batches=<m>` exit 0；失败 `M3 FAILED <step_run_id> <failed_check>` exit 1；
+      begin 之前被拒（CompileRefused/MissingReference/NotConsumable）`M3 REFUSED <异常类名>: <消息>` exit 2；WriterLocked exit 3
+tests:
+  test_ingest.py 追加: |
+    - test_ingest_stage_prefix_m1_m2（2 个 StepRun、4 个 Checkpoint、2 个 Transformation；m3 配置修订不存在；stages=("m2",) → SCH_002）
+  test_step.py: |
+    统一脚手架：tempfile 目录 → LedgerService(root/"ledger") → ingest(FIXTURE, service, stages=("m1","m2")) → run_m3
+    - test_run_m3_on_fixture_succeeds（status succeeded；counts {"spans": 43, "batches": 5}；spans_sha256 == 金标；StepRun succeeded）
+    - test_spans_revision_bytes_equal_fixture_spans_yaml
+    - test_frozen_inputs_exactly_resolved（Ledger frozen_inputs 集合 == {ocr_page_set, manifest, 三页, page_002 人工事件}，共 6 个）
+    - test_five_checkpoints_one_per_batch_chained
+    - test_stage_package_validates_schema_and_lineage（jsonschema 校验 stage_package.schema.json；lineage 输入 == frozen；content_sha256 == spans 哈希）
+    - test_config_records_gate_profile_and_batch_size
+    - test_refuses_when_m2_missing（只灌 m1 → CompileRefused；Ledger 中无 m3 StepRun、无新配置修订）
+    - test_refuses_second_run_when_m3_sealed
+    - test_page_hash_mismatch_fails_step_run（patch resolve_m3_inputs 交换 page_001/page_003 修订 → status failed，failed_check "input_contract"，失败修订 sealed，无 m3 StagePackage）
+    - test_gate_failure_fails_step_run（patch compiler.compile_structural 返回的 spans_doc 删去一条 Span → failed_check "structural_gate"，无 m3 StagePackage）
+    - test_deferred_terminal_state_fails_step_run（patch 解析结果 page_002 终态为 deferred → failed_check "compile" 或 "input_contract"）
+    - test_cli_exit_codes（subprocess：成功 0 且末行以 "M3 OK" 开头；只灌 m1 的 Ledger → 2 且以 "M3 REFUSED" 开头）
+verify:
+  - .venv/bin/python -m unittest discover -s pipeline/ledger/tests -t . 2>&1 | tail -3            # OK，用例数 ≥ 74
+  - .venv/bin/python -m unittest discover -s pipeline/corpus_compiler/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 49
+  - export LC_ALL=en_US.UTF-8; bash openspec/acceptance/run_all.sh | tail -1                       # SUMMARY pass=2 fail=1 blocked=8
+  - TDD §3 回归
+commit:
+  add: [pipeline/ledger/fixture_ingest.py, pipeline/ledger/tests/test_ingest.py, pipeline/corpus_compiler]
+  message: "feat(m3): compile corpus on the artifact ledger from frozen M1/M2 revisions with per-batch checkpoints and m3 stage package"
+on_fail: 停止并报告；不得改 pipeline/ledger 其他文件；不得读 fixture 路径代替 Ledger 修订

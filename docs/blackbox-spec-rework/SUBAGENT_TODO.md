@@ -578,7 +578,23 @@
   - [x] 主 Agent 质量审查
   - [x] PLAN/HANDOFF 同步（PLAN 节 C 勾选推迟到 impl-02 ACT 00 修 check_d16 R5 之后）
   - [x] 主 Agent 标记 `ACCEPTED`
-- [ ] impl-02：M3 Corpus Compilation（状态：`PREPARING`；ACT 00 先修 `check_d16.py` R5 并勾选 PLAN 节 C「Artifact Ledger」）
+- [ ] impl-02：M3 Corpus Compilation 结构层（状态：`READY`；工作包 `work-items/impl-02-corpus/`，五个 ACT 分 J1（00–02）/J2（03–04）；完成判据 `openspec/acceptance/m3-coverage.sh` → 8 PASS + semantic_layer BLOCKED、exit 2；语义层不在本批）
+  - [x] README/范围/依赖/禁止项
+  - [x] BDD 场景
+  - [x] TDD 正反用例与精确命令
+  - [x] ACT.yaml（含 SCOPE、ON_FAIL、VERIFICATION）
+  - [x] Executor Prompt（J1、J2）
+  - [x] Acceptance 清单
+  - [x] `wjt-react` 判定 READY（2026-09-11）
+  - [ ] 派发 J1 执行 Agent
+  - [ ] J1 执行提交与原始证据（ACT 00/01/02）
+  - [ ] 主 Agent 验收 J1（含勾选 PLAN 节 C「Artifact Ledger」附 `c939575`）
+  - [ ] 派发 J2 执行 Agent
+  - [ ] J2 执行提交与原始证据（ACT 03/04）
+  - [ ] 主 Agent 规格审查
+  - [ ] 主 Agent 质量审查
+  - [ ] PLAN/HANDOFF 同步
+  - [ ] 主 Agent 标记 `ACCEPTED`
 - [ ] impl-03：M5 Automatic Validation（状态：`BACKLOG`）
 - [ ] impl-04：M8 Dataset Compilation（状态：`BACKLOG`）
 

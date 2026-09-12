@@ -1,12 +1,12 @@
 # HANDOFF
 
-## impl-01 Artifact Ledger ACCEPTED（Dataset 会话；黑箱线最新状态）
+## impl-02 M3 结构层 READY（Dataset 会话；黑箱线最新状态）
 
 更新时间：2026-09-11
 当前分支/worktree：`codex/docs/knowledge-compilation`；`/Users/jingtaiwei/Git/Public/learn_system`
 刚完成：G5 准出记录 `reviews/G5-EXIT-REVIEW.md` 14/14 满足；用户 2026-09-11 确认「确认可以进入」；外部 Agent 按 `work-items/g5/PROMPT-G.md` 提交 `70c05cd`，规格头部 `REVIEW_FAILED_R1` → `R1_REWORK_CLOSED`（节标签未动），主 Agent 干净树验收通过。执行者上报 numstat 与 ACT 不符，裁定为主 Agent 算术错误（`375ff8b` 订正）。`PROJECT_COLD_START_HANDOFF.md` 状态改 `IMPLEMENTATION_PHASE`。
-进行到一半的事（精确到文件和章节）：无。impl-01 Artifact Ledger 已 `ACCEPTED`（H1 `ba9b68e`/`823bead`/`0dff35d`、H2 `401b449`/`01d32ca`/`45d99a1`、返工 `c939575`；`pipeline/ledger/` 73 测试；`run_all.sh` 20.2/20.3 PASS，`SUMMARY pass=2 fail=1 blocked=8`），验收记录 `work-items/impl-01-ledger/ACCEPTANCE.md` §5。
-下一步（第一件事）：写 impl-02 M3 Corpus Compilation 六件套。ACT 00 先修 `check_d16.py` R5（节 C 条目 `- [ ]`/`- [x]` 合计 3）并勾选 PLAN 节 C「Artifact Ledger」附 `c939575`。注意 M3 单独落地不会让任何 §20 条目由 BLOCKED 变 PASS（20.1 还缺 Orchestrator，20.4 还缺 M8），须先为 impl-02 定义本批完成判据（建议：mini_ed01 的 OCR 页经 Ledger 真实编译出与 `expected/m3` 逐字相同的 spans 与包，并补一条 `run_all.sh` 可判定的子检查）。
+进行到一半的事（精确到文件和章节）：impl-02 M3 结构层工作包 `work-items/impl-02-corpus/` 已 READY（ACT 00 修 check_d16 R5；01 纯函数编译器；02 独立结构 Gate；03 Ledger 上真实编译 run_m3；04 `m3-coverage.sh` 验收），`PROMPT-J1.md` 待用户派发。关键决定：本批只做结构层，语义层（双模型边界 + 人工裁决）BLOCKED，`m3-coverage.sh` 本批返回 2 而不是 0；不改 `run_all.sh`。impl-01 Artifact Ledger 已 `ACCEPTED`（`c939575` 等），验收记录 `work-items/impl-01-ledger/ACCEPTANCE.md` §5。
+下一步（第一件事）：J1 报告回来 → 干净树验收（金标字节、Gate 独立性、篡改用例）→ 勾选 PLAN D-16 节 C「Artifact Ledger」附 `c939575` → 交 `PROMPT-J2.md`；J2 验收含 TDD §2 附加判据与 `m3-coverage.sh` exit 2。
 已知的坑：实现批次会第一次产生 `pipeline/` 下的新代码与测试，验收要跑真实测试而不只是 grep；`run_all.sh` 的 20.2/20.3 规则里 BLOCKED 分支是硬编码的，实现落地后 ACT 必须同时改 `run_all.sh` 对应规则（属 D-18 产物，改动需在 ACT 内写明）。
 
 ## G4 D 类全部 ACCEPTED：D-16 映射表与 pat_/ent_ 登记验收通过（Dataset 会话；黑箱线最新状态）

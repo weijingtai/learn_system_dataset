@@ -1,0 +1,38 @@
+package: blackbox-impl-02-corpus
+title: 首纵切第二批：M3 Corpus Compilation 结构层（§11）
+status: READY
+executor_groups:
+  J1: [impl-02/00, impl-02/01, impl-02/02]   # 一个执行 Agent 串行；J1 全部 ACCEPTED 后才派 J2
+  J2: [impl-02/03, impl-02/04]
+acts:
+  - file: act/00.yaml
+    id: impl-02/00
+    writes: ["docs/blackbox-spec-rework/work-items/g4-r3/check_d16.py"]
+  - file: act/01.yaml
+    id: impl-02/01
+    writes: ["pipeline/corpus_compiler/__init__.py", "pipeline/corpus_compiler/errors.py", "pipeline/corpus_compiler/serialize.py", "pipeline/corpus_compiler/compiler.py", "pipeline/corpus_compiler/tests/__init__.py", "pipeline/corpus_compiler/tests/test_compiler.py"]
+  - file: act/02.yaml
+    id: impl-02/02
+    writes: ["pipeline/corpus_compiler/gate.py", "pipeline/corpus_compiler/tests/test_gate.py"]
+  - file: act/03.yaml
+    id: impl-02/03
+    writes: ["pipeline/ledger/fixture_ingest.py", "pipeline/ledger/tests/test_ingest.py", "pipeline/corpus_compiler/inputs.py", "pipeline/corpus_compiler/step.py", "pipeline/corpus_compiler/__main__.py", "pipeline/corpus_compiler/tests/test_step.py"]
+  - file: act/04.yaml
+    id: impl-02/04
+    writes: ["pipeline/corpus_compiler/acceptance.py", "pipeline/corpus_compiler/tests/test_acceptance.py", "openspec/acceptance/m3-coverage.sh"]
+global_rules:
+  - 每个 ACT 先写测试（Red 原文入报告）再实现；unittest；测试只用 tempfile 目录，不写 var/ 与 fixture
+  - 只用标准库 + PyYAML + jsonschema；不新增依赖、不新增 ID 前缀（批号是任务标签，不是登记册 ID）、不调用模型 API
+  - 生产代码只读 Ledger 冻结修订；测试可读 fixture 作为输入或金标
+  - 中文注释与 docstring；公开函数名、参数名、返回键、检查名与 ACT contract 逐字一致
+  - 每个 ACT 一个提交；不得 git add -A / git add .
+gates:
+  - bash docs/blackbox-spec-rework/verify-T.sh | tail -1                          # FAIL 合计: 0
+  - bash docs/blackbox-spec-rework/work-items/g3-r3/mutations.sh all | tail -1    # 109/109
+  - bash openspec/schemas/verify.sh >/dev/null; echo $?                           # 0
+  - python3 docs/blackbox-spec-rework/work-items/g4-r3/check_d16.py               # D16 OK
+  - .venv/bin/python -m unittest discover -s pipeline/ledger/tests -t .           # OK
+  - .venv/bin/python -m unittest discover -s pipeline/corpus_compiler/tests -t .  # OK（ACT 01 起）
+  - export LC_ALL=en_US.UTF-8; bash openspec/acceptance/run_all.sh | tail -1      # SUMMARY pass=2 fail=1 blocked=8
+  - git diff --check
+on_fail: 停止并报告；contract 两种理解、测试无法按定义写出、需要改 scope 外文件 → 一律停手上报

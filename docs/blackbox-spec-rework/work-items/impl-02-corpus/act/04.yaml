@@ -1,0 +1,57 @@
+act_id: impl-02/04
+title: m3-coverage 验收：acceptance.py 九项判定 + openspec/acceptance/m3-coverage.sh（§19.0 判据）
+estimated_minutes: 75
+group: J2
+depends_on: [impl-02/03]
+scope:
+  write: [pipeline/corpus_compiler/acceptance.py, pipeline/corpus_compiler/tests/test_acceptance.py, openspec/acceptance/m3-coverage.sh]
+tests_first:
+  - 先写 tests/test_acceptance.py（用例名逐字）并全红，再实现 acceptance.py，最后新建 m3-coverage.sh
+contract: |
+  acceptance.py：python -m pipeline.corpus_compiler.acceptance --fixture <dir> [--keep]
+    准备：tempfile 目录 → LedgerService(root/"ledger") → ingest(fixture, service, stages=("m1","m2")) → summary = run_m3(service, edition_part_id)
+    九项判定（名称与顺序固定；判定函数只读 Ledger 与 fixture 金标，不信任 run_m3 的 gate 报告，须自行重算）：
+      inputs_frozen：summary.status == "succeeded"；Ledger 中该 StepRun 的 frozen_inputs 集合 == ocr_page_set + manifest + m2 Checkpoint 中各页修订 + 最新 m2 Checkpoint human_decisions；全部 sealed
+      page_accounting：从 Ledger 读 corpus_spans 字节与各页修订字节重算：覆盖页 ∪ 排除页 == manifest 页序；排除页 == fixture anomalies.yaml 的 {页: 终态}；每个覆盖页 ≥ 1 Span
+      structural_coverage：对每个覆盖页重算页块，Span 首尾相接（相邻 start == 前 end + 1，块中该位置为 "\n"，首 0 末 len）、"\n".join == 页块
+      strict_offset：每条 block[start:end] == text
+      glyphbox_anchors：image_sha256 == manifest 同页哈希；line_id/bbox/逐字 (char_index, glyph_id, char, box) 与页 JSON 一致
+      golden_match：corpus_spans 字节 == fixture spans.yaml 字节；sha256 == fixture expected/m3 manifest.content_sha256；
+        m3 StagePackage 内容的 counts == expected counts；payload.coverage 与 excluded_pages == expected payload 同名字段
+      batch_checkpoints：该 StepRun 的 m3 Checkpoint 共 batch_count 个、task_id 依次等于批号、prev 指针成链；StepManifest.last_checkpoint_revision_id == 末个
+      package_lineage：StagePackage 修订字节过 stage_package.schema.json；manifest.content_sha256 == corpus_spans 字节哈希；
+        lineage 输入集合 == frozen_inputs；Transformation 输出全部 sealed；配置修订内容 gate_profile == "structural_only" 且 batch_size == 10；校验报告 semantic == "not_evaluated"
+      semantic_layer：恒为 BLOCKED，说明文字逐字为「前置缺失: M3 Corpus Compilation；SemanticSpan（§11 第 2–5 条：双模型边界提议与分歧人工裁决）未实现」
+    输出：每项一行 `PASS <名>` / `FAIL <名> <原因>` / `BLOCKED <名> <说明>`；末行 `SUMMARY pass=<n> fail=<n> blocked=<n>`
+    退出码：3 仅限「<fixture>/manifest.yaml 不存在」或「yaml/jsonschema 不可导入」；
+            准备、run_m3 或任一判定抛异常 → 打印 `FAIL m3_acceptance 宿主准备失败: <异常类名>: <消息>` 并退出 1（判定函数内异常转该项 FAIL）；
+            任一 FAIL → 1；无 FAIL 有 BLOCKED → 2；全部 PASS → 0
+    无 --keep 时删除临时目录
+  m3-coverage.sh（新建，权限 755）：
+    set -u；export LC_ALL=en_US.UTF-8；REPO_ROOT 由脚本所在目录推出（openspec/acceptance → 仓库根）
+    FIXTURE_DIR 默认 "$REPO_ROOT/pipeline/corpus/_fixture/mini_ed01"，可由环境变量覆盖（先解析为绝对路径）
+    PY="$REPO_ROOT/.venv/bin/python"；不可执行 → 打印 `BLOCKED m3_coverage 前置缺失: 测试宿主匮乏；.venv 缺失` 与 `SUMMARY pass=0 fail=0 blocked=1` 并 exit 3
+    宿主校验：FIXTURE_DIR="$FIXTURE_DIR" bash "$REPO_ROOT/pipeline/corpus/_fixture/mini_ed01/verify.sh"（永远调用仓库内规范脚本，绝不执行 "$FIXTURE_DIR/verify.sh"）
+      退出 0 或 3（页图缺失）→ 继续；退出 1 → 打印 `FAIL fixture_host <verify.sh 的首个 FAIL 行>` 与 `SUMMARY pass=0 fail=1 blocked=0` 并 exit 1；其他退出码 → 同样 FAIL exit 1
+    然后 cd "$REPO_ROOT" 执行 "$PY" -m pipeline.corpus_compiler.acceptance --fixture "$FIXTURE_DIR"，退出码原样返回
+tests:
+  test_acceptance.py: |
+    - test_fixture_yields_eight_pass_one_blocked_exit_2
+    - test_semantic_layer_line_is_blocked_with_exact_text
+    - test_golden_mismatch_fails（fixture 临时副本 spans.yaml 改一个字 → acceptance.main 直接调用，golden_match FAIL，exit 1）
+    - test_dropped_span_makes_run_fail_and_exit_1（patch 编译结果删一条 Span → inputs_frozen FAIL，exit 1）
+    - test_prepare_failure_exits_1（patch fixture_ingest.ingest 抛 RuntimeError → exit 1，首行以 "FAIL m3_acceptance 宿主准备失败: RuntimeError" 开头）
+    - test_missing_fixture_exit_3
+    - test_shell_exit_2_on_fixture（subprocess 运行 m3-coverage.sh，末行 SUMMARY pass=8 fail=0 blocked=1，exit 2）
+    - test_shell_never_trusts_copy_verify（fixture 副本删一条 span，并把副本 verify.sh 换成 `echo FIXTURE OK; exit 0` → FIXTURE_DIR=副本 运行 m3-coverage.sh，exit 1，首行以 "FAIL fixture_host" 开头）
+verify:
+  - .venv/bin/python -m unittest discover -s pipeline/corpus_compiler/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 57
+  - export LC_ALL=en_US.UTF-8; bash openspec/acceptance/m3-coverage.sh; echo exit=$?               # 8 PASS + BLOCKED semantic_layer + SUMMARY pass=8 fail=0 blocked=1；exit=2
+  - grep -c 'FIXTURE_DIR/verify.sh' openspec/acceptance/m3-coverage.sh                              # 0
+  - grep -c 'return 3' pipeline/corpus_compiler/acceptance.py                                       # 2
+  - bash openspec/acceptance/run_all.sh | tail -1                                                    # SUMMARY pass=2 fail=1 blocked=8（未改动）
+  - TDD §3 回归
+commit:
+  add: [pipeline/corpus_compiler/acceptance.py, pipeline/corpus_compiler/tests/test_acceptance.py, openspec/acceptance/m3-coverage.sh]
+  message: "feat(m3): m3-coverage acceptance (8 structural checks PASS, semantic layer BLOCKED) per spec §19.0"
+on_fail: 停止并报告；不得把 semantic_layer 写成 PASS；不得让 m3-coverage.sh 在本批返回 0
