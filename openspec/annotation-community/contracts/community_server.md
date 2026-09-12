@@ -21,7 +21,7 @@
 | 文件 | 内容 |
 |---|---|
 | `xuan/community/__init__.py` | 空 |
-| `xuan/community/errors.py` | `CommunityError(code, status, **extra)`；`problem(code, status, extra)` → Problem Details 字典（`type` 按 community_api §4.2 映射） |
+| `xuan/community/errors.py` | `CommunityError(code, status, **extra)`；`problem(code, status, extra)` → 满足 `CommunityProblemDetails` 的字典（`type` 按 community_api §4.2 映射，必含 `code`） |
 | `xuan/community/ids.py` | `new_id(prefix)`（`prefix + uuid4().hex`）；`is_valid(prefix, s)`；`is_command_id(s)`（DESIGN §2.1.1 正则） |
 | `xuan/community/command_service.py` | §3 |
 | `xuan/community/content_service.py` | §4（W1～W6 业务函数，纯事务回调） |
@@ -164,8 +164,8 @@ Red：每个测试文件先于实现提交；`from xuan.community import command
 | D-NC009-11 | 非法三元组读取返回 500 `internal.state_corrupted` | DESIGN §4.1 要求读 500 并告警；NC-003 错误目录无 500 行，由 §9 补丁 P2 补上 |
 | D-NC009-12 | `payload_hash` 在事务外计算且含 If-Match；新对象 ID 在事务外一次性生成 | DESIGN §7.4 第 2 条「新对象 ID 在事务重跑前固定」；同键异 If-Match 必须判为异载荷 |
 
-## 9. 对 NC-003 契约的前置补丁（NC-003 验收通过后由主 Agent 另立 act/06，NC-009 派发前置）
+## 9. 对 NC-003 契约的前置补丁（已合入 NC-003 act/06 与 community_api.md §10.4/§10.5；NC-009 派发前置）
 
 - **P1**：`POST /v1/community/contents`（W1）`parameters` 增加 `IfMatch`，`required: false`，描述写明「首次发布缺省；重新发布必带」；NC-003 B08 的「W1 不含 IfMatch」断言改为「W1 含 IfMatch 且 required=false」。
 - **P2**：错误目录增 `500 internal.state_corrupted`（`type: internal`），`ProblemDetails.type` 枚举增 `internal`（与 `_L0_MAP` 的 `internal` 一致），R1 响应增 500。
-- 补丁不改 NC-003 已冻结的其余端点、字段与计数外的测试；act/06 估 30 分钟，全量 `dart test` 由 +65 变为 +66（新增 P2 断言一个）。
+- 实际落地：P1 以参数组件 `IfMatchOptional` 实现；P2 以响应组件 `500StateCorrupted` 实现；社区错误体改为 `CommunityProblemDetails`（community_api §10.2），NC-009 的 Problem Details 输出须满足它（含 `code`），遗留 `make_problem_details` 不变。

@@ -603,7 +603,7 @@
   - [x] wjt-react 四查：R1 REWORK 20 项、R2 REWORK 9 项、R3 READY（`reviews/NC-002-REVIEW-R1.md`）；守卫 `nc002_guard.sh` 0
   - [x] 外部执行 Agent 完成 act/01～06：learn_system `0d27ea8`→`7ee2c45`，SERVER `30a868c`；主 Agent 验收通过（守卫 `--require-impl` 0、61 PASS、198 项、7+8 测试、9 盲测快照/反例、12 Schema 盲测、3 校验器变异），记录见 `work-items/nc-002/ACCEPTANCE.md`
   - [x] CLIENT Dart 一致性测试推迟至 NC-004 第一条 ACT（已写入 nc-004/act/01）
-- [ ] NC-003：公共 REST/OpenAPI/Swagger 契约与错误目录（状态：`READY`，2026-09-11；用户指示按 Firebase 方向、与 functions-py 统一；PROMPT 已交用户派发）
+- [ ] NC-003：公共 REST/OpenAPI/Swagger 契约与错误目录（状态：`REWORK_ACT06`，2026-09-11：act/01～05 已交付 `67910c3`…`89cc68d`，守卫与五项盲测通过；发现可空字段 3.0 写法、遗留错误体被改、字节上限三处缺陷，追加 act/06 并合入 NC-009 前置补丁 P1/P2）
   - [x] 规格侧契约（主 Agent）：`openspec/annotation-community/contracts/community_api.md`（functions-py 现状盘点与沿用表、20 端点目录、头参数与 ETag、错误目录与 L0 映射、Schema 字段表、分页与限流实值、命令账本结果白名单、D-NC003-01～11）；验证器 `openapi-spec-validator 0.9.0` 已装入 `.venv-openapi`，既有 REST 契约验证失败（`'headers' was unexpected`）作为 Red 基线
   - [x] 六件套 `work-items/nc-003/`（act/01 验证器接入与 35 处迁移、act/02 组件与内容端点、act/03 评论/互动/分享/举报/命令端点、act/04 示例校验与版本号）与守卫 `reviews/nc003_guard.sh`
   - [x] wjt-react 四查：R1 返工 6 项 + R2 返工 1 根因（14 行断言实为 10 块/其余 9 个）均落实并自证，READY（`reviews/NC-003-REVIEW-R1.md`）；守卫 `nc003_guard.sh` 0

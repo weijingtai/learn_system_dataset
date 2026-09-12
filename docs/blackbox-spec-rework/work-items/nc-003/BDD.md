@@ -31,3 +31,8 @@
 | B26 | `GET /v1/community/commands/{command_id}` | 检查 | 无 query 参数；响应 200/404/503 三个；无 410 |
 | B27 | W1～W14 任一 | 检查响应 | 含 410 响应且 `$ref` `GoneCommandResult`（附加字段 `command`） |
 | B23 | `info.version` | 检查 | `1.1.0` |
+| B28 | 社区 Schema（§5 名单 + `CommunityProblemDetails` 与全部社区 `Problem*`） | 遍历全部嵌套节点 | 无 `nullable` 键；契约写作「/ null」的属性其 `type` 为含 `"null"` 的数组；示例 `content_access_null_publication.json`（`current_publication_id: null`）与 `reaction_state_null_value.json`（`value: null`）经 `check_examples.py` 原样校验 `valid` |
+| B29 | 基线 `0f8bf52` 与当前文档 | 比较 `components/schemas/ProblemDetails` 与 8 个遗留响应组件 | 逐项相等；全部社区端点的 4xx/5xx 响应不引用这 8 个遗留组件；`CommunityProblemDetails.required == [type, title, status, code]` |
+| B30 | `POST /v1/community/contents` | 检查 `parameters` | 含 `IfMatchOptional`（`in: header`、`name: If-Match`、`required: false`）；B08 的 required `IfMatch` 集合仍恰为 W2～W6、W8～W11 |
+| B31 | `PublicSnapshot.markdown` 与 R1 | 检查 | `x-max-utf8-bytes == 262144`；R1 `500` 引用 `500StateCorrupted`，其 `code.const == internal.state_corrupted` |
+| B32 | `tool/check_examples.py` | 源码扫描 | 不含字符串 `nullable` |

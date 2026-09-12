@@ -248,4 +248,26 @@ L0 闭合码全集：`invalid_argument, not_found, unauthenticated, permission_d
 | D-NC003-09 | backup.* 只作保留枚举值，不定义路径 | v1.6：私人数据保护改为 S6 模型，无云端备份；保留枚举以免改动 NC-002 已冻结的 Schema 与 fixture |
 | D-NC003-10 | `conflict.object_missing` 新增为目录行 | DESIGN §4.3 publish 前置「图片对象已全部上传完成」需要可断言的错误码 |
 | D-NC003-11 | 契约测试用 Python 验证器与 jsonschema 经进程调用 | Dart 生态无成熟 3.1 校验器（DESIGN §7.4 明令禁止再写 yaml 字段检查器充数） |
+| D-NC003-13 | 社区可空字段用 3.1 类型数组，禁用 `nullable` | 3.1 忽略 `nullable`，初版被真实校验拒收 null（验收盲测发现） |
+| D-NC003-14 | 社区错误体独立为 `CommunityProblemDetails`，遗留 `ProblemDetails` 恢复原样 | 初版给共享 Schema 加必填 `code`，使遗留端点契约与服务端实际响应不符（主 Agent 契约缺陷） |
+| D-NC003-15 | 字节上限以 `x-max-utf8-bytes` 声明、服务端强制 | JSON Schema 只能计 code point |
 | D-NC003-12 | `forbidden.not_owner` 覆盖 update/withdraw/trash/restore/purge/share.create 六个本人操作，比 DESIGN §7.3 基线（withdraw/publish/trash）多列 restore/purge/share.create | 三者同为「只有本人可做」且调用方已被证明可读，按 §7.3 边界规则归 403；基线表只列举未穷举 |
+
+## 10. 验收返工补充（2026-09-11，NC-003 act/06 消费；同时落地 NC-009 前置补丁 P1/P2）
+
+### 10.1 可空字段按 3.1 表达（D-NC003-13）
+社区 Schema 中凡契约写作「X / null」的属性，一律写 `type: [<原类型>, "null"]`（带 `enum` 的同时把 `null` 加入 `enum`）；社区 Schema 内**禁止出现 `nullable` 键**（3.0 关键字，3.1 与 JSON Schema 2020-12 忽略它，真实校验会拒收 `null`）。`tool/check_examples.py` 删除任何对 `nullable` 的改写，按文档原样校验。遗留 playground/record Schema 的 `nullable` 不在本任务范围、不改。
+
+### 10.2 社区错误体与遗留错误体分离（D-NC003-14）
+- `components/schemas/ProblemDetails` 与 `components/responses/{400BadRequest,401Unauthorized,403Forbidden,404NotFound,409Conflict,500Internal,503Unavailable,504DeadlineExceeded}` **恢复为与 `0f8bf52` 逐项相等**（遗留端点仍不要求 `code`）。
+- 新增 `components/schemas/CommunityProblemDetails`：属性 `type`（enum 沿用遗留 10 值：`not_found, conflict.version, conflict.idempotency, conflict.unique, invalid_argument, permission_denied, unauthenticated, unavailable, deadline_exceeded, internal`）、`title`、`status`、`code`、`detail`、`instance`；`required: [type, title, status, code]`。全部社区错误变体 Schema（`Problem*`）改为 `allOf` 引用 `CommunityProblemDetails`；全部社区端点的 4xx/5xx 响应只引用社区响应组件。
+- §4.2 映射表不变；§4.2 末句「`ProblemDetails.type` 的 enum 恰为 6 个值」作废，由本条替代（该 enum 与遗留共用，社区 `code` 只映射到其子集）。
+
+### 10.3 字节上限（D-NC003-15）
+`PublicSnapshot.markdown` 保留 `maxLength: 262144`（code point 宽松上界），并加扩展字段 `x-max-utf8-bytes: 262144` 与描述「UTF-8 字节上限 262144；超出服务端返回 413 too_large.markdown」。JSON Schema 无法表达字节长度，字节判定归服务端（NC-009 B13）。
+
+### 10.4 前置补丁 P1：W1 可选 If-Match（NC-009 D-NC009-09）
+`POST /v1/community/contents` 的 `parameters` 增加 `$ref: IfMatch` 的**引用方式不可用**（`IfMatch` 组件为 `required: true`）；新增组件 `IfMatchOptional`（`name: If-Match`、`in: header`、`required: false`、同 pattern），描述「首次发布缺省；重新发布（visibility=withdrawn）必带且等于 ContentAccess.version」。B08 断言相应改为：`IfMatch`（required）集合恰为 W2～W6、W8～W11；W1 恰含 `IfMatchOptional`；其余操作不含任何 `If-Match`。
+
+### 10.5 前置补丁 P2：数据损坏 500（NC-009 D-NC009-11）
+新增响应组件 `500StateCorrupted`，schema `allOf CommunityProblemDetails` 且 `code: {const: internal.state_corrupted}`、`type: {const: internal}`；R1 的 `500` 引用它。§4.1 错误目录增行：数据损坏（状态组合白名单外）｜500｜`internal.state_corrupted`｜—。

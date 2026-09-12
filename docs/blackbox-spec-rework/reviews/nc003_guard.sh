@@ -53,8 +53,24 @@ else:
             if p.is_file():
                 r=subprocess.run([str(VAL),str(p)],capture_output=True,text=True); ok&=r.returncode!=0; det.append(f"{rf}={r.returncode}")
     else: ok=False; det.append("validator not installed")
+    import yaml as _y
+    yd=_y.safe_load(y) if y else {}
+    act06=("CommunityProblemDetails" in (yd.get("components",{}).get("schemas",{}) if yd else {}))
+    need_tests=69 if act06 else 65; det.append(f"act06_landed={act06} need>={need_tests}")
+    if req and not act06: ok=False; det.append("act/06 未落地：缺 CommunityProblemDetails（契约 §10）")
+    if act06:
+        S=yd["components"]["schemas"]; comm=[k for k in S if not k.startswith(("Record","Playground","ProblemDetails"))]
+        def _has_nullable(n):
+            if isinstance(n,dict): return ("nullable" in n) or any(_has_nullable(v) for v in n.values())
+            if isinstance(n,list): return any(_has_nullable(v) for v in n)
+            return False
+        nl=[k for k in comm if _has_nullable(S[k])]; ok&=not nl; det.append(f"community_nullable={nl[:3]}")
+        base=_y.safe_load(subprocess.run(["git","-C",str(REST),"show","0f8bf52:openapi/openapi.yaml"],capture_output=True,text=True).stdout)
+        leg=["400BadRequest","401Unauthorized","403Forbidden","404NotFound","409Conflict","500Internal","503Unavailable","504DeadlineExceeded"]
+        eq=base["components"]["schemas"]["ProblemDetails"]==S["ProblemDetails"] and all(base["components"]["responses"][r]==yd["components"]["responses"][r] for r in leg)
+        ok&=eq; det.append(f"legacy_equal={eq}"); ok&=("nullable" not in read(REST/"tool/check_examples.py")); det.append(f"check_examples_nullable={'nullable' in read(REST/'tool/check_examples.py')}")
     env=dict(os.environ); env["PATH"]=FL+":"+env["PATH"]
-    dt=subprocess.run(["dart","test"],cwd=REST,capture_output=True,text=True,env=env); m=re.search(r"\+(\d+): All tests passed!",dt.stdout); ok&=dt.returncode==0 and m is not None and int(m.group(1))>=65; det.append(f"dart_test={dt.returncode}/{m.group(1) if m else '无'}")
-    check(ok,"K05 NC-003 产物：工具与 fixture、社区路径与 1.1.0、真实验证器 0/红文档非 0、无作弊、未触碰 lib/pubspec、dart test ≥65","; ".join(det))
+    dt=subprocess.run(["dart","test"],cwd=REST,capture_output=True,text=True,env=env); m=re.search(r"\+(\d+): All tests passed!",dt.stdout); ok&=dt.returncode==0 and m is not None and int(m.group(1))>=need_tests; det.append(f"dart_test={dt.returncode}/{m.group(1) if m else '无'}")
+    check(ok,"K05 NC-003 产物：工具与 fixture、社区路径与 1.1.0、真实验证器 0/红文档非 0、无作弊、未触碰 lib/pubspec、dart test ≥65/69","; ".join(det))
 print(f"\nNC-003 失败条数：{fails}"); sys.exit(fails)
 PY

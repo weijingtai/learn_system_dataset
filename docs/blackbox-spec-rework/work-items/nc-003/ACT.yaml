@@ -1,5 +1,5 @@
 TASK_ID: NC-003
-STATUS: READY
+STATUS: REWORK
 GOAL: 在 REST 仓库把 openapi.yaml 修成合法 3.1 并追加注解社区 20 端点、错误目录、命令账本与真实验证器/示例校验
 CONTRACTS:
   - openspec/annotation-community/contracts/community_api.md
@@ -11,8 +11,9 @@ SPLIT:
   - act/03.yaml
   - act/04.yaml
   - act/05.yaml
-ORDER: "严格按 act/01 → 02 → 03 → 04 → 05；全部提交在 /Users/jingtaiwei/Git/Public/xuan-migration/repository-rest-adapter 仓库；每步以上一步提交为基线；禁止并行"
-ESTIMATE_MINUTES_TOTAL: 230
+  - act/06.yaml（2026-09-11 验收返工 + NC-009 前置补丁 P1/P2）
+ORDER: "严格按 act/01 → 02 → 03 → 04 → 05 → 06；全部提交在 /Users/jingtaiwei/Git/Public/xuan-migration/repository-rest-adapter 仓库；每步以上一步提交为基线；禁止并行"
+ESTIMATE_MINUTES_TOTAL: 280
 DEFERRED:
   - "backup.begin/complete/delete：v1.6 起为保留枚举值，本期无路径（PRD R-13 改为本机导出）"
   - "服务端实现（command_service、事务、ACL 18 例真实 HTTP 测试、限流开启）：NC-009 起"

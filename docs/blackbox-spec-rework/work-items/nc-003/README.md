@@ -1,6 +1,6 @@
 # NC-003：公共 REST/OpenAPI 契约、错误目录与幂等命令面
 
-状态：`READY`（2026-09-11：R1 返工 6 项、R2 返工 1 根因，均已落实并机械自证；记录见 `reviews/NC-003-REVIEW-R1.md`）。派发前置：无（NC-002 已 ACCEPTED；契约不依赖 Firebase 去留决定——身份策略见 D-NC003-02）。执行由用户交外部 Agent，PROMPT.md 原样发送。task_id：`NC-003`。权威需求来源：TASKS NC-003；DESIGN §2.1.1、§4、§7.3、§7.4；PRD R-05/R-18/R-20；契约 `openspec/annotation-community/contracts/community_api.md`（本任务专属，主 Agent 编写，含 SERVER functions-py 现状盘点结论）。
+状态：`REWORK_ACT06`（2026-09-11 主 Agent 验收：act/01～05 形式门禁与五项盲测通过，发现可空字段 3.0 写法、遗留错误体被改、字节上限不可表达三处缺陷，追加 act/06 并合入 NC-009 前置补丁 P1/P2；记录见 ACCEPTANCE.md R1）。原状态 `READY`（R1 返工 6 项、R2 返工 1 根因；`reviews/NC-003-REVIEW-R1.md`）。派发前置：无（NC-002 已 ACCEPTED；契约不依赖 Firebase 去留决定——身份策略见 D-NC003-02）。执行由用户交外部 Agent，PROMPT.md 原样发送。task_id：`NC-003`。权威需求来源：TASKS NC-003；DESIGN §2.1.1、§4、§7.3、§7.4；PRD R-05/R-18/R-20；契约 `openspec/annotation-community/contracts/community_api.md`（本任务专属，主 Agent 编写，含 SERVER functions-py 现状盘点结论）。
 
 ## 用户指示（2026-09-11）
 

@@ -26,3 +26,26 @@
 5. 跳过项、未运行项与剩余风险。
 
 不要把本任务说成 NC-003 之外的任何任务完成：服务端实现、ACL 真实 HTTP 测试、限流开启、备份端点、通知补拉都在后续任务。
+
+
+# NC-003 act/06 返工执行提示（2026-09-11 验收后追加）
+
+发送前提：act/01～05 已在 REST 仓提交（`67910c3`…`89cc68d`）。把分隔线以下全文原样发给执行 Agent。
+
+---
+
+你执行 NC-003 的返工步 act/06：在 REST 仓库 `/Users/jingtaiwei/Git/Public/xuan-migration/repository-rest-adapter`（独立 Git 仓库；`xuan-migration` 父目录不是 Git 仓库，绝不在父目录执行 git；learn_system 只读）以 `89cc68d` 为基线修三处缺陷并加两个小补丁。`export PATH=/Users/jingtaiwei/flutter/bin:$PATH`。
+
+**先读**：`docs/blackbox-spec-rework/work-items/nc-003/act/06.yaml`、`TDD.md` §5c、`BDD.md` B28～B32、`ACCEPTANCE.md` 末尾「验收记录 R1」；契约 `openspec/annotation-community/contracts/community_api.md` §10 全文（逐字照做）。
+
+**要改的五件事**：① 社区 Schema 的可空字段从 `nullable: true` 改为 `type: [<类型>, "null"]`（带 enum 的把 `null` 加进 enum），社区 Schema 内不得再有 `nullable` 键；`tool/check_examples.py` 删除一切对 `nullable` 的改写，按文档原样校验。② `ProblemDetails` 与 8 个遗留响应组件（400BadRequest、401Unauthorized、403Forbidden、404NotFound、409Conflict、500Internal、503Unavailable、504DeadlineExceeded）恢复为与 `0f8bf52` 逐项相等；新增 `CommunityProblemDetails`（required 为 type/title/status/code），全部社区 `Problem*` 改为 allOf 它，社区端点只引用社区响应组件。③ `PublicSnapshot.markdown` 加 `x-max-utf8-bytes: 262144` 与描述。④ 新增参数组件 `IfMatchOptional`（required false）并挂到 `POST /v1/community/contents`。⑤ 新增响应组件 `500StateCorrupted`（code const `internal.state_corrupted`，type const `internal`），R1 的 500 引用它。
+
+**先写测试再改实现**：先加 4 个新测试（名称逐字取 TDD §5c）、改 2 个既有测试的断言对象（测试名不变）、加 2 个 null 示例并入 manifest，对 `89cc68d` 取得 Red 原文，再改 yaml 与工具。
+
+**只允许写**：`openapi/openapi.yaml`、`tool/check_examples.py`、`test/fixtures/openapi/examples/`（两个新文件 + manifest）、`test/community_openapi_contract_test.dart`。禁止：`lib/`、`pubspec.*`、`test/openapi_validation_test.dart` 及其他测试；遗留 Schema 的 `nullable`；新增依赖；`skip`、永真断言。
+
+**判据**：契约 §10 与 TDD §5c。遗留组件恢复原样后既有 19 个 `openapi_validation_test` 变红、或验证器报出本任务未引入的错误：立即停止并原样报告。
+
+**提交**：一个提交，只 `git add` 上述文件，不 push；提交消息按 act/06 的 COMMIT_MESSAGE，末尾另起两行加 `Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>`。
+
+**交付报告**：commit 哈希与 `git show --stat`；Red 命令/退出码/原文；VERIFICATION 每条命令的退出码与末 20 行（`dart test` 应 `+69: All tests passed!`，`check_examples.py` 10 项全过）；`nc003_guard.sh --require-impl` 退出码；另请把 act/01～05 的交付报告原文一并附上（此前未收到）。

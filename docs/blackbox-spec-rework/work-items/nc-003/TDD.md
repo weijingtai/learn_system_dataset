@@ -10,8 +10,8 @@
 | 2 | `tool/validate_openapi openapi/openapi.yaml` | act/01 后退出 0（改前非零） |
 | 3 | `tool/validate_openapi test/fixtures/openapi/red_operation_headers.yaml`；`… red_invalid_31.yaml` | 均非零 |
 | 4 | `dart test test/openapi_validation_test.dart` | `+19` |
-| 5 | `dart test test/community_openapi_contract_test.dart` | act/01 后 `+2`；act/02 后 `+5`；act/03 后 `+8`；act/04 后 `+13`；act/05 后 `+15` |
-| 6 | `dart test` | act/01 `+52`；act/02 `+55`；act/03 `+58`；act/04 `+63`；act/05 `+65: All tests passed!` |
+| 5 | `dart test test/community_openapi_contract_test.dart` | act/01 后 `+2`；act/02 后 `+5`；act/03 后 `+8`；act/04 后 `+13`；act/05 后 `+15`；act/06 后 `+19` |
+| 6 | `dart test` | act/01 `+52`；act/02 `+55`；act/03 `+58`；act/04 `+63`；act/05 `+65`；act/06 `+69: All tests passed!` |
 | 7 | `python tool/check_examples.py`（act/05） | 退出 0 |
 | 8 | `git diff 0f8bf52 HEAD --stat -- lib pubspec.yaml pubspec.lock` | 空 |
 | 9 | `grep -c 'headers:' openapi/openapi.yaml` 仅作参考；判据用测试 B05 | — |
@@ -55,8 +55,16 @@ Red：先写 5 个测试，运行命令 5 取得失败原文。
 
 Red：先写测试与 manifest（工具尚不存在）取得原文；实现工具；命令 6 达 `+65`。
 
+## 5c. act/06：验收返工（NC-003-F；契约 §10）
+
+文件：`openapi/openapi.yaml`、`tool/check_examples.py`（删 `nullable` 改写）、`test/fixtures/openapi/examples/`（新增 2 个示例并入 manifest，共 10 项）、`test/community_openapi_contract_test.dart`（新增 4 个测试；修改既有 `if match required on versioned writes and absent elsewhere` 与 `problem details requires code and error responses use it` 两个测试的断言对象，测试名不变）。
+
+4 个新测试（名称逐字）：`community schemas express null with type arrays not nullable`（B28，含 check_examples 源码不含 `nullable`：B32）、`legacy problem details and responses equal baseline`（B29：用 `git show 0f8bf52:openapi/openapi.yaml` 取基线，YAML 解析后比较）、`publish declares optional if match for republish`（B30）、`markdown declares utf8 byte limit and detail declares state corrupted`（B31）。
+
+Red：先改/写 6 个测试与 2 个示例，对 `89cc68d` 运行命令 5 与命令 7 取得失败原文（B28 应红：null 示例 invalid；B29 应红：ProblemDetails 与基线不等）。
+
 ## 6. Red→Green 与禁止
 
 - 每步先测试后实现；报告贴 Red 原文。
 - 禁止：`skip`、永真断言、改 `lib/`、改 `pubspec.*`、新增依赖、再写 yaml 字段检查器代替验证器、改 playground 字段语义、把 backup.* 路径写进文档。
-- 命令 6 最终 `+65`。
+- 命令 6 最终 `+69`（act/05 阶段 `+65`）。

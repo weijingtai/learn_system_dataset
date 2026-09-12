@@ -1,0 +1,42 @@
+TASK_ID: NC-003-F
+PARENT: NC-003
+STATUS: READY
+REPO: xuan-migration/repository-rest-adapter
+GOAL: 验收返工：社区可空字段改 3.1 类型数组、遗留 ProblemDetails 恢复原样并新增 CommunityProblemDetails、markdown 字节上限扩展字段、W1 可选 If-Match（P1）、R1 500 state_corrupted（P2）；4 新测试 + 2 测试改断言；全量 +69
+DEPENDS_ON: [NC-003-E]
+ESTIMATE_MINUTES: 50
+WORKLOAD: "yaml：约 18 处 nullable 改写、1 个新 Schema 与约 12 个 Problem* 的 allOf 改指、1 个参数组件、1 个响应组件、1 个扩展字段；check_examples.py 删约 20 行；2 个示例；6 个测试"
+SCOPE:
+  READ:
+    - /Users/jingtaiwei/Git/Public/learn_system/openspec/annotation-community/contracts/community_api.md §4、§5、§10
+    - /Users/jingtaiwei/Git/Public/learn_system/docs/blackbox-spec-rework/work-items/nc-003/TDD.md §5c、BDD.md B28～B32
+    - /Users/jingtaiwei/Git/Public/xuan-migration/repository-rest-adapter（基线 0f8bf52 的 openapi.yaml，经 git show 读取）
+  WRITE_NEW:
+    - /Users/jingtaiwei/Git/Public/xuan-migration/repository-rest-adapter/openapi/openapi.yaml
+    - /Users/jingtaiwei/Git/Public/xuan-migration/repository-rest-adapter/tool/check_examples.py
+    - /Users/jingtaiwei/Git/Public/xuan-migration/repository-rest-adapter/test/fixtures/openapi/examples/（新增 content_access_null_publication.json、reaction_state_null_value.json；manifest.json 追加两项）
+    - /Users/jingtaiwei/Git/Public/xuan-migration/repository-rest-adapter/test/community_openapi_contract_test.dart（4 新测试；仅改 2 个既有测试的断言对象）
+  FORBIDDEN:
+    - learn_system 任何写入；lib/、pubspec.*、test/openapi_validation_test.dart、test/rest_contract_suite_test.dart、test/wire_test.dart
+    - 遗留 playground/record Schema 的 nullable；新增依赖；skip；永真断言；先实现后补测试
+DEPENDENCY_ALLOWLIST: [无新增]
+RULES:
+  - "改动逐字按契约 §10；ProblemDetails 与 8 个遗留响应组件必须与 0f8bf52 逐项相等"
+  - "只 git add 本步文件；提交消息按 COMMIT_MESSAGE，末尾另起两行 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
+TESTS_FIRST:
+  - "改/写 6 个测试与 2 个示例；对 89cc68d 运行 TDD 命令 5 与 7，保存失败原文作为 Red"
+STEPS:
+  - "按契约 §10 改 yaml 与 check_examples.py 至命令 5 为 +19、命令 6 为 +69、命令 7 退出 0、验证器 0"
+  - "git add 本步文件并提交"
+  - "提交后（仅此一次）：bash docs/blackbox-spec-rework/reviews/nc003_guard.sh --require-impl，退出码写入报告"
+VERIFICATION:
+  - "export PATH=/Users/jingtaiwei/flutter/bin:$PATH && cd /Users/jingtaiwei/Git/Public/xuan-migration/repository-rest-adapter && dart analyze"
+  - "cd /Users/jingtaiwei/Git/Public/xuan-migration/repository-rest-adapter && tool/validate_openapi openapi/openapi.yaml（期望 0）"
+  - "cd /Users/jingtaiwei/Git/Public/xuan-migration/repository-rest-adapter && /Users/jingtaiwei/Git/Public/learn_system/.venv/bin/python tool/check_examples.py（期望 0，10 项）"
+  - "cd /Users/jingtaiwei/Git/Public/xuan-migration/repository-rest-adapter && dart test test/community_openapi_contract_test.dart（期望 +19）"
+  - "cd /Users/jingtaiwei/Git/Public/xuan-migration/repository-rest-adapter && dart test（期望 +69）"
+  - "cd /Users/jingtaiwei/Git/Public/learn_system && bash docs/blackbox-spec-rework/reviews/nc003_guard.sh --require-impl（期望 0）"
+  - "git -C /Users/jingtaiwei/Git/Public/xuan-migration/repository-rest-adapter status --short（提交后为空）"
+ON_FAIL: "停止并报告失败命令、退出码与原文；遗留组件无法在不破坏既有 19 个 openapi_validation_test 的前提下恢复原样、或验证器报非本任务引入的错误，均为停止条件。"
+BASELINE_EXIT_CODES: "开工基线：REST 仓 89cc68d（dart test +65、validate_openapi 0、check_examples 0）"
+COMMIT_MESSAGE: "fix(openapi): 社区可空字段 3.1 化、社区错误体独立、W1 可选 If-Match 与 500 state_corrupted（NC-003-F）"
