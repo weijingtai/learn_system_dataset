@@ -57,7 +57,10 @@ else:
     for f in ("lib/src/export/export_bundle_format.dart", "lib/src/export/export_writer.dart", "test/export/export_bundle_test.dart"):
         if not (RN / f).is_file(): ok = False; det.append(f"missing {f}")
     ok &= re.search(r"^  cryptography: 2\.9\.0$", read(RN / "pubspec.yaml"), re.M) is not None
-    lock = read(RN / "pubspec.lock"); ok &= re.search(r'cryptography:\n(?:.*\n){5}\s+version: "2\.9\.0"', lock) is not None
+    # 锁文件判据：取 `  cryptography:` 块（到下一个两空格缩进的包名为止）内的 version 行（NC-017 执行方指出原正则行数写错）
+    lock = read(RN / "pubspec.lock"); blk = re.search(r'^  cryptography:\n((?:    .*\n)+)', lock, re.M)
+    lock_ok = blk is not None and re.search(r'^    version: "2\.9\.0"$', blk.group(1), re.M) is not None
+    ok &= lock_ok; det.append(f"lock_cryptography_2_9_0={lock_ok}")
     t = read(RN / "test/export/export_bundle_test.dart")
     miss = [n for n in TESTS if n not in t]; ok &= not miss; det.append(f"tests_missing={miss[:3]}")
     cheats = [p for p in ("skip:", "expect(true, isTrue)") if p in t]; ok &= not cheats; det.append(f"cheats={cheats}")
