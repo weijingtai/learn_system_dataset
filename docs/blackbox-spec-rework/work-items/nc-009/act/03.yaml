@@ -1,6 +1,6 @@
 TASK_ID: NC-009-C
 PARENT: NC-009
-STATUS: DRAFT
+STATUS: READY
 REPO: xuan-server/functions-py
 GOAL: trash/restore/purge 事务、R6 分页、R5 查询端点与每日精简任务；7 测试
 DEPENDS_ON: [NC-009-B]

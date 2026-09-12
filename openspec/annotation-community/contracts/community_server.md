@@ -164,9 +164,9 @@ Red：每个测试文件先于实现提交；`from xuan.community import command
 | D-NC009-09 | W1 的 `If-Match`：首次发布缺省，重新发布必带且等于 access.version | NC-002 冻结 fixture `republish_from_withdrawn` 要求 `if_match_matches`，SM-2a 同；NC-003 W1 未声明该头，由 §9 补丁 P1 补上 |
 | D-NC009-10 | R2-05「收回 vs 评论」并发屏障测试移至 NC-011 | `comment.create` 在 NC-011 实现；NC-009 只保证 withdraw 在同事务提升 `ContentAccess.version`（`withdraw_retracts_clears_bindings_and_bumps_access_version` 断言），为 NC-011 的屏障提供前提 |
 | D-NC009-11 | 非法三元组读取返回 500 `internal.state_corrupted` | DESIGN §4.1 要求读 500 并告警；NC-003 错误目录无 500 行，由 §9 补丁 P2 补上 |
+| D-NC009-12 | `payload_hash` 在事务外计算且含 If-Match；新对象 ID 在事务外一次性生成 | DESIGN §7.4 第 2 条「新对象 ID 在事务重跑前固定」；同键异 If-Match 必须判为异载荷 |
 | D-NC009-13 | 他人写入：可读则 403，不可读则 404（与读路径共用体），在版本与生命周期判定之前执行 | DESIGN §7.3「调用方已被证明拥有读权限时用 403，否则一律 404」；按「身份→存在性→归属→版本→生命周期」顺序，他人对仍公开的内容做 W1 得 403（不是 409），因此 `forbidden.not_owner` 覆盖 `content.publish`；他人对已收回/回收站/隐藏内容一律 404 |
 | D-NC009-14 | 服务端 `event_id` 按 DESIGN §11.2 确定性哈希，复用 NC-002 `community_hash.encode` | 审查 R1 发现初稿把它归入随机 `new_ids`，违反 §11.2 的重跑/重试同 ID 要求 |
-| D-NC009-12 | `payload_hash` 在事务外计算且含 If-Match；新对象 ID 在事务外一次性生成 | DESIGN §7.4 第 2 条「新对象 ID 在事务重跑前固定」；同键异 If-Match 必须判为异载荷 |
 
 ## 9. 对 NC-003 契约的前置补丁（已合入 NC-003 act/06 与 community_api.md §10.4/§10.5；NC-009 派发前置）
 

@@ -1,6 +1,6 @@
 # NC-009：公共发布事务、权限扫描与命令账本服务（服务端）
 
-状态：`DRAFT`（2026-09-11，待 wjt-react 四查）。派发前置：**NC-003 ACCEPTED（含 act/06，已合入契约 §9 P1/P2）——2026-09-11 已满足（REST 仓 `5730ed9`）**；环境阻塞已于 2026-09-11 解除（见 Baseline）。执行由用户交外部 Agent，PROMPT.md 原样发送。task_id：`NC-009`。权威需求来源：TASKS NC-009；DESIGN §4、§7.3、§7.4、§11.4～11.5；PRD R-05/R-20、§6.2；契约 `contracts/community_server.md`（本任务专属，主 Agent 编写）与 `community_api.md`（NC-003）。
+状态：`READY`（2026-09-11：主 Agent 自审 5 项、R1 返工 3 项 + 2 建议、R2 返工 1 项均落实；记录见 `reviews/NC-009-REVIEW-R1.md`）。派发前置：**NC-003 ACCEPTED（含 act/06，已合入契约 §9 P1/P2）——2026-09-11 已满足（REST 仓 `5730ed9`）**；环境阻塞已于 2026-09-11 解除（见 Baseline）。执行由用户交外部 Agent，PROMPT.md 原样发送。task_id：`NC-009`。权威需求来源：TASKS NC-009；DESIGN §4、§7.3、§7.4、§11.4～11.5；PRD R-05/R-20、§6.2；契约 `contracts/community_server.md`（本任务专属，主 Agent 编写）与 `community_api.md`（NC-003）。
 
 ## Goal
 

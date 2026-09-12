@@ -1,6 +1,6 @@
 TASK_ID: NC-009-A
 PARENT: NC-009
-STATUS: DRAFT
+STATUS: READY
 REPO: xuan-server/functions-py
 GOAL: 命令账本服务：事务流程、重放/冲突/拒绝终态、14 天精简、R5 查询函数、随机假名映射、事务外固定对象 ID；注册集合与导出；12 测试
 DEPENDS_ON: []

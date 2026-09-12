@@ -648,11 +648,11 @@
 ### 图片与公开社区
 
 - [ ] NC-008：本地图片与公共资源适配（状态：`BACKLOG`）
-- [ ] NC-009：公共发布事务、权限扫描与命令账本服务（状态：`DRAFT`，2026-09-11 契约与六件套完成，待四查；派发前置 NC-003 ACCEPTED + 磁盘清理后重建 functions-py/.venv）
+- [ ] NC-009：公共发布事务、权限扫描与命令账本服务（状态：`READY`，2026-09-11；派发前置 NC-003 ACCEPTED 与 `.venv` 基线均已满足；PROMPT 已交用户）
   - [x] 规格侧契约（主 Agent）：`openspec/annotation-community/contracts/community_server.md`（canonical SERVER 与 RULES 仓实值、六集合与文档、账本事务六步、W1～W6 前置顺序与写集、读路径与 ACL 18 条矩阵、规则 jest、测试名、D-NC009-01～08）
   - [x] 六件套 `work-items/nc-009/`（act/01 账本、act/02 发布/更新/收回、act/03 回收站/查询/精简、act/04 ACL/规则/可观测）与守卫 `reviews/nc009_guard.sh`
-  - [ ] wjt-react 四查
-  - [ ] 环境：用户清理磁盘（剩余 427 MiB）→ 主 Agent 重建 `.venv` 并填既有 pytest 基线
+  - [x] 自审 5 项 + wjt-react R1 返工 3 项 + R2 返工 1 项，READY（`reviews/NC-009-REVIEW-R1.md`）
+  - [x] 环境：磁盘清理后重建 `.venv`，基线 411 passed / 5 个既有失败（README 逐名登记）
   - [ ] 用户派发；主 Agent 按 ACCEPTANCE.md 验收
 - [ ] NC-010：客户端命令队列、公共 API 客户端、发布状态与页面（状态：`DRAFT`，2026-09-11 契约与六件套完成，待四查；派发前置 NC-003 ACCEPTED 已满足）
   - [x] 规格侧契约（主 Agent）：`openspec/annotation-community/contracts/community_client.md`（独立 CommunityDatabase、IdTokenProvider、API 客户端、命令队列状态机与 R5 对账、payload_hash 跨端参考值、作者视角八档文案、发布流程、四屏七状态、三个确认层、D-NC010-01～07）

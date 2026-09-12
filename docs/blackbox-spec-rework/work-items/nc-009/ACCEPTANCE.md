@@ -1,6 +1,6 @@
 # NC-009 独立验收
 
-当前：NOT_EXECUTED。派发前置：NC-003 ACCEPTED；磁盘清理后 `.venv` 重建且既有 pytest 全过。
+当前：NOT_EXECUTED。派发前置：NC-003 ACCEPTED（含 act/06，2026-09-11 已满足）；`functions-py/.venv` 已重建，基线 411 passed / 5 failed，5 个既有失败名称与 README 一致，验收比较失败用例名称集合。
 
 1. ACT 审查：未参与编写者做 wjt-react 四查。
 2. 范围：SERVER 恰 4 个提交（`30a868c` 之后），只含各 ACT WRITE_NEW；`config.py/main.py/conftest.py` 的 diff 只有追加行；`idempotency.py/playground_rest.py/notifications.py` 零改动；RULES 仓恰 1 个提交且只含一个 TS 测试文件。

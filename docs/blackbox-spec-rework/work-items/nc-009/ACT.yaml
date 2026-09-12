@@ -1,5 +1,5 @@
 TASK_ID: NC-009
-STATUS: DRAFT
+STATUS: READY
 GOAL: 在 canonical functions-py 实现命令账本服务、内容命令 W1～W6 与 R1/R5/R6、ACL 扫描矩阵、规则单测与可观测性断言
 CONTRACTS:
   - openspec/annotation-community/contracts/community_server.md

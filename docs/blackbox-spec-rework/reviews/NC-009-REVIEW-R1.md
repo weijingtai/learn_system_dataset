@@ -8,3 +8,8 @@
 
 ## R1 落实（主 Agent，同日）
 ③ 已于 `a6dbdc5` 落地（审查读取的是之前的状态）。① `ids.server_event_id` 按 §11.2 公式并复用 `community_hash.encode`，从 `new_ids` 剔除，create-if-absent 写入，B30 断言事件 ID 等于公式（D-NC009-14）。② §6 改为 8 集合逐一列名、64 + 1 = 65 断言。建议采纳：存在性与归属合并判定并置于版本/生命周期之前，他人可读 403（含他人对公开内容 W1）、不可读 404 共用体（D-NC009-13），B04 与测试名 `other_scope_write_is_403_when_visible_404_when_not` 同步。待 R2。
+
+## R2（2026-09-11，Sonnet；对象 `7f0bc84`）：返工 1 项
+R1 三项与建议全部核实落地（event_id 公式逐项对应 DESIGN §11.2 且 `community_hash.encode` 存在；§6 八集合 65 断言与 BDD/TDD/act04 一致；基线实跑复核 411 passed / 5 failed 且名称逐字相符；D-NC009-13 与判定顺序自洽）；守卫 0；模糊词零命中；计数自洽。唯一残留：`ACCEPTANCE.md` 第 3 行仍写「既有 pytest 全过」。非阻塞：决定表 12 行排在 13/14 之后。
+## R2 落实（主 Agent，同日）
+ACCEPTANCE 派发前置改为精确基线；决定表排序恢复 01～14；grep「既有 pytest 全过/0 failed/待填」零命中。判定：**READY，4 个 ACT 可开工**（两轮协议内收敛）。
