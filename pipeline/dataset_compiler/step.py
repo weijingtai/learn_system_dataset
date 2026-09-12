@@ -28,6 +28,9 @@ from pipeline.ledger.errors import SchemaViolation
 
 MIN_APP_VERSION_RE = re.compile(r"^[0-9]+\.[0-9]+\.[0-9]+$")
 
+# 失败检查名闭集（§17 异常分层）
+FAILURE_CHECKS = ("input_contract", "admission", "compile", "publication_gate", "internal")
+
 _SCHEMA_VERSIONS = {
     "evidence_map_pack": SUB_PACK_SCHEMA_VERSION,
     "release_manifest": SUB_PACK_SCHEMA_VERSION,
@@ -161,7 +164,15 @@ def _write_task_checkpoint(service, step_run_id, edition_part_id, task_id, revis
 
 
 def _fail(service, step_run_id, check, detail):
-    """失败封存：put failure_report → seal → fail_step_run → failed summary。"""
+    """失败封存：put failure_report → seal → fail_step_run → failed summary。
+
+    ``check`` 必须在 ``FAILURE_CHECKS`` 闭集内，否则 ``SchemaViolation(SCH_002)``。
+    """
+    if check not in FAILURE_CHECKS:
+        raise SchemaViolation(
+            "失败检查名不在闭集 %s: %r" % ("/".join(FAILURE_CHECKS), check),
+            code="SCH_002",
+        )
     _, failure_revision_id = service.put_artifact(
         step_run_id,
         "failure_report",
