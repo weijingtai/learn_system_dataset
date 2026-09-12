@@ -685,12 +685,13 @@
   - [x] 六件套 `work-items/nc-010/`（act/01 API 客户端、act/02 数据库与队列、act/03 控制器、act/04 页面与确认层、act/05 七状态）与守卫 `reviews/nc010_guard.sh`
   - [x] wjt-react 四查：R1 返工 7 项 + 2 建议、R2 返工 2 项，READY（`reviews/NC-010-REVIEW-R1.md`）
   - [ ] 用户派发；主 Agent 按 ACCEPTANCE.md 验收
-- [ ] NC-011：两级评论/回复与编辑删除（状态：`DISPATCHED`，2026-09-12；tmux nc011s = REST+SERVER，nc011c = CLIENT）
+- [x] NC-011：两级评论/回复与编辑删除（状态：`ACCEPTED`，2026-09-12 R1；REST `4671c92`、SERVER `7d1163c`→`0fad16e`、RULES `dd3445f`、CLIENT `59cd50a`→`463835e`；守卫 `--require-impl all` 0，盲测 ①～⑧ 与 T31～T34 五轮全部通过）
   - [x] 规格侧契约（主 Agent）：`openspec/annotation-community/contracts/community_discussion.md`（集合与 Thread ID、W7～W9 判定顺序、R2 分页/游标/ETag、R2-05 受控屏障、客户端队列接入/控制器/面板/七状态、参考值、D-NC011-01～20）；`community_api.md` §11 补丁；DESIGN §7.1 mention 上限改 413
   - [x] 六件套 `work-items/nc-011/`（三线并行：REST act/01 ｜ SERVER act/02→03→04 ｜ CLIENT act/05→06）与守卫 `reviews/nc011_guard.sh`
   - [x] wjt-react 四查（agy）：R1 返工 4 项（游标写法、K11 可测性、ownerScope 来源、待发送跟踪集合），R2 READY（`reviews/NC-011-REVIEW-R1.md`）
   - [ ] 三线派发；主 Agent 按 ACCEPTANCE.md 验收
 - [ ] NC-012：赞踩/收藏/分享/@/关系与举报（状态：`BACKLOG`）
+  - [ ] 契约须统一 reading-notes 两个同名 `MentionRef`（domain 与 community，公开入口 `hide` 了社区版，宿主无法经公开入口构造带 mentions 的评论请求；NC-011 验收遗留）
 
 ### 通知
 
@@ -700,7 +701,9 @@
 ### 私人同步、备份与删除
 
 - [ ] NC-016：私人加密 mapper 与设备同步（2026-09-12 拆分，D-NC016-01）
-  - [ ] NC-016a：guard 补丁、AES-GCM AAD、一次一密信封与接收验收（状态：`READY`，四查 R1 返工 2 项、R2 READY（`reviews/NC-016a-REVIEW-R1.md`）；契约 `openspec/annotation-community/contracts/private_sync_impl.md`，六件套 `work-items/nc-016a/`，守卫 `reviews/nc016a_guard.sh`；两线：STORAGE act/01 ｜ CLIENT act/02→03）
+  - [ ] NC-016a：guard 补丁、AES-GCM AAD、一次一密信封与接收验收（状态：`DISPATCHED`，四查 R1 返工 2 项、R2 READY（`reviews/NC-016a-REVIEW-R1.md`）；契约 `openspec/annotation-community/contracts/private_sync_impl.md`，六件套 `work-items/nc-016a/`，守卫 `reviews/nc016a_guard.sh`；两线：STORAGE act/01 ｜ CLIENT act/02→03）
+    - [x] STORAGE act/01（NC-016a-A）：tmux + cmd 会话 nc016s；两次停手（worktree 建树超时、既有测试到期占位值 → D-NC016-14 `c791d94`）；xuan-storage 分支 `fix/nc016-guard-aad` `755a8fc`，main 仍 `8ddb877`；主 Agent 复跑守卫 `--require-impl storage` 为 0（K06 PASS）
+    - [ ] CLIENT act/02→03（NC-016a-B/C）：NC-011 验收后经 tmux + cmd（deepseek/deepseek-v4.1-flash）派发，会话 nc016c（2026-09-12）
   - [ ] NC-016b：两台真实设备 LAN/WebRTC 集成、中转上传与宿主装配（状态：`BLOCKED`，等 NC-001 设备表）
 - [x] NC-017：口令加密导出文件格式与本机写入（v1.6；状态：`ACCEPTED`，2026-09-12 R1；reading-notes `e913b14`→`4a0d70a`，flutter test +253，Python 独立解码 28 项与盲测 ②～⑥ 全部通过）
   - [x] 规格侧契约（主 Agent）：`openspec/annotation-community/contracts/private_export.md`（容器/清单、Argon2id m65536 t3 p1 经 OpenSSL 交叉核对、带 AAD 分块 AES-GCM、统一失败、`.partial` 原子写入、参考值、D-NC017-01～11）
