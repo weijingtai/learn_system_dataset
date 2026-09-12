@@ -10,6 +10,7 @@ import shutil
 import unittest
 from contextlib import redirect_stdout
 from pathlib import Path
+from unittest import mock
 
 from pipeline.ledger import acceptance
 
@@ -92,6 +93,40 @@ class TestAcceptanceChecks(AcceptanceTestBase):
         by_name = {item["name"]: item for item in results}
         self.assertFalse(by_name["validation_recorded"]["ok"])
         self.assertEqual(acceptance.checks_exit_code(results), 1)
+
+    def test_prepare_failure_exits_1(self):
+        """灌入抛异常必须按 FAIL 处理：main 返回 1，而不是冒充环境缺失的 3。"""
+
+        def _boom(fixture, service):
+            raise RuntimeError("灌入路径炸了")
+
+        with mock.patch("pipeline.ledger.fixture_ingest.ingest", new=_boom):
+            code, output = self.run_main(
+                ["--fixture", str(FIXTURE_DIR), "--check", "20_2"]
+            )
+        self.assertEqual(code, 1)
+        self.assertTrue(
+            output.splitlines()[0].startswith(
+                "FAIL 20_2 宿主准备失败: RuntimeError"
+            ),
+            output,
+        )
+
+    def test_evaluate_failure_exits_1(self):
+        """evaluate 抛异常同样按 FAIL 处理：main 返回 1。"""
+        with mock.patch.object(
+            acceptance, "evaluate", side_effect=RuntimeError("判定路径炸了")
+        ):
+            code, output = self.run_main(
+                ["--fixture", str(FIXTURE_DIR), "--check", "20_3"]
+            )
+        self.assertEqual(code, 1)
+        self.assertTrue(
+            output.splitlines()[0].startswith(
+                "FAIL 20_3 宿主准备失败: RuntimeError"
+            ),
+            output,
+        )
 
     def test_missing_fixture_exit_3(self):
         code, output = self.run_main(

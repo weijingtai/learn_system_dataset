@@ -6,7 +6,8 @@
 
 - 在 ``tempfile.mkdtemp()`` 里建 Ledger，经 ``pipeline.ledger.fixture_ingest`` 真实写路径灌入；
 - 每条判定打印 ``PASS <name>`` / ``FAIL <name> <原因>``；
-- 退出码：全过 ``0`` / 任一 FAIL ``1`` / 环境缺失 ``3``（fixture 不存在或缺 PyYAML/jsonschema）；
+- 退出码：全过 ``0`` / 任一判定 FAIL，或宿主准备（灌入）与判定抛异常 ``1`` /
+  ``3`` 仅限 ``<fixture>/manifest.yaml`` 不存在或缺 PyYAML/jsonschema；
 - 无 ``--keep`` 时删除临时目录。
 
 20.2（失败后可从最近 StageCheckpoint 恢复、历史失败不被覆盖）判定名：
@@ -524,11 +525,11 @@ def main(argv=None):
     try:
         _, service, summary, fixture = prepare(fixture_dir, workdir)
         results = evaluate(args.check, service, summary, fixture)
-    except Exception as exc:  # noqa: BLE001 - 宿主不可用 → 环境缺失
+    except Exception as exc:  # noqa: BLE001 - 宿主准备/判定异常按 FAIL 呈现，返回 1
         print(
             "FAIL %s 宿主准备失败: %s: %s" % (args.check, type(exc).__name__, exc)
         )
-        return 3
+        return 1
     finally:
         if service is not None:
             service.close()
