@@ -8,7 +8,7 @@
   - D1/P1：只冻结 M3 StagePackage 及血缘输入与页图；EvidenceMapPack 只闭合尾链四段，`knowledge_chain: not_compiled`；M4/M6/M7 与前三段一律 BLOCKED，不注入合成知识。
   - D2/P9：薄 M1 在 `shim/m1_shim_source_assets.py`，文件名与 CLI 名显式标 `m1_shim`，README 登记「impl-09 M1 落地后替换」；不改 impl-01 已验收的 `fixture_ingest.py`。
   - D3：缺页图报 `BLOCKED_SOURCE_ASSET_MISSING` 并退出 3；禁止合成同哈希页图。
-  - D4/P2：新 artifact_type（`source_asset_page`、`source_asset_register`、`source_asset_pack`、`evidence_map_pack`、`release_manifest`、`publication_package`）只提名，须由 W2-C 登记 ACT 写入 `INTERFACES.md` §4 闭集后才可实现；实现中不得出现闭集外类型名。
+  - D4/P2：新 artifact_type（`source_asset_page`、`source_asset_register`、`source_asset_pack`、`evidence_map_pack`、`release_manifest`、`publication_package`）已在 `INTERFACES.md` §4 闭集登记（与 §4 表逐字一致）；实现前以 `python3 docs/blackbox-spec-rework/work-items/impl-00-interfaces/check_interfaces.py` 核对（末行 `I00-IF SUMMARY pass=18 fail=0`、exit 0）；实现中不得出现闭集外类型名。
   - D5/P3：子包内容为代码草案，`schema_version: "0.1.0-draft"`；`PUBLIC_RELEASE` 以 `draft_schema` 拒绝；不新增 `openspec/schemas/` 文件。
   - D6/P4：20.4/20.8 由本包唯一 ACT 08 接线，永不 PASS；`SUMMARY` 保持 `pass=2 fail=1 blocked=8`。
   - D9 加裁：`source_verified` 不算 release 级，`source_release == "release"` 仅当 `content_status` 全为 `expert_verified`。
@@ -18,7 +18,7 @@
 - **可执行性**：每个 ACT 有 `scope.write`、先红后绿的用例名、contract（函数签名/规则/检查名/退出码）、精确 `verify`、`commit.add`/`message`；退出码纪律（0/1/2/3）在 `m8-span-identity.sh`、`acceptance.py`、CLI 三处一致。
 - **独立性**：`gate.py` 不 import `packs`/`canonical`/`levels`/`step`；`acceptance.py` 不 import `packs`/`gate`，不读 `run_m8` 返回的 gate；`acceptance.py` 不信任被验目录自带 `verify.sh`（永远调用仓库内规范脚本）。
 
-派发前核对（主 Agent 脚本，定稿时执行）：9 份 ACT YAML 可解析；`ACT.yaml` 的 acts 与 `act/*.yaml` 一一对应；`impl-02` 状态 `ACCEPTED`；`INTERFACES.md` §4 已含 D4 六个新类型；本机三页页图存在；`m8-span-identity.sh` 尚不存在（exit 127）；`run_all.sh` 20.4/20.8 当前为静态 BLOCKED；按 `build_index.py` 规则独立复算 fixture 43 span → 39 键、4 组碰撞；fixture `spans.yaml` sha256 = `ec6d77b9…44ef`。
+派发前核对（主 Agent 脚本，定稿时执行）：9 份 ACT YAML 可解析；`ACT.yaml` 的 acts 与 `act/*.yaml` 一一对应；`impl-02` 状态 `ACCEPTED`；`python3 docs/blackbox-spec-rework/work-items/impl-00-interfaces/check_interfaces.py` 末行 `I00-IF SUMMARY pass=18 fail=0` 且 exit 0；本机三页页图存在；`m8-span-identity.sh` 尚不存在（exit 127）；`run_all.sh` 20.4/20.8 当前为静态 BLOCKED；按 `build_index.py` 规则独立复算 fixture 43 span → 39 键、4 组碰撞；fixture `spans.yaml` sha256 = `ec6d77b9…44ef`。
 
 ## 1. 范围核对
 

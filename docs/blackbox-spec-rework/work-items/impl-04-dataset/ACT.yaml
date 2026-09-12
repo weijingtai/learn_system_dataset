@@ -8,7 +8,7 @@ executor_groups:
 preconditions:
   - impl-02（M3 结构层）状态 ACCEPTED，且 run_m3 输出契约与 README §6 表一致（K2 起）
   - 下游解析 m3 StagePackage 只接受所属 StepRun `succeeded` 的包（P5；impl-02 ACCEPTANCE §5.3）
-  - 本包新增 artifact_type（source_asset_page / source_asset_register / source_asset_pack / evidence_map_pack / release_manifest / publication_package）已由 W2-C 登记 ACT 写入 impl-00-interfaces/INTERFACES.md §4 临时闭集（P2/D4；未入闭集不得实现）
+  - 本包新增 artifact_type（source_asset_page / source_asset_register / source_asset_pack / evidence_map_pack / release_manifest / publication_package）已在 impl-00-interfaces/INTERFACES.md §4 临时闭集登记；开工前提：`python3 docs/blackbox-spec-rework/work-items/impl-00-interfaces/check_interfaces.py` 末行 `I00-IF SUMMARY pass=18 fail=0` 且 exit 0（P2/D4；未登记不得实现）
   - 本机存在 ocr/data_work/sanche_pages/page_001..003.png（K2 起；缺失则集成测试 skip、验收 exit 3，必须上报，不得伪造）
   - 派发 ACT 08 前确认无其他批次并发修改 openspec/acceptance/run_all.sh（P4；W3 内唯一写入者）
 acts:
@@ -63,4 +63,4 @@ gates:
   - export LC_ALL=en_US.UTF-8; bash openspec/acceptance/m8-span-identity.sh | tail -1 # ACT 07 起: SUMMARY pass=7 fail=0 blocked=1（exit 2）
   - export LC_ALL=en_US.UTF-8; bash openspec/acceptance/run_all.sh | tail -1          # SUMMARY pass=2 fail=1 blocked=8
   - git diff --check
-on_fail: 停止并报告；contract 两种理解、测试无法按定义写出、需要改 scope 外文件、上游 run_m3 输出与 README §6 不符、本机缺页图、新 artifact_type 尚未入 INTERFACES §4 闭集 → 一律停手上报
+on_fail: 停止并报告；contract 两种理解、测试无法按定义写出、需要改 scope 外文件、上游 run_m3 输出与 README §6 不符、本机缺页图、check_interfaces.py 末行非 `I00-IF SUMMARY pass=18 fail=0` 或 exit≠0 → 一律停手上报

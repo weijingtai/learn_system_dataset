@@ -42,7 +42,14 @@ ls ocr/data_work/sanche_pages/page_001.png ocr/data_work/sanche_pages/page_002.p
 grep -n 'impl-04' docs/blackbox-spec-rework/SUBAGENT_TODO.md | head -1                 # 记录现状
 ```
 
-另需确认：本包新增 artifact_type（`source_asset_page`、`source_asset_register`、`source_asset_pack`、`evidence_map_pack`、`release_manifest`、`publication_package`）已由 W2-C 登记 ACT 写入 `impl-00-interfaces/INTERFACES.md` §4 临时闭集（P2/D4）。`grep -n 'source_asset_pack' docs/blackbox-spec-rework/work-items/impl-00-interfaces/INTERFACES.md` 无输出 → 停手上报，不得先行实现。
+另需确认（P2/D4）：本包新增 artifact_type（`source_asset_page`、`source_asset_register`、`source_asset_pack`、`evidence_map_pack`、`release_manifest`、`publication_package`）已在 `impl-00-interfaces/INTERFACES.md` §4 临时闭集登记。开工前提（登记完整性检查器）：
+
+```bash
+python3 docs/blackbox-spec-rework/work-items/impl-00-interfaces/check_interfaces.py; echo exit=$?
+# 期望：末行 I00-IF SUMMARY pass=18 fail=0；exit=0
+```
+
+非该输出（末行不匹配或 exit ≠ 0）→ 停手上报，不得先行实现。
 
 ## 逐步
 
@@ -60,7 +67,7 @@ grep -n 'impl-04' docs/blackbox-spec-rework/SUBAGENT_TODO.md | head -1          
 
 - 基线任一门禁不符；本机缺三页页图（集成测试会 skip，但 K2 起要求 0 skipped）。
 - 上游 `run_m3` 实际输出与 README §6 表不符（字段名、artifact_type、`manifest.input_artifacts` 组成）。
-- 新 artifact_type 尚未入 `INTERFACES.md` §4 闭集。
+- `check_interfaces.py` 末行非 `I00-IF SUMMARY pass=18 fail=0` 或 exit ≠ 0（新 artifact_type 未登记完整）。
 - 某个测试无法按 ACT `tests` 定义写出；contract 有两种理解；需要改范围外文件。
 - `run_all.sh` 存在并发写入者（P4）；任一门禁变红；`m8-span-identity.sh` 不再是 7 PASS + 1 BLOCKED、exit 2。
 
