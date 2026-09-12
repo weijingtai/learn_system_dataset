@@ -5,12 +5,13 @@ group: K2
 depends_on: [impl-04/01]
 decisions: [D2, D3, D4]
 scope:
-  write: [pipeline/dataset_compiler/shim/__init__.py, pipeline/dataset_compiler/shim/source_assets.py, pipeline/dataset_compiler/tests/_ledger_helpers.py, pipeline/dataset_compiler/tests/test_shim.py]
+  write: [pipeline/dataset_compiler/shim/__init__.py, pipeline/dataset_compiler/shim/m1_shim_source_assets.py, pipeline/dataset_compiler/tests/_ledger_helpers.py, pipeline/dataset_compiler/tests/test_shim.py]
 tests_first:
   - 先写 tests/_ledger_helpers.py 与 tests/test_shim.py（用例名逐字）并全红，再实现 shim
 contract: |
-  shim/__init__.py：SHIM_TOOL = "pipeline.dataset_compiler.shim"；SHIM_TOOL_VERSION = "0.1.0"
-  shim/source_assets.py（本包唯一读文件的生产代码，职能属 M1 Source Intake，§22.3:991「手工登记 SourceAsset」）：
+  shim/__init__.py：SHIM_TOOL = "pipeline.dataset_compiler.shim.m1_shim"；SHIM_TOOL_VERSION = "0.1.0"
+  shim/m1_shim_source_assets.py（D2：文件与 CLI 名显式标 m1_shim，README 登记「impl-09 M1 落地后替换」；
+    本包唯一读文件的生产代码，职能属 M1 Source Intake，§22.3:991「手工登记 SourceAsset」）：
     class SourceAssetMissing(DatasetRefused)：code "SRC_001"；message 以 "BLOCKED_SOURCE_ASSET_MISSING " 开头，后接全部缺失 path_ref（清单顺序，空格分隔）
     register_source_assets(service, edition_part_id, asset_root) -> dict
       P1 解析 m1（只读）：list_checkpoints(ep, "m1") 中 task_id == "ingest_source" 且 status == "succeeded" 的恰 1 项 → manifest_revision_id；
@@ -36,7 +37,7 @@ contract: |
                                 "output_artifact_ids": [各页修订…, register], "validation_report_ids": [validation], "log_artifact_ids": [log], "failure_artifact_ids": []})
          不登记 StagePackage（D2：不产生第二个 m1 包）
       返回键：status("succeeded"|"failed"), processing_run_id, step_run_id, 成功时 asset_revision_ids({页: 修订}), register_revision_id, checkpoint_revision_ids；失败时 failed_check, failure_revision_id, reason
-    CLI：python -m pipeline.dataset_compiler.shim.source_assets --root <ledger_root> --edition-part <art_id> --asset-root <dir>
+    CLI：python -m pipeline.dataset_compiler.shim.m1_shim_source_assets --root <ledger_root> --edition-part <art_id> --asset-root <dir>
       成功 `ASSETS OK <step_run_id> pages=<n>` exit 0；失败 `ASSETS FAILED <step_run_id> <failed_check>` exit 1；
       SourceAssetMissing → 打印其 message exit 3；其他 begin 之前拒绝 `ASSETS REFUSED <异常类名>: <消息>` exit 2；WriterLocked exit 3
 tests:

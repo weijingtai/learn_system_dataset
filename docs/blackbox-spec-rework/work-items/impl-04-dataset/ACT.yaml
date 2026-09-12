@@ -1,14 +1,16 @@
 package: blackbox-impl-04-dataset
 title: 首纵切第四批：M8 Dataset Compilation 首切片——证据尾链发布包（§16、§22.2/§22.3）
-status: DRAFT   # README §4 D1–D14 未裁决；未经 wjt-react；不得派发
+status: READY_FOR_REVIEW   # W2-D 定稿 2026-09-12；依 G7-RULINGS §1 P1–P9 与 §2 impl-04 裁决表；未经实现
 executor_groups:
   K1: [impl-04/00, impl-04/01, impl-04/02]              # 纯函数；裁决 D1/D4/D5/D9/D10/D11 后可派
   K2: [impl-04/03, impl-04/04, impl-04/05, impl-04/06]  # Ledger；前置 impl-02 ACCEPTED 与 K1 ACCEPTED；裁决 D2/D3/D7/D8/D12/D13
   K3: [impl-04/07, impl-04/08]                          # 验收与 run_all；前置 K2 ACCEPTED；裁决 D3/D6
 preconditions:
   - impl-02（M3 结构层）状态 ACCEPTED，且 run_m3 输出契约与 README §6 表一致（K2 起）
+  - 下游解析 m3 StagePackage 只接受所属 StepRun `succeeded` 的包（P5；impl-02 ACCEPTANCE §5.3）
+  - 本包新增 artifact_type（source_asset_page / source_asset_register / source_asset_pack / evidence_map_pack / release_manifest / publication_package）已由 W2-C 登记 ACT 写入 impl-00-interfaces/INTERFACES.md §4 临时闭集（P2/D4；未入闭集不得实现）
   - 本机存在 ocr/data_work/sanche_pages/page_001..003.png（K2 起；缺失则集成测试 skip、验收 exit 3，必须上报，不得伪造）
-  - 派发 ACT 08 前确认无其他批次并发修改 openspec/acceptance/run_all.sh
+  - 派发 ACT 08 前确认无其他批次并发修改 openspec/acceptance/run_all.sh（P4；W3 内唯一写入者）
 acts:
   - file: act/00.yaml
     id: impl-04/00
@@ -21,7 +23,7 @@ acts:
     writes: ["pipeline/dataset_compiler/gate.py", "pipeline/dataset_compiler/tests/test_gate.py"]
   - file: act/03.yaml
     id: impl-04/03
-    writes: ["pipeline/dataset_compiler/shim/__init__.py", "pipeline/dataset_compiler/shim/source_assets.py", "pipeline/dataset_compiler/tests/_ledger_helpers.py", "pipeline/dataset_compiler/tests/test_shim.py"]
+    writes: ["pipeline/dataset_compiler/shim/__init__.py", "pipeline/dataset_compiler/shim/m1_shim_source_assets.py", "pipeline/dataset_compiler/tests/_ledger_helpers.py", "pipeline/dataset_compiler/tests/test_shim.py"]
   - file: act/04.yaml
     id: impl-04/04
     writes: ["pipeline/dataset_compiler/inputs.py", "pipeline/dataset_compiler/tests/test_inputs.py", "pipeline/dataset_compiler/tests/_ledger_helpers.py"]
@@ -39,14 +41,14 @@ acts:
     writes: ["openspec/acceptance/run_all.sh"]
 deferred:   # 不在本包；各自需另起工作包或等裁决
   - D1-B 知识链前三段（KnowledgeEntry→Assertion→EvidenceLink）与 KnowledgeDataPack：依 D1 裁决或 M4–M7 落地
-  - m8-span-identity 的 mentions_mapping 与 SearchIndexPack（D14-C）：依 M4 术语判层
+  - mentions_mapping 与 SearchIndexPack（D14-C）：依 M4 术语判层
   - QueryContractPack（D14-B）、TechniqueProfilePack、RuleIndexPack（依 M4 规则与 QizhengFactSet）
   - GraphProjectionPack（§20.9）、AnchorContractPack 与 IdentityMigrationMap（§20.11，依 D13）
   - DEV_SEARCH / PUBLIC_RELEASE 准入的真实门禁（当前恒 fail-closed）
 global_rules:
   - 每个 ACT 先写测试（Red 原文入报告）再实现；unittest；测试只用 tempfile 目录，不写 var/、fixture、ocr/
-  - 只用标准库 + PyYAML + jsonschema；不新增依赖、不新增 ID 前缀、不调用模型 API
-  - 生产代码只读 Ledger 冻结修订；唯一例外 shim/source_assets.py 读 --asset-root 页图（D2）；acceptance.py 只经 --fixture/--asset-root 读宿主
+  - 只用标准库 + PyYAML + jsonschema；不新增依赖、不新增 ID 前缀、不调用模型 API（P6）
+  - 生产代码只读 Ledger 冻结修订；唯一例外 shim/m1_shim_source_assets.py 读 --asset-root 页图（D2）；acceptance.py 只经 --fixture/FIXTURE_ASSET_ROOT 读宿主
   - 合成 PNG 只可配合合成清单用于单元测试，不得与 fixture 登记哈希同值；缺页图时报 BLOCKED_SOURCE_ASSET_MISSING，不得伪造
   - 中文注释与 docstring；公开函数名、参数名、返回键、检查名、artifact_type、task_id 与 ACT contract 逐字一致
   - 每个 ACT 一个提交；不得 git add -A / git add .；不得写 SUBAGENT_TODO.md、HANDOFF.md、PLAN.md、ACCEPTANCE.md 或任何台账，不得自记 ACCEPTED
@@ -58,6 +60,7 @@ gates:
   - .venv/bin/python -m unittest discover -s pipeline/ledger/tests -t .               # OK
   - .venv/bin/python -m unittest discover -s pipeline/corpus_compiler/tests -t .      # OK
   - .venv/bin/python -m unittest discover -s pipeline/dataset_compiler/tests -t .     # OK（ACT 00 起；K2 起无 skipped）
+  - export LC_ALL=en_US.UTF-8; bash openspec/acceptance/m8-span-identity.sh | tail -1 # ACT 07 起: SUMMARY pass=7 fail=0 blocked=1（exit 2）
   - export LC_ALL=en_US.UTF-8; bash openspec/acceptance/run_all.sh | tail -1          # SUMMARY pass=2 fail=1 blocked=8
   - git diff --check
-on_fail: 停止并报告；contract 两种理解、测试无法按定义写出、需要改 scope 外文件、上游 run_m3 输出与 README §6 不符、本机缺页图 → 一律停手上报
+on_fail: 停止并报告；contract 两种理解、测试无法按定义写出、需要改 scope 外文件、上游 run_m3 输出与 README §6 不符、本机缺页图、新 artifact_type 尚未入 INTERFACES §4 闭集 → 一律停手上报

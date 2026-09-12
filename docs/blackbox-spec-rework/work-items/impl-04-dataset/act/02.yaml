@@ -33,7 +33,7 @@ contract: |
           canonical_hash == sha256(规范化 JSON([[t, sha256] 按 t 排序]))
       11 input_reconciliation：{(r, t, s)} for release_manifest["input_reconciliation"] == {(r, t, s)} for frozen_inputs
       12 consumption_level：consumption_level == release_manifest["consumption_level"] == "INTERNAL_DEMO"；isolation == "internal_only"；authoritative is False；
-          completeness_claim == "partial"；source_release == ("release" if spans_doc["content_status"] in ("expert_verified", "source_verified") else "dev")
+          completeness_claim == "partial"；source_release == ("release" if spans_doc["content_status"] == "expert_verified" else "dev")   # D9：source_verified 不算 release 级
       13 watermark_disclosure：content_status 以 "machine_" 开头时每个 entry["watermark"] is True，且 release_manifest["watermark"]["required"] is True、text 非空；
           known_defects 的 code 集合 ⊇ 本函数独立重算的必需集合（条件同 act/01 compute_known_defects：excluded_page / glyph_text_mismatch / knowledge_chain_not_compiled / machine_content / rights_unconfirmed（manifest["rights_status"]）/ semantic_not_evaluated（m3_gate_profile））
       14 knowledge_chain：evidence_map_pack["knowledge_chain"] == "not_compiled" → {"ok": None, "status": "not_evaluated", "detail": "KnowledgeEntry→Assertion→EvidenceLink 未编译"}；其他任何值 → ok False
@@ -64,6 +64,7 @@ tests:
     - test_canonical_hash_tampered_fails_release_manifest_hashes
     - test_input_reconciliation_missing_one_fails
     - test_manifest_level_dev_search_fails_consumption_level
+    - test_source_verified_not_release_fails_consumption_level（spans_doc content_status "source_verified" 而 release_manifest source_release "release" → consumption_level ok False）
     - test_authoritative_true_fails_consumption_level
     - test_entry_watermark_false_fails_watermark_disclosure
     - test_known_defect_dropped_fails_watermark_disclosure（删 glyph_text_mismatch）

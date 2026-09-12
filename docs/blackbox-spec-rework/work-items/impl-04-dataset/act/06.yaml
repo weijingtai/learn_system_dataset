@@ -1,0 +1,43 @@
+act_id: impl-04/06
+title: CLI 与失败路径——DEV_SEARCH/PUBLIC_RELEASE 准入封存、五类失败检查名、退出码纪律
+estimated_minutes: 75
+group: K2
+depends_on: [impl-04/05]
+decisions: [D6, D9, D12]
+scope:
+  write: [pipeline/dataset_compiler/step.py, pipeline/dataset_compiler/__main__.py, pipeline/dataset_compiler/tests/test_step_failures.py, pipeline/dataset_compiler/tests/test_cli.py]
+tests_first:
+  - 先写 tests/test_step_failures.py 与 tests/test_cli.py（用例名逐字）并全红，再补 step.py 与 __main__.py
+contract: |
+  __main__.py：python -m pipeline.dataset_compiler --root <ledger_root> --edition-part <art_id> --level <LEVEL> [--min-app-version X.Y.Z]
+    LedgerService(<root>)（--root 即 Ledger 根目录，与 pipeline.ledger.cli 一致）→ run_m8(service, edition_part_id, consumption_level=LEVEL, min_app_version=…) → stdout 末行：
+      成功 `M8 OK <step_run_id> release=<release_id> packs=2` exit 0
+      失败（begin 之后的封存失败）`M8 FAILED <step_run_id> <failed_check>` exit 1
+      begin 之前被拒（DatasetRefused/MissingReference/NotConsumable/SchemaViolation）`M8 REFUSED <异常类名>: <消息>` exit 2
+      WriterLocked exit 3
+  step.py 补（失败检查名闭集 {input_contract, admission, compile, publication_gate, internal}）：
+    DEV_SEARCH / PUBLIC_RELEASE：begin 之后 admission 判定失败 → _fail("admission", …)，detail 逐字为 "unmet: " + ",".join(admission["unmet"])（unmet 已按字典序）；
+    Ledger 与子包写入异常 → internal；子包编译异常 → compile；Gate 不通过 → publication_gate；
+    上述任一失败运行不得留下 source_asset_pack/evidence_map_pack/release_manifest/publication_package 修订，也不得产生第二个 m8 StepRun
+tests:
+  test_step_failures.py: |
+    脚手架同 test_step.py（_ledger_helpers.prepare_m8_ready）
+    - test_dev_search_sealed_admission_failure（StepRun failed；failed_check "admission"；detail == "unmet: dev_search_gates_not_implemented"；Ledger 中四类子包修订数均为 0；该 EditionPart 的 m8 StepRun 恰 1 个）
+    - test_public_release_unmet_six_codes（failed_check "admission"；detail 含 content_not_expert_verified, draft_schema, min_app_version_unset, public_release_gates_not_implemented, rights_unconfirmed, source_release_dev）
+    - test_public_release_with_min_app_version_still_fails_without_that_code（min_app_version="1.0.0" → detail 不含 min_app_version_unset，仍 failed）
+    - test_compile_failure_check_name（patch packs.build_evidence_map_pack 抛 RuntimeError → status failed、failed_check "compile"；failure_report sealed）
+    - test_internal_failure_check_name（patch LedgerService.record_transformation 抛 RuntimeError → failed_check "internal"；StepRun failed；failure_report sealed）
+    - test_pre_begin_refusal_type_preserved（只 ingest m1,m2 → 抛出 DatasetRefused，message 不以「M8 编译异常」开头；Ledger 行数不变）
+  test_cli.py: |
+    - test_cli_success_exit_0（subprocess：末行以 "M8 OK" 开头且含 "packs=2"，exit 0）
+    - test_cli_public_release_exit_1（末行以 "M8 FAILED" 开头且以 " admission" 结尾，exit 1）
+    - test_cli_assets_unregistered_exit_2（prepare_m3 未登记页图 → 末行以 "M8 REFUSED" 开头，exit 2）
+    - test_cli_illegal_level_exit_2（--level internal_demo → exit 2；Ledger 无新增写入）
+verify: |
+  .venv/bin/python -m unittest discover -s pipeline/dataset_compiler/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 115
+  grep -c '"admission"' pipeline/dataset_compiler/step.py                                          # >= 1
+  TDD §3 回归
+commit:
+  add: [pipeline/dataset_compiler/step.py, pipeline/dataset_compiler/__main__.py, pipeline/dataset_compiler/tests/test_step_failures.py, pipeline/dataset_compiler/tests/test_cli.py]
+  message: "feat(m8): CLI plus fail-closed admission, compile, publication-gate and internal failure sealing with spec exit codes"
+on_fail: 停止并报告；不得让 DEV_SEARCH/PUBLIC_RELEASE 在任何路径下产出子包修订或第二个 m8 StepRun

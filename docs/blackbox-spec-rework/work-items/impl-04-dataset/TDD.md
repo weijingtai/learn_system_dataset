@@ -45,7 +45,7 @@ ls ocr/data_work/sanche_pages/page_001.png ocr/data_work/sanche_pages/page_002.p
 # 签名逐字：act/00–08 contract 中的函数名、参数名、返回键、检查名、artifact_type、task_id 在实现中逐字存在
 # 独立性：gate.py 不 import packs/canonical/levels/step；acceptance.py 不 import packs/gate，不读取 run_m8 summary["gate"]
 # 宿主有效性：legacy_collision_exposed 的数字由 fixture 重算（39/4/43），不是常量
-# 生产代码不读文件：pipeline/dataset_compiler 非 tests 文件中，除 shim/source_assets.py 与 acceptance.py 外，不出现 open( / read_bytes / read_text / "_fixture"
+# 生产代码不读文件：pipeline/dataset_compiler 非 tests 文件中，除 shim/m1_shim_source_assets.py 与 acceptance.py 外，不出现 open( / read_bytes / read_text / "_fixture"
 # fail-closed：DEV_SEARCH、PUBLIC_RELEASE 失败运行后 Ledger 中上述四类子包修订数为 0；不存在第二个 m8 StepRun
 # 披露不少报：fixture 上 known_defects 代码恰为六个；任何 entry.watermark 为 false 即 Gate 失败
 # 矩阵外篡改（主 Agent 自定，不预告）：页图对象、OCR 页对象、corpus_spans、m3 StagePackage、m8 Checkpoint、ReleaseManifest、配置修订各至少 1 例

@@ -29,10 +29,10 @@ contract: |
     CONTENT_STATUSES = ("source_verified", "machine_extracted", "cross_model_reviewed", "disputed", "needs_expert", "expert_verified", "deprecated")   # §8.2:341-347 逐字
     RELEASE_POLICIES = ("full_scan", "derived_page_images_only", "reference_and_hash_only")   # §16:719-721
     EVIDENCE_LEVELS = ("offset_level", "glyphbox_level")                                     # §11.1:527-528
-    derive_source_release(content_statuses) -> str     # D9 草案
+    derive_source_release(content_statuses) -> str     # D9 裁决：source_verified 不算 release 级
       空集合 → SchemaViolation(code="SCH_001")；任一值不在 CONTENT_STATUSES → SchemaViolation(code="SCH_002")
       含 "deprecated" → DatasetRefused(code="SCH_002")，message 含 "deprecated"
-      全部 ∈ {"expert_verified", "source_verified"} → "release"；否则 "dev"
+      全部 == "expert_verified" → "release"；否则 "dev"
     evaluate_admission(*, consumption_level, content_statuses, evidence_level, release_policy, rights_status, schema_versions, min_app_version) -> dict
       R0 consumption_level ∉ CONSUMPTION_LEVELS、evidence_level ∉ EVIDENCE_LEVELS、release_policy ∉ RELEASE_POLICIES → SchemaViolation(code="SCH_002")
          min_app_version 非 None 且不匹配 ^[0-9]+\.[0-9]+\.[0-9]+$ → SchemaViolation(code="SCH_002")
@@ -70,7 +70,7 @@ tests:
     - test_public_release_fixture_like_inputs_unmet_exact（unmet == ["content_not_expert_verified", "draft_schema", "min_app_version_unset", "public_release_gates_not_implemented", "rights_unconfirmed", "source_release_dev"]）
     - test_public_release_all_expert_still_not_admitted（{"expert_verified"}、非草案版本 "1.0.0"、rights_status "public_domain"、min_app_version "1.2.3" → admitted False；unmet == ["public_release_gates_not_implemented"]；source_release "release"）
     - test_reference_and_hash_only_not_implemented（INTERNAL_DEMO 下 unmet == ["release_policy_not_implemented"]）
-    - test_source_release_derivation_table（{"source_verified"}→release；{"expert_verified","source_verified"}→release；{"cross_model_reviewed"}→dev；{"expert_verified","disputed"}→dev）
+    - test_source_release_derivation_table（{"expert_verified"}→release；{"source_verified"}→dev；{"expert_verified","source_verified"}→dev；{"cross_model_reviewed"}→dev；{"expert_verified","disputed"}→dev）
     - test_min_app_version_bad_format_SCH_002（"v1"）
 verify: |
   .venv/bin/python -m unittest discover -s pipeline/dataset_compiler/tests -t . 2>&1 | tail -3        # OK，用例数 ≥ 18

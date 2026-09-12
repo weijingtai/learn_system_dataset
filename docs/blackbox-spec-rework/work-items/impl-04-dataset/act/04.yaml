@@ -20,6 +20,7 @@ contract: |
          Checkpoint 的 step_run_id 去重后 status == "succeeded" 的：0 个 → DatasetRefused(code="REF_001")，message 含「M3 未通过」；> 1 个 → DatasetRefused，message 含「多个 M3 成功运行」
       R3 m3 包：SELECT r.artifact_revision_id FROM artifact_revisions r JOIN artifacts a ON a.artifact_id = r.artifact_id
                 WHERE a.artifact_type = 'stage_package' AND r.step_run_id = ? AND r.status = 'sealed' → 恰 1 行（否则 DatasetRefused(code="REF_001")）
+                （P5：只接受所属 StepRun `succeeded` 的包，见 impl-02 ACCEPTANCE §5.3）
          内容 JSON：stage == "m3" 且 validation.passed is True（否则 DatasetRefused）；payload 无 "spans_revision_id" → DatasetRefused，message 含 "spans_revision_id"（fixture_ingest 灌入的 m3 包即属此类）
       R4 spans_revision_id 修订 artifact_type == "corpus_spans"（否则 DatasetRefused(code="SCH_002")）；m3_stage_package_id = 内容 stage_package_id；
          m3_gate_profile = payload["gate_profile"]；excluded_pages = payload["excluded_pages"]

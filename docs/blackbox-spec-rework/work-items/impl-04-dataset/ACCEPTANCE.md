@@ -1,0 +1,52 @@
+# ACCEPTANCE：impl-04 M8 Dataset Compilation 首切片（证据尾链发布包）
+
+本文件只写**审查要点与判据**，不写任何验收结论；结论与验收记录由主 Agent 填写（§5）。
+
+## 0. 转译审查要点（主 Agent 四查）
+
+- **忠实性**：`README.md` §1 目标、`BDD.md` 1–9、各 `act/*.yaml` 的 contract 与 `G7-RULINGS.md` §1 P1–P9、§2 impl-04 裁决表逐条对应。
+  - D1/P1：只冻结 M3 StagePackage 及血缘输入与页图；EvidenceMapPack 只闭合尾链四段，`knowledge_chain: not_compiled`；M4/M6/M7 与前三段一律 BLOCKED，不注入合成知识。
+  - D2/P9：薄 M1 在 `shim/m1_shim_source_assets.py`，文件名与 CLI 名显式标 `m1_shim`，README 登记「impl-09 M1 落地后替换」；不改 impl-01 已验收的 `fixture_ingest.py`。
+  - D3：缺页图报 `BLOCKED_SOURCE_ASSET_MISSING` 并退出 3；禁止合成同哈希页图。
+  - D4/P2：新 artifact_type（`source_asset_page`、`source_asset_register`、`source_asset_pack`、`evidence_map_pack`、`release_manifest`、`publication_package`）只提名，须由 W2-C 登记 ACT 写入 `INTERFACES.md` §4 闭集后才可实现；实现中不得出现闭集外类型名。
+  - D5/P3：子包内容为代码草案，`schema_version: "0.1.0-draft"`；`PUBLIC_RELEASE` 以 `draft_schema` 拒绝；不新增 `openspec/schemas/` 文件。
+  - D6/P4：20.4/20.8 由本包唯一 ACT 08 接线，永不 PASS；`SUMMARY` 保持 `pass=2 fail=1 blocked=8`。
+  - D9 加裁：`source_verified` 不算 release 级，`source_release == "release"` 仅当 `content_status` 全为 `expert_verified`。
+  - D10/D11：水印文案逐字为草案；2 条文本多于字框的 span 降级 `line_bbox` 并披露，PUBLIC_RELEASE 追加拒绝。
+  - P5：解析上游 StagePackage 只接受所属 StepRun `succeeded` 的包（`impl-02 ACCEPTANCE.md` §5.3）。
+- **覆盖性**：BDD 各条都能在某个 `act/*.yaml` 的 `tests` 用例名或 `verify` 命令上找到落点；K1/K2/K3 的串行前置与 `depends_on` 一致；`README.md` §1 完成判据覆盖单测、`m8-span-identity.sh`、`--check publication`、缺页图退出 3、`run_all.sh` SUMMARY 五项。
+- **可执行性**：每个 ACT 有 `scope.write`、先红后绿的用例名、contract（函数签名/规则/检查名/退出码）、精确 `verify`、`commit.add`/`message`；退出码纪律（0/1/2/3）在 `m8-span-identity.sh`、`acceptance.py`、CLI 三处一致。
+- **独立性**：`gate.py` 不 import `packs`/`canonical`/`levels`/`step`；`acceptance.py` 不 import `packs`/`gate`，不读 `run_m8` 返回的 gate；`acceptance.py` 不信任被验目录自带 `verify.sh`（永远调用仓库内规范脚本）。
+
+派发前核对（主 Agent 脚本，定稿时执行）：9 份 ACT YAML 可解析；`ACT.yaml` 的 acts 与 `act/*.yaml` 一一对应；`impl-02` 状态 `ACCEPTED`；`INTERFACES.md` §4 已含 D4 六个新类型；本机三页页图存在；`m8-span-identity.sh` 尚不存在（exit 127）；`run_all.sh` 20.4/20.8 当前为静态 BLOCKED；按 `build_index.py` 规则独立复算 fixture 43 span → 39 键、4 组碰撞；fixture `spans.yaml` sha256 = `ec6d77b9…44ef`。
+
+## 1. 范围核对
+
+每个提交只含该 ACT `commit.add` 路径；`pipeline/dataset_compiler/` 之外仅 `openspec/acceptance/m8-span-identity.sh`（ACT 07）与 `openspec/acceptance/run_all.sh`（仅 ACT 08，仅 20.4/20.8 段）；规格、Schema、fixture、`pipeline/ledger`、`pipeline/corpus_compiler`、台账文件未动；无 `var/`、`__pycache__`；`git diff --check` 通过。
+
+## 2. 门禁与判据（`git archive` 干净树，软链 `.venv` 与工作台 assets，`FIXTURE_ASSET_ROOT` 指本机页图）
+
+- `ACT.yaml` 全部 `gates` 绿；两套 `unittest` 全过且用例数达 `TDD.md` §1 阈值；`m8-span-identity.sh` → `SUMMARY pass=7 fail=0 blocked=1`、exit 2；`acceptance.py --check publication` → `SUMMARY pass=8 fail=0 blocked=1`、exit 2；`FIXTURE_ASSET_ROOT=/nonexistent` → exit 3；`run_all.sh` → `pass=2 fail=1 blocked=8`。
+- `TDD.md` §2 附加判据逐条实跑；`README.md` §1 完成判据逐条复现。
+
+## 3. 语义与质量审查清单
+
+- 纯函数性：`canonical.py`/`levels.py`/`packs.py`/`gate.py` 不读文件、不取时间、不用随机数。
+- 身份键：`entries` 以完整 `span_id` 为键；`span_id` 页号/行序与 `page`/`line_index+1` 一致；反向索引覆盖清单全部页、排除页为 `[]`。
+- 哈希无环：ReleaseManifest 只含两个内容子包的哈希与输入对账；`canonical_hash` 可按 pack_type 排序重算；`m8` StagePackage `content_sha256` == release_manifest 字节哈希。
+- 事务序列与 §17 一致；`run_m8` 冻结输入恰 10 个；begin 之前的拒绝无写入；begin 之后的失败封存完整（检查名 ∈ {`input_contract`,`admission`,`compile`,`publication_gate`,`internal`}），失败运行不留子包修订、不留第二个 m8 StepRun。
+- fail-closed：`DEV_SEARCH`/`PUBLIC_RELEASE` 失败且四类子包修订数为 0；任何输入下 `PUBLIC_RELEASE` 均不 `admitted`；`draft_schema`/`rights_unconfirmed` 参与拒绝。
+- 披露不少报：fixture 上 `known_defects` 代码恰为六个；任一 `entry.watermark` 为 false 即 Gate 失败。
+- 宿主有效性：`legacy_collision_exposed` 的 39/4/43 由 fixture 重算，不是常量；副本假 `verify.sh` 下仍 `FAIL fixture_host`、exit 1。
+- 独立重算：Gate 与验收判定均不依赖被验实现自身产出的 gate 报告。
+- 中文注释；无 `except: pass`；不新增依赖、ID 前缀、模型调用。
+
+## 4. 结论规则
+
+- K1、K2、K3 各自通过后，由主 Agent 在 §5 记名并写 `ACCEPTED`；执行者不得自记。
+- 任一 FAIL 视为未通过，返工另立 ACT；`mentions_mapping`、`knowledge_chain` 与 `run_all.sh` 20.4/20.8 的 BLOCKED 不视为失败，但必须确属 §19 第一列差距。
+- 全部通过后，由主 Agent 同步 `SUBAGENT_TODO.md`、`HANDOFF.md` 并据此勾选 `PLAN`/`G7-PLAN` 相应项。
+
+## 5. 验收记录
+
+§5 验收记录由主 Agent 填写。

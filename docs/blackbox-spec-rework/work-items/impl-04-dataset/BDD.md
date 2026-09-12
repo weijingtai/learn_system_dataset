@@ -26,6 +26,8 @@
 
 ## 4. 薄 M1 页图登记（ACT 03）
 
+模块 `pipeline/dataset_compiler/shim/m1_shim_source_assets.py`，CLI `python -m pipeline.dataset_compiler.shim.m1_shim_source_assets`（D2：文件名与 CLI 名显式标 `m1_shim`；impl-09 M1 落地后替换）。
+
 - 4.1 Given Ledger 中一个合成 M1 清单与临时目录中的合成 PNG，When `register_source_assets`，Then 每页一个 `source_asset_page` sealed 修订（`rights_scope == "internal"`）与一个 m1 Checkpoint、登记文档与 Transformation 封存、StepRun `succeeded`。
 - 4.2 Given 缺一页、哈希不符、尺寸不符、非 PNG，Then begin 之前拒绝且 Ledger 行数不变；缺页时异常消息以 `BLOCKED_SOURCE_ASSET_MISSING` 开头并列出全部缺失 `path_ref`。
 - 4.3 Given 已登记过、或 M1 未灌入，Then 拒绝；Given begin 之后 Ledger 写方法抛错，Then `failed_check == "internal"` 且失败报告封存。

@@ -1,0 +1,97 @@
+act_id: impl-04/05
+title: M8 在 Ledger 上真实编译：run_m8 事务序列（准入、四 task Checkpoint、五类失败封存、m8 StagePackage）
+estimated_minutes: 110
+group: K2
+depends_on: [impl-04/04, impl-04/02]
+decisions: [D1, D5, D7, D8, D13]
+scope:
+  write: [pipeline/dataset_compiler/step.py, pipeline/dataset_compiler/tests/test_step.py]
+tests_first:
+  - 先写 tests/test_step.py（用例名逐字）并全红（step 模块不存在），再实现 step.py
+contract: |
+  step.py：run_m8(service, edition_part_id, *, consumption_level, min_app_version=None, release_id=None) -> dict
+    异常分层照搬 impl-02 `pipeline/corpus_compiler/step.py:35-133` 模板：
+      - 参数校验与 resolve_m8_inputs 产生的异常原样外抛（不改类型）；
+      - create_processing_run/put_run_artifact/begin_step_run 本身抛出的异常原样外抛（此时尚无 StepRun）；
+      - begin_step_run 成功之后的任何异常一律 _fail("internal", "<异常类名>: <消息>") 并返回 failed summary；_fail 自身失败时 `raise 原异常 from _fail异常`。
+    顺序：
+      1 参数校验（begin 之前、无任何写入）：consumption_level ∉ CONSUMPTION_LEVELS → SchemaViolation(code="SCH_002")；
+        min_app_version 非 None 且不匹配 ^[0-9]+\.[0-9]+\.[0-9]+$ → SchemaViolation(code="SCH_002")；release_id 非 None 时 ids.validate("release_id", release_id)
+      2 inputs = resolve_m8_inputs(service, edition_part_id)（原样外抛）
+      3 processing_run_id = service.create_processing_run("release_run", edition_part_id, inputs["technique_id"])（D8）
+      4 config = service.put_run_artifact(processing_run_id, "configuration", canonical_bytes({"stage": "m8", "tool": M8_TOOL, "tool_version": M8_TOOL_VERSION,
+          "consumption_level", "min_app_version", "release_id"(仅非 None 时), "release_scope": {"edition_part_ids": [edition_part_id]}}),
+          producer_module=M8_TOOL, producer_version=M8_TOOL_VERSION)（D7）
+      5 manifest = yaml.safe_load(清单修订字节)（仅用于确定页序）；frozen = [m3_package_revision_id, spans_revision_id, manifest_revision_id, ocr_page_set_revision_id]
+          + [按清单页序的 page_revision_ids…] + [按清单页序的 asset_revision_ids…]（fixture 共 10 个）
+        step = service.begin_step_run({"schema_version": "1.0.0", "processing_run_id", "step_run_id": ids.new_id("step_run_id"),
+          "input_artifact_ids": frozen, "technique_profile_id": inputs["technique_id"], "configuration_artifact_id": config})
+      6 输入契约（检查名 input_contract）：一次性读取并校验 frozen 每个修订字节（sha256 == 登记值，否则 HashMismatch SRC_003）；
+        manifest = yaml.safe_load(清单字节)；spans_doc = yaml.safe_load(spans 字节)；page_docs = {页: json.loads(页字节)}；m3_package = json.loads(m3 包字节)；
+        校验 m3_package["stage"] == "m3"、["validation"]["passed"] is True、["payload"]["spans_revision_id"] == spans 修订、["manifest"]["content_sha256"] == sha256(spans 字节)、
+        其 manifest.input_artifacts 的 source_manifest/ocr_page_set/ocr_page 与 resolve_m8_inputs 结果一致；
+        asset_records = {页: {"artifact_revision_id", "sha256", "size", "width", "height"}}（sha256/size 取修订元数据，width/height 取清单）；任一不符 → _fail("input_contract", …)
+      7 准入（检查名 admission）：admission = levels.evaluate_admission(consumption_level=consumption_level, content_statuses={spans_doc["content_status"]},
+          evidence_level=spans_doc["evidence_level"], release_policy=manifest["release_policy"], rights_status=manifest["rights_status"],
+          schema_versions={"evidence_map_pack": SUB_PACK_SCHEMA_VERSION, "release_manifest": SUB_PACK_SCHEMA_VERSION, "source_asset_pack": SUB_PACK_SCHEMA_VERSION},
+          min_app_version=min_app_version)
+        admission["admitted"] is not True → _fail("admission", "unmet: " + ",".join(admission["unmet"]))（unmet 已按字典序），返回 failed summary，无任何子包修订
+      8 编译（检查名 compile）：source_asset_pack = packs.build_source_asset_pack(manifest=manifest, asset_records=asset_records)
+          → put_artifact(step, "source_asset_pack", pack["bytes"]) → seal → write_checkpoint(task_id "source_asset_pack", completed_tasks=[{task_id, artifact_revision_id, status "succeeded", terminal_state None}], pending_queue=[其余三个 task], next_pointer)
+        evidence_map_pack = packs.build_evidence_map_pack(spans_doc=spans_doc, page_docs=page_docs, ocr_page_revision_ids=inputs["page_revision_ids"],
+          source_asset_pack=source_asset_pack["pack"], excluded_pages=inputs["excluded_pages"]) → put "evidence_map_pack" → seal → checkpoint("evidence_map_pack")；任一编译异常 → _fail("compile", …)
+      9 release_manifest = packs.build_release_manifest(release_id=(release_id or ids.new_id("release_id")), admission=admission,
+          release_scope={"edition_part_ids": [edition_part_id]}, technique_id=inputs["technique_id"],
+          packs=[{"pack_type","artifact_revision_id","sha256","size"} for source_asset_pack/evidence_map_pack], input_reconciliation=[frozen 的 {artifact_revision_id, artifact_type, sha256}],
+          schema_versions={…}, min_app_version=min_app_version,
+          known_defects=packs.compute_known_defects(evidence_map_pack=evidence_map_pack["pack"], m3_gate_profile=inputs["m3_gate_profile"], rights_status=manifest["rights_status"]),
+          watermark_text=INTERNAL_DEMO_WATERMARK) → put "release_manifest" → seal → checkpoint("release_manifest")
+      10 gate = gate.evaluate_publication(manifest=manifest, spans_doc=spans_doc, page_docs=page_docs, ocr_page_revision_ids=inputs["page_revision_ids"],
+          asset_records=asset_records, excluded_pages=inputs["excluded_pages"], m3_gate_profile=inputs["m3_gate_profile"], frozen_inputs=[frozen 的三元组],
+          source_asset_pack=source_asset_pack["pack"], evidence_map_pack=evidence_map_pack["pack"], release_manifest=release_manifest["manifest"],
+          pack_bytes={"source_asset_pack": source_asset_pack["bytes"], "evidence_map_pack": evidence_map_pack["bytes"]}, consumption_level=consumption_level)
+        validation_report = put "validation_report"（canonical {"gate_profile": "m8_first_slice", "consumption_level", "admission", "passed": gate["passed"],
+          "checks": gate["checks"], "failed_checks": gate["failed_checks"], "knowledge_chain": "not_evaluated", "anchor_migration": "not_evaluated"}）→ seal → checkpoint("validation_report")
+        gate["passed"] is not True → _fail("publication_gate", "failed_checks: " + ",".join(gate["failed_checks"]))
+      11 publication_package = put "publication_package"（canonical {"release_id": admission 用的 release_id, "consumption_level", "release_manifest_revision_id",
+          "validation_report_revision_id", "packs": {"evidence_map_pack": 修订, "source_asset_pack": 修订}, "canonical_hash": release_manifest["canonical_hash"]}）→ seal
+      12 transformation_id = record_transformation(step, operation="compile_dataset", tool=M8_TOOL, tool_version=M8_TOOL_VERSION, configuration_revision_id=config,
+          input_revision_ids=frozen, output_revision_ids=[source_asset_pack, evidence_map_pack, release_manifest, publication_package],
+          validation_report_revision_id=validation_report, human_event_revision_ids=[])
+      13 m8 StagePackage：stage_package_id = ids.new_id("stage_package_id", stage="m8")；package_revision_id = ids.new_id("artifact_revision_id")
+        payload{release_id, consumption_level, release_manifest_revision_id, publication_package_revision_id, canonical_hash, knowledge_chain: "not_compiled"}
+        manifest.input_artifacts = ref(全部 frozen)；manifest.output_artifacts = [ref(publication_package)]；manifest.counts 逐字 == {"spans": 43, "pages": 3, "source_assets": 3,
+          "glyph_highlights": 41, "line_bbox_highlights": 2, "packs": 2}（fixture）；manifest.content_sha256 = sha256(release_manifest bytes)
+        lineage.upstream_artifacts 含 ref(m3 StagePackage) 与 ref(manifest)；transformations 记 operation "compile_dataset"；register_stage_package(...) → seal
+      14 log = put "step_log"（每步一行、不含时间戳）→ seal；finish_step_run(step, {"schema_version": "1.0.0", "processing_run_id", "step_run_id", "status_version": 当前值 + 1,
+          "status": "succeeded", "output_artifact_ids": [source_asset_pack, evidence_map_pack, release_manifest, publication_package, package_revision_id],
+          "validation_report_ids": [validation_report], "log_artifact_ids": [log], "failure_artifact_ids": []})
+    返回 summary 键：status("succeeded"|"failed"), processing_run_id, step_run_id, configuration_revision_id, frozen_input_revision_ids,
+      成功时追加：release_id, admission, stage_package_id, package_revision_id, source_asset_pack_revision_id, evidence_map_pack_revision_id,
+        release_manifest_revision_id, validation_report_revision_id, publication_package_revision_id, canonical_hash, counts, known_defects, checkpoint_revision_ids, transformation_id, log_revision_id, step_manifest_revision_id；
+      失败时：failed_check, failure_revision_id, reason
+    _fail(service, step_run_id, check, detail) 与 impl-02 `step.py:404-421` 同形（put failure_report → seal → fail_step_run → 返回 failed summary）；检查名闭集 {input_contract, admission, compile, publication_gate, internal}
+tests:
+  test_step.py: |
+    统一脚手架：tempfile 目录 → LedgerService(root/"ledger") → ingest(FIXTURE, service, stages=("m1","m2")) → run_m3 → register_source_assets(..., REPO_ASSET_ROOT)（即 _ledger_helpers.prepare_m8_ready）
+    - test_run_m8_on_fixture_succeeds（@skipUnless(assets_available())；status "succeeded"；StepRun succeeded；counts == {"spans":43,"pages":3,"source_assets":3,"glyph_highlights":41,"line_bbox_highlights":2,"packs":2}）
+    - test_frozen_inputs_exactly_ten（Ledger frozen_inputs 集合 == {m3 包, corpus_spans, source_manifest, ocr_page_set, 三页 ocr_page, 三页 source_asset_page}，共 10 个）
+    - test_four_checkpoints_chained（m8 Checkpoint 共 4 个，task_id 依次 source_asset_pack、evidence_map_pack、release_manifest、validation_report；prev 指针成链）
+    - test_subpacks_are_independent_sealed_artifacts（source_asset_pack/evidence_map_pack/release_manifest/validation_report/publication_package 各为独立 sealed Artifact，artifact_type 正确）
+    - test_release_manifest_hashes_match_ledger_bytes（manifest["packs"] 的 sha256/size == Ledger 对象字节重算；json.loads(子包字节) == 对应 pack）
+    - test_m8_stage_package_validates_schema_and_lineage（过 stage_package.schema.json；lineage.upstream_artifacts 含 m3 包引用与清单引用；payload 键逐字；content_sha256 == release_manifest 字节哈希）
+    - test_two_ledgers_normalized_sha_equal（两个独立临时 Ledger 各跑一遍，evidence_map_pack 的 normalized_sha256 相同）
+    - test_illegal_level_SCH_002_no_writes（consumption_level="internal_demo" → 抛 SchemaViolation；processing_runs/artifact_revisions/step_runs 行数不变）
+    - test_second_run_m8_refused（同 EditionPart 第二次 run_m8 → DatasetRefused，message 含「M8 已封存」）
+    - test_tampered_spans_object_fails_input_contract（corpus_spans 对象改一个字节 → status failed，failed_check "input_contract"；无 m8 StagePackage）
+    - test_tampered_asset_object_fails_input_contract（构造 R6 的页图修订对象改一个字节）
+    - test_gate_failure_fails_publication_gate（patch packs.build_evidence_map_pack 返回删去一条 entry 的 pack → failed_check "publication_gate"；无 publication_package、无 m8 StagePackage）
+verify: |
+  .venv/bin/python -m unittest discover -s pipeline/dataset_compiler/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 102
+  grep -c '"m8_first_slice"' pipeline/dataset_compiler/step.py                                     # 1
+  grep -rE '^\s*(from|import) .*(requests|openai|anthropic|httpx)' pipeline/dataset_compiler/step.py | wc -l   # 0
+  TDD §3 回归
+commit:
+  add: [pipeline/dataset_compiler/step.py, pipeline/dataset_compiler/tests/test_step.py]
+  message: "feat(m8): run_m8 ledger transaction with admission, four task checkpoints, independent publication gate and m8 stage package"
+on_fail: 停止并报告；不得让任何失败路径留下 public 子包修订或第二个 m8 StepRun；不得把 gate 判定改读 run_m8 自身返回值

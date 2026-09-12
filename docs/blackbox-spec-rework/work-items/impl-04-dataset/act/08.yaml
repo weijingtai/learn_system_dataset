@@ -1,0 +1,37 @@
+act_id: impl-04/08
+title: run_all.sh 20.4/20.8 接入 M8 判定（W3 内唯一 run_all 写入者；永不 PASS）
+estimated_minutes: 50
+group: K3
+depends_on: [impl-04/07]
+decisions: [D6]
+scope:
+  write: [openspec/acceptance/run_all.sh]
+tests_first:
+  - 无 unittest；先运行 `bash openspec/acceptance/run_all.sh 20.4` 与 `20.8` 记录改前原文（均 BLOCKED M8 Dataset Compilation），改后取新原文比对
+contract: |
+  run_all.sh（只改 20.4、20.8 两段，并新增一个辅助函数；其余条目、pass_line 语义、SUMMARY 计数逻辑不动）：
+    新增辅助函数 m8_verdict <fixture_dir> <check>——在临时目录建 Ledger 运行 M8 判定，返回三态字符串：
+      OK    判定无 FAIL 有 BLOCKED 或全 PASS（即 m8-span-identity.sh / acceptance 退出 0 或 2）
+      FAIL  任一条目 FAIL（退出 1）
+      MISSING 宿主缺失（退出 3：缺 fixture、缺页图、缺 .venv/依赖）
+    20.4：沿用现有 fx/`$PY` 前置检查后，case "$(m8_verdict "$FIXTURE_DIR" span_identity)" in
+      OK)      block_line "$n" "M4 Knowledge Extraction" "已判定: m8-span-identity 7 PASS + mentions_mapping BLOCKED；候选/驳回项/正式知识未产出（§20:940）" ;;
+      FAIL)    fail_line "$n" "M8 判定未通过" "$(m8_reason)" ;;
+      MISSING) block_line "$n" "测试宿主匮乏" "缺 fixture 或本机页图" ;;
+      esac
+    20.8：同理，check 取 publication，OK 行的段说明为「已判定: publication 8 PASS + knowledge_chain BLOCKED；缺结构化知识（§20:944）」
+    硬性：20.4、20.8 两段**不得出现 pass_line 调用**；不得改动 `SUMMARY` 计数逻辑；其余条目（20.5/20.6/20.9/20.11 等）保持原样
+    边界（BDD §9）：注入「EvidenceMapPack 删一条 entry」的副本树 → 20.4 为 `FAIL`；FIXTURE_ASSET_ROOT=/nonexistent → 20.4/20.8 为 `BLOCKED … 测试宿主匮乏；…`
+verify: |
+  bash openspec/acceptance/run_all.sh 20.4 | tail -1      # BLOCKED 20.4 前置缺失: M4 Knowledge Extraction；已判定: …
+  bash openspec/acceptance/run_all.sh 20.8 | tail -1      # BLOCKED 20.8 前置缺失: M4 Knowledge Extraction；已判定: …
+  FIXTURE_ASSET_ROOT=/nonexistent bash openspec/acceptance/run_all.sh 20.4 | tail -1   # BLOCKED … 测试宿主匮乏；…
+  export LC_ALL=en_US.UTF-8; bash openspec/acceptance/run_all.sh | tail -1             # SUMMARY pass=2 fail=1 blocked=8
+  bash openspec/acceptance/run_all.sh 20.4 | grep -c '^PASS'                            # 0
+  sed -n '/^    20\.4)/,/^    20\.5)/p' openspec/acceptance/run_all.sh | grep -c 'pass_line'   # 0
+  sed -n '/^    20\.8)/,/^    20\.9)/p' openspec/acceptance/run_all.sh | grep -c 'pass_line'   # 0
+  TDD §3 回归
+commit:
+  add: [openspec/acceptance/run_all.sh]
+  message: "test(m8): wire run_all 20.4/20.8 to the m8 verdicts, staying BLOCKED on missing M4 knowledge"
+on_fail: 停止并报告；不得让 20.4/20.8 出现 PASS；不得改动 run_all.sh 其他条目或 SUMMARY 计数
