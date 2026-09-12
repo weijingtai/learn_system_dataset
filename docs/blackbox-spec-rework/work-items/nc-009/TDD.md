@@ -9,7 +9,7 @@ SERVER：`cd /Users/jingtaiwei/Git/Public/xuan-server/functions-py && export XUA
 | 1 | `$PY -m pytest tests/test_community_commands.py -q` | act/01 后 `12 passed` |
 | 2 | `$PY -m pytest tests/test_community_publications.py -q` | act/02 后 `9 passed`；act/03 后 `16 passed`；act/04 后 `18 passed` |
 | 3 | `$PY -m pytest tests/test_community_acl_sweep.py -q` | act/04 后 `9 passed, 9 xfailed`（无 skipped） |
-| 4 | `$PY -m pytest tests -q` | 既有通过数 + 39 passed + 9 xfailed，0 failed |
+| 4 | `$PY -m pytest tests -q` | `450 passed, 5 failed, 9 xfailed`（411 基线 + 39 新增；5 个失败名称与 README 基线清单逐一相同） |
 | 5 | `npm test -- community_rules`（RULES 仓） | 1 suite passed，≥ 65 断言 |
 | 6 | `$PY -c "import main"` | 无异常（导出注册） |
 | 7 | `git -C <SERVER> diff 30a868c HEAD --stat -- xuan/idempotency.py xuan/handlers/playground_rest.py xuan/handlers/notifications.py` | 空 |

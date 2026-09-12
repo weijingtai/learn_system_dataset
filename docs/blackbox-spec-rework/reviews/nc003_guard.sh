@@ -24,13 +24,13 @@ codes=["unauthenticated","not_found.content","forbidden.not_owner","forbidden.th
 need=["/v1/community","IdempotencyKey","IfMatch","IfNoneMatch","NotFoundContent","ProblemDetails","CommandResult","openapi-spec-validator 0.9.0","in: header","snake_case","x-xuan-function","retry_after_seconds","GET /commands/{command_id}"]
 ok02=all(o in c for o in ops) and all(k in c for k in codes) and all(n in c for n in need) and all(f"D-NC003-{i:02d}" in c for i in range(1,13)) and "permission_denied" in c and "22 个 operation" in c and VAL.is_file()
 check(ok02,"K02 契约：17 操作、错误目录、头参数、验证器实值、D-NC003-01～12、验证器已安装",f"missing={[x for x in ops+codes+need if x not in c]} validator={VAL.is_file()}")
-bdd=read(PACK/"BDD.md"); tdd=read(PACK/"TDD.md"); acts=[read(PACK/"act"/f"0{i}.yaml") for i in range(1,6)]
+bdd=read(PACK/"BDD.md"); tdd=read(PACK/"TDD.md"); acts=[read(PACK/"act"/f"0{i}.yaml") for i in range(1,7)]
 bids=re.findall(r"^\| (B\d\d) \|",bdd,re.M); est=[int((re.search(r"^ESTIMATE_MINUTES: (\d+)",a,re.M) or [0,0])[1]) for a in acts]
 deps=[(re.search(r"^DEPENDS_ON: (.*)$",a,re.M) or [0,""])[1].strip() for a in acts]
-vague=re.compile(r"适当|优雅|合理|必要时|酌情|尽量|大致|视情况"); files=["README.md","BDD.md","TDD.md","ACT.yaml","PROMPT.md","ACCEPTANCE.md","act/01.yaml","act/02.yaml","act/03.yaml","act/04.yaml","act/05.yaml"]
+vague=re.compile(r"适当|优雅|合理|必要时|酌情|尽量|大致|视情况"); files=["README.md","BDD.md","TDD.md","ACT.yaml","PROMPT.md","ACCEPTANCE.md","act/01.yaml","act/02.yaml","act/03.yaml","act/04.yaml","act/05.yaml","act/06.yaml"]
 hits=[f"{f}:{m.group(0)}" for f in files for m in vague.finditer(read(PACK/f))]
-ok03=(sorted(bids)==[f"B{i:02d}" for i in range(1,28)] and all(30<=e<=60 for e in est) and deps==["[]","[NC-003-A]","[NC-003-B]","[NC-003-C]","[NC-003-D]"] and all("ON_FAIL" in a and "WORKLOAD" in a for a in acts) and not hits and "+65" in tdd and "+52" in tdd and "+55" in tdd and "+58" in tdd and "+63" in tdd and "DISPATCH_PRECONDITION" in read(PACK/"ACT.yaml") and "0f8bf52" in read(PACK/"README.md") and "openapi-spec-validator" in read(PACK/"PROMPT.md"))
-check(ok03,"K03 六件套：BDD B01～B27、五个 ACT 30–60 分钟且依赖链/ON_FAIL/WORKLOAD、无模糊词、计数 52/55/58/63/65、基线 hash",f"bids={len(bids)} est={est} deps={deps} vague={hits}")
+ok03=(sorted(bids)==[f"B{i:02d}" for i in range(1,33)] and all(30<=e<=60 for e in est) and deps==["[]","[NC-003-A]","[NC-003-B]","[NC-003-C]","[NC-003-D]","[NC-003-E]"] and all("ON_FAIL" in a and "WORKLOAD" in a for a in acts) and not hits and "+65" in tdd and "+69" in tdd and "+52" in tdd and "+55" in tdd and "+58" in tdd and "+63" in tdd and "DISPATCH_PRECONDITION" in read(PACK/"ACT.yaml") and "0f8bf52" in read(PACK/"README.md") and "openapi-spec-validator" in read(PACK/"PROMPT.md"))
+check(ok03,"K03 六件套：BDD B01～B32、六个 ACT 30–60 分钟且依赖链/ON_FAIL/WORKLOAD、无模糊词、计数 52/55/58/63/65/69、基线 hash",f"bids={len(bids)} est={est} deps={deps} vague={hits}")
 todo=read(root/"docs/blackbox-spec-rework/SUBAGENT_TODO.md"); check("NC-003" in todo and "community_api.md" in todo,"K04 SUBAGENT_TODO 已登记 NC-003 工作包与契约","")
 tool=REST/"tool/validate_openapi"
 if not tool.exists() and not req:

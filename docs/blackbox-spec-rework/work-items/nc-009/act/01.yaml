@@ -35,7 +35,7 @@ STEPS:
 VERIFICATION:
   - "cd /Users/jingtaiwei/Git/Public/xuan-server/functions-py && .venv/bin/python -m pytest tests/test_community_commands.py -q（期望 12 passed）"
   - "cd /Users/jingtaiwei/Git/Public/xuan-server/functions-py && .venv/bin/python -c 'import main'（期望无异常）"
-  - "cd /Users/jingtaiwei/Git/Public/xuan-server/functions-py && .venv/bin/python -m pytest tests -q（期望 0 failed）"
+  - "cd /Users/jingtaiwei/Git/Public/xuan-server/functions-py && .venv/bin/python -m pytest tests -q（期望失败仅为 README 基线的 5 个用例名称）"
   - "git -C /Users/jingtaiwei/Git/Public/xuan-server/functions-py status --short（提交后为空）"
 ON_FAIL: "停止并报告失败命令、退出码与原文；Emulator 不可达、.venv 缺失、需要改 firestore.rules/idempotency.py/playground_rest.py、契约两种解释均为停止条件。"
 BASELINE_EXIT_CODES: "开工基线：SERVER 30a868c；README 记录的既有 pytest 通过计数；Emulator 可达"

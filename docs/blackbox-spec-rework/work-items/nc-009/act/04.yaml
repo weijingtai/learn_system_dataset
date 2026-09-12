@@ -30,13 +30,13 @@ RULES:
 TESTS_FIRST:
   - "写 18 条参数化 + 2 个附加测试 + TS 规则测试；运行 TDD 命令 3/5 取得 Red 原文"
 STEPS:
-  - "实现至命令 3 为 9 passed, 9 xfailed；命令 5 通过；命令 4 0 failed"
+  - "实现至命令 3 为 9 passed, 9 xfailed；命令 5 通过；命令 4 为 450 passed, 5 failed（基线）, 9 xfailed"
   - "SERVER 与 RULES 各提交一次"
   - "提交后（仅此一次）：cd /Users/jingtaiwei/Git/Public/learn_system && bash docs/blackbox-spec-rework/reviews/nc009_guard.sh --require-impl，退出码写入报告"
 VERIFICATION:
   - "cd /Users/jingtaiwei/Git/Public/xuan-server/functions-py && .venv/bin/python -m pytest tests/test_community_acl_sweep.py -q（期望 9 passed, 9 xfailed，无 skipped）"
   - "cd /Users/jingtaiwei/Git/Public/xuan-migration/xuan-server/server/functions && FIRESTORE_EMULATOR_HOST=192.168.0.165:8080 FIREBASE_AUTH_EMULATOR_HOST=192.168.0.165:9099 npm test -- community_rules（期望通过）"
-  - "cd /Users/jingtaiwei/Git/Public/xuan-server/functions-py && .venv/bin/python -m pytest tests -q（期望 0 failed）"
+  - "cd /Users/jingtaiwei/Git/Public/xuan-server/functions-py && .venv/bin/python -m pytest tests -q（期望 450 passed, 5 failed, 9 xfailed；失败名称同 README 基线）"
   - "git -C /Users/jingtaiwei/Git/Public/xuan-server/functions-py diff 30a868c HEAD --stat -- xuan/idempotency.py xuan/handlers/playground_rest.py xuan/handlers/notifications.py（期望空）"
   - "cd /Users/jingtaiwei/Git/Public/learn_system && bash docs/blackbox-spec-rework/reviews/nc009_guard.sh --require-impl（期望 0）"
   - "git -C /Users/jingtaiwei/Git/Public/xuan-server/functions-py status --short 与 git -C /Users/jingtaiwei/Git/Public/xuan-migration/xuan-server/server/.. status --short（提交后为空）"

@@ -1,6 +1,6 @@
 # NC-009：公共发布事务、权限扫描与命令账本服务（服务端）
 
-状态：`DRAFT`（2026-09-11，待 wjt-react 四查）。派发前置：**NC-003 ACCEPTED 且其补丁 act/06（契约 §9 P1/P2）ACCEPTED** + **环境阻塞解除**（见 Baseline：磁盘剩余 < 0.5 GiB 时无法安装 functions-py 依赖）。执行由用户交外部 Agent，PROMPT.md 原样发送。task_id：`NC-009`。权威需求来源：TASKS NC-009；DESIGN §4、§7.3、§7.4、§11.4～11.5；PRD R-05/R-20、§6.2；契约 `contracts/community_server.md`（本任务专属，主 Agent 编写）与 `community_api.md`（NC-003）。
+状态：`DRAFT`（2026-09-11，待 wjt-react 四查）。派发前置：**NC-003 ACCEPTED（含 act/06，已合入契约 §9 P1/P2）**；环境阻塞已于 2026-09-11 解除（见 Baseline）。执行由用户交外部 Agent，PROMPT.md 原样发送。task_id：`NC-009`。权威需求来源：TASKS NC-009；DESIGN §4、§7.3、§7.4、§11.4～11.5；PRD R-05/R-20、§6.2；契约 `contracts/community_server.md`（本任务专属，主 Agent 编写）与 `community_api.md`（NC-003）。
 
 ## Goal
 
@@ -20,7 +20,7 @@
 ## Dependencies / Baseline
 
 - SERVER HEAD `30a868c`；Emulator `192.168.0.165:8080/9099` 2026-09-11 可达；RULES 仓 `functions/node_modules` 已装（jest + `@firebase/rules-unit-testing`）。
-- **环境阻塞（2026-09-11）**：本机磁盘剩余 427 MiB，`pip install -r requirements.txt` 因 `No space left on device` 失败；派发前须由用户清理磁盘（≥ 2 GiB），主 Agent 重建 `functions-py/.venv` 并把既有 `pytest tests -q` 通过计数写入本节：`<待填：既有测试计数>`。
+- **环境基线（2026-09-11 磁盘清理后主 Agent 重建 `functions-py/.venv`，Python 3.14.6、pytest 9.1.1）**：`pytest tests -q` → `411 passed, 5 failed, 58 subtests passed`。5 个既有失败与本任务无关，原样保留、不得修改：`tests/test_config.py::test_集合名与_ts_逐项一致`（读取已不存在的 `xuan-server/functions/src/index.ts`）；`tests/test_registration.py` 的 `test_全部_callable_已在入口注册`、`test_三个_trigger_已注册`、`test_与_入口总数对齐`、`test_没有多余的未声明导出`（清单停留在 37 个入口，未含 fcm/follow/search 等后续导出）。本任务新增导出不改变失败集合；验收比较**失败用例名称集合**与本清单相同。
 - 共享守卫：`bash docs/blackbox-spec-rework/reviews/nc009_guard.sh --require-impl`（只读）。
 
 ## Stop Conditions
