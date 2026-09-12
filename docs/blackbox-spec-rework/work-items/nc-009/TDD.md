@@ -48,6 +48,16 @@ Red：ACL 9 条真实用例在 access 层未按契约 §5 共用响应体前应�
 
 Red：先写 7 个测试并改 §10.4 绑定取值，对 `55f3980` 运行命令 4b 取得失败原文（B37 因 schemas 目录不存在而红）。
 
+## 5c. act/06：验收 R2 返工（契约 §10.6）
+
+文件：`xuan/community/content_service.py`（仅删除 W1/W2 校验前的默认值补齐与 `dict()` 转换）、`command_service.py`/`access.py`/`handlers/community_commands.py`/`handlers/community_contents.py`（仅 §10.6 的 4 处日志）、`tests/test_community_validation.py`（追加 2 个）、既有 `tests/test_community_*.py`（仅补快照缺失的必填键，值为 `[]`）。
+
+2 个测试（名称逐字）：
+- `snapshot_missing_required_keys_is_400`（B38）：W1 快照只有 `title`、`markdown` → 400 `invalid_argument.snapshot`、`field="/snapshot"`、无 access 文档；W1 `snapshot="x"` → 同上；先合法发布再 W2（`If-Match: "1"`）快照只有 `title`、`markdown` → 400 `/snapshot` 且 access.version 仍为 1。
+- `community_logs_have_no_exception_text`（B39）：monkeypatch `xuan.handlers.community_contents.resolve_app_user_id` 抛 `RuntimeError("SECRET-LOG")`，带合法 token 调 W1 → 401 且 `caplog` 不含 `SECRET-LOG`；再读 `xuan/community/*.py` 与 `xuan/handlers/community_*.py` 源码，正则 `\{exc\}|str\(exc\)|repr\(exc\)|exc_info` 命中 0 处。
+
+Red：先写 2 个测试，对 `52d8330` 运行命令 4b，期望 `2 failed, 7 passed`（B38 因 201/503 而红，B39 因 caplog 含 `SECRET-LOG` 或源码命中 4 处而红）。命令 4b 最终 9 passed；命令 4 最终 `459 passed, 5 failed, 9 xfailed`。
+
 ## 6. 禁止
 
 `skip`；`assert status in (...)`；`with_idempotency`；事务回调内网络/推送/sleep；改 `firestore.rules`；改既有测试期望；内存 fake 代替 Emulator；新增依赖。

@@ -213,3 +213,14 @@ W1～W6 的 `If-Match` 头存在但不匹配 `^"[0-9]+"$`（含未加引号的�
 | D-NC009-15 | 服务端用 jsonschema 4.26.0 按逐字节复制的 NC-002 Schema 校验快照 | 验收盲测：非法枚举与 201 code point 标题均 201 且写入公共关联索引；NC-002 Schema 含锚点/选择器深层结构，手写校验必然漂移 |
 | D-NC009-16 | 畸形 If-Match 为请求级 400，不入账本 | 盲测：`abc` 被当作版本不符返回 412；契约原先只写了缺失，未写畸形（主 Agent 缺口） |
 | D-NC009-17 | 503 响应与日志不含异常文本 | 盲测发现 `detail=str(exc)`；异常文本可能含文档字段与内部路径 |
+
+### 10.6 验收 R2 追加（2026-09-11 主 Agent 验收 act/05 后追加，NC-009 act/06 消费）
+
+- **D-NC009-18 快照原样校验，不补默认值**：W1、W2 以请求体原值 `body.get("snapshot")` 做 §10.1 Schema 校验；禁止在校验前给 `attachments`、`mentions`、`bindings` 补 `[]`，也禁止 `dict(...)` 转换。缺任一必填键、`snapshot` 缺失或不是对象 → `400 invalid_argument.snapshot`，`field: "/snapshot"`（`required`/`type` 错误的 `absolute_path` 为空），按 §3.2 记拒绝终态。载荷阶段 ② 通过之前不得按字典取 `snapshot` 的键（① 保留 `isinstance` 保护）。理由：REST 仓 OpenAPI `PublicSnapshot.required = [title, attachments, mentions, bindings]`，客户端 NC-010 恒发四键；服务端放宽即契约漂移。
+- **既有测试取值修正（二）**：删除默认值补齐后，SERVER 既有测试请求体里 `snapshot` 缺必填键而变红的，act/06 允许且只允许补上缺失的键，值为 `[]`；不得改其他键、断言或期望。
+- **D-NC009-19 社区日志不记异常文本**：`xuan/community/*.py` 与 `xuan/handlers/community_*.py` 的日志调用不得含 `{exc}`、`str(exc)`、`repr(exc)`、`exc_info`，一律改记 `type(exc).__name__`。现存 4 处：`command_service.py` 的 `get_command failed`、`access.py` 的 `resolve_public_author failed`、`handlers/community_commands.py` 与 `handlers/community_contents.py` 的 `Failed to resolve user ID`；消息其余文字不变。理由同 D-NC009-17（§10.3 只覆盖了 `run_command`，主 Agent 缺口）。
+
+| 编号 | 决定 | 理由 |
+|---|---|---|
+| D-NC009-18 | 快照原样按 Schema 校验，缺必填键与非对象均 400 `/snapshot` | 验收 R2 盲测：只含 `title`、`markdown` 的快照返回 201；非对象快照经 `dict()` 抛错变 503 |
+| D-NC009-19 | 社区全部日志只记异常类名 | 验收 R2 审阅：另有 4 处 `{exc}` |

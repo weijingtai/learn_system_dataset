@@ -44,3 +44,27 @@
 **提交**：一个提交，只 `git add` 本步文件，不 push；提交消息按 act/05 的 COMMIT_MESSAGE，末尾另起两行加 `Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>`。
 
 **交付报告**：追加到 `/Users/jingtaiwei/Git/Public/learn_system/docs/blackbox-spec-rework/work-items/nc-009/DELIVERY_REPORT.md`（不 git add）：commit 哈希与 `git show --stat`；Red 命令/退出码/原文；VERIFICATION 每条命令的退出码与末 20 行；`nc009_guard.sh --require-impl` 退出码。另请**补上此前缺失的 act/04 Red 原文**（ACL 扫描与规则单测在实现前的失败输出；若当时未保存，如实写明）。
+
+# NC-009 act/06 返工执行提示（2026-09-11 验收 R2 后追加）
+
+发送前提：act/05 已提交（SERVER `52d8330`）。主 Agent 经 `~/tmux-agents` 派给 agy；分隔线以下全文即提示词。
+
+---
+
+你执行 NC-009 的返工步 act/06：在 canonical SERVER 仓库 `/Users/jingtaiwei/Git/Public/xuan-server/functions-py`（git 根即此目录；过期副本 `xuan-migration/xuan-server/server/functions-py` 绝不写；learn_system 除交付报告外只读）以 `52d8330` 为基线修两处偏差。测试跑 Emulator：`export XUAN_EMULATOR_HOST=192.168.0.165:8080 FIREBASE_AUTH_EMULATOR_HOST=192.168.0.165:9099`。
+
+**先读**：`/Users/jingtaiwei/Git/Public/learn_system/docs/blackbox-spec-rework/work-items/nc-009/act/06.yaml`、同目录 `TDD.md` §5c、`BDD.md` B38～B39、`ACCEPTANCE.md` 末尾「验收记录 R2」；契约 `/Users/jingtaiwei/Git/Public/learn_system/openspec/annotation-community/contracts/community_server.md` §10.1 与 §10.6（逐字照做）。
+
+**要做的事**：① `xuan/community/content_service.py` 的 W1、W2 删除校验前给快照补 `attachments/mentions/bindings` 默认值的代码，`snapshot` 改为请求体原值 `body.get("snapshot")`（不经 `dict()`），载荷阶段 ② 通过之前不得按字典取它的键；② 契约 §10.6 列出的 4 处日志把 `{exc}` 改为 `{type(exc).__name__}`，其余文字不动；③ `tests/test_community_validation.py` 追加 TDD §5c 的 2 个测试（名称逐字）；④ 删除默认值补齐后，既有测试请求体 `snapshot` 缺必填键而变红的，只补缺失的键、值为 `[]`。
+
+**既有失败基线**：`52d8330` 全量为 `457 passed, 5 failed, 9 xfailed`；5 个失败（`test_config.py::test_集合名与_ts_逐项一致` 与 `test_registration.py` 的 4 个）与本任务无关，不要修改；最终应为 `459 passed, 5 failed, 9 xfailed`。
+
+**先写测试再改实现**：先写 2 个测试，对 `52d8330` 运行 `tests/test_community_validation.py` 取得 Red 原文（期望 `2 failed, 7 passed`）；做完 ① 后跑全量，把因缺键变红的既有用例名单记下，再做 ④。
+
+**只允许写**：act/06.yaml 的 WRITE_NEW 清单。禁止：清单外任何文件；RULES 仓；新依赖；改 `validation.py` 与 `schemas/`；`skip`；二选一断言；改既有测试除补键外的任何内容；`git push`；删除文件。
+
+**遇到下列情况立即停止，不要自己决定**：契约与代码对不上；需要改清单外文件或既有断言；补键后仍有既有用例红；全量数字与期望不符；任何拿不准的取舍。停止时先在交付报告追加「## act/06 待裁决」段（现象、命令、原文、你看到的选项），然后在对话最后单独输出一行 `NC-009-F 停手待裁决`，不再继续。
+
+**提交**：一个提交，只 `git add` 本步文件，不 push；提交消息 `fix(community): 快照不补默认值、社区日志不记异常文本（NC-009-F）`，末尾空一行加 `Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>`。
+
+**交付报告**：追加到 `/Users/jingtaiwei/Git/Public/learn_system/docs/blackbox-spec-rework/work-items/nc-009/DELIVERY_REPORT.md`（不 git add），标题「### 3.6 act/06 (NC-009-F)」：commit 哈希与 `git show --stat`；Red 命令、退出码、原文；因缺键变红的既有用例名单；act/06.yaml VERIFICATION 每条命令的退出码与末 20 行。全部完成后在对话最后单独输出一行 `NC-009-F 完成`。

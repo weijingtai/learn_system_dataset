@@ -1,0 +1,43 @@
+TASK_ID: NC-009-F
+PARENT: NC-009
+STATUS: READY
+REPO: xuan-server/functions-py
+GOAL: 验收 R2 返工：W1/W2 快照原样按 Schema 校验、不补默认值（缺必填键或非对象为 400 /snapshot）；社区日志只记异常类名；2 测试，全量 459 passed
+DEPENDS_ON: [NC-009-E]
+ESTIMATE_MINUTES: 30
+WORKLOAD: "content_service 两处删除默认值补齐（约 -14 行）；4 处日志各改一行；2 个 Emulator 测试；既有测试快照补缺失键（机械修改）"
+SCOPE:
+  READ:
+    - /Users/jingtaiwei/Git/Public/learn_system/openspec/annotation-community/contracts/community_server.md §10.1、§10.6
+    - /Users/jingtaiwei/Git/Public/learn_system/docs/blackbox-spec-rework/work-items/nc-009/TDD.md §5c、BDD.md B38～B39、ACCEPTANCE.md 验收记录 R2
+  WRITE_NEW:
+    - /Users/jingtaiwei/Git/Public/xuan-server/functions-py/xuan/community/content_service.py（仅删除 W1/W2 校验前的默认值补齐与 dict() 转换）
+    - /Users/jingtaiwei/Git/Public/xuan-server/functions-py/xuan/community/command_service.py、xuan/community/access.py、xuan/handlers/community_commands.py、xuan/handlers/community_contents.py（仅契约 §10.6 列出的 4 处日志）
+    - /Users/jingtaiwei/Git/Public/xuan-server/functions-py/tests/test_community_validation.py（追加 2 个）
+    - /Users/jingtaiwei/Git/Public/xuan-server/functions-py/tests/test_community_*.py 既有文件（仅按契约 §10.6 补快照缺失的必填键，值为 []）
+    - /Users/jingtaiwei/Git/Public/learn_system/docs/blackbox-spec-rework/work-items/nc-009/DELIVERY_REPORT.md（仅追加，不 git add）
+  FORBIDDEN:
+    - /Users/jingtaiwei/Git/Public/learn_system 下除交付报告外的任何写入
+    - 其他 SERVER 文件（含 idempotency.py、playground_rest.py、notifications.py、validation.py、schemas/、test_config.py、test_registration.py）；RULES 仓
+    - 新依赖；skip；二选一断言；改既有测试除补键外的任何内容；git push；删除文件
+DEPENDENCY_ALLOWLIST: []
+RULES:
+  - "校验输入、错误码、field 指针、日志写法逐字按契约 §10.6"
+  - "先写测试取得真实 Red 原文再实现"
+  - "只 git add 本步文件；提交消息按 COMMIT_MESSAGE，末尾另起两行 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
+TESTS_FIRST:
+  - "写 TDD §5c 的 2 个测试；运行命令 4b，保存失败原文作为 Red（期望 2 failed, 7 passed）"
+STEPS:
+  - "删除 W1/W2 默认值补齐；跑全量，把因缺键变红的既有用例名单写进报告；只补缺失键至全量 459 passed, 5 failed, 9 xfailed"
+  - "改 4 处日志；git add 本步文件并提交"
+  - "提交后（仅此一次）：bash docs/blackbox-spec-rework/reviews/nc009_guard.sh --require-impl，退出码写入报告"
+VERIFICATION:
+  - "cd /Users/jingtaiwei/Git/Public/xuan-server/functions-py && XUAN_EMULATOR_HOST=192.168.0.165:8080 FIREBASE_AUTH_EMULATOR_HOST=192.168.0.165:9099 .venv/bin/python -m pytest tests/test_community_validation.py -q（期望 9 passed）"
+  - "cd /Users/jingtaiwei/Git/Public/xuan-server/functions-py && XUAN_EMULATOR_HOST=192.168.0.165:8080 FIREBASE_AUTH_EMULATOR_HOST=192.168.0.165:9099 .venv/bin/python -m pytest tests -q（期望 459 passed, 5 failed, 9 xfailed；失败名称同 README 基线）"
+  - "cd /Users/jingtaiwei/Git/Public/xuan-server/functions-py && grep -rnE '\\{exc\\}|str\\(exc\\)|repr\\(exc\\)|exc_info' xuan/community/*.py xuan/handlers/community_*.py（期望无输出）"
+  - "cd /Users/jingtaiwei/Git/Public/xuan-server/functions-py && grep -nE 'dict\\(body\\.get\\(\"snapshot\"\\)|snapshot\\[\"(attachments|mentions|bindings)\"\\] = \\[\\]' xuan/community/content_service.py（期望无输出）"
+  - "cd /Users/jingtaiwei/Git/Public/learn_system && bash docs/blackbox-spec-rework/reviews/nc009_guard.sh --require-impl（期望 0）"
+  - "git -C /Users/jingtaiwei/Git/Public/xuan-server/functions-py status --short（提交后为空）"
+ON_FAIL: "停止并报告失败命令、退出码与原文；补键后仍有既有用例红、全量数字不符、需要改清单外文件或既有断言，均为停止条件。"
+BASELINE_EXIT_CODES: "开工基线：SERVER 52d8330（457 passed, 5 failed, 9 xfailed）"
+COMMIT_MESSAGE: "fix(community): 快照不补默认值、社区日志不记异常文本（NC-009-F）"

@@ -11,8 +11,9 @@ SPLIT:
   - act/03.yaml
   - act/04.yaml
   - act/05.yaml（2026-09-11 验收返工：快照 Schema、畸形 If-Match、503 文案）
-ORDER: "严格按 act/01 → 02 → 03 → 04 → 05；SERVER 仓每步一个提交；act/04 另在 RULES 仓一个提交；禁止并行"
-ESTIMATE_MINUTES_TOTAL: 275
+  - act/06.yaml（2026-09-11 验收 R2 返工：快照不补默认值、社区日志不记异常文本）
+ORDER: "严格按 act/01 → 02 → 03 → 04 → 05 → 06；SERVER 仓每步一个提交；act/04 另在 RULES 仓一个提交；禁止并行"
+ESTIMATE_MINUTES_TOTAL: 305
 DEFERRED:
   - "附件与外置正文的发布：NC-008/NC-025（本任务 409 conflict.object_missing）"
   - "purge 清理执行与 SM-6：NC-019"

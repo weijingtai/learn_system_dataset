@@ -41,3 +41,5 @@
 | B35 | `If-Match: abc`；`If-Match: 1`（无引号） | W3 | 两者均 400 `invalid_argument.if_match`；`community_commands` 集合无该 command_id 文档 |
 | B36 | `fn` 内抛 `RuntimeError("SECRET-XYZ")` | W1 | 503 `unavailable`；响应体与 `caplog` 全文均不含 `SECRET-XYZ` |
 | B37 | `xuan/community/schemas/` 12 份文件 | 计算 SHA-256 | 与契约 §10.1 清单逐项相等 |
+| B38 | 快照只有 `title`、`markdown`（缺 attachments/mentions/bindings）；另一例 `snapshot = "x"` | W1；已发布内容上以同样快照 W2 | 均 400 `invalid_argument.snapshot`，`field = "/snapshot"`；W1 无 access 文档；W2 后 access.version 不变 |
+| B39 | 身份解析抛 `RuntimeError("SECRET-LOG")` | W1 | 401；`caplog` 不含 `SECRET-LOG`；社区源码无 `{exc}`/`str(exc)`/`repr(exc)`/`exc_info` |
