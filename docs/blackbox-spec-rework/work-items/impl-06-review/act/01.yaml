@@ -1,0 +1,79 @@
+act_id: impl-06/01
+title: 纯函数领域模型：审核队列、ReviewDecision 事件、规范化内容哈希、决定折叠（§8.1 双锚、§8.2 八类、§14）
+estimated_minutes: 60
+group: K1
+depends_on: []
+decisions_required: [D-03, D-04, D-06, D-07]
+scope:
+  write: [pipeline/review/__init__.py, pipeline/review/errors.py, pipeline/review/model.py, pipeline/review/tests/__init__.py, pipeline/review/tests/test_model.py]
+tests_first:
+  - 先写 tests/test_model.py（用例名与下文逐字），运行 `.venv/bin/python -m unittest discover -s pipeline/review/tests -t .` 因 ImportError 全红，记录 Red；再实现
+contract: |
+  __init__.py：M6_TOOL = "pipeline.review"；M6_TOOL_VERSION = "0.1.0"
+  errors.py：class ReviewRefused(pipeline.ledger.errors.LedgerError)，构造 ReviewRefused(message, code=None)
+  model.py（纯函数：不读文件、不访问 Ledger、不取时间、不用随机数）：
+    常量（逐字）：
+      VERDICTS = ("accept", "amend", "reject", "request_evidence")            # D-03
+      STANDINGS = ("active", "carried_forward", "needs_review")               # D-06
+      CANDIDATE_KINDS = ("assertion", "school_view")                          # 首切片
+      ENTITY_ID_KIND = {"assertion": "assertion_id", "school_view": "school_view_id"}
+      DEFAULT_REQUIRED_DECISION_TYPES = {"assertion": ["review_source_fidelity"], "school_view": ["review_school_attribution"]}   # D-04
+      APPROVED_CONTENT_STATUS = "expert_verified"
+      NON_CONTENT_KEYS = ("candidate_revision_id", "content_status", "model_run_refs")
+    queue_item_id(entity_id, decision_type) -> str：返回 "%s#%s"
+    build_review_queue(*, candidates, required_decision_types) -> list[dict]
+      candidates：[{entity_id, kind, candidate_revision_id, ...}]，按给定顺序；每个候选按 required_decision_types[kind] 列表顺序生成队列项
+      entity_id 经 pipeline.ledger.ids.validate(ENTITY_ID_KIND[kind], …)（失败 InvalidIdentifier ID_001）；重复 entity_id → DuplicateIdentifier(code="ID_002")
+      kind 不在 CANDIDATE_KINDS 或不在映射 → ReviewRefused(code="SCH_002")；映射中 decision_type 不在 states.REVIEW_DECISION_TYPES → SchemaViolation(code="SCH_002")
+      candidate_revision_id 经 validate("artifact_revision_id")
+      队列项键序逐字：queue_item_id, target_entity_id, kind, decision_type, seen_artifact_revision_id
+    normalize_content(candidate, spans_by_id) -> bytes
+      obj = candidate 去掉 NON_CONTENT_KEYS 后的浅拷贝；追加
+        "evidence_quotes": [{"source_span_id": l["source_span_id"], "quote": spans_by_id[id]["text"][start:end]} for l in candidate["evidence_links"]]
+        "source_quotes": [{"source_span_id": s, "quote": spans_by_id[s]["text"]} for s in candidate.get("source_refs", [])]
+      Span 不存在 → MissingReference(code="REF_001")；0 <= start < end <= len(text) 不成立 → SchemaViolation(code="SCH_002")
+      字框几何（source_anchor）不进入规范化内容（D-07）
+      返回 json.dumps(obj, sort_keys=True, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+    content_hash(candidate, spans_by_id) -> str：hashlib.sha256(normalize_content(...)).hexdigest()
+    decision_event(*, step_run_id, queue_item, verdict, rationale, actor_ref, amended_revision_id=None, evidence_refs=(), changes_current_judgment=None) -> dict
+      规则：verdict ∈ VERDICTS（否则 SCH_002）；rationale 为去空白后非空 str（否则 SCH_001）；
+        verdict == "amend" ⇔ amended_revision_id 非空且合法 rev_（否则 SCH_001/ID_001）；
+        decision_type == "review_school_attribution" 且 verdict ∈ {accept, amend} ⇒ changes_current_judgment 为 bool；其余情形必须为 None（否则 SCH_002）；
+        evidence_refs 每项经 validate("source_span_id")
+      键序逐字：schema_version("1.0.0"), event_kind("review_decision"), stage("m6"), step_run_id, queue_item_id, target_entity_id, seen_artifact_revision_id, decision_type, verdict, amended_revision_id, rationale, evidence_refs(list), changes_current_judgment, standing("active"), carried_from_revision_id(None), trigger_correction_request_id(None), actor_ref
+    event_bytes(event) -> bytes：json.dumps(event, sort_keys=True, ensure_ascii=False).encode("utf-8")
+    fold_decisions(queue, decision_events) -> dict
+      返回 {queue_item_id: 该项最后一条事件或 None}，键覆盖全部队列项；事件按给定顺序，后者覆盖前者
+      事件 queue_item_id 不在队列 → ReviewRefused(code="REF_001")；事件 seen_artifact_revision_id 与队列项不同且 standing != "carried_forward" → ReviewRefused(code="REF_001")
+    outcome(queue, folded) -> dict
+      按 target_entity_id 分组（保持队列首次出现顺序）：任一项为 None、verdict == "request_evidence" 或 standing == "needs_review" → unresolved；否则任一 verdict == "reject" → rejected；否则 approved
+      返回键：approved([entity_id]), rejected([entity_id]), unresolved([queue_item_id])
+tests:
+  test_model.py: |
+    测试用内联构造的 4 个候选与内联 spans_by_id（文字取自 fixture spans.yaml：p0003_s03/s04/s05/s08、p0001_s02），不读 Ledger
+    - test_queue_four_items_ids_and_order
+    - test_queue_deterministic_twice
+    - test_queue_invalid_entity_id_ID_001
+    - test_queue_duplicate_entity_ID_002
+    - test_queue_unknown_kind_SCH_002
+    - test_queue_unknown_decision_type_SCH_002
+    - test_decision_event_key_order_and_defaults
+    - test_decision_amend_requires_amended_revision
+    - test_decision_accept_forbids_amended_revision
+    - test_decision_empty_rationale_rejected
+    - test_school_attribution_accept_requires_changes_current_judgment
+    - test_non_school_decision_forbids_changes_current_judgment
+    - test_fold_last_wins_history_kept
+    - test_fold_unknown_item_and_seen_mismatch_REF_001
+    - test_outcome_approved_rejected_unresolved
+    - test_content_hash_ignores_geometry_but_not_text
+    - test_normalize_missing_span_and_bad_offsets
+verify:
+  - .venv/bin/python -m unittest discover -s pipeline/review/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 16
+  - grep -rE '^\s*(import|from) (requests|openai|anthropic|httpx)' pipeline/review | wc -l   # 0
+  - grep -nE 'datetime|time\.|random|uuid' pipeline/review/model.py | wc -l                  # 0
+  - TDD §3 回归
+commit:
+  add: [pipeline/review]
+  message: "feat(m6): pure review model - queue, decision events, normalized content hash (spec §8.1/§8.2/§14)"
+on_fail: 停止并报告；D-03/D-04/D-06/D-07 的裁决与本 contract 不一致时不得自行调和

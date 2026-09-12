@@ -1,0 +1,49 @@
+package: blackbox-impl-10-corpus-semantic
+title: 首纵切：M3 Corpus Compilation 语义层（§11 第 2–5 条、§11.1）——SemanticSpan、双模型边界提议、分歧人工裁决
+status: DRAFT
+depends_on_packages:
+  - impl-02-corpus: ACCEPTED   # 硬前置；J3 返工未验收前不得派发
+decisions_required_before_dispatch: [D1, D4, D7, D9]   # 见 README §4；其余按推荐项执行
+executor_groups:
+  J1: [impl-10/00, impl-10/01, impl-10/02, impl-10/03]   # 不碰 Ledger；J1 全部 ACCEPTED 后才派 J2
+  J2: [impl-10/04, impl-10/05, impl-10/06]
+acts:
+  - file: act/00.yaml
+    id: impl-10/00
+    writes: ["pipeline/corpus/_fixture/mini_ed01_semantic/**"]
+  - file: act/01.yaml
+    id: impl-10/01
+    writes: ["pipeline/corpus_compiler/semantic/__init__.py", "pipeline/corpus_compiler/semantic/errors.py", "pipeline/corpus_compiler/semantic/proposer.py", "pipeline/corpus_compiler/semantic/proposals.py", "pipeline/corpus_compiler/semantic/tests/__init__.py", "pipeline/corpus_compiler/semantic/tests/test_proposer.py", "pipeline/corpus_compiler/semantic/tests/test_proposals.py"]
+  - file: act/02.yaml
+    id: impl-10/02
+    writes: ["pipeline/corpus_compiler/semantic/rules.py", "pipeline/corpus_compiler/semantic/anchors.py", "pipeline/corpus_compiler/semantic/reconcile.py", "pipeline/corpus_compiler/semantic/assemble.py", "pipeline/corpus_compiler/semantic/tests/test_assemble.py"]
+  - file: act/03.yaml
+    id: impl-10/03
+    writes: ["pipeline/corpus_compiler/semantic/semantic_gate.py", "pipeline/corpus_compiler/semantic/tests/test_semantic_gate.py"]
+  - file: act/04.yaml
+    id: impl-10/04
+    writes: ["pipeline/corpus_compiler/semantic/step.py", "pipeline/corpus_compiler/semantic/tests/test_step_full.py"]
+  - file: act/05.yaml
+    id: impl-10/05
+    writes: ["pipeline/corpus_compiler/semantic/review.py", "pipeline/corpus_compiler/semantic/__main__.py", "pipeline/corpus_compiler/semantic/step.py", "pipeline/corpus_compiler/semantic/tests/test_review.py"]
+  - file: act/06.yaml
+    id: impl-10/06
+    writes: ["pipeline/corpus_compiler/semantic/acceptance.py", "pipeline/corpus_compiler/semantic/tests/test_acceptance_semantic.py", "pipeline/corpus_compiler/acceptance.py", "pipeline/corpus_compiler/tests/test_acceptance.py", "openspec/acceptance/m3-coverage.sh"]
+global_rules:
+  - 每个 ACT 先写测试（Red 原文入报告）再实现；unittest；测试只用 tempfile 目录，不写 var/ 与任何 fixture 目录（ACT 00 除外）
+  - 只用标准库 + PyYAML + jsonschema；不新增依赖；不 import 任何网络库；不调用模型 API；LiveProposer 只是默认禁用的桩
+  - 不新增 D1 裁决以外的 ID 前缀；窗口号 <work>_w<3位> 与批号一样是任务标签，不是登记册 ID
+  - 生产代码只读 Ledger 冻结修订；回放录制只经显式参数传入（D5）；测试可读 fixture 作为输入或金标
+  - 不改结构层已有文件（ACT 06 列明的 acceptance.py、tests/test_acceptance.py 除外）；只读 import 结构层函数
+  - 中文注释与 docstring；公开函数名、参数名、返回键、检查名、artifact_type 与 ACT contract 逐字一致
+  - 每个 ACT 一个提交；只 git add contract 列出的路径；不得 git add -A / git add .
+gates:
+  - bash docs/blackbox-spec-rework/verify-T.sh | tail -1                                    # FAIL 合计: 0
+  - bash openspec/schemas/verify.sh >/dev/null; echo $?                                     # 0
+  - .venv/bin/python -m unittest discover -s pipeline/ledger/tests -t .                     # OK
+  - .venv/bin/python -m unittest discover -s pipeline/corpus_compiler/tests -t .            # OK（用例数不减）
+  - .venv/bin/python -m unittest discover -s pipeline/corpus_compiler/semantic/tests -t .   # OK（ACT 01 起）
+  - bash pipeline/corpus/_fixture/mini_ed01_semantic/verify.sh | tail -1                    # SEMANTIC FIXTURE OK（ACT 00 起）
+  - export LC_ALL=en_US.UTF-8; bash openspec/acceptance/run_all.sh | tail -1                # SUMMARY pass=2 fail=1 blocked=8
+  - git diff --check
+on_fail: 停止并报告；contract 有两种理解、测试无法按定义写出、金标与实现不一致、需要改 scope 外文件、impl-02 未 ACCEPTED → 一律停手上报

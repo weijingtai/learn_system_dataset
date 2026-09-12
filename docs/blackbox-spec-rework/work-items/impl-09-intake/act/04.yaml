@@ -1,0 +1,143 @@
+act_id: impl-09/04
+title: M2 在 Ledger 上真实登记（成功路径）：resolve_m2_inputs + run_m2（ocr_page / human_event 经 §7.1 / ocr_page_set / m2 StagePackage）+ CLI
+estimated_minutes: 90
+group: K3
+depends_on: [impl-09/01, impl-09/03]
+preconditions:
+  - impl-02 状态为 ACCEPTED（resolve_m3_inputs 契约稳定）；否则停手上报
+scope:
+  write: [pipeline/digitization/inputs.py, pipeline/digitization/step.py, pipeline/digitization/__main__.py, pipeline/digitization/tests/test_step.py]
+tests_first:
+  - 先写 tests/test_step.py（用例名逐字），新增用例全部 ERROR 后再实现
+contract: |
+  inputs.py：resolve_m2_inputs(reader, edition_part_id) -> dict（不写入）
+    只调用 LedgerReadMixin 公开方法；查 artifact_type 允许经 reader.store.conn 执行只读 SELECT（同 impl-02 inputs.py:98–118 先例）
+    返回键：processing_run_id, technique_id, m1_step_run_id, manifest_revision_id, manifest_bytes, manifest
+    规则：
+      list_checkpoints(ep, "m1") 为空 → DigitizationRefused(REF_001)，message 含「M1 未完成」
+      全部 m1 completed_tasks 中 task_id == "ingest_source" 且 status == "succeeded" 的必须恰 1 项；其修订 artifact_type 必须为 source_manifest
+      该 Checkpoint 所属 StepRun 必须为 succeeded，否则 DigitizationRefused，message 含「M1 未通过」
+      修订必须 sealed，否则 NotConsumable
+      manifest_bytes = reader.objects.get(修订 sha256)；manifest = yaml.safe_load
+      processing_run_id 取 m1 StepRun；technique_id = manifest["technique_id"]
+      list_checkpoints(ep, "m2") 非空 → DigitizationRefused，message 含「已有 M2 运行，本包不支持续跑」（D-09-12）
+
+  step.py：run_m2(service, edition_part_id, ocr_root, decision_sheet_bytes, *, ocr_root_ref="ocr/data_work") -> dict
+    ref(rev) 定义同 impl-09/01
+
+    第 0 步（零写入；异常原样抛出）
+      inputs = resolve_m2_inputs(service, edition_part_id)
+      pages = inputs["manifest"]["edition_part"]["pages"]
+      work = read_ocr_work(ocr_root, pages)（OcrWorkMissing 原样抛出）
+      sheet_sha256 = sha256(decision_sheet_bytes)
+      decisions = load_decisions(yaml.safe_load(decision_sheet_bytes), edition_part_id=edition_part_id, pages=pages)
+      plan = plan_digitization(manifest=inputs["manifest"], ocr_work=work, decisions=decisions, decision_sheet_sha256=sheet_sha256, ocr_root_ref=ocr_root_ref)
+      plan["missing_decisions"] 非空 → DigitizationRefused，message 含「缺人工终态决定」与页名列表
+      （deferred 处理见 impl-09/05；本 ACT 的测试不含 deferred）
+
+    第 1 步：配置修订
+      config_revision_id = put_run_artifact(processing_run_id, "configuration", json.dumps({"stage": "m2", "tool": M2_TOOL, "tool_version": M2_TOOL_VERSION, "gate_profile": GATE_PROFILE, "ocr_root_ref": ocr_root_ref, "ocr_snapshot": work["snapshot"], "decision_sheet_sha256": sheet_sha256, "ocr_profile_revision_id": None, "observed_ocr_parameters": plan["observed_ocr_parameters"]}, sort_keys=True, ensure_ascii=False).encode("utf-8"), producer_module=M2_TOOL, producer_version=M2_TOOL_VERSION)[1]
+
+    第 2 步：step = begin_step_run({"schema_version": "1.0.0", "processing_run_id", "step_run_id": ids.new_id("step_run_id"), "input_artifact_ids": [manifest_revision_id], "technique_profile_id": technique_id, "configuration_artifact_id": config_revision_id})
+
+    begin 之后：显式检查名失败走 _fail(step, 检查名, detail)；未预期异常走 _fail(step, "internal", "<异常类名>: <消息>")
+
+    第 3 步（检查名 input_contract）
+      snapshot_matches(ocr_root, work["snapshot"]) 非空 → 失败，detail 列出 rel
+      sha256(service 读回 manifest 修订字节) 必须 == 该修订登记 sha256
+
+    第 4 步（检查名 logs）：各 put 后 seal
+      anomaly_log_rev = put "ocr_anomaly_log"(work["anomaly_log"]["bytes"])
+      audit_log_rev = put "ocr_audit_log"(work["audit_log"]["bytes"])
+      edit_history_revs = {page: put "ocr_edit_history"(bytes)}，按页序，仅存在者
+
+    第 5 步（检查名 register_pages）：plan["tasks"] 逐项（页序），human_decisions = []
+      raw_rev = put_artifact(step, "ocr_page", work["pages"][page]["bytes"], producer_module=M2_TOOL, producer_version=M2_TOOL_VERSION, configuration_revision_id=config_revision_id) → seal
+      eff_rev = raw_rev
+      若 task["effective"] == "excluded"：
+        eff_rev = put_artifact(step, "ocr_page", task["effective_bytes"], prev_revision_id=raw_rev, …) → seal
+        supersede_revision(raw_rev, eff_rev)（D-09-04）
+      get_revision(eff_rev)["sha256"] 必须 == task["effective_sha256"]，否则 HashMismatch(SRC_003)
+      若 task["human_event"] 不为 None：
+        ev_rev = put "human_event"(json.dumps(task["human_event"], sort_keys=True, ensure_ascii=False).encode("utf-8")) → seal
+        token = await_human(step, [eff_rev])
+        record_human_event(step, token, ev_rev, decision_type=None)（D-09-09 A1）
+        resume(step, token)
+        human_decisions.append(ev_rev)
+      write_checkpoint(step, edition_part_id=ep, stage="m2",
+        completed_tasks=[{"task_id": page, "artifact_revision_id": eff_rev, "status": "succeeded", "terminal_state": task["terminal_state"]}],
+        human_decisions=list(human_decisions),
+        pending_queue=[{"task_id": 其后页名} …],
+        next_pointer=首个待办或 None)
+
+    第 6 步（检查名 m2_gate）
+      gate = evaluate_m2_gate(manifest=…, raw_pages={p: 原始字节}, effective_pages={p: 有效字节，从 Ledger 读回}, anomaly_records=…, audit_events=…, terminal_states={非 None 终态}, human_events=[各事件 dict])
+      gate["m2_gate"] == "failed" → 失败，detail 为 failed_checks
+      （report_rev 与 log_rev 在判定之前先封存，使失败也有校验记录）
+      report_rev = put "validation_report"(json {"gate": gate, "quality": plan["quality"], "counts": plan["counts"]}) → seal
+      log_rev = put "step_log"(每步一行，无时间戳、无绝对路径) → seal
+
+    第 7 步：ocr_page_set
+      set_doc = plan["ocr_page_set"] 的深拷贝，ocr_pages 每项追加 "artifact_revision_id": eff_rev
+      set_rev = put "ocr_page_set"(json.dumps(set_doc, sort_keys=True, ensure_ascii=False).encode("utf-8")) → seal
+
+    第 8 步：Transformation
+      log_revs = [anomaly_log_rev, audit_log_rev] + edit_history_revs 按页序
+      transformation_id = record_transformation(step, operation="digitize_pages", tool=M2_TOOL, tool_version=M2_TOOL_VERSION, configuration_revision_id=config_revision_id, input_revision_ids=[manifest_revision_id], output_revision_ids=[set_rev] + eff_revs(页序) + log_revs, validation_report_revision_id=report_rev, human_event_revision_ids=human_decisions)
+
+    第 9 步：StagePackage
+      stage_package_id = ids.new_id("stage_package_id", stage="m2")
+      package = {"schema_version": "1.0.0", "stage_package_id", "artifact_revision_id": 新 rev, "stage": "m2", "status": "sealed",
+        "payload": {"ocr_page_set_revision_id": set_rev, "ocr_pages": [{"page", "artifact_revision_id": eff_rev, "sha256": effective_sha256}], "terminal_states": set_doc["terminal_states"], "gate_profile": GATE_PROFILE, "log_revision_ids": {"anomaly_log": anomaly_log_rev, "audit_log": audit_log_rev, "edit_history": edit_history_revs}},
+        "manifest": {"schema_version": "1.0.0", "processing_run_id", "step_run_id": step, "input_artifacts": [ref(manifest_revision_id)], "output_artifacts": [ref(set_rev)], "counts": plan["counts"], "content_sha256": plan["content_sha256"]},
+        "validation": {"passed": True, "report_artifacts": [ref(report_rev)]},
+        "lineage": {"upstream_artifacts": [ref(manifest_revision_id)], "transformations": [{"operation": "digitize_pages", "step_run_id": step, "configuration_artifact_revision_id": config_revision_id, "input_artifact_revision_ids": [manifest_revision_id], "output_artifact_revision_ids": [set_rev] + eff_revs + log_revs}]},
+        "logs": [ref(log_rev), ref(anomaly_log_rev), ref(audit_log_rev)], "failures": []}
+      register_stage_package(…) → seal
+
+    第 10 步：finish_step_run
+      output_artifact_ids = [set_rev] + eff_revs + log_revs + [package_rev]
+      不得包含已 superseded 的原始修订
+      validation_report_ids = [report_rev]；log_artifact_ids = [log_rev]；status_version = 当前 + 1
+
+    _fail(step, check, detail)：put "failure_report"(json {"check", "detail"}) → seal；fail_step_run(step, [失败修订], "M2 %s: %s" % (check, detail))
+
+    返回 summary 键：
+      共有：status ("succeeded" | "failed" | "awaiting_human"), processing_run_id, step_run_id, configuration_revision_id, edition_part_id
+      成功时另有：ocr_page_set_revision_id, page_revision_ids({页: 有效修订}), raw_revision_ids({页: 原始修订}), terminal_states, human_event_revision_ids, log_revision_ids, validation_report_revision_id, transformation_id, stage_package_id, package_revision_id, step_manifest_revision_id, checkpoint_revision_ids, counts, content_sha256, gate
+      失败时另有：failed_check, failure_revision_id, reason
+
+  __main__.py：python -m pipeline.digitization --root <ledger_root> --edition-part <art_id> --ocr-root <dir> --decisions <yaml> [--ocr-root-ref ocr/data_work]
+    成功 → 末行 `M2 OK <step_run_id> pages=<n> anomalies=<k>`，exit 0
+    begin 后失败 → `M2 FAILED <step_run_id> <failed_check>`，exit 1
+    begin 前被拒（DigitizationRefused、SchemaViolation、InvalidIdentifier、NotConsumable、MissingReference、决定表文件不存在或 YAML 非法）→ `M2 REFUSED <异常类名>: <消息>`，exit 2
+    OcrWorkMissing → 每个缺失路径一行 `BLOCKED_SOURCE_ASSET_MISSING <路径>`，exit 3
+    WriterLocked → `M2 LOCKED <消息>`，exit 4
+tests:
+  test_step.py: |
+    统一脚手架：
+      tempfile 目录 → pipeline.source_intake.tests.helpers.write_synthetic_assets(tmp/"assets", 三页)
+      → LedgerService(tmp/"ledger") → run_m1(service, fixture_submission(), tmp/"assets")
+      → helpers.build_ocr_root(tmp/"ocr") → run_m2(service, 部件号, tmp/"ocr", yaml.safe_dump(fixture_decisions(部件号), allow_unicode=True).encode("utf-8"))
+    - test_run_m2_succeeds_counts_hash（succeeded；counts == expected/m2 counts；content_sha256 == expected/m2 content_sha256）
+    - test_ocr_page_revision_bytes_equal_fixture_pages
+    - test_checkpoints_one_per_page_with_terminal_state（3 个，task_id 依次为页名；page_002 为 known_unrecognizable，其余为 None；prev 成链；human_decisions 累积）
+    - test_human_event_recorded_via_await_record_resume（list_step_run_events 含 await_human、human_event、resume 各 1 条；Transformation human_event_revision_ids == 末个 Checkpoint human_decisions）
+    - test_ocr_page_set_superset_of_fixture_shape（键 ⊇ expected/m2 payload 键；每页含 artifact_revision_id 且等于 Checkpoint 修订）
+    - test_logs_registered_bytes_equal_files（ocr_anomaly_log、ocr_audit_log 字节 == 工作根文件；OCR 工作根文件运行前后 sha256 不变）
+    - test_stage_package_schema_lineage（过 stage_package.schema.json；frozen_inputs == [manifest]；lineage 输入同）
+    - test_resolve_m3_inputs_accepts_ledger（pipeline.corpus_compiler.inputs.resolve_m3_inputs → page_revision_ids 3 页、terminal_states == {"page_002": "known_unrecognizable"}、human_event_revision_ids 长度 1）
+    - test_excluded_revision_chain（build_ocr_root 再加 page_003 异常记录；决定表 page_003 标 known_unrecognizable → 原始修订 superseded；派生修订 prev_revision_id == 原始；Checkpoint 与 ocr_page_set 引用派生；resolve_m3_inputs 的 page_003 修订 == 派生）
+    - test_refuses_without_m1（空 Ledger → DigitizationRefused；行数不变）
+    - test_refuses_missing_decision_no_writes（决定表 entries 为空 → message 含「缺人工终态决定」与 page_002；行数不变）
+    - test_refuses_second_m2_run
+    - test_missing_ocr_work_raises_before_writes（删除 logs/audit.jsonl → OcrWorkMissing；行数不变）
+verify:
+  - .venv/bin/python -m unittest discover -s pipeline/digitization/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 52
+  - .venv/bin/python -m unittest discover -s pipeline/corpus_compiler/tests -t . 2>&1 | tail -1   # OK（未改 M3）
+  - grep -rn '_fixture' pipeline/digitization --include='*.py' | grep -vE '/tests/|acceptance.py' | wc -l   # 0
+  - TDD §3 回归
+commit:
+  add: [pipeline/digitization/inputs.py, pipeline/digitization/step.py, pipeline/digitization/__main__.py, pipeline/digitization/tests/test_step.py]
+  message: "feat(m2): register existing ocr pages, human terminal-state events (§7.1) and ocr_page_set with m2 stage package on the artifact ledger"
+on_fail: 停止并报告；resolve_m3_inputs 在本包 Ledger 上解析失败时不得改 impl-02 代码，报告差异（README §11）；await_human/record_human_event/resume 行为与 service.py:885–990 不符时停手上报

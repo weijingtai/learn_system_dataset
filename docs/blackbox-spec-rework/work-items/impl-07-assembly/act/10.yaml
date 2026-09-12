@@ -1,0 +1,38 @@
+act_id: impl-07/10
+title: run_all.sh 20.5 接线到 m7-assembler.sh（仅按 README §4 D-13 裁决与主 Agent 书面授权执行）
+estimated_minutes: 30
+group: J4
+depends_on: [impl-07/09]
+precondition: 主 Agent 在 PROMPT 中写明 D-13 选项（A 或 B）并授权修改 openspec/acceptance/run_all.sh；D-13 选 C 时本 ACT 取消
+scope:
+  write: [openspec/acceptance/run_all.sh]   # 只改 `20.5)` 分支与文件头注释中 20.5 一行；其他分支逐字节不变
+tests_first:
+  - 改前记录 `bash openspec/acceptance/run_all.sh 20.5` 原文（Red：BLOCKED … M7 Incremental Assembly）
+contract: |
+  20.5) 分支：
+    fx 子检查（沿用现有函数）：MISSING → block_line "$n" "M7 Incremental Assembly" "fixture 缺失"；FAIL → fail_line "$n" "统一验收宿主校验未通过" "$FX_REASON"
+    PY 不可执行 → block_line "$n" "测试宿主匮乏" ".venv 缺失"
+    out="$(FIXTURE_RELEASE_DIR="${FIXTURE_RELEASE_DIR:-$REPO_ROOT/pipeline/corpus/_fixture/mini_release01}" bash "$REPO_ROOT/openspec/acceptance/m7-assembler.sh" 2>&1)"; rc=$?
+      调用的脚本路径固定为仓库内 openspec/acceptance/m7-assembler.sh，不接受环境变量改写
+    D-13 选 A：
+      0 → pass_line "$n" "新 Edition 单独增量加入同一 Work 且不改旧身份（mini_release01 真实 Ledger）"
+      2 → block_line "$n" "M6 Review Workbench" "ReviewedEditionPackage 由 mini_release01 金标视图代替"
+      1 → fail_line "$n" "增量汇编判据未通过" "<out 中首个 ^FAIL 行>"
+      3 → block_line "$n" "测试宿主匮乏" "m7-assembler 宿主缺失（退出码 3）"
+      其他 → fail_line "$n" "增量汇编判据异常" "m7-assembler.sh 退出码 $rc"
+    D-13 选 B：同上，但 2 → pass_line（说明末尾加「；上游为金标视图」）
+  不改其他条目、不改 SUMMARY 与退出码规则
+tests:
+  shell: |
+    - bash openspec/acceptance/run_all.sh 20.5（A：BLOCKED  20.5  前置缺失: M6 Review Workbench；…）
+    - FIXTURE_RELEASE_DIR=<改坏 snapshot_s2 的副本> bash openspec/acceptance/run_all.sh 20.5 → FAIL  20.5 …，退出码 1
+    - git diff openspec/acceptance/run_all.sh 只触及 20.5 分支与头注释一行
+verify:
+  - export LC_ALL=en_US.UTF-8; bash openspec/acceptance/run_all.sh 20.5; echo exit=$?   # A：BLOCKED 行、exit=0；B：PASS 行、exit=0
+  - bash openspec/acceptance/run_all.sh | tail -1   # A：SUMMARY pass=2 fail=1 blocked=8；B：SUMMARY pass=3 fail=1 blocked=7
+  - git diff --stat openspec/acceptance/run_all.sh   # 仅此文件
+  - TDD §3 回归
+commit:
+  add: [openspec/acceptance/run_all.sh]
+  message: "test(acceptance): wire §20.5 to m7-assembler.sh (D-13)"
+on_fail: 停止并报告；无书面授权或 D-13 未裁决时不得动 run_all.sh

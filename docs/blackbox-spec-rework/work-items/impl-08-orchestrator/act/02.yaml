@@ -1,0 +1,86 @@
+act_id: impl-08/02
+title: 统一 Module Interface 适配层：StepContext / StepOutcome 校验 / bind_module 三种绑定 + StubModule 桩
+estimated_minutes: 75
+group: K2
+depends_on: [impl-08/01]
+scope:
+  write: [pipeline/orchestrator/__init__.py, pipeline/orchestrator/errors.py, pipeline/orchestrator/module.py, pipeline/orchestrator/stubs.py, pipeline/orchestrator/tests/__init__.py, pipeline/orchestrator/tests/test_module.py]
+tests_first:
+  - 先写 tests/test_module.py（用例名逐字），`.venv/bin/python -m unittest discover -s pipeline/orchestrator/tests -t .` 因 ImportError 全红，记录 Red；再实现
+contract: |
+  __init__.py：ORCH_TOOL = "pipeline.orchestrator"；ORCH_TOOL_VERSION = "0.1.0"；EDITION_STAGES = ("m1", "m2", "m3", "m4", "m5", "m6")（§6.1 :138，M7/M8 属 ReleaseRun）
+  errors.py：class OrchestratorRefused(pipeline.ledger.errors.LedgerError)，构造 OrchestratorRefused(message, code=None)
+  module.py：
+    STEP_OUTCOME_STATUSES = ("succeeded", "failed", "awaiting_human")
+    OUTCOME_LIST_KEYS = ("output_artifact_ids", "validation_report_ids", "log_artifact_ids", "failure_artifact_ids")
+    OUTCOME_RESERVED_KEYS = ("schema_version", "processing_run_id", "step_run_id", "status_version", "resume_token")
+    CONTEXT_MODES = ("fresh", "resumed", "recovered", "rerun")
+    @dataclass(frozen=True) class StepContext：mode, edition_part_id, stage, module_id, human_event_revision_ids=(), recovery_plan=None
+      __post_init__：mode 不在 CONTEXT_MODES → SchemaViolation(SCH_002)
+    validate_outcome(outcome) -> list[str]（空 = 合法；问题文本含键名）：
+      非 dict；status 不在 STEP_OUTCOME_STATUSES；缺任一 OUTCOME_LIST_KEYS 或其值非 list[str]；含 OUTCOME_RESERVED_KEYS 任一；
+      status == "awaiting_human" 且 pending_queue_artifact_ids 缺失或空；status != "awaiting_human" 却含 pending_queue_artifact_ids；
+      status == "failed" 且 failure_artifact_ids 为空；列表内重复修订号；修订号不匹配 ^rev_[0-9a-f]{32}$
+    class ModuleBinding：属性 descriptor(dict), binding(str), target(对象或可调用或 None)
+      executable -> bool（binding != "imported"）
+    bind_module(descriptor, *, modules=None) -> ModuleBinding
+      modules 是 {module_id: 对象} 注入表（测试与验收桩用），优先于 entry
+      imported → target None；step_request → target 必须有可调用 plan 与 execute，否则 OrchestratorRefused("step_request 绑定缺 plan/execute")；
+      legacy_self_driving → target 必须可调用；
+      entry 解析：module_path, attr = entry.split(":")；importlib.import_module(module_path)；getattr；失败 → OrchestratorRefused（message 含 entry）
+      本文件不得出现任何加工 Module 的包名字面量
+  stubs.py（kind 恒为 "stub"；只供测试与验收场景）：
+    class StubModule：
+      __init__(stage, *, module_id=None, tasks=("t1", "t2"), fail_on_task=None, raise_on_task=None, human_queue=False,
+               validation_passed=True, stage_package_mode="valid", produces=("stub_output",), consumes_from=None, supports_recovery=True)
+        stage_package_mode ∈ {"valid", "missing", "wrong_stage", "with_failures"}
+        module_id 默认 "stub.<stage>"；consumes_from 默认前一 stage（m1 为 None）
+        executed_tasks：list[(step_run_id, task_id)]（执行计数，供「不重做」断言）
+      descriptor() -> dict：{module_id, stage, kind: "stub", binding: "step_request", entry: null, version: "0.0.0",
+        consumes: [{artifact_type: "stage_package", from_stage: consumes_from}] 或 [], produces: [{artifact_type: t} for t in produces], human_queue, supports_recovery}
+      plan(port, *, edition_part_id, processing_run_id, technique_id, upstream) -> dict
+        input_artifact_ids = upstream.get(consumes_from, []) 中每个 StepRun 的 result.output_artifact_ids 里 get_revision(rev)["schema_id"] == "stage_package" 的修订
+        configuration = {"stage": stage, "module_id": module_id, "tasks": list(tasks)}
+      execute(port, request, context) -> StepOutcome
+        skip = set(context.recovery_plan["completed_task_ids"]) if context.recovery_plan else set()
+        逐 task（跳过 skip）：raise_on_task 命中 → raise RuntimeError；put_artifact(step, produces[0], ("%s:%s" % (stage, task)).encode()) → seal；
+          executed_tasks.append；status = "failed" if task == fail_on_task else "succeeded"；
+          write_checkpoint(step, edition_part_id=context.edition_part_id, stage=stage, completed_tasks=[{"task_id", "artifact_revision_id", "status", "terminal_state": None}],
+                           human_decisions=list(context.human_event_revision_ids), pending_queue=[{"task_id": 其后 task}…], next_pointer=首个或 None)
+          失败 task → put "failure_report"（json {"check": "stub_task", "detail": task}）→ seal → 返回 failed outcome（已写输出列入 output_artifact_ids）
+        human_queue 且 context.mode == "fresh" → put "review_queue_item" → seal → 返回 awaiting_human（pending_queue_artifact_ids=[该修订]）
+        human_queue 且 mode == "resumed" 且 human_event_revision_ids 为空 → 返回 failed（failure_report check "missing_human_event"）
+        其余：validation_report（json {"passed": validation_passed}）、step_log（b"stub"）各 put+seal；
+          record_transformation(step, operation="stub_" + stage, tool=module_id, tool_version="0.0.0", configuration_revision_id=request.configuration_artifact_id,
+                                input_revision_ids=request.input_artifact_ids, output_revision_ids=输出修订, validation_report_revision_id=报告, human_event_revision_ids=list(context.human_event_revision_ids))
+          stage_package_mode != "missing"：构造 L0 StagePackage（stage 字段 = stage，wrong_stage 时写成另一 stage 并使用匹配该 stage 的 pkg_ 前缀，使其过 Schema；
+            validation.passed = validation_passed；failures = with_failures 时为 [失败引用] 否则 []；manifest.output_artifacts 的 artifact_type 取 produces；content_sha256 = 输出字节拼接的 sha256）
+            → register_stage_package → seal_revision
+          返回 succeeded outcome（output_artifact_ids = 输出修订 + [package_revision_id]）
+      写 StagePackage 时 artifact_ref 的 artifact_id 取 port.get_revision(rev)["artifact_id"]（artifact_revisions 行含该列，store.py:36–59）；artifact_type 取桩自身 produces（端口读不到 artifacts.artifact_type）
+tests:
+  test_module.py: |
+    统一脚手架：tempfile → DirectLedgerAdapter(root) → create_processing_run("edition_run", art_…, "qizheng") → put_run_artifact 配置 {"stage": "m1", "module_id": "stub.m1", "tasks": [...]} → begin_step_run
+    - test_validate_outcome_accepts_three_valid_shapes
+    - test_validate_outcome_rejects_bad_status_and_missing_keys
+    - test_validate_outcome_rejects_reserved_keys（resume_token / step_run_id / status_version 各一例）
+    - test_validate_outcome_awaiting_requires_pending_and_others_forbid_it
+    - test_validate_outcome_failed_requires_failure_evidence
+    - test_validate_outcome_rejects_duplicate_and_malformed_revisions
+    - test_step_context_rejects_unknown_mode
+    - test_bind_module_imported_not_executable
+    - test_bind_module_injected_step_request_object
+    - test_bind_module_step_request_missing_execute_refused
+    - test_bind_module_entry_unresolvable_refused
+    - test_stub_execute_writes_checkpoint_per_task_and_valid_stage_package（jsonschema 校验 stage_package.schema.json；Checkpoint 数 == 任务数）
+    - test_stub_awaiting_human_outcome_on_fresh
+    - test_stub_skips_recovery_completed_tasks
+    - test_orchestrator_sources_do_not_name_processing_modules（pipeline/orchestrator 非 tests 的 .py 不含 "corpus_compiler"）
+verify:
+  - .venv/bin/python -m unittest discover -s pipeline/orchestrator/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 14
+  - grep -rnE '\.store\b|\.objects\b' pipeline/orchestrator --include='*.py' | grep -v '/tests/' | wc -l   # 0
+  - TDD §3 回归
+commit:
+  add: [pipeline/orchestrator]
+  message: "feat(orchestrator): module interface adapter (StepOutcome, three bindings) and stub modules (spec §7)"
+on_fail: 停止并报告；Ledger 拒绝桩的合法写入序列（例如 awaiting_human 时不能写 Checkpoint）时不得改 Ledger

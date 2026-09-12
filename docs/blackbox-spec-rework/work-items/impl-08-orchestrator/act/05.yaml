@@ -1,0 +1,63 @@
+act_id: impl-08/05
+title: 人工暂停与恢复：record_human_event（即时 Checkpoint）/ resume / suspend / recover / reconcile_after_outage / rerun_from_checkpoint（§7.1、§17 :828、§17.1）
+estimated_minutes: 90
+group: K3
+depends_on: [impl-08/04]
+scope:
+  write: [pipeline/orchestrator/human.py, pipeline/orchestrator/tests/test_human.py]
+tests_first:
+  - 先写 tests/test_human.py（用例名逐字），全红后再实现
+contract: |
+  human.py（只经 LedgerPort；不得 import 加工 Module）：
+    _original_request(port, step_run_id) -> dict：get_step_run(step)["request_json"] 解析
+    _human_events(port, step_run_id) -> list[str]：list_step_run_events 中 event_type == "human_event" 的 payload.event_revision_id，按事件顺序
+    _descriptor_for_step(registry, step) -> dict：registry.module_for(step["stage"])；None → OrchestratorRefused
+    record_human_event(port, registry, handle, step_run_id, resume_token, event_revision_id, *, decision_type=None, modules=None) -> str（新 Checkpoint 修订号）
+      1 port.record_human_event(step_run_id, resume_token, event_revision_id, decision_type=decision_type)（token 不消费，§7.1 :220）
+      2 latest = port.latest_checkpoint(handle.edition_part_id, step.stage)；base = latest.content if latest 且 latest.step_run_id == step_run_id else 空内容
+        pending = base.pending_queue；binding.target 有可调用 resolve_pending → pending = target.resolve_pending(pending, event_revision_id)
+        checkpoint = port.write_checkpoint(step_run_id, edition_part_id=ep, stage=step.stage, completed_tasks=base.completed_tasks 或 [],
+                     human_decisions=_human_events(port, step_run_id), pending_queue=pending, next_pointer=pending[0] if pending else None)
+        （§17.1 :843 每次人工决定被接受后即时落盘；Ledger 拒绝 → 原样抛出并停手上报）
+    resume(port, registry, handle, step_run_id, resume_token, *, modules=None) -> dict StepResult
+      port.resume(step_run_id, resume_token)（原子消费；InvalidResumeToken 原样抛出，零写入）
+      binding = bind_module(descriptor, modules=modules)；binding != step_request → OrchestratorRefused
+      return execute_step(port, binding, _original_request(port, step), StepContext(mode="resumed", edition_part_id, stage, module_id, human_event_revision_ids=tuple(_human_events(...))))
+    suspend(port, step_run_id, reason) -> None：port.suspend(step_run_id, reason, "operator")
+    recover(port, registry, handle, step_run_id, reason, *, modules=None) -> dict {"status": target, "step_result": StepResult | None}
+      target = port.recover(step_run_id, reason)
+      target == "awaiting_human" → step_result None（原 token 继续有效，由 Ledger 保证）
+      target == "running" → latest = latest_checkpoint(ep, stage)；plan = {"completed_task_ids": [t.task_id for t in latest.content.completed_tasks if t.status == "succeeded"]} if latest 且 latest.step_run_id == step_run_id else None
+        step_result = execute_step(port, binding, 原请求, StepContext(mode="recovered", …, human_event_revision_ids=…, recovery_plan=plan))
+    reconcile_after_outage(port, handle, reason) -> list[str]
+      对 run_status(prun)["step_runs"] 中 status == "running" 者逐一 port.suspend(srun, reason, "infrastructure")；终态与 awaiting_human/suspended 不动；返回被挂起的 step_run_id 列表（§17 :828：先读最后持久状态再对账，终态不得改写）
+    rerun_from_checkpoint(port, registry, handle, stage, *, modules=None) -> dict StepResult
+      descriptor.supports_recovery 不为 True → OrchestratorRefused（零写入）
+      eff = effective_step_runs(port, handle, stage)；恰 1 个且 status ∈ {"failed", "suspended"}，否则 OrchestratorRefused
+      planned = target.plan(...)（同 advance 的写入前校验）；config_rev = put_run_artifact(…)；request 同 advance 构造
+      new_step, plan = port.recover_from_checkpoint(handle.edition_part_id, stage, request)
+      return execute_step(port, binding, request, StepContext(mode="rerun", …, recovery_plan=plan))
+    本模块不实现任何超时；不读取 step_runs.deadline（§7.1 :222）
+tests:
+  test_human.py: |
+    统一脚手架：同 test_edition_run（桩 m1–m6，m2 桩 human_queue=True，m4 桩 fail_on_task="t2"）；人工事件修订由测试在 awaiting_human 的 StepRun 上 put_artifact(step, "human_event", …) 并 seal
+    - test_record_human_event_writes_checkpoint_immediately（Checkpoint 数 +1，human_decisions 含事件）
+    - test_record_does_not_consume_token（record 两个事件后同一 token 仍可 resume）
+    - test_resume_reexecutes_with_human_events_and_succeeds
+    - test_resume_token_replay_rejected_zero_write
+    - test_resume_without_events_fails_via_stub
+    - test_no_timeout_awaiting_human_stays（多次 advance 返回 waiting；状态不变）
+    - test_suspend_awaiting_then_recover_keeps_token
+    - test_suspend_running_then_recover_reexecutes_without_redo（打补丁让桩在第 1 task 后请求挂起的替身场景：直接在 execute 前手工 suspend，再 recover → executed_tasks 不重复）
+    - test_reconcile_after_outage_suspends_running_only（构造一个 running、一个 succeeded、一个 awaiting_human）
+    - test_reconcile_never_rewrites_terminal
+    - test_rerun_from_checkpoint_skips_completed_and_preserves_failed_history（旧 StepRun 仍 failed，失败修订 sealed；新 StepRun supersedes 旧；executed_tasks 中 t1 只出现一次；m4 gate passed）
+    - test_rerun_refused_when_not_supports_recovery
+verify:
+  - .venv/bin/python -m unittest discover -s pipeline/orchestrator/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 54
+  - grep -nE 'deadline|timeout|time\.sleep' pipeline/orchestrator/human.py | wc -l             # 0
+  - TDD §3 回归
+commit:
+  add: [pipeline/orchestrator/human.py, pipeline/orchestrator/tests/test_human.py]
+  message: "feat(orchestrator): human queue record/resume, operator suspend, outage reconciliation and checkpoint rerun (spec §7.1/§17/§17.1)"
+on_fail: 停止并报告；Ledger 在 awaiting_human 下拒绝 write_checkpoint、recover 语义与 contract 不符时不得改 Ledger

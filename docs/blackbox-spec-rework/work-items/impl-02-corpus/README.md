@@ -1,6 +1,6 @@
 # impl-02：M3 Corpus Compilation（§11）结构层首切片
 
-状态：`REVIEWING`（J1 `ACCEPTED`；J2 独立验收发现 5 处缺陷，返工 ACT 05 / `PROMPT-J3.md` 待派发）
+状态：`ACCEPTED`（J1 `ACCEPTED`；J2 五处缺陷经 J3 `c5f744c` 返工，独立验收通过；非阻断跟进 ACT 06 `eee3c35` 通过；见 ACCEPTANCE §5.3、§5.4）
 
 ## 1. 目标
 

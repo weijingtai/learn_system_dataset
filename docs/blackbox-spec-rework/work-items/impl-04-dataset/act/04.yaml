@@ -1,0 +1,53 @@
+act_id: impl-04/04
+title: M8 输入解析 resolve_m8_inputs（沿 M3 StagePackage 血缘反查 M1/M2，页图来自薄 M1 Checkpoint）
+estimated_minutes: 50
+group: K2
+depends_on: [impl-04/03]
+external_preconditions: [impl-02 ACCEPTED]
+decisions: [D1, D13]
+scope:
+  write: [pipeline/dataset_compiler/inputs.py, pipeline/dataset_compiler/tests/test_inputs.py, pipeline/dataset_compiler/tests/_ledger_helpers.py]
+tests_first:
+  - 先写 tests/test_inputs.py（用例名逐字）并全红，再实现 inputs.py；_ledger_helpers.py 只允许追加函数
+contract: |
+  inputs.py：resolve_m8_inputs(reader, edition_part_id) -> dict
+    只调用 LedgerReadMixin 公开方法；查 artifact_type、stage_package 修订允许经 reader.store.conn 只读 SELECT（先例 impl-02 act/03.yaml:17）；本函数不做任何写入
+    返回键逐字：m3_step_run_id, m3_package_revision_id, m3_stage_package_id, spans_revision_id, manifest_revision_id, ocr_page_set_revision_id,
+               page_revision_ids({页: 修订}), asset_revision_ids({页: 修订}), asset_step_run_id, technique_id, source_id, m3_gate_profile, excluded_pages
+    规则（按序）：
+      R1 m8 已封存：list_checkpoints(ep, "m8") 中任一 Checkpoint 所属 StepRun status == "succeeded" → DatasetRefused，message 含「M8 已封存」（D13）
+      R2 m3：list_checkpoints(ep, "m3") 为空 → DatasetRefused(code="REF_001")，message 含「M3 未编译」；
+         Checkpoint 的 step_run_id 去重后 status == "succeeded" 的：0 个 → DatasetRefused(code="REF_001")，message 含「M3 未通过」；> 1 个 → DatasetRefused，message 含「多个 M3 成功运行」
+      R3 m3 包：SELECT r.artifact_revision_id FROM artifact_revisions r JOIN artifacts a ON a.artifact_id = r.artifact_id
+                WHERE a.artifact_type = 'stage_package' AND r.step_run_id = ? AND r.status = 'sealed' → 恰 1 行（否则 DatasetRefused(code="REF_001")）
+         内容 JSON：stage == "m3" 且 validation.passed is True（否则 DatasetRefused）；payload 无 "spans_revision_id" → DatasetRefused，message 含 "spans_revision_id"（fixture_ingest 灌入的 m3 包即属此类）
+      R4 spans_revision_id 修订 artifact_type == "corpus_spans"（否则 DatasetRefused(code="SCH_002")）；m3_stage_package_id = 内容 stage_package_id；
+         m3_gate_profile = payload["gate_profile"]；excluded_pages = payload["excluded_pages"]
+      R5 m3 包 manifest.input_artifacts：artifact_type == "source_manifest" 恰 1 → manifest_revision_id；== "ocr_page_set" 恰 1 → ocr_page_set_revision_id；
+         == "ocr_page" 的全部 → 读修订内容 JSON 的 "page" 作键 → page_revision_ids（同页重复 → DatasetRefused(code="ID_002")；缺失 → DatasetRefused(code="REF_001")）
+      R6 页图：list_checkpoints(ep, "m1") 的 completed_tasks 中 task_id 以 "source_asset_" 开头、status == "succeeded"、所属 StepRun succeeded 的任务
+         → asset_revision_ids（键 = task_id 去掉前缀 "source_asset_"），asset_step_run_id = 该 StepRun；
+         为空 → DatasetRefused(code="REF_001")，message 含「SourceAsset 未登记」；任一修订 artifact_type != "source_asset_page" → DatasetRefused(code="SCH_002")
+      R7 technique_id、source_id 取清单修订内容（yaml.safe_load）的同名键
+      R8 以上全部修订 status == "sealed"，否则 NotConsumable
+  _ledger_helpers.py 追加：
+    prepare_m3(service) -> dict（ingest(FIXTURE, service, stages=("m1","m2")) → run_m3(service, 清单 edition_part artifact_id)；返回 {"edition_part_id", "m3": summary}）
+    prepare_m8_ready(service) -> dict（prepare_m3 → register_source_assets(service, ep, REPO_ASSET_ROOT)；返回上面 + {"assets": summary}）
+    seed_succeeded_m8_checkpoint(service, edition_part_id)（配置 stage m8 → begin → put 一个 step_log → seal → write_checkpoint stage m8 → finish_step_run；只用于 R1 测试）
+tests:
+  test_inputs.py: |
+    脚手架：tempfile 目录 → LedgerService(root/"ledger")
+    - test_resolve_fixture_inputs（@skipUnless(assets_available())；prepare_m8_ready → page_revision_ids 与 asset_revision_ids 键 == {"page_001","page_002","page_003"}；m3_gate_profile "structural_only"；excluded_pages == {"page_002": "known_unrecognizable"}；technique_id "qizheng"；source_id "src_sanche_ed01"）
+    - test_refuses_without_m3_REF_001（只 ingest m1,m2 → message 含「M3 未编译」）
+    - test_refuses_fixture_ingested_m3_package（ingest m1,m2,m3 → message 含 "spans_revision_id"）
+    - test_refuses_without_assets_REF_001（prepare_m3，不登记页图 → message 含「SourceAsset 未登记」；本用例不依赖真实页图）
+    - test_refuses_when_m8_sealed（prepare_m3 + seed_succeeded_m8_checkpoint → message 含「M8 已封存」）
+    - test_resolve_does_not_write（table_counts 前后相等）
+verify: |
+  .venv/bin/python -m unittest discover -s pipeline/dataset_compiler/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 89；本机不得出现 skipped
+  grep -nE '\b(put_|seal_|write_|begin_|finish_|fail_|create_|register_|record_)' pipeline/dataset_compiler/inputs.py | wc -l   # 0
+  TDD §3 回归
+commit:
+  add: [pipeline/dataset_compiler/inputs.py, pipeline/dataset_compiler/tests/test_inputs.py, pipeline/dataset_compiler/tests/_ledger_helpers.py]
+  message: "feat(m8): resolve frozen M8 inputs from the sealed M3 stage package lineage and registered source assets"
+on_fail: 停止并报告；run_m3 的实际输出与 README §6 表不符（字段名、artifact_type）时不得自行适配，报告差异

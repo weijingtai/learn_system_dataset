@@ -1,0 +1,66 @@
+act_id: impl-07/09
+title: m7-assembler 验收：acceptance.py 十四项判定 + openspec/acceptance/m7-assembler.sh（§19.0 判据）
+estimated_minutes: 90
+group: J4
+depends_on: [impl-07/08]
+scope:
+  write: [pipeline/assembly/acceptance.py, pipeline/assembly/tests/test_acceptance.py, openspec/acceptance/m7-assembler.sh]
+tests_first:
+  - 先写 tests/test_acceptance.py（用例名逐字）并全红，再实现 acceptance.py，最后新建 m7-assembler.sh
+contract: |
+  acceptance.py：python -m pipeline.assembly.acceptance --fixture <mini_release01 目录> [--keep]
+    准备（在一个临时 Ledger 上顺序执行，全部经 fixture_seed 与 step 公开函数）：
+      seed ed01、ed99、ed01r2 → R1 run_m7(ed01, base None) → R2 run_m7(ed99, base s1) + r2 决定 + resume + r2b 决定 + resume →
+      R3 run_m7(ed01r2, base s2) + r3 决定 + resume；另起第二个临时 Ledger 做并发场景（两个 ReleaseRun 同基底 s1）
+    判定函数只读 Ledger 与 fixture 金标；不信任 run_m7/resume_m7 返回的 gate 与 report，须自行重算（允许 import canonical、model、gate；禁止 import matcher、apply、incremental）
+    十四项（名称与顺序固定）：
+      genesis_snapshot            R1 Snapshot 修订内容 knowledge 规范字节 == expected/snapshot_s1.knowledge.json；StepRun succeeded
+      edition_joins_alone         R2 只冻结 s1 与 ed99 两类输入（不含 ed01 包修订）；knowledge == snapshot_s2；ed01 以外无需其他版次
+      identity_preserved          s1→s2、s2→s3：基底每个活对象号仍存在或在 identity_delta 中且 reason_ref 可解析到本 Run 已封存提案集；新 pat_ 号 > 基底高水位
+      edition_packages_immutable  三次 Run 前后，全部 m6 包与 reviewed_edition_knowledge 修订的 status、sha256、revision_status_events 行数不变
+      incremental_scope           R2/R3 的 assembly_report.affected_entity_ids == expected/affected_s2/s3.json 的 affected；untouched 对象字节与基底相同
+      incremental_equals_full     从空基底按 ed01→ed99→ed01r2 以同一组决定逐步全量重建（incremental=False 的纯函数路径由 gate 所用独立数据推导不可行时，允许调用 pipeline.assembly.incremental.assemble，但此项须另以 knowledge 字节与金标比对双重确认）；knowledge_sha256 与 Ledger 中 s2、s3 相等
+      proposals_and_decisions     R2 两轮提案集修订内容（去运行字段后）== expected/proposals_r2.json；每条 human_event 属于 R2 的 M7 StepRun 且 proposal_set_revision_id 为本 StepRun 修订；R3 待决仅 R06 键
+      collation_relations         R2 edition_collation_set 内容 == expected/collation_s2.json；not_comparable 单元无对勘关系
+      no_silent_fold              gate.evaluate_assembly 对 s2、s3 的 no_silent_fold 与 first_layer_display 通过；s2 cg 首层 true，s3 false
+      identity_delta_contract     R3 identity_delta 修订 delta 段 == expected/identity_delta_s3.json；refs 中提案集修订 sealed
+      rework_replacement          R3：替换以 (source_id, edition_part_ids) 识别；carried 含两条 distinct_from 与 c2 attach；needs_review 仅 R06；as_qizheng_900004 retired
+      package_lineage             三个 m7 StagePackage 过 stage_package.schema.json；lineage 输入集合 == frozen_inputs；Snapshot 修订 prev 链 s3→s2→s1；s1、s2 为 superseded、s3 为 sealed；
+                                  ProcessingRun kind release_run 且 edition_part_id == 配置 Artifact 号；第二个 Ledger 的并发 ReleaseRun 被 NotConsumable 拒绝且无新增写入
+      checkpoints_and_queue       R2 m7 Checkpoint 链：propose_r1、3 个人工决定、propose_r2、1 个人工决定、seal_snapshot，prev 成链；每个人工决定 Checkpoint 的 pending_queue 递减；StepManifest.last_checkpoint_revision_id == 末个
+      upstream_m6_real            恒为 BLOCKED，说明文字逐字为「前置缺失: M6 Review Workbench；ReviewedEditionPackage 由 mini_release01 金标视图代替」
+    输出：每项一行 `PASS <名>` / `FAIL <名> <原因>` / `BLOCKED <名> <说明>`；末行 `SUMMARY pass=<n> fail=<n> blocked=<n>`
+    退出码：3 仅限「<fixture>/manifest.yaml 不存在」或「yaml/jsonschema 不可导入」；
+            准备或任一 Run 抛异常 → 打印 `FAIL m7_acceptance 宿主准备失败: <异常类名>: <消息>` 并退出 1（判定函数内异常转该项 FAIL）；
+            任一 FAIL → 1；无 FAIL 有 BLOCKED → 2；全部 PASS → 0
+    无 --keep 时删除临时目录
+  m7-assembler.sh（新建，权限 755）：
+    set -u；export LC_ALL=en_US.UTF-8；REPO_ROOT 由脚本目录推出
+    FIXTURE_RELEASE_DIR 默认 "$REPO_ROOT/pipeline/corpus/_fixture/mini_release01"，可由环境变量覆盖（解析为绝对路径）
+    PY="$REPO_ROOT/.venv/bin/python"；不可执行 → `BLOCKED m7_assembler 前置缺失: 测试宿主匮乏；.venv 缺失` + `SUMMARY pass=0 fail=0 blocked=1`，exit 3
+    宿主校验两步，永远调用仓库内规范脚本，绝不执行被验目录自带脚本：
+      1) bash "$REPO_ROOT/pipeline/corpus/_fixture/mini_ed01/verify.sh"：退出 0 或 3 → 继续；否则 `FAIL fixture_host mini_ed01 <首个 FAIL 行>` + SUMMARY，exit 1
+      2) FIXTURE_DIR="$FIXTURE_RELEASE_DIR" bash "$REPO_ROOT/pipeline/corpus/_fixture/mini_release01/verify.sh"：退出 0 → 继续；否则 `FAIL fixture_host mini_release01 <首个 FAIL 行>` + SUMMARY，exit 1
+    然后 cd "$REPO_ROOT" 执行 "$PY" -m pipeline.assembly.acceptance --fixture "$FIXTURE_RELEASE_DIR"，退出码原样返回
+tests:
+  test_acceptance.py: |
+    - test_fixture_yields_thirteen_pass_one_blocked_exit_2
+    - test_upstream_m6_real_line_exact_text
+    - test_golden_s2_mismatch_fails（fixture 临时副本改 snapshot_s2 一字节 → edition_joins_alone FAIL，exit 1；直接调用 acceptance.main）
+    - test_affected_golden_mismatch_fails（副本 affected_s2 删一个号 → incremental_scope FAIL）
+    - test_prepare_failure_exits_1（patch fixture_seed.seed_reviewed_edition 抛 RuntimeError → 首行以 "FAIL m7_acceptance 宿主准备失败: RuntimeError" 开头）
+    - test_missing_fixture_exit_3
+    - test_acceptance_does_not_import_matcher_apply_incremental_for_judgement（ast 检查判定函数所在模块 import）
+    - test_shell_exit_2_on_fixture（subprocess，末行 SUMMARY pass=13 fail=0 blocked=1）
+    - test_shell_never_trusts_copy_verify（副本改 ed99 视图并把副本 verify.sh 换成 `echo FIXTURE OK; exit 0` → FIXTURE_RELEASE_DIR=副本，exit 1，首行以 "FAIL fixture_host mini_release01" 开头）
+verify:
+  - .venv/bin/python -m unittest discover -s pipeline/assembly/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 108
+  - export LC_ALL=en_US.UTF-8; bash openspec/acceptance/m7-assembler.sh; echo exit=$?   # 13 PASS + BLOCKED upstream_m6_real + SUMMARY pass=13 fail=0 blocked=1；exit=2
+  - grep -c 'FIXTURE_RELEASE_DIR/verify.sh' openspec/acceptance/m7-assembler.sh   # 0
+  - grep -c 'return 3' pipeline/assembly/acceptance.py   # 2
+  - bash openspec/acceptance/run_all.sh | tail -1   # SUMMARY pass=2 fail=1 blocked=8（本 ACT 不改 run_all.sh）
+  - TDD §3 回归
+commit:
+  add: [pipeline/assembly/acceptance.py, pipeline/assembly/tests/test_acceptance.py, openspec/acceptance/m7-assembler.sh]
+  message: "feat(m7): m7-assembler acceptance (13 checks PASS, upstream M6 BLOCKED) per spec §19.0"
+on_fail: 停止并报告；不得把 upstream_m6_real 写成 PASS；不得让 m7-assembler.sh 在本批返回 0

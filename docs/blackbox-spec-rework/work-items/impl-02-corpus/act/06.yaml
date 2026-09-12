@@ -1,0 +1,48 @@
+act_id: impl-02/06
+title: J3 验收跟进——验收脚本缺 PyYAML 返回 3；「无 m3 StagePackage」断言改为直查 Ledger
+estimated_minutes: 20
+group: J4
+depends_on: [impl-02/05]
+scope:
+  write: [pipeline/corpus_compiler/acceptance.py, pipeline/corpus_compiler/tests/test_acceptance.py, pipeline/corpus_compiler/tests/test_step.py]
+background: |
+  主 Agent 独立验收 J3（`c5f744c`）：五处缺陷全部修复，J3 通过。登记两处非阻断跟进：
+  1) act/05 C6 要求「yaml/jsonschema 不可导入 → 3」未实现（执行方已如实申报）。acceptance.py 模块顶层 `import yaml`，
+     .venv 存在但缺 PyYAML 时 `python -m pipeline.corpus_compiler.acceptance` 以 ImportError 退出 1。
+     主 Agent 裁定：acceptance.py 不使用 jsonschema，本条只针对 PyYAML。
+  2) test_step.py 中 J3 新增的 3 个篡改用例与 test_post_begin_exception_seals_failure 用 `assertNotIn("stage_package_id", result)`
+     判「无 m3 StagePackage」，只查返回值；契约原意是 Ledger 中不存在 m3 StagePackage，须直查 `stage_packages` 表。
+tests_first:
+  - 先改/加下列测试并运行 `.venv/bin/python -m unittest discover -s pipeline/corpus_compiler/tests -t .` 取 Red（test_missing_yaml_exit_3 失败），记录原文；再改实现
+contract: |
+  acceptance.py：
+    C1 模块顶层改为：
+         try:
+             import yaml
+         except ImportError:  # 宿主缺依赖：main 返回 3
+             yaml = None
+       `main()` 在解析参数之后、检查 fixture 目录之前：若 `yaml is None`，打印一行
+       `FAIL m3_acceptance 宿主准备失败: ImportError: PyYAML 不可导入` 并返回 3。
+       其余逻辑与退出码不变。模块其他顶层 import 若间接依赖 PyYAML（如 pipeline.corpus_compiler.step、pipeline.ledger.fixture_ingest），
+       一并移入 main 内部、在 yaml 检查之后导入（导入失败 ImportError 同样返回 3）；函数体内对 run_m3/ingest/LedgerService 的引用改为使用这些局部或模块级延迟导入的名字，
+       并保证 J2 验收用的 `mock.patch.object(acceptance, "run_m3", ...)` 仍可用——即 acceptance 模块仍暴露模块级名字 `run_m3`（可在模块顶层用 try/except ImportError 置 None，main 中为 None 时返回 3）。
+  test_step.py：
+    C2 在 test_manifest_object_tamper_fails_input_contract、test_page_set_object_tamper_fails_input_contract、
+       test_human_event_object_tamper_fails_input_contract、test_post_begin_exception_seals_failure 四个用例末尾各追加：
+         count = self.service.store.conn.execute("select count(*) from stage_packages where stage='m3'").fetchone()[0]
+         self.assertEqual(count, 0)
+       保留原有断言，不删除任何断言。
+tests:
+  test_acceptance.py 追加: |
+    - test_missing_yaml_exit_3：`with mock.patch.object(acceptance_module, "yaml", None): rc = main(["--fixture", <fixture 目录>])`，断言 rc == 3，且捕获的 stdout 首行以 `FAIL m3_acceptance 宿主准备失败: ImportError` 开头
+verify:
+  - .venv/bin/python -m unittest discover -s pipeline/corpus_compiler/tests -t . 2>&1 | grep -E '^(Ran|OK|FAILED)'   # OK，用例数 = 68
+  - grep -c "where stage='m3'" pipeline/corpus_compiler/tests/test_step.py                                        # ≥ 4
+  - export LC_ALL=en_US.UTF-8; bash openspec/acceptance/m3-coverage.sh | tail -1; echo exit=$?                      # SUMMARY pass=8 fail=0 blocked=1；exit=2
+  - .venv/bin/python -m pipeline.corpus_compiler.acceptance --fixture /nonexistent/fx; echo exit=$?                  # exit=3
+  - bash openspec/acceptance/run_all.sh | tail -1                                                                    # SUMMARY pass=2 fail=1 blocked=8
+  - git diff --check
+commit:
+  add: [pipeline/corpus_compiler/acceptance.py, pipeline/corpus_compiler/tests/test_acceptance.py, pipeline/corpus_compiler/tests/test_step.py]
+  message: "fix(m3): acceptance exits 3 when PyYAML is missing; assert no m3 StagePackage in ledger for failure cases"
+on_fail: 停止并报告；不得修改测试断言去迁就实现；不得改 HANDOFF.md、SUBAGENT_TODO.md、ACCEPTANCE.md 或任何台账文件

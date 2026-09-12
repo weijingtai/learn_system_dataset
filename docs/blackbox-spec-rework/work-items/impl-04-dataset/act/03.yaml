@@ -1,0 +1,69 @@
+act_id: impl-04/03
+title: 薄 M1 页图登记 register_source_assets（派生页图进入本地 Object Store，每页一个 Checkpoint）
+estimated_minutes: 85
+group: K2
+depends_on: [impl-04/01]
+decisions: [D2, D3, D4]
+scope:
+  write: [pipeline/dataset_compiler/shim/__init__.py, pipeline/dataset_compiler/shim/source_assets.py, pipeline/dataset_compiler/tests/_ledger_helpers.py, pipeline/dataset_compiler/tests/test_shim.py]
+tests_first:
+  - 先写 tests/_ledger_helpers.py 与 tests/test_shim.py（用例名逐字）并全红，再实现 shim
+contract: |
+  shim/__init__.py：SHIM_TOOL = "pipeline.dataset_compiler.shim"；SHIM_TOOL_VERSION = "0.1.0"
+  shim/source_assets.py（本包唯一读文件的生产代码，职能属 M1 Source Intake，§22.3:991「手工登记 SourceAsset」）：
+    class SourceAssetMissing(DatasetRefused)：code "SRC_001"；message 以 "BLOCKED_SOURCE_ASSET_MISSING " 开头，后接全部缺失 path_ref（清单顺序，空格分隔）
+    register_source_assets(service, edition_part_id, asset_root) -> dict
+      P1 解析 m1（只读）：list_checkpoints(ep, "m1") 中 task_id == "ingest_source" 且 status == "succeeded" 的恰 1 项 → manifest_revision_id；
+         其所属 StepRun status == "succeeded"；修订 sealed 且 artifact_type == "source_manifest"（经 service.store.conn 只读 SELECT）；否则 DatasetRefused(code="REF_001")
+      P2 已登记：m1 Checkpoint 中存在 task_id 以 "source_asset_" 开头且所属 StepRun succeeded → DatasetRefused，message 含「SourceAsset 已登记」
+      P3 清单字节 = service.objects.get(修订 sha256)；hashlib.sha256(字节) != 修订 sha256 → HashMismatch(code="SRC_003")；manifest = yaml.safe_load
+      P4 预检（全部完成之前不得有任何写入）：对 manifest["source_assets"] 每项：path = Path(asset_root) / Path(item["path_ref"]).name
+         不存在 → 收集；全部遍历后若有缺失 → raise SourceAssetMissing
+         data = path.read_bytes()；sha256 != item["sha256"] → HashMismatch(code="SRC_003")；packs.png_size(data) != (item["width"], item["height"]) → HashMismatch(code="SRC_003")（非 PNG 由 png_size 抛 SCH_002）
+      P5 写入（§17 事务序列）：
+         processing_run_id = m1 StepRun 的 processing_run_id
+         config = service.put_run_artifact(processing_run_id, "configuration", canonical_bytes({"stage": "m1", "tool": SHIM_TOOL, "tool_version": SHIM_TOOL_VERSION, "task": "register_source_assets", "asset_count": n}), producer_module=SHIM_TOOL, producer_version=SHIM_TOOL_VERSION)
+         step = service.begin_step_run({"schema_version": "1.0.0", "processing_run_id", "step_run_id": ids.new_id("step_run_id"), "input_artifact_ids": [manifest_revision_id], "technique_profile_id": manifest["technique_id"], "configuration_artifact_id": config})
+         begin 之后任何异常 → _fail(step, "internal", "<异常类名>: <消息>")：put "failure_report"（canonical {"check","detail"}）→ seal → fail_step_run；_fail 自身抛异常 → raise 原异常 from
+         每页（清单 source_assets 顺序）：rev = put_artifact(step, "source_asset_page", data, producer_module=SHIM_TOOL, producer_version=SHIM_TOOL_VERSION, rights_scope="internal") → seal
+           write_checkpoint(step, edition_part_id=ep, stage="m1", completed_tasks=[{"task_id": "source_asset_" + page, "artifact_revision_id": rev, "status": "succeeded", "terminal_state": None}],
+                            human_decisions=[], pending_queue=[{"task_id": "source_asset_" + 其后各页}], next_pointer=首个待办或 None)
+         register = put "source_asset_register"（canonical {页: {"artifact_revision_id", "sha256", "size", "width", "height"}}）→ seal
+         validation = put "validation_report"（canonical {"checks": ["sha256", "png_size"], "passed": true}）→ seal；log = put "step_log"（每步一行、无时间戳）→ seal
+         record_transformation(step, operation="register_source_assets", tool=SHIM_TOOL, tool_version=SHIM_TOOL_VERSION, configuration_revision_id=config,
+                               input_revision_ids=[manifest_revision_id], output_revision_ids=[各页修订…, register], validation_report_revision_id=validation, human_event_revision_ids=[])
+         finish_step_run(step, {"schema_version": "1.0.0", "processing_run_id", "step_run_id": step, "status_version": 当前值 + 1, "status": "succeeded",
+                                "output_artifact_ids": [各页修订…, register], "validation_report_ids": [validation], "log_artifact_ids": [log], "failure_artifact_ids": []})
+         不登记 StagePackage（D2：不产生第二个 m1 包）
+      返回键：status("succeeded"|"failed"), processing_run_id, step_run_id, 成功时 asset_revision_ids({页: 修订}), register_revision_id, checkpoint_revision_ids；失败时 failed_check, failure_revision_id, reason
+    CLI：python -m pipeline.dataset_compiler.shim.source_assets --root <ledger_root> --edition-part <art_id> --asset-root <dir>
+      成功 `ASSETS OK <step_run_id> pages=<n>` exit 0；失败 `ASSETS FAILED <step_run_id> <failed_check>` exit 1；
+      SourceAssetMissing → 打印其 message exit 3；其他 begin 之前拒绝 `ASSETS REFUSED <异常类名>: <消息>` exit 2；WriterLocked exit 3
+tests:
+  _ledger_helpers.py: |
+    FIXTURE = 仓库根 / "pipeline/corpus/_fixture/mini_ed01"；REPO_ASSET_ROOT = 仓库根 / "ocr/data_work/sanche_pages"
+    assets_available() -> bool（三页 png 均存在）
+    make_synthetic_png(width, height, payload=b"") -> bytes（PNG 签名 + IHDR 长度/类型/宽高 + payload；只供合成清单单元测试，不得冒充 fixture 哈希）
+    seed_m1_manifest(service, manifest_dict) -> manifest_revision_id（create_processing_run("edition_run", ep, technique_id) → put_run_artifact configuration stage m1 → begin_step_run →
+      put_artifact "source_manifest"（yaml.safe_dump 字节）→ seal → write_checkpoint task_id "ingest_source" → record_transformation → finish_step_run）
+    table_counts(service) -> dict（processing_runs、artifact_revisions、step_runs、audit_log 行数）
+  test_shim.py: |
+    - test_register_synthetic_assets_succeeds（合成清单 3 页 + 临时目录合成 PNG → status succeeded；m1 Checkpoint 新增 3 个，task_id 依次 source_asset_page_001..003；修订 sealed、artifact_type source_asset_page、rights_scope internal）
+    - test_register_writes_transformation_and_register_doc（register 文档键 == 清单页；Transformation 输入 == [manifest]、输出含 3 页 + register）
+    - test_missing_asset_raises_blocked_and_no_writes（删 1 页 → SourceAssetMissing，message 以 "BLOCKED_SOURCE_ASSET_MISSING " 开头；table_counts 不变）
+    - test_hash_mismatch_SRC_003_no_writes
+    - test_png_size_mismatch_SRC_003_no_writes
+    - test_non_png_SCH_002_no_writes
+    - test_second_registration_refused
+    - test_m1_missing_refused_REF_001
+    - test_post_begin_exception_seals_failure（patch LedgerService.record_transformation 抛 RuntimeError → status failed、failed_check "internal"、failure_report sealed、StepRun failed）
+    - test_fixture_real_assets_when_available（@skipUnless(assets_available())：ingest(FIXTURE, service, stages=("m1","m2")) → register(REPO_ASSET_ROOT) → 三页修订 sha256 == 清单）
+    - test_cli_exit_codes（subprocess：合成场景成功 exit 0 且末行以 "ASSETS OK" 开头；空 asset-root exit 3 且首行以 "BLOCKED_SOURCE_ASSET_MISSING" 开头）
+verify: |
+  .venv/bin/python -m unittest discover -s pipeline/dataset_compiler/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 83；本机不得出现 skipped
+  grep -rn "sanche_pages" pipeline/dataset_compiler --include='*.py' | grep -v '/tests/' | wc -l    # 0（生产代码不写死素材路径）
+  TDD §3 回归
+commit:
+  add: [pipeline/dataset_compiler/shim, pipeline/dataset_compiler/tests/_ledger_helpers.py, pipeline/dataset_compiler/tests/test_shim.py]
+  message: "feat(m8): thin M1 source-asset registration into the local object store with per-page checkpoints (spec §16/§22.3)"
+on_fail: 停止并报告；本机缺页图时不得合成同哈希图片；不得修改 pipeline/ledger 任何文件

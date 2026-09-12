@@ -1,0 +1,77 @@
+act_id: impl-05/07
+title: m4-stage-gate 验收：acceptance.py 十六项判定（13 PASS + 3 BLOCKED）+ openspec/acceptance/m4-stage-gate.sh（§19.0 判据）
+estimated_minutes: 80
+group: K4
+depends_on: [impl-05/05, impl-05/06]
+pending_decisions: [D-02, D-03, D-06, D-11]
+scope:
+  write: [pipeline/knowledge_extraction/acceptance.py, pipeline/knowledge_extraction/tests/test_acceptance.py, openspec/acceptance/m4-stage-gate.sh]
+preconditions:
+  - pipeline/corpus/_fixture/mini_ed01/m4/ 已由主 Agent 落地附录 A 四个文件，expected/m4.stage_package.yaml 已存在；缺失即停手上报，执行者不得自建
+tests_first:
+  - 先写 tests/test_acceptance.py（用例名逐字）并全红，再实现 acceptance.py，最后新建 m4-stage-gate.sh
+contract: |
+  acceptance.py：python -m pipeline.knowledge_extraction.acceptance --fixture <dir> [--gold-dir <dir>] [--canon-dir <dir>] [--keep]
+    --gold-dir 缺省 <fixture>/m4；--canon-dir 缺省 仓库根/pipeline/schemas/shared/canon（由本模块路径推出）
+    不得 import pipeline.knowledge_extraction.assemble、.gate、.submission；判定函数只读 Ledger 与 fixture/金标，不信任 run_m4 / resume_m4 返回的 gate 报告
+    准备：tempfile → LedgerService(root/"ledger") → ingest(fixture, service, stages=("m1","m2")) → run_m3 → register_technique_profile →
+          run_m4_submit ×3（金标 assertion a、assertion b、concept_mention a；producer_module "fixture:mini_ed01"）→ run_m4（期望 awaiting_human）→
+          record_category_ruling（金标裁决）→ resume_m4 → summary
+    十六项（名称与顺序固定）：
+      inputs_frozen：summary.status == "succeeded"；assemble StepRun frozen_inputs 集合 == {m3 包, corpus_package, corpus_spans, technique_profile} ∪ 3 件提交件；全部 sealed
+      lane_isolation：3 个 submit StepRun 各自 frozen_inputs 恰为 {m3 包, corpus_spans}，其中无 artifact_type candidate_submission；assertion a、b 分属不同 StepRun
+      evidence_resolvable：candidate_set 每条证据 source_span_id ∈ corpus_spans 字节解析结果，offset 落在该 Span 区间内
+      quote_fidelity：从 corpus_spans 自行重算页块；块[start:end] == quote；sha256 一致
+      evidence_required：五类对象 evidence 均非空
+      identity：as_/pr_/pat_/sv_/cg_ 格式（自行正则，不 import gate）；as 与 pr 同号；不重复；在配置修订 id_range 内
+      status_ceiling：candidate_set 全部 content_status ∈ {machine_extracted, disputed, needs_expert}；Ledger 中本 ProcessingRun 全部 m4 修订字节不含 "expert_verified" 与 "cross_model_reviewed"
+      category_separation：每件提交件内容恰一个 category，且全部 item 键 ⊆ 该类键表（acceptance.py 内独立维护一份键表，逐字等于 act/00 ITEM_KEYS）
+      references：concept_refs / concept_ref ∈ technique_profile canon ∪ glossary；school_id ∈ profile schools；pattern / school_view 引用可解析
+      dispute_ruling：assemble StepRun 事件序列含 await_human → human_event（次数 == disputes 数）→ resume，顺序正确；human_events 表 decision_type 为 NULL；
+        每条裁决事件之后存在 completed_tasks.task_id == dispute_id 且 human_decisions 含该事件的 Checkpoint；candidate_set.disputes 的 choice == 金标裁决文件 choice
+      task_checkpoints：assemble StepRun 的 m4 Checkpoint task_id 依次 == [lane_assertion_a, lane_assertion_b, lane_concept_mention_a, reconcile, m4_d001, assemble]；prev 指针成链；
+        StepManifest.last_checkpoint_revision_id == 末个；每个 submit StepRun 恰 1 个 submit_<category>_<lane>
+      package_lineage：m4 StagePackage 修订字节过 stage_package.schema.json；stage == "m4"；manifest.content_sha256 == sha256(candidate_set 字节)；M3 包输入 ArtifactRef artifact_kind == "stage_package"；
+        lineage 输入集合 == frozen_inputs；Transformation extract_candidates 输出全部 sealed 且 human_event_revision_ids == 裁决事件；配置修订 gate_profile == "thin_no_model"
+      golden_match：candidate_set.counts == fixture expected/m4.stage_package.yaml 的 manifest.counts；sha256(candidate_set 字节) == expected manifest.content_sha256；
+        payload.gate_profile / span_layer / cross_model / term_layering == expected payload 同名字段；assertions 的 (assertion_id, proposition) 列表 == [(as_qizheng_000001, 宋錢如璧撰), (as_qizheng_000002, 三辰通載三十卷)]
+      cross_model_extraction：恒 BLOCKED，说明逐字「前置缺失: M4 Knowledge Extraction；生产模型 A/B 独立抽取与复核模型 C（§12.2）未接入 Model Adapter，本批为无模型薄接入」
+      semantic_span_input：恒 BLOCKED，说明逐字「前置缺失: M3 Corpus Compilation；SemanticSpan 未实现，M4 以 StructuralSpan 薄接入（span_layer=structural）」
+      term_layering_scan：恒 BLOCKED，说明逐字「前置缺失: Contract Registry；schemas/shared/homographs 与 qizheng 术语表不存在，L1/L2/L3 自动判层未实现（本批只校验提交件自带 concept_ref）」
+    输出：每项一行 `PASS <名>` / `FAIL <名> <原因>` / `BLOCKED <名> <说明>`；末行 `SUMMARY pass=<n> fail=<n> blocked=<n>`
+    退出码：3 仅限「<fixture>/manifest.yaml 不存在」「gold-dir 不存在」「canon-dir 不存在」「yaml/jsonschema 不可导入」；
+            准备阶段或判定抛异常 → 打印 `FAIL m4_acceptance 宿主准备失败: <异常类名>: <消息>` 并退出 1（判定函数内异常转该项 FAIL）；
+            任一 FAIL → 1；无 FAIL 有 BLOCKED → 2；全部 PASS → 0
+    无 --keep 时删除临时目录
+  m4-stage-gate.sh（新建，权限 755；结构照抄 openspec/acceptance/m3-coverage.sh）：
+    set -u；export LC_ALL=en_US.UTF-8；REPO_ROOT 由脚本所在目录推出
+    FIXTURE_DIR 默认 "$REPO_ROOT/pipeline/corpus/_fixture/mini_ed01"，可由环境变量覆盖（先解析为绝对路径）
+    PY="$REPO_ROOT/.venv/bin/python"；不可执行 → 打印 `BLOCKED m4_stage_gate 前置缺失: 测试宿主匮乏；.venv 缺失` 与 `SUMMARY pass=0 fail=0 blocked=1`，exit 3
+    宿主校验：FIXTURE_DIR="$FIXTURE_DIR" bash "$REPO_ROOT/pipeline/corpus/_fixture/mini_ed01/verify.sh"（永远调用仓库内规范脚本，绝不执行 "$FIXTURE_DIR/verify.sh"）
+      退出 0 或 3 → 继续；退出 1 或其他 → 打印 `FAIL fixture_host <verify.sh 首个 FAIL 行>` 与 `SUMMARY pass=0 fail=1 blocked=0`，exit 1
+    然后 cd "$REPO_ROOT" 执行 "$PY" -m pipeline.knowledge_extraction.acceptance --fixture "$FIXTURE_DIR"，退出码原样返回
+tests:
+  test_acceptance.py: |
+    - test_fixture_yields_13_pass_3_blocked_exit_2
+    - test_blocked_lines_exact_text
+    - test_expected_counts_mismatch_fails_golden（fixture 临时副本改 expected/m4 counts.assertions → golden_match FAIL，exit 1）
+    - test_ruling_choice_b_fails_golden（gold 副本裁决改为 b → golden_match FAIL，exit 1）
+    - test_prepare_failure_exits_1（patch fixture_ingest.ingest 抛 RuntimeError → 首行以 "FAIL m4_acceptance 宿主准备失败: RuntimeError" 开头）
+    - test_missing_fixture_exit_3
+    - test_missing_gold_dir_exit_3
+    - test_acceptance_does_not_import_assemble_gate_submission（源码扫描）
+    - test_tests_data_equals_fixture_gold（tests/data/appendix_a 四个文件与 fixture m4/ 同名文件字节相同）
+    - test_shell_exit_2_on_fixture（subprocess 运行 m4-stage-gate.sh，末行 SUMMARY pass=13 fail=0 blocked=3，exit 2）
+    - test_shell_never_trusts_copy_verify（fixture 副本删一条 span，把副本 verify.sh 换成 `echo FIXTURE OK; exit 0` → exit 1，首行以 "FAIL fixture_host" 开头）
+verify:
+  - .venv/bin/python -m unittest discover -s pipeline/knowledge_extraction/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 118
+  - export LC_ALL=en_US.UTF-8; bash openspec/acceptance/m4-stage-gate.sh; echo exit=$?               # 13 PASS + 3 BLOCKED + SUMMARY pass=13 fail=0 blocked=3；exit=2
+  - grep -c 'FIXTURE_DIR/verify.sh' openspec/acceptance/m4-stage-gate.sh                              # 0
+  - grep -nE '^\s*(from|import) .*(assemble|\.gate|submission)' pipeline/knowledge_extraction/acceptance.py | wc -l   # 0
+  - bash openspec/acceptance/run_all.sh | tail -1                                                      # == BASELINE_RUN_ALL
+  - bash openspec/acceptance/m3-coverage.sh >/dev/null; echo $?                                        # == BASELINE_M3
+  - TDD §3 回归
+commit:
+  add: [pipeline/knowledge_extraction/acceptance.py, pipeline/knowledge_extraction/tests/test_acceptance.py, openspec/acceptance/m4-stage-gate.sh]
+  message: "feat(m4): m4-stage-gate acceptance (13 checks PASS, cross-model / semantic span / term layering BLOCKED) per spec §19.0"
+on_fail: 停止并报告；不得把三项 BLOCKED 写成 PASS；不得让 m4-stage-gate.sh 在本批返回 0；不得修改 fixture 金标以迁就实现

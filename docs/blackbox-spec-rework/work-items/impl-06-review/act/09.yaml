@@ -1,0 +1,54 @@
+act_id: impl-06/09
+title: 复审只重放待复核项 open_rework_review：阈值告警确认、继承决定不重做、新 ReviewedEditionPackage（§14.1:640-645、§17.1:845）
+estimated_minutes: 75
+group: K3
+depends_on: [impl-06/08]
+decisions_required: [D-06, D-09, D-14]
+scope:
+  write: [pipeline/review/rework.py, pipeline/review/step.py, pipeline/review/testing/upstream_stub.py, pipeline/review/tests/test_rework_review.py, pipeline/review/console.py]
+tests_first:
+  - 先写 tests/test_rework_review.py（用例名逐字），全部 Red 后再实现
+contract: |
+  testing/upstream_stub.py 追加：
+    seed_rerun_m4_m5(service, edition_part_id, *, rework_impact_report_revision_id) -> dict
+      m4'：supersede_step_run(旧 m4 运行)；冻结新 corpus；对报告 invalidated(kind=candidate) 的实体写新 "knowledge_candidate" 修订（同 artifact_id、prev_revision_id=旧修订、内容字段不变、quote_sha256 按新 spans 重算），seal 后 service.supersede_revision(旧, 新)；
+           不可达实体沿用旧修订；新 candidate_package（corpus_package_revision_id=新）
+      m5'：supersede_step_run(旧 m5 运行)；新 validation_package 绑定新候选包，条目沿用
+      返回键：candidate_package_revision_id, candidate_revision_ids, validation_package_revision_id
+  rework.py 追加：
+    open_rework_review(service, edition_part_id, *, rework_impact_report_revision_id, acknowledge_rework_warning=False) -> dict
+      前置零写入：报告 sealed 且为本 ep 最新 m6 Checkpoint 所引用；报告 warnings 非空且 acknowledge_rework_warning 不为 True → ReviewRefused（message 含「rework_threshold_exceeded 需操作者确认」）；
+        resolve_m6_inputs 的「M6 已封存」拒绝在此路径改为：最新 m6 Checkpoint 所属运行必须是 task=rework_propagation 的 succeeded 运行
+      1 inputs：新 corpus/候选/校验包（经 resolve_m6_inputs 同一规则，但跳过 M6 已封存检查）
+      2 config {"stage": "m6", "task": "review", "mode": "rework", "required_decision_types": 与首审配置相同, …}
+      3 frozen = open_review 同构冻结 + [report] + carried 决定修订 + needs_review 旧决定修订（仅供对照显示）
+        step = supersede_step_run(失效传播运行, request)
+      4 queue = 仅报告 needs_review 的队列项，seen_artifact_revision_id 改为新候选修订 → put "review_queue" → seal
+      5 write_checkpoint(completed_tasks=[build_review_queue], human_decisions=carried 决定修订, pending=queue, rework_impact_report_revision_id=report)
+      6 token = await_human(step, [queue_rev])
+      7 若 warnings 非空：写 human_event {schema_version, event_kind: "rework_threshold_ack", stage: "m6", step_run_id, rework_impact_report_revision_id, warnings, actor_ref} → seal → record_human_event(decision_type=None) → write_checkpoint（human_decisions 追加）
+      返回键：同 open_review，另加 rework_impact_report_revision_id, carried_decision_revision_ids, acknowledgement_revision_id
+  step.py 修改（保持 ACT 05/06 用例全绿）：
+    record_decision 与 close_review 在 mode == "rework" 时：
+      fold 的立场集合 = carried 决定（standing 视为 "carried_forward"，carried_from_revision_id = 其 seen_artifact_revision_id，trigger_correction_request_id = 报告 trigger，current_target_revision_id = 新候选修订）+ 本运行新决定（active）
+      队列覆盖检查使用完整队列（carried 项 + 本运行 needs_review 项）；reviewed_edition_package.rework_impact_report_revision_id = 报告修订
+      Transformation human_event_revision_ids 含 carried 决定、本运行决定、阈值确认事件
+  console.py 追加：rework-open --edition-part --report <rev> [--ack-rework-warning]：`M6 AWAITING <step_run_id> token=<token> pending=<n> carried=<m>`
+tests:
+  test_rework_review.py: |
+    脚手架：ACT 08 场景 → run_rework_propagation → seed_rerun_m4_m5 → open_rework_review
+    - test_warning_requires_acknowledgement_zero_writes
+    - test_acknowledgement_recorded_as_human_event_with_checkpoint
+    - test_rereview_queue_only_needs_review_items（== expected_review.rereview.queue）
+    - test_rereview_seen_revision_is_new_candidate_revision
+    - test_carried_decisions_not_rerecorded（本运行 human_events 表中无 carried 决定修订）
+    - test_close_rereview_standings_two_active_two_carried
+    - test_rereview_package_references_report_and_trigger
+    - test_rereview_transformation_includes_carried_and_ack_events
+verify:
+  - .venv/bin/python -m unittest discover -s pipeline/review/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 104
+  - TDD §3 回归
+commit:
+  add: [pipeline/review/rework.py, pipeline/review/step.py, pipeline/review/testing/upstream_stub.py, pipeline/review/tests/test_rework_review.py, pipeline/review/console.py]
+  message: "feat(m6): rework re-review replays only needs_review items and carries forward equivalent decisions (spec §14.1)"
+on_fail: 停止并报告；ACT 05/06 既有用例被迫修改断言时停手

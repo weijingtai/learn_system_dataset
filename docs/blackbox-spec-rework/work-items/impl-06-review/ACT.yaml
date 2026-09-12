@@ -1,0 +1,60 @@
+package: blackbox-impl-06-review
+title: 首纵切薄用：M6 Review & Curation（§14）+ 精确失效传播（§14.1）+ 命令行 Review Console
+status: DRAFT   # README §4 D-01～D-18 未裁决前不得派发
+executor_groups:
+  K1: [impl-06/01, impl-06/02, impl-06/03]            # 纯函数，无 Ledger；一个执行 Agent 串行
+  K2: [impl-06/04, impl-06/05, impl-06/06, impl-06/07] # 前置 impl-02 ACCEPTED 且 K1 ACCEPTED
+  K3: [impl-06/08, impl-06/09, impl-06/10, impl-06/11] # 前置 K2 ACCEPTED；impl-06/10 依 D-01
+acts:
+  - file: act/01.yaml
+    id: impl-06/01
+    writes: ["pipeline/review/__init__.py", "pipeline/review/errors.py", "pipeline/review/model.py", "pipeline/review/tests/__init__.py", "pipeline/review/tests/test_model.py"]
+  - file: act/02.yaml
+    id: impl-06/02
+    writes: ["pipeline/review/gate.py", "pipeline/review/tests/test_gate.py"]
+  - file: act/03.yaml
+    id: impl-06/03
+    writes: ["pipeline/review/propagation.py", "pipeline/review/tests/test_propagation.py"]
+  - file: act/04.yaml
+    id: impl-06/04
+    writes: ["pipeline/review/testing/__init__.py", "pipeline/review/testing/upstream_stub.py", "pipeline/review/testing/data/m4_candidates.yaml", "pipeline/review/testing/data/m5_validation.yaml", "pipeline/review/testing/data/m6_decisions.yaml", "pipeline/review/testing/data/corrections.yaml", "pipeline/review/testing/data/expected_review.yaml", "pipeline/review/inputs.py", "pipeline/review/tests/test_inputs.py"]
+  - file: act/05.yaml
+    id: impl-06/05
+    writes: ["pipeline/review/step.py", "pipeline/review/tests/test_step_open.py"]
+  - file: act/06.yaml
+    id: impl-06/06
+    writes: ["pipeline/review/step.py", "pipeline/review/tests/test_step_close.py"]
+  - file: act/07.yaml
+    id: impl-06/07
+    writes: ["pipeline/review/console.py", "pipeline/review/__main__.py", "pipeline/review/tests/test_console.py"]
+  - file: act/08.yaml
+    id: impl-06/08
+    writes: ["pipeline/review/rework.py", "pipeline/review/testing/upstream_stub.py", "pipeline/review/tests/test_rework.py", "pipeline/review/console.py"]
+  - file: act/09.yaml
+    id: impl-06/09
+    writes: ["pipeline/review/rework.py", "pipeline/review/step.py", "pipeline/review/testing/upstream_stub.py", "pipeline/review/tests/test_rework_review.py", "pipeline/review/console.py"]
+  - file: act/10.yaml
+    id: impl-06/10
+    writes: ["pipeline/review/snapshot.py", "pipeline/review/tests/test_snapshot.py"]
+  - file: act/11.yaml
+    id: impl-06/11
+    writes: ["pipeline/review/acceptance.py", "pipeline/review/tests/test_acceptance.py", "openspec/acceptance/m6-data-fields.sh"]
+global_rules:
+  - 每个 ACT 先写测试（Red 原文入报告）再实现；unittest；测试只用 tempfile 目录，不写 var/ 与 fixture
+  - 只用标准库 + PyYAML + jsonschema；不新增依赖、不新增 ID 前缀（队列项号 <entity_id>#<decision_type> 是任务标签）、不调用模型 API
+  - 生产代码只读 Ledger 冻结修订；pipeline/review/testing/ 为非生产子包，只允许 tests/ 与 acceptance.py import
+  - 不改 pipeline/ledger、pipeline/corpus_compiler、run_all.sh、m3-coverage.sh、fixture、规格与 schemas
+  - 每条人工决定：put human_event → seal → record_human_event → write_checkpoint，不得合并多条决定
+  - 中文注释与 docstring；公开函数名、参数名、返回键、检查名、输出行与 ACT contract 逐字一致
+  - 每个 ACT 一个提交；不得 git add -A / git add .
+gates:
+  - bash docs/blackbox-spec-rework/verify-T.sh | tail -1                          # FAIL 合计: 0
+  - bash docs/blackbox-spec-rework/work-items/g3-r3/mutations.sh all | tail -1    # 109/109
+  - bash openspec/schemas/verify.sh >/dev/null; echo $?                           # 0
+  - .venv/bin/python -m unittest discover -s pipeline/ledger/tests -t .           # OK
+  - .venv/bin/python -m unittest discover -s pipeline/corpus_compiler/tests -t .  # OK
+  - .venv/bin/python -m unittest discover -s pipeline/review/tests -t .           # OK（ACT 01 起）
+  - export LC_ALL=en_US.UTF-8; bash openspec/acceptance/run_all.sh | tail -1      # SUMMARY pass=2 fail=1 blocked=8
+  - bash openspec/acceptance/m3-coverage.sh | tail -1                             # SUMMARY pass=8 fail=0 blocked=1
+  - git diff --check
+on_fail: 停止并报告；contract 两种理解、测试无法按定义写出、需要改 scope 外文件（尤其 pipeline/ledger）、上游契约与 README §5.1 不符 → 一律停手上报

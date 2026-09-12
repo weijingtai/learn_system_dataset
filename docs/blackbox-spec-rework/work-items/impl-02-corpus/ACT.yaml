@@ -5,6 +5,7 @@ executor_groups:
   J1: [impl-02/00, impl-02/01, impl-02/02]   # 一个执行 Agent 串行；J1 全部 ACCEPTED 后才派 J2
   J2: [impl-02/03, impl-02/04]
   J3: [impl-02/05]   # J2 验收返工
+  J4: [impl-02/06]   # J3 验收跟进（非阻断）
 acts:
   - file: act/00.yaml
     id: impl-02/00

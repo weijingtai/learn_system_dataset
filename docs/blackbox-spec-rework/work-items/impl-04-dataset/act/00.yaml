@@ -1,0 +1,83 @@
+act_id: impl-04/00
+title: 包骨架、规范化 JSON 与消费级别准入纯函数（§16 消费级别、§8.2 内容成熟度）
+estimated_minutes: 60
+group: K1
+depends_on: []
+decisions: [D5, D9, D12]
+scope:
+  write: [pipeline/dataset_compiler/__init__.py, pipeline/dataset_compiler/errors.py, pipeline/dataset_compiler/canonical.py, pipeline/dataset_compiler/levels.py, pipeline/dataset_compiler/tests/__init__.py, pipeline/dataset_compiler/tests/test_canonical.py, pipeline/dataset_compiler/tests/test_levels.py]
+tests_first:
+  - 先写 tests/test_canonical.py 与 tests/test_levels.py（用例名与下文逐字），运行 `.venv/bin/python -m unittest discover -s pipeline/dataset_compiler/tests -t .` 因 ImportError 全红，记录 Red；再实现
+contract: |
+  __init__.py：
+    M8_TOOL = "pipeline.dataset_compiler"；M8_TOOL_VERSION = "0.1.0"
+    CONSUMPTION_LEVELS = ("INTERNAL_DEMO", "DEV_SEARCH", "PUBLIC_RELEASE")      # §16:666 逐字
+    SUPPORTED_LEVELS = ("INTERNAL_DEMO",)                                       # §22.1:968
+    SUB_PACK_SCHEMA_VERSION = "0.1.0-draft"                                     # D5
+  errors.py：class DatasetRefused(pipeline.ledger.errors.LedgerError)，构造 DatasetRefused(message, code=None)
+
+  canonical.py（纯函数）：
+    canonical_bytes(obj) -> bytes
+      json.dumps(obj, sort_keys=True, ensure_ascii=False, separators=(",", ":"), allow_nan=False).encode("utf-8")
+      NaN/Infinity → 原样抛 ValueError
+    sha256_hex(data) -> str：data 不是 bytes → SchemaViolation(code="SCH_001")；返回 hashlib.sha256(data).hexdigest()
+    quote_sha256(text) -> str：sha256_hex(text.encode("utf-8"))
+    strip_revision_ids(obj) -> 新对象：递归深拷贝；dict 中键名以 "artifact_revision_id" 结尾的键（含该键本身）删除；list 保序；不修改入参
+    normalized_sha256(obj) -> str：sha256_hex(canonical_bytes(strip_revision_ids(obj)))
+
+  levels.py（纯函数）：
+    CONTENT_STATUSES = ("source_verified", "machine_extracted", "cross_model_reviewed", "disputed", "needs_expert", "expert_verified", "deprecated")   # §8.2:341-347 逐字
+    RELEASE_POLICIES = ("full_scan", "derived_page_images_only", "reference_and_hash_only")   # §16:719-721
+    EVIDENCE_LEVELS = ("offset_level", "glyphbox_level")                                     # §11.1:527-528
+    derive_source_release(content_statuses) -> str     # D9 草案
+      空集合 → SchemaViolation(code="SCH_001")；任一值不在 CONTENT_STATUSES → SchemaViolation(code="SCH_002")
+      含 "deprecated" → DatasetRefused(code="SCH_002")，message 含 "deprecated"
+      全部 ∈ {"expert_verified", "source_verified"} → "release"；否则 "dev"
+    evaluate_admission(*, consumption_level, content_statuses, evidence_level, release_policy, rights_status, schema_versions, min_app_version) -> dict
+      R0 consumption_level ∉ CONSUMPTION_LEVELS、evidence_level ∉ EVIDENCE_LEVELS、release_policy ∉ RELEASE_POLICIES → SchemaViolation(code="SCH_002")
+         min_app_version 非 None 且不匹配 ^[0-9]+\.[0-9]+\.[0-9]+$ → SchemaViolation(code="SCH_002")
+      R1 source_release = derive_source_release(content_statuses)
+      R2 unmet（集合，最终按字典序排序为列表）：
+         release_policy != "derived_page_images_only" → "release_policy_not_implemented"
+         consumption_level == "DEV_SEARCH" → "dev_search_gates_not_implemented"
+         consumption_level == "PUBLIC_RELEASE" →
+           "public_release_gates_not_implemented"（恒加，fail-closed）
+           source_release == "dev" → "source_release_dev"
+           任一状态 != "expert_verified" → "content_not_expert_verified"
+           evidence_level != "glyphbox_level" → "evidence_level_not_glyphbox"
+           rights_status 含子串 "unconfirmed" → "rights_unconfirmed"
+           schema_versions 任一值以 "-draft" 结尾 → "draft_schema"
+           min_app_version is None → "min_app_version_unset"
+      R3 返回 dict 键逐字：consumption_level, source_release, admitted(= unmet 为空), unmet, watermark_required(= 任一状态以 "machine_" 开头), isolation("internal_only" if consumption_level == "INTERNAL_DEMO" else "none")
+tests:
+  test_canonical.py: |
+    - test_canonical_bytes_sorted_compact_utf8（{"b":1,"a":"甲"} → b'{"a":"\xe7\x94\xb2","b":1}' 即 '{"a":"甲","b":1}'.encode("utf-8")）
+    - test_canonical_rejects_nan
+    - test_sha256_hex_requires_bytes_SCH_001
+    - test_strip_revision_ids_recursive（嵌套 dict/list 中 artifact_revision_id、ocr_page_artifact_revision_id 被删，其他键保留，入参未被修改）
+    - test_normalized_sha256_ignores_revision_ids（只改修订号取值 → normalized_sha256 相同；改其他字段 → 不同）
+  test_levels.py: |
+    统一「fixture 同型输入」：content_statuses={"machine_extracted"}，evidence_level="glyphbox_level"，release_policy="derived_page_images_only"，
+      rights_status="public_domain_text（文字公版；扫描件分发权 unconfirmed）"，schema_versions={"evidence_map_pack": "0.1.0-draft", "release_manifest": "0.1.0-draft", "source_asset_pack": "0.1.0-draft"}，min_app_version=None
+    - test_internal_demo_machine_extracted_admitted_with_watermark（admitted True；unmet []；watermark_required True；source_release "dev"；isolation "internal_only"）
+    - test_internal_demo_offset_level_admitted
+    - test_unknown_level_SCH_002（"internal_demo"）
+    - test_unknown_evidence_level_SCH_002
+    - test_unknown_content_status_SCH_002
+    - test_deprecated_content_refused
+    - test_empty_statuses_SCH_001
+    - test_dev_search_not_admitted（unmet == ["dev_search_gates_not_implemented"]）
+    - test_public_release_fixture_like_inputs_unmet_exact（unmet == ["content_not_expert_verified", "draft_schema", "min_app_version_unset", "public_release_gates_not_implemented", "rights_unconfirmed", "source_release_dev"]）
+    - test_public_release_all_expert_still_not_admitted（{"expert_verified"}、非草案版本 "1.0.0"、rights_status "public_domain"、min_app_version "1.2.3" → admitted False；unmet == ["public_release_gates_not_implemented"]；source_release "release"）
+    - test_reference_and_hash_only_not_implemented（INTERNAL_DEMO 下 unmet == ["release_policy_not_implemented"]）
+    - test_source_release_derivation_table（{"source_verified"}→release；{"expert_verified","source_verified"}→release；{"cross_model_reviewed"}→dev；{"expert_verified","disputed"}→dev）
+    - test_min_app_version_bad_format_SCH_002（"v1"）
+verify: |
+  .venv/bin/python -m unittest discover -s pipeline/dataset_compiler/tests -t . 2>&1 | tail -3        # OK，用例数 ≥ 18
+  grep -rE '^\s*(import|from) (requests|openai|anthropic|httpx|urllib)' pipeline/dataset_compiler | wc -l   # 0
+  grep -c '"INTERNAL_DEMO", "DEV_SEARCH", "PUBLIC_RELEASE"' pipeline/dataset_compiler/__init__.py        # 1
+  TDD §3 回归
+commit:
+  add: [pipeline/dataset_compiler]
+  message: "feat(m8): dataset compiler skeleton, canonical json and fail-closed consumption-level admission (spec §16)"
+on_fail: 停止并报告；不得扩充 CONSUMPTION_LEVELS 或 CONTENT_STATUSES；不得让 PUBLIC_RELEASE 在任何输入下 admitted

@@ -1,0 +1,109 @@
+act_id: impl-07/01
+title: mini_release01 金标：三个 Snapshot knowledge、提案轮次、对勘、IdentityDelta、两组闭包（场景表字面量）
+estimated_minutes: 90
+group: F
+depends_on: [impl-07/00]
+scope:
+  write:
+    - pipeline/corpus/_fixture/mini_release01/tools/build_fixture.py
+    - pipeline/corpus/_fixture/mini_release01/expected/snapshot_s1.knowledge.json
+    - pipeline/corpus/_fixture/mini_release01/expected/snapshot_s2.knowledge.json
+    - pipeline/corpus/_fixture/mini_release01/expected/snapshot_s3.knowledge.json
+    - pipeline/corpus/_fixture/mini_release01/expected/proposals_r2.json
+    - pipeline/corpus/_fixture/mini_release01/expected/collation_s2.json
+    - pipeline/corpus/_fixture/mini_release01/expected/identity_delta_s3.json
+    - pipeline/corpus/_fixture/mini_release01/expected/affected_s2.json
+    - pipeline/corpus/_fixture/mini_release01/expected/affected_s3.json
+    - pipeline/corpus/_fixture/mini_release01/manifest.yaml
+    - pipeline/corpus/_fixture/mini_release01/verify.sh
+tests_first:
+  - 先在 verify.sh 加 expected_internal 检查并确认对当前缺失状态报 BLOCKED；再写金标
+contract: |
+  独立性（本 ACT 的核心纪律）
+    构建器以「场景表逐项字面量」写出期望对象：允许用 hashlib/json/difflib/unicodedata 计算哈希、键与 opcodes，
+    不得实现通用匹配/闭包/分配算法（不得出现遍历候选求命中集、求不动点的代码）；主 Agent 逐项人工核对
+    期望文件均为规范 JSON（同 act/00），列表排序规则同 README §5.2
+
+  键公式（与 act/02 canonical.make_key 定义相同，但在构建器内独立实现）
+    make_key(kind, t) = kind + ":" + sha256(canonical_json(list(t)))[:32]
+    提案主体元组：pattern 候选 ["pattern", source_id, candidate_key]；concept ["concept", source_id, concept_id]；
+      R06 ["conflict_group", subject_entity_id, sorted(新版 sv 号)]；provenance_lost ["provenance_lost", entity_id]；
+      对勘 ["collation", work_key, collation_key, 较小 source_id, 较大 source_id]
+    关系元组：attached ["attached", entity_id, source_id, candidate_key]；distinct_from ["distinct_from", 较小号, 较大号]；
+      对勘关系 [relation_kind, work_key, collation_key, 较小 source_id, 较大 source_id]，前缀 kind 即关系名
+
+  snapshot_s1.knowledge.json（空基底 + ed01，全部自动）
+    technique_id qizheng；id_allocation {"pat_qizheng": 900002}；retired_entity_ids []
+    editions [{source_id src_sanche_ed01, work_key sanche, reviewed_package_revision_id rev_/07e1, stage_package_id pkg_m6_/07f1, edition_part_ids [art_…e1], edition_complete false}]
+    concepts 2（provenance 各 1 条 {source_id, content_sha256=视图对象规范 JSON 哈希, content_status}）
+    patterns 2：rules 逐来源 [{rule_key, ast_sha256, source_id}]；assertion_ids；school_view_ids（900001: [a1, a2]；900002: []）
+    assertions 4：{assertion_id, subject_entity_id, source_id, collation_key, text_sha256=sha256(NFC text), source_span_ids, school_view_ids, content_status}
+    school_views 2：视图字段原样 + source_conflict_group_id（= 原 conflict_group_id）；conflict_group_id cg_/c1
+    conflict_groups [{cg_/c1, members [a1, a2], first_layer_display true, resolutions []}]
+    relations []
+
+  proposals_r2.json（基底 s1 + ed99）
+    {"rounds":[{"round":1,"proposals":[…]},{"round":2,"proposals":[…]}]}，每条 {proposal_key, kind, rule_id, resolution, subject, options, auto_choice}
+    第 1 轮：auto — concept co_qizheng_900001 attach(R04)、concept co_qizheng_900002 attach(R04)、ed99.c1 attach(R01)、ed99.c4 admit_new(R03e)、
+             collation u001 alignment(R07)、u002 variant_reading(R08)、u003 omission(R09)、u004 addition(R09)
+             human — ed99.c2 merge(R03b, options [attach:pat_qizheng_900002, admit_new])、ed99.c3 alias(R03c, [accept_alias, reject_alias])、
+             conflict_group pat_qizheng_900001 (R06, [unify, keep_separate])
+             blocked — ed99.c5 merge(R03f, depends_on [ed99.c2 的 proposal_key])
+    第 2 轮（应用 r2 后）：human — ed99.c5 alias(R03c)；其余第 1 轮提案以 resolution "decided"/"auto" 原样列出
+
+  collation_s2.json：{"relations":[u001 alignment, u002 variant_reading(detail.opcodes = difflib.SequenceMatcher(None, a, b, autojunk=False).get_opcodes() 列表化), u003 omission, u004 addition],
+                      "not_comparable":[{"work_key":"sanche","collation_key":"juan01.u006","declared_by":["src_sanche_ed01"]}]}
+
+  snapshot_s2.knowledge.json（s1 + ed99 + r2 + r2b）
+    id_allocation {"pat_qizheng": 900005}；editions 2 条（ed99：rev_/07e9、pkg_m6_/07f9、[art_…e9]）
+    concepts 2（provenance 各 2 条）
+    patterns 5：900001 rules [ed01.r1, ed99.r1] assertion_ids [900001, 900002, 900011, 900012] school_view_ids [a1, a2, b1]；
+                900002 rules [ed01.r2 H(B), ed99.r2 H(B2)] assertion_ids [900003, 900004, 900013]；
+                900003 示例格局丙 co_900001 [ed99.r3 H(A)] [900015]；900004 示例格局丁 co_900002 [ed99.r4 H(D)] [900014]；900005 示例格局戊 co_900002 [ed99.r5 H(B2)] [900016]
+    assertions 10（ed99 的 subject_entity_id 已裁决为正式号）
+    school_views 3：b1 subject 改为 pat_qizheng_900001，source_conflict_group_id cg_/c2，conflict_group_id cg_/c1
+    conflict_groups [{cg_/c1, [a1, a2, b1], true, resolutions [{mode human, proposal_key R06 键, basis_sha256}]}]
+      basis_sha256 = sha256(canonical_json(按 sv 号排序的 [{school_view_id, school_id, subject, claim_refs, conflict_group_id, changes_current_judgment}]))，subject 与 conflict_group_id 取视图原值
+    relations：attached(900001 ← ed99.c1, auto)、attached(900002 ← ed99.c2, human)、distinct_from(900001, 900003, human)、distinct_from(900002, 900005, human)、
+               alignment u001(subject as_900001, object as_900011)、variant_reading u002(as_900002, as_900012, detail.opcodes)、omission u003(subject as_900003, object null)、addition u004(subject null, object as_900013)
+      Merge/Alias 人工与自动 attach 的 basis_sha256 = sha256(canonical_json({"target": 目标 Pattern 的 {name, aliases, rule_hashes(升序), concept_id}, "candidate": 候选的同名字段}))
+      对勘关系 resolution {mode auto, proposal_key 对勘提案键, basis_sha256 null}
+
+  affected_s2.json：{"affected":[co_qizheng_900001, co_qizheng_900002, pat_qizheng_900001, pat_qizheng_900002, as_qizheng_900001, as_qizheng_900002, as_qizheng_900003, sv_/a1, sv_/a2],
+                     "created":[pat_qizheng_900003, pat_qizheng_900004, pat_qizheng_900005, as_qizheng_900011..900016, sv_/b1],
+                     "untouched":[as_qizheng_900004]}
+
+  snapshot_s3.knowledge.json（s2 + ed01r2 + r3）
+    editions ed01 条目改为 rev_/07e2、pkg_m6_/07f2；retired_entity_ids [as_qizheng_900004]；id_allocation 仍 900005
+    900002.assertion_ids [900003, 900013]；as_900002 spans [ss_sanche_ed01_p0001_s04]、text_sha256 更新；删除 as_900004
+    sv a2 changes_current_judgment false；cg_/c1 first_layer_display false；resolutions 仅 1 条（r3 决定，basis 为新值）
+    relations：u002 变为 alignment（键随关系名改变）；其余 attached/distinct_from/alignment u001/omission u003/addition u004 与 s2 字节相同
+
+  identity_delta_s3.json：{"base_knowledge_sha256": s2 knowledge 哈希,
+    "entries":[{"from_entity_id":"as_qizheng_900004","to_entity_ids":[],"change_type":"retired","entity_kind":"assertion",
+                "reason_ref":{"kind":"proposal","proposal_key": make_key("conflict", ["provenance_lost","as_qizheng_900004"])}}]}
+
+  affected_s3.json：{"affected":[co_qizheng_900002, pat_qizheng_900001, pat_qizheng_900002, pat_qizheng_900003, pat_qizheng_900005, as_qizheng_900002, as_qizheng_900004, as_qizheng_900012, sv_/a1, sv_/a2, sv_/b1],
+                     "created":[],
+                     "untouched":[co_qizheng_900001, pat_qizheng_900004, as_qizheng_900001, as_qizheng_900003, as_qizheng_900011, as_qizheng_900013, as_qizheng_900014, as_qizheng_900015, as_qizheng_900016]}
+
+  verify.sh 追加检查
+    expected_present  8 个文件齐全（替换 act/00 的 BLOCKED 分支）
+    expected_internal 每个期望 JSON 可解析且为规范 JSON 字节；s1/s2/s3 中每个活对象号在某视图中出现或属于 id_allocation 分配段；
+                      retired 不与活对象重叠；affected ∪ untouched == 基底全部对象号（s2 基底 = s1，s3 基底 = s2）；
+                      proposal_key/relation_key 全部匹配 ^[a-z_]+:[0-9a-f]{32}$
+    manifest.yaml files[] 追加 8 个 expected（role expected）并重算哈希
+tests:
+  shell: |
+    - 构建器重放 diff -r（含 expected）无输出
+    - verify.sh 7 项 PASS、FIXTURE OK、exit 0
+    - 副本改 snapshot_s2 一字节 → FAIL manifest_sha256
+    - 副本从 affected_s3 删 sv_/b1 并同步 manifest 哈希 → FAIL expected_internal
+verify:
+  - .venv/bin/python pipeline/corpus/_fixture/mini_release01/tools/build_fixture.py --out /tmp/mr01b && diff -r --exclude=tools --exclude=README.md /tmp/mr01b pipeline/corpus/_fixture/mini_release01   # 无输出
+  - bash pipeline/corpus/_fixture/mini_release01/verify.sh | tail -1   # FIXTURE OK
+  - grep -nE 'def .*(closure|fixpoint|match|allocate)' pipeline/corpus/_fixture/mini_release01/tools/build_fixture.py | wc -l   # 0
+commit:
+  add: [pipeline/corpus/_fixture/mini_release01]
+  message: "fixture(m7): mini_release01 expected snapshots s1-s3, proposals, collation, identity delta and affected closures"
+on_fail: 停止并报告；场景表自相矛盾或按 README §6 规则推不出唯一期望 → 停手上报并列出矛盾点，不得改规则去迁就金标

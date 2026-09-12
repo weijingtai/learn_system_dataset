@@ -1,0 +1,57 @@
+act_id: impl-08/09
+title: run_all.sh 的 20.1 / 20.10 case 体改为调用两个 acceptance（BLOCKED 行名与说明计算得出）
+estimated_minutes: 45
+group: K4
+depends_on: [impl-08/08]
+scope:
+  write: [openspec/acceptance/run_all.sh, pipeline/contract_registry/tests/test_run_all.py]
+tests_first:
+  - 开工前先保存基线：`bash openspec/acceptance/run_all.sh 20.2 20.3 20.4 20.5 20.6 20.7 20.8 20.9 20.11 > "$(mktemp -d)/before.txt"`（路径记入报告）
+  - 先写 tests/test_run_all.py（用例名逐字）并全红，再改 run_all.sh
+contract: |
+  run_all.sh 只允许两处改动：
+    (1) 在 ledger_check() 定义之后新增一个函数（整段新增，不改既有函数）：
+      accept_check() {   # $1 条目号 $2 python 模块 $3 PASS 说明；其余参数透传给模块
+        local item="$1" mod="$2" desc="$3" out rc line rest row why
+        shift 3
+        out="$(cd "$REPO_ROOT" && "$PY" -m "$mod" "$@" 2>&1)"; rc=$?
+        case "$rc" in
+          0) pass_line "$item" "$desc" ;;
+          1) fail_line "$item" "$desc" "$(printf '%s\n' "$out" | grep -m1 '^FAIL ')" ;;
+          2) line="$(printf '%s\n' "$out" | grep -m1 '^BLOCKED ')"
+             rest="${line#*前置缺失: }"; row="${rest%%；*}"; why="${rest#*；}"
+             if [ -z "$line" ] || [ "$rest" = "$line" ] || [ "$row" = "$rest" ]; then block_line "$item" "测试宿主匮乏" "$mod 的 BLOCKED 行无法解析"
+             else block_line "$item" "$row" "$why"; fi ;;
+          *) block_line "$item" "测试宿主匮乏" "$mod 不可用（退出码 $rc）" ;;
+        esac
+      }
+      （用 bash 参数展开切分全角「；」，不用 sed 多字节括号表达式，避免 BSD sed 在 UTF-8 下的差异）
+    (2) case 20.1 中，`OK) block_line "$n" "Local Orchestrator" "M4–M6 Gate 未实现" ;;` 一行替换为
+          `OK) accept_check "$n" pipeline.orchestrator.acceptance "一个 EditionPart 严格按 M1–M6 阶段 Gate 完成（宿主 mini_ed01 真实 Ledger）" --fixture "$FIXTURE_DIR" ;;`
+        case 20.10 中，`block_line "$n" "Contract Registry" "无第二 Adapter 可做替换验证"` 一行替换为
+          `if [ ! -x "$PY" ]; then block_line "$n" "测试宿主匮乏" ".venv 缺失"; return 0; fi` 与
+          `accept_check "$n" pipeline.contract_registry.acceptance "更换 OCR/模型/索引/存储 Adapter 不改变相邻 Module 的 Interface"`
+    其余行（含 20.1 的 fx/PY/探针 FAIL 分支、20.10 的 verify.sh FAIL 分支、头部注释）逐字不变
+  期望输出（impl-02 ACCEPTED 且本包 ACT 07/08 通过时）：
+    BLOCKED  20.1  前置缺失: M4 Knowledge Extraction；Local Orchestrator 已串联 m1–m3 Gate，m4–m6 未登记生产 Module
+    BLOCKED  20.10  前置缺失: Contract Registry；m3.corpus_structural 入口直接访问 Ledger 内部（…）
+    全量 SUMMARY pass=2 fail=1 blocked=8；退出码 1
+tests:
+  test_run_all.py: |
+    subprocess，cwd 仓库根，env 继承并设 LC_ALL=en_US.UTF-8
+    - test_20_1_blocked_line_computed（`run_all.sh 20.1` 首行以 "BLOCKED  20.1  前置缺失: M4 Knowledge Extraction；Local Orchestrator 已串联 m1–m3 Gate" 开头；末行 SUMMARY pass=0 fail=0 blocked=1）
+    - test_20_10_blocked_line_computed（`run_all.sh 20.10` 首行以 "BLOCKED  20.10  前置缺失: Contract Registry；" 开头）
+    - test_full_summary_unchanged（末行 == "SUMMARY pass=2 fail=1 blocked=8"，退出码 1）
+    - test_accept_check_fail_path（临时 PATH 替身不可行时改为：env FIXTURE_DIR 指向删了一条 span 的 fixture 副本 → `run_all.sh 20.1` 首行以 "FAIL  20.1" 开头）
+    - test_accept_check_unparsable_blocked_goes_to_host_blocked（在临时目录构造假 python 模块 fake_acc，打印 "BLOCKED x 无前缀" 并 exit 2；以 bash -c 'source 片段' 方式单测 accept_check 函数——若 run_all.sh 无法被 source 而不执行主流程，改为只断言源码含「BLOCKED 行无法解析」分支并在报告中说明）
+verify:
+  - .venv/bin/python -m unittest discover -s pipeline/contract_registry/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 38
+  - export LC_ALL=en_US.UTF-8; bash openspec/acceptance/run_all.sh 20.1 20.10                        # 两行 BLOCKED，行名 M4 Knowledge Extraction / Contract Registry
+  - bash openspec/acceptance/run_all.sh | tail -1                                                    # SUMMARY pass=2 fail=1 blocked=8
+  - bash openspec/acceptance/run_all.sh 20.2 20.3 20.4 20.5 20.6 20.7 20.8 20.9 20.11 | diff - <基线文件>   # 无差异
+  - git diff -U0 openspec/acceptance/run_all.sh | grep -c '^[-+][^-+]'                                # 只含 accept_check 新增段与两处 case 替换（主 Agent 逐行复核）
+  - TDD §3 回归
+commit:
+  add: [openspec/acceptance/run_all.sh, pipeline/contract_registry/tests/test_run_all.py]
+  message: "feat(acceptance): compute §20.1/§20.10 verdicts from orchestrator and contract registry acceptance instead of hard-coded BLOCKED"
+on_fail: 停止并报告；其余九条输出出现任何差异、SUMMARY 条数变化时不得提交；不得为凑 SUMMARY 改 acceptance 判定

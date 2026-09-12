@@ -1,0 +1,79 @@
+act_id: impl-04/02
+title: 独立发布 Gate evaluate_publication（EvidenceMapPack 链闭合、坐标同源、哈希清单、级别与披露，fail-closed）
+estimated_minutes: 85
+group: K1
+depends_on: [impl-04/01]
+decisions: [D10, D11]
+scope:
+  write: [pipeline/dataset_compiler/gate.py, pipeline/dataset_compiler/tests/test_gate.py]
+tests_first:
+  - 先写 tests/test_gate.py（用例名逐字；金标输入由测试调用 packs.py 构造）并全红，再实现 gate.py
+contract: |
+  gate.py：只允许 import 标准库、pipeline.ledger.ids 与本包 __init__ 常量；不得 import packs、canonical、levels、step（独立实现，防同错同过）
+  evaluate_publication(*, manifest, spans_doc, page_docs, ocr_page_revision_ids, asset_records, excluded_pages, m3_gate_profile,
+                       frozen_inputs, source_asset_pack, evidence_map_pack, release_manifest, pack_bytes, consumption_level) -> dict
+    frozen_inputs = [{"artifact_revision_id", "artifact_type", "sha256"}]；pack_bytes = {pack_type: bytes}
+    本函数不抛异常：任一检查内部异常 → 该项 {"ok": False, "detail": "<异常类名>: <消息>"}
+    哈希一律 hashlib.sha256；规范化 JSON 在本模块内自行以 json.dumps(obj, sort_keys=True, ensure_ascii=False, separators=(",", ":")) 实现
+    检查（名称与顺序固定）：
+      1 span_identity：entries 键集合 == spans_doc span_id 集合；len(entries) == len(spans) == spans_doc["span_count"] == evidence_map_pack["span_count"]；spans_doc 无重复 span_id；每个键 == entries[键]["span_id"]
+      2 span_page_binding：键中 _p<4位> == int(entry["page"][5:])；_s<2位> == entry["line_index"] + 1；entry["page"] == spans_doc 同 span 的 page；page ∈ 清单页序且 ∉ excluded_pages
+      3 text_offsets：start_offset/end_offset/line_index/text == spans_doc 同 span；quote_sha256 == sha256(text.encode("utf-8"))；content_status == spans_doc["content_status"]
+      4 glyph_anchor_closure：line_id 是页 JSON lines 中某行 id 且 entry["bbox"] == 该行 box；
+          entry["glyphs"] == [{"char_index": i, "glyph_id": c["id"], "char": c["char"], "box": c["box"]} for i, c in enumerate(页 JSON chars) if c["parent"] == line_id]（从页 JSON 重算，不读 spans_doc 锚点）
+      5 highlight_level：glyph_text_equal == ("".join(重算字) == text)；highlight_level == ("glyph" if 相等 else "line_bbox")
+      6 ocr_page_binding：entry["ocr_page_artifact_revision_id"] == ocr_page_revision_ids[page]
+      7 source_asset_binding：source_asset_pack["content_level"] == manifest["release_policy"]；pages 的页序 == 清单页序；
+          每页 sha256/width/height == 清单 source_assets 同页 == asset_records 同页；asset_artifact_revision_id == asset_records[页]["artifact_revision_id"]；
+          entry["image_sha256"] == 清单同页 sha256；entry["source_asset_artifact_revision_id"] == asset_records[page]["artifact_revision_id"]
+      8 coordinate_frame：entry["frame"] == 页 JSON (width, height) == 清单同页 (width, height)；bbox 与全部 glyph box 在 frame 内
+      9 reverse_index：page_index 键顺序 == 清单页序；每页值 == spans_doc 中该页 span_id 顺序；排除页值 == [] 且 evidence_map_pack["excluded_pages"] == excluded_pages
+      10 release_manifest_hashes：release_manifest["packs"] 的 pack_type 集合 == {"evidence_map_pack", "source_asset_pack"} == pack_bytes 键集合；
+          每项 sha256 == sha256(pack_bytes[t])、size == len(pack_bytes[t])；json.loads(pack_bytes[t]) == 对应 pack dict；
+          canonical_hash == sha256(规范化 JSON([[t, sha256] 按 t 排序]))
+      11 input_reconciliation：{(r, t, s)} for release_manifest["input_reconciliation"] == {(r, t, s)} for frozen_inputs
+      12 consumption_level：consumption_level == release_manifest["consumption_level"] == "INTERNAL_DEMO"；isolation == "internal_only"；authoritative is False；
+          completeness_claim == "partial"；source_release == ("release" if spans_doc["content_status"] in ("expert_verified", "source_verified") else "dev")
+      13 watermark_disclosure：content_status 以 "machine_" 开头时每个 entry["watermark"] is True，且 release_manifest["watermark"]["required"] is True、text 非空；
+          known_defects 的 code 集合 ⊇ 本函数独立重算的必需集合（条件同 act/01 compute_known_defects：excluded_page / glyph_text_mismatch / knowledge_chain_not_compiled / machine_content / rights_unconfirmed（manifest["rights_status"]）/ semantic_not_evaluated（m3_gate_profile））
+      14 knowledge_chain：evidence_map_pack["knowledge_chain"] == "not_compiled" → {"ok": None, "status": "not_evaluated", "detail": "KnowledgeEntry→Assertion→EvidenceLink 未编译"}；其他任何值 → ok False
+    返回键：passed(= 所有 ok 非 None 的检查均为 True), checks({名: {"ok", "detail"}；knowledge_chain 另含 "status"}), failed_checks(ok is False 的名，按固定顺序), knowledge_chain("not_evaluated")
+tests:
+  test_gate.py: |
+    金标：测试用 act/01 的 packs 函数在 fixture 纯输入上构造全部参数（同 test_packs 的构造规则）；frozen_inputs 用常量三元组；pack_bytes 取 build_* 返回的 bytes
+    每个篡改用例：深拷贝金标 → 篡改 → 断言指定检查 ok is False 且 passed is False
+    - test_fixture_all_checks_pass_knowledge_not_evaluated（13 项 ok True；knowledge_chain status "not_evaluated"；failed_checks []）
+    - test_gate_does_not_import_packs_canonical_levels_step（ast 解析 import）
+    - test_drop_entry_fails_span_identity
+    - test_rekey_to_other_page_id_fails_span_identity（ss_sanche_ed01_p0001_s01 条目改键为 ss_sanche_ed01_p0003_s01 覆盖原值）
+    - test_legacy_seq_key_collapse_fails_span_identity（entries 按 (source_id, sNN) 塌缩后重建 39 键）
+    - test_entry_page_changed_fails_span_page_binding
+    - test_text_changed_fails_text_offsets
+    - test_quote_hash_changed_fails_text_offsets
+    - test_glyph_box_changed_fails_glyph_anchor_closure
+    - test_glyph_char_changed_fails_glyph_anchor_closure
+    - test_bbox_changed_fails_glyph_anchor_closure
+    - test_highlight_level_forged_glyph_fails_highlight_level（p0001_s03 改为 "glyph" 且 glyph_text_equal True）
+    - test_ocr_page_rev_swapped_fails_ocr_page_binding
+    - test_image_sha_changed_fails_source_asset_binding
+    - test_asset_pack_sha_changed_fails_source_asset_binding
+    - test_frame_changed_fails_coordinate_frame
+    - test_page_index_missing_span_fails_reverse_index
+    - test_excluded_page_given_span_fails_reverse_index
+    - test_pack_bytes_tampered_fails_release_manifest_hashes
+    - test_canonical_hash_tampered_fails_release_manifest_hashes
+    - test_input_reconciliation_missing_one_fails
+    - test_manifest_level_dev_search_fails_consumption_level
+    - test_authoritative_true_fails_consumption_level
+    - test_entry_watermark_false_fails_watermark_disclosure
+    - test_known_defect_dropped_fails_watermark_disclosure（删 glyph_text_mismatch）
+    - test_knowledge_chain_compiled_claim_fails
+    - test_check_exception_becomes_fail_not_raise（page_docs 删 page_003 → glyph_anchor_closure ok False，函数不抛）
+verify: |
+  .venv/bin/python -m unittest discover -s pipeline/dataset_compiler/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 72
+  grep -nE '^\s*(from|import) .*(packs|canonical|levels|step)' pipeline/dataset_compiler/gate.py | wc -l   # 0
+  TDD §3 回归
+commit:
+  add: [pipeline/dataset_compiler/gate.py, pipeline/dataset_compiler/tests/test_gate.py]
+  message: "feat(m8): independent fail-closed publication gate for evidence tail chain, asset binding and release manifest (spec §16)"
+on_fail: 停止并报告；不得把 knowledge_chain 判为 ok True；不得为通过用例而在 gate.py 中 import packs

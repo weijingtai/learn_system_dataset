@@ -27,6 +27,7 @@ shasum -a 256 pipeline/corpus/_fixture/mini_ed01/spans.yaml              # ec6d7
 | 03 | 新增用例全 ERROR | `$TL` OK ≥ 74；`$TC` OK ≥ 50；`run_all.sh` 不变 |
 | 04 | `m3-coverage.sh` 不存在（exit 127）；新增用例全 ERROR | `$TC` OK ≥ 58；`m3-coverage.sh` → `SUMMARY pass=8 fail=0 blocked=1`、exit 2 |
 | 05（返工） | 新增 8 个用例失败；`test_missing_fixture_exit_3` 失败 | `$TC` OK ≥ 67；三类冻结输入对象篡改 → `input_contract`；begin 后异常 → `internal` 且 StepRun failed；缺 fixture exit 3；`m3-coverage.sh` 仍 exit 2 |
+| 06（跟进） | `test_missing_yaml_exit_3` 失败 | `$TC` OK = 68；缺 PyYAML → exit 3；四个失败用例直查 `stage_packages` m3 行数 0；`m3-coverage.sh` 仍 exit 2 |
 
 ## 2. 主 Agent 验收附加判据（执行者不需跑，但不得让其失败）
 

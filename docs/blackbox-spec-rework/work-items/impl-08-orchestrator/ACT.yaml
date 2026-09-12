@@ -1,0 +1,55 @@
+package: blackbox-impl-08-orchestrator
+title: L2 Local Orchestrator + L2' Contract Registry 首切片（§5/§6.1/§7/§7.1/§17；§20 第 1、10 条判据计算化）
+status: DRAFT   # §4 共 18 条待主 Agent 裁决；ACT 按「推荐」起草
+executor_groups:
+  K1: [impl-08/00, impl-08/01]              # Registry 目录与端口；不依赖 impl-02
+  K2: [impl-08/02, impl-08/03, impl-08/04]  # Module 接口、Gate、EditionRun；只用桩与假入口
+  K3: [impl-08/05, impl-08/06]              # 人工暂停/恢复、六项查询与 CLI
+  K4: [impl-08/07, impl-08/08, impl-08/09]  # 真实链验收、Registry 验收、run_all.sh；前置 impl-02 ACCEPTED
+acts:
+  - file: act/00.yaml
+    id: impl-08/00
+    writes: ["pipeline/contract_registry/__init__.py", "pipeline/contract_registry/errors.py", "pipeline/contract_registry/registry.yaml", "pipeline/contract_registry/catalog.py", "pipeline/contract_registry/__main__.py", "pipeline/contract_registry/tests/__init__.py", "pipeline/contract_registry/tests/test_catalog.py"]
+  - file: act/01.yaml
+    id: impl-08/01
+    writes: ["pipeline/contract_registry/ports.py", "pipeline/contract_registry/conformance.py", "pipeline/contract_registry/tests/test_ports.py", "pipeline/contract_registry/tests/test_conformance.py"]
+  - file: act/02.yaml
+    id: impl-08/02
+    writes: ["pipeline/orchestrator/__init__.py", "pipeline/orchestrator/errors.py", "pipeline/orchestrator/module.py", "pipeline/orchestrator/stubs.py", "pipeline/orchestrator/tests/__init__.py", "pipeline/orchestrator/tests/test_module.py"]
+  - file: act/03.yaml
+    id: impl-08/03
+    writes: ["pipeline/orchestrator/gate.py", "pipeline/orchestrator/tests/test_gate.py"]
+  - file: act/04.yaml
+    id: impl-08/04
+    writes: ["pipeline/orchestrator/runner.py", "pipeline/orchestrator/edition_run.py", "pipeline/orchestrator/tests/test_runner.py", "pipeline/orchestrator/tests/test_edition_run.py"]
+  - file: act/05.yaml
+    id: impl-08/05
+    writes: ["pipeline/orchestrator/human.py", "pipeline/orchestrator/tests/test_human.py"]
+  - file: act/06.yaml
+    id: impl-08/06
+    writes: ["pipeline/orchestrator/queries.py", "pipeline/orchestrator/__main__.py", "pipeline/orchestrator/tests/test_queries.py", "pipeline/orchestrator/tests/test_cli.py"]
+  - file: act/07.yaml
+    id: impl-08/07
+    writes: ["pipeline/orchestrator/acceptance.py", "pipeline/orchestrator/tests/test_acceptance.py", "openspec/acceptance/orchestrator-gate.sh"]
+  - file: act/08.yaml
+    id: impl-08/08
+    writes: ["pipeline/contract_registry/suites.py", "pipeline/contract_registry/acceptance.py", "pipeline/contract_registry/tests/test_acceptance.py", "openspec/acceptance/contract-registry.sh", "openspec/acceptance/run_all.sh"]
+global_rules:
+  - 每个 ACT 先写测试（Red 原文入报告）再实现；unittest；测试只用 tempfile 目录，不写 var/ 与 fixture
+  - 只用标准库 + PyYAML + jsonschema；不新增依赖、不新增 ID 前缀（module_id/port_id/adapter_id 是登记表标签）、不调用模型 API
+  - 不得改 pipeline/ledger/**、pipeline/corpus_compiler/**、openspec/schemas/**、规格、fixture；发现需要改动时停手上报
+  - Orchestrator 与 Registry 非测试源码不 import 任何加工 Module 包；Module 只经 registry entry + importlib 或 modules= 注入解析
+  - Orchestrator 只经 LedgerPort 闭集方法访问 Ledger（不得出现 .store / .objects）；legacy 绑定经 port.unwrap() 取直连服务是唯一例外，且只在 module.py/runner.py 中
+  - 中文注释与 docstring；公开函数名、参数名、返回键、检查名、CLI 末行与 ACT contract 逐字一致
+  - 每个 ACT 一个提交；不得 git add -A / git add .；执行者不得写 ACCEPTED 或台账
+gates:
+  - bash docs/blackbox-spec-rework/verify-T.sh | tail -1                          # FAIL 合计: 0
+  - bash docs/blackbox-spec-rework/work-items/g3-r3/mutations.sh all | tail -1    # 109/109
+  - bash openspec/schemas/verify.sh >/dev/null; echo $?                           # 0
+  - python3 docs/blackbox-spec-rework/work-items/g4-r3/check_d16.py               # D16 OK
+  - .venv/bin/python -m unittest discover -s pipeline/ledger/tests -t .           # OK
+  - .venv/bin/python -m unittest discover -s pipeline/contract_registry/tests -t .   # OK（ACT 00 起）
+  - .venv/bin/python -m unittest discover -s pipeline/orchestrator/tests -t .     # OK（ACT 02 起）
+  - export LC_ALL=en_US.UTF-8; bash openspec/acceptance/run_all.sh | tail -1      # SUMMARY pass=2 fail=1 blocked=8
+  - git diff --check
+on_fail: 停止并报告；contract 有两种理解、测试无法按定义写出、Ledger 行为与 contract 假设不符（例如 awaiting_human 下不能写 Checkpoint）、需要改 scope 外文件 → 一律停手上报

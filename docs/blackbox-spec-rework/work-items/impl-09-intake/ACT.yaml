@@ -1,0 +1,56 @@
+package: blackbox-impl-09-intake
+title: 首纵切薄接入：M1 Source Intake + M2 Digitization & Correction 真实页图与既有 OCR 结果登记（§9/§10/§10.1/§22.1）
+status: DRAFT   # 主 Agent 裁决 README §4（D-09-01…14）后改为 READY；ACT 按各条「推荐」书写
+executor_groups:
+  K1: [impl-09/00, impl-09/01]              # M1；可与 K2 并行（写入目录不相交）
+  K2: [impl-09/02, impl-09/03]              # M2 纯函数与独立 Gate
+  K3: [impl-09/04, impl-09/05]              # M2 Ledger 写路径；依赖 K1、K2 ACCEPTED 与 impl-02 ACCEPTED
+  K4: [impl-09/06, impl-09/07, impl-09/08]  # 来源等价与两份 §19.0 验收；依赖 K3 ACCEPTED
+acts:
+  - file: act/00.yaml
+    id: impl-09/00
+    writes: ["pipeline/source_intake/__init__.py", "pipeline/source_intake/errors.py", "pipeline/source_intake/serialize.py", "pipeline/source_intake/submission.py", "pipeline/source_intake/assets.py", "pipeline/source_intake/manifest.py", "pipeline/source_intake/tests/__init__.py", "pipeline/source_intake/tests/helpers.py", "pipeline/source_intake/tests/test_manifest.py"]
+  - file: act/01.yaml
+    id: impl-09/01
+    writes: ["pipeline/source_intake/step.py", "pipeline/source_intake/__main__.py", "pipeline/source_intake/tests/test_step.py"]
+  - file: act/02.yaml
+    id: impl-09/02
+    writes: ["pipeline/digitization/__init__.py", "pipeline/digitization/errors.py", "pipeline/digitization/ocr_work.py", "pipeline/digitization/decisions.py", "pipeline/digitization/plan.py", "pipeline/digitization/tests/__init__.py", "pipeline/digitization/tests/helpers.py", "pipeline/digitization/tests/test_plan.py"]
+  - file: act/03.yaml
+    id: impl-09/03
+    writes: ["pipeline/digitization/gate.py", "pipeline/digitization/tests/test_gate.py"]
+  - file: act/04.yaml
+    id: impl-09/04
+    writes: ["pipeline/digitization/inputs.py", "pipeline/digitization/step.py", "pipeline/digitization/__main__.py", "pipeline/digitization/tests/test_step.py"]
+  - file: act/05.yaml
+    id: impl-09/05
+    writes: ["pipeline/digitization/step.py", "pipeline/digitization/__main__.py", "pipeline/digitization/tests/test_step_failures.py"]
+  - file: act/06.yaml
+    id: impl-09/06
+    writes: ["pipeline/digitization/tests/test_parity.py"]
+  - file: act/07.yaml
+    id: impl-09/07
+    writes: ["pipeline/source_intake/acceptance.py", "pipeline/source_intake/tests/test_acceptance.py", "openspec/acceptance/m1-replay.sh"]
+  - file: act/08.yaml
+    id: impl-09/08
+    writes: ["pipeline/digitization/acceptance.py", "pipeline/digitization/tests/test_acceptance.py", "openspec/acceptance/m2-export-integrity.sh"]
+global_rules:
+  - 每个 ACT 先写测试（Red 原文入报告）再实现；unittest；测试只用 tempfile 目录，不写 var/、fixture 与 ocr/
+  - 只用标准库 + PyYAML + jsonschema；不新增依赖（PNG 尺寸用 struct 读 IHDR，不用 PIL）；不新增 ID 前缀（asset_page_NNN 等是任务标签，不是登记册 ID）；不调用模型 API；不调用 OCR 引擎；严禁执行 ocr/run_sanche10.sh
+  - M1 只读页图目录与申报件，M2 只读 OCR 工作根、决定表与 Ledger 冻结修订；begin 前一次读入字节并把哈希快照写入配置修订（D-09-06）
+  - 不得伪造页图、哈希或人工决定；真实决定表由用户写（D-09-03），执行者只在 tempfile 构造测试决定表
+  - 需要真实页图或真实人工输入的用例用 skipUnless，skip 原因以 BLOCKED_SOURCE_ASSET_MISSING 或「缺人工决定表」开头
+  - 中文注释与 docstring；公开函数名、参数名、返回键、检查名、CLI 输出前缀与 ACT contract 逐字一致
+  - 每个 ACT 一个提交；不得 git add -A / git add .；执行者不写 ACCEPTANCE、台账或 ACCEPTED
+gates:
+  - bash docs/blackbox-spec-rework/verify-T.sh | tail -1                          # FAIL 合计 0
+  - bash docs/blackbox-spec-rework/work-items/g3-r3/mutations.sh all | tail -1    # 109/109
+  - bash openspec/schemas/verify.sh >/dev/null; echo $?                           # 0
+  - python3 docs/blackbox-spec-rework/work-items/g4-r3/check_d16.py               # D16 OK
+  - .venv/bin/python -m unittest discover -s pipeline/ledger/tests -t .           # OK
+  - .venv/bin/python -m unittest discover -s pipeline/corpus_compiler/tests -t .  # OK
+  - .venv/bin/python -m unittest discover -s pipeline/source_intake/tests -t .    # OK（ACT 00 起）
+  - .venv/bin/python -m unittest discover -s pipeline/digitization/tests -t .     # OK（ACT 02 起）
+  - export LC_ALL=en_US.UTF-8; bash openspec/acceptance/run_all.sh | tail -1      # SUMMARY pass=2 fail=1 blocked=8
+  - git diff --check
+on_fail: 停止并报告；遇到以下任一情况一律停手上报——contract 有两种理解、测试无法按定义写出、需要改 scope 外文件、真实页图哈希与 README §9 不符、impl-02 的 resolve_m3_inputs 或 run_m3 行为与 README §11 假设不符

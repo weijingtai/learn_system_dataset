@@ -1,0 +1,61 @@
+act_id: impl-07/05
+title: 增量编排：affected_closure、替换继承（carried_forward / needs_review）、assemble 轮次、增量 = 全量
+estimated_minutes: 90
+group: J2
+depends_on: [impl-07/04]
+scope:
+  write: [pipeline/assembly/incremental.py, pipeline/assembly/tests/test_incremental.py]
+tests_first:
+  - 先写 tests/test_incremental.py（用例名逐字）并全红，再实现
+contract: |
+  incremental.py（纯函数；import matcher、apply、canonical、model、errors）
+    affected_closure(base_knowledge, views, proposals, decisions) -> dict
+      规则逐条按 README §6.2 第 1–3 条：
+        触点（只统计 base 中已存在的对象）：
+          Pattern 候选 → 其 resolved 目标；R01/R02/R03 名称、规则、pattern_id 命中的全部 base Pattern（含被人工判为 distinct 者）；候选 concept_id 若在 base
+          Concept → concept_id 与 nfc 名称命中
+          Assertion → 裁决后主体（若在 base）；base 中同 (work_key, collation_key) 的 Assertion
+          SchoolView → 裁决后主体（若在 base）；base 中同 (主体, school_id) 的 SchoolView
+          collation_units 中 present false 的单元、以及替换时被撤销声明的单元 → base 中该 (work_key, collation_key) 的 Assertion
+          决定 target_entity_ids 中在 base 的号；R06 决定取该组全部 base 成员
+          替换：provenance 哈希变化或被删除的对象本身；被删除对象按其 base 记录（subject、collation_key、school_id）计算触点
+        闭包：沿 base relations 中 alias_of、distinct_from、merged_into 的两端，以及 conflict_groups 同组成员，迭代到不动点
+      返回 {"affected": 升序, "created": apply 结果中新建的号（调用方传入前为空表）, "untouched": base 全部对象号 − affected（升序）}
+    carry_forward(base_knowledge, views, proposals) -> dict
+      对 base 中每个 mode human 的 resolution（relations 与 conflict_groups.resolutions）：本轮同键提案 resolution 为 human 且 basis 不同 → needs_review；否则 carried
+      返回 {"carried": [proposal_key 升序], "needs_review": [proposal_key 升序]}
+    assemble(base_knowledge, views, decisions, *, max_rounds=10, incremental=True) -> dict
+      循环 round = 1..max_rounds：p = matcher.propose(base, views, decisions=decisions, round_no=round)
+        待决 = resolution human 且无决定的提案；blocked 且依赖项已决 → 进入下一轮；
+        有待决 → 返回 {"status": "awaiting_human", "rounds": [...], "pending": [待决 proposal_key 升序]}
+        无待决且无可推进的 blocked → 退出循环；超过 max_rounds → AssemblyRefused（message 含「回流未收敛」）
+      closure = affected_closure(...)（incremental=False 时 affected=None 全部重建）
+      r = apply.apply_resolutions(base, views, 末轮 proposals, decisions, affected=closure["affected"] 或 None)
+      report 键序逐字：affected_entity_ids, rebuilt_entity_ids, created_entity_ids, untouched_count, proposals_by_resolution({"auto": n, "human": n, "blocked_then_resolved": n}), rounds, carried, needs_review, not_comparable_count
+      incremental=True 时断言 r["rebuilt_entity_ids"] == closure["affected"]（不等 → AssemblyRefused，message 含「重建范围」）
+      返回 {"status": "complete", "rounds": [...], "pending": [], "result": r, "report": report}
+    knowledge_equivalent(a_knowledge, b_knowledge) -> bool = canonical.content_sha256(a) == canonical.content_sha256(b)
+tests:
+  test_incremental.py: |
+    - test_affected_s2_equals_expected
+    - test_affected_s3_equals_expected
+    - test_untouched_s2_bytes_identical（as_qizheng_900004）
+    - test_untouched_s3_bytes_identical（affected_s3 的 untouched 全部 9 个）
+    - test_incremental_equals_full_s2
+    - test_incremental_equals_full_s3
+    - test_s3_bytes_equal_expected
+    - test_identity_delta_s3_equals_expected
+    - test_u002_variant_becomes_alignment_in_s3
+    - test_carry_forward_s3（carried 含两条 distinct_from 与 c2 attach 的键；needs_review 仅 R06 键）
+    - test_awaiting_human_returns_pending_without_result
+    - test_blocked_c5_needs_second_round
+    - test_extension_disjoint_part_appends_part_ids
+    - test_dropping_one_object_from_closure_breaks_equivalence（monkeypatch affected_closure 去掉 pat_qizheng_900002 → incremental 结果与 full 不等或 assemble 抛「重建范围」）
+    - test_max_rounds_refused
+verify:
+  - .venv/bin/python -m unittest discover -s pipeline/assembly/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 62
+  - TDD §3 回归
+commit:
+  add: [pipeline/assembly/incremental.py, pipeline/assembly/tests/test_incremental.py]
+  message: "feat(m7): incremental assembly with affected closure, decision carry-forward and full-rebuild equivalence (spec §6.2, §14.1)"
+on_fail: 停止并报告；闭包与 affected_s2/s3 金标不一致时列出多出与缺少的号，不得改金标或 README 规则

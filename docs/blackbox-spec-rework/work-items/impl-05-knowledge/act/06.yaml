@@ -1,0 +1,58 @@
+act_id: impl-05/06
+title: 专家审核决定事件契约 review_events.py（build / validate / derive_content_status，纯函数，不建签发 StepRun）
+estimated_minutes: 60
+group: K3
+depends_on: [impl-05/00]
+pending_decisions: [D-07, D-08]
+scope:
+  write: [pipeline/knowledge_extraction/review_events.py, pipeline/knowledge_extraction/tests/test_review_events.py]
+tests_first:
+  - 先写 tests/test_review_events.py（用例名逐字）并全红，再实现
+contract: |
+  review_events.py（纯函数：不访问 Ledger、不读文件）
+    VERDICTS = ("accept", "modify", "reject", "request_evidence", "school_dispute")      # D-08
+    ENTITY_KINDS = {"assertion": "assertion_id", "pattern": "pattern_id", "school_view": "school_view_id"}   # 值为 pipeline.ledger.ids 家族名
+    CONSUMPTION_LEVELS = ("INTERNAL_DEMO", "DEV_SEARCH", "PUBLIC_RELEASE")
+    REVIEW_STAGE = "m6"                                                                   # D-07 推荐 A
+    build_review_decision(*, decision_type, verdict, entity_kind, entity_id, seen_artifact_revision_id, processing_run_id, step_run_id, actor_ref, rationale, evidence_refs=(), consumption_level="INTERNAL_DEMO") -> dict
+      返回键逐字：schema_version(CANDIDATE_SCHEMA_VERSION), event_kind("review_decision"), stage(REVIEW_STAGE), decision_type, verdict,
+                  target{entity_kind, entity_id, artifact_revision_id}, processing_run_id, step_run_id, actor_ref, rationale, evidence_refs(list), consumption_level
+      返回前调用 validate_review_decision
+    validate_review_decision(doc) -> dict
+      V1 键集合逐字（多 → SCH_002，缺 → SCH_001）；event_kind == "review_decision"、stage == REVIEW_STAGE（否则 SCH_002）
+      V2 decision_type ∈ pipeline.ledger.states.REVIEW_DECISION_TYPES（否则 SCH_002）；verdict ∈ VERDICTS（否则 SCH_002）
+      V3 target.entity_kind ∈ ENTITY_KINDS（否则 SCH_002）；ids.validate(ENTITY_KINDS[kind], entity_id)（ID_001）；ids.validate("artifact_revision_id", target.artifact_revision_id)（ID_001）
+      V4 ids.validate("processing_run_id")、("step_run_id")（ID_001）；evidence_refs 每项 ids.validate("source_span_id")（ID_001）
+      V5 rationale 与 actor_ref 为非空字符串（否则 SCH_001）；consumption_level ∈ CONSUMPTION_LEVELS（否则 SCH_002）
+      V6 verdict == "school_dispute" 时 decision_type 必须为 review_school_attribution（否则 SCH_002）
+      返回 doc 深拷贝
+    required_decision_types(candidate, *, entity_kind) -> tuple[str, ...]
+      恒含 "review_source_fidelity"；entity_kind == "school_view" 或 candidate.get("school_ids") 非空时追加 "review_school_attribution"；按 REVIEW_DECISION_TYPES 顺序返回
+    derive_content_status(candidate, decisions, *, entity_kind, entity_id, candidate_revision_id) -> str
+      candidate = candidate_set 中的一个对象（含 content_status）
+      只计入 validate 通过、target.entity_id == entity_id、target.artifact_revision_id == candidate_revision_id 的决定（其他忽略）
+      对每个必需类型取列表中最后一条（列表顺序即 Ledger 登记顺序）
+      判定顺序：任一必需类型最新为 reject → "deprecated"；否则任一为 school_dispute → "disputed"；否则任一为 modify 或 request_evidence → "needs_expert"；
+                否则全部必需类型都有且为 accept → "expert_verified"；否则返回 candidate["content_status"]
+tests:
+  test_review_events.py: |
+    - test_build_valid_decision_roundtrip
+    - test_unknown_decision_type_SCH_002
+    - test_unknown_verdict_SCH_002
+    - test_entity_prefix_kind_mismatch_ID_001（entity_kind assertion 却给 pat_qizheng_000001）
+    - test_bad_seen_revision_ID_001
+    - test_empty_rationale_SCH_001
+    - test_school_dispute_requires_school_attribution_type
+    - test_source_fidelity_accept_gives_expert_verified_when_no_school
+    - test_school_ids_require_school_attribution（只有 source_fidelity accept → 保持 machine_extracted；补 school_attribution accept → expert_verified）
+    - test_reject_gives_deprecated_and_latest_wins（先 reject 后 accept → expert_verified；先 accept 后 reject → deprecated）
+    - test_modify_or_request_evidence_gives_needs_expert
+    - test_decision_on_other_revision_ignored
+verify:
+  - .venv/bin/python -m unittest discover -s pipeline/knowledge_extraction/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 107
+  - grep -nE '^\s*(from|import) .*(service|store)|open\(' pipeline/knowledge_extraction/review_events.py | wc -l   # 0
+  - TDD §3 回归
+commit:
+  add: [pipeline/knowledge_extraction/review_events.py, pipeline/knowledge_extraction/tests/test_review_events.py]
+  message: "feat(m4): review decision event contract and content status derivation for expert sign-off (spec §8.2, §14)"
+on_fail: 停止并报告；D-07 / D-08 裁决与本 contract 不同时不得开工

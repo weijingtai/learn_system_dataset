@@ -1,0 +1,71 @@
+act_id: impl-08/06
+title: 六项只读查询（§5 :117–127 闭集）+ CLI python -m pipeline.orchestrator
+estimated_minutes: 75
+group: K3
+depends_on: [impl-08/05]
+scope:
+  write: [pipeline/orchestrator/queries.py, pipeline/orchestrator/__main__.py, pipeline/orchestrator/tests/test_queries.py, pipeline/orchestrator/tests/test_cli.py]
+tests_first:
+  - 先写 tests/test_queries.py 与 tests/test_cli.py（用例名逐字），全红后再实现
+contract: |
+  queries.py（只读，只调用 LedgerPort 读方法与 gate.evaluate_stage_gate / effective_step_runs；不写入）：
+    QUERY_NAMES = ("RunStatus", "StageProgress", "PendingQueue", "BlockingReasons", "ReworkImpact", "ThroughputEstimate")
+    run_status(port, registry, handle) -> {"processing_run_id", "edition_part_id", "status"(= port.run_status 的 status), "started_at", "finished_at", "edition_part_complete": bool}
+    stage_progress(port, registry, handle) -> {stage: {…port.stage_progress 同 stage 计数字段（缺该 stage 时全 0 / None）, "gate": "passed"|"blocked"|"not_started", "failed_checks": [...]} for stage in EDITION_STAGES}
+      not_started ⇔ effective_step_runs 为空且前一 stage gate 非 passed（m1 无任务时为 not_started）
+    pending_queue(port, registry, handle) -> {"queues": {registry.human_queues 五个名字: [...]}, "non_human_pending": [...]}
+      queues 五键恒存在（值默认 []）；对 status == "awaiting_human" 的有效 StepRun：取最后一个 await_human 事件 payload.pending_queue，
+        追加 {"step_run_id", "stage", "pending_queue_artifact_ids", "since": 事件 created_at} 到 registry.human_queues[stage]；stage 不在 human_queues → 追加到 non_human_pending 并带 "reason": "阶段无专用人工队列"
+      non_human_pending：各 stage latest_checkpoint 的 pending_queue 非空且其 StepRun 非终态 → {"stage", "step_run_id", "pending_tasks": pending_queue}
+    blocking_reasons(port, registry, handle) -> {"blocking": [{"stage", "check", "detail"}], "warnings": [...]}
+      blocking：按 EDITION_STAGES 找首个 gate 非 passed 的 stage，列出其全部 ok=False 检查（not_started 的后续 stage 不列）
+      warnings：rework_round ≥ 3 → {"code": "rework_threshold_exceeded", "rework_round": n, "ratio_check": "not_evaluated"}（§14.1 :642；30% 比例阈值无 ReworkImpactReport 时不可算）
+      rework_round = 本运行内 supersedes_step_run_id 非空的 StepRun 数
+    rework_impact(port, registry, handle, artifact_revision_id) -> dict（键逐字）
+      {"estimate": True, "trigger_revision_id", "affected_stages": [...], "invalidated_count", "carried_forward_count", "needs_review_count", "rework_round", "trigger_correction_request_id": None, "affected_queues": [...]}
+      可达性按 StepRun 粒度：种子 = {trigger}；反复：某 StepRun 的 request.input_artifact_ids ∩ 已达集合 ≠ ∅ → 其 result.output_artifact_ids 并入已达，stage 记入 affected_stages；至不动点
+      invalidated_count = 已达修订数 − 1；carried_forward_count = 本运行全部 succeeded StepRun 输出修订数 − invalidated_count；
+      needs_review_count = 受影响 StepRun 的 human_event 事件数；affected_queues = affected_stages 映射到 registry.human_queues 的名字（去重保序）
+      trigger 不存在 → MissingReference(REF_001)
+    throughput_estimate(port, registry, handle) -> {"per_stage_seconds": {stage: float|None}, "remaining_stages": [...], "estimated_remaining_seconds": float|None, "basis": "succeeded_step_runs"}
+      per_stage_seconds = 该 stage succeeded StepRun 的 (updated_at − created_at) 秒数均值（ISO8601 解析；无样本 None）
+      remaining_stages = gate 非 passed 的 EDITION_STAGES；estimated_remaining_seconds = 所有样本总均值 × len(remaining_stages)；无任何样本 → None
+  __main__.py：python -m pipeline.orchestrator --root <ledger_root> [--registry <path>] <command> …
+    命令：start --edition-part <art_> --technique <id>             → 末行 `ORCH STARTED <prun>` exit 0
+          advance --run <prun> --edition-part <art_> --technique <id> → adopt_edition_run 后 advance：
+            executed → `ORCH EXECUTED <stage> <step_run_id> <step_result.status>` exit 0（awaiting_human 另起一行 `RESUME_TOKEN <token>` 于末行之前）
+            waiting → `ORCH WAITING <stage> <step_run_id>` exit 0；complete → `ORCH COMPLETE` exit 0
+            blocked → `ORCH BLOCKED <stage> <reason>` exit 1；refused（含 OrchestratorRefused）→ `ORCH REFUSED <stage 或 -> <reason>` exit 2
+          status --run --edition-part --technique → stdout 一个 JSON 对象，键 = QUERY_NAMES 前四项（ReworkImpact 需修订参数，不在 status 中），末行 `ORCH STATUS OK` exit 0
+          resume --run --edition-part --technique --step-run <srun> --token <token> → 同 executed 行格式
+          suspend --step-run <srun> --reason <text> → `ORCH SUSPENDED <srun>` exit 0
+          rerun --run --edition-part --technique --stage <mN> → 同 executed 行格式
+    Ledger 经 DirectLedgerAdapter(<root>)（--root 即 Ledger 根目录，与 pipeline.ledger.cli 一致）；WriterLocked → `ORCH LOCKED` exit 3；其他 LedgerError → `ORCH ERROR <类名>: <消息>` exit 1
+    生产登记表中桩不存在，CLI 不接受 modules 注入
+tests:
+  test_queries.py: |
+    统一脚手架：桩 m1–m6（m2 human_queue=True）advance 至 m2 awaiting_human
+    - test_query_names_closed_set_six
+    - test_pending_queue_five_keys_and_m2_item
+    - test_pending_queue_non_human_stage_goes_to_non_human_pending（m5 桩 human_queue=True）
+    - test_blocking_reasons_lists_first_blocked_stage_checks
+    - test_rework_threshold_warning_after_three_supersedes
+    - test_stage_progress_passed_blocked_not_started
+    - test_run_status_edition_part_complete_false_then_true
+    - test_rework_impact_reaches_downstream_stages（跑完 m1–m4 后以 m1 产出为触发 → affected_stages ⊇ {m2, m3, m4}）
+    - test_rework_impact_unknown_revision_ref_001
+    - test_throughput_none_without_history_and_number_with_history
+    - test_queries_are_zero_write
+  test_cli.py: |
+    subprocess；CLI 使用仓库 registry.yaml（无桩），故用例基于「真实阶段未登记/imported」路径与参数错误路径，不依赖 impl-02 实现细节
+    - test_cli_start_then_advance_refused_imported_m1（空 Ledger start → advance → m1 imported 无任务 → `ORCH REFUSED m1 …` exit 2）
+    - test_cli_status_json_has_four_query_keys
+    - test_cli_suspend_unknown_step_run_error_exit_1
+    - test_cli_writer_locked_exit_3（测试持有 LedgerService 写锁时运行 CLI）
+verify:
+  - .venv/bin/python -m unittest discover -s pipeline/orchestrator/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 64
+  - TDD §3 回归
+commit:
+  add: [pipeline/orchestrator/queries.py, pipeline/orchestrator/__main__.py, pipeline/orchestrator/tests/test_queries.py, pipeline/orchestrator/tests/test_cli.py]
+  message: "feat(orchestrator): six read-only queries and CLI (spec §5)"
+on_fail: 停止并报告；Ledger 时间戳格式无法解析、stage_progress 结构与 contract 假设不符时停手

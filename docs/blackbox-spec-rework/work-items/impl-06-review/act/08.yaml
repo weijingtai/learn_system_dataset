@@ -1,0 +1,68 @@
+act_id: impl-06/08
+title: CorrectionRequest + 失效传播 StepRun run_rework_propagation：精确 invalidated、ReworkImpactReport 封存、Checkpoint 引用（§14:629、§14.1、§17.1:844）
+estimated_minutes: 90
+group: K3
+depends_on: [impl-06/07]
+decisions_required: [D-05, D-08, D-09, D-10, D-14]
+scope:
+  write: [pipeline/review/rework.py, pipeline/review/testing/upstream_stub.py, pipeline/review/tests/test_rework.py, pipeline/review/console.py]
+tests_first:
+  - 先写 tests/test_rework.py（用例名逐字），全部 Red 后再实现
+contract: |
+  rework.py：
+    request_correction(service, step_run_id, resume_token, *, source_span_ids, description) -> dict
+      前置零写入：StepRun awaiting_human；source_span_ids 非空、每项 validate("source_span_id") 且存在于本运行冻结 corpus_spans；description 非空
+      内容键序逐字：schema_version("1.0.0"), event_kind("correction_request"), stage("m6"), step_run_id, source_span_ids, description, target_stage("m2"), actor_ref
+      put "human_event" → seal → record_human_event(step, token, rev, decision_type=None) → write_checkpoint（human_decisions 追加该修订，pending 不变）
+      返回键：correction_request_revision_id, checkpoint_revision_id
+    run_rework_propagation(service, edition_part_id, *, correction_request_revision_id, new_corpus_package_revision_id) -> dict
+      begin 前解析（零写入）：
+        old_review = latest_checkpoint(ep, "m6") 所属 succeeded StepRun，其输出 reviewed_edition_package（恰 1）
+        old 冻结输入：corpus_package、corpus_spans、candidate_package、候选修订、validation_package；old 决定 = reviewed_edition_package.decisions 的 decision_revision_id
+        correction_request 修订 sealed、artifact_type human_event、event_kind correction_request，且 ∈ old reviewed_edition_package.correction_request_revision_ids（否则 ReviewRefused code REF_001）
+        new_corpus_package sealed、由 stage m3 succeeded StepRun 产出、!= old corpus_package；new_corpus_spans = 其内容 spans_revision_id
+        rework_round_before = 本 ep 的 m6 Checkpoint 链中 rework_impact_report_revision_id 非空的个数
+      1 config = put_run_artifact("configuration", {"stage": "m6", "task": "rework_propagation", "tool": M6_TOOL, "tool_version": M6_TOOL_VERSION, "threshold_ratio": 0.30, "threshold_round": 3})
+      2 frozen = [old reviewed_edition_package] + old 决定修订 + [old corpus_package, old corpus_spans, old candidate_package] + old 候选修订 + [old validation_package, new corpus_package, new corpus_spans, correction_request]
+        step = service.supersede_step_run(old_review_step_run_id, StepRequest{…, input_artifact_ids: frozen})（旧运行已终态，保持 succeeded；D-14 单线链）
+      3 begin 之后异常 → _fail（correction_scope / internal）
+        spans = propagation.changed_span_ids(old, new)；correction.source_span_ids ⊄ changed ∪ removed → _fail("correction_scope", 未变化的 span 列表)
+      4 report = propagation.propagate(old_candidates, old_spans_doc, new_spans_doc, validation_entries, standing_decisions=old package decisions, rework_round_before, trigger_correction_request_id=correction_request_revision_id)
+      5 对 report.invalidated 中 kind == "candidate" 的每个 revision_id：service.invalidate_revision(rev, "§14.1 失效传播 trigger=<correction rev>")（逐个；不得对其他任何修订调用）
+      6 report_rev = put "rework_impact_report"（json.dumps(sort_keys=True, ensure_ascii=False)）→ seal
+        validation_report = put "validation_report" {"gate_profile": "m6_rework_v1", "checks": {"correction_scope": {"passed": true}}, "warnings": report.warnings} → seal；log → seal
+      7 write_checkpoint(step, stage="m6", completed_tasks=[{"task_id": "rework_propagation", "artifact_revision_id": report_rev, "status": "succeeded", "terminal_state": None}],
+           human_decisions=[carried 决定修订 + correction_request], pending_queue=[{"task_id": needs_review 项号}…], next_pointer, rework_impact_report_revision_id=report_rev)
+      8 record_transformation(operation="propagate_invalidation", input_revision_ids=frozen, output_revision_ids=[report_rev], configuration_revision_id=config, validation_report_revision_id=validation_report, human_event_revision_ids=[correction_request_revision_id])
+      9 finish_step_run(StepResult{succeeded, output_artifact_ids [report_rev], validation_report_ids [validation_report], log_artifact_ids [log], failure_artifact_ids []})（不产 StagePackage，D-14）
+      返回键：status, step_run_id, supersedes_step_run_id, rework_impact_report_revision_id, invalidated_revision_ids, carried_decision_revision_ids, needs_review, warnings, counts({invalidated, carried_forward, needs_review}), checkpoint_revision_id, transformation_id
+  testing/upstream_stub.py 追加：
+    seed_corrected_corpus(service, edition_part_id, corrections) -> dict
+      supersede_step_run(旧 m3 succeeded 运行, 配置 {"stage": "m3", "tool": STUB_TOOL, "task": "corrected_corpus"}) → 读旧 corpus_spans 按 span_patches 修改（改字同步改 chars[].char；bbox_dx 加到 source_anchor.bbox.x）
+      → put 新 "corpus_spans"（与旧修订不同 artifact_id；不调用 supersede_revision，旧修订保持 sealed 供失效传播冻结，D-14）→ corpus_package → Checkpoint → Transformation → m3 StagePackage → finish
+      返回键：new_corpus_package_revision_id, new_corpus_spans_revision_id, m3_step_run_id
+  console.py 追加子命令：
+    correct --step-run --resume-token --span <ss_>… --description：`M6 CORRECTION <rev>` 退出 0
+    rework --edition-part --correction-request <rev> --new-corpus-package <rev>：`M6 REWORK <step_run_id> invalidated=<n> carried_forward=<m> needs_review=<k> warnings=<逗号或->` 退出 0；失败 `M6 FAILED <step_run_id> <check>` 退出 1
+tests:
+  test_rework.py: |
+    脚手架：seed_upstream → open_review → request_correction(corrections.correction_request) → 按 m6_decisions 逐条决定 → close_review → seed_corrected_corpus(corrections) → run_rework_propagation
+    - test_request_correction_is_human_event_with_checkpoint
+    - test_request_correction_unknown_span_zero_writes
+    - test_rework_counts_match_expected_review（与 expected_review.rework 逐项相等）
+    - test_rework_invalidates_exactly_reachable_candidate_revisions（Ledger status='invalidated' 修订集合 == 3 个可达候选修订）
+    - test_rework_leaves_unreachable_and_upstream_sealed（as_…003 候选、m1–m3 全部修订、旧决定修订仍 sealed）
+    - test_rework_report_sealed_and_checkpoint_references_it（stage_checkpoints.rework_impact_report_revision_id）
+    - test_rework_transformation_human_events_include_correction_request
+    - test_rework_supersedes_first_review_chain（新 StepRun supersedes_step_run_id == 首审）
+    - test_correction_scope_unchanged_span_fails（corrections 只改 s05，但请求列 s08 → failed_check correction_scope，无 invalidated 修订）
+    - test_rework_refuses_without_succeeded_review_zero_writes
+    - test_console_rework_line
+verify:
+  - .venv/bin/python -m unittest discover -s pipeline/review/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 98
+  - grep -n 'invalidate_revision' pipeline/review/*.py | grep -v rework.py | wc -l          # 0
+  - TDD §3 回归
+commit:
+  add: [pipeline/review/rework.py, pipeline/review/testing/upstream_stub.py, pipeline/review/tests/test_rework.py, pipeline/review/console.py]
+  message: "feat(m6): correction requests and precise invalidation run with sealed rework impact report (spec §14.1)"
+on_fail: 停止并报告；出现「必须整包 invalidated 才能继续」的情形时停手（违反 §14.1:643）

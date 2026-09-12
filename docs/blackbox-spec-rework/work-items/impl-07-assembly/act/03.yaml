@@ -1,0 +1,84 @@
+act_id: impl-07/03
+title: 提案生成 propose（M7-R 规则 R01–R10，自动/人工/阻塞三态，回流轮次）
+estimated_minutes: 90
+group: J1
+depends_on: [impl-07/02]
+scope:
+  write: [pipeline/assembly/matcher.py, pipeline/assembly/tests/test_matcher.py]
+tests_first:
+  - 先写 tests/test_matcher.py（用例名逐字）并全红，再实现
+contract: |
+  matcher.py（纯函数；只 import canonical、model、errors、pipeline.ledger.errors/ids）
+    propose(base_knowledge, views, *, decisions=(), round_no=1) -> dict
+      参数：base_knowledge = Snapshot knowledge dict（创世传 model.empty_knowledge）；views = validate_reviewed_edition 返回值列表（source_id 互异，否则 SCH_002）；
+            decisions = 已记录的 m7_decision dict 序列（本 Run 内）；round_no ≥ 1
+      返回 {"round": round_no, "mode": {source_id: "new"|"replacement"|"extension"}, "proposals": [...按 proposal_key 升序], "not_comparable": [...], "resolved_subjects": {候选或主体引用: 正式号或 null}}
+      proposal 键序逐字：proposal_key, kind, rule_id, resolution, subject, targets, options, auto_choice, decision_type, basis_sha256, depends_on
+        resolution ∈ "auto"|"human"|"blocked"|"decided"（decided = 在 decisions 中已有合法决定）
+        options 为字符串列表，attach 目标写作 "attach:<pattern_id>"
+    前置拒绝（抛出，不返回）：
+      mode：视图 source_id 已在 base editions 中且 part 集合相等 → replacement；不相交 → extension；部分重叠 → AssemblyRefused(SCH_002)
+      replacement/extension 视图的全部对象哈希都等于 provenance 中该 source 的哈希且 part 集合相等 → AssemblyRefused（message 含「已汇编」）
+      候选 pattern_id ∈ base retired_entity_ids → AssemblyRefused(ID_001)
+      视图的 assertion_id/school_view_id 已在 base 中且属于其他 source_id → AssemblyRefused(ID_002)
+      同批两个视图绑定同一个不在 base 中的 pattern_id → AssemblyRefused(SCH_002)
+    规则（rule_id 逐字；名称键 = nfc_key(name) ∪ nfc_key(aliases)；规则键 = ast_sha256 集合；S = base 活 Pattern；B = 本批其他候选）
+      R01  pattern_id ∈ S 且 concept 一致 → merge attach auto，auto_choice "attach:<id>"
+      R01b pattern_id ∈ S 且 concept 不一致 → conflict human，options [keep_binding_of_canonical, rebind_candidate]，主体元组 ["concept_binding", source_id, candidate_key]
+      R02  pattern_id ∉ S（未退役）且名称/规则对 S 无命中 → merge admit_new auto（保留该号）；有命中 → 按 R03b–R03d 处理
+      R03a 无号；名称命中集 == 规则命中集 == {p} → merge attach auto
+      R03b 名称命中 {p}、规则命中 ∅ → merge human，options ["attach:p", "admit_new"]
+      R03c 名称命中 ∅、规则命中 {p} → alias human，options ["accept_alias", "reject_alias"]
+      R03d 名称或规则命中 ≥ 2 → merge human，options 各 "attach:<p>"（升序）+ "admit_new" + "merge_entities"
+      R03e 对 S 无命中、与 B 无交集 → merge admit_new auto
+      R03f 对 S 无命中、与 B 中「对 S 有命中且 resolution human」的候选有交集 → merge blocked，depends_on 该提案键
+      R03g 对 S 无命中、与 B 中另一个对 S 无命中的候选有交集 → merge human，options ["admit_new_each", "admit_new_one_attach_other"]
+      R04  Concept：concept_id ∈ S → merge attach auto；nfc 名称与 S 中不同号的 Concept 相同 → alias human；否则 admit_new auto
+      R06  SchoolView：裁决后主体在 S 中且已有冲突组，视图对该主体又带 conflict_group_id → conflict human，options ["unify", "keep_separate"]，主体元组 ["conflict_group", 主体号, sorted(视图中该主体的 sv 号)]，decision_type "review_school_attribution"
+      R07  对勘：对每个视图 v 与 base 中同 work_key 的每个其他 source u（以及同批其他视图），对两侧都声明的 collation_key：
+             两侧 present，主体裁决到同一正式号，nfc 文本相等 → evidence auto，auto_choice "alignment"
+      R07b 同上但主体裁决到不同正式号 → conflict human，options ["accept_alignment", "reject_alignment"]，decision_type "review_edition_collation"
+      R08  同 R07 但文本不等 → evidence auto，auto_choice "variant_reading"
+      R09  较大 source_id 一侧 present、较小一侧 present false → auto_choice "addition"；反之 → "omission"；两侧都 false → 无提案
+           任一侧未声明 → 不产生提案，写入 not_comparable {work_key, collation_key, declared_by: [已声明的 source_id]}
+      R10  base relations 中已有 distinct_from(p, q) 时，候选裁决目标为 q 的名称/规则命中 p 不再计入命中集
+      主体尚未裁决（human/blocked）的 Assertion，其对勘提案 resolution 为 blocked，depends_on 主体提案
+      替换模式：provenance 中哈希未变的对象不再产生 merge/alias/conflict 提案（沿用 Snapshot 结果）；变化或新增对象照常；
+        被删除的 Assertion → conflict auto，auto_choice "retire"，rule_id "R11"，主体元组 ["provenance_lost", assertion_id]；
+        Pattern/Concept 在所有 source 中失去全部 provenance → conflict human，options ["retire", "keep"]，rule_id "R11b"；
+        Snapshot 中 mode human 的 resolution 若 basis_sha256 按新视图重算不等 → 重新产生同键提案，resolution human（needs_review）
+    basis_sha256：merge/alias = content_sha256({"target": 目标 {name, aliases, rule_hashes 升序, concept_id} 或 null, "candidate": 候选同名字段})；
+                  R06 = content_sha256(按 sv 号排序的 [{school_view_id, school_id, subject, claim_refs, conflict_group_id, changes_current_judgment}])（取视图原值）；evidence = null
+    回流：decisions 中的合法决定使对应提案 resolution 为 decided 并更新 resolved_subjects；blocked 提案按新的 resolved_subjects 重算为 auto/human
+tests:
+  test_matcher.py: |
+    - test_round1_against_expected_proposals_r2（逐项比较 proposal_key、kind、rule_id、resolution、options、auto_choice）
+    - test_round2_after_r2_decisions_matches_expected
+    - test_not_comparable_u006
+    - test_genesis_ed01_all_auto
+    - test_R01_attach_bound_id / test_R01b_concept_mismatch_human
+    - test_R02_unregistered_id_admit_new_keeps_id / test_R02_retired_id_refused_ID_001
+    - test_R03a_name_and_rule_single_hit_auto
+    - test_R03b_name_only_never_auto
+    - test_R03c_rule_only_alias_human
+    - test_R03d_multi_hit_options
+    - test_R03e_no_hit_admit_new
+    - test_R03f_blocked_depends_on
+    - test_R03g_intra_batch_pair_human
+    - test_R04_concept_rules
+    - test_R06_conflict_group_reconcile
+    - test_R07_alignment / test_R07b_subject_mismatch_human / test_R08_variant / test_R09_addition_and_omission
+    - test_undeclared_unit_never_omission
+    - test_R10_distinct_from_suppresses_rehit
+    - test_assertion_id_taken_by_other_source_ID_002
+    - test_partial_part_overlap_refused / test_already_assembled_refused
+    - test_replacement_ed01r2_on_s2_proposals（R11 as_qizheng_900004 auto retire；R06 needs_review human；其余哈希未变对象无 merge/alias 提案）
+    - test_deterministic_twice_identical
+verify:
+  - .venv/bin/python -m unittest discover -s pipeline/assembly/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 40
+  - grep -rnE 'difflib|SequenceMatcher' pipeline/assembly/matcher.py | wc -l   # 0（opcodes 在 apply 中计算）
+  - TDD §3 回归
+commit:
+  add: [pipeline/assembly/matcher.py, pipeline/assembly/tests/test_matcher.py]
+  message: "feat(m7): deterministic merge/alias/conflict/evidence proposals with auto, human and blocked resolutions (spec §6.2, §15)"
+on_fail: 停止并报告；金标提案与规则表推导不一致时不得改金标或规则，列出差异提案键

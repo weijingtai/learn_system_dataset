@@ -1,0 +1,73 @@
+package: blackbox-impl-05-knowledge
+title: M4 Knowledge Extraction 最薄接入（§12、§12.1、§12.2、§22.3）——无模型提交件登记、候选装配、类别裁决、审核事件契约
+status: DRAFT   # 起草 Agent 产出；README §4 的 D-01～D-16 裁决后由主 Agent 改 READY
+executor_groups:
+  K1: [impl-05/00, impl-05/01, impl-05/02]   # 纯函数；一个执行 Agent 串行；不依赖 impl-02 验收
+  K2: [impl-05/03, impl-05/04]               # Ledger 集成；K1 ACCEPTED 且 impl-02 ACCEPTED 后派发
+  K3: [impl-05/05, impl-05/06]               # 人工事件；K2 ACCEPTED 后派发
+  K4: [impl-05/07]                           # 验收脚本；K3 ACCEPTED 且 D-02 金标已落地后派发
+  K5: [impl-05/08]                           # 可选；D-12 选 A 且主 Agent 决定要做时派发
+pending_decisions:   # 改选任一裁决项会影响的 ACT
+  D-01: [impl-05/00, impl-05/03]
+  D-02: [impl-05/07]
+  D-03: [impl-05/01, impl-05/02, impl-05/07]
+  D-04: [impl-05/03, impl-05/04]
+  D-05: [impl-05/01, impl-05/03]
+  D-06: [impl-05/01, impl-05/02, impl-05/07]
+  D-07: [impl-05/06]
+  D-08: [impl-05/06]
+  D-09: [impl-05/01, impl-05/02, impl-05/04]
+  D-10: [impl-05/01, impl-05/02, impl-05/04]
+  D-11: [impl-05/07]
+  D-12: [impl-05/08]
+  D-13: [impl-05/01, impl-05/02]
+  D-14: [impl-05/05]
+  D-15: [impl-05/03]
+  D-16: [impl-05/00]
+acts:
+  - file: act/00.yaml
+    id: impl-05/00
+    writes: ["pipeline/knowledge_extraction/__init__.py", "pipeline/knowledge_extraction/errors.py", "pipeline/knowledge_extraction/serialize.py", "pipeline/knowledge_extraction/submission.py", "pipeline/knowledge_extraction/adapters/__init__.py", "pipeline/knowledge_extraction/adapters/task_pipeline.py", "pipeline/knowledge_extraction/tests/__init__.py", "pipeline/knowledge_extraction/tests/test_submission.py", "pipeline/knowledge_extraction/tests/test_task_pipeline_adapter.py", "pipeline/knowledge_extraction/tests/data/appendix_a/submission_assertion_a.yaml", "pipeline/knowledge_extraction/tests/data/appendix_a/submission_assertion_b.yaml", "pipeline/knowledge_extraction/tests/data/appendix_a/submission_concept_mention_a.yaml", "pipeline/knowledge_extraction/tests/data/appendix_a/ruling_m4_d001.yaml"]
+  - file: act/01.yaml
+    id: impl-05/01
+    writes: ["pipeline/knowledge_extraction/assemble.py", "pipeline/knowledge_extraction/tests/test_assemble.py"]
+  - file: act/02.yaml
+    id: impl-05/02
+    writes: ["pipeline/knowledge_extraction/gate.py", "pipeline/knowledge_extraction/tests/test_gate.py"]
+  - file: act/03.yaml
+    id: impl-05/03
+    writes: ["pipeline/knowledge_extraction/adapters/registry.py", "pipeline/knowledge_extraction/inputs.py", "pipeline/knowledge_extraction/submit.py", "pipeline/knowledge_extraction/tests/test_registry.py", "pipeline/knowledge_extraction/tests/test_submit.py"]
+  - file: act/04.yaml
+    id: impl-05/04
+    writes: ["pipeline/knowledge_extraction/step.py", "pipeline/knowledge_extraction/__main__.py", "pipeline/knowledge_extraction/tests/test_step.py"]
+  - file: act/05.yaml
+    id: impl-05/05
+    writes: ["pipeline/knowledge_extraction/step.py", "pipeline/knowledge_extraction/__main__.py", "pipeline/knowledge_extraction/tests/test_ruling.py"]
+  - file: act/06.yaml
+    id: impl-05/06
+    writes: ["pipeline/knowledge_extraction/review_events.py", "pipeline/knowledge_extraction/tests/test_review_events.py"]
+  - file: act/07.yaml
+    id: impl-05/07
+    writes: ["pipeline/knowledge_extraction/acceptance.py", "pipeline/knowledge_extraction/tests/test_acceptance.py", "openspec/acceptance/m4-stage-gate.sh"]
+  - file: act/08.yaml
+    id: impl-05/08
+    writes: ["pipeline/knowledge_extraction/adapters/legacy_workbench.py", "pipeline/knowledge_extraction/tests/test_legacy_workbench.py"]
+global_rules:
+  - 每个 ACT 先写测试（Red 原文入报告）再实现；unittest；测试只用 tempfile 目录，不写 var/、fixture、pipeline/TASKS
+  - 只用标准库 + PyYAML + jsonschema；不新增依赖；不新增 ID 前缀（task_id、dispute_id 是任务标签，不是登记册 ID）；不调用模型 API
+  - 生产代码只读 Ledger 冻结修订；Adapter 入口（adapters/）读外部文件后必须先登记进 Ledger 才能被 M4 核心消费；测试可读 fixture 作输入或金标
+  - 生产代码不得 import pipeline/validators、pipeline/tools、pipeline/runner 下的脚本
+  - M4 产出的 content_status 只能是 machine_extracted / disputed / needs_expert
+  - 中文注释与 docstring；公开函数名、参数名、返回键、检查名、task_id、artifact_type 与 ACT contract 逐字一致
+  - 每个 ACT 一个提交；不得 git add -A / git add .；执行者不写台账、不写 ACCEPTED
+gates:
+  - bash docs/blackbox-spec-rework/verify-T.sh | tail -1                               # FAIL 合计: 0
+  - bash docs/blackbox-spec-rework/work-items/g3-r3/mutations.sh all | tail -1         # 与基线相同
+  - bash openspec/schemas/verify.sh >/dev/null; echo $?                                # 0
+  - .venv/bin/python -m unittest discover -s pipeline/ledger/tests -t .                # OK（与基线相同）
+  - .venv/bin/python -m unittest discover -s pipeline/corpus_compiler/tests -t .       # OK（与基线相同）
+  - .venv/bin/python -m unittest discover -s pipeline/knowledge_extraction/tests -t .  # OK（ACT 00 起）
+  - export LC_ALL=en_US.UTF-8; bash openspec/acceptance/run_all.sh | tail -1           # == TDD §0 BASELINE_RUN_ALL
+  - test ! -e pipeline/tools/import_legacy_candidates.py; echo $?                      # 0
+  - git diff --check
+on_fail: 停止并报告；contract 两种理解、测试无法按定义写出、Ledger 公开方法行为与 contract 假设不符、需要改 scope 外文件 → 一律停手上报

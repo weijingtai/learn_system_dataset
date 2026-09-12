@@ -1,0 +1,62 @@
+package: blackbox-impl-07-assembly
+title: 纵切后第一批：M7 Incremental Knowledge Assembly（§15、§6.2）
+status: DRAFT   # README §4 D-01～D-18 裁决前不得派发
+executor_groups:
+  F:  [impl-07/00, impl-07/01]              # fixture 与金标；不得与任何 J 组同一 Agent
+  J1: [impl-07/02, impl-07/03, impl-07/04]  # F 组 ACCEPTED 后派发
+  J2: [impl-07/05, impl-07/06]
+  J3: [impl-07/07, impl-07/08]
+  J4: [impl-07/09, impl-07/10]              # ACT 10 仅在 D-13 选 A/B 且主 Agent 书面授权改 run_all.sh 时派发
+acts:
+  - file: act/00.yaml
+    id: impl-07/00
+    writes: ["pipeline/corpus/_fixture/mini_release01/README.md", "pipeline/corpus/_fixture/mini_release01/manifest.yaml", "pipeline/corpus/_fixture/mini_release01/verify.sh", "pipeline/corpus/_fixture/mini_release01/tools/build_fixture.py", "pipeline/corpus/_fixture/mini_release01/editions/", "pipeline/corpus/_fixture/mini_release01/decisions/"]
+  - file: act/01.yaml
+    id: impl-07/01
+    writes: ["pipeline/corpus/_fixture/mini_release01/tools/build_fixture.py", "pipeline/corpus/_fixture/mini_release01/expected/", "pipeline/corpus/_fixture/mini_release01/manifest.yaml", "pipeline/corpus/_fixture/mini_release01/verify.sh"]
+  - file: act/02.yaml
+    id: impl-07/02
+    writes: ["pipeline/assembly/__init__.py", "pipeline/assembly/errors.py", "pipeline/assembly/canonical.py", "pipeline/assembly/model.py", "pipeline/assembly/tests/__init__.py", "pipeline/assembly/tests/test_canonical.py", "pipeline/assembly/tests/test_model.py"]
+  - file: act/03.yaml
+    id: impl-07/03
+    writes: ["pipeline/assembly/matcher.py", "pipeline/assembly/tests/test_matcher.py"]
+  - file: act/04.yaml
+    id: impl-07/04
+    writes: ["pipeline/assembly/apply.py", "pipeline/assembly/tests/test_apply.py"]
+  - file: act/05.yaml
+    id: impl-07/05
+    writes: ["pipeline/assembly/incremental.py", "pipeline/assembly/tests/test_incremental.py"]
+  - file: act/06.yaml
+    id: impl-07/06
+    writes: ["pipeline/assembly/gate.py", "pipeline/assembly/tests/test_gate.py"]
+  - file: act/07.yaml
+    id: impl-07/07
+    writes: ["pipeline/assembly/fixture_seed.py", "pipeline/assembly/inputs.py", "pipeline/assembly/step.py", "pipeline/assembly/__main__.py", "pipeline/assembly/tests/test_step.py"]
+  - file: act/08.yaml
+    id: impl-07/08
+    writes: ["pipeline/assembly/step.py", "pipeline/assembly/inputs.py", "pipeline/assembly/__main__.py", "pipeline/assembly/tests/test_human_loop.py"]
+  - file: act/09.yaml
+    id: impl-07/09
+    writes: ["pipeline/assembly/acceptance.py", "pipeline/assembly/tests/test_acceptance.py", "openspec/acceptance/m7-assembler.sh"]
+  - file: act/10.yaml
+    id: impl-07/10
+    writes: ["openspec/acceptance/run_all.sh"]
+global_rules:
+  - 每个 ACT 先写测试（Red 原文入报告）再实现；unittest；测试只用 tempfile 目录，不写 var/ 与任何 fixture
+  - 只用标准库 + PyYAML + jsonschema；不新增依赖；不新增 ID 前缀；不调用模型 API；不做模糊文本相似度
+  - 生产代码只读 Ledger 冻结修订；fixture_seed.py 与 acceptance.py 只经 --fixture/参数读 fixture；测试可读 fixture 作为输入或金标
+  - 不改任何 m6 StagePackage 或 reviewed_edition_knowledge 修订的状态；不读其他 ReleaseRun 的人工决定
+  - M7 不发 ent_ / rel_；不合成或升级 content_status
+  - 中文注释与 docstring；公开函数名、参数名、返回键、检查名、rule_id 与 ACT contract 逐字一致
+  - 每个 ACT 一个提交；只 git add contract 列出的路径；不得 git add -A / git add .
+  - 执行者不得写 SUBAGENT_TODO.md、HANDOFF.md、PLAN.md，不得自记 ACCEPTED
+gates:
+  - bash docs/blackbox-spec-rework/verify-T.sh | tail -1                          # FAIL 合计: 0
+  - bash openspec/schemas/verify.sh >/dev/null; echo $?                           # 0
+  - bash pipeline/corpus/_fixture/mini_ed01/verify.sh >/dev/null; echo $?         # 0 或 3
+  - bash pipeline/corpus/_fixture/mini_release01/verify.sh >/dev/null; echo $?    # ACT 01 起 0
+  - .venv/bin/python -m unittest discover -s pipeline/ledger/tests -t .           # OK
+  - .venv/bin/python -m unittest discover -s pipeline/assembly/tests -t .         # OK（ACT 02 起）
+  - export LC_ALL=en_US.UTF-8; bash openspec/acceptance/run_all.sh | tail -1      # ACT 10 前：SUMMARY pass=2 fail=1 blocked=8
+  - git diff --check
+on_fail: 停止并报告；contract 有两种理解、金标与实现不一致、测试无法按定义写出、需要改 scope 外文件、Ledger API 行为与 contract 描述不符 → 一律停手上报，不得自行改金标或 Ledger

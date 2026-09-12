@@ -1,0 +1,70 @@
+act_id: impl-08/08
+title: §20.10 判定：存储端口一致性套件 + pipeline.contract_registry.acceptance 五项 + openspec/acceptance/contract-registry.sh
+estimated_minutes: 85
+group: K4
+depends_on: [impl-08/07]
+scope:
+  write: [pipeline/orchestrator/suites.py, pipeline/contract_registry/acceptance.py, pipeline/contract_registry/tests/test_acceptance.py, openspec/acceptance/contract-registry.sh]
+tests_first:
+  - 先写 tests/test_acceptance.py（用例名逐字）并全红，再实现 suites.py 与 acceptance.py，最后新建 contract-registry.sh
+  - ledgerd 启停照抄 pipeline/ledger/tests/test_daemon.py 与 ACT 01 test_ledgerd_adapter_smoke 的做法
+contract: |
+  pipeline/orchestrator/suites.py（一致性套件放在 orchestrator 包内，保持 contract_registry → orchestrator 无运行期反向依赖；conformance.py/ports.py/catalog.py 仍不得 import orchestrator）：
+    stub_edition_suite(port) -> str processing_run_id
+      registry = Registry.from_dict(仓库 registry.yaml deepcopy，modules 替换为 StubModule("m1").descriptor()、StubModule("m2", human_queue=True).descriptor()、StubModule("m3").descriptor()，allow_stub=True)
+      modules = {三个桩的 module_id: 桩}
+      handle = start_edition_run(port, edition_part_id=ids.new_id("artifact_id"), technique_id="qizheng")
+      run_until(port, registry, handle, "m2", modules=modules) → 末个 step_result.status == "awaiting_human"（否则 raise RuntimeError）
+      在该 StepRun 上 put_artifact(step, "human_event", json {"decision": "stub_accept"} bytes, producer_module="stub.reviewer", producer_version="0.0.0") → seal
+      human.record_human_event(port, registry, handle, step, token, event_rev, modules=modules) → human.resume(port, registry, handle, step, token, modules=modules)
+      run_until(port, registry, handle, "m3", modules=modules)；返回 handle["processing_run_id"]
+  pipeline/contract_registry/acceptance.py：python -m pipeline.contract_registry.acceptance [--registry <path>] [--keep]
+    CHECKS = ("l0_schemas_verified", "registry_consistent", "storage_port_substitutable", "modules_port_clean", "other_ports_adapters")（顺序固定）
+    行格式：`PASS <名>` / `FAIL <名> <原因>` / `BLOCKED <名> 前置缺失: <§19 行名>；<说明>`；末行 `SUMMARY pass=<n> fail=<n> blocked=<n>`
+    LEDGER_INTERNAL_RE = re.compile(r"\.store\b|\.objects\b")
+    ORCHESTRATOR_SCAN_ROOTS = [REPO_ROOT / "pipeline" / "orchestrator"]（模块级常量，测试可 patch）
+    scan_ledger_internals(roots) -> list[tuple[str, int]]：遍历 roots 下 *.py（排除任意层级 tests/ 目录），返回 (相对 REPO_ROOT 路径, 行号)，按路径与行号排序
+    l0_schemas_verified：subprocess ["bash", "openspec/schemas/verify.sh"]（cwd=REPO_ROOT）退出 0 → PASS；否则 FAIL「verify.sh 退出码 <rc>」
+    registry_consistent：check_registry(load_registry(path), resolve_entries=True) == [] → PASS；否则 FAIL「<首个 code>: <detail>（共 <n> 项）」
+    storage_port_substitutable：
+      adapter_factories = {"ledger_direct": tempfile 根 → DirectLedgerAdapter；"ledgerd_client": tempfile 根 → 启动 ledgerd → LedgerdClientAdapter}（cleanup 关闭适配器、停 ledgerd、删目录；--keep 时保留目录）
+      report = substitution_report("storage", adapter_factories, stub_edition_suite, fingerprint=lambda adapter_id: sha256(json.dumps(sorted(interface_fingerprint(registry, m["module_id"]) for m in registry.modules)).encode()).hexdigest())
+      附加断言：两个 outcomes 中 stage == "m2" 的 StepRun event_types 均依次包含 "await_human"、"human_event"、"resume"（保证套件覆盖人工恢复路径）
+      report.substitutable 且附加断言成立 → PASS；否则 FAIL「<problems 以 "; " 连接 或 附加断言说明>」
+    modules_port_clean：
+      hits = scan_ledger_internals(ORCHESTRATOR_SCAN_ROOTS)；非空 → FAIL「Orchestrator 越过 LedgerPort: <path:line>, …」（Orchestrator 自身越界是缺陷，不是前置缺失）
+      对 registry.modules 中 kind != "stub" 且 binding != "imported" 者：包目录 = entry 冒号前模块路径去掉最后一段后转目录（pipeline.corpus_compiler.step → pipeline/corpus_compiler）；
+        hits 非空 → 记入 dirty[module_id]
+      dirty 非空 → BLOCKED `前置缺失: Contract Registry；<module_id> 入口直接访问 Ledger 内部（<path:line>, …，最多列 5 处，超出写「等共 <n> 处」）`（多个模块以「；」再连接）
+      全部干净 → PASS
+    other_ports_adapters：对 ("ocr", "model", "index") 统计 entry 非 null 的 adapter 数 n_ocr/n_model/n_index
+      任一 < 2 → BLOCKED `前置缺失: Contract Registry；ocr/model/index 端口 Adapter 数不足 2（ocr=<n>, model=<n>, index=<n>）`
+      全部 ≥ 2 → BLOCKED `前置缺失: Contract Registry；ocr/model/index 端口未登记一致性套件`（本包不存在这三类套件，永不 PASS）
+    退出码：3 仅限 yaml/jsonschema 不可导入；某项判定抛异常 → 该项 `FAIL <名> 宿主准备失败: <类名>: <消息>`；任一 FAIL → 1；无 FAIL 有 BLOCKED → 2；全 PASS → 0
+  openspec/acceptance/contract-registry.sh（新建，权限 755）：
+    set -u；export LC_ALL=en_US.UTF-8；REPO_ROOT 由脚本目录推出；PY="$REPO_ROOT/.venv/bin/python"
+    PY 不可执行 → `BLOCKED contract_registry 前置缺失: 测试宿主匮乏；.venv 缺失` + `SUMMARY pass=0 fail=0 blocked=1` exit 3
+    cd "$REPO_ROOT" && "$PY" -m pipeline.contract_registry.acceptance "$@"，退出码原样返回
+tests:
+  test_acceptance.py: |
+    - test_repository_yields_three_pass_two_blocked_exit_2
+    - test_modules_port_clean_blocked_lists_corpus_compiler_lines（BLOCKED 行含 "m3.corpus_structural" 与 "pipeline/corpus_compiler/"）
+    - test_other_ports_blocked_counts_text（含 "ocr=0, model=0, index=0"）
+    - test_tampered_registry_hash_fails_exit_1（临时登记表副本改一个 sha256 → --registry → registry_consistent FAIL）
+    - test_storage_outcome_divergence_fails（patch conformance.normalize_outcome：第二次调用结果追加一个事件 → storage_port_substitutable FAIL，exit 1）
+    - test_suite_covers_human_resume_path（直接调用两个工厂与 stub_edition_suite，断言 m2 事件序列）
+    - test_orchestrator_leak_is_fail_not_blocked（patch ORCHESTRATOR_SCAN_ROOTS 为临时目录，其中 x.py 含 "svc.store.conn" → modules_port_clean FAIL）
+    - test_scan_excludes_tests_directories
+    - test_missing_dependency_exit_3（patch 依赖探测函数返回缺失 → exit 3）
+    - test_shell_exit_2（subprocess contract-registry.sh：末行 SUMMARY pass=3 fail=0 blocked=2，exit 2）
+verify:
+  - .venv/bin/python -m unittest discover -s pipeline/contract_registry/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 34
+  - .venv/bin/python -m unittest discover -s pipeline/orchestrator/tests -t . 2>&1 | tail -3        # OK（≥ 72，未回退）
+  - export LC_ALL=en_US.UTF-8; bash openspec/acceptance/contract-registry.sh; echo exit=$?           # 3 PASS + 2 BLOCKED + SUMMARY pass=3 fail=0 blocked=2；exit=2
+  - grep -nE '^\s*(from|import) pipeline\.orchestrator' pipeline/contract_registry/catalog.py pipeline/contract_registry/ports.py pipeline/contract_registry/conformance.py | wc -l   # 0
+  - bash openspec/acceptance/run_all.sh | tail -1                                                    # SUMMARY pass=2 fail=1 blocked=8（本 ACT 未改 run_all.sh）
+  - TDD §3 回归
+commit:
+  add: [pipeline/orchestrator/suites.py, pipeline/contract_registry/acceptance.py, pipeline/contract_registry/tests/test_acceptance.py, openspec/acceptance/contract-registry.sh]
+  message: "feat(registry): §20.10 acceptance — storage port direct/ledgerd substitution PASS, module port leakage and missing OCR/model/index adapters BLOCKED"
+on_fail: 停止并报告；不得把 other_ports_adapters 写成 PASS；ledgerd 下套件失败时如实 FAIL 并附 problems，不得改 pipeline/ledger

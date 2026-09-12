@@ -1,0 +1,103 @@
+act_id: impl-09/00
+title: M1 纯函数：申报件校验、页图读取与 PNG 尺寸、source_manifest 构造与金标序列化
+estimated_minutes: 75
+group: K1
+depends_on: []
+scope:
+  write: [pipeline/source_intake/__init__.py, pipeline/source_intake/errors.py, pipeline/source_intake/serialize.py, pipeline/source_intake/submission.py, pipeline/source_intake/assets.py, pipeline/source_intake/manifest.py, pipeline/source_intake/tests/__init__.py, pipeline/source_intake/tests/helpers.py, pipeline/source_intake/tests/test_manifest.py]
+tests_first:
+  - 先写 tests/helpers.py 与 tests/test_manifest.py（用例名与下文逐字），运行 `.venv/bin/python -m unittest discover -s pipeline/source_intake/tests -t .`，因 ImportError 全红，记录 Red；再实现
+contract: |
+  __init__.py：
+    M1_TOOL = "pipeline.source_intake"；M1_TOOL_VERSION = "0.1.0"
+    ASSET_TASK_PREFIX = "asset_"；MANIFEST_TASK_ID = "ingest_source"（与 pipeline/ledger/fixture_ingest.py:54、corpus_compiler/inputs.py:35 逐字一致）
+  errors.py：
+    class IntakeRefused(pipeline.ledger.errors.LedgerError)，构造 IntakeRefused(message, code=None)
+    class SourceAssetMissing(IntakeRefused)，构造 SourceAssetMissing(paths)
+      paths：list[str]，按页序；code="SRC_001"
+      message = "\n".join("BLOCKED_SOURCE_ASSET_MISSING %s" % p for p in paths)
+  serialize.py：dump_manifest_yaml(obj) -> bytes
+    _M1Dumper 为 yaml.SafeDumper 的私有子类，只在该子类上 add_representer(str, …)
+    匹配 ^[0-9a-f]{64}$ 的字符串以 style='"' 输出，其余走 represent_str
+    yaml.dump(obj, Dumper=_M1Dumper, allow_unicode=True, sort_keys=False, default_flow_style=False, width=10**9, indent=2).encode("utf-8")
+    不得向 yaml.SafeDumper 注册任何 representer
+    （起草时已验证：fixture manifest.yaml 经 safe_load 后按此规则写出，字节相同，共 2087 字节）
+  submission.py：
+    RELEASE_POLICIES = ("full_scan", "derived_page_images_only", "reference_and_hash_only")（规格 §16:717–721）
+    SUBMISSION_KEYS = ("source_id", "work_title", "edition_note", "technique_id", "rights_status", "release_policy", "edition_part", "asset_root_ref", "derivation")
+    load_submission(data) -> dict（不修改入参）
+      data 非 dict → SchemaViolation(SCH_001)；缺 SUBMISSION_KEYS 中的键 → SchemaViolation(SCH_001)；有额外键 → SchemaViolation(SCH_002)
+      source_id → pipeline.ledger.ids.validate("source_id", …)（ID_001）
+      work_title、rights_status：非空 str，否则 SCH_001；edition_note：str，否则 SCH_001
+      technique_id：匹配 ^[a-z][a-z0-9]*$，否则 SCH_002
+      release_policy ∈ RELEASE_POLICIES，否则 SCH_002
+      edition_part：
+        键集合必须 == {artifact_id, label, pages}（缺 SCH_001，多 SCH_002）
+        artifact_id → ids.validate("artifact_id", …)
+        label 非空 str（SCH_001）
+        pages 非空 list，每项匹配 ^page_[0-9]{3,4}$，且无重复（SCH_002）
+      asset_root_ref：非空 str；不以 "/" 开头或结尾；按 "/" 切分后不含 ".." 或空段（SCH_002）
+      derivation：
+        键集合必须 == {parent_kind, parent_ref, parent_sha256, note}
+        parent_sha256 为 None 或匹配 ^[0-9a-f]{64}$（SCH_002）
+        其余三键为 str（SCH_001）
+      返回：按 SUBMISSION_KEYS 顺序重建的新 dict；edition_part 键序为 artifact_id, label, pages；derivation 键序为 parent_kind, parent_ref, parent_sha256, note
+  assets.py：
+    PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
+    png_size(data: bytes) -> tuple[int, int]
+      len(data) ≥ 24，且 data[:8] == PNG_SIGNATURE，且 data[12:16] == b"IHDR" → struct.unpack(">II", data[16:24])
+      否则 SchemaViolation(code="SCH_002")
+    read_assets(asset_dir, pages) -> list[dict]
+      asset_dir 不是目录 → SourceAssetMissing([str(asset_dir)])
+      路径 = Path(asset_dir) / (page + ".png")；按 pages 顺序先收集全部不存在的路径，非空则一次 raise SourceAssetMissing(paths)
+      每项 {"page", "data": bytes, "sha256": hashlib.sha256(data).hexdigest(), "size": len(data), "width", "height"}（宽高来自 png_size）
+      只读，不写任何文件，不跟随符号链接之外的操作
+    unlisted_assets(asset_dir, pages) -> list[str]
+      目录内以 ".png" 结尾、且 stem 不在 pages 中的文件名，排序后返回
+  manifest.py（纯函数：不读文件、不取时间、不用随机数）：
+    build_source_manifest(submission, assets) -> dict
+      [a["page"] for a in assets] 必须 == submission["edition_part"]["pages"]，否则 IntakeRefused(code="SCH_002")
+      键序逐字：source_id, work_title, edition_note, technique_id, rights_status, release_policy, edition_part, source_assets, files, conversion, content_status
+      edition_part = {"artifact_id", "label", "pages": list(pages)}
+      source_assets = [{"page", "path_ref": asset_root_ref + "/" + page + ".png", "sha256", "width", "height", "object_store": "local", "in_git": False} …]
+      files = []
+      conversion = {"tool": M1_TOOL, "tool_version": M1_TOOL_VERSION, "inputs": [各 path_ref], "note": "M1 只登记派生页图哈希与尺寸；不做 OCR（§9）"}
+      content_status = "machine_extracted"（D-09-08 附问裁决前按 fixture 形状保留）
+    manifest_bytes(submission, assets) -> bytes = serialize.dump_manifest_yaml(build_source_manifest(submission, assets))
+  tests/helpers.py（只供测试）：
+    FIXTURE = Path("pipeline/corpus/_fixture/mini_ed01")
+    make_png(width, height) -> bytes：签名 + IHDR 块（长度 13、类型、宽高、位深 8、色彩类型 0、压缩 0、滤波 0、隔行 0、CRC 用 zlib.crc32）+ IEND 块
+    fixture_submission(pages=("page_001","page_002","page_003")) -> dict
+      source_id、work_title、edition_note、technique_id、rights_status、release_policy、edition_part.artifact_id 与 label 均取自 fixture manifest.yaml
+      asset_root_ref = "ocr/data_work/sanche_pages"
+      derivation = {"parent_kind": "pdf", "parent_ref": "本机源 PDF（不进仓）", "parent_sha256": None, "note": "测试申报件"}
+    write_synthetic_assets(dir, pages, width=1203, height=1654)：写入 <dir>/<page>.png；各页 PNG 在 IEND 之后追加页名字节，保证哈希互不相同
+tests:
+  test_manifest.py: |
+    - test_dump_roundtrip_fixture_manifest_bytes（safe_load fixture manifest.yaml 后 dump_manifest_yaml == 原文件字节）
+    - test_dump_does_not_touch_global_safedumper（调用前后 yaml.SafeDumper.yaml_representers 相等）
+    - test_sha256_quoted_other_strings_plain（64 位十六进制带双引号；"page_001"、"1203" 等其他字符串不加引号）
+    - test_load_submission_valid_returns_new_dict（返回值键序 == SUBMISSION_KEYS；修改返回值不影响入参）
+    - test_submission_missing_key_SCH_001
+    - test_submission_extra_key_SCH_002
+    - test_submission_bad_source_id_ID_001
+    - test_submission_bad_release_policy_SCH_002
+    - test_submission_bad_pages_duplicate_or_name_SCH_002
+    - test_submission_asset_root_ref_absolute_or_dotdot_SCH_002
+    - test_png_size_reads_ihdr（make_png(1203,1654) → (1203,1654)）
+    - test_png_size_rejects_non_png_SCH_002
+    - test_read_assets_collects_all_missing_paths（3 页缺 2 页 → paths 按页序含 2 项；message 每行以 BLOCKED_SOURCE_ASSET_MISSING 开头）
+    - test_read_assets_missing_dir
+    - test_unlisted_assets_sorted
+    - test_build_manifest_key_order_and_values
+    - test_fixture_shape_parity_with_synthetic_assets（fixture_submission + 合成 1203×1654 页图 → 顶层键序 == fixture manifest；source_id…edition_part 值相等；source_assets 各项除 sha256 外与 fixture 相等）
+    - test_manifest_bytes_deterministic（两次调用字节相同）
+verify:
+  - .venv/bin/python -m unittest discover -s pipeline/source_intake/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 18
+  - grep -rnE 'PIL|paddle|requests|openai|anthropic|httpx' pipeline/source_intake --include='*.py' | wc -l   # 0
+  - grep -rn 'SafeDumper.add_representer' pipeline/source_intake --include='*.py' | wc -l   # 0
+  - TDD §3 回归
+commit:
+  add: [pipeline/source_intake]
+  message: "feat(m1): pure source intake core — submission validation, png assets, fixture-shaped source manifest (spec §9/§22.1)"
+on_fail: 停止并报告；往返字节不一致时不得修改 fixture，报告首个差异位置；需要新增申报件字段时停手上报（属 D-09-02 裁决范围）

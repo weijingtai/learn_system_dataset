@@ -1,0 +1,62 @@
+act_id: impl-05/05
+title: M4 类别分歧人工裁决（record_category_ruling，每条即时 Checkpoint）与恢复（resume_m4）+ CLI rule/resume
+estimated_minutes: 75
+group: K3
+depends_on: [impl-05/04]
+pending_decisions: [D-14]
+scope:
+  write: [pipeline/knowledge_extraction/step.py, pipeline/knowledge_extraction/__main__.py, pipeline/knowledge_extraction/tests/test_ruling.py]
+tests_first:
+  - 先写 tests/test_ruling.py（用例名逐字）并全红，再在 step.py 追加实现（不改 run_m4 已验收行为）
+contract: |
+  step.py 追加：
+    RULING_CHOICES = ("a", "b", "both", "neither")
+    record_category_ruling(service, step_run_id, resume_token, ruling_doc) -> dict
+      写入前校验（任一失败 → ExtractionRefused，Ledger 无新增修订）：
+        R1 StepRun 存在且 status == "awaiting_human"
+        R2 ruling_doc 键恰为 {schema_version, dispute_id, choice, rationale}；schema_version == CANDIDATE_SCHEMA_VERSION；rationale 非空；choice ∈ RULING_CHOICES（否则 code SCH_002）
+        R3 本 StepRun 自有、sealed、artifact_type == "dispute_queue" 的修订恰 1 个（只读 SELECT）；dispute_id ∈ 其内容 disputes（否则 code REF_001）
+        R4 本 StepRun 已登记人工事件（human_events 表只读 SELECT）的内容中无相同 dispute_id（否则 code ID_002）
+      写入：
+        W1 event = {"schema_version", "event_kind": "category_ruling", "stage": "m4", "processing_run_id", "step_run_id", "dispute_id", "choice", "rationale", "actor_ref": service 当前 actor, "seen": {"dispute_queue_revision_id"}}
+        W2 event_rev = put_artifact(step, "human_event", canonical_json(event), producer_module=M4_TOOL, producer_version=M4_TOOL_VERSION) → seal
+        W3 service.record_human_event(step, resume_token, event_rev, decision_type=None)
+            （已知限制：token 非法时 W2 的 sealed 修订已存在但未登记为人工事件；验收只认 human_events 表，Checkpoint 不写）
+        W4 write_checkpoint(step, stage="m4", completed_tasks=[{"task_id": dispute_id, "artifact_revision_id": event_rev, "status": "succeeded", "terminal_state": None}],
+                           human_decisions=[本 StepRun 全部已登记裁决事件修订，按登记顺序], pending_queue=[其余未裁决 dispute_id …] + [{"task_id": "assemble"}], next_pointer=首个待办)
+      返回 {"event_revision_id", "checkpoint_revision_id", "remaining_dispute_ids"}
+    resume_m4(service, step_run_id, resume_token, *, id_factory=None) -> dict
+      消费 token 之前（失败 → ExtractionRefused，token 不被消费）：StepRun awaiting_human；dispute_queue 中每个 dispute_id 都有已登记裁决
+      service.resume(step, resume_token)
+      之后任何异常 → _fail(step, "internal", …)
+      重建 ctx：从 frozen_inputs（只读 SELECT）与配置修订内容重新读取 spans_doc、profile、提交件、id_range、required_lanes（不得依赖进程内缓存或 run_m4 返回值）
+      完整性（检查名 input_contract）：按冻结输入重算每路 normalize_lane 的 canonical_json，必须与本 StepRun 已封存的 candidate_lane_set 修订字节逐一相同；
+        重算 reconcile_lanes 的 disputes 必须与已封存 dispute_queue 内容相同
+      rulings = {事件.dispute_id: 事件.choice}；human_event_revision_ids = 登记顺序
+      调用 _complete(service, step, ctx, rulings=rulings, human_event_revision_ids=human_event_revision_ids)（ACT 04 签名，不改其行为）
+      返回值同 run_m4 成功/失败 summary
+  __main__.py 追加子命令：
+    rule --step-run <srun> --token <token> --from <ruling.yaml> → 末行 `M4 RULED <dispute_id> remaining=<n>` exit 0；被拒 `M4 REFUSED …` exit 2
+    resume --step-run <srun> --token <token>                    → 同 assemble 的 OK / FAILED / REFUSED 行与退出码
+tests:
+  test_ruling.py: |
+    脚手架：test_submit 脚手架 + 附录 A 三件提交 → run_m4 得 awaiting_human 与 token
+    - test_gold_full_path_succeeds（rule m4_d001=a → resume_m4 → succeeded；assertions 2：as_qizheng_000001 == 宋錢如璧撰；rejected 1 且为 assertion/b/2/TXT_001；new_concept_candidates 2；counts 与附录 A 一致）
+    - test_ruling_checkpoint_written_immediately（rule 之后、resume 之前，最新 m4 Checkpoint 的 completed_tasks[0].task_id == "m4_d001" 且 human_decisions 含事件修订）
+    - test_human_event_registered_with_null_decision_type
+    - test_transformation_carries_ruling_event_ids
+    - test_six_assemble_checkpoints_in_order（lane_assertion_a、lane_assertion_b、lane_concept_mention_a、reconcile、m4_d001、assemble）
+    - test_resume_refused_when_unruled_token_not_consumed（未裁决即 resume → 拒绝；随后 rule + resume 成功）
+    - test_duplicate_ruling_refused_no_new_revisions
+    - test_unknown_dispute_id_refused_no_new_revisions
+    - test_invalid_choice_refused
+    - test_resume_with_consumed_token_rejected_by_ledger
+    - test_tampered_lane_set_fails_input_contract（patch assemble.normalize_lane 在 resume 时返回不同结果 → failed_check input_contract）
+    - test_cli_rule_and_resume（subprocess：rule 末行以 "M4 RULED m4_d001" 开头 exit 0；resume 末行以 "M4 OK" 开头 exit 0）
+verify:
+  - .venv/bin/python -m unittest discover -s pipeline/knowledge_extraction/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 97
+  - TDD §3 回归
+commit:
+  add: [pipeline/knowledge_extraction/step.py, pipeline/knowledge_extraction/__main__.py, pipeline/knowledge_extraction/tests/test_ruling.py]
+  message: "feat(m4): category dispute rulings as human events with immediate checkpoints and deterministic resume"
+on_fail: 停止并报告；record_human_event 或 resume 的 Ledger 行为与 contract 假设不符、需要改 run_m4 已验收行为 → 停手上报

@@ -1,0 +1,85 @@
+act_id: impl-05/03
+title: Registry Adapter（technique_profile）+ 输入解析 inputs.py + 每路一个 m4 submit StepRun（submit.py）
+estimated_minutes: 85
+group: K2
+depends_on: [impl-05/02, impl-02/05]
+pending_decisions: [D-01, D-04, D-05, D-15]
+scope:
+  write: [pipeline/knowledge_extraction/adapters/registry.py, pipeline/knowledge_extraction/inputs.py, pipeline/knowledge_extraction/submit.py, pipeline/knowledge_extraction/tests/test_registry.py, pipeline/knowledge_extraction/tests/test_submit.py]
+tests_first:
+  - 先写 tests/test_registry.py 与 tests/test_submit.py（用例名逐字），全部 Red 后再实现
+contract: |
+  adapters/registry.py：
+    build_technique_profile(*, technique_id, canon_dir) -> bytes
+      读 canon_dir 下 *.yaml（按文件名排序；不读子目录与 .md）；每个文件 files 项 {"name", "sha256"(文件字节)}；
+      concepts 取各文件 concepts[] 的 {"concept_id", "surface", "aliases"(缺省 []), "domain", "rev"}，concept_id 经 ids.validate("shared_concept_id")（失败 → InvalidIdentifier ID_001），
+      重复 → ExtractionRefused(code="ID_002")；每个文件 len(concepts) == closed_set_size，否则 ExtractionRefused(code="SCH_002")
+      内容 = {"schema_version": CANDIDATE_SCHEMA_VERSION, "technique_id", "canon": {"files", "concepts"(按 concept_id 排序)}, "homographs": [], "glossary": [], "schools": []}
+      返回 canonical_json(内容)
+    register_technique_profile(service, processing_run_id, *, technique_id, canon_dir) -> str
+      service.put_run_artifact(processing_run_id, "technique_profile", build_technique_profile(...), producer_module=M4_TOOL + ".adapters.registry", producer_version=M4_TOOL_VERSION) → 返回修订号
+  inputs.py（只调用 LedgerReadMixin 公开方法；允许经 reader.store.conn 只读 SELECT；不做任何写入）：
+    resolve_m3_outputs(reader, edition_part_id) -> dict
+      返回键：processing_run_id, technique_id, m3_step_run_id, corpus_stage_package_id, corpus_stage_package_revision_id, corpus_package_revision_id, spans_revision_id
+      规则：
+        候选 = list_checkpoints(ep, "m3") 中出现过的 step_run_id（去重保序）里，get_step_run.status == "succeeded"，
+              且 list_transformations 中存在 operation == "compile_corpus" 的记录，其输出里 artifact_type == "corpus_package" 恰 1 个、== "corpus_spans" 恰 1 个
+        候选 0 个 → ExtractionRefused(code="REF_001", message 含「M3 未通过」)；多于 1 个 → ExtractionRefused(message 含「多个 M3 结果」)
+        m3 StagePackage：该 StepRun 在 stage_packages 表中 stage == "m3" 的记录恰 1 条（列名以 pipeline/ledger/store.py 为准），其修订 sealed；
+          内容 JSON payload.spans_revision_id == spans_revision_id，payload.gate_profile == "structural_only"，否则 ExtractionRefused(code="REF_001")
+        technique_id 取该 ProcessingRun 的 technique_id（processing_runs 表只读 SELECT）
+        全部修订 status == "sealed"，否则 pipeline.ledger.errors.NotConsumable
+    resolve_m4_inputs(reader, edition_part_id, *, technique_profile_revision_id=None) -> dict
+      返回键：resolve_m3_outputs 的全部键 + technique_profile_revision_id, submissions({"<category>/<lane>": {"revision_id", "step_run_id", "channel"}})
+      规则：
+        m4 已封存：list_checkpoints(ep, "m4") 中任一 Checkpoint 所属 StepRun succeeded 且其配置修订内容 task == "assemble" → ExtractionRefused(message 含「M4 已封存」)
+        submissions：list_checkpoints(ep, "m4") 的 completed_tasks 中 task_id 形如 submit_<category>_<lane>、status == "succeeded"、所属 StepRun succeeded、修订 artifact_type == "candidate_submission"；
+          同一 category/lane 多于 1 件 → ExtractionRefused(code="ID_002")；channel 取提交件内容
+        technique_profile：给定参数则校验其 artifact_type == "technique_profile"、sealed、内容 technique_id 一致；
+          未给定则在该 ProcessingRun 的 technique_profile 修订中筛内容 technique_id 一致者：0 个 → ExtractionRefused(code="REF_001")；多于 1 个 → ExtractionRefused(message 含「需显式指定」)
+  submit.py：run_m4_submit(service, edition_part_id, submission_bytes, *, producer_module, producer_version, model_ref=None) -> dict
+    begin 之前（任何拒绝都不得写入 Ledger）：
+      1 m3 = resolve_m3_outputs(service, edition_part_id)
+      2 doc = json.loads(submission_bytes)，失败再 yaml.safe_load；非 dict → SchemaViolation(SCH_001)；doc = validate_submission(doc, technique_id=m3.technique_id)
+      3 doc.channel ∉ ACCEPTED_CHANNELS 或 doc.lane == "c" → ExtractionRefused(code="SCH_002", message 含「首切片不收」)
+      4 M4 已封存、同 category/lane 已有 succeeded 提交 → ExtractionRefused（复用 inputs 规则）
+    写入：
+      5 config = put_run_artifact(processing_run_id, "configuration", canonical_json({"stage": "m4", "task": "submit", "category", "lane", "channel", "tool": M4_TOOL, "tool_version": M4_TOOL_VERSION}), producer_module=M4_TOOL, producer_version=M4_TOOL_VERSION)
+      6 frozen = [corpus_stage_package_revision_id, spans_revision_id]；step = begin_step_run({"schema_version": "1.0.0", "processing_run_id", "step_run_id": ids.new_id("step_run_id"), "input_artifact_ids": frozen, "technique_profile_id": technique_id, "configuration_artifact_id": config})
+      begin 之后任何异常 → _fail(step, "internal", "<异常类名>: <消息>")
+      7 submission_rev = put_artifact(step, "candidate_submission", canonical_json(doc), producer_module=producer_module, producer_version=producer_version) → seal
+      8 checkpoint = write_checkpoint(step, edition_part_id=ep, stage="m4", completed_tasks=[{"task_id": "submit_%s_%s" % (category, lane), "artifact_revision_id": submission_rev, "status": "succeeded", "terminal_state": None}], human_decisions=[], pending_queue=[], next_pointer=None)
+      9 log = put "step_log"（每步一行 UTF-8 文本，不含时间戳）→ seal
+      10 record_transformation(step, operation="register_submission", tool=producer_module, tool_version=producer_version, configuration_revision_id=config, input_revision_ids=frozen, output_revision_ids=[submission_rev], model_ref=model_ref, validation_report_revision_id=None, human_event_revision_ids=[])
+      11 finish_step_run(step, {"schema_version": "1.0.0", "processing_run_id", "step_run_id": step, "status_version": 当前值 + 1, "status": "succeeded", "output_artifact_ids": [submission_rev], "validation_report_ids": [], "log_artifact_ids": [log], "failure_artifact_ids": []})
+    _fail(step, check, detail)：put "failure_report"（canonical_json {"check", "detail"}）→ seal → fail_step_run(step, [失败修订], "M4 submit %s: %s" % (check, detail))
+    返回 summary 键：status("succeeded"|"failed"), processing_run_id, step_run_id, configuration_revision_id, frozen_input_revision_ids, category, lane, channel，
+      成功时加 submission_revision_id, checkpoint_revision_id, log_revision_id；失败时加 failed_check, failure_revision_id, reason
+tests:
+  test_registry.py: |
+    - test_profile_concepts_equal_closed_set_sizes（概念数 == 六个文件 closed_set_size 之和；homographs/glossary/schools == []）
+    - test_profile_bytes_deterministic
+    - test_profile_rejects_bad_concept_id（临时 canon 副本改一个 concept_id）
+    - test_register_profile_is_sealed_run_artifact
+  test_submit.py: |
+    统一脚手架：tempfile → LedgerService(root/"ledger") → ingest(FIXTURE, service, stages=("m1","m2")) → run_m3(service, ep) → register_technique_profile(canon_dir=pipeline/schemas/shared/canon)
+    - test_resolve_m3_outputs_after_run_m3
+    - test_resolve_refuses_fixture_only_m3（ingest stages=("m1","m2","m3")、不跑 run_m3 → ExtractionRefused「M3 未通过」）
+    - test_resolve_refuses_without_m3
+    - test_submit_gold_assertion_a_succeeds（StepRun succeeded；frozen 恰 2 个；1 个 Checkpoint task_id submit_assertion_a；Transformation register_submission；提交件 sealed 且字节 == canonical_json(validate_submission(...))）
+    - test_submit_lane_isolation（先提交 A 再提交 B：B 的 frozen_inputs 不含任何 candidate_submission）
+    - test_duplicate_lane_refused_no_writes（artifact_revisions、step_runs、audit_log 行数不变）
+    - test_model_adapter_channel_refused_no_writes
+    - test_lane_c_refused_no_writes
+    - test_shape_error_refused_before_begin
+    - test_resolve_m4_inputs_lists_three_gold_submissions
+    - test_resolve_m4_inputs_multiple_profiles_refused
+verify:
+  - .venv/bin/python -m unittest discover -s pipeline/knowledge_extraction/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 72
+  - .venv/bin/python -m unittest discover -s pipeline/ledger/tests -t . 2>&1 | tail -1                 # 与基线相同
+  - .venv/bin/python -m unittest discover -s pipeline/corpus_compiler/tests -t . 2>&1 | tail -1        # 与基线相同
+  - TDD §3 回归
+commit:
+  add: [pipeline/knowledge_extraction/adapters/registry.py, pipeline/knowledge_extraction/inputs.py, pipeline/knowledge_extraction/submit.py, pipeline/knowledge_extraction/tests/test_registry.py, pipeline/knowledge_extraction/tests/test_submit.py]
+  message: "feat(m4): technique profile adapter, input resolution and per-lane submit step runs on the ledger"
+on_fail: 停止并报告；stage_packages 表或 processing_runs.technique_id 不存在、finish_step_run 要求 StagePackage、put_run_artifact 拒收 technique_profile → 停手上报，不得改 pipeline/ledger

@@ -1,0 +1,46 @@
+act_id: impl-06/07
+title: 最薄 Review Console（命令行）：open / queue / show / decide / decide-batch / close / recover（§14 M6 模式、§22.3 只读对照与签发）
+estimated_minutes: 60
+group: K2
+depends_on: [impl-06/06]
+decisions_required: [D-02, D-16]
+scope:
+  write: [pipeline/review/console.py, pipeline/review/__main__.py, pipeline/review/tests/test_console.py]
+tests_first:
+  - 先写 tests/test_console.py（用例名逐字），全部 Red 后再实现
+contract: |
+  __main__.py：python -m pipeline.review --root <ledger_root> <子命令> …（--root 即 Ledger 根目录，与 pipeline.ledger.cli 一致）；委托 console.main(argv) 并以其返回值退出
+  console.py：main(argv=None) -> int；Console 只调用 step.py 公开函数与 Ledger 读接口，不直接写修订
+    open --edition-part <art_>：成功逐行打印队列 `<queue_item_id>\t<decision_type>\tpending`，末行 `M6 AWAITING <step_run_id> token=<resume_token> pending=<n>`，退出 0
+    queue --step-run <srun_>：只读；每项一行 `<queue_item_id>\t<decision_type>\t<pending|accept|amend|reject|request_evidence|needs_review|carried_forward>`；末行 `M6 QUEUE <step_run_id> pending=<n>`
+    show --step-run <srun_> --item <queue_item_id>：只读；依次打印
+      `TARGET <entity_id> kind=<kind> seen=<rev>`、内容 JSON 一行、
+      每条证据 `EVIDENCE <span_id> page=<page> line=<line_id> bbox=<x,y,w,h> image_sha256=<hex> quote=<引文>`、
+      每条 M5 条目 `VALIDATION <check> <result> <code|->`、已有决定 `DECISION <rev> <verdict> <standing>`
+      （页图不渲染；原文/扫描对照以字框坐标与图像哈希文本呈现）
+    decide --step-run --resume-token --item --verdict --rationale [--amended-content-file <json>] [--changes-current-judgment true|false] [--evidence-ref <ss_>]…：
+      成功 `M6 DECIDED <decision_revision_id> remaining=<n>` 退出 0
+    decide-batch --step-run --resume-token --from-file <yaml>：文件为 m6_decisions.yaml 同构列表；逐条调用 record_decision，每条输出同 decide；遇首个错误打印 `M6 REFUSED <异常类名>: <消息>` 并退出 2，已落盘的前序决定保留
+    close --step-run --resume-token：成功 `M6 OK <step_run_id> approved=<a> rejected=<r> decisions=<d>` 退出 0；Gate/内部失败 `M6 FAILED <step_run_id> <failed_check>` 退出 1
+    recover --edition-part --reason：`M6 AWAITING <new_step_run_id> token=<token> pending=<n> supersedes=<old>` 退出 0
+    通用：ReviewRefused / MissingReference / NotConsumable / InvalidResumeToken / SchemaViolation / InvalidIdentifier → `M6 REFUSED <异常类名>: <消息>` 退出 2；WriterLocked 退出 3；--amended-content-file 与 --from-file 是操作者人工输入，允许读取，其余文件路径一律不读
+tests:
+  test_console.py: |
+    subprocess 调用 `.venv/bin/python -m pipeline.review --root <tmp>/ledger …`；Ledger 先经 seed_upstream 准备（测试进程内完成后关闭 service 释放写锁）
+    - test_help_exit_0
+    - test_open_prints_queue_and_awaiting_line
+    - test_open_without_upstream_refused_exit_2
+    - test_show_read_only_row_counts_unchanged
+    - test_show_prints_evidence_anchor_fields
+    - test_decide_batch_full_then_close_ok（末行 `M6 OK … approved=3 rejected=1 decisions=4`）
+    - test_decide_batch_stops_on_third_invalid_keeps_first_two
+    - test_close_with_pending_exit_2
+    - test_wrong_token_exit_2
+verify:
+  - .venv/bin/python -m unittest discover -s pipeline/review/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 88
+  - .venv/bin/python -m pipeline.review --help >/dev/null; echo $?                         # 0
+  - TDD §3 回归
+commit:
+  add: [pipeline/review/console.py, pipeline/review/__main__.py, pipeline/review/tests/test_console.py]
+  message: "feat(m6): thin CLI review console for read-only comparison and sign-off (spec §14/§22.3)"
+on_fail: 停止并报告；不得在 Console 内实现旁路写入或模型调用

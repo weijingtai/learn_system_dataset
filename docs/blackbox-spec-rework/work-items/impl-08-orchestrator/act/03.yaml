@@ -1,0 +1,63 @@
+act_id: impl-08/03
+title: 独立 Stage Gate：effective_step_runs + evaluate_stage_gate 八项（§6.1 :149、§20.1 :937）
+estimated_minutes: 75
+group: K2
+depends_on: [impl-08/02]
+scope:
+  write: [pipeline/orchestrator/gate.py, pipeline/orchestrator/tests/test_gate.py]
+tests_first:
+  - 先写 tests/test_gate.py（用例名逐字），全红后再实现
+contract: |
+  gate.py（只读；只调用 LedgerPort 读方法 get_revision/get_step_run/list_step_run_events/latest_checkpoint/run_status/read_object；
+           不得 import runner/module/stubs/edition_run，不得 import 任何加工 Module；不写入）：
+    GATE_CHECKS = ("tasks_present", "all_tasks_succeeded", "stage_package_valid", "output_contract", "validation_passed", "failures_zero", "no_pending_work", "upstream_lineage")
+    句柄 handle = {"processing_run_id", "edition_part_id", "technique_id"}（dict）
+    effective_step_runs(port, handle, stage) -> list[dict]
+      run_status(prun)["step_runs"] 中 stage 相同者，去掉「被本运行内另一 StepRun 以 supersedes_step_run_id 指向」的；保持 created_at 顺序；
+      每项为 get_step_run 行，request_json/result_json 解析为 dict 后放入键 request / result（缺为 None）
+    evaluate_stage_gate(port, registry, handle, stage) -> dict
+      返回键（逐字）：stage, edition_part_id, processing_run_id, gate("passed"|"blocked"), checks({名: {"ok": bool, "detail": str}}，键序 = GATE_CHECKS), effective_step_run_ids
+      descriptor = registry.module_for(stage)（None 时 produces/consumes 视为空，并在 output_contract.detail 写「未登记 Module」但不据此判失败）
+      tasks_present：effective 非空
+      all_tasks_succeeded：全部 status == "succeeded" 且 result 非 None（StepManifest 由 finish_step_run 同事务封存，§4 第 5 条）；detail 列出非 succeeded 的 (srun, status)
+      stage_package_valid：每个 effective StepRun 的 result.output_artifact_ids 中 get_revision(rev)["schema_id"] == "stage_package" 者恰 1；
+        该修订 status == "sealed"；内容 JSON 过 openspec/schemas/stage_package.schema.json（Draft 2020-12，注册 artifact_ref.schema.json）；
+        内容 stage == stage；manifest.step_run_id == 该 StepRun；manifest.processing_run_id == handle.processing_run_id
+      output_contract：descriptor.produces 的 artifact_type 集合 ⊆ 各 StagePackage manifest.output_artifacts[].artifact_type 的并集；
+        且 output_artifacts 引用的每个 artifact_revision_id 须同时满足：经 get_revision 存在、status == "sealed"、step_run_id == 该 StepRun、并列于 result.output_artifact_ids
+        （端口读不到 artifacts.artifact_type，只能比对 StagePackage 自述类型；README §4 第 6 条）
+      validation_passed：各 StagePackage validation.passed is True
+      failures_zero：各 StagePackage failures == [] 且各 result.failure_artifact_ids == []
+      no_pending_work：latest_checkpoint(ep, stage) 为 None，或其 step_run_id ∈ effective 且 pending_queue == [] 且 next_pointer is None；
+        且各 effective StepRun 的最后一个 await_human 事件之后存在 resume 事件（或从未 await_human）
+      upstream_lineage：descriptor 为 None 或 consumes 为空 → ok；否则对每个 from_stage s：
+        上游有效 succeeded StepRun 集合 U = effective_step_runs(port, handle, s) 中 succeeded 者；
+        本阶段每个 effective StepRun 的 request.input_artifact_ids 中至少 1 个修订满足 get_revision(rev)["step_run_id"] ∈ U 的 step_run_id；否则失败，detail 列出 (srun, s)
+      tasks_present 失败时其余检查 ok=False、detail="无任务"（不抛异常）
+      gate = "passed" 当且仅当八项 ok 全为 True
+tests:
+  test_gate.py: |
+    统一脚手架（测试内自建，不 import runner/edition_run）：DirectLedgerAdapter 临时 Ledger → create_processing_run → 用 StubModule 手工走 begin_step_run → execute → finish_step_run/fail_step_run/await_human；
+    registry = Registry.from_dict(仓库表 deepcopy，modules 替换为桩 descriptor，allow_stub=True)
+    - test_passed_on_successful_stub_m1（八项全 ok）
+    - test_blocked_when_no_step_run（tasks_present）
+    - test_blocked_when_failed（all_tasks_succeeded）
+    - test_blocked_when_awaiting_human（all_tasks_succeeded 与 no_pending_work）
+    - test_blocked_when_stage_package_missing（stage_package_valid）
+    - test_blocked_when_stage_package_wrong_stage（stage_package_valid）
+    - test_blocked_when_validation_not_passed（validation_passed）
+    - test_blocked_when_stage_package_has_failures（failures_zero）
+    - test_blocked_when_produces_type_missing（descriptor.produces 多登记一个未产出类型 → output_contract）
+    - test_blocked_when_checkpoint_has_pending（手工再写一个带 pending_queue 的 Checkpoint 于 finish 前 → no_pending_work）
+    - test_blocked_when_upstream_output_not_frozen（m2 StepRun 冻结输入不含 m1 产出 → upstream_lineage）
+    - test_superseded_failed_run_ignored（supersede_step_run 后新运行 succeeded → passed）
+    - test_gate_performs_no_writes（前后 artifact_revisions/step_runs/audit_log 行数相等；行数经测试内只读 sqlite3 连接统计）
+    - test_gate_module_imports_are_independent（解析 gate.py AST：不含 runner/module/stubs/edition_run/corpus_compiler 导入）
+verify:
+  - .venv/bin/python -m unittest discover -s pipeline/orchestrator/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 28
+  - grep -nE '^\s*(from|import) .*(runner|module|stubs|edition_run|corpus_compiler)' pipeline/orchestrator/gate.py | wc -l   # 0
+  - TDD §3 回归
+commit:
+  add: [pipeline/orchestrator/gate.py, pipeline/orchestrator/tests/test_gate.py]
+  message: "feat(orchestrator): independent stage gate with eight contract-level checks (spec §6.1/§20.1)"
+on_fail: 停止并报告；需要 Ledger 新读接口才能判定某项时停手，不得改用 store.conn

@@ -1,0 +1,90 @@
+act_id: impl-05/04
+title: m4 assemble StepRun（run_m4：冻结输入、每 task 一个 Checkpoint、分歧转 awaiting_human、Gate、candidate_package、m4 StagePackage）+ CLI
+estimated_minutes: 90
+group: K2
+depends_on: [impl-05/03]
+pending_decisions: [D-04, D-09, D-10, D-13]
+scope:
+  write: [pipeline/knowledge_extraction/step.py, pipeline/knowledge_extraction/__main__.py, pipeline/knowledge_extraction/tests/test_step.py]
+tests_first:
+  - 先写 tests/test_step.py（用例名逐字）并全红，再实现
+contract: |
+  step.py：
+    DEFAULT_ID_RANGE = {"assertion": [1, 99], "proposition": [1, 99], "pattern": [1, 99]}
+    DEFAULT_REQUIRED_LANES = {"assertion": ["a", "b"], "pattern": ["a", "b"], "school_view": ["a", "b"], "concept_mention": ["a"]}
+    run_m4(service, edition_part_id, *, id_range=None, required_lanes=None, technique_profile_revision_id=None, id_factory=None) -> dict
+    begin 之前（任何拒绝都不得写入 Ledger）：
+      1 inputs = resolve_m4_inputs(service, ep, technique_profile_revision_id=…)；submissions 为空 → ExtractionRefused(code="REF_001")
+      2 required = 对出现的每个 category 取 required_lanes[category]；缺必需路 → ExtractionRefused(code="REF_001", message 含「缺必需路」)
+    写入：
+      3 config = put_run_artifact(processing_run_id, "configuration", canonical_json({"stage": "m4", "task": "assemble", "tool": M4_TOOL, "tool_version": M4_TOOL_VERSION, "gate_profile": "thin_no_model", "id_range", "required_lanes", "term_layering": "verify_only"}), …)
+      4 frozen = [corpus_stage_package_revision_id, corpus_package_revision_id, spans_revision_id, technique_profile_revision_id] + 提交件修订（按 CATEGORIES 序、lane 序）
+        step = begin_step_run(StepRequest，technique_profile_id = technique_id)
+        begin 之后：未预期异常 → _fail(step, "internal", …)；下面列出的检查名 → _fail(step, <检查名>, …)
+      5 输入契约（检查名 input_contract）：经 service.get_revision + service.read_object 读冻结修订字节；
+        spans_doc = yaml.safe_load(corpus_spans)；sha256(corpus_spans 字节) == m3 包内容 manifest.content_sha256；m3 包 payload.spans_revision_id == spans_revision_id；
+        profile = json.loads(technique_profile)，profile.technique_id == technique_id；
+        每件提交件 json.loads 后 validate_submission(…, technique_id) 通过，且 category/lane 与 inputs 键一致
+      6 每路（按 frozen 中提交件顺序）：lane = assemble.normalize_lane(submission, spans_doc=…, profile=…)
+        lane_rev = put_artifact(step, "candidate_lane_set", canonical_json(lane)) → seal
+        write_checkpoint(task_id "lane_<category>_<lane>"，completed_tasks 只含本 task，human_decisions=[]，pending_queue = 其后各 lane task + "reconcile" + "assemble"，next_pointer = 首个待办)
+      7 rec = assemble.reconcile_lanes(lane_results, required_lanes=required)
+        queue_rev = put_artifact(step, "dispute_queue", canonical_json({"disputes": rec["disputes"]})) → seal
+        write_checkpoint(task_id "reconcile"，pending_queue = [{"task_id": d.dispute_id} …] + [{"task_id": "assemble"}])
+      8 若 rec["disputes"] 非空：token = service.await_human(step, [queue_rev])
+        返回 summary {status: "awaiting_human", processing_run_id, step_run_id, configuration_revision_id, frozen_input_revision_ids, dispute_queue_revision_id, dispute_ids, resume_token: token}
+        （不产出 candidate_set 与 StagePackage；ACT 05 的 resume_m4 从第 9 步继续）
+      9 _complete(service, step, ctx, rulings={}, human_event_revision_ids=[])（ACT 05 复用，签名逐字）：
+        a result = assemble.assemble_candidates(spans_doc=…, profile=…, lane_results=…, required_lanes=…, rulings=…, id_range=…, id_factory=…)（ExtractionRefused → 检查名 assemble）
+        b set_rev = put_artifact(step, "candidate_set", result.candidate_bytes) → seal；write_checkpoint(task_id "assemble", human_decisions = human_event_revision_ids, pending_queue=[], next_pointer=None)
+        c gate = gate.evaluate_candidates(spans_doc=…, profile=…, candidate_set=result.candidate_set, config=配置内容)
+        d validation_report = put "validation_report"（canonical_json gate）→ seal；log = put "step_log" → seal
+        e gate.structural == "failed" → _fail(step, "candidate_gate", ",".join(failed_checks))
+        f package_rev = put "candidate_package"（canonical_json：README §6.3(2) 的键逐字）→ seal
+        g transformation_id = record_transformation(step, operation="extract_candidates", tool=M4_TOOL, tool_version=M4_TOOL_VERSION, configuration_revision_id=config, input_revision_ids=frozen, output_revision_ids=[package_rev, set_rev], validation_report_revision_id=validation_report, human_event_revision_ids=human_event_revision_ids, model_ref=None)
+        h StagePackage：stage_package_id = ids.new_id("stage_package_id", stage="m4")；package_revision_id = ids.new_id("artifact_revision_id")
+          ref(rev) = artifact_kind "artifact" 的 ArtifactRef；m3 包使用 {"schema_version": "1.0.0", "artifact_kind": "stage_package", "stage_package_id": corpus_stage_package_id, "artifact_revision_id", "artifact_type": "stage_package"}
+          package = {"schema_version": "1.0.0", "stage_package_id", "artifact_revision_id": package_revision_id, "stage": "m4", "status": "sealed",
+            "payload": {"candidate_set_revision_id": set_rev, "corpus_stage_package_revision_id", "spans_revision_id", "technique_profile_revision_id", "gate_profile": "thin_no_model", "span_layer": "structural", "cross_model": "not_evaluated", "term_layering": "verify_only", "content_status_counts": result.content_status_counts},
+            "manifest": {"schema_version": "1.0.0", "processing_run_id", "step_run_id": step, "input_artifacts": [ref(x) for x in frozen], "output_artifacts": [ref(package_rev)], "counts": result.candidate_set.counts, "content_sha256": result.candidate_sha256},
+            "validation": {"passed": True, "report_artifacts": [ref(validation_report)]},
+            "lineage": {"upstream_artifacts": [m3 包 ref, ref(spans_revision_id), ref(technique_profile_revision_id)], "transformations": [{"operation": "extract_candidates", "step_run_id": step, "configuration_artifact_revision_id": config, "input_artifact_revision_ids": frozen, "output_artifact_revision_ids": [package_rev, set_rev]}]},
+            "logs": [ref(log)], "failures": []}
+          register_stage_package(step, package, canonical_json(package), stage_package_id=…, artifact_revision_id=…) → seal
+        i finish_step_run(step, {…, "status": "succeeded", "output_artifact_ids": [package_rev, set_rev, package_revision_id], "validation_report_ids": [validation_report], "log_artifact_ids": [log], "failure_artifact_ids": []})
+    _fail(step, check, detail)：put "failure_report"（canonical_json {"check", "detail"}）→ seal；fail_step_run(step, [失败修订], "M4 %s: %s" % (check, detail))；返回失败 summary
+    返回 summary 键：status("succeeded"|"failed"|"awaiting_human"), processing_run_id, step_run_id, configuration_revision_id, frozen_input_revision_ids，
+      成功时：stage_package_id, package_revision_id, candidate_package_revision_id, candidate_set_revision_id, candidate_sha256, lane_set_revision_ids, dispute_queue_revision_id,
+              validation_report_revision_id, log_revision_id, step_manifest_revision_id, transformation_id, checkpoint_revision_ids, counts, gate；
+      失败时：failed_check, failure_revision_id, reason；等待时：见第 8 步
+  __main__.py：python -m pipeline.knowledge_extraction <子命令> --root <ledger_root> …（--root 即 Ledger 根目录，与 pipeline.ledger.cli、pipeline.corpus_compiler 一致）
+    profile --processing-run <prun> --technique <id> --canon-dir <dir>              → 末行 `M4 PROFILE <rev>` exit 0
+    submit --edition-part <art> --from <file> --producer <name> --producer-version <v> → `M4 SUBMIT OK <srun> <category>/<lane>` exit 0；失败 `M4 SUBMIT FAILED <srun> <check>` exit 1
+    assemble --edition-part <art>                                                     → `M4 OK <srun> assertions=<n> disputes=<d>` exit 0；`M4 FAILED <srun> <check>` exit 1；
+                                                                                         `M4 AWAITING_HUMAN <srun> disputes=<逗号分隔> token=<token>` exit 4
+    begin 之前被拒（ExtractionRefused / SchemaViolation / MissingReference / NotConsumable）→ `M4 REFUSED <异常类名>: <消息>` exit 2；WriterLocked → exit 3
+tests:
+  test_step.py: |
+    脚手架同 test_submit.py；「无分歧」用例的 B 路提交件 = A 路内容把 lane 改为 b
+    - test_run_m4_no_dispute_succeeds（assertions 2、disputes 0、rejected 0；StepRun succeeded）
+    - test_candidate_set_bytes_identical_across_two_ledgers
+    - test_frozen_inputs_exact（4 个上游修订 + 3 件提交件，共 7 个）
+    - test_five_checkpoints_lanes_reconcile_assemble_chained（task_id 依次 lane_assertion_a、lane_assertion_b、lane_concept_mention_a、reconcile、assemble）
+    - test_stage_package_schema_lineage_counts（jsonschema 校验；M3 包输入 ArtifactRef artifact_kind == "stage_package"；content_sha256 == sha256(candidate_set 字节)；counts == candidate_set.counts）
+    - test_config_records_gate_profile_id_range_required_lanes
+    - test_gold_dispute_returns_awaiting_human（附录 A 两路 → status awaiting_human；StepRun awaiting_human；dispute_queue sealed 且含 m4_d001；无 candidate_set、无 m4 StagePackage）
+    - test_missing_required_lane_refused_no_writes
+    - test_missing_profile_refused_no_writes
+    - test_second_assemble_refused_after_sealed
+    - test_spans_hash_mismatch_fails_input_contract（patch resolve_m4_inputs 交换 spans_revision_id 与 corpus_package_revision_id）
+    - test_gate_failure_fails_step_run（patch assemble.assemble_candidates 返回的 candidate_set 某条 content_status 改 expert_verified 且同步 bytes）
+    - test_unexpected_exception_after_begin_is_internal
+    - test_cli_exit_codes（subprocess：assemble 成功 0 且末行以 "M4 OK" 开头；无提交件 2 且以 "M4 REFUSED" 开头；金标两路 4 且以 "M4 AWAITING_HUMAN" 开头）
+verify:
+  - .venv/bin/python -m unittest discover -s pipeline/knowledge_extraction/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 86
+  - export LC_ALL=en_US.UTF-8; bash openspec/acceptance/run_all.sh | tail -1                          # == BASELINE_RUN_ALL
+  - TDD §3 回归
+commit:
+  add: [pipeline/knowledge_extraction/step.py, pipeline/knowledge_extraction/__main__.py, pipeline/knowledge_extraction/tests/test_step.py]
+  message: "feat(m4): assemble step run with per-task checkpoints, dispute queue, candidate gate and m4 stage package"
+on_fail: 停止并报告；await_human 后 write_checkpoint 或 put_artifact 被 Ledger 拒绝、StagePackage 过不了 Schema → 停手上报，不得改 pipeline/ledger 或 openspec/schemas

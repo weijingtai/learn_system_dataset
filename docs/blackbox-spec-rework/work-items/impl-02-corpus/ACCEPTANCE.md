@@ -1,6 +1,6 @@
 # ACCEPTANCE：impl-02 M3 结构层
 
-状态：J1（ACT 00/01/02）`ACCEPTED`；J2（ACT 03 `f4f4682`、ACT 04 `ea9126d`）`REVIEWING`——主 Agent 独立验收发现 5 处缺陷，返工 ACT 05（`PROMPT-J3.md`）待派发；见 §5.2
+状态：`ACCEPTED`——J1（ACT 00/01/02）`ACCEPTED`；J2（ACT 03 `f4f4682`、ACT 04 `ea9126d`）5 处缺陷见 §5.2；J3 返工（ACT 05 `c5f744c`）`ACCEPTED` 见 §5.3；非阻断跟进 ACT 06 已派发，结果记 §5.4
 
 ## 0. 转译审查（主 Agent 四查，2026-09-11）
 
@@ -65,3 +65,35 @@ J1 `ACCEPTED`。
 - 主 Agent 自误：一例「人工事件对象改页名」篡改替换到了嵌套 `evidence.page` 而非顶层 `page`，未改变证据页；但对象字节已变而未被检出，归入缺陷 1。
 
 J2 未通过，impl-02 保持 `REVIEWING`。
+
+### 5.3 J3 返工（2026-09-12，主 Agent 独立验收，`git archive c5f744c` 干净树，软链 `.venv` 与工作台 assets）
+
+执行者：主 Agent 启动的 Sonnet 子 Agent（用户指示）。派发经过：先按用户新流程经 tmux 派 agy（`gemini-3.8-flash-high`），因额度耗尽零产出；续接后 15 分钟无命令输出、无文件改动，主 Agent 关闭该会话并确认工作树干净后改派子 Agent；第一个子 Agent 随主会话退出中止、未留改动，重派后完成。执行方如实申报 4 处契约取舍，未越权写台账；提交信息无结论性措辞。
+
+- 范围：`c5f744c` 恰为 `step.py`、`acceptance.py`、`test_step.py`、`test_acceptance.py` 4 文件（`diff-tree c4dcdd1 c5f744c`）；`pipeline/` 提交后干净。
+- 门禁（主 Agent 在 `git archive eee3c35` 干净树复跑，含 J3 与 ACT 06）：`verify-T.sh` 0 FAIL、`mutations.sh` 109/109、`schemas/verify.sh` 0、`check_d16.py` OK；账本 `unittest` 74 OK；`corpus_compiler` `unittest` 68 OK（`c5f744c` 时 67 OK）；`m3-coverage.sh` `SUMMARY pass=8 fail=0 blocked=1`、exit 2；`run_all.sh` 仍 `pass=2 fail=1 blocked=8`。（原派 Haiku 子 Agent 复跑，因会话限额中断，改为主 Agent 后台 bash 复跑。）
+- 基线对照：`c4dcdd1` 干净树（Haiku 子 Agent 采集）门禁全绿、`corpus_compiler` 59 OK、`m3-coverage.sh` exit 2、`run_all.sh` `pass=2 fail=1 blocked=8`。
+- 测试审查：新增 7 例均为真实 Ledger 上的对象篡改、解析结果篡改与异常注入；`test_missing_fixture_exit_3` 断言改为 3、新增 `test_missing_manifest_exit_3`；无已有断言被删改。Red 由执行方以 J2 旧实现复现（5 失败 1 错误）。
+- 五处缺陷复验（主 Agent 验收脚本 28 项，26 PASS；2 项 FAIL 经复核非缺陷，见下）：
+  1. 冻结输入完整性：M1 清单对象、`ocr_page_set` 对象、人工事件对象、页对象各改一字节 → 均 `failed/input_contract`，失败修订 sealed，`stage_packages` m3 行数 0。begin 之后每个冻结对象恰读 1 次；清单在 begin 之前被 `resolve_m3_inputs` 与冻结列表构造各读 1 次，属契约 C1「begin 之后」范围外，合规。
+  2. 终态：`terminal_states` 置空、某页终态改为 `deferred` → `input_contract`；源码无裸 `pass`。
+  3. 页登记：删页、多一页（复用修订）、两页修订互换 → 均 `input_contract`；`files_hash` 已删除。
+  4. 异常分层：begin 之后 `record_transformation`/`register_stage_package`/`write_checkpoint` 抛异常 → `failed/internal`，StepRun failed，失败修订 sealed，无 m3 包；`evaluate_structural` 抛异常 → `internal`；`compile_structural` 抛异常 → `compile`；`put_artifact`/`seal_revision`（`_fail` 自身依赖）抛异常 → 原样抛出；`record_transformation` 与 `fail_step_run` 同时抛 → 抛原始异常且 `__cause__` 为 `_fail` 异常；`begin_step_run` 抛异常 → 原样抛出；只灌 m1、重复运行 → `CompileRefused` 原类型、无「M3 编译异常」前缀、Ledger 行数不变。
+  5. 退出码：fixture 目录不存在、空目录、manifest 不可解析 → 3；`run_m3` 抛异常、Ledger spans 被改一字 → 1；正常 → 2。
+- 成功路径：两个独立 Ledger 各跑一次，spans 字节 == 金标且彼此相同；`m3-coverage.sh` `SUMMARY pass=8 fail=0 blocked=1`、exit 2。
+- 执行方取舍裁定：① C1 与 C2–C4 共用 `input_contract` 检查名，采纳；② C2 用修订元数据 sha256 比对、不重读对象，采纳（与 C1 精神一致）；③ `input_contract`/`compile` 分支内 `_fail` 自身失败时经外层转 `internal` 再抛出，被抛出的是 `_fail` 异常而非原始输入错误（原始错误保留在异常链上），登记不返工；④ 缺 PyYAML 返回 3 未实现，**跟进 ACT 06**（非阻断）。
+- 登记的下游约束（非 J3 缺陷）：注入 `finish_step_run` 抛异常时 StepRun 判 failed、失败修订 sealed，但此前已登记并封存的 m3 StagePackage 保留（归属失败的 StepRun）；重跑成功后 Ledger 有 2 个 m3 包。这是 §17 事务序列「封存 StageManifest → 写入最终状态」的顺序所致。**M5/M8 等下游解析上游 StagePackage 时必须只接受 StepRun `succeeded` 的包**；写入 impl-00 接口总表与 impl-03/impl-04 待裁决。
+- 跟进 ACT 06（`act/06.yaml`，已派 Sonnet 子 Agent）：`acceptance.py` 缺 PyYAML → 3；四个失败用例追加直查 `stage_packages` m3 行数为 0（J3 只断言返回值无 `stage_package_id`）。
+
+J3 `ACCEPTED`；impl-02（结构层）`ACCEPTED`。ACT 06 验收结果追加于 §5.4，不影响本结论。语义层未做，`m3-coverage.sh` 返回 2，§19「M3 Corpus Compilation」差距不宣称关闭，PLAN 不勾选 M3。
+
+### 5.4 ACT 06 跟进（2026-09-12，主 Agent 独立验收，`git archive eee3c35` 干净树）
+
+执行者：主 Agent 启动的 Sonnet 子 Agent。
+
+- 范围：`eee3c35` 恰为 `acceptance.py`、`test_acceptance.py`、`test_step.py` 3 文件；提交信息无结论性措辞。
+- Red：`test_missing_yaml_exit_3` 失败（旧实现经宽泛 except 恰返回 3，但首行为 AttributeError 而非 ImportError）；四个直查断言改实现前即通过，佐证 J3 失败路径确无 m3 包。
+- 复验：`sys.modules['yaml']=None` 真实屏蔽 PyYAML 后导入 `acceptance` 并运行 → 首行 `FAIL m3_acceptance 宿主准备失败: ImportError: PyYAML 不可导入`、rc 3；缺 fixture → 3；`run_m3` 抛异常 → 1（未被误归 3）；`corpus_compiler` `unittest` 68 OK；`where stage='m3'` 直查 4 处；`m3-coverage.sh` `SUMMARY pass=8 fail=0 blocked=1`、exit 2。
+- 取舍裁定：① 采用契约括注写法（模块顶层 `try/except ImportError` 置 None），保留 `run_m3`、`ingest` 模块级可 patch，采纳；② `LedgerService` 依赖链不含 PyYAML，不包裹，采纳；③ 间接依赖缺失分支文案加注「（间接依赖）」，采纳。
+
+ACT 06 `ACCEPTED`。

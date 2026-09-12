@@ -1,0 +1,65 @@
+act_id: impl-07/04
+title: 应用裁定 apply_resolutions（新 knowledge、发号、对勘集、IdentityDelta；闭包外字节拷贝）
+estimated_minutes: 90
+group: J1
+depends_on: [impl-07/03]
+scope:
+  write: [pipeline/assembly/apply.py, pipeline/assembly/tests/test_apply.py]
+tests_first:
+  - 先写 tests/test_apply.py（用例名逐字）并全红，再实现
+contract: |
+  apply.py（纯函数；只 import canonical、model、errors、pipeline.ledger.errors/ids、difflib、unicodedata）
+    validate_decision(proposal, decision) -> None
+      decision 键：proposal_set_revision_id(可为 None，纯函数测试用), proposal_key, choice, target_entity_ids, seen_revision_id(可为 None), decision_type, span_allocation(可选), note(可选)
+      proposal.resolution 不是 human → AssemblyRefused(SCH_002)；choice ∉ options（attach 以 "attach:<id>" 比较）→ SchemaViolation(SCH_002)
+      decision_type 非 None 时必须等于 proposal.decision_type → SchemaViolation(SCH_002)
+      split：span_allocation 的键为新对象占位名，值为 Span 号列表；并集必须等于旧对象全部 source_span_ids 且两两不相交 → 否则 SchemaViolation(SCH_002)
+    apply_resolutions(base_knowledge, views, proposals, decisions, *, affected=None) -> dict
+      proposals = 最后一轮 propose 结果的 "proposals"；每个 resolution human/blocked 的提案必须恰有 1 条决定（多于 1 → DuplicateIdentifier(ID_002)；缺 → AssemblyRefused，message 含「未决」）
+      决定引用不存在的 proposal_key → MissingReference(REF_001)
+      affected=None：全部重建；affected=集合：只重建集合内基底对象，集合外基底对象的规范 JSON 必须原样拷贝（从 base_knowledge 取对象，不重新构造）
+      发号：所有 admit_new（含人工选择 admit_new / reject_alias / admit_new_each）且无 pattern_id 的候选，按 (source_id, candidate_key) 升序，
+            号 = max(id_allocation["pat_<technique>"], 活对象与 retired 中该命名空间最大号) + 1 起递增；写回 id_allocation
+      merge_entities：新号同上发放；旧号并入 retired_entity_ids；provenance/rules/assertion_ids/school_view_ids 取并集；
+            Assertion/SchoolView 的 subject 改指新号；relations 追加 merged_into(旧, 新)；IdentityDelta 每个旧号一条 merged，to_entity_ids [新号]
+      split：每个占位名按升序发新号；旧号退役；Assertion 按其 source_span_ids 归入包含它的新对象；IdentityDelta 一条 split，携带 span_allocation（占位名替换为新号）
+      retire（R11 auto / R11b human）：对象移除、号进 retired，IdentityDelta 一条 retired，to_entity_ids []
+      reject_alias / 人工 admit_new（R03b）→ relations 追加 distinct_from(较小号, 较大号)，resolution mode human
+      accept_alias → 目标 Pattern aliases 追加候选 name（nfc 去重、升序），候选并入目标，relations 追加 alias_of(候选名所属新号? 否：alias_of 的 subject 为目标号，object 为 {"source_id","candidate_key","name"})
+      attach（auto 或 human）→ 目标 provenance/rules/assertion_ids/school_view_ids 追加；relations 追加 attached(subject 目标号, object {"source_id","candidate_key"})（仅限 pattern_id 为 null 或 source 非首次加入的候选；创世与 R02 不写 attached）
+      unify → 视图 sv 的 conflict_group_id 改为基底组号，source_conflict_group_id 保留原值；conflict_groups 对应组 members 追加，resolutions 追加 {mode, proposal_key, basis_sha256}；keep_separate → 新组以视图 cg_ 号独立登记
+      first_layer_display = 任一成员 changes_current_judgment 为 true
+      对勘：alignment/variant_reading/addition/omission 写入 relations，subject 为较小 source 一侧 Assertion 号（omission/addition 缺失侧为 null），
+            variant_reading 的 detail = {"opcodes": [list(op) for op in difflib.SequenceMatcher(None, nfc_a, nfc_b, autojunk=False).get_opcodes()]}，其余 detail = {}
+      content_status：只写入 provenance 与 assertions 原值，Pattern/Concept 顶层不得出现 content_status 键
+      结果经 model.validate_snapshot_knowledge 自检
+      返回键：knowledge, knowledge_bytes(= canonical_json(knowledge)), knowledge_sha256,
+              collation({"relations": [...], "not_comparable": [...]}), identity_delta({"base_knowledge_sha256", "entries": [...按 (change_type, from_entity_id) 升序]}),
+              created_entity_ids(升序), rebuilt_entity_ids(实际重建的基底对象号，升序), resolution_log([{proposal_key, mode, choice}] 升序)
+      IdentityDelta entry 键序逐字：from_entity_id, to_entity_ids, change_type, entity_kind, reason_ref(, span_allocation)；reason_ref = {"kind": "proposal", "proposal_key": …}
+tests:
+  test_apply.py: |
+    - test_genesis_s1_bytes_equal_expected
+    - test_s2_bytes_equal_expected（propose 两轮 + r2 + r2b 决定）
+    - test_allocation_order_by_source_and_candidate_key
+    - test_collation_s2_equals_expected
+    - test_untouched_object_copied_verbatim_when_affected_given（传入 affected_s2，as_qizheng_900004 字节与 s1 相同且不在 rebuilt_entity_ids）
+    - test_choice_not_in_options_refused
+    - test_missing_decision_for_human_refused
+    - test_duplicate_decision_ID_002
+    - test_unknown_proposal_key_REF_001
+    - test_merge_entities_new_id_and_two_merged_entries
+    - test_split_requires_full_disjoint_allocation
+    - test_split_valid_delta_carries_allocation
+    - test_retire_moves_id_to_retired
+    - test_accept_alias_adds_alias_no_new_id
+    - test_unify_and_first_layer_display
+    - test_no_synthesized_content_status
+    - test_resulting_knowledge_self_validates
+verify:
+  - .venv/bin/python -m unittest discover -s pipeline/assembly/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 52
+  - TDD §3 回归
+commit:
+  add: [pipeline/assembly/apply.py, pipeline/assembly/tests/test_apply.py]
+  message: "feat(m7): apply resolutions into canonical knowledge with id allocation, collation relations and identity delta (spec §8.1, §15, §16)"
+on_fail: 停止并报告；s1/s2 金标字节不一致时报告首个差异位置与所属对象号，不得改金标

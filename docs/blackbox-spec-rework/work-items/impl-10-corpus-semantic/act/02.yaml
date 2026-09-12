@@ -1,0 +1,88 @@
+act_id: impl-10/02
+title: 规则窗口、字框对齐锚点、人工裁决校验与语义片段合成 compile_semantic（金标字节）〔D1 D6 D11 D12〕
+estimated_minutes: 85
+group: J1
+depends_on: [impl-10/01]
+scope:
+  write: [pipeline/corpus_compiler/semantic/rules.py, pipeline/corpus_compiler/semantic/anchors.py, pipeline/corpus_compiler/semantic/reconcile.py, pipeline/corpus_compiler/semantic/assemble.py, pipeline/corpus_compiler/semantic/tests/test_assemble.py]
+tests_first:
+  - 先写 tests/test_assemble.py（用例名逐字），新增用例全 ERROR，记录 Red；再实现
+contract: |
+  全部纯函数：不读文件、不访问 Ledger、不取时间、不用随机数。
+
+  rules.py：
+    select_windows(structural_spans_doc: dict, *, model_min_chars: int) -> list[dict]
+      model_min_chars < 1 → SchemaViolation(code="SCH_002")（pipeline.ledger.errors）
+      work = 由 pipeline.corpus_compiler.compiler.parse_source_id(doc["source_id"]) 取得
+      按 spans 顺序，len(text) ≥ model_min_chars 的结构 Span 依次成为窗口；n 从 1；window_id = "%s_w%03d" % (work, n)
+      每项键序：window_id, structural_span_id, page, text, text_sha256
+      fixture：[sanche_w001 → ss_sanche_ed01_p0001_s04, sanche_w002 → ss_sanche_ed01_p0003_s13]
+
+  anchors.py：
+    glyph_sequence(page_doc: dict, line_id: str) -> list[dict]
+      [ch for ch in page_doc["chars"] if ch["parent"] == line_id and ch["char"] != ""]（保持页 chars 原顺序）
+    glyph_aligned(page_doc, line_id, text) -> bool
+      [ch["char"] for ch in glyph_sequence(...)] == list(text)
+    sub_anchor(*, structural_span, page_doc, start, end) -> tuple[str, dict]
+      aligned → ("glyphbox_level", anchor)，anchor.glyphs = [{"glyph_id": ch["id"], "char": ch["char"], "box": dict(ch["box"])} for ch in 序列[start:end]]
+      否则 → ("offset_level", anchor)，anchor.glyphs = []〔D11〕
+      anchor 键序：page, image_sha256, line_id, bbox（后三者取自 structural_span["source_anchor"]，bbox 为 dict 拷贝）, glyphs
+      说明：结构锚点里的 char_index 是页 chars 下标，不是文本位置，禁止用它推算 offset
+
+  reconcile.py：
+    DECISION_SCHEMA = "m3_boundary_decision/1"
+    validate_decision(decision: dict, *, window: dict, comparison: dict, parsed_a: dict, parsed_b: dict) -> list[list[int]]
+      comparison.status 必须 "disputed" → 否则 DecisionRejected（message 含「非分歧窗口」）
+      decision.structural_span_id == window.structural_span_id；decision_type ∈ pipeline.ledger.states.REVIEW_DECISION_TYPES〔D6〕；reason 为非空 str
+      choice ∈ {"proposal_a", "proposal_b", "custom"}
+      segments：非空 list，每项 {"start_offset": int, "end_offset": int}（非 bool），铺满 [0, len(window.text))、无空片段
+      choice == proposal_a/b：对应提议必须 valid 且 segments 与之逐项相等
+      任一不满足 → DecisionRejected；返回 [[s, e], ...]
+    resolve_windows(windows, comparisons: dict, decisions: dict) -> dict
+      comparisons = {window_id: compare_proposals 结果}；decisions = {window_id: 已校验的 [[s,e],...]}
+      agreed → {"segments": comparison.segments, "boundary_origin": "cross_model_agreed"}；agreed 窗口出现在 decisions → DecisionRejected
+      disputed 且有裁决 → {"segments": 裁决, "boundary_origin": "human_decided"}
+      存在无裁决的 disputed 窗口 → DisputesUnresolved（message 列出全部 window_id，按窗口顺序）
+      返回 {window_id: {...}}
+
+  assemble.py：
+    SEMANTIC_SPAN_ID_FORMAT = "sem_%s_ed%s_p%04d_s%03d"〔D1〕
+    compile_semantic(*, structural_spans_doc, structural_spans_sha256, page_docs, windows, resolutions, comparisons, model_min_chars) -> dict
+      遍历结构 spans（原顺序）；按页维护 sequence（从 1）
+        非窗口行：片段 [[0, len(text)]]，boundary_origin "rule"，window_id None
+        窗口行：片段与 boundary_origin 取 resolutions[window_id]
+      每片：start_offset = 结构 start_offset + s；end_offset = 结构 start_offset + e；text = 结构 text[s:e]；quote_sha256 = sha256(text UTF-8)
+        structural_refs = [{"span_id", "start": s, "end": e}]；(evidence_level, source_anchor) = anchors.sub_anchor(...)
+        semantic_span_id = SEMANTIC_SPAN_ID_FORMAT % (work, edition, page_number(page), sequence)，经正则 ^sem_[a-z][a-z0-9]*_ed[0-9]{2}_p[0-9]{4}_s[0-9]{3}$ 校验；sequence > 999 → InvalidIdentifier(code="ID_001")
+      Span 键序、文档键序与 act/00 R8、R9 逐字一致；gate_profile = GATE_PROFILE；segmentation_profile = {"rule": "line_or_model_window", "model_min_chars": model_min_chars, "template_id": PROMPT_TEMPLATE_ID}
+      dispute_count = comparisons 中 disputed 的个数
+      返回键：spans, spans_doc, spans_bytes(= pipeline.corpus_compiler.serialize.dump_yaml(spans_doc)), spans_sha256,
+              counts({"semantic_spans", "windows", "disputes", "human_decisions"(= human_decided 窗口数), "glyphbox_level", "offset_level"})
+tests:
+  test_assemble.py: |
+    脚手架：读 mini_ed01 spans.yaml（yaml 解析为 structural_spans_doc）与 pages/*.json；读 mini_ed01_semantic recordings.yaml、human_decisions.yaml；
+    经 act/01 的 load_recordings/ReplayProposer/build_request/parse_proposal/compare_proposals 得到 comparisons；裁决经 validate_decision
+    - test_select_windows_fixture_two_windows
+    - test_select_windows_threshold_boundary（model_min_chars=11 → 3 个窗口，含 p0003_s06；=18 → 0 个）
+    - test_select_windows_rejects_zero
+    - test_glyph_alignment_fixture（不对齐恰为 p0001_s03、p0001_s04；其余 41 行对齐）
+    - test_sub_anchor_aligned_slices_glyphs（p0003_s13 [7,14) 的 glyph char 串 == "論星曜對照命宮"）
+    - test_sub_anchor_unaligned_offset_level
+    - test_golden_semantic_spans_bytes_equal_fixture
+    - test_golden_counts（46/2/1/1/42/4；page_001 6 片，page_003 40 片）
+    - test_deterministic_twice_identical_bytes
+    - test_quote_sha256_and_offsets_slice_page_block（页块由结构 Span 文本以 "\n" 连接）
+    - test_disputed_without_decision_raises_DisputesUnresolved
+    - test_decision_on_agreed_window_rejected
+    - test_decision_custom_not_tiling_rejected
+    - test_decision_choice_b_with_a_segments_rejected
+    - test_decision_type_outside_eight_rejected
+    - test_decision_empty_reason_rejected
+verify:
+  - .venv/bin/python -m unittest discover -s pipeline/corpus_compiler/semantic/tests -t . 2>&1 | grep -E '^(Ran|OK|FAILED)'   # OK，≥ 32（累计 37）
+  - grep -rE '_fixture' pipeline/corpus_compiler/semantic --include='*.py' | grep -v '/tests/' | wc -l   # 0
+  - TDD §3 回归
+commit:
+  add: [pipeline/corpus_compiler/semantic]
+  message: "feat(m3-semantic): rule windows, glyph-aligned anchors, boundary decision validation and golden semantic span assembly (spec §11/§11.1)"
+on_fail: 停止并报告；金标字节不一致时不得修改 fixture，报告首个差异位置与所在 semantic_span_id

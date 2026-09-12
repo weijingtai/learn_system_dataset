@@ -1,0 +1,123 @@
+act_id: impl-04/01
+title: 纯函数子包编译器——SourceAssetPack、EvidenceMapPack（尾链四段、完整 span_id 键）、已知缺陷、ReleaseManifest
+estimated_minutes: 85
+group: K1
+depends_on: [impl-04/00]
+decisions: [D1, D4, D10, D11, D14]
+scope:
+  write: [pipeline/dataset_compiler/packs.py, pipeline/dataset_compiler/tests/test_packs.py]
+tests_first:
+  - 先写 tests/test_packs.py（用例名逐字）并全红（ImportError），再实现 packs.py
+contract: |
+  packs.py（纯函数：不读文件、不访问 Ledger、不取时间、不用随机数；只 import 标准库、pipeline.ledger.ids、pipeline.ledger.errors、本包 __init__/errors/canonical/levels）
+
+  INTERNAL_DEMO_WATERMARK = "INTERNAL_DEMO｜机器转录，未经人工校对｜不得作为知识来源或权威依据"   # D10 草案文案
+  CHAIN_SEGMENTS = ["SourceSpan", "SourceAnchor", "OcrPage", "SourceAsset"]                        # §16:708-712 的第 4–7 段
+  TASKS = ("source_asset_pack", "evidence_map_pack", "release_manifest", "validation_report")
+
+  png_size(data) -> tuple[int, int]
+    len(data) ≥ 24 且 data[:8] == b"\x89PNG\r\n\x1a\n" → struct.unpack(">II", data[16:24])；否则 SchemaViolation(code="SCH_002")
+  page_number(page) -> int：^page_([0-9]{3,4})$ → int；否则 SchemaViolation(code="SCH_002")
+  parse_span_identity(span_id) -> tuple[int, int]
+    ids.validate("source_span_id", span_id)；re.search(r"_p([0-9]{4})_s([0-9]{2})$") → (int 页号, int 行序)
+
+  build_source_asset_pack(*, manifest, asset_records) -> dict
+    asset_records = {页: {"artifact_revision_id", "sha256", "size", "width", "height"}}
+    S1 manifest["release_policy"] != "derived_page_images_only" → DatasetRefused(code="SCH_002")，message 含 "derived_page_images_only"
+    S2 页序 = manifest["edition_part"]["pages"]；清单 source_assets 缺该页 → MissingReference(code="REF_001")；asset_records 缺页 → MissingReference(code="REF_001")；
+       asset_records 含页序外的页 → SchemaViolation(code="SCH_002")
+    S3 每页 ids.validate("artifact_revision_id", …)；sha256 != 清单同页 sha256 → HashMismatch(code="SRC_003")；
+       (width, height) != 清单同页 (width, height) → HashMismatch(code="SRC_003")，message 含「尺寸」
+    S4 pack = {"pack_type": "source_asset_pack", "schema_version": SUB_PACK_SCHEMA_VERSION, "source_id": manifest["source_id"],
+               "edition_part_artifact_id": manifest["edition_part"]["artifact_id"], "content_level": manifest["release_policy"],
+               "rights_status": manifest["rights_status"],
+               "pages": [{"page", "asset_artifact_revision_id", "sha256", "size", "width", "height"} 按页序]}
+    返回键：pack, bytes(= canonical_bytes(pack)), sha256
+
+  build_evidence_map_pack(*, spans_doc, page_docs, ocr_page_revision_ids, source_asset_pack, excluded_pages) -> dict
+    E1 spans_doc["evidence_level"] ∉ EVIDENCE_LEVELS → SchemaViolation(code="SCH_002")；spans_doc["span_count"] != len(spans) → SchemaViolation(code="SCH_002")
+    E2 资产页 = {p["page"]: p for p in source_asset_pack["pages"]}
+    E3 逐 span（保持 spans_doc["spans"] 顺序）：
+       (pno, seq) = parse_span_identity(span_id)
+       pno != page_number(span["page"]) → InvalidIdentifier(code="ID_001")，message 含「页号」
+       seq != span["line_index"] + 1 → InvalidIdentifier(code="ID_001")，message 含「行序」
+       span_id 已出现 → DuplicateIdentifier(code="ID_002")
+       span["page"] ∈ excluded_pages → DatasetRefused(code="SCH_002")，message 含「排除页」
+       span["page"] 不在 page_docs / ocr_page_revision_ids / 资产页 → MissingReference(code="REF_001")
+       anchor = span["source_anchor"]；anchor["page"] != span["page"] → DatasetRefused(code="REF_001")，message 含「锚点页」
+       anchor["image_sha256"] != 资产页[page]["sha256"] → HashMismatch(code="SRC_003")
+       frame = {"width": page_docs[page]["width"], "height": page_docs[page]["height"]}；!= 资产页宽高 → DatasetRefused(code="SRC_003")，message 含「坐标系」
+       anchor["bbox"] 与每个 anchor["chars"][i]["box"] 须满足 x ≥ 0、y ≥ 0、x + w ≤ width、y + h ≤ height，否则 DatasetRefused(code="SCH_002")，message 含「越界」
+       glyphs = [{"char_index": c["char_index"], "glyph_id": c["glyph_id"], "char": c["char"], "box": dict(c["box"])} for c in anchor["chars"]]
+       glyph_text_equal = "".join(g["char"] for g in glyphs) == span["text"]；highlight_level = "glyph" if glyph_text_equal else "line_bbox"   # D11
+       entry 键逐字：span_id, page, line_index, start_offset, end_offset, text, quote_sha256(= canonical.quote_sha256(text)), content_status(= spans_doc["content_status"]),
+                     watermark(= content_status 以 "machine_" 开头), line_id(= anchor["line_id"]), bbox(= dict(anchor["bbox"])), glyphs, glyph_text_equal, highlight_level,
+                     frame, image_sha256, ocr_page_artifact_revision_id(= ocr_page_revision_ids[page]), source_asset_artifact_revision_id(= 资产页[page]["asset_artifact_revision_id"])
+    E4 page_index = {页: [该页 span_id，按 spans_doc 顺序] for 页 in source_asset_pack["pages"] 顺序}（排除页值为 []）
+    E5 pack = {"pack_type": "evidence_map_pack", "schema_version": SUB_PACK_SCHEMA_VERSION, "source_id": spans_doc["source_id"],
+               "edition_part_artifact_id": spans_doc["edition_part_artifact_id"], "evidence_level", "content_status",
+               "chain_segments": CHAIN_SEGMENTS, "knowledge_chain": "not_compiled", "span_count": len(entries),
+               "entries": {span_id: entry}, "page_index", "excluded_pages": dict(excluded_pages)}
+    返回键：pack, bytes, sha256, normalized_sha256(= canonical.normalized_sha256(pack)), span_keys(= list(entries)), highlight_counts({"glyph": n, "line_bbox": m}), glyph_count(= 全部 glyphs 数)
+
+  compute_known_defects(*, evidence_map_pack, m3_gate_profile, rights_status) -> list[dict]
+    每项 {"code", "detail"}，按 code 字典序；代码闭集与触发条件：
+      excluded_page：excluded_pages 非空；detail = 按页排序 "页=终态" 以 "," 连接（fixture："page_002=known_unrecognizable"）
+      glyph_text_mismatch：存在 highlight_level == "line_bbox"；detail = 这些 span_id 按 entries 顺序以 "," 连接
+      knowledge_chain_not_compiled：knowledge_chain != "compiled"；detail = "KnowledgeEntry,Assertion,EvidenceLink"
+      machine_content：content_status 以 "machine_" 开头；detail = content_status
+      rights_unconfirmed：rights_status 含 "unconfirmed"；detail = rights_status
+      semantic_not_evaluated：m3_gate_profile == "structural_only"；detail = "m3 gate_profile=structural_only"
+
+  build_release_manifest(*, release_id, admission, release_scope, technique_id, packs, input_reconciliation, schema_versions, min_app_version, known_defects, watermark_text) -> dict
+    packs = [{"pack_type", "artifact_revision_id", "sha256", "size"}]；input_reconciliation = [{"artifact_revision_id", "artifact_type", "sha256"}]
+    M1 ids.validate("release_id", release_id)
+       admission["admitted"] is not True 或 admission["consumption_level"] ∉ SUPPORTED_LEVELS → DatasetRefused(code="SCH_002")，message 含 "fail-closed"
+    M2 pack_type 重复 → DuplicateIdentifier(code="ID_002")；sha256 不匹配 ^[0-9a-f]{64}$ → SchemaViolation(code="SCH_002")；packs 按 pack_type 排序
+    M3 canonical_hash = sha256_hex(canonical_bytes([[p["pack_type"], p["sha256"]] for p in 排序后 packs]))
+    M4 watermark = {"required": admission["watermark_required"], "text": watermark_text}；required 且 text 为空 → SchemaViolation(code="SCH_001")
+    M5 manifest = {"manifest_type": "release_manifest", "schema_version": SUB_PACK_SCHEMA_VERSION, "release_id", "consumption_level": admission["consumption_level"],
+                   "source_release": admission["source_release"], "release_scope", "technique_id", "technique_profile_version": None, "schema_versions",
+                   "packs": 排序后 packs, "canonical_hash", "input_reconciliation": 按 artifact_revision_id 排序, "min_app_version", "watermark",
+                   "isolation": admission["isolation"], "completeness_claim": "partial", "authoritative": False, "known_defects", "retired_anchors": []}
+    返回键：manifest, bytes, sha256, canonical_hash
+tests:
+  test_packs.py: |
+    测试可读 fixture 文件作为纯函数输入：manifest.yaml、pages/*.json、spans.yaml、anomalies.yaml
+    asset_records 由测试从清单 source_assets 构造（sha256/width/height 取清单；size 取 0；修订号用 "rev_%032x" % n 常量）；ocr_page_revision_ids 同理
+    excluded_pages = {"page_002": "known_unrecognizable"}
+    - test_source_asset_pack_pages_follow_manifest_order
+    - test_source_asset_pack_sha_mismatch_SRC_003
+    - test_source_asset_pack_dimension_mismatch_SRC_003
+    - test_source_asset_pack_missing_page_REF_001
+    - test_source_asset_pack_extra_page_SCH_002
+    - test_source_asset_pack_other_policy_refused
+    - test_evidence_map_fixture_counts（span_count 43；len(span_keys) == 43；highlight_counts == {"glyph": 41, "line_bbox": 2}；glyph_count == 230）
+    - test_line_bbox_spans_exact（== ["ss_sanche_ed01_p0001_s03", "ss_sanche_ed01_p0001_s04"]）
+    - test_page_index_fixture（page_001 4 条、page_002 []、page_003 39 条，顺序 == spans.yaml）
+    - test_entries_keyed_by_full_span_id_not_seq（span_keys 集合 == spans.yaml span_id 集合；同一批 span 按 (source_id, int(sNN)) 取键 → 39 键、碰撞组数 4）
+    - test_span_id_page_mismatch_ID_001（把 ss_sanche_ed01_p0003_s01 的 page 改为 page_001）
+    - test_span_seq_mismatch_ID_001
+    - test_duplicate_span_id_ID_002
+    - test_anchor_page_mismatch_refused
+    - test_image_sha_mismatch_SRC_003
+    - test_frame_mismatch_refused
+    - test_box_out_of_frame_refused
+    - test_span_on_excluded_page_refused
+    - test_deterministic_bytes_twice
+    - test_normalized_sha_ignores_revision_ids（换一组 OCR 页与页图修订号 → bytes 不同、normalized_sha256 相同）
+    - test_known_defects_fixture_codes（code 列表 == ["excluded_page", "glyph_text_mismatch", "knowledge_chain_not_compiled", "machine_content", "rights_unconfirmed", "semantic_not_evaluated"]）
+    - test_release_manifest_canonical_hash_and_sorting
+    - test_release_manifest_refuses_not_admitted
+    - test_release_manifest_refuses_dev_search_even_if_admitted_flag
+    - test_release_manifest_duplicate_pack_type_ID_002
+    - test_png_size_and_non_png_SCH_002（测试内拼 24 字节 PNG 头）
+    - test_packs_module_pure（packs.py 源码不含 "open(", "Path(", "sqlite3", "service", "time.", "random", "uuid"）
+verify: |
+  .venv/bin/python -m unittest discover -s pipeline/dataset_compiler/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 45
+  grep -rE 'import .*_fixture|from .*_fixture|build_fixture' pipeline/dataset_compiler --include='*.py' | grep -v '/tests/' | wc -l   # 0
+  TDD §3 回归
+commit:
+  add: [pipeline/dataset_compiler/packs.py, pipeline/dataset_compiler/tests/test_packs.py]
+  message: "feat(m8): pure sub-pack builders keyed by full span_id with glyph/line-bbox highlight and release manifest hash list (spec §16)"
+on_fail: 停止并报告；fixture 数字（43/41/2/230/39/4）与实现不符时不得改 fixture 或改断言，报告首个差异

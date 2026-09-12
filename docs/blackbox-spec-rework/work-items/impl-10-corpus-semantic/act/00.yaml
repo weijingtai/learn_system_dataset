@@ -1,0 +1,96 @@
+act_id: impl-10/00
+title: 语义层金标宿主 mini_ed01_semantic（手写回放录制 + 人工裁决 + 独立生成器 + verify.sh）〔D1 D7 D11 D12〕
+estimated_minutes: 80
+group: J1
+depends_on: [impl-02 ACCEPTED]
+scope:
+  write: [pipeline/corpus/_fixture/mini_ed01_semantic/**]
+tests_first:
+  - 先写 verify.sh，运行得 exit 1（生成物缺失）并记录 Red；再写录制、裁决、生成器；最后生成 semantic_spans.yaml 与 expected
+contract: |
+  目录 pipeline/corpus/_fixture/mini_ed01_semantic/（新建；不得改 mini_ed01/ 下任何文件）：
+    README.md  manifest.yaml  recordings.yaml  human_decisions.yaml  semantic_spans.yaml
+    expected/m3.stage_package.yaml  tools/build_semantic_fixture.py  verify.sh(755)
+
+  A. recordings.yaml（手写，非生成；UTF-8，键序如下）
+    schema: m3_boundary_recordings/1
+    synthetic: true
+    origin: hand_authored_replay_fixture
+    note: 手写回放样例，不是任何真实模型的输出；只证明「双提议→比较→分歧→人工裁决」机制可重放，不证明模型切分质量
+    template_id: m3_boundary_v1
+    base_spans_sha256: ec6d77b90aa1408d040465babc28a81f59aadf6d6edd9ba8db66ff8ead0b44ef
+    models:
+      a: {model_id: replay_model_a, model_version: "0"}
+      b: {model_id: replay_model_b, model_version: "0"}
+    entries（恰 4 项，顺序 w001-a, w001-b, w002-a, w002-b）：每项键 slot, structural_span_id, window_text_sha256, response_text
+      window_text_sha256 = sha256(该结构 Span text 的 UTF-8)
+      response_text 为 JSON 字符串（json.dumps(obj, ensure_ascii=False)，不排序键），obj 逐字如下：
+      ss_sanche_ed01_p0001_s04 / a: {"segments": [{"start_offset": 0, "end_offset": 7, "reason": "书名与卷数"}, {"start_offset": 7, "end_offset": 12, "reason": "著者题署"}, {"start_offset": 12, "end_offset": 17, "reason": "底本藏地"}]}
+      ss_sanche_ed01_p0001_s04 / b: {"segments": [{"start_offset": 0, "end_offset": 7, "reason": "题名"}, {"start_offset": 7, "end_offset": 12, "reason": "撰者"}, {"start_offset": 12, "end_offset": 17, "reason": "所据藏本"}]}
+      ss_sanche_ed01_p0003_s13 / a: {"segments": [{"start_offset": 0, "end_offset": 7, "reason": "目录条目一"}, {"start_offset": 7, "end_offset": 14, "reason": "目录条目二，OCR 合行"}]}
+      ss_sanche_ed01_p0003_s13 / b: {"segments": [{"start_offset": 0, "end_offset": 14, "reason": "同一目录条目"}]}
+
+  B. human_decisions.yaml（手写）
+    schema: m3_boundary_decisions/1
+    synthetic: true
+    entries:（恰 1 项）
+    - structural_span_id: ss_sanche_ed01_p0003_s13
+      decision_type: review_source_fidelity        # 〔D6〕
+      choice: proposal_a
+      segments: [{start_offset: 0, end_offset: 7}, {start_offset: 7, end_offset: 14}]
+      reason: 目录两条目「論星曜合照命宮」「論星曜對照命宮」被 OCR 合为一行，应拆分
+
+  C. tools/build_semantic_fixture.py（stdlib + yaml；不得 import pipeline.* ；可经 importlib 按路径加载 ../mini_ed01/tools/build_fixture.py 的 dump_yaml 与 sha256_bytes）
+    python build_semantic_fixture.py --out <dir>：读 ../mini_ed01/spans.yaml、../mini_ed01/pages/*.json、本目录 recordings.yaml 与 human_decisions.yaml，写出 <dir>/semantic_spans.yaml、<dir>/expected/m3.stage_package.yaml、<dir>/manifest.yaml
+    输入缺失 → 打印 BLOCKED_SOURCE_MISSING <路径>，exit 3，不创建文件；base_spans_sha256 不符 → exit 1
+    独立实现以下规则（与 act/02 同义，由生成器自行书写，不共享代码）：
+      R1 窗口：按 spans 顺序，len(text) ≥ 12 的结构 Span 为窗口，window_id = "sanche_w%03d" 从 1 起；其余行 = 一片，boundary_origin rule，window_id null
+      R2 窗口片段：A、B 响应解析后边界相同 → cross_model_agreed，片段取该边界；否则取 human_decisions 中该 structural_span_id 的 segments → human_decided
+      R3 页内 sequence 从 1 起逐片递增；semantic_span_id = "sem_sanche_ed01_p%04d_s%03d" % (页号, sequence)   〔D1〕
+      R4 start_offset = 结构 start_offset + 片段 start；end_offset 同理；text = 结构 text[s:e]；quote_sha256 = sha256(text UTF-8)
+      R5 structural_refs = [{"span_id": 结构 span_id, "start": s, "end": e}]
+      R6 字框对齐：从 ../mini_ed01/pages/<page>.json 取 chars 中 parent == line_id 且 char != "" 的项，按页 chars 数组原顺序；其 char 序列 == list(结构 text) → 对齐
+         对齐 → evidence_level glyphbox_level，glyphs = 该序列[s:e] 逐项 {"glyph_id": id, "char": char, "box": dict(box)}
+         不对齐 → evidence_level offset_level，glyphs = []   〔D11〕
+      R7 source_anchor = {"page", "image_sha256"(取结构 anchor), "line_id", "bbox"(取结构 anchor bbox), "glyphs"}
+      R8 Span 键序：semantic_span_id, page, sequence, start_offset, end_offset, text, quote_sha256, boundary_origin, window_id, structural_refs, evidence_level, source_anchor
+      R9 文档键序：work(结构 work), source_id, edition_part_artifact_id, structural_spans_sha256(base_spans_sha256), gate_profile("structural_and_semantic"), segmentation_profile({"rule": "line_or_model_window", "model_min_chars": 12, "template_id": "m3_boundary_v1"}), content_status("machine_extracted"), span_count, window_count, dispute_count, evidence_level_counts({"glyphbox_level": n, "offset_level": m}), spans
+    expected/m3.stage_package.yaml：仿 ../mini_ed01/expected/m3.stage_package.yaml 的占位 ID 风格（pkg_m3_…f4、rev_…f4 等 32hex 占位），过 stage_package.schema.json；
+      payload: {spans_path: pipeline/corpus/_fixture/mini_ed01/spans.yaml, semantic_spans_path: pipeline/corpus/_fixture/mini_ed01_semantic/semantic_spans.yaml, coverage: {page_001: 1.0, page_003: 1.0}, excluded_pages: {page_002: known_unrecognizable}, gate_profile: structural_and_semantic, semantic: passed, disputes: {total: 1, resolved_by_human: 1, unresolved: 0}, evidence_level_counts: {glyphbox_level: 42, offset_level: 4}}
+      manifest.counts: {spans: 43, batches: 5, semantic_spans: 46, windows: 2, disputes: 1, human_decisions: 1}；manifest.content_sha256 = sha256(semantic_spans.yaml 字节)
+    manifest.yaml：files[] 逐项 {path, role, sha256}，覆盖 recordings.yaml、human_decisions.yaml、semantic_spans.yaml、expected/m3.stage_package.yaml、tools/build_semantic_fixture.py；另记 base: {path: ../mini_ed01/spans.yaml, sha256: ec6d77b9…（全 64 位）}
+
+  D. 硬计数（手算，生成器与后续实现都必须等于）：span_count 46（page_001 6、page_003 40）；window_count 2；dispute_count 1；glyphbox_level 42；offset_level 4（p0001_s03 整行 1 片、p0001_s04 拆出 3 片）
+
+  E. verify.sh（set -u；LC_ALL=en_US.UTF-8；SEMANTIC_FIXTURE_DIR 默认脚本所在目录，BASE_FIXTURE_DIR 默认 $SEMANTIC_FIXTURE_DIR/../mini_ed01，均可被环境变量覆盖；.venv 缺失 → BLOCKED_ENV，exit 3）
+    检查名与顺序固定，每项一行 PASS/FAIL：
+      base_pin（BASE_FIXTURE_DIR/spans.yaml sha256 == recordings.base_spans_sha256 == manifest.base.sha256）
+      files_sha256（manifest.files 逐项）
+      recordings_honest（synthetic is True；origin 逐字；template_id 逐字；4 项；(slot, structural_span_id) 唯一；window_text_sha256 与 base 文本一致；每条 structural_span_id 文本长度 ≥ 12；恰覆盖全部长度 ≥ 12 的结构行）
+      decisions_scope（只裁决 A/B 边界不同的窗口；每个分歧窗口恰 1 条；segments 铺满 [0, len)；choice 为 proposal_a 时 segments == A）
+      golden_replay（在 mktemp 目录运行生成器，产物与本目录三个生成文件逐字节相同）
+      semantic_counts（D 节全部计数）
+      expected_schema（expected 包过 openspec/schemas/stage_package.schema.json；content_sha256 与 counts 正确）
+      no_images（本目录无 png/jpg/jpeg/pdf）
+    退出码：任一 FAIL → 1；否则 0，末行 SEMANTIC FIXTURE OK
+  README.md：中文，说明用途、synthetic 声明、场景（两个窗口、一致与分歧各一）、D 节计数、重放命令、「不得作为知识或证据来源」
+tests:
+  verify_mutations: |
+    以下每例都在 mktemp 副本上执行（cp -R 两个 fixture 目录到同一临时父目录），SEMANTIC_FIXTURE_DIR=副本，调用仓库内 verify.sh：
+    - 原样副本 → exit 0
+    - recordings.yaml synthetic 改 false → FAIL recordings_honest，exit 1
+    - 某条 window_text_sha256 末位改字符 → FAIL recordings_honest
+    - human_decisions.yaml 增一条裁决 ss_sanche_ed01_p0001_s04 → FAIL decisions_scope
+    - semantic_spans.yaml 中「論星曜對照命宮」改一字 → FAIL files_sha256 或 golden_replay，exit 1
+    - 副本 mini_ed01/spans.yaml 末尾加一个换行 → FAIL base_pin
+verify:
+  - bash pipeline/corpus/_fixture/mini_ed01_semantic/verify.sh; echo exit=$?     # 8 PASS，SEMANTIC FIXTURE OK，exit=0
+  - 按 tests.verify_mutations 执行 5 个篡改例，逐例记录首个 FAIL 行与 exit=1
+  - "grep -rE '^\\s*(import|from) pipeline' pipeline/corpus/_fixture/mini_ed01_semantic/tools | wc -l   # 0"
+  - bash pipeline/corpus/_fixture/mini_ed01/verify.sh | tail -1                    # 原宿主不受影响
+  - git status --short pipeline/corpus/_fixture/mini_ed01 | wc -l                  # 0
+  - TDD §3 回归
+commit:
+  add: [pipeline/corpus/_fixture/mini_ed01_semantic]
+  message: "test(m3-semantic): hand-authored replay recordings, boundary decision and independent golden for semantic spans (spec §11/§11.1)"
+on_fail: 停止并报告；手算计数与生成结果不符时不得改计数迁就生成器，报告差异；不得修改 mini_ed01

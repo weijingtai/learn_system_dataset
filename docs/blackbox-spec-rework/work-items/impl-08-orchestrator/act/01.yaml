@@ -1,0 +1,73 @@
+act_id: impl-08/01
+title: 存储端口：LedgerPort 方法闭集 + DirectLedgerAdapter / LedgerdClientAdapter / PortGuard + 替换判定 substitution_report
+estimated_minutes: 80
+group: K1
+depends_on: [impl-08/00]
+scope:
+  write: [pipeline/contract_registry/ports.py, pipeline/contract_registry/conformance.py, pipeline/contract_registry/tests/test_ports.py, pipeline/contract_registry/tests/test_conformance.py]
+tests_first:
+  - 先写 tests/test_ports.py 与 tests/test_conformance.py（用例名逐字），全红后再实现
+  - 启动 ledgerd 的方式照抄 pipeline/ledger/tests/test_daemon.py（启动、等待 socket、关闭、socket 路径长度处理），不另发明；若该文件方式不适用，停手上报
+contract: |
+  ports.py：
+    LEDGER_PORT_METHODS = ("create_processing_run", "begin_step_run", "supersede_step_run", "put_artifact", "put_run_artifact", "seal_revision",
+      "register_stage_package", "record_transformation", "write_checkpoint", "await_human", "record_human_event", "resume", "suspend", "recover",
+      "finish_step_run", "fail_step_run", "recover_from_checkpoint",
+      "get_revision", "get_step_run", "list_step_run_events", "list_transformations", "latest_checkpoint", "list_checkpoints",
+      "run_status", "stage_progress", "read_object")
+      （闭集依据：pipeline/ledger/client.py 公开方法；执行者先断言 LEDGER_PORT_METHODS ⊆ LedgerClient 公开方法，不成立则停手上报）
+    class DirectLedgerAdapter：
+      __init__(root)：self._service = LedgerService(root)；
+      对 LEDGER_PORT_METHODS 中除 read_object 外的名字逐一委托给 _service 同名方法；read_object(sha256) -> bytes = self._service.objects.get(sha256)
+      unwrap() -> LedgerService（供 legacy_self_driving 绑定；本类是唯一允许触达 .objects 的生产代码位置之一）
+      close()；__enter__/__exit__
+    class LedgerdClientAdapter：
+      __init__(socket_path)：self._client = LedgerClient(socket_path)；LEDGER_PORT_METHODS 逐一委托
+      unwrap() -> raise NotImplementedError("ledgerd Adapter 不提供直连服务")
+      close()；__enter__/__exit__
+    class PortGuard：
+      __init__(port)；__getattr__(name)：name in LEDGER_PORT_METHODS 或 name == "unwrap" → getattr(port, name)；否则 raise AttributeError("非 LedgerPort 方法: %s" % name)
+    port_surface(obj) -> list[str]：sorted(n for n in LEDGER_PORT_METHODS if callable(getattr(obj, n, None)))
+    missing_port_methods(obj) -> list[str]：LEDGER_PORT_METHODS 中 obj 不可调用者（保持元组顺序）
+  conformance.py（纯逻辑，不 import pipeline.orchestrator）：
+    normalize_outcome(port, processing_run_id) -> dict（去 ID、去时间的可比结果）
+      step_runs = port.run_status(processing_run_id)["step_runs"]，按 (created_at, 列表原序) 排序
+      返回 {"run_status": run_status["status"],
+            "steps": [{"stage", "status", "input_count": len(request.input_artifact_ids), "output_count": len(result.output_artifact_ids) 或 0,
+                       "failure_count": 同理, "supersedes": bool(supersedes_step_run_id), "transformations": len(list_transformations(srun)),
+                       "event_types": [e["event_type"] for e in list_step_run_events(srun)]} …]}
+      （request_json / result_json 若为字符串则 json.loads）
+    substitution_report(port_id, adapter_factories, suite, *, fingerprint) -> dict
+      参数：adapter_factories = {adapter_id: 无参可调用，返回 (port, cleanup)}；suite = 可调用(port) -> processing_run_id；fingerprint = 可调用(adapter_id) -> str
+      流程：逐个 adapter：port, cleanup = factory()；try：missing = missing_port_methods(port)；prun = suite(PortGuard(port))；outcome = normalize_outcome(port, prun)；finally cleanup()
+            任一步异常 → conformant[adapter_id] = False，problems 追加 "<adapter_id>: <异常类名>: <消息>"
+      返回键（逐字）：port_id, adapters(list，按字典序), conformant({id: bool}), outcomes({id: dict|None}), outcomes_equal(bool), interface_equal(bool), substitutable(bool), problems(list[str])
+      substitutable = len(adapters) >= 2 and all(conformant.values()) and outcomes_equal and interface_equal
+      len(adapters) < 2 → problems 追加 "端口 <port_id> 仅 <n> 个 Adapter"
+tests:
+  test_ports.py: |
+    - test_port_methods_subset_of_ledger_client_public_api
+    - test_direct_adapter_surface_equals_closed_set（port_surface == sorted(LEDGER_PORT_METHODS)，missing 为空）
+    - test_direct_adapter_read_object_roundtrip（临时 Ledger：create_processing_run → put_run_artifact 配置 → get_revision sha256 → read_object 字节相等）
+    - test_direct_adapter_unwrap_returns_service
+    - test_ledgerd_adapter_smoke（启动 ledgerd 于临时根；LedgerdClientAdapter 做 create_processing_run + put_run_artifact + read_object；surface 等于闭集；unwrap → NotImplementedError）
+    - test_port_guard_blocks_store_objects_and_unknown（store / objects / conn / 任意名 → AttributeError；get_revision 与 unwrap 可取）
+  test_conformance.py: |
+    假 Adapter：内存对象实现 run_status / get_step_run / list_transformations / list_step_run_events 与闭集其余方法（空实现）
+    - test_two_equal_adapters_substitutable
+    - test_single_adapter_not_substitutable_with_problem_text
+    - test_outcome_difference_not_substitutable（一个假 Adapter 多一个事件类型）
+    - test_fingerprint_difference_not_substitutable
+    - test_suite_exception_marks_adapter_nonconformant_and_cleanup_called
+    - test_missing_port_method_marks_nonconformant
+    - test_normalize_outcome_strips_ids_and_times（两次在不同临时 Ledger 上建相同形状运行 → 结果相等；不含任何 prun_/srun_/rev_ 字符串）
+    - test_suite_receives_port_guard（suite 内访问 port.store → AttributeError → nonconformant）
+verify:
+  - .venv/bin/python -m unittest discover -s pipeline/contract_registry/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 24
+  - grep -nE '\.objects\b|\.store\b' pipeline/contract_registry/*.py | grep -v 'ports.py'           # 空
+  - grep -rn 'pipeline.orchestrator' pipeline/contract_registry/conformance.py pipeline/contract_registry/ports.py | wc -l   # 0
+  - TDD §3 回归
+commit:
+  add: [pipeline/contract_registry/ports.py, pipeline/contract_registry/conformance.py, pipeline/contract_registry/tests/test_ports.py, pipeline/contract_registry/tests/test_conformance.py]
+  message: "feat(registry): LedgerPort closed method set, direct/ledgerd storage adapters and adapter substitution report (spec §20.10)"
+on_fail: 停止并报告；LedgerClient 缺闭集方法或 ledgerd 无法在测试中启动时不得改 pipeline/ledger

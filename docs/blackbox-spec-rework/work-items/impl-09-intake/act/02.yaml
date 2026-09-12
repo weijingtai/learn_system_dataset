@@ -1,0 +1,139 @@
+act_id: impl-09/02
+title: M2 纯函数：OCR 工作根读取与快照、人工终态决定表、异常页判定、排除修订派生与数字化规划
+estimated_minutes: 90
+group: K2
+depends_on: []
+scope:
+  write: [pipeline/digitization/__init__.py, pipeline/digitization/errors.py, pipeline/digitization/ocr_work.py, pipeline/digitization/decisions.py, pipeline/digitization/plan.py, pipeline/digitization/tests/__init__.py, pipeline/digitization/tests/helpers.py, pipeline/digitization/tests/test_plan.py]
+tests_first:
+  - 先写 tests/helpers.py 与 tests/test_plan.py（用例名逐字），因 ImportError 全红，记录 Red；再实现
+contract: |
+  __init__.py：
+    M2_TOOL = "pipeline.digitization"；M2_TOOL_VERSION = "0.1.0"；GATE_PROFILE = "intake_only"
+    TERMINAL_STATES = ("manually_transcribed", "known_unrecognizable", "deferred")（§10.1:486–488）
+    RELEASABLE_STATES = ("manually_transcribed", "known_unrecognizable")（§10.1:491）
+    MANUAL_AUDIT_ACTIONS = ("fix", "update", "merge", "split", "delete", "reflow", "rotate", "verify")（取自 ocr/src/gujiorc/core/audit.py:11–17 的人工动作子集）
+    EVIDENCE_KEYS = ("ts", "page", "image", "layout_type", "det_box_count", "note", "extra")（同 build_fixture.build_anomalies:165–208）
+    LOW_CONF = 0.6；SPAN_LINE_LIMIT = 99
+  errors.py：
+    class DigitizationRefused(pipeline.ledger.errors.LedgerError)，构造 DigitizationRefused(message, code=None)
+    class OcrWorkMissing(DigitizationRefused)，构造 OcrWorkMissing(paths)
+      code="SRC_001"；message = "\n".join("BLOCKED_SOURCE_ASSET_MISSING %s" % p for p in paths)
+  ocr_work.py：
+    read_ocr_work(ocr_root, pages) -> dict（只读）
+      必需文件：<root>/data/<page>.json（每页）、<root>/logs/anomalies.jsonl、<root>/logs/audit.jsonl
+      先收集全部缺失路径，非空则一次 raise OcrWorkMissing(paths)
+      可选文件：<root>/logs/edit_history/<page>.json
+      页 JSON 解析：
+        非法 JSON → DigitizationRefused(SCH_001)
+        缺 page/image/width/height/lines/chars 任一键 → SCH_001
+        doc["page"] != 页名 → SCH_002
+      jsonl 解析：空白行跳过；非空坏行 → DigitizationRefused(SCH_001)，message 含文件名与行号（不静默跳过，区别于 ocr anomaly.list_anomalies）
+      返回键：
+        "pages": {page: {"bytes", "sha256", "doc"}}
+        "anomaly_log": {"bytes", "sha256", "records": [...]}
+        "audit_log": {"bytes", "sha256", "events": [...]}
+        "edit_history": {page: {"bytes", "sha256"}}（仅存在者）
+        "snapshot": [{"rel", "sha256", "size"}]，rel 为相对 ocr_root 的 posix 路径，按 rel 排序，含上述全部读入文件
+    snapshot_matches(ocr_root, snapshot) -> list[str]
+      重新读取每个 rel；不存在或 sha256 不符的 rel 按原顺序返回；全部一致返回 []
+  decisions.py：
+    load_decisions(data, *, edition_part_id, pages) -> dict
+      顶层键集合必须 == {"schema_version", "edition_part_artifact_id", "entries"}（缺 SCH_001，多 SCH_002）
+      schema_version 必须 == "1.0.0"；edition_part_artifact_id 必须 == edition_part_id（均 SCH_002）
+      entries 必须为 list
+      每项：
+        键集合 ⊆ {"page", "terminal_state", "reason", "decided_by", "note"}，且必含 page、terminal_state、reason、decided_by（缺 SCH_001，多 SCH_002）
+        page ∉ pages → DigitizationRefused(code="REF_001")
+        重复 page → SCH_002
+        terminal_state ∉ TERMINAL_STATES → SCH_002
+        reason、decided_by 为空或非 str → SCH_001
+      返回 {page: {"terminal_state", "reason", "decided_by", "note": 原值或 ""}}
+  plan.py（纯函数：不读写文件、不访问 Ledger、不取时间、不用随机数）：
+    required_terminal_pages(pages, page_docs, anomaly_records) -> dict
+      对 pages 中每页：rec = anomaly_records 中 page 等于该页的最后一条（按列表顺序），可为 None
+      该页 lines 为空，或 rec 不为 None → 必需
+      值 {"layout_type": rec["layout_type"] if rec else "no_text", "evidence": {k: rec[k] for k in EVIDENCE_KEYS} if rec else None}
+      pages 之外页面的记录一律忽略
+    excluded_page_bytes(raw_doc, raw_sha256) -> bytes
+      新 dict，键序与 raw_doc 相同；lines = []，chars = []
+      extra = dict(raw_doc.get("extra") or {})，末尾追加 "m2_exclusion": {"terminal_state": "known_unrecognizable", "raw_sha256": raw_sha256, "raw_line_count": len(raw lines), "raw_char_count": len(raw chars)}
+      若 raw_doc 无 extra 键，则在末尾新增 extra 键
+      json.dumps(doc, ensure_ascii=False, indent=2).encode("utf-8")（与 ocr/src/gujiorc/core/storage.py:51–55 同规则）
+    plan_digitization(*, manifest, ocr_work, decisions, decision_sheet_sha256, ocr_root_ref) -> dict
+      pages = manifest["edition_part"]["pages"]
+      page_docs = {p: ocr_work["pages"][p]["doc"]}
+      required = required_terminal_pages(pages, page_docs, ocr_work["anomaly_log"]["records"])
+      R1 missing_decisions = 必需页中不在 decisions 的页，按页序（不抛异常，由调用方在 begin 前拒绝）
+      R2 决定表中非必需页取 known_unrecognizable → DigitizationRefused，message 含「裸标」与页名
+      R3 manually_transcribed 页：
+         lines 为空 → DigitizationRefused
+         audit events 中 page 为该页且 action ∈ MANUAL_AUDIT_ACTIONS 的条数 ≥ 1，或 chars 中 source 以 "manual" 开头或 status == "corrected" 的数 ≥ 1 → 通过
+         否则 DigitizationRefused，message 含「无人工校订证据」
+      R4 known_unrecognizable 且原始 lines 非空 → effective = "excluded"，effective_bytes = excluded_page_bytes(doc, raw_sha256)
+         其余页 effective = "raw"，effective_bytes = None，effective_sha256 = raw_sha256
+      R5 deferred 页按页序记入 deferred_pages
+      tasks：按页序，每项键为 page, raw_sha256, effective, effective_sha256, effective_bytes, terminal_state, human_event
+        terminal_state：页在 decisions 中取决定值，否则 None
+        human_event：terminal_state 不为 None 时为 dict，否则 None
+          键：page, terminal_state,
+              layout_type（必需页取 required[page]["layout_type"]，否则 "manual_correction"）,
+              evidence（必需页取 required[page]["evidence"]，否则 None）,
+              decided_by, note, reason, decision_sheet_sha256, raw_page_sha256
+      ocr_page_set：deferred_pages 非空时为 None；否则为
+        {"ocr_pages": [{"page", "path": ocr_root_ref + "/data/" + page + ".json", "sha256": effective_sha256} 按页序], "anomalies_path": ocr_root_ref + "/logs/anomalies.jsonl", "terminal_states": {page: terminal_state，仅非 None}}
+        每页的 artifact_revision_id 由 step 追加
+      counts = {"ocr_pages": len(pages), "lines": 按有效内容求和, "chars": 按有效内容求和, "anomalies": len(required)}
+      content_sha256 = sha256(("\n".join(按页名排序的 effective_sha256) + "\n").encode("utf-8"))（fixture verify.sh:363–365 规则）
+      quality：
+        {"pages": {page: {"raw_lines", "raw_chars", "effective_lines", "effective_chars", "unrecognized_chars", "manual_chars", "corrected_chars", "orphan_chars", "text_char_mismatch_lines", "low_conf_lines", "max_line_chars"}}, "max_lines_per_page", "warnings": [...]}
+        orphan_chars：parent 不是本页任一 line id 的字框数
+        text_char_mismatch_lines：line.text != parent 为该行的字框按数组顺序 char 拼接
+        low_conf_lines：line.conf < LOW_CONF
+        warnings：有效行数 > SPAN_LINE_LIMIT 的页写「<page> 行数 <n> 超过 ss_ 句序上限 99」；orphan_chars > 0 与 text_char_mismatch_lines > 0 的页各写一条
+      observed_ocr_parameters = {page: {k: doc["extra"][k] for k in ("bleed_thresh", "col_gap_thresh") if k in doc.get("extra", {})}}
+      返回键：pages, required, missing_decisions, deferred_pages, tasks, ocr_page_set, counts, content_sha256, quality, observed_ocr_parameters
+  tests/helpers.py（只供测试）：
+    FIXTURE = Path("pipeline/corpus/_fixture/mini_ed01")
+    fixture_anomaly_record() -> dict：fixture anomalies.yaml 中 page_002 条目的 evidence，加 "rec_texts_sample": []
+    build_ocr_root(root, *, pages=("page_001","page_002","page_003"), anomaly_records=None, audit_events=(), edit_history=None, page_bytes=None)
+      把 fixture pages/<page>.json 原字节写入 root/data/
+      写 root/logs/anomalies.jsonl（默认 [fixture_anomaly_record()]，每行 json.dumps(ensure_ascii=False)）
+      写 root/logs/audit.jsonl（可为空文件）
+      edit_history 为 {page: bytes} 时写入 root/logs/edit_history/
+      page_bytes 为 {page: bytes} 时覆盖对应页
+    fixture_decisions(edition_part_id, overrides=None) -> dict
+      默认 entries 为 [{"page": "page_002", "terminal_state": "known_unrecognizable", "reason": "无文字页（测试决定）", "decided_by": "fixture", "note": fixture anomalies.yaml 中该条目的 note}]
+    fixture_manifest() -> dict：yaml.safe_load fixture manifest.yaml
+tests:
+  test_plan.py: |
+    - test_read_ocr_work_fixture_pages_bytes_and_hashes（页 sha256 == fixture manifest files 中 role 为 ocr_page 的登记值）
+    - test_read_ocr_work_collects_all_missing（缺 1 页 + 缺 audit.jsonl → paths 含 2 项）
+    - test_read_ocr_work_bad_jsonl_line_SCH_001
+    - test_read_ocr_work_page_name_mismatch_SCH_002
+    - test_snapshot_matches_detects_drift（改写 data/page_001.json 一个字节 → ["data/page_001.json"]）
+    - test_load_decisions_valid
+    - test_load_decisions_wrong_part_or_unknown_state_SCH_002
+    - test_load_decisions_page_outside_part_REF_001
+    - test_load_decisions_empty_reason_SCH_001
+    - test_required_pages_zero_lines_and_anomaly_record
+    - test_required_ignores_records_outside_part（加一条 page_010 记录 → 结果不含 page_010）
+    - test_plan_fixture_parity_counts_hash_terminal（counts == fixture expected/m2 manifest.counts；content_sha256 == expected/m2 manifest.content_sha256；ocr_page_set 的 [(page, sha256)] 与 terminal_states == expected/m2 payload 同名字段）
+    - test_plan_human_event_common_keys_equal_fixture_anomaly_entry（page、terminal_state、layout_type、evidence 与 fixture anomalies.yaml 条目相等；decided_by、note 等于决定表输入）
+    - test_missing_decision_reported_not_raised
+    - test_known_unrecognizable_on_normal_page_refused_naked
+    - test_manually_transcribed_without_evidence_refused
+    - test_manually_transcribed_with_audit_event_ok（audit_events 含 {"page": "page_003", "action": "update"}）
+    - test_known_unrecognizable_with_lines_derives_excluded_bytes（page_003 加异常记录并标 known_unrecognizable → lines、chars 为空；键序同原 doc；extra.m2_exclusion 值正确；两次字节相同）
+    - test_deferred_pages_no_ocr_page_set
+    - test_quality_counts_orphans_and_mismatch（合成页：1 个孤儿字框、1 行 text≠字拼接、120 行 → 计数正确，warnings 含「超过 ss_ 句序上限 99」）
+    - test_plan_is_pure_no_file_io（patch builtins.open 为抛异常后 plan_digitization 仍返回相同结果）
+verify:
+  - .venv/bin/python -m unittest discover -s pipeline/digitization/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 21
+  - grep -rnE '^\s*(import|from) .*(paddle|PIL|requests|openai|anthropic|httpx)' pipeline/digitization | wc -l   # 0
+  - grep -rnE "open\(.*['\"](w|a)" pipeline/digitization --include='*.py' | grep -v '/tests/' | wc -l   # 0
+  - TDD §3 回归
+commit:
+  add: [pipeline/digitization]
+  message: "feat(m2): pure digitization planning — ocr work root snapshot, human terminal-state sheet, anomaly pages, exclusion revision (spec §10/§10.1)"
+on_fail: 停止并报告；expected m2 的 counts 或 content_sha256 不相等时不得修改 fixture，报告差异；需要改决定表字段时停手上报（D-09-03）

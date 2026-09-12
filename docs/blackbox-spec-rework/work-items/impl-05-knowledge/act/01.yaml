@@ -1,0 +1,112 @@
+act_id: impl-05/01
+title: 纯函数候选装配 assemble.py（证据定位、逐条准入、双路差异、裁决应用、人工闭集 ID 分配、candidate_set 序列化）
+estimated_minutes: 90
+group: K1
+depends_on: [impl-05/00]
+pending_decisions: [D-03, D-05, D-06, D-09, D-10, D-13]
+scope:
+  write: [pipeline/knowledge_extraction/assemble.py, pipeline/knowledge_extraction/tests/test_assemble.py]
+tests_first:
+  - 先写 tests/test_assemble.py（用例名逐字）并全红，再实现
+contract: |
+  assemble.py（纯函数：不读文件、不访问 Ledger、不取时间；随机性只允许经 id_factory 注入）
+  输入约定：spans_doc = corpus_spans YAML 解析后的 dict（README §6.1）；profile = technique_profile 内容 dict（README §6.1）；
+           submission = validate_submission 的返回值
+  page_blocks(spans_doc) -> dict[str, str]
+    按 spans 出现顺序，同页 Span 的 text 以 "\n" 连接
+  span_index(spans_doc) -> dict[str, dict]
+    {span_id: {"order": 全局序号(从 0), "span": span dict}}；span_id 重复 → ExtractionRefused(code="ID_002")
+  locate_evidence(evidence, index) -> dict
+    成功返回 {"source_span_id", "support_type", "start_offset", "end_offset", "quote", "quote_sha256"}；失败抛 _ItemRejected(reason_code, detail)（模块私有异常）
+    E1 source_span_id 不在 index → REF_001
+    E2 有 span_char_start/end：0 ≤ s < e ≤ len(text)，否则 TXT_001；q = text[s:e]；若同时给 quote 且 quote != q → TXT_001
+    E3 只有 quote：text.count(quote) == 1 → s = text.index(quote)；== 0 → TXT_001（「quote 不在 Span 内」）；> 1 → TXT_001（「quote 在 Span 内不唯一」）
+    E4 都没有：s = 0，e = len(text)
+    start_offset = span.start_offset + s；end_offset = start_offset + (e - s)；quote_sha256 = sha256_hex(quote.encode("utf-8"))
+  normalize_lane(submission, *, spans_doc, profile) -> dict
+    返回 {"category", "lane", "channel", "accepted": [...], "rejected": [...]}
+    逐 item（item_index 从 0）；任一规则失败 → rejected 追加 {"category", "lane", "item_index", "disposition": "refused", "reason_code", "detail"}，该 item 不进 accepted
+    N1 evidence 为空 → SEM_001
+    N2 每条证据 locate_evidence；结果按 (order, start_offset, end_offset) 排序并去重
+    N3 assertion.layer == "case" → SCH_002（detail 含「G4 命例不得作为通则主张」）
+    N4 引用校验（D-06 只校验不扫描）：
+       concept_refs / concept_ref 的每个值 v：ids.kind_of(v) == "shared_concept_id" 时 v 必须 ∈ profile canon concept_id 集合，否则 REF_001；
+         concept_mention 且绑定 co_shared_*：surface 必须 ∈ {该概念 surface} ∪ aliases 且 surface == 唯一证据 quote，否则 TXT_001
+       kind_of(v) == "technique_concept_id" 时 v 必须 ∈ profile glossary 的 concept_id 集合，否则 REF_001
+       其他前缀或格式不合法（ids.validate 失败）→ ID_001
+       concept_mention 且 concept_ref 为 None 且 surface ∈ profile homographs 的 surface 集合 → REF_001（detail 含「同形字面必须绑定技法义项」）
+    N5 school_ids / school_id：ids.validate("school_id") 失败 → ID_001；不在 profile schools 的 school_id 集合 → REF_001
+    N6 规范化后的 accepted item（键名逐字）：
+       assertion: proposition, relation, evidence, conditions, exceptions, concept_refs(去重排序), school_ids(去重排序), layer, origin{lane, item_index}
+       pattern: name, assertion_propositions(去重排序), evidence, interpretation, origin
+       school_view: school_id, subject, claim_propositions(去重排序), conflict_key, changes_current_judgment, evidence, origin
+       concept_mention: surface, concept_ref, evidence, origin
+  reconcile_lanes(lane_results, *, required_lanes) -> dict
+    lane_results = {category: {lane: normalize_lane 返回值}}；required_lanes = {category: [lane, ...]}
+    对 lane_results 中出现的每个 category：required_lanes[category] 中任一 lane 缺失 → ExtractionRefused(code="REF_001", message 含「缺必需路」)
+    只需单路的 category：accepted 全部进 agreed
+    需要 a、b 两路的 category：
+      key(item) = tuple((ev.source_span_id, ev.start_offset, ev.end_offset) for ev in item.evidence)
+      body(item) = item 去掉 origin 后的 canonical_json
+      对每个 key（两路 key 并集，按 (首证据 order, 首证据 start, 首证据 end, key 字符串) 排序）：
+        a_bodies = sorted(A 路该 key 的 body)，b_bodies 同理；相等 → agreed 取 A 路条目；不等 → 分歧
+      分歧编号按上述排序跨 category（category 按 CATEGORIES 顺序）连续编号 dispute_id = "m4_d%03d"
+    返回 {"agreed": {category: [item]}, "disputes": [{"dispute_id", "category", "key": [[span_id, start, end], ...], "a": [item], "b": [item]}], "rejected": 各路 rejected 合并}
+  assemble_candidates(*, spans_doc, profile, lane_results, required_lanes, rulings, id_range, id_factory=None) -> dict
+    rulings = {dispute_id: choice}；choice ∉ {"a", "b", "both", "neither"} → ExtractionRefused(code="SCH_002")；
+    reconcile 得到的任一 dispute_id 不在 rulings → ExtractionRefused(message 含「未裁决」)；rulings 含未知 dispute_id → ExtractionRefused(code="REF_001")
+    A1 应用裁决：a → A 路条目；b → B 路条目；both → 两路条目，content_status 置 "disputed"；neither → 两路条目以 disposition "ruled_out"、reason_code None 进 rejected
+       其余条目 content_status = "machine_extracted"
+    A2 assertions 排序键 (首证据 order, 首证据 start_offset, proposition, relation)；n 从 id_range["assertion"][0] 递增；
+       assertion_id = "as_%s_%06d" % (technique_id, n)，proposition_id = "pr_%s_%06d" % (technique_id, n)；n > id_range["assertion"][1] → ExtractionRefused(code="ID_001", message 含「号段耗尽」)
+    A3 patterns 排序键 (name, 首证据 order, 首证据 start_offset)；pattern_id = "pat_%s_%06d"（号段 id_range["pattern"]）；
+       assertion_ids = 所有 proposition ∈ assertion_propositions 的 assertion_id（排序）；任一 proposition 无对应 → 该 pattern 以 refused REF_001 进 rejected
+       输出键：pattern_id, name, assertion_ids, evidence, interpretation, interpretation_status("not_captured" 若 interpretation 为 None 否则 "captured"), recognition_rule_status("not_captured"), content_status, origin
+    A4 school_views 排序键 (school_id, subject.kind, subject.key, 首证据 order, 首证据 start_offset)；id_factory 缺省为 pipeline.ledger.ids.new_id；
+       school_view_id = id_factory("school_view_id")；conflict_key 非 None 时同 key 共用 id_factory("conflict_group_id")，None → conflict_group_id None；
+       subject_entity_id = subject 解析到的 assertion_id 或 pattern_id；claim_refs = claim_propositions 解析到的 assertion_id（排序）；任一解析失败 → refused REF_001
+       source_refs = [{"source_id": spans_doc["source_id"], "source_span_id"}]（按证据顺序去重）
+       输出键：school_view_id, school_id, subject_entity_id, claim_refs, conflict_group_id, changes_current_judgment, source_refs, evidence, content_status, origin
+    A5 concept_mention：concept_ref 非 None → concept_mentions {surface, concept_ref, evidence, content_status, origin}；
+       否则 → new_concept_candidates {surface, technique_id, evidence, content_status, origin}；两者排序键 (首证据 order, 首证据 start_offset, surface)
+    A6 rejected 排序键 (CATEGORIES 序, lane, item_index)；disputes 输出 [{"dispute_id", "category", "key", "choice"}]
+    A7 candidate_set 顶层键（逐字）：schema_version(CANDIDATE_SCHEMA_VERSION), technique_id(profile), source_id, edition_part_artifact_id, evidence_level(spans_doc), span_layer("structural"),
+       source_channels({category: {lane: channel}}), assertions, patterns, school_views, concept_mentions, new_concept_candidates, rejected, disputes,
+       counts{assertions, patterns, school_views, concept_mentions, new_concept_candidates, rejected, disputes, human_decisions(= len(rulings))}
+    返回 dict 键：candidate_set, candidate_bytes(= canonical_json(candidate_set)), candidate_sha256, lane_bytes({"<category>/<lane>": canonical_json(normalize_lane 返回值)}), content_status_counts({状态: 数量，统计五类对象})
+tests:
+  test_assemble.py: |
+    读 fixture spans.yaml（只读）作 spans_doc；profile 在测试内构造：canon 取 pipeline/schemas/shared/canon 全部 concepts，homographs/glossary/schools 为空
+    - test_page_blocks_equal_transcript_sections（page_001、page_003 两节正文行以 "\n" 连接）
+    - test_locate_by_span_char_range（s04 [0,7] → start 20、end 27、quote 三辰通載三十卷）
+    - test_locate_by_unique_quote（s02 quote 錢如璧撰 → 8..12）
+    - test_locate_whole_span_when_no_range_no_quote
+    - test_quote_not_found_TXT_001
+    - test_quote_ambiguous_TXT_001（ss_sanche_ed01_p0003_s13 quote 宮）
+    - test_range_quote_mismatch_TXT_001
+    - test_unknown_span_REF_001
+    - test_empty_evidence_SEM_001
+    - test_case_layer_refused_SCH_002
+    - test_shared_concept_ref_verified_against_canon（co_shared_branch_05 通过；co_shared_branch_99 REF_001）
+    - test_concept_mention_surface_mismatch_TXT_001
+    - test_technique_concept_ref_without_glossary_REF_001
+    - test_unregistered_school_id_REF_001
+    - test_homograph_surface_without_sense_REF_001（合成 profile homographs 含「驛馬」）
+    - test_reconcile_identical_lanes_no_dispute
+    - test_reconcile_gold_one_dispute_m4_d001（附录 A 两路；B 路 item 2 进 rejected TXT_001，不参与比对）
+    - test_missing_required_lane_refused
+    - test_unruled_dispute_refused
+    - test_ruling_both_marks_disputed
+    - test_ruling_neither_moves_to_rejected_ruled_out
+    - test_id_range_exhausted_ID_001
+    - test_gold_counts_and_ids（裁决 a：as_qizheng_000001 == 宋錢如璧撰、证据 [s02 8..12, s04 27..32]；as_qizheng_000002 == 三辰通載三十卷；new_concept_candidates 身宮 68..70、官祿宮 119..122；counts 与附录 A 一致）
+    - test_school_view_with_synthetic_profile（profile schools 含 sch_qizheng_001；注入计数 id_factory；同 conflict_key 共用 cg_）
+    - test_deterministic_bytes_twice
+verify:
+  - .venv/bin/python -m unittest discover -s pipeline/knowledge_extraction/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 38
+  - grep -nE '^\s*(import|from) .*(service|store|sqlite3)|open\(' pipeline/knowledge_extraction/assemble.py | wc -l   # 0
+  - TDD §3 回归
+commit:
+  add: [pipeline/knowledge_extraction/assemble.py, pipeline/knowledge_extraction/tests/test_assemble.py]
+  message: "feat(m4): pure candidate assembly with evidence location, lane reconciliation and closed-set id allocation"
+on_fail: 停止并报告；附录 A 期望与实现结果不一致时不得修改期望，报告首个差异字段

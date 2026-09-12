@@ -1,0 +1,87 @@
+act_id: impl-08/00
+title: Contract Registry 目录：registry.yaml + load_registry / check_registry / module_for / interface_fingerprint + check CLI
+estimated_minutes: 60
+group: K1
+depends_on: []
+scope:
+  write: [pipeline/contract_registry/__init__.py, pipeline/contract_registry/errors.py, pipeline/contract_registry/registry.yaml, pipeline/contract_registry/catalog.py, pipeline/contract_registry/__main__.py, pipeline/contract_registry/tests/__init__.py, pipeline/contract_registry/tests/test_catalog.py]
+tests_first:
+  - 先写 tests/test_catalog.py（用例名与下文逐字），`.venv/bin/python -m unittest discover -s pipeline/contract_registry/tests -t .` 因 ImportError 全红，记录 Red；再实现
+contract: |
+  __init__.py：REGISTRY_TOOL = "pipeline.contract_registry"；REGISTRY_TOOL_VERSION = "0.1.0"
+    REPO_ROOT = Path(__file__).resolve().parents[2]；DEFAULT_REGISTRY_PATH = Path(__file__).resolve().parent / "registry.yaml"
+  errors.py：class RegistryInvalid(pipeline.ledger.errors.LedgerError)，构造 RegistryInvalid(message, code=None)
+  常量（catalog.py，逐字）：
+    STAGE_ROWS_EXPECTED = {"m1": "M1 Source Intake", "m2": "M2 Digitization & Correction", "m3": "M3 Corpus Compilation",
+      "m4": "M4 Knowledge Extraction", "m5": "M5 Automatic Validation", "m6": "M6 Review Workbench",
+      "m7": "M7 Incremental Assembly", "m8": "M8 Dataset Compilation"}      # 规格 §19 第一列 :875–882
+    HUMAN_QUEUES_EXPECTED = {"m2": "M2 异常页与低置信字", "m3": "M3 边界分歧", "m4": "M4 类别分歧", "m6": "M6 待签发", "m7": "M7 待裁决"}   # §5 :120–124
+    L0_SCHEMA_IDS = ("artifact_ref", "stage_package", "step_request", "step_result")
+    MODULE_KINDS = ("production", "thin_import", "stub")；BINDINGS = ("step_request", "legacy_self_driving", "imported")；PORT_IDS = ("ocr", "model", "index", "storage")
+  registry.yaml（顶层键序逐字）：
+    registry_version: "0.1.0"
+    schemas: 四项 {schema_id, path(相对仓库根), schema_version: "1.0.0", sha256: 执行者对 openspec/schemas/<id>.schema.json 实算后写入}
+    stage_rows: 同 STAGE_ROWS_EXPECTED
+    human_queues: 同 HUMAN_QUEUES_EXPECTED
+    modules（三项，字段键序逐字 module_id, stage, kind, binding, entry, version, consumes, produces, human_queue, supports_recovery）：
+      - {module_id: m1.fixture_import, stage: m1, kind: thin_import, binding: imported, entry: null, version: mini_ed01, consumes: [], produces: [{artifact_type: source_manifest}], human_queue: false, supports_recovery: false}
+      - {module_id: m2.fixture_import, stage: m2, kind: thin_import, binding: imported, entry: null, version: mini_ed01, consumes: [{artifact_type: source_manifest, from_stage: m1}], produces: [{artifact_type: ocr_page_set}], human_queue: true, supports_recovery: false}
+      - {module_id: m3.corpus_structural, stage: m3, kind: production, binding: legacy_self_driving, entry: "pipeline.corpus_compiler.step:run_m3", version: "0.1.0",
+         consumes: [{artifact_type: source_manifest, from_stage: m1}, {artifact_type: ocr_page_set, from_stage: m2}, {artifact_type: ocr_page, from_stage: m2}],
+         produces: [{artifact_type: corpus_package}], human_queue: false, supports_recovery: false}
+      produces 语义（逐字）：该 Stage 的 StagePackage 在 manifest.output_artifacts 中自述的 artifact_type 集合。
+        理由：LedgerPort 读不到 artifacts.artifact_type（get_revision 只返回 artifact_revisions 行，store.py:36–59、:363–369），Gate 只能比对 StagePackage 自述类型（README §4 第 6 条）
+      consumes 的 artifact_type 只进文档与指纹；Gate 只按 from_stage 判血缘
+      （artifact_type 名以 fixture_ingest.py:43–47 与 fixture expected/m1–m3.stage_package.yaml 的 output_artifacts 为准；若与上列不同，停手上报，不得猜）
+    ports（键序 port_id, adjacent_interface, adapters）：
+      - {port_id: storage, adjacent_interface: [artifact_ref, stage_package, step_request, step_result], adapters: [{adapter_id: ledger_direct, entry: "pipeline.contract_registry.ports:DirectLedgerAdapter"}, {adapter_id: ledgerd_client, entry: "pipeline.contract_registry.ports:LedgerdClientAdapter"}]}
+      - {port_id: ocr, adjacent_interface: [step_request, step_result], adapters: [{adapter_id: ocr_engine_current, entry: null}]}
+      - {port_id: model, adjacent_interface: [step_request, step_result], adapters: []}
+      - {port_id: index, adjacent_interface: [step_request, step_result], adapters: []}
+    （ACT 00 的 ports.py 尚不存在：check_registry 在 resolve_entries=False 时不解析 entry）
+  catalog.py：
+    load_registry(path=DEFAULT_REGISTRY_PATH, *, repo_root=REPO_ROOT) -> Registry（yaml.safe_load → Registry.from_dict(doc, repo_root=repo_root, allow_stub=False)）
+    class Registry：属性 registry_version, schemas({schema_id: dict}), stage_rows, human_queues, modules(list[dict]，保持文件顺序), ports({port_id: dict}), allow_stub, repo_root
+      from_dict(doc, *, repo_root=REPO_ROOT, allow_stub=False) -> Registry（只做结构装载与 SCH_001 缺键报错；语义规则归 check_registry）
+      module_for(stage) -> dict | None：非桩 Module（allow_stub=True 时桩也算）中 stage 相同者恰 1 → 返回；0 → None；>1 → RegistryInvalid(code="ID_002")
+      modules_by_id() -> {module_id: dict}
+    check_registry(registry, *, resolve_entries=False) -> list[dict]（每项 {"code": 下列之一, "detail": str}；空 = 一致）
+      R1 schema_missing（L0_SCHEMA_IDS 未全登记）、schema_path_missing、schema_sha256_mismatch（hashlib.sha256(文件字节)）、schema_version_invalid（!= "1.0.0"，依据规格 §7 :203、§8 :244）
+      R2 stage_rows_mismatch（!= STAGE_ROWS_EXPECTED）、human_queues_mismatch（!= HUMAN_QUEUES_EXPECTED）
+      R3 module_id_invalid（不匹配 ^[a-z0-9][a-z0-9_.]*$）、module_id_duplicate、stage_invalid（不在 pipeline.ledger.ids.STAGES）、kind_invalid、binding_invalid、
+         entry_forbidden（binding imported 却 entry 非 null）、entry_required（非 imported 且 entry 不匹配 ^[a-z_][a-z0-9_.]*:[A-Za-z_][A-Za-z0-9_]*$）、
+         entry_unresolvable（仅 resolve_entries=True：importlib 导入模块并 getattr 失败）
+      R4 consumes_stage_order（from_stage 不严格早于本 stage）、artifact_type_invalid（不匹配 ^[a-z][a-z0-9_]*$）
+      R5 stub_in_production（allow_stub=False 且 kind == "stub"）、stage_module_duplicate（同 stage 非桩 >1）
+      R6 port_invalid（port_id 不在 PORT_IDS 或缺任一 PORT_IDS）、adapter_id_duplicate（全局唯一）、adjacent_interface_unknown（引用未登记 schema_id）
+    interface_fingerprint(registry, module_id) -> str
+      sha256(json.dumps({"stage", "binding", "consumes", "produces", "l0": {schema_id: sha256 按 L0_SCHEMA_IDS}}, sort_keys=True, ensure_ascii=False).encode()) 的 hex；不含 version、entry、kind
+  __main__.py：python -m pipeline.contract_registry check [--registry <path>] [--resolve-entries]
+    问题为空 → 末行 `REGISTRY OK modules=<n> ports=<n>` exit 0；否则每项一行 `PROBLEM <code> <detail>`，末行 `REGISTRY INVALID <n>` exit 1；
+    文件不存在或 YAML 解析失败 → `REGISTRY INVALID 1`（首行 PROBLEM registry_unreadable …）exit 1
+tests:
+  test_catalog.py: |
+    统一脚手架：读仓库 registry.yaml 为 dict，deepcopy 后篡改，经 Registry.from_dict 构造（tempfile 仅用于路径类用例）
+    - test_repository_registry_is_consistent（check_registry(load_registry()) == []）
+    - test_schema_sha256_mismatch_detected
+    - test_schema_path_missing_detected
+    - test_schema_version_not_1_0_0_detected
+    - test_stage_rows_verbatim_section_19（改 "M6 Review Workbench" 一字 → stage_rows_mismatch）
+    - test_human_queues_verbatim_section_5
+    - test_duplicate_module_id_detected
+    - test_imported_with_entry_forbidden
+    - test_consumes_from_later_stage_detected
+    - test_stub_in_production_detected_and_allowed_with_flag（allow_stub=True 时无该问题）
+    - test_port_closed_set_enforced（缺 index 或多出 graph → port_invalid）
+    - test_module_for_zero_one_many（m4 → None；m3 → m3.corpus_structural；两个非桩 m3 → RegistryInvalid）
+    - test_fingerprint_ignores_version_but_not_produces
+    - test_cli_ok_and_invalid_exit_codes（subprocess：仓库表 → 0 且末行 `REGISTRY OK modules=3 ports=4`；临时损坏表 → 1 且末行以 `REGISTRY INVALID` 开头）
+verify:
+  - .venv/bin/python -m unittest discover -s pipeline/contract_registry/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 14
+  - .venv/bin/python -m pipeline.contract_registry check | tail -1                                   # REGISTRY OK modules=3 ports=4
+  - grep -c 'kind: stub' pipeline/contract_registry/registry.yaml                                    # 0
+  - TDD §3 回归
+commit:
+  add: [pipeline/contract_registry]
+  message: "feat(registry): declarative contract registry with L0 schema catalog, module descriptors and port closed set (spec §5/§19 L2')"
+on_fail: 停止并报告；stage 行名或队列名与规格逐字不符时不得改规格；artifact_type 名与现有代码不符时停手

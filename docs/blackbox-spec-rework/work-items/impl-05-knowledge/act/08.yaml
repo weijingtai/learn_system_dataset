@@ -1,0 +1,41 @@
+act_id: impl-05/08
+title: （可选）legacy 工作台候选准入纯函数 admit_legacy_rules——§20.7 准入阈值的可执行说明，不接 run_all
+estimated_minutes: 45
+group: K5
+depends_on: [impl-05/01]
+pending_decisions: [D-12]
+scope:
+  write: [pipeline/knowledge_extraction/adapters/legacy_workbench.py, pipeline/knowledge_extraction/tests/test_legacy_workbench.py]
+tests_first:
+  - 先写 tests/test_legacy_workbench.py（用例名逐字）并全红，再实现
+contract: |
+  adapters/legacy_workbench.py（Adapter；只读打开工作台库；不写 Ledger；不在 pipeline/tools/ 建任何文件）
+    LEGACY_DB_SHA256 = "1f25a9304d6b88394f495267d371ea7566ca19de431026b3c79b13340111c764"   # openspec/legacy-storage-transition.md:28
+    read_rules_readonly(db_path) -> list[dict]
+      sqlite3.connect("file:%s?mode=ro&immutable=1" % 绝对路径, uri=True)
+      SELECT id, pattern_id, school_id, jixiong, ge_ju_type, chapter, conditions, assertion, original_text FROM ge_ju_rules ORDER BY id
+      每行转 dict（键同列名）；连接在 finally 中关闭
+    admit_legacy_rules(rows, *, spans_doc=None) -> dict
+      返回 {"admitted": [...], "refused": [...], "counts": {"total", "admitted", "refused"}}
+      逐行：
+        L1 original_text 为 None 或 strip() 为空 → refused {"rule_row_id": id, "pattern_id", "school_id", "reason_code": "SCH_001", "detail": "original_text 为空（§20.7 fail-closed）"}
+        L2 spans_doc 为 None，或 spans_doc 中没有任何 Span 的 text 包含 original_text.strip() → refused，reason_code "REF_001"，detail「来源引用不可解析」
+        L3 否则 admitted {"rule_row_id", "pattern_id", "legacy_school_ref": school_id, "original_text", "source_span_ids": [包含该文本的 span_id，按 spans 顺序]}
+           注意：legacy school_id（如 guo_lao / qin_tang）不是 sch_ 登记值，只作 legacy_school_ref 原样保留，不得写入 school_ids
+      counts 与列表长度一致
+tests:
+  test_legacy_workbench.py: |
+    - test_real_db_all_496_refused_SCH_001（库不存在则 skipTest；读前后库文件 sha256 == LEGACY_DB_SHA256 且不变；counts == {total: 496, admitted: 0, refused: 496}）
+    - test_nonempty_text_without_resolvable_span_REF_001（合成行 + fixture spans.yaml）
+    - test_nonempty_text_with_span_admitted（合成行 original_text 為「論身宮主星」→ source_span_ids == [ss_sanche_ed01_p0003_s12]）
+    - test_legacy_school_ref_not_promoted_to_school_ids
+    - test_no_import_legacy_candidates_tool_created（pipeline/tools/import_legacy_candidates.py 不存在）
+verify:
+  - .venv/bin/python -m unittest discover -s pipeline/knowledge_extraction/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 123
+  - export LC_ALL=en_US.UTF-8; bash openspec/acceptance/run_all.sh 20.7 | head -1                     # 仍以 "FAIL  20.7" 开头
+  - test ! -e pipeline/tools/import_legacy_candidates.py; echo $?                                    # 0
+  - TDD §3 回归
+commit:
+  add: [pipeline/knowledge_extraction/adapters/legacy_workbench.py, pipeline/knowledge_extraction/tests/test_legacy_workbench.py]
+  message: "feat(m4): fail-closed legacy workbench admission function (spec §20.7 threshold, not wired to run_all)"
+on_fail: 停止并报告；库 sha256 与登记值不符、只读打开失败 → 停手上报，不得复制或修改工作台库

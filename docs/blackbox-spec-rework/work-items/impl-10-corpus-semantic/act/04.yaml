@@ -1,0 +1,81 @@
+act_id: impl-10/04
+title: run_m3_full——一个 M3 StepRun 内结构层 + 语义规则 + 双提议留痕 + 进入人工队列（或无分歧直接完成）〔D4 D5 D8〕
+estimated_minutes: 90
+group: J2
+depends_on: [impl-10/03]
+scope:
+  write: [pipeline/corpus_compiler/semantic/step.py, pipeline/corpus_compiler/semantic/tests/test_step_full.py]
+tests_first:
+  - 先写 tests/test_step_full.py（用例名逐字），全红，记录 Red；再实现
+contract: |
+  复用（只读 import，不改原文件）〔D8 推荐 A〕：
+    pipeline.corpus_compiler.inputs.resolve_m3_inputs；pipeline.corpus_compiler.compiler.compile_structural；pipeline.corpus_compiler.gate.evaluate_structural；
+    pipeline.corpus_compiler.step 的 _validate_input_contract、_read_manifest_content、_read_revision_json、_build_artifacts_map、_artifact_ref、_fail
+    另写 test_private_helper_signatures_pinned：inspect.signature 与 impl-02 ACCEPTED 时一致，不一致即红（报告主 Agent，不得自行改 step.py）
+
+  step.py：run_m3_full(service, edition_part_id, *, proposer_a, proposer_b, batch_size=10, model_min_chars=12) -> dict
+    一律 producer_module=M3S_TOOL, producer_version=M3S_TOOL_VERSION；JSON 一律 json.dumps(..., sort_keys=True, ensure_ascii=False).encode("utf-8")
+    begin 之前（任何拒绝都原样抛出，Ledger 无新增写入）：
+      P1 proposer_a.describe()["slot"] == "a"、proposer_b 为 "b"；两者 model_id 不同；adapter == "live" → ModelCallDisabled（构造 LiveProposer 时通常已抛）
+      P2 inputs = resolve_m3_inputs(service, edition_part_id)
+      P3 list_checkpoints(ep, "m3") 中任一 Checkpoint 所属 StepRun 为 succeeded → CompileRefused（message 含「M3 已封存」）；为 running/awaiting_human/suspended → CompileRefused（message 含「M3 进行中」）
+      P4 config = put_run_artifact(processing_run_id, "configuration", {"stage": "m3", "tool": M3S_TOOL, "tool_version": M3S_TOOL_VERSION,
+           "structural_tool": M3_TOOL, "structural_tool_version": M3_TOOL_VERSION, "batch_size", "model_min_chars", "gate_profile": GATE_PROFILE,
+           "prompt_template_id": PROMPT_TEMPLATE_ID, "prompt_template_sha256": PROMPT_TEMPLATE_SHA256, "proposers": {"a": describe_a, "b": describe_b}})
+      P5 frozen 与 step = begin_step_run(...)：frozen 组成与 impl-02 run_m3 第 3 步逐项相同（ocr_page_set, manifest, 页修订按 manifest 页序, 人工事件）
+    begin 之后（异常分层与 impl-02 act/05 C5 相同：已知检查失败走 _fail(检查名)；其他任何异常 → _fail("internal", "<类名>: <消息>")）：
+      S1 input_contract：_validate_input_contract(...)
+      S2 结构层：compile_structural（异常 → compile）；每批 put "corpus_batch" → seal → write_checkpoint(task_id=批号, …)；put "corpus_spans" → seal；
+          evaluate_structural；put "coverage_report" → seal；structural == "failed" → _fail("structural_gate")；
+          record_transformation(operation="compile_corpus", tool=M3_TOOL, tool_version=M3_TOOL_VERSION, input=frozen, output=[corpus_spans, coverage_report], configuration=config, human_event_revision_ids=inputs.human_event_revision_ids)
+          （corpus_batch 与 corpus_spans 字节必须与 run_m3 同输入下完全相同）
+      S3 规则：windows = select_windows(spans_doc, model_min_chars=…)；put "semantic_windows"（json {"windows": windows, "model_min_chars"}）→ seal；
+          write_checkpoint(task_id="semantic_rules", artifact=该修订, pending_queue=[{"task_id": w} for 每个窗口])
+      S4 每个窗口（按顺序）：
+          req_a = build_request(slot="a", …)、req_b = build_request(slot="b", …)（两份请求都构造并封存后，才调用任一 propose）
+          put "model_request" ×2 → seal；resp = proposer.propose(req, window=…)（任何异常 → _fail("proposer")）；put "model_response"（resp.response_bytes）→ seal；
+          parsed = parse_proposal(...)；put "boundary_proposal"（json {"slot", "window_id", "valid", "segments", "error"}）→ seal；两个 slot 各一次
+          comparison = compare_proposals；put "boundary_comparison"（json {"window_id", "status", "reason", "segments"}）→ seal
+          每个 slot：record_transformation(operation="propose_boundaries", tool=M3S_TOOL, tool_version, model_ref="%s:%s@%s" % (adapter, model_id, model_version),
+             configuration=config, input=[corpus_spans, 该 slot 的 model_request], output=[该 slot 的 model_response, boundary_proposal])
+          write_checkpoint(task_id=window_id, artifact=comparison 修订, pending_queue=剩余窗口 + 已知分歧的 {"task_id": "review:<window_id>"})
+      S5 disputed = 分歧窗口 id 列表（按窗口顺序）
+          若非空：put "boundary_review_queue"（json {"schema": "m3_boundary_review_queue/1", "structural_spans_sha256", "corpus_spans_revision_id", "coverage_report_revision_id",
+             "configuration_revision_id", "windows": [每个窗口 {"window_id", "structural_span_id", "text", "text_sha256", "response_a", "response_b"(UTF-8 文本), "proposal_a_revision_id", "proposal_b_revision_id", "comparison": comparison}], "disputed_window_ids"}）→ seal；
+             token = service.await_human(step, [queue 修订])；
+             返回 {"status": "awaiting_human", "processing_run_id", "step_run_id", "configuration_revision_id", "frozen_input_revision_ids", "resume_token": token,
+                   "review_queue_revision_id", "disputed_window_ids", "checkpoint_revision_ids", "spans_revision_id", "spans_sha256"}
+          若为空：直接调用 review._assemble_and_finish（ACT 05 实现；本 ACT 中该函数不存在时，无分歧用例标 skip 并在 ACT 05 取消 skip）
+    返回 failed summary 键与 impl-02 _fail 相同：status, step_run_id, failed_check, failure_revision_id, reason
+    失败检查名闭集（本 ACT）：input_contract, compile, structural_gate, proposer, internal
+tests:
+  test_step_full.py: |
+    脚手架：tempfile → LedgerService(root/"ledger") → ingest(mini_ed01, service, stages=("m1","m2")) → recs = load_recordings(mini_ed01_semantic/recordings.yaml 字节)
+            → run_m3_full(service, ep, proposer_a=ReplayProposer(recs, "a"), proposer_b=ReplayProposer(recs, "b"))
+    全部用例在 patch socket.socket.connect / socket.create_connection 抛 AssertionError 的上下文内运行
+    - test_private_helper_signatures_pinned
+    - test_fixture_reaches_awaiting_human（status awaiting_human；disputed_window_ids == ["sanche_w002"]；Ledger StepRun status awaiting_human；resume_token 非空）
+    - test_structural_bytes_equal_run_m3_golden（corpus_spans 字节 == mini_ed01 spans.yaml；5 个 corpus_batch 与另一临时 Ledger 上 run_m3 的 corpus_batch 字节逐一相同）
+    - test_eight_checkpoints_in_order（task_id 依次 sanche_b001..b005, semantic_rules, sanche_w001, sanche_w002；prev 成链）
+    - test_model_artifacts_recorded（model_request/model_response/boundary_proposal 各 4、boundary_comparison 2、boundary_review_queue 1；model_response 字节 == 录制 response_text）
+    - test_request_b_written_before_any_response（按修订创建顺序：同窗口两条 model_request 均早于该窗口任一 model_response）
+    - test_request_b_does_not_contain_response_a
+    - test_propose_transformations_have_model_ref（4 条，model_ref 为 "replay:replay_model_a@0" 与 "replay:replay_model_b@0" 各 2）
+    - test_config_records_profile_and_recording_sha
+    - test_refuses_when_m3_sealed（先 run_m3 结构路径 → run_m3_full 抛 CompileRefused「M3 已封存」，无新增写入）
+    - test_refuses_when_m3_in_progress（先 run_m3_full 停在 awaiting_human，再调一次 → 「M3 进行中」）
+    - test_refuses_same_model_id（构造两个 slot 但 model_id 相同的录制 → 拒绝，无新增写入）
+    - test_live_proposer_refused_before_begin（patch.dict 环境变量 "1" 构造 LiveProposer → ModelCallDisabled，无新增写入）
+    - test_recording_miss_fails_proposer（录制删 w001/b → failed_check "proposer"，failure_report sealed，StepRun failed）
+    - test_manifest_object_tamper_fails_input_contract
+    - test_post_begin_exception_fails_internal（patch LedgerService.record_transformation 抛 RuntimeError → failed_check "internal"）
+    - test_no_dispute_path_finishes（录制把 w002/b 改成与 a 相同 → status succeeded，无 boundary_review_queue；ACT 05 前 skip）
+verify:
+  - .venv/bin/python -m unittest discover -s pipeline/corpus_compiler/semantic/tests -t . 2>&1 | grep -E '^(Ran|OK|FAILED|skipped)'   # OK，≥ 64（累计 76，skip ≤ 1）
+  - .venv/bin/python -m unittest discover -s pipeline/corpus_compiler/tests -t . 2>&1 | grep -E '^(Ran|OK|FAILED)'   # OK，== 开工基线 N_TC
+  - git diff --stat pipeline/corpus_compiler -- ':!pipeline/corpus_compiler/semantic' | tail -1   # 空（结构层零改动）
+  - TDD §3 回归
+commit:
+  add: [pipeline/corpus_compiler/semantic/step.py, pipeline/corpus_compiler/semantic/tests/test_step_full.py]
+  message: "feat(m3-semantic): single M3 step run compiling structural layer, rule windows and recorded dual boundary proposals up to the human queue (spec §7.1/§11/§17.1)"
+on_fail: 停止并报告；私有助手签名与 impl-02 不一致、需要改 step.py/inputs.py/Ledger、结构字节与 run_m3 不同 → 一律停手上报

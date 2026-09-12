@@ -1,0 +1,90 @@
+act_id: impl-10/01
+title: Proposer Adapter 接口 + 回放录制 + 禁用的真实模型桩 + 提议解析与比较（纯函数）〔D2 D5〕
+estimated_minutes: 70
+group: J1
+depends_on: [impl-10/00]
+scope:
+  write: [pipeline/corpus_compiler/semantic/__init__.py, pipeline/corpus_compiler/semantic/errors.py, pipeline/corpus_compiler/semantic/proposer.py, pipeline/corpus_compiler/semantic/proposals.py, pipeline/corpus_compiler/semantic/tests/__init__.py, pipeline/corpus_compiler/semantic/tests/test_proposer.py, pipeline/corpus_compiler/semantic/tests/test_proposals.py]
+tests_first:
+  - 先写两个测试文件（用例名逐字），运行 `.venv/bin/python -m unittest discover -s pipeline/corpus_compiler/semantic/tests -t .` 因 ImportError 全红，记录 Red；再实现
+contract: |
+  __init__.py：M3S_TOOL = "pipeline.corpus_compiler.semantic"；M3S_TOOL_VERSION = "0.1.0"；GATE_PROFILE = "structural_and_semantic"〔D3〕
+  errors.py（全部继承 pipeline.corpus_compiler.errors.CompileRefused，构造 (message, code=None)）：
+    RecordingSetInvalid(code 默认 "SCH_002")、RecordingMiss("REF_001")、ModelCallDisabled(None)、DecisionRejected("SCH_002")、DisputesUnresolved(None)
+
+  proposer.py（不 import 任何网络库；不读环境变量以外的外部状态）：
+    PROMPT_TEMPLATE_ID = "m3_boundary_v1"
+    PROMPT_TEMPLATE（逐字，含换行，末尾无换行）：
+      你是古籍语义切分助手。只输出 JSON，不输出其他文字。
+      任务：把下面「窗口原文」切成语义完整的片段；片段必须首尾相接、完整覆盖原文、互不重叠。
+      输出格式：{"segments":[{"start_offset":整数,"end_offset":整数,"reason":"简短理由"}]}
+      offset 以 Unicode 字符计，从 0 起，end 不含；不要复述原文。
+      窗口原文：
+      {window_text}
+    PROMPT_TEMPLATE_SHA256 = sha256(PROMPT_TEMPLATE UTF-8)
+    ALLOW_ENV = "LEARN_SYSTEM_ALLOW_MODEL_CALLS"
+    build_request(*, slot, model, window) -> bytes
+      slot ∈ {"a","b"}；model = {"model_id", "model_version"}；window = {"window_id", "structural_span_id", "text", "text_sha256"}
+      json.dumps({"template_id", "template_sha256", "slot", "model_id", "model_version", "params": {"temperature": 0},
+                  "window_id", "structural_span_id", "prompt": PROMPT_TEMPLATE.replace("{window_text}", window["text"])},
+                 sort_keys=True, ensure_ascii=False).encode("utf-8")
+      请求中只允许出现本窗口原文，不得出现其他窗口、另一 slot 的请求或任何响应（§12.2 初次互不可见）
+    load_recordings(data: bytes) -> dict
+      yaml.safe_load；schema == "m3_boundary_recordings/1"、synthetic is True、origin == "hand_authored_replay_fixture"、template_id == PROMPT_TEMPLATE_ID、
+      models 恰含 a/b 且 model_id 互不相同、entries 每项键齐全且 (slot, window_text_sha256) 唯一；任一不满足 → RecordingSetInvalid
+      返回 {"sha256": sha256(data), "models": {...}, "entries": {(slot, window_text_sha256): response_text}}
+    class ReplayProposer：__init__(self, recordings: dict, slot)（slot 非 a/b → RecordingSetInvalid）
+      describe() -> {"adapter": "replay", "slot", "model_id", "model_version", "recording_set_sha256"}
+      propose(self, request: bytes, *, window) -> dict {"response_bytes": response_text UTF-8 字节, "model_id", "model_version", "adapter": "replay"}
+        request 解析后的 slot 与 window_id 必须与自身和 window 一致（否则 RecordingSetInvalid）；按 (slot, window["text_sha256"]) 查不到 → RecordingMiss
+    class LiveProposer：__init__(self, slot, model)：os.environ.get(ALLOW_ENV) != "1" → ModelCallDisabled（message 含 ALLOW_ENV 与「D2」）
+      describe() -> {"adapter": "live", "slot", "model_id", "model_version", "recording_set_sha256": None}
+      propose(...)：一律 raise ModelCallDisabled("真实模型 Adapter 未实现（待主 Agent 裁决 D2）")
+
+  proposals.py（纯函数）：
+    parse_proposal(response_bytes: bytes, window_text: str) -> dict
+      返回键：valid(bool), segments([[start, end], ...]), reasons([str]), error(None | "json" | "shape" | "type" | "range" | "empty" | "gap" | "overlap" | "coverage")
+      规则：UTF-8 解码 + json.loads 失败 → json；顶层非 dict 或无 list 型 "segments" 或空列表 → shape；
+        每项必须是 dict 且 start_offset/end_offset 为 int 且非 bool → 否则 type；reason 缺失按 ""；
+        0 ≤ start ≤ len、0 ≤ end ≤ len 否则 range；start == end → empty；
+        按原顺序检查：首项 start 必须 0；后项 start < 前项 end → overlap；> 前项 end → gap；末项 end 必须 == len → 否则 coverage
+        任何其他字段（包括 "text"）忽略；片段原文不在此返回，由调用方用 window_text[s:e] 截取（§11 第 3 条）
+      valid 为 false 时 segments 为 []、reasons 为 []
+    compare_proposals(parsed_a: dict, parsed_b: dict) -> dict
+      {"status": "agreed", "reason": None, "segments": parsed_a.segments}（两者 valid 且 segments 相等）
+      {"status": "disputed", "reason": "proposal_invalid", "segments": None}（任一 invalid）
+      {"status": "disputed", "reason": "boundary_mismatch", "segments": None}（其他）
+tests:
+  test_proposer.py: |
+    统一读取：RECORDINGS = pipeline/corpus/_fixture/mini_ed01_semantic/recordings.yaml 字节；窗口由测试从 mini_ed01/spans.yaml 构造
+    - test_template_sha256_matches_constant
+    - test_request_bytes_deterministic_and_sorted
+    - test_request_contains_only_own_window_text（w002 请求不含 w001 文本、不含任何 response_text 片段、不含 "segments"）
+    - test_requests_a_b_differ_only_in_slot_and_model
+    - test_load_recordings_ok_and_sha256
+    - test_load_recordings_rejects_synthetic_false
+    - test_load_recordings_rejects_wrong_template
+    - test_load_recordings_rejects_duplicate_key
+    - test_load_recordings_rejects_same_model_id
+    - test_replay_returns_recorded_bytes_for_both_slots
+    - test_replay_miss_raises_RecordingMiss
+    - test_replay_rejects_request_slot_mismatch
+    - test_live_disabled_without_env
+    - test_live_propose_still_disabled_with_env（patch.dict os.environ ALLOW_ENV="1"）
+    - test_no_socket_used（patch socket.socket.connect 与 socket.create_connection 抛 AssertionError，跑一遍 4 次 replay 与 live 构造）
+  test_proposals.py: |
+    - test_parse_fixture_responses_all_valid（4 条录制均 valid，w002/b 为单片 [[0,14]]）
+    - test_parse_ignores_text_field
+    - test_parse_errors_matrix（json、shape×2、type(bool/str/float)、range、empty、gap、overlap、coverage 各一例，逐一断言 error 值）
+    - test_compare_agreed_ignores_reasons
+    - test_compare_boundary_mismatch
+    - test_compare_proposal_invalid
+verify:
+  - .venv/bin/python -m unittest discover -s pipeline/corpus_compiler/semantic/tests -t . 2>&1 | grep -E '^(Ran|OK|FAILED)'   # OK，≥ 16（本 ACT 共 21）
+  - grep -rE '^\s*(import|from) (socket|urllib|http|requests|httpx|openai|anthropic)' pipeline/corpus_compiler/semantic --include='*.py' | grep -v '/tests/' | wc -l   # 0
+  - grep -rn 'LEARN_SYSTEM_ALLOW_MODEL_CALLS\|ALLOW_ENV' pipeline --include='*.py' | grep -v '/tests/' | grep -v 'semantic/proposer.py' | wc -l   # 0
+  - TDD §3 回归
+commit:
+  add: [pipeline/corpus_compiler/semantic]
+  message: "feat(m3-semantic): boundary proposer adapter with replay recordings, disabled live stub, proposal parsing and comparison (spec §11 items 2-4)"
+on_fail: 停止并报告；不得为让测试通过而在 LiveProposer 中加入任何网络代码或放开开关

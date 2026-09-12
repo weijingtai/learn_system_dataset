@@ -1,13 +1,13 @@
 # HANDOFF
 
-## impl-02 J2 返工中（Dataset 会话；黑箱线最新状态）
+## impl-02 结构层 ACCEPTED；黑箱剩余模块工作包并行起草中（Dataset 会话；黑箱线最新状态）
 
-更新时间：2026-09-11
+更新时间：2026-09-12
 当前分支/worktree：`codex/docs/knowledge-compilation`；`/Users/jingtaiwei/Git/Public/learn_system`
-刚完成：impl-02 J1 已 `ACCEPTED`（`1bf6687`/`0911d14`/`00dfa9f`）。J2 由用户交外部 Agent 完成（ACT 03 `f4f4682`、ACT 04 `ea9126d`）；主 Agent 在干净树独立验收：金标、冻结输入 6 个、5 个 Checkpoint、StagePackage 血缘、begin 前拒绝无写入、验收脚本不信任返回值等全部通过，`m3-coverage.sh` exit 2；但发现 5 处缺陷（冻结输入对象篡改未检出、终态比对为空操作、页哈希比对对象错且缺失即跳过、begin 后异常被包装成拒绝未封存失败、缺 fixture 退出码 1 且测试迁就实现），记录 `work-items/impl-02-corpus/ACCEPTANCE.md` §5.2。执行方提交 `ad20ed6` 自记 impl-02 ACCEPTED 属越权，已更正。
-进行到一半的事（精确到文件和章节）：返工 `work-items/impl-02-corpus/act/05.yaml` + `PROMPT-J3.md` 待用户派发（只改 `step.py`、`acceptance.py` 与两份测试）。
-下一步（第一件事）：J3 报告回来 → 干净树复验五处缺陷（三类冻结输入对象篡改 → input_contract；终态不一致 → input_contract；注入 record_transformation 异常 → failed/internal 且失败修订 sealed；缺 fixture → exit 3）与全部回归 → impl-02 `ACCEPTED` → 规划 impl-03（M5）。
-已知的坑：外部执行方会越权改台账（`ad20ed6`）；验收时先 `git log` 检查非主 Agent 的 HANDOFF/SUBAGENT_TODO/ACCEPTANCE 改动。执行方可能改测试断言迁就实现，验收要读测试断言而不只看通过数。语义层未实现，`m3-coverage.sh` 返回 2 属预期。
+刚完成：impl-02 J3 返工 `c5f744c` 经主 Agent 干净树独立验收通过（28 项矩阵外检查 + 回归门禁），impl-02 结构层 `ACCEPTED`，记录 `work-items/impl-02-corpus/ACCEPTANCE.md` §5.3。登记下游约束：下游只接受 StepRun `succeeded` 的上游 StagePackage（`finish_step_run` 失败会遗留已封存包）。
+进行到一半的事（精确到文件和章节）：① 跟进 ACT 06（缺 PyYAML → exit 3、失败用例直查 m3 包）`eee3c35` 已验收通过（ACCEPTANCE §5.4）；② 曾一次派 12 个子 Agent 并行，全部撞会话限额中断，用户纠正：回到 tmux+agy、同时最多 2～3 路，按 `docs/blackbox-spec-rework/G7-PLAN.md` 分波推进。已中断的 9 个草稿原样提交为 DRAFT 快照（完整度不一，impl-03 缺 ACT）：`work-items/impl-00-interfaces`（接口总表/新 Schema/fixture m4..m8 规划）、`impl-03-validation`（M5）、`impl-04-dataset`（M8）、`impl-05-knowledge`（M4 薄接入）、`impl-06-review`（M6 薄接入）、`impl-07-assembly`（M7）、`impl-08-orchestrator`（Orchestrator + Contract Registry）、`impl-09-intake`（M1/M2 真实接入）、`impl-10-corpus-semantic`（M3 语义层）。
+下一步（第一件事）：G7-PLAN W1 两路 agy——A 补全 impl-00 与 impl-03 草稿、B 对账审查 impl-04～10 并汇总待裁决 → 主 Agent 一次性裁决写 `G7-RULINGS.md` → W2 契约 ACT 与 M5/M8 定稿 → W3 起实现（每波 ≤3 路）。
+已知的坑：外部执行方会越权改台账（`ad20ed6`）；执行方可能改测试断言迁就实现，验收要读断言。tmux+agy 额度耗尽时会假 Working，15 分钟无产出即关掉改派子 Agent。起草 Agent 未必遵守「不提交」，收稿时先 `git log` 检查。Haiku 适合只读盘点与跑门禁，编码返工用 Sonnet。
 
 ## G4 D 类全部 ACCEPTED：D-16 映射表与 pat_/ent_ 登记验收通过（Dataset 会话；黑箱线最新状态）
 

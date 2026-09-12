@@ -1,0 +1,67 @@
+act_id: impl-05/02
+title: 独立候选 Gate gate.py（十二项输出契约检查，不依赖装配器）
+estimated_minutes: 75
+group: K1
+depends_on: [impl-05/01]
+pending_decisions: [D-03, D-06, D-09, D-10, D-13]
+scope:
+  write: [pipeline/knowledge_extraction/gate.py, pipeline/knowledge_extraction/tests/test_gate.py]
+tests_first:
+  - 先写 tests/test_gate.py（用例名逐字）并全红，再实现
+contract: |
+  gate.py（纯函数；不得 import pipeline.knowledge_extraction.assemble 与 .submission；可 import pipeline.ledger.ids、pipeline.knowledge_extraction 常量与 serialize）
+  evaluate_candidates(*, spans_doc, profile, candidate_set, config) -> dict
+    页块由本模块自行从 spans_doc 重算（同页 Span text 以 "\n" 连接），不得复用 assemble.page_blocks
+    config 至少含 gate_profile、id_range（README §6.7 assemble 配置）
+    十二项检查（名称与顺序固定；每项收集全部错误，不在首错处停止）：
+      1 schema_shape：顶层键集合恰为 README §6.3 candidate_set 顶层键；五类对象、rejected、disputes 的键集合逐字；relation / layer / support_type / disposition 取闭集；reason_code ∈ 九码 ∪ {None}
+      2 identity：as_/pr_/pat_/sv_/cg_ 逐个 ids.validate；每条 assertion 的 as_ 与 pr_ 数字段相同；as_/pat_/sv_ 在各自集合内不重复（ID_002）；as_ 与 pat_ 数字 ∈ config.id_range 对应区间；技法段 == candidate_set.technique_id
+      3 evidence_required：五类对象 evidence 均非空
+      4 evidence_resolvable：source_span_id ∈ spans_doc；该 Span.start_offset ≤ start_offset < end_offset ≤ Span.end_offset
+      5 quote_fidelity：页块[start_offset:end_offset] == quote；sha256(quote) == quote_sha256
+      6 status_ceiling：五类对象 content_status ∈ M4_STATUS_CEILING；全文不得出现 expert_verified / cross_model_reviewed
+      7 layer_rules：assertions 中无 layer == "case"
+      8 references：pattern.assertion_ids ⊆ assertion_id 集合；school_view.subject_entity_id ∈ assertion_id ∪ pattern_id；claim_refs ⊆ assertion_id；
+         school_id ∈ profile schools；concept_refs / concept_ref ∈ profile canon ∪ glossary；new_concept_candidates.technique_id == technique_id
+      9 evidence_level_inherited：candidate_set.evidence_level == spans_doc.evidence_level；span_layer == "structural"
+      10 disputes_resolved：每条 dispute.choice ∈ {a, b, both, neither}；dispute_id 形如 ^m4_d[0-9]{3}$ 且不重复
+      11 counts_match：counts 八个键齐全；前七个等于实际长度；human_decisions == len(disputes)
+      12 source_consistency：technique_id == profile.technique_id；source_id 与 edition_part_artifact_id == spans_doc 同名字段（后者对应 spans_doc.edition_part_artifact_id）
+    返回 {"gate_profile": config["gate_profile"], "structural": "passed"|"failed", "checks": [{"name", "passed", "errors": [str]}], "failed_checks": [未通过检查名],
+          "cross_model": "not_evaluated", "term_layering": "verify_only", "semantic_span_input": "not_evaluated"}
+tests:
+  test_gate.py: |
+    基底：用 assemble.assemble_candidates 在测试内按附录 A + 裁决 a 生成合法 candidate_set（测试允许 import assemble；gate.py 本身不允许）
+    - test_gold_candidate_set_all_twelve_checks_pass
+    - test_gate_reports_not_evaluated_axes
+    以下每例 deepcopy 基底后篡改，断言指定检查 passed == False 且 structural == "failed"：
+    - test_delete_evidence_fails_evidence_required
+    - test_change_quote_char_fails_quote_fidelity
+    - test_shift_offset_fails_quote_fidelity
+    - test_bad_quote_sha_fails_quote_fidelity
+    - test_unknown_span_fails_evidence_resolvable
+    - test_offset_outside_span_fails_evidence_resolvable
+    - test_duplicate_assertion_id_fails_identity
+    - test_pr_number_mismatch_fails_identity
+    - test_id_outside_range_fails_identity
+    - test_expert_verified_fails_status_ceiling
+    - test_cross_model_reviewed_fails_status_ceiling
+    - test_case_layer_fails_layer_rules
+    - test_dangling_claim_ref_fails_references（在基底上合成 1 条 school_view，claim_refs 指向 as_qizheng_000099）
+    - test_unregistered_school_fails_references
+    - test_unknown_concept_ref_fails_references
+    - test_offset_level_fails_evidence_level_inherited
+    - test_semantic_span_layer_fails_evidence_level_inherited
+    - test_null_choice_fails_disputes_resolved
+    - test_wrong_counts_fails_counts_match
+    - test_technique_mismatch_fails_source_consistency
+    - test_extra_top_key_fails_schema_shape
+    - test_gate_does_not_import_assemble_or_submission（读 gate.py 源码，不含 "assemble" 与 "submission" 的 import 语句）
+verify:
+  - .venv/bin/python -m unittest discover -s pipeline/knowledge_extraction/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 59
+  - grep -nE '^\s*(from|import) .*(assemble|submission)' pipeline/knowledge_extraction/gate.py | wc -l   # 0
+  - TDD §3 回归
+commit:
+  add: [pipeline/knowledge_extraction/gate.py, pipeline/knowledge_extraction/tests/test_gate.py]
+  message: "feat(m4): independent candidate gate with twelve output-contract checks"
+on_fail: 停止并报告；若某项检查无法不借助装配器实现，报告原因，不得 import assemble

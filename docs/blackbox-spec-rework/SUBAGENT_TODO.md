@@ -578,7 +578,7 @@
   - [x] 主 Agent 质量审查
   - [x] PLAN/HANDOFF 同步（PLAN 节 C 勾选推迟到 impl-02 ACT 00 修 check_d16 R5 之后）
   - [x] 主 Agent 标记 `ACCEPTED`
-- [ ] impl-02：M3 Corpus Compilation 结构层（状态：`REVIEWING`；J1 `1bf6687`/`0911d14`/`00dfa9f` `ACCEPTED`；J2 `f4f4682`/`ea9126d` 独立验收发现 5 处缺陷，返工 ACT 05 `PROMPT-J3.md` 待派发；执行方提交 `ad20ed6` 自记 ACCEPTED 属越权，已更正；验收 `work-items/impl-02-corpus/ACCEPTANCE.md` §5.2）
+- [x] impl-02：M3 Corpus Compilation 结构层（状态：`ACCEPTED` 2026-09-12；J1 `1bf6687`/`0911d14`/`00dfa9f`；J2 `f4f4682`/`ea9126d`；J3 返工 `c5f744c`；执行方提交 `ad20ed6` 自记 ACCEPTED 属越权，已更正；非阻断跟进 ACT 06 已派发；语义层未做，`m3-coverage.sh` exit 2；验收 `work-items/impl-02-corpus/ACCEPTANCE.md` §5.3）
   - [x] README/范围/依赖/禁止项
   - [x] BDD 场景
   - [x] TDD 正反用例与精确命令
@@ -592,12 +592,21 @@
   - [x] 派发 J2 执行 Agent（2026-09-11，用户交外部 Agent；主 Agent 另派的 Sonnet 发现并发写入后按停手规则退出，未写文件）
   - [x] J2 执行提交与原始证据（ACT 03/04：`f4f4682`、`ea9126d`）
   - [x] 主 Agent 规格审查（`ACCEPTANCE.md` §5.2：5 处缺陷）
-  - [ ] 返工 ACT 05：冻结输入完整性、终态严格比对、begin 后异常封存、缺 fixture 退出码 3（`PROMPT-J3.md`）
-  - [ ] 主 Agent 质量审查
-  - [ ] PLAN/HANDOFF 同步
-  - [ ] 主 Agent 标记 `ACCEPTED`
-- [ ] impl-03：M5 Automatic Validation（状态：`BACKLOG`）
-- [ ] impl-04：M8 Dataset Compilation（状态：`BACKLOG`）
+  - [x] 返工 ACT 05：冻结输入完整性、终态严格比对、begin 后异常封存、缺 fixture 退出码 3（`c5f744c`；tmux agy 额度耗尽零产出后改派 Sonnet 子 Agent）
+  - [x] 主 Agent 质量审查（`ACCEPTANCE.md` §5.3：28 项矩阵外检查、测试断言审查、4 处取舍裁定、下游约束登记）
+  - [x] PLAN/HANDOFF 同步（HANDOFF 已更新；语义层未做、`m3-coverage.sh` exit 2，PLAN 不勾选 M3）
+  - [x] 主 Agent 标记 `ACCEPTED`
+  - [x] 跟进 ACT 06：缺 PyYAML → exit 3；失败用例直查 Ledger 无 m3 包（`eee3c35`，`ACCEPTANCE.md` §5.4 `ACCEPTED`）
+- 分波计划：`docs/blackbox-spec-rework/G7-PLAN.md`（tmux+agy，同时最多 2～3 路）。以下 9 个草稿由子 Agent 起草、因会话限额中途中断，原样提交为 DRAFT 快照，W1 收稿对账后统一裁决。
+- [ ] impl-00：跨模块接口总表、新 Schema、fixture m4..m8 金标规划（状态：`DRAFT`；W1-A 补全，W2-C 执行契约 ACT）
+- [ ] impl-03：M5 Automatic Validation（状态：`DRAFT`，缺 ACT；W1-A 补全，W2-D 定稿，W3-E 实现）
+- [ ] impl-04：M8 Dataset Compilation（状态：`DRAFT`；W2-D 定稿，W3-F 实现）
+- [ ] impl-05：M4 Knowledge Extraction 最薄接入（状态：`DRAFT`；W3-G）
+- [ ] impl-06：M6 Review & Curation 最薄接入（状态：`DRAFT`；W4-H）
+- [ ] impl-07：M7 Incremental Assembly（状态：`DRAFT`；首纵切外，W5-L）
+- [ ] impl-08：Local Orchestrator + Contract Registry（状态：`DRAFT`；W4-I）
+- [ ] impl-09：M1 Source Intake + M2 Digitization 真实接入（状态：`DRAFT`；W4-J）
+- [ ] impl-10：M3 语义层 SemanticSpan（状态：`DRAFT`；W5-K）
 
 ## G6 NC 注解社区线
 

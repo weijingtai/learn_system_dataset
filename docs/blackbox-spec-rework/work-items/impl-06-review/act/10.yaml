@@ -1,0 +1,48 @@
+act_id: impl-06/10
+title: （依 D-01 方案 A）CanonicalKnowledgeSnapshot 首切片直通投影：project_snapshot 纯函数 + release_run/stage m7 StepRun（§6.2、§16:662、§16:725）
+estimated_minutes: 45
+group: K3
+depends_on: [impl-06/09]
+decisions_required: [D-01, D-13]
+dispatch_condition: "仅当主 Agent 裁定 D-01 = A；否则删除本 ACT，ACT 11 第 12 项改为 BLOCKED（前置缺失: M7 Incremental Assembly）"
+scope:
+  write: [pipeline/review/snapshot.py, pipeline/review/tests/test_snapshot.py]
+tests_first:
+  - 先写 tests/test_snapshot.py（用例名逐字），全部 Red 后再实现
+contract: |
+  snapshot.py：
+    SNAPSHOT_TOOL = "pipeline.review.snapshot"；SNAPSHOT_KIND = "first_slice_passthrough"
+    project_snapshot(*, technique_id, reviewed_packages, approved_objects, previous_snapshot=None) -> dict（纯函数）
+      reviewed_packages = [(reviewed_edition_package_revision_id, 内容)]；approved_objects = {entity_id: 获批对象内容（reviewed_revision_id 对应修订的内容）}
+      previous_snapshot 非 None → ReviewRefused（message 含「增量汇编属 M7」）；len(reviewed_packages) != 1 → ReviewRefused（首切片单 Edition）
+      只投影 approved；rejected 不进入 entities
+      键序逐字：schema_version("1.0.0"), technique_id, snapshot_kind, based_on{reviewed_edition_package_revision_ids, previous_snapshot_revision_id: None},
+        entities[{entity_id, kind, artifact_revision_id(=reviewed_revision_id), content_status}]（按 entity_id 排序）,
+        school_views（包内 school_views，按 school_view_id 排序）, conflict_groups{conflict_group_id: [school_view_id 排序]},
+        evidence_links（包内，按 entity_id, source_span_id 排序）, canonical_hash
+      canonical_hash = sha256(json.dumps({"entities", "school_views", "conflict_groups", "evidence_links"}, sort_keys=True, ensure_ascii=False, separators=(",", ":")).encode("utf-8"))
+    run_snapshot(service, edition_part_id) -> dict
+      begin 前（零写入）：最新 m6 StagePackage 所属 succeeded 运行的 reviewed_edition_package；approved 每个 reviewed_revision_id 必须 sealed（invalidated/superseded → NotConsumable，message 含「需先复审」）
+      1 processing_run_id = service.create_processing_run("release_run", edition_part_id, technique_id)
+      2 config = put_run_artifact(processing_run_id, "configuration", {"stage": "m7", "task": SNAPSHOT_KIND, "tool": SNAPSHOT_TOOL, "tool_version": M6_TOOL_VERSION})
+      3 frozen = [reviewed_edition_package] + [approved reviewed_revision_id…]；begin_step_run
+      4 doc = project_snapshot(...) → put "canonical_knowledge_snapshot" → seal；validation_report {"checks": {"entities_sealed": …, "hash_recomputed": …}} → seal；log → seal
+      5 write_checkpoint(stage "m7", completed_tasks=[{"task_id": "project_snapshot", …}], human_decisions=[], pending_queue=[], next_pointer=None)
+      6 record_transformation(operation="assemble_snapshot_passthrough", …, human_event_revision_ids=[])
+      7 m7 StagePackage（形状同 ACT 06；payload {"snapshot_revision_id", "canonical_hash", "entity_count"}；lineage.upstream_artifacts=[ref(reviewed_edition_package)]）→ seal → finish_step_run
+      返回键：status, processing_run_id, step_run_id, snapshot_revision_id, canonical_hash, stage_package_id, package_revision_id, transformation_id
+tests:
+  test_snapshot.py: |
+    - test_project_only_approved_entities_sorted
+    - test_conflict_groups_index
+    - test_canonical_hash_deterministic_and_sensitive（改一个 artifact_revision_id → 哈希变）
+    - test_previous_snapshot_refused
+    - test_run_snapshot_release_run_stage_m7_package_schema（首审后运行：processing_runs.kind == release_run；m7 StagePackage 过 Schema）
+    - test_run_snapshot_refuses_invalidated_approved_object（ACT 08 失效传播后、复审前运行 → NotConsumable 且零写入）
+verify:
+  - .venv/bin/python -m unittest discover -s pipeline/review/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 110
+  - TDD §3 回归
+commit:
+  add: [pipeline/review/snapshot.py, pipeline/review/tests/test_snapshot.py]
+  message: "feat(m7-thin): first-slice passthrough canonical knowledge snapshot from reviewed edition package (spec §6.2/§16)"
+on_fail: 停止并报告；需要合并多 Edition、对勘或 Proposal 时停手（属 M7）
