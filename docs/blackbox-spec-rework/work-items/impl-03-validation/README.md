@@ -20,6 +20,7 @@
 
 ```bash
 export LC_ALL=en_US.UTF-8
+.venv/bin/python -m unittest discover -s pipeline/validation/tests -t . 2>&1 | tail -1   # OK；ACT 06 后累计用例数 ≥ 83（逐 ACT 阈值见 TDD.md §1）
 bash openspec/acceptance/m5-evidence-gate.sh; echo exit=$?
 # 期望：9 行 PASS（inputs_frozen、validator_checkpoints、g1_source_replay、g2_coverage、g3_anchor_offset、
 #       gate_and_levels、package_lineage、fail_closed_tamper、adversarial_bypass）
@@ -37,9 +38,11 @@ fixture 上的期望判定（目标消费级别 `INTERNAL_DEMO`，§22.1 第 968
 |---|---|---|---|
 | `g1_unresolved_chars` / `unresolved_glyph` | 2（`ss_sanche_ed01_p0001_s03` 含 `page_001c0038/c0040/c0041`；`…_s04` 含 `page_001c0036/c0037`） | warning / error / error | `pages/page_001.json` 5 个字框 `status: unrecognized`、`char: ""`、`source: manual` |
 | `g1_unresolved_chars` / `unproofread_glyphs` | 2（page_001 32 个、page_003 193 个 `status: pending`） | info / warning / error | 230 个字框中 225 个 `pending` |
-| `g3_strict_offset_quote` / `quote_hash_not_stored` | 1（整份 `corpus_spans`） | warning / error / error | `git grep -n quote_hash` 全仓 0 处 |
+| `g3_strict_offset_quote` / `quote_hash_not_stored` | 1（整份 `corpus_spans`） | warning / error / error | 代码、fixture、schemas 内 `git grep -n quote_hash` 0 处 |
 | `g3_glyphbox_anchor` / `glyph_text_misaligned` | 2（s03：文本 `影宋刊本影印`、字框拼接 `宋刊本影印`；s04：文本末字 `藏` 无字框） | warning / error / error | 43 条 Span 中 2 条字框拼接 ≠ 文本 |
 | 其余 11 个 Validator | 0 | — | M3 结构 Gate 已独立判过；M5 重算（14 个注册 Validator 中 3 个有发现） |
+
+合计 findings **7**（G1 4 + G3 3；目标级别 `INTERNAL_DEMO` 下 warnings 5、info 2、failures 0），与 `BDD.md` 2.1/4.1 一致，`counts.findings == 7`。
 
 由此：`gate = {passed: true, severe_error_count: 0, failed_task_count: 0, pending_rework_count: 0}`；`level_verdicts = {INTERNAL_DEMO: passed, DEV_SEARCH: failed, PUBLIC_RELEASE: failed}`。
 

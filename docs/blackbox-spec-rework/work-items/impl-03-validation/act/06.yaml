@@ -23,7 +23,9 @@ contract: |
       gate_and_levels：gate.passed == level_verdicts.INTERNAL_DEMO == passed，且 level_verdicts 为 {passed, failed, failed}
       package_lineage：m5 StagePackage 过 stage_package.schema.json；content_sha256 == sha256(gate_results 字节)；
         lineage 输入集合 == frozen_inputs；payload 中 *_revision_id 均可解析；配置记录 target_consumption_level
-      fail_closed_tamper：独立临时 Ledger 上把 corpus_spans 对象改一字节 → 13 个 Validator skipped_fail_closed，三级全 failed，无 m5 StagePackage
+      fail_closed_tamper：独立临时 Ledger 上把 corpus_spans 对象改一字节 → 13 个 Validator skipped_fail_closed，三级全 failed；
+        Gate 未过时 M5 StepRun 仍 succeeded，m5 StagePackage 仍照常封存且 validation.passed == false（§9 第 21 条）；
+        下游消费判据（StepRun succeeded 且 validation.passed == true）必须拒绝该包
       adversarial_bypass：四个对抗场景全部命中方判 PASS，任一未命中 FAIL（见下）
       candidate_evidence：BLOCKED，说明逐字「前置缺失: M4 Knowledge Extraction；Candidate 证据范围与 direct proposition 忠实性未实现」
       g4_content_layering：BLOCKED，说明逐字「前置缺失: M4 Knowledge Extraction；无 Case/editorial 分层输入」
@@ -59,13 +61,13 @@ tests:
     - test_adversarial_dropped_last_span_hits_g2
     - test_adversarial_offset_level_for_public_hits_g3
     - test_adversarial_bypass_requires_all_four
-    - test_fail_closed_tamper_marks_thirteen_skipped
+    - test_fail_closed_tamper_marks_thirteen_skipped（13 个 skipped_fail_closed、三级 failed；m5 StagePackage 仍封存且 validation.passed == false，下游仅凭 succeeded 不得放行）
     - test_prepare_failure_exits_1（patch fixture_ingest.ingest 抛 RuntimeError → exit 1，首行以 "FAIL m5_acceptance 宿主准备失败: RuntimeError" 开头）
     - test_missing_fixture_exit_3
     - test_shell_exit_2_on_fixture（subprocess 运行 m5-evidence-gate.sh，末行 SUMMARY pass=9 fail=0 blocked=5，exit 2）
     - test_shell_never_trusts_copy_verify（副本删一条 span 且副本 verify.sh 换成 `echo FIXTURE OK; exit 0` → FIXTURE_DIR=副本 运行 → exit 1，首行 "FAIL fixture_host"）
 verify:
-  - .venv/bin/python -m unittest discover -s pipeline/validation/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 84
+  - .venv/bin/python -m unittest discover -s pipeline/validation/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 83
   - export LC_ALL=en_US.UTF-8; bash openspec/acceptance/m5-evidence-gate.sh; echo exit=$?   # 9 PASS + 5 BLOCKED + SUMMARY pass=9 fail=0 blocked=5；exit=2
   - grep -c 'FIXTURE_DIR/verify.sh' openspec/acceptance/m5-evidence-gate.sh   # 0
   - export LC_ALL=en_US.UTF-8; bash openspec/acceptance/run_all.sh | tail -1   # 仍为 SUMMARY pass=2 fail=1 blocked=8（本批不改 run_all.sh）

@@ -44,9 +44,9 @@
 
 ## 6. run_m5 事务序列（ACT 05）
 
-- 6.1 Given 真实链路，When `run_m5`，Then StepRun `succeeded`、14 个 Validator 报告（artifact_type `validation_report`）与 14 个 m5 Checkpoint 成链、`gate.passed` 为真、`level_verdicts` 为 `{passed, failed, failed}`、m5 StagePackage 过 Schema 且 `validation.passed == true`、血缘上游含 m3 包。
+- 6.1 Given 真实链路，When `run_m5`，Then StepRun `succeeded`、14 个 Validator 报告（artifact_type `validation_report`）与 14 个 m5 Checkpoint 成链、`gate.passed` 为真、`level_verdicts` 为 `{passed, failed, failed}`、`counts.findings == 7`（G1 4 + G3 3）、m5 StagePackage 过 Schema 且 `validation.passed == true`、血缘上游含 m3 包。
 - 6.2 Given `target_consumption_level=PUBLIC_RELEASE`，Then StepRun 仍 `succeeded`，但 `gate.passed` 为假、`validation.passed == false`、`rework_tasks` 非空。
-- 6.3 Given `corpus_spans` 对象被改一字节，Then 13 个 Validator `skipped_fail_closed`、三级全 failed、`failed_task_count == 13`。
+- 6.3 Given `corpus_spans` 对象被改一字节，Then 13 个 Validator `skipped_fail_closed`、三级全 failed、`failed_task_count == 13`；StepRun 仍 `succeeded`，m5 StagePackage 仍照常封存且 `validation.passed == false`，下游仅凭 `succeeded` 不得放行（§9 第 21 条）。
 - 6.4 Given begin 之后 `record_transformation` 抛异常，Then StepRun `failed`、`failed_check == "internal"`、失败报告 sealed、无 m5 StagePackage。
 - 6.5 CLI：gate 通过 exit 0 并以 `M5 OK` 开头；gate 未通过 exit 1 并以 `M5 GATE_FAILED` 开头；begin 前拒绝 exit 2 并以 `M5 REFUSED` 开头。
 

@@ -6,7 +6,7 @@
 
 ```bash
 git status --short pipeline/validation openspec/acceptance pipeline/corpus_compiler pipeline/ledger   # 空
-ls pipeline/validation 2>/dev/null | grep -v __pycache__ | wc -l     # K1: 0；K2: 11（ACT 00–03 的 10 个文件 + tests）；K3: 16
+ls pipeline/validation 2>/dev/null | grep -v __pycache__ | wc -l     # K1: 0；K2: 10（ACT 00–03 的 9 个文件 + tests）；K3: 16
 ls openspec/acceptance                                              # K1/K2: m3-coverage.sh run_all.sh；K3 同
 bash docs/blackbox-spec-rework/verify-T.sh | tail -1                # FAIL 合计: 0
 bash docs/blackbox-spec-rework/work-items/g3-r3/mutations.sh all | tail -1   # 109/109
@@ -26,13 +26,13 @@ shasum -a 256 pipeline/corpus/_fixture/mini_ed01/spans.yaml         # ec6d77b90a
 
 | ACT | Red（实现前） | Green（实现后） |
 |---|---|---|
-| 00 | `$TV` → ImportError | `$TV` OK，用例 ≥ 10；注册表 14 项；`fixture_context()` 43 条 Span、17 个修订 |
-| 01 | 新增用例全 ERROR | `$TV` OK ≥ 26；fixture 上 G1 发现恰 4 条（2 `unresolved_glyph` + 2 `unproofread_glyphs`） |
-| 02 | 新增用例全 ERROR | `$TV` OK ≥ 40；fixture 上 G2 发现 0；`g2_coverage.py` 无 `corpus_compiler` |
-| 03 | 新增用例全 ERROR | `$TV` OK ≥ 57；fixture 上 G3 发现恰 3 条；`g3_evidence.py` 无 `corpus_compiler` |
-| 04 | 新增用例全 ERROR | `$TV` OK ≥ 63；真实链路冻结 17 个；M3 StepRun 为 failed 时拒绝并抛 ValidationRefused；拒绝时 Ledger 行数不变 |
-| 05 | 新增用例全 ERROR | `$TV` OK ≥ 75；`run_m5` succeeded、14 Checkpoint、`level_verdicts {passed, failed, failed}`；`$TL`、`$TC` 用例数不变 |
-| 06 | `m5-evidence-gate.sh` 不存在（exit 127）；新增用例全 ERROR | `$TV` OK ≥ 84；脚本 `SUMMARY pass=9 fail=0 blocked=5`、exit 2；`run_all.sh` 与 `m3-coverage.sh` 末行不变 |
+| 00 | `$TV` → ImportError | `$TV` OK，用例 ≥ 8；注册表 14 项；`fixture_context()` 43 条 Span、17 个修订 |
+| 01 | 新增用例全 ERROR | `$TV` OK ≥ 16；fixture 上 G1 发现恰 4 条（2 `unresolved_glyph` + 2 `unproofread_glyphs`） |
+| 02 | 新增用例全 ERROR | `$TV` OK ≥ 24；fixture 上 G2 发现 0；`g2_coverage.py` 无 `corpus_compiler` |
+| 03 | 新增用例全 ERROR | `$TV` OK ≥ 48；fixture 上 G3 发现恰 3 条；`g3_evidence.py` 无 `corpus_compiler` |
+| 04 | 新增用例全 ERROR | `$TV` OK ≥ 60；真实链路冻结 17 个；M3 StepRun 为 failed 时拒绝并抛 ValidationRefused；拒绝时 Ledger 行数不变 |
+| 05 | 新增用例全 ERROR | `$TV` OK ≥ 70；`run_m5` succeeded、14 Checkpoint、`level_verdicts {passed, failed, failed}`、fixture 上 `counts.findings == 7`（G1 4 + G3 3）；`$TL`、`$TC` 用例数不变 |
+| 06 | `m5-evidence-gate.sh` 不存在（exit 127）；新增用例全 ERROR | `$TV` OK ≥ 83；脚本 `SUMMARY pass=9 fail=0 blocked=5`、exit 2；`run_all.sh` 与 `m3-coverage.sh` 末行不变 |
 
 ## 2. 主 Agent 验收附加判据（执行者不需跑，但不得让其失败）
 
@@ -51,7 +51,7 @@ grep -rnE '"(validator_report|gate_report)"' pipeline/validation --include='*.py
 # 新内容 schema_version：gate_results / validation_package / Validator 报告恒 "0.1.0-draft"（P3）
 # §9 第 21 条：m5 StagePackage validation.passed 如实等于 gate.passed；gate 未过时 StepRun 仍 succeeded 但下游不得放行
 # 矩阵外篡改（主 Agent 自定，不预告）：页 JSON、终态、人工事件、批次、m3 包 ArtifactRef、m3 配置、字框坐标各至少 1 例，M5 必须命中且不得 gate.passed 于受影响级别
-# fail-closed：注入任一 Validator 抛异常 → 该 task errored、三级 failed；g1_frozen_bytes error → 其余 13 个 skipped_fail_closed
+# fail-closed：注入任一 Validator 抛异常 → 该 task errored、三级 failed；g1_frozen_bytes error → 其余 13 个 skipped_fail_closed；gate 未过时仍封存 m5 StagePackage 且 validation.passed == false（§9 第 21 条）
 # 写入原子性：begin_step_run 之前被拒时 Ledger 行数（artifact_revisions、step_runs、audit_log）不变
 # 退出码：acceptance 注入异常 → 1；缺 fixture → 3；m5-evidence-gate.sh 在副本假 verify.sh 下 → 1
 # BLOCKED 行名：逐字属 §19 第一列（M4 Knowledge Extraction / M3 Corpus Compilation）

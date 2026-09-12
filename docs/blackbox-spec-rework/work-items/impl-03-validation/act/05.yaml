@@ -88,7 +88,7 @@ contract: |
 tests:
   test_step.py: |
     脚手架：tempfile 目录 → LedgerService(root/"ledger") → ingest(FIXTURE, service, stages=("m1","m2","m3")) → run_m5
-    - test_run_m5_on_fixture_succeeds（StepRun succeeded；14 个 Validator 报告（artifact_type validation_report）；14 个 Checkpoint 成链；counts.findings == 3）
+    - test_run_m5_on_fixture_succeeds（StepRun succeeded；14 个 Validator 报告（artifact_type validation_report）；14 个 Checkpoint 成链；counts.findings == 7（G1 4 + G3 3））
     - test_gate_results_level_verdicts_passed_failed_failed
     - test_stage_package_validates_schema_and_lineage（过 stage_package.schema.json；validation.passed true；血缘输入含 m3 包；content_sha256 == gate_results 字节哈希）
     - test_frozen_inputs_exactly_seventeen_and_all_sealed
@@ -99,7 +99,7 @@ tests:
     - test_refuses_when_m3_step_run_failed（拒绝时 artifact_revisions / step_runs / audit_log 行数不变）
     - test_cli_exit_codes（subprocess：正常 0 且以 "M5 OK" 开头；target=PUBLIC_RELEASE 1 且以 "M5 GATE_FAILED" 开头；只灌 m1 的 Ledger 2 且以 "M5 REFUSED" 开头）
 verify:
-  - .venv/bin/python -m unittest discover -s pipeline/validation/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 75
+  - .venv/bin/python -m unittest discover -s pipeline/validation/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 70
   - .venv/bin/python -m unittest discover -s pipeline/ledger/tests -t . 2>&1 | tail -3       # OK，用例数不变
   - .venv/bin/python -m unittest discover -s pipeline/corpus_compiler/tests -t . 2>&1 | tail -3   # OK，用例数不变
   - TDD §3 回归

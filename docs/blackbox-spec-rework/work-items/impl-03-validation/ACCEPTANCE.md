@@ -16,7 +16,7 @@
 ## 2. 门禁与判据（`git archive` 干净树，软链 `.venv` 与工作台 assets，`FIXTURE_ASSET_ROOT` 指本机页图）
 
 - `verify-T.sh` 0 FAIL；`g3-r3/mutations.sh all` 109/109；`openspec/schemas/verify.sh` 0；`check_d16.py` D16 OK。
-- 账本与 `corpus_compiler` `unittest` 用例数不变；`pipeline/validation` `unittest` 用例数达 `TDD.md` §1 阈值且全 OK。
+- 账本与 `corpus_compiler` `unittest` 用例数不变；`pipeline/validation` `unittest` 用例数达 `TDD.md` §1 阈值（ACT 06 后累计 ≥ 83）且全 OK。
 - ACT 06 后 `m5-evidence-gate.sh` → `SUMMARY pass=9 fail=0 blocked=5`、exit 2；`m3-coverage.sh` 仍 `pass=8 fail=0 blocked=1`、exit 2；`run_all.sh` 仍 `pass=2 fail=1 blocked=8`。
 - `TDD.md` §2 附加判据逐条实跑。
 

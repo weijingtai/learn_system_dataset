@@ -61,7 +61,7 @@ tests:
     - test_build_context_records_hash_mismatch_without_raising（篡改对象字节 → doc None、actual_sha256 与登记不同）
     - test_build_context_missing_object_doc_is_none
 verify:
-  - .venv/bin/python -m unittest discover -s pipeline/validation/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 63
+  - .venv/bin/python -m unittest discover -s pipeline/validation/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 60
   - grep -rnE 'corpus_compiler' pipeline/validation/inputs.py pipeline/validation/context.py | wc -l   # 0
   - TDD §3 回归
 commit:

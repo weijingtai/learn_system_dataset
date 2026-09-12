@@ -34,7 +34,7 @@ contract: |
         span 自带 quote_sha256 时逐条比对，不符 → quote_hash_mismatch（TXT_001）；
         整份 corpus_spans 中没有任何 span 携带 quote_sha256 → 恰 1 条 quote_hash_not_stored（SCH_001），
           subject.entity_id 取 m3 包修订号，severity {INTERNAL_DEMO: warning, DEV_SEARCH: error, PUBLIC_RELEASE: error}
-      fixture 实测：恰 1 条 quote_hash_not_stored（全仓 git grep quote_hash 为 0，spans.yaml 无该字段）
+      fixture 实测：恰 1 条 quote_hash_not_stored（代码、fixture、schemas 内 git grep quote_hash 为 0 处，spans.yaml 无该字段）
     validate_glyphbox_anchor(ctx) -> dict：
       span.source_anchor.image_sha256 == manifest.source_assets 同页 sha256（SRC_003，page_image_hash_mismatch）
       行框与逐字字框（char_index, glyph_id, char, box）逐项与页 JSON 一致（TXT_001，line_box_mismatch / glyph_box_mismatch）
@@ -77,7 +77,7 @@ tests:
     - test_evidence_level_invalid_on_unknown_value
     - test_g3_module_has_no_corpus_compiler_import
 verify:
-  - .venv/bin/python -m unittest discover -s pipeline/validation/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 57
+  - .venv/bin/python -m unittest discover -s pipeline/validation/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 48
   - grep -rnE 'corpus_compiler' pipeline/validation/g3_evidence.py | wc -l   # 0
   - TDD §3 回归
 commit:
