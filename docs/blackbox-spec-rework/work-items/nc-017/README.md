@@ -1,6 +1,6 @@
 # NC-017：口令加密导出文件格式与本机原子写入
 
-状态：`DISPATCHED`（2026-09-12：agy 四查 R1 READY、返工 0 项，见 `reviews/NC-017-REVIEW-R1.md`；NC-011 CLIENT 线 `463835e` 提交后经 tmux + cmd（deepseek/deepseek-v4.1-flash）派发，会话 nc017）。派发前置：NC-004、NC-015 `ACCEPTED`（已满足）；**NC-011 CLIENT 线（act/06）已提交**（同一 reading-notes 工作树，D-NC017-11）。task_id：`NC-017`。权威需求来源：TASKS NC-017；PRD R-13、旅程 7；DESIGN 第 50 行 BackupManifest、§5（S6）、§7.4；契约 `contracts/private_export.md`（本任务专属）。
+状态：`ACCEPTED`（2026-09-12 主 Agent 验收 R1：reading-notes `e913b14`、`4a0d70a`，flutter test +253，Python 独立解码与 5 项盲测全部通过，见 ACCEPTANCE.md）。曾为 `DISPATCHED`（2026-09-12：agy 四查 R1 READY、返工 0 项，见 `reviews/NC-017-REVIEW-R1.md`；NC-011 CLIENT 线 `463835e` 提交后经 tmux + cmd（deepseek/deepseek-v4.1-flash）派发，会话 nc017）。派发前置：NC-004、NC-015 `ACCEPTED`（已满足）；**NC-011 CLIENT 线（act/06）已提交**（同一 reading-notes 工作树，D-NC017-11）。task_id：`NC-017`。权威需求来源：TASKS NC-017；PRD R-13、旅程 7；DESIGN 第 50 行 BackupManifest、§5（S6）、§7.4；契约 `contracts/private_export.md`（本任务专属）。
 
 ## Goal
 

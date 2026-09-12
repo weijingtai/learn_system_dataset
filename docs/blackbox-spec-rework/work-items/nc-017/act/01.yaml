@@ -1,6 +1,6 @@
 TASK_ID: NC-017-A
 PARENT: NC-017
-STATUS: DISPATCHED
+STATUS: ACCEPTED
 REPO: xuan-migration/reading-notes
 GOAL: 导出格式层——常量、规范 JSON、ExportHeader、记录流编解码、ExportChunkEncoder、decodeExportFile 与两类异常；E01～E08
 DEPENDS_ON: []

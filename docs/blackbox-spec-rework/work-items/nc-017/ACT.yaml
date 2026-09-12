@@ -1,5 +1,5 @@
 TASK_ID: NC-017
-STATUS: DISPATCHED
+STATUS: ACCEPTED
 GOAL: reading-notes 口令加密导出文件——格式层（容器/清单/Argon2id/带 AAD 分块 AES-GCM/统一失败）与本机原子写入器
 CONTRACTS:
   - openspec/annotation-community/contracts/private_export.md
