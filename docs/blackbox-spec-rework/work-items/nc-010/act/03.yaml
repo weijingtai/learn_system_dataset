@@ -1,6 +1,6 @@
 TASK_ID: NC-010-C
 PARENT: NC-010
-STATUS: DRAFT
+STATUS: READY
 REPO: xuan-migration/reading-notes
 GOAL: 访问缓存（版本单调）、作者视角八档文案、PublicationController（预览切换、就绪判定、确认前不报成功、412 保留私人稿、本地前置检查）、PendingOpWriter 回写 notes.pending_op，9 测试
 DEPENDS_ON: [NC-010-B]

@@ -9,9 +9,9 @@
 | 1 | `flutter analyze` | 0 issues |
 | 2 | `flutter test test/community/community_api_test.dart` | act/01 后 `+6` |
 | 3 | `flutter test test/community/command_queue_test.dart` | act/02 后 `+14` |
-| 4 | `flutter test test/community/publication_flow_test.dart` | act/03 后 `+9`；act/04 后 `+16` |
+| 4 | `flutter test test/community/publication_flow_test.dart` | act/03 后 `+9`；act/04 后 `+17` |
 | 5 | `flutter test test/community/seven_states_test.dart` | act/05 后 `+25` |
-| 6 | `flutter test` | act/01 `+156`；act/02 `+170`；act/03 `+179`；act/04 `+186`；act/05 `+211: All tests passed!` |
+| 6 | `flutter test` | act/01 `+156`；act/02 `+170`；act/03 `+179`；act/04 `+187`；act/05 `+212: All tests passed!` |
 | 7 | `git diff 9b35e97 HEAD --stat -- lib/src/domain lib/src/persistence lib/src/editor lib/src/history test/persistence test/contracts test/editor test/history test/support` | 空 |
 | 8 | `grep -rn "firebase_auth\|cloud_firestore" lib/src/community` | 无输出 |
 | 9 | `bash docs/blackbox-spec-rework/reviews/nc010_guard.sh --require-impl`（learn_system 内） | 0 |
@@ -42,11 +42,11 @@ Red：先写 9 个测试，运行命令 4 取得原文。
 
 ## 5. act/04：页面与确认层（契约 §5.3 第 3/5 条、§6 页面与确认层）
 
-文件：`lib/src/community/{note_list_page,content_detail_page,publish_preview_page,pending_queue_page,confirmation_dialogs}.dart`、`test/community/publication_flow_test.dart`（追加 7 个）。
+文件：`lib/src/community/{note_list_page,content_detail_page,publish_preview_page,pending_queue_page,confirmation_dialogs}.dart`、`test/community/publication_flow_test.dart`（追加 8 个）。
 
-7 个测试：`first_publish_shows_consequence_once`（B24）、`public_view_excludes_unpublished_revision`（B25）、`pending_queue_terminated_item_offers_copy_text`（B26）、`pending_queue_empty_text`（B27）、`withdraw_confirmation_text_uses_runtime_or_generic_count`（B28）、`purge_confirmation_counts_revisions_and_attachments`（B29）、`hidden_by_admin_shows_appeal_entry`（B37）。
+8 个测试：`first_publish_shows_consequence_once`（B24）、`public_view_excludes_unpublished_revision`（B25）、`pending_queue_terminated_item_offers_copy_text`（B26）、`pending_queue_empty_text`（B27）、`withdraw_confirmation_text_uses_runtime_or_generic_count`（B28）、`purge_confirmation_counts_revisions_and_attachments`（B29）、`hidden_by_admin_shows_appeal_entry`（B37）、`pending_queue_paused_item_retries_with_same_key`（B38）。
 
-Red：先写 7 个测试，运行命令 4 取得原文。
+Red：先写 8 个测试，运行命令 4 取得原文。
 
 ## 6. act/05：四屏七状态（契约 §6 表）
 
@@ -56,4 +56,4 @@ Red：先写 25 例，运行命令 5 取得原文（act/04 已实现的状态可
 
 ## 7. 禁止
 
-`skip`、永真断言、真实网络、`firebase_auth`/`cloud_firestore`、改 NC-004～NC-007 文件、在测试内计算 payload_hash 期望值、新增契约外依赖。命令 6 最终 `+211`。
+`skip`、永真断言、真实网络、`firebase_auth`/`cloud_firestore`、改 NC-004～NC-007 文件、在测试内计算 payload_hash 期望值、新增契约外依赖。命令 6 最终 `+212`。

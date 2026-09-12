@@ -16,4 +16,4 @@
 
 **提交**：五步各一个提交，只 `git add` 本步文件，不 push；提交消息按各 ACT 的 COMMIT_MESSAGE，末尾另起两行加 `Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>`。
 
-**交付报告**：写入 `/Users/jingtaiwei/Git/Public/learn_system/docs/blackbox-spec-rework/work-items/nc-010/DELIVERY_REPORT.md`（不 git add）。每步：commit 哈希与 `git show --stat` 原文；Red 命令/退出码/原文；VERIFICATION 每条命令的退出码与末 20 行；act/01 另附 `pubspec.lock` 中 `http` 与既有九个包的 version 行；act/05 另附 `flutter test` 全量末 5 行（应 `+211: All tests passed!`）与 `nc010_guard.sh --require-impl` 退出码；跳过项与剩余风险。不要把真实宿主端到端、图片上传、评论计数说成完成。
+**交付报告**：写入 `/Users/jingtaiwei/Git/Public/learn_system/docs/blackbox-spec-rework/work-items/nc-010/DELIVERY_REPORT.md`（不 git add）。每步：commit 哈希与 `git show --stat` 原文；Red 命令/退出码/原文；VERIFICATION 每条命令的退出码与末 20 行；act/01 另附 `pubspec.lock` 中 `http` 与既有九个包的 version 行；act/05 另附 `flutter test` 全量末 5 行（应 `+212: All tests passed!`）与 `nc010_guard.sh --require-impl` 退出码；跳过项与剩余风险。不要把真实宿主端到端、图片上传、评论计数说成完成。

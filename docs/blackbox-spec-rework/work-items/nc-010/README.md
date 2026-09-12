@@ -1,6 +1,6 @@
 # NC-010：客户端命令队列、公共 API 客户端、发布状态与页面
 
-状态：`DRAFT`（2026-09-11，待 wjt-react 四查）。派发前置：**NC-003 ACCEPTED**（2026-09-11 已满足，REST 仓 `5730ed9`）；NC-009 不是前置（本任务全部用 `MockClient`，真实端到端归 NC-024，D-NC010-06）。执行由用户交外部 Agent，PROMPT.md 原样发送。task_id：`NC-010`。权威需求来源：TASKS NC-010；PRD 旅程 1/3/5/9、§5.1、§6.2、§6.4；DESIGN §4.2、§7.4；state-machines SM-2a/SM-3/SM-5；契约 `contracts/community_client.md`（本任务专属）与 `community_api.md`（含 §10）。
+状态：`READY`（2026-09-11：R1 返工 7 项 + 2 建议、R2 返工 2 项均落实；记录见 `reviews/NC-010-REVIEW-R1.md`）。派发前置：**NC-003 ACCEPTED**（2026-09-11 已满足，REST 仓 `5730ed9`）；NC-009 不是前置（本任务全部用 `MockClient`，真实端到端归 NC-024，D-NC010-06）。执行由用户交外部 Agent，PROMPT.md 原样发送。task_id：`NC-010`。权威需求来源：TASKS NC-010；PRD 旅程 1/3/5/9、§5.1、§6.2、§6.4；DESIGN §4.2、§7.4；state-machines SM-2a/SM-3/SM-5；契约 `contracts/community_client.md`（本任务专属）与 `community_api.md`（含 §10）。
 
 ## Goal
 
@@ -27,7 +27,7 @@
 
 ## 执行顺序
 
-`act/01`（端口、模型、API 客户端，6 测试）→ `act/02`（CommunityDatabase 与命令队列，14 测试）→ `act/03`（缓存、作者文案、发布控制器、pending_op 回写，9 测试）→ `act/04`（页面、确认层与申诉入口，7 测试）→ `act/05`（四屏七状态参数化，25 测试）。每步一个提交，全量 `+150 → +156 → +170 → +179 → +186 → +211`。
+`act/01`（端口、模型、API 客户端，6 测试）→ `act/02`（CommunityDatabase 与命令队列，14 测试）→ `act/03`（缓存、作者文案、发布控制器、pending_op 回写，9 测试）→ `act/04`（页面、确认层、申诉入口与 paused 重试，8 测试）→ `act/05`（四屏七状态参数化，25 测试）。每步一个提交，全量 `+150 → +156 → +170 → +179 → +187 → +212`。
 
 ## 一次性交付与阅读顺序
 

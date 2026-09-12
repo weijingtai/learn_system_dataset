@@ -1,6 +1,6 @@
 TASK_ID: NC-010-A
 PARENT: NC-010
-STATUS: DRAFT
+STATUS: READY
 REPO: xuan-migration/reading-notes
 GOAL: 端口、响应/请求模型与 CommunityApi（W1～W6、R1、R5、R6），6 测试
 DEPENDS_ON: []

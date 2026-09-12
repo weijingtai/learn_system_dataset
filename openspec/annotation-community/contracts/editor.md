@@ -7,7 +7,7 @@
 - 文件：`lib/src/editor/note_editor_controller.dart`、`note_editor_page.dart`、`markdown_preview.dart`、`save_status.dart`；测试 `test/editor/note_editor_test.dart`、`test/editor/markdown_preview_test.dart`、`test/editor/save_status_test.dart`。
 - 新增依赖：`flutter_markdown_plus: 1.0.12`（精确锁定；NC-001 基线用户指定）及其传递依赖 `markdown`（版本由 lock 固定，README 登记实际值）。不新增其他依赖。
 - 复用 NC-004：`NoteRepository`、`EditorSnapshot`、常量 `autosaveDebounceMs=2000`、错误类闭集；本任务不改 NC-004 文件。测试替身 `FakeNoteRepository` 用 Dart 隐式接口 `class FakeNoteRepository implements NoteRepository`（不调用其构造函数、不需要真实 `NoteDatabase`），只实现契约 §2 用到的方法，其余方法抛 `UnimplementedError`。
-- 不变式：本包不存在任何发布/Publication/ContentAccess 接口；自动保存只经 `NoteRepository.saveSnapshot` 写私人 head，不可能改变已发布正文（TASKS NC-005「自动保存不改变已发布正文」），测试以替身记录的方法调用集合证明。
+- 不变式：`lib/src/editor/` 与 `lib/src/persistence/` 不存在也不导入任何发布/Publication/ContentAccess 接口（2026-09-11 收窄：发布接口自 NC-010 起位于同包 `lib/src/community/`，编辑器与修订库仍不依赖它）；自动保存只经 `NoteRepository.saveSnapshot` 写私人 head，不可能改变已发布正文（TASKS NC-005「自动保存不改变已发布正文」），测试以替身记录的方法调用集合证明。
 
 ## 2. 编辑态状态机实现面（SM-1）
 

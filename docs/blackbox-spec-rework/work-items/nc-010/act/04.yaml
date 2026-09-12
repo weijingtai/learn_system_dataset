@@ -1,11 +1,11 @@
 TASK_ID: NC-010-D
 PARENT: NC-010
-STATUS: DRAFT
+STATUS: READY
 REPO: xuan-migration/reading-notes
-GOAL: 四个页面（笔记列表、公开详情、发布预览与成功页、待处理队列）、三个确认层（首次发布、收回、彻底删除）与申诉入口，7 测试
+GOAL: 四个页面（笔记列表、公开详情、发布预览与成功页、待处理队列含 paused 重试）、三个确认层（首次发布、收回、彻底删除）与申诉入口，8 测试
 DEPENDS_ON: [NC-010-C]
 ESTIMATE_MINUTES: 60
-WORKLOAD: "4 个页面约 520 行 Widget；确认层约 120 行；7 个 Widget 测试"
+WORKLOAD: "4 个页面约 540 行 Widget；确认层约 120 行；8 个 Widget 测试"
 SCOPE:
   READ:
     - /Users/jingtaiwei/Git/Public/learn_system/openspec/annotation-community/contracts/community_client.md
@@ -15,7 +15,7 @@ SCOPE:
   WRITE_NEW:
     - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/lib/src/community/note_list_page.dart、content_detail_page.dart、publish_preview_page.dart、pending_queue_page.dart、confirmation_dialogs.dart
     - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/lib/reading_notes.dart（追加导出）
-    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/test/community/publication_flow_test.dart（追加 7 个）
+    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/test/community/publication_flow_test.dart（追加 8 个）
   FORBIDDEN:
     - /Users/jingtaiwei/Git/Public/learn_system 下任何写入
     - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/lib/src/{domain,persistence,editor,history}/ 与 test/{persistence,contracts,editor,history,support}/（NC-004～NC-007 文件）
@@ -26,14 +26,14 @@ RULES:
   - "每步先写测试取得真实 Red 原文，再实现；不修改前步测试期望"
   - "只 git add 本步文件；提交消息按 COMMIT_MESSAGE，末尾另起两行 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 TESTS_FIRST:
-  - "追加 7 个测试；运行 TDD 命令 4，保存失败原文作为 Red"
+  - "追加 8 个测试；运行 TDD 命令 4，保存失败原文作为 Red"
 STEPS:
-  - "实现至 16 个测试通过；flutter analyze 0"
+  - "实现至 17 个测试通过；flutter analyze 0"
   - "git add 本步文件并提交"
 VERIFICATION:
     - "export PATH=/Users/jingtaiwei/flutter/bin:$PATH && cd /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes && flutter analyze"
-    - "cd /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes && flutter test test/community/publication_flow_test.dart（期望 +16）"
-    - "cd /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes && flutter test（期望 +186）"
+    - "cd /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes && flutter test test/community/publication_flow_test.dart（期望 +17）"
+    - "cd /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes && flutter test（期望 +187）"
     - "git -C /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes status --short（提交后除未跟踪报告外为空）"
 ON_FAIL: "停止并报告失败命令、退出码与原文；不改契约与测试期望。http 1.6.0 改变既有锁定版本、需改 NC-004～NC-007 文件、build_runner 改动 note_database.g.dart、契约两种解释，均为停止条件。learn_system 侧 nc010_guard.sh 的 K01 失败判外部失败只记录。"
 BASELINE_EXIT_CODES: "开工基线：reading-notes 9b35e97（flutter test +150、analyze 0）或上一步提交"

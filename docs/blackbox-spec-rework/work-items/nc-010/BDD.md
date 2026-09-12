@@ -41,3 +41,4 @@
 | B35 | 已发布笔记入队 `content.withdraw` | 查询 `NoteRepository.getNote` | `pendingOp == withdraw_requested`；命令 committed 后为 `none`；手动把 `notes.pending_op` 改为 `none` 后重启 `recover()` 且命令仍 `queued` → 恢复为 `withdraw_requested` |
 | B36 | 缓存 `access_version=5` | 迟到的 committed 响应携带 `access_version=4` | 缓存仍为 5，作者文案不回退 |
 | B37 | 作者笔记 `moderation_state=hidden` | 渲染笔记列表 | 文案「已被管理员暂停展示」旁有「申诉」按钮；点击后注入的 `AppealHandler` 收到 contentId |
+| B38 | 待处理队列中一条 `paused` 命令 | 打开队列并点击该条 | 显示「发送失败，点此重试」；点击后命令 `queued`、`auto_attempts=0`，随后 `MockClient` 收到的写请求 `Idempotency-Key` 与暂停前相同 |
