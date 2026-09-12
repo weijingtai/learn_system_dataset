@@ -1,0 +1,45 @@
+TASK_ID: NC-011-E
+PARENT: NC-011
+STATUS: READY_FOR_REVIEW
+REPO: xuan-migration/reading-notes
+GOAL: 评论模型与 API 方法、命令队列接入（create 豁免冲突、410 仅 content）、待处理页评论摘要、评论计数端口；K01～K10
+DEPENDS_ON: []
+ESTIMATE_MINUTES: 55
+WORKLOAD: "models.dart 追加约 260 行（8 类）；community_api.dart 追加约 90 行；command_queue.dart 四处约 30 行；pending_queue_page.dart 三处约 20 行；comment_count_port.dart 约 30 行；10 个测试约 450 行"
+SCOPE:
+  READ:
+    - /Users/jingtaiwei/Git/Public/learn_system/openspec/annotation-community/contracts/community_discussion.md（§2.2、§10、§11.1～§11.5、§12 K01～K10、§14）
+    - /Users/jingtaiwei/Git/Public/learn_system/openspec/annotation-community/contracts/community_client.md（§3、§4、§10）
+    - /Users/jingtaiwei/Git/Public/learn_system/docs/blackbox-spec-rework/work-items/nc-011/BDD.md（K01～K10）、TDD.md（§6）
+    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/lib/src/community/{models,community_api,command_queue,pending_queue_page,ports,confirmation_dialogs,community_database}.dart
+    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/test/community/command_queue_test.dart（B05/B31 真实文件库关闭重开写法，只读）
+  WRITE_NEW:
+    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/lib/src/community/models.dart（末尾追加）
+    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/lib/src/community/community_api.dart（追加 4 方法）
+    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/lib/src/community/command_queue.dart（契约 §11.3 四处）
+    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/lib/src/community/pending_queue_page.dart（契约 §11.4 三处）
+    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/lib/src/community/comment_count_port.dart
+    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/lib/reading_notes.dart（追加导出 comment_count_port.dart）
+    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/test/community/discussion_test.dart（K01～K10）
+  FORBIDDEN:
+    - 契约 §2.2 禁止清单（NC-004～007 目录、既有 test/community/*.dart、pubspec、community_database.dart）
+    - learn_system 写入（交付报告除外）；新依赖；真实网络；skip；永真断言；测试内计算 payload_hash 期望；git push
+DEPENDENCY_ALLOWLIST: [沿用 reading-notes 锁定版本，含 http 1.6.0]
+RULES:
+  - "字段、方法签名、头、文案逐字按契约 §11；H1～H3 用 §10 字面量"
+  - "每条 flutter 命令带 PATH=/Users/jingtaiwei/flutter/bin:$PATH"
+  - "只 git add WRITE_NEW 文件；提交消息按 COMMIT_MESSAGE，末尾空一行加 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
+TESTS_FIRST:
+  - "先写 K01～K10，运行 VERIFICATION 第 2 条，保存编译失败/失败原文作为 Red"
+STEPS:
+  - "实现至 VERIFICATION 全部符合期望"
+  - "git add 并提交"
+VERIFICATION:
+  - "cd /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes && PATH=/Users/jingtaiwei/flutter/bin:$PATH flutter analyze（期望 No issues found!）"
+  - "cd /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes && PATH=/Users/jingtaiwei/flutter/bin:$PATH flutter test test/community/discussion_test.dart（期望 +10: All tests passed!）"
+  - "cd /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes && PATH=/Users/jingtaiwei/flutter/bin:$PATH flutter test（期望 +224: All tests passed!）"
+  - "git -C /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes diff-tree -r --name-only 4588f78 HEAD -- lib/src/domain lib/src/persistence lib/src/editor lib/src/history test/persistence test/contracts test/editor test/history test/support test/community/command_queue_test.dart test/community/community_api_test.dart test/community/publication_flow_test.dart test/community/seven_states_test.dart pubspec.yaml pubspec.lock lib/src/community/community_database.dart（期望空）"
+  - "git -C /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes status --short（期望空）"
+ON_FAIL: "停止并在 DELIVERY_REPORT_CLIENT.md 追加「## 待裁决」。H1～H3 对不上、既有测试变红、需改禁止清单文件，均为停止条件。"
+BASELINE_EXIT_CODES: "开工基线：4588f78，flutter test +214、analyze 0"
+COMMIT_MESSAGE: "feat(community): 评论模型、API、队列接入与计数端口（NC-011-E）"

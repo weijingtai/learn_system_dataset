@@ -1,0 +1,40 @@
+TASK_ID: NC-011-C
+PARENT: NC-011
+STATUS: READY_FOR_REVIEW
+REPO: xuan-server/functions-py
+GOAL: 评论编辑 W8、删除 W9（墓碑与计数）与评论列表 R2（一级/楼内分页、回复预览、游标、ETag 与 304）；handler 补齐三条路由；T19～T30
+DEPENDS_ON: [NC-011-B]
+ESTIMATE_MINUTES: 60
+WORKLOAD: "discussion_service.py 追加约 250 行（comment_edit、comment_delete、encode/decode_cursor、comment_etag、list_comments）；handler 追加约 60 行；12 个测试约 400 行"
+SCOPE:
+  READ:
+    - /Users/jingtaiwei/Git/Public/learn_system/openspec/annotation-community/contracts/community_discussion.md（§5.2～§7、§9 T19～T30、§10）
+    - /Users/jingtaiwei/Git/Public/learn_system/openspec/annotation-community/contracts/community_api.md（§3.3、§6、§11）
+    - /Users/jingtaiwei/Git/Public/learn_system/docs/blackbox-spec-rework/work-items/nc-011/BDD.md（T19～T30）、TDD.md（§4）
+    - act/02 已提交的 discussion_service.py、community_comments.py、test_community_comments.py
+    - /Users/jingtaiwei/Git/Public/xuan-server/functions-py/xuan/handlers/community_contents.py（R1 的 304 与 SM-C 写法，只读）
+  WRITE_NEW:
+    - /Users/jingtaiwei/Git/Public/xuan-server/functions-py/xuan/community/discussion_service.py
+    - /Users/jingtaiwei/Git/Public/xuan-server/functions-py/xuan/handlers/community_comments.py
+    - /Users/jingtaiwei/Git/Public/xuan-server/functions-py/tests/community_helpers.py（仅在 act/02 追加的函数内修正缺陷时允许，需在报告说明）
+    - /Users/jingtaiwei/Git/Public/xuan-server/functions-py/tests/test_community_comments.py（追加 T19～T30，不改 T01～T18 期望）
+  FORBIDDEN:
+    - 契约 §2.1 禁止清单；act/02 测试期望修改；learn_system 写入（交付报告除外）；新依赖；skip/xfail；永真断言；测试内计算 ETag/游标期望；git push
+DEPENDENCY_ALLOWLIST: [同 act/02]
+RULES:
+  - "判定顺序逐字按契约 §5.2、§6.1；ETag 与游标公式按 §6.2、§6.3，测试用 §10 字面量"
+  - "查询按 §6.4：Firestore 查询 limit+1，不得整主题读入内存排序"
+  - "只 git add WRITE_NEW 中实际改动的文件；提交消息按 COMMIT_MESSAGE，末尾空一行加 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
+TESTS_FIRST:
+  - "先追加 T19～T30，运行 VERIFICATION 第 1 条，保存失败原文作为 Red"
+STEPS:
+  - "实现至 VERIFICATION 全部符合期望"
+  - "git add 并提交"
+VERIFICATION:
+  - "cd /Users/jingtaiwei/Git/Public/xuan-server/functions-py && PYTHONDONTWRITEBYTECODE=1 FIRESTORE_EMULATOR_HOST=192.168.0.165:8080 FIREBASE_AUTH_EMULATOR_HOST=192.168.0.165:9099 .venv/bin/python -m pytest tests/test_community_comments.py -q -p no:cacheprovider（期望 32 passed）"
+  - "cd /Users/jingtaiwei/Git/Public/xuan-server/functions-py && PYTHONDONTWRITEBYTECODE=1 FIRESTORE_EMULATOR_HOST=192.168.0.165:8080 FIREBASE_AUTH_EMULATOR_HOST=192.168.0.165:9099 .venv/bin/python -m pytest tests -q -rf -p no:cacheprovider（期望 5 failed, 491 passed, 9 xfailed；FAILED 恰为契约 §1 五个 ID）"
+  - "git -C /Users/jingtaiwei/Git/Public/xuan-server/functions-py diff-tree -r --name-only df5c3da HEAD -- xuan/community/content_service.py xuan/community/command_service.py xuan/community/access.py xuan/community/errors.py xuan/community/ids.py xuan/community_hash.py xuan/handlers/community_contents.py xuan/handlers/community_commands.py xuan/community/schemas（期望空）"
+  - "git -C /Users/jingtaiwei/Git/Public/xuan-server/functions-py status --short（期望空）"
+ON_FAIL: "停止并在 DELIVERY_REPORT_SERVER.md 追加「## 待裁决」。E1/E2/C1～C3 字面量对不上、Emulator 拒绝复合查询、需要改禁止清单文件，均为停止条件。"
+BASELINE_EXIT_CODES: "开工基线：act/02 提交（5 failed / 479 passed / 9 xfailed）"
+COMMIT_MESSAGE: "feat(community): 评论编辑删除、墓碑与评论列表分页 ETag（NC-011-C）"

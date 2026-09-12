@@ -1,0 +1,24 @@
+TASK_ID: NC-011
+STATUS: READY_FOR_REVIEW
+GOAL: 两级评论与讨论区——REST 契约增量、服务端 W7～W9/R2 与收回并发屏障、客户端队列接入/控制器/面板/七状态
+CONTRACTS:
+  - openspec/annotation-community/contracts/community_discussion.md
+  - openspec/annotation-community/contracts/community_api.md（§4.1、§7、§10、§11）
+  - openspec/annotation-community/contracts/community_server.md（§3、§10）
+  - openspec/annotation-community/contracts/community_client.md（§3、§4、§10）
+DISPATCH_PRECONDITION: "NC-003、NC-009、NC-010 均 ACCEPTED（2026-09-11 满足）；wjt-react 四查 READY"
+SPLIT:
+  - act/01.yaml（REST，NC-011-A）
+  - act/02.yaml（SERVER，NC-011-B）
+  - act/03.yaml（SERVER，NC-011-C）
+  - act/04.yaml（SERVER + RULES，NC-011-D）
+  - act/05.yaml（CLIENT，NC-011-E）
+  - act/06.yaml（CLIENT，NC-011-F）
+ORDER: "三线并行：REST act/01 ｜ SERVER act/02 → 03 → 04 ｜ CLIENT act/05 → 06；同一仓库内严格串行，每步以上一步提交为基线"
+ESTIMATE_MINUTES_TOTAL: 325
+DEFERRED:
+  - "网关路由与复合索引部署、限流开启（D-NC011-20）"
+  - "评论与 mention 通知、通知正文重新鉴权：NC-013"
+  - "mention 用户存在/注销/拉黑校验与 mention 事件：NC-012（D-NC011-08）"
+  - "审核隐藏对主题计数的维护：审核任务（D-NC011-11）"
+  - "真实宿主挂载讨论区与 Emulator 端到端：NC-024"

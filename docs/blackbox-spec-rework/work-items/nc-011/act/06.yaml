@@ -1,0 +1,45 @@
+TASK_ID: NC-011-F
+PARENT: NC-011
+STATUS: READY_FOR_REVIEW
+REPO: xuan-migration/reading-notes
+GOAL: 讨论区控制器与面板（分页不跳动、楼内展开、两种空态、离线重启待发送、4000 字、409 保留草稿、迟到成功重读、墓碑）、七状态、详情页可选挂载；K11～K25
+DEPENDS_ON: [NC-011-E]
+ESTIMATE_MINUTES: 60
+WORKLOAD: "discussion_controller.dart 约 260 行；discussion_panel.dart 约 280 行；content_detail_page.dart 追加约 8 行；15 个测试约 600 行（含参数化七状态）"
+SCOPE:
+  READ:
+    - /Users/jingtaiwei/Git/Public/learn_system/openspec/annotation-community/contracts/community_discussion.md（§11.6、§11.7、§12 K11～K25、§14）
+    - /Users/jingtaiwei/Git/Public/learn_system/openspec/annotation-community/contracts/community_client.md（§6）
+    - /Users/jingtaiwei/Git/Public/learn_system/docs/blackbox-spec-rework/work-items/nc-011/BDD.md（K11～K25）、TDD.md（§7）
+    - act/05 已提交的 models、community_api、command_queue、comment_count_port、discussion_test.dart
+    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/lib/src/community/{content_detail_page,pending_queue_page,content_access_cache}.dart、test/community/seven_states_test.dart（写法参考，只读）
+  WRITE_NEW:
+    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/lib/src/community/discussion_controller.dart
+    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/lib/src/community/discussion_panel.dart
+    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/lib/src/community/content_detail_page.dart（只追加 discussionBuilder）
+    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/lib/reading_notes.dart（追加两个导出）
+    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/test/community/discussion_test.dart（追加 K11～K25，不改 K01～K10 期望）
+  FORBIDDEN:
+    - 契约 §2.2 禁止清单；act/05 已交付的 models/api/queue/pending 页再改（发现缺陷停手上报）
+    - learn_system 写入（交付报告除外）；新依赖；真实网络；skip；永真断言；git push
+DEPENDENCY_ALLOWLIST: [同 act/05]
+RULES:
+  - "状态枚举、方法行为、文案闭集逐字按契约 §11.6、§11.7；不得新增文案"
+  - "七状态 7 例用参数化生成，名称逐字 `seven_states discussion <state>`"
+  - "只 git add WRITE_NEW 文件；提交消息按 COMMIT_MESSAGE，末尾空一行加 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
+TESTS_FIRST:
+  - "先写 K11～K25，运行 VERIFICATION 第 2 条，保存失败原文作为 Red"
+STEPS:
+  - "实现至 VERIFICATION 全部符合期望"
+  - "git add 并提交"
+  - "提交后运行一次 learn_system 守卫 `--require-impl client`，退出码写入报告"
+VERIFICATION:
+  - "cd /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes && PATH=/Users/jingtaiwei/flutter/bin:$PATH flutter analyze（期望 No issues found!）"
+  - "cd /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes && PATH=/Users/jingtaiwei/flutter/bin:$PATH flutter test test/community/discussion_test.dart（期望 +25: All tests passed!）"
+  - "cd /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes && PATH=/Users/jingtaiwei/flutter/bin:$PATH flutter test（期望 +239: All tests passed!）"
+  - "git -C /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes diff-tree -r --name-only 4588f78 HEAD -- lib/src/domain lib/src/persistence lib/src/editor lib/src/history test/persistence test/contracts test/editor test/history test/support test/community/command_queue_test.dart test/community/community_api_test.dart test/community/publication_flow_test.dart test/community/seven_states_test.dart pubspec.yaml pubspec.lock lib/src/community/community_database.dart（期望空）"
+  - "git -C /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes status --short（期望空）"
+  - "cd /Users/jingtaiwei/Git/Public/learn_system && bash docs/blackbox-spec-rework/reviews/nc011_guard.sh --require-impl client（期望 0）"
+ON_FAIL: "停止并在 DELIVERY_REPORT_CLIENT.md 追加「## 待裁决」。需改 act/05 文件或禁止清单文件、既有测试变红、K11 滚动偏移无法在测试环境稳定测量，均为停止条件。"
+BASELINE_EXIT_CODES: "开工基线：act/05 提交（flutter test +224、analyze 0）"
+COMMIT_MESSAGE: "feat(community): 讨论区控制器、面板与七状态（NC-011-F）"

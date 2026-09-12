@@ -1,0 +1,47 @@
+TASK_ID: NC-011-A
+PARENT: NC-011
+STATUS: READY_FOR_REVIEW
+REPO: xuan-migration/repository-rest-adapter
+GOAL: OpenAPI 补 R2 的 root_id/order、CommentPage 回复预览与计数、W7 409 组件；4 个结构测试与 3 个示例
+DEPENDS_ON: []
+ESTIMATE_MINUTES: 40
+WORKLOAD: "openapi.yaml 约 60 行增量（2 参数、1 schema、1 响应组件、CommentPage 与 R2/W7 修改）；4 个 dart 测试约 120 行；3 个示例 JSON 与 manifest 3 项"
+SCOPE:
+  READ:
+    - /Users/jingtaiwei/Git/Public/learn_system/openspec/annotation-community/contracts/community_discussion.md（§2.3、§10、§13、§14）
+    - /Users/jingtaiwei/Git/Public/learn_system/openspec/annotation-community/contracts/community_api.md（§10、§11）
+    - /Users/jingtaiwei/Git/Public/learn_system/docs/blackbox-spec-rework/work-items/nc-011/BDD.md（A01～A04）、TDD.md（§2）
+    - /Users/jingtaiwei/Git/Public/xuan-migration/repository-rest-adapter/openapi/openapi.yaml（R2 约第 1188 行、W7 约第 1234 行、Comment 约第 2947 行、CommentPage 约第 3444 行、409ConflictAccessVersion 约第 3765 行、ProblemAccessVersionConflict、ProblemIdempotencyConflict）
+    - /Users/jingtaiwei/Git/Public/xuan-migration/repository-rest-adapter/test/community_openapi_contract_test.dart（第 202、475、569 行附近的写法）
+    - /Users/jingtaiwei/Git/Public/xuan-migration/repository-rest-adapter/tool/check_examples.py
+    - /Users/jingtaiwei/Git/Public/xuan-migration/repository-rest-adapter/test/fixtures/openapi/examples/manifest.json
+  WRITE_NEW:
+    - /Users/jingtaiwei/Git/Public/xuan-migration/repository-rest-adapter/openapi/openapi.yaml
+    - /Users/jingtaiwei/Git/Public/xuan-migration/repository-rest-adapter/test/community_openapi_contract_test.dart（只在末尾追加 4 个 test）
+    - /Users/jingtaiwei/Git/Public/xuan-migration/repository-rest-adapter/test/fixtures/openapi/examples/comment_page_with_reply_previews.json
+    - /Users/jingtaiwei/Git/Public/xuan-migration/repository-rest-adapter/test/fixtures/openapi/examples/comment_page_reply_previews_six.json
+    - /Users/jingtaiwei/Git/Public/xuan-migration/repository-rest-adapter/test/fixtures/openapi/examples/comment_tombstone_deleted.json
+    - /Users/jingtaiwei/Git/Public/xuan-migration/repository-rest-adapter/test/fixtures/openapi/examples/manifest.json（只在末尾追加 3 项）
+  FORBIDDEN:
+    - 上表以外任何文件；修改或删除既有测试、既有示例；路径集合与方法变化；learn_system 写入（交付报告除外）；新依赖；skip；永真断言；git push
+DEPENDENCY_ALLOWLIST: [沿用仓库锁定版本；Python 用 /Users/jingtaiwei/Git/Public/learn_system/.venv/bin/python]
+RULES:
+  - "OpenAPI 改动逐字按契约 §13.1；可空写 type 数组，禁用 nullable（D-NC003-13）"
+  - "测试名逐字按契约 §13.2；示例内容逐字按 §13.3"
+  - "只 git add WRITE_NEW 文件；提交消息按 COMMIT_MESSAGE，末尾空一行加 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
+TESTS_FIRST:
+  - "先追加 4 个测试与 3 个示例、manifest 3 项，运行 VERIFICATION 第 1 条，保存失败原文作为 Red（期望 4 个新测试失败，既有 19 个通过）"
+STEPS:
+  - "按 §13.1 修改 openapi.yaml，直至 VERIFICATION 全部符合期望"
+  - "git add 并提交"
+  - "提交后运行一次 learn_system 守卫 `--require-impl rest`，退出码写入报告"
+VERIFICATION:
+  - "cd /Users/jingtaiwei/Git/Public/xuan-migration/repository-rest-adapter && PATH=/Users/jingtaiwei/flutter/bin:$PATH dart test test/community_openapi_contract_test.dart（期望 +23，All tests passed）"
+  - "cd /Users/jingtaiwei/Git/Public/xuan-migration/repository-rest-adapter && PATH=/Users/jingtaiwei/flutter/bin:$PATH dart test（期望 +73: All tests passed!）"
+  - "cd /Users/jingtaiwei/Git/Public/xuan-migration/repository-rest-adapter && tool/validate_openapi openapi/openapi.yaml（期望退出 0）"
+  - "cd /Users/jingtaiwei/Git/Public/xuan-migration/repository-rest-adapter && /Users/jingtaiwei/Git/Public/learn_system/.venv/bin/python tool/check_examples.py（期望退出 0）"
+  - "git -C /Users/jingtaiwei/Git/Public/xuan-migration/repository-rest-adapter diff-tree -r --name-only 5730ed9 HEAD（期望恰为 WRITE_NEW 的 6 个文件）"
+  - "cd /Users/jingtaiwei/Git/Public/learn_system && bash docs/blackbox-spec-rework/reviews/nc011_guard.sh --require-impl rest（期望 0）"
+ON_FAIL: "停止并在 DELIVERY_REPORT_REST.md 追加「## 待裁决」；不改契约与既有测试。validate_openapi 报 ENV_BLOCKED、既有测试变红、oneOf 两组件对示例同时匹配，均为停止条件。"
+BASELINE_EXIT_CODES: "开工基线：5730ed9，dart test +69"
+COMMIT_MESSAGE: "feat(openapi): 评论楼内分页、回复预览与计数、评论创建冲突组件（NC-011-A）"
