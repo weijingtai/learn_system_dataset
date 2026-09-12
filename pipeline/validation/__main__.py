@@ -1,7 +1,7 @@
 """M5 CLI：``python -m pipeline.validation``（规格 §13）。
 
-退出码纪律：``0`` 成功 / ``1`` gate 未过 / ``2`` ``begin`` 之前被拒（或内部
-失败）/ ``3`` WriterLocked。stdout 末行为机器可读结论。
+退出码纪律：``0`` 成功 / ``1`` gate 未过或 begin 之后失败 / ``2`` ``begin``
+之前被拒 / ``3`` WriterLocked（与 M3 CLI 一致）。stdout 末行为机器可读结论。
 """
 
 import argparse
@@ -54,7 +54,7 @@ def main(argv=None):
             "M5 FAILED %s: %s"
             % (summary.get("failed_check"), summary.get("reason"))
         )
-        return 2
+        return 1
     if not summary["gate"]["passed"]:
         print(
             "M5 GATE_FAILED %s verdicts=%s"

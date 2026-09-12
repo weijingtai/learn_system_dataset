@@ -3,13 +3,14 @@
 用例名与 act/05.yaml 的 tests 清单逐字一致。
 """
 
-import copy
+import io
 import json
 import os
 import subprocess
 import sys
 import tempfile
 import unittest
+from contextlib import redirect_stdout
 from pathlib import Path
 from unittest import mock
 
@@ -250,6 +251,34 @@ class CliTest(unittest.TestCase):
         self.assertIn(
             "M5 REFUSED",
             refused.stdout.decode("utf-8", "replace").splitlines()[-1],
+        )
+
+
+    def test_cli_failed_after_begin_exit_1(self):
+        tmp = tempfile.mkdtemp(prefix="m5-cli-fail-")
+        root = Path(tmp) / "ledger"
+        service = LedgerService(root)
+        try:
+            ingest(FIXTURE, service, stages=("m1", "m2"))
+            run_m3(service, EDITION_PART)
+        finally:
+            service.close()
+
+        from pipeline.validation import __main__ as cli
+
+        buffer = io.StringIO()
+        with mock.patch(
+            "pipeline.ledger.service.LedgerService.record_transformation",
+            side_effect=RuntimeError("boom"),
+        ):
+            with redirect_stdout(buffer):
+                code = cli.main(
+                    ["--root", str(root), "--edition-part", EDITION_PART]
+                )
+        self.assertEqual(code, 1, buffer.getvalue())
+        self.assertTrue(
+            buffer.getvalue().splitlines()[-1].startswith("M5 FAILED"),
+            buffer.getvalue().splitlines()[-1],
         )
 
 
