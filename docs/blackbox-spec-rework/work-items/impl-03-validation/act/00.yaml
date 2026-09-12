@@ -1,0 +1,74 @@
+act_id: impl-03/00
+title: M5 骨架、错误类型、规范 JSON、Finding 与 Validator 注册表
+estimated_minutes: 75
+group: K1
+depends_on: []
+decisions_required: [D-07, D-10]
+scope:
+  write: [pipeline/validation/__init__.py, pipeline/validation/errors.py, pipeline/validation/serialize.py, pipeline/validation/findings.py, pipeline/validation/registry.py, pipeline/validation/tests/__init__.py, pipeline/validation/tests/helpers.py, pipeline/validation/tests/test_registry.py]
+tests_first:
+  - 先写 tests/test_registry.py，断言 14 个 Validator 与分级判定全红，再实现
+contract: |
+  __init__.py：
+    M5_TOOL = "pipeline.validation"
+    M5_TOOL_VERSION = "1.0.0"
+    CONSUMPTION_LEVELS = ("INTERNAL_DEMO", "DEV_SEARCH", "PUBLIC_RELEASE")
+
+  errors.py：
+    ValidationRefused(Exception)：begin_step_run 之前的拒绝（输入不可用、非 succeeded 上游、重复执行）
+    ValidationError(Exception)：通用校验异常基类
+
+  serialize.py：
+    canonical_json(doc) -> bytes：以 json.dumps(doc, sort_keys=True, ensure_ascii=False, separators=(",", ":")).encode("utf-8") 规范化
+
+  findings.py：
+    make_finding(validator_id, gate, check, code, severity, subject, relation=None, rework_stage=None, detail="") -> dict
+      code 必须在 registry.CHECK_CODES 中合法（或为 None），否则 SchemaViolation(SCH_002)
+      severity 为字典 {INTERNAL_DEMO, DEV_SEARCH, PUBLIC_RELEASE}，值 ∈ ("error", "warning", "info")
+      rework_stage ∈ ("m2", "m3", None)
+    make_report(validator_id, gate, version, task_status, checked, findings) -> dict
+      task_status ∈ ("succeeded", "errored", "skipped_fail_closed")
+    level_verdicts(findings, task_statuses) -> dict
+      对每个 level ∈ CONSUMPTION_LEVELS：若存在任一 task_status != "succeeded" 或存在任一 finding 在该 level 下为 "error"，则 "failed"，否则 "passed"
+    gate_summary(target_level, findings, reports) -> dict
+      返回 {passed, severe_error_count, failed_task_count, pending_rework_count}
+
+  registry.py：
+    VALIDATORS：恰 14 个元组 (validator_id, gate, func_name)，顺序固定：
+      1. ("g1_frozen_bytes", "G1", "validate_frozen_bytes")
+      2. ("g1_page_registry", "G1", "validate_page_registry")
+      3. ("g1_content_hashes", "G1", "validate_content_hashes")
+      4. ("g1_unresolved_chars", "G1", "validate_unresolved_chars")
+      5. ("g1_replay", "G1", "validate_replay")
+      6. ("g2_page_accounting", "G2", "validate_page_accounting")
+      7. ("g2_contiguous_coverage", "G2", "validate_contiguous_coverage")
+      8. ("g2_batch_partition", "G2", "validate_batch_partition")
+      9. ("g2_count_reconciliation", "G2", "validate_count_reconciliation")
+      10. ("g3_span_identity", "G3", "validate_span_identity")
+      11. ("g3_references", "G3", "validate_references")
+      12. ("g3_strict_offset_quote", "G3", "validate_strict_offset_quote")
+      13. ("g3_glyphbox_anchor", "G3", "validate_glyphbox_anchor")
+      14. ("g3_evidence_level", "G3", "validate_evidence_level")
+    CHECK_CODES：检查名到 §8.2 错误码（或 None）的映射字典，键为蛇形名，值为 9 码或 None
+    resolve(validator_id) -> (gate, func)
+
+  helpers.py：
+    fixture_context(fixture_dir=None) -> dict
+      从 mini_ed01 构造纯函数测试上下文，含 manifest, ocr_page_set, page_docs, terminal_states, human_events, spans_doc, m3_package 等
+tests:
+  test_registry.py: |
+    - test_validators_count_and_order_exact_14
+    - test_all_gates_in_g1_g2_g3
+    - test_error_code_mapping_strictly_in_spec_subset
+    - test_make_finding_validates_code_and_severity
+    - test_level_verdicts_internal_demo_warn_passes_but_public_fails
+    - test_level_verdicts_fail_closed_on_skipped_or_errored_task
+    - test_canonical_json_determinism
+    - test_fixture_context_loads_all_spans_and_pages
+verify:
+  - .venv/bin/python -m unittest discover -s pipeline/validation/tests -t . 2>&1 | tail -3
+  - TDD §3 回归
+commit:
+  add: [pipeline/validation/__init__.py, pipeline/validation/errors.py, pipeline/validation/serialize.py, pipeline/validation/findings.py, pipeline/validation/registry.py, pipeline/validation/tests]
+  message: "feat(m5): validator registry, error findings, level verdicts and fixture test scaffolding"
+on_fail: 停止并报告；不得改动现有模块；不得新增未登记 ID 前缀

@@ -1,0 +1,86 @@
+act_id: impl-03/03
+title: G3 身份、引用与证据锚点（Span 身份、引用闭合、严格 offset 与 quote hash、字框锚点、evidence_level）
+estimated_minutes: 80
+group: K1
+depends_on: [impl-03/02]
+decisions_required: [D-02, D-03, D-05]
+scope:
+  write: [pipeline/validation/g3_evidence.py, pipeline/validation/tests/test_g3.py]
+tests_first:
+  - 先写 tests/test_g3.py（用例名与下文逐字），断言 5 个 G3 校验器在 fixture 上恰 3 条发现、在篡改下红，全部 Red 后再实现
+contract: |
+  g3_evidence.py（严禁 import pipeline.corpus_compiler 的任何模块）：
+    统一返回 {"findings": [finding…], "checked": {…计数}}；finding 一律经 findings.make_finding 构造；
+      subject 至少含 entity_id（span_id 或修订号）与 artifact_revision_id（无则 None），涉及时含 page；
+      relation 仅在引用类发现上取 artifact_ref，供 step.py 汇总 broken_relations（不另设返回键）
+    validate_span_identity(ctx) -> dict：
+      span_id 匹配 ^ss_<work>_ed[0-9]{2}_p[0-9]{4}_s[0-9]{2}$（ID_001，检查名 span_id_format）
+      span_id 全局唯一（ID_002，span_id_duplicate）
+      span_id 中的页号/行序与该 span 的 page、line_index 字段一致（REF_001，page_line_mismatch）
+      source_id 与 manifest.source_id 一致（REF_001，source_id_mismatch）；不一致只记发现，不抛异常
+      content_status 属 §8.2 七值（SCH_002，content_status_invalid）
+      fixture 实测：0 条发现
+    validate_references(ctx) -> dict：
+      收集 m3 包 manifest.input_artifacts / output_artifacts 与 corpus_package 中全部 *_revision_id 值：
+        修订不存在 → dangling_ref（REF_001）；存在但 status != "sealed" → not_consumable（REF_001）；
+        引用点期望类型与登记的 artifact_type 不符 → ref_type_mismatch（REF_001）
+      三类发现的 subject.relation 填 artifact_ref（含 from_id/to_id），供 gate_results.broken_relations
+      fixture 实测：0 条发现、broken_relations 为空
+    validate_strict_offset_quote(ctx) -> dict：
+      逐条 span，block = 该 span 所在页的页文本块：
+        越界（start_offset < 0、end_offset > len(block)、start > end）→ offset_out_of_range（TXT_001）
+        block[start_offset:end_offset] != text → offset_mismatch（TXT_001）
+      quote hash（D-02 取 B）：M5 一律按 sha256(block[start_offset:end_offset].encode("utf-8")) 复算；
+        span 自带 quote_sha256 时逐条比对，不符 → quote_hash_mismatch（TXT_001）；
+        整份 corpus_spans 中没有任何 span 携带 quote_sha256 → 恰 1 条 quote_hash_not_stored（SCH_001），
+          subject.entity_id 取 m3 包修订号，severity {INTERNAL_DEMO: warning, DEV_SEARCH: error, PUBLIC_RELEASE: error}
+      fixture 实测：恰 1 条 quote_hash_not_stored（全仓 git grep quote_hash 为 0，spans.yaml 无该字段）
+    validate_glyphbox_anchor(ctx) -> dict：
+      span.source_anchor.image_sha256 == manifest.source_assets 同页 sha256（SRC_003，page_image_hash_mismatch）
+      行框与逐字字框（char_index, glyph_id, char, box）逐项与页 JSON 一致（TXT_001，line_box_mismatch / glyph_box_mismatch）
+      box 轴对齐（页 JSON angle == 0）按四点坐标等价接受（D-03 取 A）：检查 w>0、h>0、x≥0、y≥0、x+w≤width、y+h≤height
+        （宽高取 manifest.source_assets），越界 → anchor_out_of_page（TXT_001）；
+        angle != 0 且无四点字段 → anchor_field_missing（SCH_001）
+      非空字框自左向右拼接 != span.text → glyph_text_misaligned（TXT_001），severity {warning, error, error}（D-05 取 B），
+        逐条列出 subject span 与差异
+      fixture 实测：恰 2 条 glyph_text_misaligned（s03：文本「影宋刊本影印」、字框拼接「宋刊本影印」；s04：文本末字「藏」无字框）
+    validate_evidence_level(ctx) -> dict：
+      manifest.evidence_level == "offset_level" → evidence_level_insufficient，severity {info, info, error}
+      == "glyphbox_level" 但该 span 的 source_anchor.chars 缺失或为空 → glyphbox_incomplete（SCH_001，三级 error）
+      表外取值 → evidence_level_invalid（SCH_002）
+      fixture 实测：evidence_level == glyphbox_level 且字框齐全，0 条发现
+tests:
+  test_g3.py: |
+    脚手架同 test_g1：基于 tests/helpers.py 的 fixture_context()，复制上下文后施加篡改（不写 fixture 目录）
+    - test_fixture_context_g3_clean_except_three_findings（恰 1 条 quote_hash_not_stored + 2 条 glyph_text_misaligned）
+    - test_quote_hash_not_stored_is_single_with_warning_error_error
+    - test_span_identity_flags_illegal_format
+    - test_span_identity_flags_duplicate_span_id
+    - test_span_identity_flags_page_line_mismatch
+    - test_span_identity_flags_source_id_mismatch
+    - test_span_identity_flags_illegal_content_status
+    - test_references_flags_dangling_revision
+    - test_references_flags_unsealed_revision
+    - test_references_flags_artifact_type_mismatch
+    - test_references_carry_artifact_ref_relation_for_broken_relations
+    - test_strict_offset_flags_shifted_offset
+    - test_strict_offset_flags_out_of_range
+    - test_quote_hash_mismatch_when_span_carries_quote_sha256
+    - test_glyphbox_anchor_flags_page_image_hash_mismatch
+    - test_glyphbox_anchor_flags_line_and_glyph_box_mismatch
+    - test_glyphbox_anchor_flags_out_of_page_box
+    - test_glyphbox_anchor_accepts_axis_aligned_as_four_point_equivalent
+    - test_glyphbox_anchor_flags_missing_anchor_field
+    - test_glyph_text_misaligned_lists_subject_and_difference
+    - test_evidence_level_insufficient_on_offset_level
+    - test_evidence_level_glyphbox_incomplete_when_chars_empty
+    - test_evidence_level_invalid_on_unknown_value
+    - test_g3_module_has_no_corpus_compiler_import
+verify:
+  - .venv/bin/python -m unittest discover -s pipeline/validation/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 57
+  - grep -rnE 'corpus_compiler' pipeline/validation/g3_evidence.py | wc -l   # 0
+  - TDD §3 回归
+commit:
+  add: [pipeline/validation/g3_evidence.py, pipeline/validation/tests/test_g3.py]
+  message: "feat(m5): G3 identity, reference and evidence-anchor validators (G3 suite)"
+on_fail: 停止并报告；g3_evidence 严禁依赖 corpus_compiler；quote hash 缺字段只能记 SCH_001，不得改 spans.yaml

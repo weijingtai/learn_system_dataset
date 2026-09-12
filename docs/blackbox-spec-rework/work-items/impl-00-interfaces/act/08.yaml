@@ -1,0 +1,78 @@
+act_id: impl-00/08
+title: verify.sh 由 8 项扩展到 12 项 + fixture_mutations.sh 20 例篡改矩阵 + fixture README
+estimated_minutes: 85
+group: K2
+depends_on: [impl-00/07]
+decisions_required: [D-06, D-09]
+scope:
+  write: [pipeline/corpus/_fixture/mini_ed01/tools/build_fixture.py, pipeline/corpus/_fixture/mini_ed01/verify.sh, pipeline/corpus/_fixture/mini_ed01/README.md, docs/blackbox-spec-rework/work-items/impl-00-interfaces/fixture_mutations.sh]
+tests_first:
+  - 现有 verify.sh 仅 8 项 PASS；先改生成器 VERIFY_SH 模板并重新生成，记录 Red（新检查名缺失）；再补 fixture_mutations.sh
+tests:
+  fixture_mutations.sh: |
+    20 例与 FIXTURE-PLAN §5.2 表一一对应（复制副本 → 篡改 → 按规则修 content_sha256/SHA256SUMS → FIXTURE_DIR=<副本> bash 规范 verify.sh → exit 1 且命中检查名）：
+    - test_m01_quote_char_changed_expect_evidence_closure
+    - test_m02_char_end_out_of_range_expect_evidence_closure
+    - test_m03_span_id_not_found_expect_evidence_closure
+    - test_m04_empty_evidence_expect_expected_schema
+    - test_m05_mention_span_dropped_expect_evidence_closure
+    - test_m06_duplicate_assertion_id_expect_evidence_closure
+    - test_m07_wrong_input_artifact_expect_stage_chain
+    - test_m08_g4_status_changed_expect_expected_hash
+    - test_m09_gate_detail_changed_no_hash_fix_expect_expected_hash
+    - test_m10_illegal_decision_type_expect_expected_schema
+    - test_m11_missing_target_revision_expect_expected_schema
+    - test_m12_unresolved_count_nonzero_expect_expected_schema
+    - test_m13_canonical_hash_changed_no_hash_fix_expect_expected_hash
+    - test_m14_anchor_bbox_shifted_expect_publication_chain
+    - test_m15_chain_key_order_swapped_expect_publication_chain
+    - test_m16_empty_entry_assertions_expect_expected_schema
+    - test_m17_subpack_sha_changed_expect_publication_chain
+    - test_m18_source_asset_hash_changed_expect_publication_chain
+    - test_m19_glyph_box_beyond_page_width_expect_publication_chain
+    - test_m20_sums_line_changed_no_hash_fix_expect_expected_sums
+  verify.sh: |
+    - test_v1_to_v8_unchanged（原有 8 项保持 PASS）
+    - test_v9_stage_chain
+    - test_v10_evidence_closure
+    - test_v11_publication_chain
+    - test_v12_expected_sums
+contract: |
+  只改 build_fixture.py 中的 VERIFY_SH 模板字符串与 fixture README.md（人工维护文本）；verify.sh 一律重新生成，禁止手改
+  V1、V3、V4、V7、V8 不变；输出顺序 V1…V8、V9、V10、V11、V12；末行 FIXTURE OK；缺页图时相关项 SKIP/BLOCKED、exit 3
+  V2 ids 扩展：ID_RULES 增加 co_shared_（先于 co_）、co_、as_、pr_、ent_、rel_、sch_、sv_、cg_、pat_；
+    收集所有以 _id / _ids 结尾的键以及 entity_id 的字符串值，排除 technique_id, line_id, glyph_id, glyph_ids, task_id
+  V5 expected_schema 扩展：m1–m8 StagePackage 过 stage_package.schema.json；m4–m8 payload 过 stage_payload_mN；
+    每个内容文件过对应 Schema（m6 决定过 review_decision；m8 子包过同名 Schema；release_validation_report 过 gate_results）
+  V6 expected_hash 扩展：m4–m8 的 content_sha256 == sha256(主内容文件字节)；counts 由内容独立重算；
+    m7 与 release_manifest 的 canonical_hash 按 INTERFACES §3.7 规则重算且相等
+  V9 stage_chain（新）：m2–m8 各自 manifest.input_artifacts 含上一阶段 output_artifacts[0]；
+    lineage.transformations[0].input_artifact_revision_ids == [x.artifact_revision_id for x in input_artifacts]；
+    m1–m6 的 processing_run_id 为 f1、m7–m8 为 f7；每个 payload 的 *_revision_id 能在 FIXTURE-PLAN §2.3 常量表中找到
+  V10 evidence_closure（新）：证据 span 存在；0 ≤ char_start < char_end ≤ len(text)；quote 等于切片；quote_sha256 正确；
+    每条主张至少 1 条证据（SEM_001）；co_/as_/pr_ 不重复（ID_002）；主体存在；mention 召回与精确均 100%；
+    m6 决定的 target 存在且修订号正确；approved 集合 == 被接受的 co_/as_ 目标；m7 concepts/assertions 与 m6 approved 一致且逐字等于 m4
+  V11 publication_chain（新）：entries.assertion_ids 非空且属于 m7；chain 键序恰为 7 段固定顺序；chain 集合 ==
+    由 entries×evidence 推出的集合；source_span/source_anchor 等于 spans.yaml；glyph_id 属于 pages/<页>.json；image_sha256 等于 manifest；
+    所有 bbox 与字框落在 [0,width]×[0,height]；subpacks 的 sha256/byte_size 等于文件且恰 6 项；
+    INTERNAL_DEMO 须带水印且 known_defects 非空；source_release != dev；锚点稳定性映射逐字相同
+  V12 expected_sums（新）：SHA256SUMS 覆盖集合 == expected/ 实际文件集合（不含自身），每行哈希相等
+  生成后必须 `diff -r --exclude=tools --exclude=README.md` 为空作为提交前条件（verify.sh 是生成物）
+  fixture_mutations.sh（新建，权限 755）：
+    按 FIXTURE-PLAN §5.2 的 20 例；执行方式：复制规范 fixture 到 tempfile 目录 → 施加篡改 →（除标注「不修哈希」者外）
+      按规则修复受影响阶段包的 content_sha256 与 SHA256SUMS → `FIXTURE_DIR=<副本> bash <仓库>/规范 verify.sh` →
+      要求退出码 1，且指定检查名出现在 FAIL 行；输出每例一行 `PASS Mnn <检查名>` / `FAIL Mnn <原因>`，末行 `MUTATIONS <通过数>/20`；
+      全部通过 exit 0，否则 exit 1；.venv 缺失 exit 3
+    20 例逐一对应 FIXTURE-PLAN §5.2 表（01 m4 quote 改字→evidence_closure；…；20 SHA256SUMS 改一位（不修哈希）→expected_sums）
+  fixture README.md：登记 12 项检查名、20 例矩阵的入口与用法、五个基线哈希、SHA256SUMS 冻结说明、页图缺失时 exit 3 的语义
+verify:
+  - export LC_ALL=en_US.UTF-8; bash pipeline/corpus/_fixture/mini_ed01/verify.sh | grep -c '^PASS '   # 12
+  - export LC_ALL=en_US.UTF-8; bash pipeline/corpus/_fixture/mini_ed01/verify.sh | tail -1   # FIXTURE OK
+  - bash docs/blackbox-spec-rework/work-items/impl-00-interfaces/fixture_mutations.sh | tail -1   # MUTATIONS 20/20
+  - .venv/bin/python docs/blackbox-spec-rework/work-items/impl-00-interfaces/check_i00.py --upto 08; echo exit=$?   # C00–C08 PASS
+  - T=$(mktemp -d); .venv/bin/python pipeline/corpus/_fixture/mini_ed01/tools/build_fixture.py --out $T/r >/dev/null && diff -r --exclude=tools --exclude=README.md $T/r pipeline/corpus/_fixture/mini_ed01; echo replay=$?   # replay=0
+  - TDD §3 回归
+commit:
+  add: [pipeline/corpus/_fixture/mini_ed01/tools/build_fixture.py, pipeline/corpus/_fixture/mini_ed01/verify.sh, pipeline/corpus/_fixture/mini_ed01/README.md, docs/blackbox-spec-rework/work-items/impl-00-interfaces/fixture_mutations.sh]
+  message: "fixture(mini_ed01): extend verify.sh to 12 checks and add 20-case tamper matrix (impl-00 K2)"
+on_fail: 停止并报告；禁止手改 verify.sh；任一新检查在规范 fixture 上 FAIL → 停手

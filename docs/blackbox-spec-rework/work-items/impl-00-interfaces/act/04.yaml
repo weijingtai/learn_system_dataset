@@ -1,0 +1,66 @@
+act_id: impl-00/04
+title: M8 source_asset_pack / anchor_contract_pack / query_contract_pack + stage_payload_m4..m8 Schema + 样例
+estimated_minutes: 85
+group: K1
+depends_on: [impl-00/03]
+decisions_required: [D-05, D-15, D-16]
+scope:
+  write: [openspec/schemas/source_asset_pack.schema.json, openspec/schemas/anchor_contract_pack.schema.json, openspec/schemas/query_contract_pack.schema.json, openspec/schemas/stage_payload_m4.schema.json, openspec/schemas/stage_payload_m5.schema.json, openspec/schemas/stage_payload_m6.schema.json, openspec/schemas/stage_payload_m7.schema.json, openspec/schemas/stage_payload_m8.schema.json, "openspec/schemas/examples/source_asset_pack.*.yaml", "openspec/schemas/examples/anchor_contract_pack.*.yaml", "openspec/schemas/examples/query_contract_pack.*.yaml", "openspec/schemas/examples/stage_payload_m[4-8].*.yaml", openspec/schemas/verify.sh]
+tests_first:
+  - 先写全部样例；check_i00.py --upto 04 → FAIL C04，记录 Red；再写 Schema
+tests:
+  examples/ + schemas/verify.sh（本 ACT 不新增单元测试文件）: |
+    - source_asset_pack / anchor_contract_pack / query_contract_pack：各 valid 通过、invalid 失败（2+3+2）
+    - stage_payload_m4..m8：各 valid 通过；各 2 个 invalid（含 _path 键 / 缺首个必填键）失败
+    - bash openspec/schemas/verify.sh exit 0 且新增 26 行 PASS；--check-metaschema 覆盖全部新增 Schema
+contract: |
+  通用规则同 impl-00/01
+  source_asset_pack.schema.json（title "SourceAssetPack"）required 键序：
+    schema_version, release_id, policy(sourceAssetPolicy),
+    assets(array minItems 1 {source_id, page string pattern ^page_[0-9]{3,4}$, image_sha256 sha256Hex, width integer ≥1, height integer ≥1,
+      ref object required [object_store, path_ref]（object_store enum [local, authorized_backend]，path_ref string minLength 1）,
+      rights_note string minLength 1, bytes_included boolean})
+    allOf：if policy const reference_and_hash_only → assets.items.bytes_included const false
+  anchor_contract_pack.schema.json（title "AnchorContractPack"）required 键序：
+    schema_version, release_id,
+    anchorable_types(array(anchorableType) minItems 4 maxItems 4 uniqueItems),
+    stability(object required [KnowledgeEntry, Assertion, SourceSpan, SourceAnchor]，additionalProperties false；
+      KnowledgeEntry const migratable；Assertion const migratable；SourceSpan const permanent；SourceAnchor const permanent),
+    anchor_required_fields(const ["entity_id", "artifact_revision_id", "release_id"]),
+    identity_migration_map(object required [release_id, previous_release_id, entries]；previous_release_id releaseId 或 null；
+      entries array {from_entity_id string minLength 1, to_entity_ids array(string), change_type migrationChangeType, release_id releaseId,
+        reason_ref string minLength 1, span_allocation array 或 null, orphaned_reason string 或 null})
+    entries.items allOf：
+      if change_type const retired → to_entity_ids maxItems 0 且 orphaned_reason type string minLength 1
+      if change_type const split → to_entity_ids minItems 2 且 span_allocation type array minItems 1
+      if change_type enum [migrated, merged] → to_entity_ids minItems 1 maxItems 1
+  query_contract_pack.schema.json（title "QueryContractPack"）required 键序：
+    schema_version, release_id, contract_version(string pattern ^[0-9]+\.[0-9]+\.[0-9]+$),
+    interfaces(array minItems 4 maxItems 4，items {name enum [getEntry, getSourceSpan, searchKnowledge, matchFacts], params array(string), returns string minLength 1}；
+      allOf 四个 contains：分别 contains {properties: {name: {const: <名>}}}，保证四个名字各出现),
+    backward_compatible(const true)
+  stage_payload_m4..m8.schema.json（title "StagePayloadM4" … "StagePayloadM8"）：均 additionalProperties false，且 propertyNames {"not": {"pattern": "_path$"}}；required 键序：
+    m4：candidate_set_revision_id(artifactRevisionId), span_layer(enum [structural, semantic]), extraction_mode(enum [fixture_rule, model_replay, model_live]), unresolved_disputes(const 0)
+    m5：gate_results_revision_id, target_consumption_level(consumptionLevel),
+        gate_status(object required [G1, G2, G3, G4, G5, G6]，additionalProperties false，值 gateStatus), m5_gate_passed(boolean)
+    m6：reviewed_edition_revision_id, decision_revision_ids(array minItems 1 uniqueItems), unresolved_count(const 0)
+    m7：canonical_snapshot_revision_id, previous_snapshot_revision_id(artifactRevisionId 或 null), reviewed_edition_package_revision_ids(array minItems 1), canonical_hash(sha256Hex)
+    m8：release_id(releaseId), consumption_level, release_manifest_revision_id,
+        subpack_revision_ids(object minProperties 1，propertyNames snakeName，additionalProperties artifactRevisionId), canonical_snapshot_revision_id
+  样例：
+    source_asset_pack.valid.yaml（derived_page_images_only，page_003，bytes_included false）；source_asset_pack.invalid_hash_only_with_bytes.yaml、source_asset_pack.invalid_bad_page_name.yaml
+    anchor_contract_pack.valid.yaml（entries 空）；anchor_contract_pack.invalid_retired_with_successor.yaml、anchor_contract_pack.invalid_split_single_target.yaml、anchor_contract_pack.invalid_span_migratable.yaml
+    query_contract_pack.valid.yaml；query_contract_pack.invalid_missing_match_facts.yaml（matchFacts 换成重复的 getEntry）、query_contract_pack.invalid_not_backward_compatible.yaml
+    stage_payload_m4..m8 各 1 个 valid 与 2 个 invalid：stage_payload_mN.invalid_path_key.yaml（多一个以 _path 结尾的键）、stage_payload_mN.invalid_missing_required.yaml（删去第一个必填键）
+  openspec/schemas/verify.sh：末尾追加「# 11. M8 contract packs and stage payloads」段，规则同 impl-00/02
+verify:
+  - .venv/bin/python docs/blackbox-spec-rework/work-items/impl-00-interfaces/check_i00.py --upto 04; echo exit=$?   # C00–C04 PASS，exit=0
+  - bash openspec/schemas/verify.sh | grep -cE '^PASS (source_asset_pack|anchor_contract_pack|query_contract_pack|stage_payload_m[4-8])_'   # 26
+  - bash openspec/schemas/verify.sh | head -1   # PASS metaschema（覆盖全部新 Schema）
+  - ls openspec/schemas/*.schema.json | wc -l   # 原有数 + 17
+  - git diff openspec/schemas/verify.sh | grep -c '^-[^-]'   # 0
+  - TDD §3 回归
+commit:
+  add: [openspec/schemas/source_asset_pack.schema.json, openspec/schemas/anchor_contract_pack.schema.json, openspec/schemas/query_contract_pack.schema.json, "openspec/schemas/stage_payload_m4.schema.json", "openspec/schemas/stage_payload_m5.schema.json", "openspec/schemas/stage_payload_m6.schema.json", "openspec/schemas/stage_payload_m7.schema.json", "openspec/schemas/stage_payload_m8.schema.json", openspec/schemas/examples, openspec/schemas/verify.sh]
+  message: "spec(schemas): M8 source asset / anchor contract / query contract packs and m4-m8 stage payload schemas (impl-00 K1)"
+on_fail: 停止并报告

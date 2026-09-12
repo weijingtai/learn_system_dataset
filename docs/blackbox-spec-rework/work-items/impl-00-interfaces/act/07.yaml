@@ -1,0 +1,94 @@
+act_id: impl-00/07
+title: 生成器产出 m8 七个子包 + release_manifest + m8 包 + expected/SHA256SUMS
+estimated_minutes: 90
+group: K2
+depends_on: [impl-00/06]
+decisions_required: [D-15, D-16]
+scope:
+  write: [pipeline/corpus/_fixture/mini_ed01/tools/build_fixture.py, pipeline/corpus/_fixture/mini_ed01/expected/m8/*.yaml, pipeline/corpus/_fixture/mini_ed01/expected/m8.stage_package.yaml, pipeline/corpus/_fixture/mini_ed01/expected/SHA256SUMS]
+tests_first:
+  - check_i00.py --upto 07 → FAIL C07（expected/m8/ 缺失），记录 Red；改生成器 → 输出到临时目录 → 检查通过后再用默认 --out 覆盖仓库 fixture
+tests:
+  check_i00.py（本 ACT 不新增单元测试文件）: |
+    - C07 绿：expected/m8/ 恰七个 .yaml 各过同名 Schema（release_validation_report 过 gate_results）；
+      m8 包过 stage_package.schema.json 且 payload 过 stage_payload_m8
+    - expected/SHA256SUMS 行集合 == expected/ 下除自身外全部文件的 `sha256  相对路径`（按路径字节序，共 24 行）
+  build_fixture.py: |
+    - 两次 --out 临时目录字节完全相同；与仓库 fixture `diff -r --exclude=tools --exclude=README.md` 无输出
+    - release_manifest.canonical_hash == m7 canonical_hash；子包 sha256/byte_size 等于文件字节
+contract: |
+  只新增代码，沿用 impl-00/05 的 cid / build_stage_package_v2 与 impl-00/06 的 RELEASE_RUN_ID；
+    build_spans/build_manifest/build_expected（m1–m3）/dump_yaml 的行为不变
+  新增常量（逐字）：
+    RELEASE_ID = cid("rel_", "f8")
+    SUBPACK_REVS = [("knowledge_data_pack", cid("rev_","81")), ("evidence_map_pack", cid("rev_","82")),
+      ("source_asset_pack", cid("rev_","83")), ("query_contract_pack", cid("rev_","84")),
+      ("anchor_contract_pack", cid("rev_","85")), ("release_validation_report", cid("rev_","86"))]   # 顺序即 subpacks 顺序
+    MAIN_REV = cid("rev_", "b8")（release_manifest）；M8_PKG_REV = cid("rev_", "f8")；M8_STEP = cid("srun_", "f8")
+    ENTRY_IDS = [cid("ent_","e1") 主体 co_qizheng_000001 主张 [as_qizheng_000001],
+                 cid("ent_","e2") 主体 co_qizheng_000002 主张 [as_qizheng_000002]]
+    WATERMARK = "INTERNAL_DEMO · machine_extracted · 未经专家签发"
+    KNOWN_DEFECTS = ["机器转录未人工校对", "G4 blocked：school_ids 为空", "G6 blocked：无 ApplicabilityRule"]
+  build_knowledge_data_pack(m4_content) -> dict，键序逐字：
+    schema_version, release_id RELEASE_ID, technique_id "qizheng", consumption_level "INTERNAL_DEMO", watermark WATERMARK,
+    entries [{entry_id, subject_entity_id, title, assertion_ids, school_view_ids [], content_status "machine_extracted",
+      mark_binding {omen_carrying None, condition_affordance None, school_variance_display None, changes_current_judgment None}}],
+    concepts [{concept_id, name, basic_imagery None}]（取 m4 候选两概念，键序同常量）, assertions [{assertion_id, proposition, subject_entity_id, status "machine_extracted"}],
+    school_views [], conflict_groups []
+  build_evidence_map_pack(spans_doc, manifest) -> dict：
+    schema_version, release_id, chains（恰 3 条，键序恰 7 段 entry_id, assertion_id, evidence_link, source_span, source_anchor, ocr_page, source_asset）：
+      (e1, as1, s19)、(e2, as2, s29)、(e2, as2, s34)；source_span 与 source_anchor 从 spans.yaml 原样复制
+        （source_anchor 含 page/image_sha256/line_id/bbox{x,y,w,h}/chars[{char_index,glyph_id,char,box}]）；
+      ocr_page {page: anchor.page, glyph_ids: [c["glyph_id"] for c in anchor.chars]}；source_asset {page, image_sha256: anchor.image_sha256}
+  build_source_asset_pack(manifest) -> dict：
+    schema_version, release_id, policy "derived_page_images_only"；
+    assets 恰 1 项 {source_id src_sanche_ed01, page "page_003", image_sha256（manifest 同页）, width 1203, height 1654,
+      ref {object_store "local", path_ref "ocr/data_work/sanche_pages/page_003.png"}, rights_note manifest["rights_status"], bytes_included False}
+  build_query_contract_pack() -> dict：
+    schema_version, release_id, contract_version "1.0.0"；
+    interfaces 恰 4 [{name, params, returns}]：getEntry([entry_id]) / getSourceSpan([source_span_id]) / searchKnowledge([query, limit]) / matchFacts([fact_set_revision_id])；
+    backward_compatible True
+  build_anchor_contract_pack() -> dict：
+    schema_version, release_id, anchorable_types ["KnowledgeEntry","Assertion","SourceSpan","SourceAnchor"]；
+    stability {KnowledgeEntry "migratable", Assertion "migratable", SourceSpan "permanent", SourceAnchor "permanent"}；
+    anchor_required_fields ["entity_id","artifact_revision_id","release_id"]；
+    identity_migration_map {release_id, previous_release_id None, entries []}
+  build_release_validation_report(m5_gate_results) -> dict（gate_results 结构）：
+    schema_version, stage "m8", technique_id "qizheng", target_consumption_level "INTERNAL_DEMO", subject_revision_id cid("rev_","b7")；
+    validators 同 m5；gates [{gate "G6", status "blocked", checks [rule_executability, factset_ast_complete],
+      blocked_reason "无 RuleIndexPack（§16）"}, {gate "G7", status "passed",
+      checks [consumption_level_admission, release_manifest_complete, watermark_for_machine_state, expert_signoff_not_required_for_internal_demo], blocked_reason None}]；
+    release_checks 全部 passed [evidence_chain_closure, anchor_contract_present, source_release_not_dev, coordinate_space_consistent]；
+    broken_relations []；rework_tasks []；summary {critical_errors 0, failed_checks 0, blocked_checks 2, warnings 0, broken_relations 0, rework_tasks 0}；
+    gate_passed True
+  build_release_manifest(subpack_bytes, canon) -> dict，键序逐字：
+    schema_version, release_id, previous_release_id None, technique_id "qizheng", consumption_level "INTERNAL_DEMO",
+    source_release "internal", canonical_snapshot_revision_id cid("rev_","b7"), canonical_hash（与 m7 canonical_hash 逐字相同），
+    schema_versions（本包 13 份内容 Schema 名 → "1.0.0"，键序 = README §6 列出顺序）,
+    profile_versions {fact_set_profile None, ast_schema_version None}, min_app_version "0.0.0", release_policy "derived_page_images_only",
+    rights [{source_id, manifest["rights_status"], "INTERNAL_DEMO 派生页图，不取得公开分发权（§16 723）"}],
+    subpacks [{artifact_type, artifact_revision_id, sha256, byte_size}]（六项，顺序 = SUBPACK_REVS，sha256/byte_size 由 subpack_bytes 计算）,
+    source_revision_reconciliation [{source_id, edition_part_artifact_id EDITION_PART_ARTIFACT_ID, corpus_spans_sha256 ec6d77b9…44ef, reviewed_edition_package_revision_id cid("rev_","a6")}],
+    known_defects KNOWN_DEFECTS, watermark True, retired_anchor_disclosures [], anchor_migration_rate None
+  m8 包（build_stage_package_v2）：processing_run RELEASE_RUN_ID；step_run M8_STEP；
+    inputs [(art f7, rev a7, assembly_package), (art f3, rev a3, corpus_package), (art f1, rev a1, source_manifest)]（D-03）；
+    output_type "publication_package"；
+    payload {release_id, consumption_level "INTERNAL_DEMO", release_manifest_revision_id MAIN_REV,
+      subpack_revision_ids {artifact_type: rev}（六项，顺序 = SUBPACK_REVS）, canonical_snapshot_revision_id cid("rev_","b7")}；
+    counts {entries 2, assertions 2, evidence_chains 3, source_assets 1, subpacks 6}（由内容计算，不写死）；
+    content_bytes = expected/m8/release_manifest.yaml 字节；operation "compile_dataset"
+  写入布局：七个内容文件写 expected/m8/<artifact_type>.yaml（release_validation_report.yaml 用 gate_results 结构）；
+    m8.stage_package.yaml 写 expected/ 根；全部经 dump_yaml（sort_keys=False）
+  SHA256SUMS（生成器最后一步，在 m8 包写完后）：收集 expected/ 下除 SHA256SUMS 外的全部文件（含 m1–m3），
+    按相对路径字节序遍历，每行 `<sha256>  <相对路径>`（两空格分隔、LF）；本批 24 行：m1–m3 三份 + m4/m5/m7 各二 + m6 七 + m8 八
+verify:
+  - T=$(mktemp -d); .venv/bin/python pipeline/corpus/_fixture/mini_ed01/tools/build_fixture.py --out $T/a >/dev/null && .venv/bin/python pipeline/corpus/_fixture/mini_ed01/tools/build_fixture.py --out $T/b >/dev/null && diff -r $T/a $T/b; echo twice=$?   # twice=0
+  - T=$(mktemp -d); .venv/bin/python pipeline/corpus/_fixture/mini_ed01/tools/build_fixture.py --out $T/r >/dev/null && diff -r --exclude=tools --exclude=README.md $T/r pipeline/corpus/_fixture/mini_ed01; echo replay=$?   # replay=0
+  - .venv/bin/python docs/blackbox-spec-rework/work-items/impl-00-interfaces/check_i00.py --upto 07; echo exit=$?   # C00–C07 PASS，exit=0
+  - wc -l < pipeline/corpus/_fixture/mini_ed01/expected/SHA256SUMS   # 24
+  - export LC_ALL=en_US.UTF-8; bash pipeline/corpus/_fixture/mini_ed01/verify.sh | tail -1   # FIXTURE OK（仍为 8 项；新检查在 ACT 08）
+  - TDD §3 回归（五个基线哈希不变）
+commit:
+  add: [pipeline/corpus/_fixture/mini_ed01/tools/build_fixture.py, pipeline/corpus/_fixture/mini_ed01/expected]
+  message: "fixture(mini_ed01): m8 subpacks and release manifest goldens with expected SHA256SUMS (impl-00 K2)"
+on_fail: 停止并报告；五个基线哈希任一变化、canonical_hash 与 m7 不同、子包 sha256 与字节不符 → 停手

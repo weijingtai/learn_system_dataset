@@ -1,0 +1,70 @@
+act_id: impl-00/00
+title: 契约检查器 check_i00.py（C00 基线不变量 + C01–C09 逐 ACT 终态判定）
+estimated_minutes: 60
+group: K1
+depends_on: []
+scope:
+  write: [docs/blackbox-spec-rework/work-items/impl-00-interfaces/check_i00.py, docs/blackbox-spec-rework/work-items/impl-00-interfaces/tests/__init__.py, docs/blackbox-spec-rework/work-items/impl-00-interfaces/tests/test_check_i00.py]
+tests_first:
+  - 先写 tests/test_check_i00.py（用例名与下文逐字），运行 `.venv/bin/python -m unittest discover -s docs/blackbox-spec-rework/work-items/impl-00-interfaces/tests -t docs/blackbox-spec-rework/work-items/impl-00-interfaces` 因 ImportError 全红，记录 Red；再实现
+contract: |
+  CLI：python check_i00.py [--repo <仓库根>] [--upto NN]
+    --repo 默认取脚本所在目录向上 4 级（work-items/impl-00-interfaces → 仓库根）；--upto ∈ 00..09，默认 09
+    输出：按 C00..C09 顺序每项一行 `PASS Cnn`、`FAIL Cnn <原因>` 或 `SKIP Cnn`（编号 > upto 时为 SKIP）；末行 `I00 SUMMARY pass=<n> fail=<n> skip=<n>`
+    退出码：yaml 或 jsonschema 不可导入 → 打印 `BLOCKED i00 前置缺失: 测试宿主匮乏；yaml/jsonschema 不可导入` 并 exit 3；有 FAIL → 1；否则 0
+    任一检查函数抛异常 → 该项 FAIL（原因含异常类名），不得冒泡成 traceback
+  模块可 import：main(argv=None) -> int；run_checks(repo: Path, upto: int) -> list[tuple[str, str, str]]（(编号, 状态, 原因)）
+  Schema 校验一律用 jsonschema.Draft202012Validator + referencing.Registry：把 <repo>/openspec/schemas/*.schema.json 全部按「文件名」注册为资源（与 check-jsonschema 的相对 $ref 行为一致）；每份 Schema 先过 Draft202012Validator.check_schema
+  常量：
+    FX = "pipeline/corpus/_fixture/mini_ed01"
+    PINS = {"manifest.yaml": "613d33e0772fa737c3ad161760f3720efbc4c681e9317983c65cdb7971e364c7",
+            "spans.yaml": "ec6d77b90aa1408d040465babc28a81f59aadf6d6edd9ba8db66ff8ead0b44ef",
+            "expected/m1.stage_package.yaml": "65bd10f595259685806d7ad7597cb92cab4fd4bc4c9b97aaa95c5271dc91e6d2",
+            "expected/m2.stage_package.yaml": "f327fda69027be903b7389117a9ba0970173d4578a4d88f831e575b345d561f6",
+            "expected/m3.stage_package.yaml": "e016c3fe4aa38b19b8026adb801eee241668957d977a8d6110837db8b57be935"}
+    SCHEMA_SETS = {
+      1: ["contract_common", "candidate_set"],
+      2: ["gate_results", "review_decision", "reviewed_edition", "rework_impact_report"],
+      3: ["canonical_snapshot", "release_manifest", "knowledge_data_pack", "evidence_map_pack"],
+      4: ["source_asset_pack", "anchor_contract_pack", "query_contract_pack", "stage_payload_m4", "stage_payload_m5", "stage_payload_m6", "stage_payload_m7", "stage_payload_m8"]}
+    MIN_INVALID = {"candidate_set": 8, "gate_results": 3, "review_decision": 4, "reviewed_edition": 2, "rework_impact_report": 2,
+                   "canonical_snapshot": 2, "release_manifest": 3, "knowledge_data_pack": 3, "evidence_map_pack": 2,
+                   "source_asset_pack": 2, "anchor_contract_pack": 3, "query_contract_pack": 2,
+                   "stage_payload_m4": 2, "stage_payload_m5": 2, "stage_payload_m6": 2, "stage_payload_m7": 2, "stage_payload_m8": 2}
+  C00（任何 upto 都执行）：PINS 五个文件 sha256 逐一相等；fixture 目录内（递归）无 .png/.jpg/.jpeg/.pdf；manifest.yaml 的 files 恰为 6 项且无 expected/ 前缀
+  C01–C04：对 SCHEMA_SETS[n] 中的每个名字：文件 openspec/schemas/<名>.schema.json 存在且过 check_schema；
+    除 contract_common 外：examples/<名>.valid.yaml 存在且校验通过；examples/<名>.invalid_*.yaml 数量 ≥ MIN_INVALID[名] 且每个都校验失败；
+    C01 另查：contract_common 的 $defs 中 sourceId, sourceSpanId, assertionId, propositionId, sharedConceptId, techniqueConceptId, homographAnchorId, patternId, schoolId, schoolViewId, conflictGroupId, entryId, releaseId 的 pattern 与 <repo>/pipeline/ledger/ids.py 中 PATTERNS 的 source_id, source_span_id, assertion_id, proposition_id, shared_concept_id, technique_concept_id, homograph_anchor_id, pattern_id, school_id, school_view_id, conflict_group_id, entry_id, release_id 逐字相等（用 ast 解析 ids.py，不 import）
+    C04 另查：openspec/schemas/verify.sh 中四份 L0 Schema 名仍在存在性检查循环里（字符串计数 ≥ 1）
+  C05：expected/m4.candidate_set.yaml、m4.stage_package.yaml、m5.gate_results.yaml、m5.stage_package.yaml 存在；
+    StagePackage 过 stage_package.schema.json，其 payload 过 stage_payload_m4 / stage_payload_m5；内容文件过 candidate_set / gate_results；
+    content_sha256 == sha256(内容文件字节)
+  C06：m6.review_decision_01..05.yaml 各过 review_decision；m6.reviewed_edition.yaml 过 reviewed_edition；m7.canonical_snapshot.yaml 过 canonical_snapshot；m6/m7 包同 C05 规则
+  C07：expected/m8/ 恰含 knowledge_data_pack, evidence_map_pack, source_asset_pack, query_contract_pack, anchor_contract_pack, release_validation_report, release_manifest 七个 .yaml，各过同名 Schema（release_validation_report 过 gate_results）；m8 包同 C05 规则（主内容 = release_manifest.yaml）；
+    expected/SHA256SUMS 行集合 == expected/ 下除 SHA256SUMS 外全部文件的 `sha256  相对路径`（按路径字节序排序）
+  C08：<repo>/pipeline/corpus/_fixture/mini_ed01/verify.sh 文本中 12 个检查名 manifest_sha256, ids, coverage, anchors, expected_schema, expected_hash, assets, no_images, stage_chain, evidence_closure, publication_chain, expected_sums 各出现 ≥ 1 次；fixture_mutations.sh 存在且可执行
+  C09：pipeline/ledger/fixture_ingest.py 中存在顶层常量 GOLDEN_STAGES，其值（ast 解析）== ("m1","m2","m3","m4","m5","m6","m7","m8")；STAGES 仍 == ("m1","m2","m3")
+tests:
+  test_check_i00.py: |
+    脚手架：tempfile 目录内复制 <仓库>/pipeline/corpus/_fixture/mini_ed01、<仓库>/openspec/schemas、<仓库>/pipeline/ledger/ids.py 到同构路径，作为 --repo
+    - test_c00_passes_on_repo_copy
+    - test_c00_fails_when_spans_byte_changed
+    - test_c00_fails_when_expected_m2_byte_changed
+    - test_c00_fails_when_image_file_present
+    - test_skip_beyond_upto（--upto 00 时 C01..C09 全为 SKIP，exit 0）
+    - test_c01_fails_when_schema_missing（副本删除 candidate_set.schema.json 或本就不存在 → FAIL C01）
+    - test_c01_fails_when_invalid_example_passes（副本写入宽松 schema {"$schema": "https://json-schema.org/draft/2020-12/schema"} 与 8 个 invalid 样例 → FAIL C01）
+    - test_c01_fails_when_id_pattern_drifts（副本 contract_common 的 assertionId 少一位 → FAIL C01）
+    - test_exception_in_check_becomes_fail（patch 某检查函数抛 RuntimeError → 该项 FAIL 含 RuntimeError，exit 1）
+    - test_exit_3_when_jsonschema_missing（patch builtins.__import__ 使 jsonschema 导入失败 → exit 3）
+    - test_summary_line_format（末行正则 ^I00 SUMMARY pass=\d+ fail=\d+ skip=\d+$）
+verify:
+  - .venv/bin/python -m unittest discover -s docs/blackbox-spec-rework/work-items/impl-00-interfaces/tests -t docs/blackbox-spec-rework/work-items/impl-00-interfaces 2>&1 | tail -3   # OK，用例 ≥ 11
+  - .venv/bin/python docs/blackbox-spec-rework/work-items/impl-00-interfaces/check_i00.py --upto 00; echo exit=$?   # PASS C00，9 行 SKIP，I00 SUMMARY pass=1 fail=0 skip=9，exit=0
+  - .venv/bin/python docs/blackbox-spec-rework/work-items/impl-00-interfaces/check_i00.py --upto 01 | grep -c '^FAIL C01'   # 1（Red 基线）
+  - grep -rE '^\s*(import|from) (requests|openai|anthropic|httpx)' docs/blackbox-spec-rework/work-items/impl-00-interfaces --include='*.py' | wc -l   # 0
+  - TDD §3 回归
+commit:
+  add: [docs/blackbox-spec-rework/work-items/impl-00-interfaces/check_i00.py, docs/blackbox-spec-rework/work-items/impl-00-interfaces/tests]
+  message: "test(impl-00): contract checker with fixture baseline pins and per-ACT end-state checks"
+on_fail: 停止并报告；不得修改 fixture 或 schemas 来让检查器通过

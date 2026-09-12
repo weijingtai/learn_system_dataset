@@ -1,0 +1,74 @@
+act_id: impl-00/05
+title: 生成器产出 m4（candidate_set + 包）与 m5（gate_results + 包）金标
+estimated_minutes: 90
+group: K2
+depends_on: [impl-00/04]
+decisions_required: [D-01, D-02, D-07, D-09, D-12]
+scope:
+  write: [pipeline/corpus/_fixture/mini_ed01/tools/build_fixture.py, pipeline/corpus/_fixture/mini_ed01/expected/m4.candidate_set.yaml, pipeline/corpus/_fixture/mini_ed01/expected/m4.stage_package.yaml, pipeline/corpus/_fixture/mini_ed01/expected/m5.gate_results.yaml, pipeline/corpus/_fixture/mini_ed01/expected/m5.stage_package.yaml]
+tests_first:
+  - check_i00.py --upto 05 → FAIL C05（缺失），记录 Red；改生成器 → 输出到临时目录 → 检查通过后再用默认 --out 覆盖仓库 fixture
+tests:
+  check_i00.py（本 ACT 不新增单元测试文件；判定由 check_i00 C05 与生成器重放承担）: |
+    - C05 绿：m4/m5 金标存在；StagePackage 过 stage_package.schema.json；payload 过 stage_payload_m4/m5
+    - 内容文件过 candidate_set / gate_results；content_sha256 == sha256(内容文件字节)
+    - mention 由 spans 推出、quote 逐字等于 span 文本（FIXTURE-PLAN §3.1）
+  build_fixture.py: |
+    - 两次 --out 临时目录字节完全相同
+    - 与仓库 fixture `diff -r --exclude=tools --exclude=README.md` 无输出
+    - m4/m5 包 counts 由内容计算（concepts 2、assertions 2、evidence_links 3、checks_passed 17）
+contract: |
+  只在 build_fixture.py 中新增代码，不改 build_spans/build_manifest/build_expected（m1–m3）/dump_yaml 的任何行为
+  常量 ID 函数：cid(prefix, suffix) = prefix + suffix.rjust(32, "0")（如 cid("rev_", "a4")）
+  新增常量（逐字）：
+    M4_CONCEPTS = [("co_qizheng_000001", "官祿宮"), ("co_qizheng_000002", "福德宮")]
+    M4_ASSERTIONS = [
+      ("as_qizheng_000001", "pr_qizheng_000001", "co_qizheng_000001", "《三辰通載》目錄列有「論官祿宮」一目", ["ss_sanche_ed01_p0003_s19"]),
+      ("as_qizheng_000002", "pr_qizheng_000002", "co_qizheng_000002", "《三辰通載》目錄列有「論福德宮」「再論福德宮變格」二目", ["ss_sanche_ed01_p0003_s29", "ss_sanche_ed01_p0003_s34"])]
+    M5_GATES = [
+      ("G1", "passed", ["hash_chain_pages", "hash_chain_spans", "quote_hashes", "no_pua_or_unresolved_chars"], None),
+      ("G2", "passed", ["section_coverage", "no_overlap", "concat_equals_block", "expected_actual_counts"], None),
+      ("G3", "passed", ["id_format", "id_unique", "no_dangling_refs", "evidence_within_span", "glyphbox_anchor", "evidence_level_for_target"], None),
+      ("G4", "blocked", ["case_layer", "editorial_layer", "conditions_structured", "school_ids_present"], "school_ids 为空且流派尚未登记（D-09）"),
+      ("G5", "passed", ["concept_mention_recall", "concept_mention_precision", "candidate_concept_not_released"], None),
+      ("G6", "blocked", ["rule_executability", "factset_ast_complete"], "applicability_rules 为 0（D-01/D-08）")]
+  build_m4_candidate_set(spans) -> dict，键序逐字：
+    schema_version q("1.0.0"), source_id, edition_part_artifact_id, technique_id "qizheng", corpus_package_revision_id cid("rev_","a3"),
+    span_layer "structural", extraction_mode "fixture_rule",
+    term_layers {l1_hits [], l2_hits [], l3_new_concept_candidates [{surface: 名, span_ids: mention} 按 M4_CONCEPTS 顺序]},
+    concepts [{concept_id, canonical_name, aliases [], layer "L3", homograph_id None, mention_span_ids, omen_carrying None, status "machine_extracted"}]
+      mention_span_ids = [s["span_id"] for s in spans if 名 in s["text"]]（spans 原顺序；若结果为空 → raise SystemExit("m4 mention 为空")）
+    patterns [],
+    assertions [{assertion_id, proposition, proposition_id, subject_entity_id, relation "supports",
+      evidence [{source_span_id, support_type "direct", char_start 0, char_end len(text), quote text, quote_sha256 q(sha256(text.encode("utf-8")))} 按常量 span 顺序],
+      conditions [], exceptions [], school_ids [], canon_refs [], layer "general", status "machine_extracted"}]
+      （text 取 spans.yaml 中该 span 的 text；span 不存在 → SystemExit）
+    applicability_rules [], school_views [], cases [], editorial_notes [], uncertainties [], model_run_revision_ids []
+  build_m5_gate_results() -> dict，键序：schema_version, stage "m5", technique_id "qizheng", target_consumption_level "INTERNAL_DEMO", subject_revision_id cid("rev_","a4"),
+    validators [{name "generic", version q("1.0.0")}, {name "technique_profile_qizheng", version q("1.0.0")}],
+    gates [{gate, status, checks [{check, status(同门禁), error_code None, detail "", subject_ids []}], blocked_reason}],
+    release_checks [], broken_relations [], rework_tasks [],
+    summary {critical_errors 0, failed_checks 0, blocked_checks <blocked 门禁的 check 总数=6>, warnings 0, broken_relations 0, rework_tasks 0}, gate_passed True
+  build_stage_package_v2(stage, *, processing_run, step_suffix, inputs, output, payload, counts, content_bytes, operation) -> dict：
+    与 build_expected 的信封键序完全相同；stage_package_id cid("pkg_%s_" % stage, "f"+n)；artifact_revision_id cid("rev_","f"+n)；
+    manifest.input_artifacts = [artifact_ref(...) for inputs]；output_artifacts = [artifact_ref(cid("art_","f"+n), cid("rev_","a"+n), output_type)]；
+    content_sha256 = q(sha256_bytes(content_bytes))；lineage.transformations[0] = {operation, step_run_id, configuration_artifact_revision_id cid("rev_","c"+n),
+    input_artifact_revision_ids [x 的 rev for inputs], output_artifact_revision_ids [cid("rev_","a"+n)]}；validation {passed True, report_artifacts []}；logs []；failures []
+  m4 包：processing_run PROCESSING_RUN_ID；inputs [(cid("art_","f3"), cid("rev_","a3"), "corpus_package")]；output_type "candidate_package"；
+    payload {candidate_set_revision_id cid("rev_","b4"), span_layer "structural", extraction_mode "fixture_rule", unresolved_disputes 0}；
+    counts {concepts 2, assertions 2, evidence_links 3, applicability_rules 0, school_views 0, cases 0}（由内容计算，不写死）；content_bytes = m4.candidate_set.yaml 字节；operation "extract_knowledge"
+  m5 包：inputs [(art f4, rev a4, candidate_package)]；output_type "validation_package"；
+    payload {gate_results_revision_id cid("rev_","b5"), target_consumption_level "INTERNAL_DEMO", gate_status {G1..G6: status}, m5_gate_passed True}；
+    counts {checks_passed, checks_failed, checks_blocked, warnings, broken_relations, rework_tasks}（由内容计算：17/0/6/0/0/0）；operation "validate_candidates"
+  main()：在现有第 6 步（m1–m3 期望包）之后追加写入四个文件，全部经 dump_yaml；不改变已有文件的写入顺序与字节
+verify:
+  - T=$(mktemp -d); .venv/bin/python pipeline/corpus/_fixture/mini_ed01/tools/build_fixture.py --out $T/a >/dev/null && .venv/bin/python pipeline/corpus/_fixture/mini_ed01/tools/build_fixture.py --out $T/b >/dev/null && diff -r $T/a $T/b; echo twice=$?   # twice=0
+  - T=$(mktemp -d); .venv/bin/python pipeline/corpus/_fixture/mini_ed01/tools/build_fixture.py --out $T/r >/dev/null && diff -r --exclude=tools --exclude=README.md $T/r pipeline/corpus/_fixture/mini_ed01; echo replay=$?   # replay=0
+  - .venv/bin/python docs/blackbox-spec-rework/work-items/impl-00-interfaces/check_i00.py --upto 05; echo exit=$?   # C00–C05 PASS，exit=0
+  - export LC_ALL=en_US.UTF-8; bash pipeline/corpus/_fixture/mini_ed01/verify.sh | tail -1   # FIXTURE OK（仍为 8 项）
+  - grep -c '論官祿宮' pipeline/corpus/_fixture/mini_ed01/source/transcript_v1.md   # 1（quote 可在转录中逐字找到）
+  - TDD §3 回归（五个基线哈希不变）
+commit:
+  add: [pipeline/corpus/_fixture/mini_ed01/tools/build_fixture.py, pipeline/corpus/_fixture/mini_ed01/expected/m4.candidate_set.yaml, pipeline/corpus/_fixture/mini_ed01/expected/m4.stage_package.yaml, pipeline/corpus/_fixture/mini_ed01/expected/m5.gate_results.yaml, pipeline/corpus/_fixture/mini_ed01/expected/m5.stage_package.yaml]
+  message: "fixture(mini_ed01): deterministic m4 candidate and m5 gate result goldens from TOC lines (impl-00 K2)"
+on_fail: 停止并报告；五个基线哈希任一变化、mention 结果与 FIXTURE-PLAN §3.1 不同、需要改 spans/manifest 才能通过 → 停手

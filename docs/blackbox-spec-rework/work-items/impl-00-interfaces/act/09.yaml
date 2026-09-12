@@ -1,0 +1,48 @@
+act_id: impl-00/09
+title: 金标灌入：fixture_ingest 支持 stages=m1..m8，8 个 StepRun / 2 个 ProcessingRun / 30 Checkpoint
+estimated_minutes: 80
+group: K3
+depends_on: [impl-00/08]
+decisions_required: [D-04, D-13]
+scope:
+  write: [pipeline/ledger/fixture_ingest.py, pipeline/ledger/tests/test_ingest.py]
+tests_first:
+  - 先在 test_ingest.py 追加新用例（用例名与下文逐字）并全红，再扩展 fixture_ingest.py
+contract: |
+  只扩展 fixture_ingest.py：STAGES 前缀语义与现有测试不变（默认 ingest() 仍为 m1–m3、3 个 StepRun、9 个 Checkpoint）
+  ingest(fixture_dir, service, asset_root=None, *, stages=STAGES)：
+    新常量 GOLDEN_STAGES = ("m1","m2","m3","m4","m5","m6","m7","m8")；STAGES 仍为 ("m1","m2","m3")
+    stages 必须是 GOLDEN_STAGES 的前缀；否则 SchemaViolation(code="SCH_002")；只为 stages 内阶段写配置修订、StepRun、
+      Checkpoint、Transformation、StagePackage；summary 结构不变（只含这些阶段）
+    新增阶段（m4–m8）从 expected/ 金标读取并构造，不调用模型、不读 fixture 以外路径：
+      m4：expected/m4.stage_package.yaml + m4.candidate_set.yaml；EditionRun（prun_ f1）、1 个 StepRun、1 个 Checkpoint；
+        payload 含 candidate_set_revision_id；content_sha256 与 counts 逐字取金标
+      m5：expected/m5.stage_package.yaml + m5.gate_results.yaml；EditionRun（prun_ f1）、1 个 StepRun、1 个 Checkpoint
+      m6：expected/m6.stage_package.yaml + m6.reviewed_edition.yaml + m6.review_decision_01..05.yaml；
+        5 个人工事件修订号逐字等于常量 de1–de5；按人工决定逐个落盘 Checkpoint 并累积 human_decisions；
+        EditionRun（prun_ f1）、1 个 StepRun
+      m7：expected/m7.stage_package.yaml + m7.canonical_snapshot.yaml；ReleaseRun（prun_ f7）、1 个 StepRun（srun_ f7）
+      m8：expected/m8.stage_package.yaml + expected/m8/*.yaml；ReleaseRun（prun_ f7）、1 个 StepRun（srun_ f8）
+      m7/m8 的 edition_part_id 取本次首个 ReviewedEditionPackage 所属 Part（D-04）；m7 配置修订登记 edition_part_ids
+      8 个 StagePackage 修订字节（seal 后 read_object 结果）== 对应 expected 文件字节
+    汇总：stages=m1..m8 时 8 个 StepRun 全部 succeeded、2 个 ProcessingRun（edition_run f1、release_run f7）、
+      30 个 Checkpoint、8 个 Transformation
+    CLI：--stages 逗号分隔，默认 m1,m2,m3,m4,m5,m6,m7,m8（GOLDEN_STAGES）
+tests:
+  test_ingest.py 追加: |
+    - test_ingest_golden_stages_m1_to_m8（8 StepRun succeeded、2 ProcessingRun、30 Checkpoint、8 Transformation）
+    - test_ingest_stage_package_bytes_equal_expected（8 个修订字节 == 对应 expected 文件）
+    - test_ingest_m6_human_events_are_de1_to_de5
+    - test_ingest_default_unchanged（默认仍 3 StepRun、9 Checkpoint，现有用例不改即过）
+    - test_ingest_stages_tuples_must_be_prefix（stages=("m1","m3") 或 ("m4",) → SchemaViolation(SCH_002)，Ledger 无写入）
+    - test_ingest_m7_m8_use_release_run_and_first_edition_part
+verify:
+  - .venv/bin/python -m unittest discover -s pipeline/ledger/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 现有 + 6
+  - .venv/bin/python docs/blackbox-spec-rework/work-items/impl-00-interfaces/check_i00.py --upto 09; echo exit=$?   # C00–C09 PASS、I00 SUMMARY pass=10 fail=0 skip=0、exit=0
+  - grep -c 'GOLDEN_STAGES' pipeline/ledger/fixture_ingest.py   # ≥ 1
+  - export LC_ALL=en_US.UTF-8; bash openspec/acceptance/run_all.sh | tail -1   # 仍为 SUMMARY pass=2 fail=1 blocked=8
+  - TDD §3 回归
+commit:
+  add: [pipeline/ledger/fixture_ingest.py, pipeline/ledger/tests/test_ingest.py]
+  message: "fixture(ledger): ingest m1-m8 goldens with release run and human event chain (impl-00 K3)"
+on_fail: 停止并报告；不得改 pipeline/ledger 其他文件；默认 ingest 行为必须与 impl-01/impl-02 完全一致

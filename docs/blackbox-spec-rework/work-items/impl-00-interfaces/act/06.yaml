@@ -1,0 +1,58 @@
+act_id: impl-00/06
+title: 生成器产出 m6（5 个 ReviewDecision + reviewed_edition + 包）与 m7（canonical_snapshot + 包，ReleaseRun）金标
+estimated_minutes: 85
+group: K2
+depends_on: [impl-00/05]
+decisions_required: [D-03, D-04, D-14]
+scope:
+  write: [pipeline/corpus/_fixture/mini_ed01/tools/build_fixture.py, "pipeline/corpus/_fixture/mini_ed01/expected/m6.review_decision_0[1-5].yaml", pipeline/corpus/_fixture/mini_ed01/expected/m6.reviewed_edition.yaml, pipeline/corpus/_fixture/mini_ed01/expected/m6.stage_package.yaml, pipeline/corpus/_fixture/mini_ed01/expected/m7.canonical_snapshot.yaml, pipeline/corpus/_fixture/mini_ed01/expected/m7.stage_package.yaml]
+tests_first:
+  - check_i00.py --upto 06 → FAIL C06，记录 Red；实现后先输出到临时目录校验再覆盖
+tests:
+  check_i00.py（本 ACT 不新增单元测试文件）: |
+    - C06 绿：5 个 m6.review_decision_01..05 过 review_decision；reviewed_edition、canonical_snapshot 过同名 Schema
+    - m6/m7 包同 C05 规则；approved 集合 == 被接受的 co_/as_ 目标
+  build_fixture.py: |
+    - 重放 `diff -r` 为空；canonical_hash 两次生成相同
+    - m4/m5 金标字节本次不变（git diff 为空）
+    - ReleaseRun（prun_ f7）用于 m7，EditionRun（prun_ f1）用于 m4–m6
+contract: |
+  只新增代码；复用 impl-00/05 的 cid、build_stage_package_v2
+  新增常量：
+    RELEASE_RUN_ID = cid("prun_", "f7")
+    M6_DECISIONS = [
+      ("de1", "review_source_fidelity", "co_qizheng_000001", "b4", "概念字面与目錄行逐字一致"),
+      ("de2", "review_source_fidelity", "co_qizheng_000002", "b4", "概念字面与目錄行逐字一致"),
+      ("de3", "review_source_fidelity", "as_qizheng_000001", "b4", "引文与目錄行逐字一致"),
+      ("de4", "review_source_fidelity", "as_qizheng_000002", "b4", "引文与目錄行逐字一致"),
+      ("de5", "review_rights", "src_sanche_ed01", "a1", "文字公版；扫描件分发权未确认，仅限 INTERNAL_DEMO 派生页图")]
+  m6.review_decision_0N.yaml（N = 1..5，按常量顺序）键序：schema_version, decision_type, verdict "accept", target {entity_id, artifact_revision_id cid("rev_", 后缀)},
+    stage "m6", scope_consumption_level "INTERNAL_DEMO", rationale, modified_revision_id None, content_status_after None, actor_ref "local_owner"
+  m6.reviewed_edition.yaml 键序：schema_version, edition_part_artifact_id, candidate_package_revision_id cid("rev_","a4"), validation_package_revision_id cid("rev_","a5"),
+    approved [{entity_id, artifact_revision_id cid("rev_","b4"), content_status "machine_extracted"}]（取 M6_DECISIONS 中 target 以 co_/as_ 开头者，按常量顺序）,
+    rejected [], decision_revision_ids [cid("rev_","de1") … cid("rev_","de5")], correction_request_revision_ids [], unresolved_count 0
+  m6 包：processing_run PROCESSING_RUN_ID；inputs [(art f4, rev a4, candidate_package), (art f5, rev a5, validation_package), (art f3, rev a3, corpus_package)]；
+    output_type "reviewed_edition_package"；payload {reviewed_edition_revision_id cid("rev_","b6"), decision_revision_ids [de1..de5], unresolved_count 0}；
+    counts {approved 4, rejected 0, decisions 5, correction_requests 0}（由内容计算）；content_bytes = m6.reviewed_edition.yaml；operation "review_candidates"
+  canonical_hash(snapshot) = sha256(json.dumps({"concepts": s["concepts"], "assertions": s["assertions"], "school_views": s["school_views"], "conflict_groups": s["conflict_groups"]},
+    sort_keys=True, ensure_ascii=False, separators=(",", ":")).encode("utf-8")).hexdigest()
+    （计算前把 Quoted 实例转为 str；与 INTERFACES §3.7 逐字一致）
+  m7.canonical_snapshot.yaml 键序：schema_version, technique_id "qizheng", previous_snapshot_revision_id None, reviewed_edition_package_revision_ids [cid("rev_","a6")],
+    edition_part_artifact_ids [EDITION_PART_ARTIFACT_ID],
+    concepts [{concept_id, canonical_name, aliases [], source_entity_revisions [{entity_id: concept_id, artifact_revision_id cid("rev_","b4")}]}]（取自 m4 候选中被 approved 的概念）,
+    assertions [{assertion_id, proposition, subject_entity_id, evidence(与 m4 同一对象逐字), school_ids [], status "machine_extracted"}]（被 approved 的主张）,
+    school_views [], conflict_groups [], proposals {merge [], alias [], conflict [], evidence_relation []}, release_decision_revision_ids [], canonical_hash q(…)
+  m7 包：processing_run RELEASE_RUN_ID；step_run cid("srun_","f7")；inputs [(art f6, rev a6, reviewed_edition_package)]；output_type "assembly_package"；
+    payload {canonical_snapshot_revision_id cid("rev_","b7"), previous_snapshot_revision_id None, reviewed_edition_package_revision_ids [a6], canonical_hash}；
+    counts {concepts 2, assertions 2, proposals_auto 0, proposals_human 0, decisions 0}；content_bytes = m7.canonical_snapshot.yaml；operation "assemble_knowledge"
+  build_stage_package_v2 增加 processing_run 参数的使用（m7/m8 用 RELEASE_RUN_ID），不改变 m4/m5 输出字节
+verify:
+  - T=$(mktemp -d); .venv/bin/python pipeline/corpus/_fixture/mini_ed01/tools/build_fixture.py --out $T/r >/dev/null && diff -r --exclude=tools --exclude=README.md $T/r pipeline/corpus/_fixture/mini_ed01; echo replay=$?   # replay=0
+  - .venv/bin/python docs/blackbox-spec-rework/work-items/impl-00-interfaces/check_i00.py --upto 06; echo exit=$?   # C00–C06 PASS
+  - git diff pipeline/corpus/_fixture/mini_ed01/expected/m4.candidate_set.yaml pipeline/corpus/_fixture/mini_ed01/expected/m5.gate_results.yaml | wc -l   # 0（前序金标不变）
+  - export LC_ALL=en_US.UTF-8; bash pipeline/corpus/_fixture/mini_ed01/verify.sh | tail -1   # FIXTURE OK
+  - TDD §3 回归
+commit:
+  add: [pipeline/corpus/_fixture/mini_ed01/tools/build_fixture.py, pipeline/corpus/_fixture/mini_ed01/expected]
+  message: "fixture(mini_ed01): m6 review decision and m7 canonical snapshot goldens on release run (impl-00 K2)"
+on_fail: 停止并报告；m4/m5 金标字节变化、canonical_hash 两次生成不同 → 停手

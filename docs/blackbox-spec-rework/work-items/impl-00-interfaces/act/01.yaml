@@ -1,0 +1,98 @@
+act_id: impl-00/01
+title: 公共部件 contract_common.schema.json + M4 主内容 candidate_set.schema.json + 样例 + verify.sh 追加
+estimated_minutes: 75
+group: K1
+depends_on: [impl-00/00]
+decisions_required: [D-05, D-08, D-11, D-12, D-17]
+scope:
+  write: [openspec/schemas/contract_common.schema.json, openspec/schemas/candidate_set.schema.json, "openspec/schemas/examples/candidate_set.*.yaml", openspec/schemas/verify.sh]
+tests_first:
+  - 先写 examples/candidate_set.valid.yaml 与 8 个 invalid 样例；运行 check_i00.py --upto 01 → FAIL C01（Schema 缺失），记录 Red；再写 Schema
+tests:
+  examples/ + schemas/verify.sh（本 ACT 不新增单元测试文件，判定由样例与检查器承担）: |
+    - candidate_set.valid.yaml 通过 candidate_set.schema.json
+    - 8 个 candidate_set.invalid_*.yaml 全部校验失败（各删改一处，见 contract）
+    - contract_common 13 个 ID 正则逐字等于 pipeline/ledger/ids.py PATTERNS（check_i00 C01 自动比对）
+    - bash openspec/schemas/verify.sh exit 0 且新增 9 行 PASS candidate_set_*
+contract: |
+  通用：Draft 2020-12；"$schema": "https://json-schema.org/draft/2020-12/schema"；2 空格缩进；实例 Schema 顶层 additionalProperties false；
+        引用 L0 公共定义写 "artifact_ref.schema.json#/$defs/<名>"，引用本 ACT 公共定义写 "contract_common.schema.json#/$defs/<名>"
+  contract_common.schema.json：顶层只有 $schema、title "ContractCommon"、description、$defs；$defs 键与内容逐字：
+    sourceId ^src_[a-z][a-z0-9]*_ed[0-9]{2}$；sourceSpanId ^ss_[a-z][a-z0-9]*_ed[0-9]{2}_p[0-9]{4}_s[0-9]{2}$；
+    assertionId ^as_[a-z][a-z0-9]*_[0-9]{6}$；propositionId ^pr_[a-z][a-z0-9]*_[0-9]{6}$；
+    sharedConceptId ^co_shared_[a-z][a-z0-9]*_[0-9]{2}$；techniqueConceptId ^co_[a-z][a-z0-9]*_[0-9]{6}$；
+    homographAnchorId ^hg_[0-9]{4}$；patternId ^pat_[a-z][a-z0-9]*_[0-9]{6}$；schoolId ^sch_[a-z][a-z0-9]*_[0-9]{3}$；
+    schoolViewId ^sv_[0-9a-f]{32}$；conflictGroupId ^cg_[0-9a-f]{32}$；entryId ^ent_[0-9a-f]{32}$；releaseId ^rel_[0-9a-f]{32}$
+      （以上 13 个 pattern 必须与 pipeline/ledger/ids.py PATTERNS 同名项逐字相同；C01 自动比对）
+    conceptId：oneOf [sharedConceptId, techniqueConceptId]
+    techniqueId：{"type": "string", "pattern": "^[a-z][a-z0-9]*$"}
+    contentStatus：enum [source_verified, machine_extracted, cross_model_reviewed, disputed, needs_expert, expert_verified, deprecated]
+    reviewDecisionType：enum [review_source_fidelity, review_edition_collation, review_school_attribution, review_explanation_quality, review_case_authenticity, review_practical_validity, review_safety, review_rights]
+    errorCode：enum [SRC_001, SRC_003, TXT_001, ID_001, ID_002, REF_001, SCH_001, SCH_002, SEM_001]
+    gateCode：enum [G1, G2, G3, G4, G5, G6, G7]
+    gateStatus：enum [passed, failed, blocked]
+    consumptionLevel：enum [INTERNAL_DEMO, DEV_SEARCH, PUBLIC_RELEASE]
+    evidenceLevel：enum [offset_level, glyphbox_level]
+    terminalState：enum [manually_transcribed, known_unrecognizable, deferred]
+    sourceAssetPolicy：enum [full_scan, derived_page_images_only, reference_and_hash_only]
+    anchorStability：enum [permanent, migratable, best_effort]
+    migrationChangeType：enum [migrated, merged, split, retired]
+    anchorableType：enum [KnowledgeEntry, Assertion, SourceSpan, SourceAnchor]
+    queueName：enum [m2_anomaly_low_confidence, m3_boundary_dispute, m4_category_dispute, m6_pending_signoff, m7_pending_adjudication]
+    omenCarrying：enum [canonical, none]
+    sha256Hex：{"type": "string", "pattern": "^[0-9a-f]{64}$"}
+    snakeName：{"type": "string", "pattern": "^[a-z][a-z0-9_]*$"}
+    box：object，required [x, y, w, h]，四者 type number，additionalProperties false
+    sourceAnchor：object，required [page, image_sha256, line_id, bbox, chars]；page ^page_[0-9]{3,4}$；image_sha256 → sha256Hex；line_id string；bbox → box；
+      chars：array，items object required [char_index, glyph_id, char, box]（char_index integer ≥0，glyph_id string，char string minLength 1 maxLength 1，box → box），additionalProperties false
+    evidenceLink：object，required [source_span_id, support_type, char_start, char_end, quote, quote_sha256]；support_type enum [direct, interpreted]；char_start integer ≥0；char_end integer ≥1；quote string minLength 1；quote_sha256 → sha256Hex；additionalProperties false
+    entityRevisionAnchor：object，required [entity_id, artifact_revision_id]；entity_id string minLength 1；artifact_revision_id → artifact_ref artifactRevisionId；additionalProperties false
+  candidate_set.schema.json：title "CandidateSet"；required 与 properties 键序逐字：
+    schema_version → artifact_ref schemaVersion
+    source_id → sourceId；edition_part_artifact_id → artifact_ref artifactId；technique_id → techniqueId
+    corpus_package_revision_id → artifact_ref artifactRevisionId
+    span_layer enum [structural, semantic]；extraction_mode enum [fixture_rule, model_replay, model_live]
+    term_layers：object required [l1_hits, l2_hits, l3_new_concept_candidates]，additionalProperties false
+      l1_hits items {surface string minLength 1, concept_id → sharedConceptId, span_id → sourceSpanId} 全必填
+      l2_hits items {surface, homograph_id → homographAnchorId, concept_id → techniqueConceptId 或 null, span_id, uncertain boolean} 全必填；
+        allOf: if concept_id const null 则 uncertain const true
+      l3_new_concept_candidates items {surface, span_ids array(sourceSpanId) minItems 1} 全必填
+    concepts：items required [concept_id, canonical_name, aliases, layer, homograph_id, mention_span_ids, omen_carrying, status]；
+      concept_id → conceptId；canonical_name string minLength 1；aliases array(string)；layer enum [L1, L2, L3]；homograph_id → homographAnchorId 或 null；
+      mention_span_ids array(sourceSpanId) minItems 1 uniqueItems；omen_carrying → omenCarrying 或 null；status → contentStatus
+    patterns：items required [pattern_id, concept_id, assertion_ids, status]（patternId、conceptId、array(assertionId)、contentStatus）
+    assertions：items required [assertion_id, proposition, proposition_id, subject_entity_id, relation, evidence, conditions, exceptions, school_ids, canon_refs, layer, status]；
+      subject_entity_id anyOf [conceptId, patternId]；relation enum [supports, qualifies, opposes, corresponds, equivalent]；
+      evidence array(evidenceLink) minItems 1；conditions/exceptions array；school_ids array(schoolId)；canon_refs array(sharedConceptId)；layer enum [general, case, editorial]；status → contentStatus
+    applicability_rules / cases / editorial_notes：{"type": "array", "maxItems": 0}
+    school_views：items required [school_view_id, school_id, subject_entity_id, claim_refs, conflict_group_id, changes_current_judgment, source_refs]；
+      conflict_group_id → conflictGroupId 或 null；changes_current_judgment boolean；claim_refs array(assertionId)；source_refs array(sourceSpanId)
+    uncertainties：items required [span_id, surface, reason]
+    model_run_revision_ids：array(artifact_ref artifactRevisionId) uniqueItems
+    所有嵌套对象 additionalProperties false
+  样例（examples/）：
+    candidate_set.valid.yaml：1 个 L3 概念 co_qizheng_000001 官祿宮（mention [ss_sanche_ed01_p0003_s19]）、1 条主张 as_qizheng_000001（证据 s19，quote 論官祿宮，quote_sha256 为该字符串 UTF-8 的真实 sha256），其余数组为空，span_layer structural，extraction_mode fixture_rule
+    8 个 invalid（在 valid 基础上各改一处）：
+      candidate_set.invalid_assertion_without_evidence.yaml（evidence: []）
+      candidate_set.invalid_bare_homograph_concept.yaml（concept_id: hg_0042）
+      candidate_set.invalid_status_enum.yaml（status: verified）
+      candidate_set.invalid_support_type.yaml（support_type: quoted）
+      candidate_set.invalid_unknown_field.yaml（顶层多 extra: 1）
+      candidate_set.invalid_span_id_format.yaml（ss_sanche_ed1_p3_s19）
+      candidate_set.invalid_rules_not_locked.yaml（applicability_rules 含 1 项）
+      candidate_set.invalid_quote_sha_length.yaml（quote_sha256 为 63 位）
+  openspec/schemas/verify.sh：只在文件末尾追加一段「# 8. CandidateSet validation」：
+    先对 contract_common.schema.json、candidate_set.schema.json 做存在性检查（缺失 echo ERROR 并 exit 1）；
+    valid → `echo "PASS candidate_set_valid"`；8 个 invalid 按现有写法（if … 通过则 FAIL exit 1）各 `echo "PASS candidate_set_<去掉 invalid_ 前缀的名>"`
+    不得修改现有第 1–7 段任何一行
+verify:
+  - .venv/bin/python docs/blackbox-spec-rework/work-items/impl-00-interfaces/check_i00.py --upto 01; echo exit=$?   # PASS C00 PASS C01，exit=0
+  - bash openspec/schemas/verify.sh | grep -c '^PASS candidate_set_'   # 9
+  - bash openspec/schemas/verify.sh >/dev/null; echo $?                # 0
+  - git diff openspec/schemas/verify.sh | grep -c '^-[^-]'             # 0（只追加）
+  - git diff --stat openspec/schemas/artifact_ref.schema.json openspec/schemas/stage_package.schema.json openspec/schemas/step_request.schema.json openspec/schemas/step_result.schema.json | wc -l   # 0
+  - TDD §3 回归
+commit:
+  add: [openspec/schemas/contract_common.schema.json, openspec/schemas/candidate_set.schema.json, openspec/schemas/examples, openspec/schemas/verify.sh]
+  message: "spec(schemas): contract_common defs and M4 candidate_set schema with examples (impl-00 K1)"
+on_fail: 停止并报告；ID 正则与 ids.py 不一致时以 ids.py 为准并上报，不得改 ids.py；jsonschema 与 check-jsonschema 对同一样例判定不一致时停手

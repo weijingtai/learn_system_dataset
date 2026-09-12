@@ -1,0 +1,65 @@
+act_id: impl-00/02
+title: M5 gate_results + M6 review_decision / reviewed_edition / rework_impact_report Schema + 样例
+estimated_minutes: 80
+group: K1
+depends_on: [impl-00/01]
+decisions_required: [D-02, D-09, D-10, D-14, D-17]
+scope:
+  write: [openspec/schemas/gate_results.schema.json, openspec/schemas/review_decision.schema.json, openspec/schemas/reviewed_edition.schema.json, openspec/schemas/rework_impact_report.schema.json, "openspec/schemas/examples/gate_results.*.yaml", "openspec/schemas/examples/review_decision.*.yaml", "openspec/schemas/examples/reviewed_edition.*.yaml", "openspec/schemas/examples/rework_impact_report.*.yaml", openspec/schemas/verify.sh]
+tests_first:
+  - 先写全部样例；check_i00.py --upto 02 → FAIL C02，记录 Red；再写 Schema
+tests:
+  examples/ + schemas/verify.sh（本 ACT 不新增单元测试文件）: |
+    - gate_results：valid 通过；4 个 invalid（m5 缺 G6 / G8 表外 / m5 带 release_checks / blocked 无原因）全部失败
+    - review_decision：valid 通过；4 个 invalid（modify 缺修订 / expert_verified 配 reject / target 缺修订 / decision_type 表外）失败
+    - reviewed_edition：valid 通过；2 个 invalid（unresolved 非零 / 未知字段）失败
+    - rework_impact_report：valid 通过；2 个 invalid（未知队列 / round 0）失败
+    - bash openspec/schemas/verify.sh exit 0 且新增 16 行 PASS
+contract: |
+  通用规则同 impl-00/01；$defs 引用 contract_common 与 artifact_ref
+  gate_results.schema.json（title "GateResults"）required 键序：
+    schema_version, stage(enum [m5, m8]), technique_id(techniqueId), target_consumption_level(consumptionLevel), subject_revision_id(artifactRevisionId),
+    validators(array minItems 1，items {name snakeName, version string minLength 1}),
+    gates(array，items {gate gateCode, status gateStatus, checks array(check), blocked_reason string 或 null}),
+    release_checks(array(check)), broken_relations(array {from_id string, to_id string, error_code errorCode}),
+    rework_tasks(array {task_id string, target_entity_id string, error_code errorCode, note string}),
+    summary({critical_errors, failed_checks, blocked_checks, warnings, broken_relations, rework_tasks} 均 integer ≥0),
+    gate_passed(boolean)
+    $defs.check：{check snakeName, status gateStatus, error_code errorCode 或 null, detail string, subject_ids array(string)} 全必填
+    allOf：
+      if stage const m5 → gates minItems 6 maxItems 6，items.gate enum [G1..G6]，release_checks maxItems 0
+      if stage const m8 → gates minItems 1 maxItems 2，items.gate enum [G6, G7]
+      gates items：if status const blocked → blocked_reason type string minLength 1
+  review_decision.schema.json（title "ReviewDecision"）required 键序：
+    schema_version, decision_type(reviewDecisionType), verdict(enum [accept, modify, reject, request_evidence, school_dispute]),
+    target(entityRevisionAnchor), stage(enum [m3, m4, m6, m7]), scope_consumption_level(consumptionLevel 或 null),
+    rationale(string minLength 1), modified_revision_id(artifactRevisionId 或 null), content_status_after(contentStatus 或 null), actor_ref(string minLength 1)
+    allOf：if verdict const modify → modified_revision_id 为 artifactRevisionId（不得 null）；
+           if content_status_after const expert_verified → verdict const accept
+  reviewed_edition.schema.json（title "ReviewedEdition"）required 键序：
+    schema_version, edition_part_artifact_id(artifactId), candidate_package_revision_id, validation_package_revision_id(均 artifactRevisionId),
+    approved(array {entity_id string, artifact_revision_id, content_status contentStatus}), rejected(array {entity_id, artifact_revision_id, decision_revision_id}),
+    decision_revision_ids(array(artifactRevisionId) minItems 1 uniqueItems), correction_request_revision_ids(array(artifactRevisionId)), unresolved_count(const 0)
+  rework_impact_report.schema.json（title "ReworkImpactReport"）required 键序：
+    schema_version, edition_part_artifact_id, trigger_correction_request_revision_id, rework_round(integer ≥1),
+    invalidated_count, carried_forward_count, needs_review_count(integer ≥0), affected_queues(array(queueName) uniqueItems),
+    invalidated(array(entityRevisionAnchor)), carried_forward(array {entity_id string, carried_from_revision_id artifactRevisionId}),
+    needs_review(array(entityRevisionAnchor)), threshold_exceeded(boolean)
+  样例（每个 valid 取 FIXTURE-PLAN §3 对应金标的最小子集，ID 用常量构造规则 前缀 + 后缀.rjust(32,"0")）：
+    gate_results.valid.yaml（stage m5，6 个门禁，G4/G6 blocked 带原因）
+    gate_results.invalid_m5_missing_g6.yaml、gate_results.invalid_unknown_gate_g8.yaml、gate_results.invalid_m5_with_release_checks.yaml、gate_results.invalid_blocked_without_reason.yaml
+    review_decision.valid.yaml（review_source_fidelity / accept / target as_qizheng_000001 + rev b4）
+    review_decision.invalid_modify_without_revision.yaml、review_decision.invalid_expert_verified_on_reject.yaml、review_decision.invalid_target_missing_revision.yaml、review_decision.invalid_decision_type.yaml
+    reviewed_edition.valid.yaml；reviewed_edition.invalid_unresolved_nonzero.yaml、reviewed_edition.invalid_unknown_field.yaml
+    rework_impact_report.valid.yaml；rework_impact_report.invalid_unknown_queue.yaml、rework_impact_report.invalid_round_zero.yaml
+  openspec/schemas/verify.sh：末尾追加「# 9. M5/M6 validation」段；存在性检查 4 份；每个 valid/invalid 一行 PASS，命名 `PASS <schema>_valid` / `PASS <schema>_<invalid 后缀>`
+verify:
+  - .venv/bin/python docs/blackbox-spec-rework/work-items/impl-00-interfaces/check_i00.py --upto 02; echo exit=$?   # C00–C02 PASS，exit=0
+  - bash openspec/schemas/verify.sh | grep -cE '^PASS (gate_results|review_decision|reviewed_edition|rework_impact_report)_'   # 16
+  - bash openspec/schemas/verify.sh >/dev/null; echo $?   # 0
+  - git diff openspec/schemas/verify.sh | grep -c '^-[^-]'   # 0
+  - TDD §3 回归
+commit:
+  add: [openspec/schemas/gate_results.schema.json, openspec/schemas/review_decision.schema.json, openspec/schemas/reviewed_edition.schema.json, openspec/schemas/rework_impact_report.schema.json, openspec/schemas/examples, openspec/schemas/verify.sh]
+  message: "spec(schemas): M5 gate_results and M6 review decision / reviewed edition / rework impact schemas (impl-00 K1)"
+on_fail: 停止并报告；if/then 在 check-jsonschema 与 jsonschema 间判定不一致时停手

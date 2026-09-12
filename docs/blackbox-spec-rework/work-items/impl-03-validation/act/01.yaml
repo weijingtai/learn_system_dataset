@@ -1,0 +1,44 @@
+act_id: impl-03/01
+title: G1 来源与可重放性（冻结字节、页登记、全链哈希、未决字符与重放一致性）
+estimated_minutes: 85
+group: K1
+depends_on: [impl-03/00]
+decisions_required: [D-04, D-06]
+scope:
+  write: [pipeline/validation/g1_source.py, pipeline/validation/replay.py, pipeline/validation/tests/test_g1.py]
+tests_first:
+  - 先写 tests/test_g1.py，断言 5 个 G1 校验器在 fixture 上绿并在篡改下红，再实现
+contract: |
+  g1_source.py（严禁 import pipeline.corpus_compiler）：
+    validate_frozen_bytes(ctx) -> dict：
+      检查每个冻结对象的 raw 字节 sha256 是否与元数据 sha256 吻合（SRC_003）；缺失判 SRC_001。若失败，记 fail-closed 标志
+    validate_page_registry(ctx) -> dict：
+      核对 ocr_page_set 的页集合与 manifest 页序；页修订 sha256 与 ocr_page_set 登记一致；terminal_states 与 m2 Checkpoint 终态一致
+    validate_content_hashes(ctx) -> dict：
+      m3 StagePackage 的 content_sha256 与 corpus_spans 字节 sha256 一致；corpus_package.spans_revision_id 指向当前 spans 修订
+    validate_unresolved_chars(ctx) -> dict：
+      文本中禁止 PUA、U+FFFD、□、〓 等占位符（三级 error）；字框 status=="unrecognized" 或 char=="" 严重度 {warning, error, error}；
+      status=="pending" 严重度 {info, warning, error}。在 mini_ed01 上实测恰产出 4 条发现（2 条 unrecognized、2 条 pending）
+
+  replay.py（唯一允许 import pipeline.corpus_compiler.compiler 的模块）：
+    validate_replay(ctx) -> dict：
+      比对 m3 配置中的 tool 与 tool_version 是否等于当前安装版本（不符判 replay_tool_mismatch，三级 error）；
+      相同则调用 compile_structural 重算 spans 字节，与冻结 corpus_spans 逐字节比对（不符判 replay_bytes_mismatch，三级 error）
+tests:
+  test_g1.py: |
+    - test_fixture_context_g1_clean_except_four_unresolved_char_findings
+    - test_frozen_byte_tamper_yields_src_003_hash_mismatch
+    - test_page_registry_detects_hash_mismatch_and_missing_pages
+    - test_content_hashes_catches_package_sha_mismatch
+    - test_unresolved_chars_flags_pua_and_unrecognized_boxes
+    - test_replay_succeeds_on_fixture
+    - test_replay_fails_on_tool_version_mismatch
+    - test_replay_fails_on_tampered_corpus_spans_bytes
+verify:
+  - .venv/bin/python -m unittest discover -s pipeline/validation/tests -t . 2>&1 | tail -3
+  - grep -rnE 'corpus_compiler' pipeline/validation/g1_source.py | wc -l   # 0
+  - TDD §3 回归
+commit:
+  add: [pipeline/validation/g1_source.py, pipeline/validation/replay.py, pipeline/validation/tests/test_g1.py]
+  message: "feat(m5): G1 source integrity and replayability validators (G1 suite)"
+on_fail: 停止并报告；g1_source 严禁 import corpus_compiler；重放字节必须完全一致

@@ -1,0 +1,41 @@
+act_id: impl-03/02
+title: G2 全书覆盖（页对账、连续覆盖、批次划分、期望与实际计数对账）
+estimated_minutes: 80
+group: K1
+depends_on: [impl-03/00]
+decisions_required: [D-01]
+scope:
+  write: [pipeline/validation/g2_coverage.py, pipeline/validation/tests/test_g2.py]
+tests_first:
+  - 先写 tests/test_g2.py，全部用例 Red 后再实现
+contract: |
+  g2_coverage.py（严禁 import pipeline.corpus_compiler，独立重算覆盖与文本块）：
+    validate_page_accounting(ctx) -> dict：
+      覆盖页 ∪ 排除页 == manifest 页序；排除页必须有终端状态且附有人工事件证据；
+      不得有裸标或漏编页；非排除页必须包含 ≥1 条 Span。
+    validate_contiguous_coverage(ctx) -> dict：
+      对每个覆盖页，重算由 OCR 行构成的完整页文本块；Span 首尾相接（相邻 start == 前 end + 1，中间为 \n）；
+      拼接文本逐字等于页文本块；无缺口、无重叠、无越界。
+    validate_batch_partition(ctx) -> dict：
+      验证批次划分：Span 集合与批次中 Span 严格双射；批次不跨页；每批 Span 数不超过配置中的 batch_size。
+    validate_count_reconciliation(ctx) -> dict：
+      核对 counts：spans 表头 span_count、batch_count 与实际列表长度一致；
+      m3 StagePackage manifest.counts 与内容一致；页行数合计 == Span 数；页字框合计 == 锚点字框数。
+tests:
+  test_g2.py: |
+    - test_fixture_context_passes_all_g2_validators
+    - test_missing_page_or_unregistered_page_fails_accounting
+    - test_deferred_page_fails_accounting
+    - test_dropped_span_creates_gap_and_fails_contiguous_coverage
+    - test_overlapped_span_fails_contiguous_coverage
+    - test_modified_span_text_fails_contiguous_coverage
+    - test_batch_span_leak_or_duplicate_fails_batch_partition
+    - test_count_mismatch_fails_reconciliation
+verify:
+  - .venv/bin/python -m unittest discover -s pipeline/validation/tests -t . 2>&1 | tail -3
+  - grep -rnE 'corpus_compiler' pipeline/validation/g2_coverage.py | wc -l   # 0
+  - TDD §3 回归
+commit:
+  add: [pipeline/validation/g2_coverage.py, pipeline/validation/tests/test_g2.py]
+  message: "feat(m5): G2 complete book coverage and batch partition validators (G2 suite)"
+on_fail: 停止并报告；g2_coverage 严禁依赖 corpus_compiler；必须独立重算页块

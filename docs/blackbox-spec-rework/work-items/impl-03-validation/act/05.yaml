@@ -1,0 +1,105 @@
+act_id: impl-03/05
+title: run_m5 事务序列：14 个 Validator、fail-closed、gate_results / validation_package / m5 StagePackage + CLI
+estimated_minutes: 90
+group: K2
+depends_on: [impl-03/04]
+decisions_required: [D-07, D-08, D-09, D-11, D-12]
+scope:
+  write: [pipeline/validation/package.py, pipeline/validation/step.py, pipeline/validation/__main__.py, pipeline/validation/tests/test_step.py]
+tests_first:
+  - 先写 tests/test_step.py（用例名与下文逐字）并全红，再实现 package.py、step.py、__main__.py
+contract: |
+  上游约束（impl-02 ACCEPTANCE §5.3）：run_m5 只消费 resolve_m5_inputs 返回的 succeeded StepRun 包；拒绝路径不得写任何行。
+
+  package.py（D-09 取 A：不新增 Schema，结构由本 ACT 冻结并被测试逐键断言）：
+    assemble_gate_results(level_verdicts, findings, reports, *, target_consumption_level, scope="corpus_only",
+      validator_version=M5_TOOL_VERSION) -> dict，键序逐字：
+      schema_version, scope, target_consumption_level, validator_suite "pipeline.validation", validator_version,
+      validators [{validator_id, gate, version, task_status, report_revision_id}],
+      gates {G1..G3: passed|passed_with_warnings|failed, G4..G6: not_evaluated, G7: deferred_to_m8},
+      passed_checks [validator_id…], failures [Finding…（目标级别下 severity=error）],
+      warnings [Finding…（目标级别下 severity=warning）], broken_relations [{relation, subject, code, detail}],
+      rework_tasks [{rework_stage, validator_id, check, code, subjects[]}], not_evaluated [{gate, check, reason}],
+      level_verdicts {INTERNAL_DEMO, DEV_SEARCH, PUBLIC_RELEASE}, gate {passed, severe_error_count, failed_task_count, pending_rework_count},
+      counts {validators, findings, failures, warnings, broken_relations, rework_tasks, spans_checked, pages_checked}
+      D-11 取 A：返工任务无标识，按 (rework_stage, validator_id, check) 聚合排序，subjects 列主体（span_id + artifact_revision_id + page），
+        只把目标级别 severity=error 的发现转成返工；rework_stage 取 m2（字符、页登记、终态）或 m3（其余）
+      not_evaluated 逐条写 G4/G5/G6 与 Candidate 子项，reason 用 §19 第一列行名「M4 Knowledge Extraction」
+    assemble_validation_package(gate_results, inputs, gate, level_verdicts, *, target_consumption_level, scope="corpus_only") -> dict，键序逐字：
+      schema_version, edition_part_id, technique_id, scope, target_consumption_level, validator_version,
+      gate_results_revision_id, corpus_package_revision_id, corpus_spans_revision_id, m3_stage_package_id, m3_package_revision_id,
+      candidate_package_revision_id（首切片恒 null，M6 据此拒绝）, gate {…}, level_verdicts {…}
+
+  step.py：run_m5(service, edition_part_id, *, target_consumption_level="INTERNAL_DEMO") -> dict
+    顺序（任何一步之前的解析错误直接抛出且 Ledger 无新增写入；begin 之后任何错误一律走失败封存，检查名 "internal"）：
+      1 inputs = resolve_m5_inputs(service, edition_part_id)
+      2 config = put_run_artifact(processing_run_id, "configuration", canonical_json({"stage": "m5", "tool": M5_TOOL,
+          "tool_version": M5_TOOL_VERSION, "target_consumption_level": target_consumption_level}),
+          producer_module=M5_TOOL, producer_version=M5_TOOL_VERSION)
+      3 frozen = inputs["frozen_revision_ids"]；begin_step_run（input_artifact_ids=frozen、technique_profile_id=technique_id、
+          configuration_artifact_id=config）
+      4 ctx = build_context(service, inputs, target_consumption_level=target_consumption_level)
+      5 fail-closed（D-12 取 A）：先跑 g1_frozen_bytes；若它产出任一 level 为 error 的 finding，则其余 13 个 Validator 记
+          task_status "skipped_fail_closed"（不调用函数）；否则按 registry.VALIDATORS 顺序逐个调用，函数抛异常 → 该 task "errored"
+          （validator_report.detail 含异常类名），不冒泡
+        每个 Validator 一个 task：put_artifact "validator_report"（canonical_json(make_report(...))）→ seal；
+          write_checkpoint(step_run_id, edition_part_id=…, stage="m5",
+            completed_tasks=[{"task_id": validator_id, "artifact_revision_id": report_rev, "status": "succeeded"|"failed", "terminal_state": None}],
+            human_decisions=[], pending_queue=[{"task_id": 其后 validator_id}…], next_pointer=首个待办或 None)
+      6 level_verdicts = findings.level_verdicts(all_findings, task_statuses)（三级都算，D-07 取 B）；
+        gate = findings.gate_summary(target_consumption_level, all_findings, reports)（gate.passed 取目标级别结论）
+      7 gate_results = put_artifact "gate_results"（canonical_json(doc)）→ seal
+      8 validation_package = put_artifact "validation_package"（canonical_json(doc)）→ seal
+      9 transformation_id = record_transformation(step, operation="validate_corpus", tool=M5_TOOL, tool_version=M5_TOOL_VERSION,
+          configuration_revision_id=config, input_revision_ids=frozen, output_revision_ids=[gate_results, validation_package],
+          validation_report_revision_id=validation_report, human_event_revision_ids=[])
+      10 StagePackage（形状同 impl-02 act/03 第 13 步）：stage_package_id = ids.new_id("stage_package_id", stage="m5")；
+          package_revision_id = ids.new_id("artifact_revision_id")；stage "m5"；status "sealed"；
+          payload {validation_package_revision_id, gate_results_revision_id, scope, target_consumption_level, gate, level_verdicts}；
+          manifest.input_artifacts = [ref(x) for x in frozen]（m3 包用 artifact_kind "stage_package"）；
+          output_artifacts=[ref(validation_package)]；counts {validators 14, findings, failures, warnings, rework_tasks}；
+          content_sha256 = sha256(gate_results 字节)；validation {passed: gate.passed, report_artifacts: [ref(validation_report)]}；
+          lineage.upstream_artifacts = [ref(m3 包), ref(corpus_package), ref(corpus_spans)]；
+          transformations[0] = {operation "validate_corpus", step_run_id, configuration_artifact_revision_id,
+            input_artifact_revision_ids: frozen, output_artifact_revision_ids: [gate_results, validation_package]}；
+          logs [ref(step_log)]；failures []
+          register_stage_package(step, package, json.dumps(package, sort_keys=True, ensure_ascii=False).encode(),
+            stage_package_id=…, artifact_revision_id=…) → seal
+      11 finish_step_run：D-08 取 A——14 个 Validator 全部执行完即 status "succeeded" 并照常封存，即便 gate.passed=false；
+          只有输入契约或内部异常才 failed。output_artifact_ids = [gate_results, validation_package, package_revision_id]，
+          validation_report_ids = [validation_report]，log_artifact_ids = [step_log]，failure_artifact_ids = []
+    失败封存 _fail(step, check, detail)：put "failure_report"（json {"check", "detail"}）→ seal；
+      fail_step_run(step, [失败修订], "M5 %s: %s" % (check, detail))；返回 summary（status "failed"）
+    返回 summary 键：status, processing_run_id, step_run_id, configuration_revision_id, frozen_input_revision_ids；
+      成功时另含 stage_package_id, package_revision_id, gate_results_revision_id, validation_package_revision_id,
+      validation_report_revision_id, log_revision_id, step_manifest_revision_id, transformation_id, checkpoint_revision_ids,
+      validator_reports, level_verdicts, gate, counts；失败时 failed_check, failure_revision_id, reason
+
+  __main__.py：python -m pipeline.validation --root <ledger_root> --edition-part <art_id>
+      [--target-consumption-level INTERNAL_DEMO]
+    LedgerService(<root>)（--root 即 Ledger 根目录，与 pipeline.ledger.cli 一致）→ run_m5 → stdout 末行：
+      gate 通过 `M5 OK <step_run_id>` exit 0；gate 未通过（status succeeded、gate.passed=false）
+      `M5 GATE_FAILED <step_run_id> verdicts=<level_verdicts>` exit 1；begin 之前被拒 `M5 REFUSED <异常类名>: <消息>` exit 2；
+      WriterLocked exit 3
+tests:
+  test_step.py: |
+    脚手架：tempfile 目录 → LedgerService(root/"ledger") → ingest(FIXTURE, service, stages=("m1","m2","m3")) → run_m5
+    - test_run_m5_on_fixture_succeeds（StepRun succeeded；14 个 validator_report；14 个 Checkpoint 成链；counts.findings == 3）
+    - test_gate_results_level_verdicts_passed_failed_failed
+    - test_stage_package_validates_schema_and_lineage（过 stage_package.schema.json；validation.passed true；血缘输入含 m3 包；content_sha256 == gate_results 字节哈希）
+    - test_frozen_inputs_exactly_seventeen_and_all_sealed
+    - test_target_public_release_gate_failed（StepRun 仍 succeeded；gate.passed false；validation.passed false；rework_tasks 非空）
+    - test_tampered_corpus_spans_yields_thirteen_skipped_and_all_levels_failed
+    - test_validator_exception_marks_task_errored_and_levels_failed
+    - test_after_begin_exception_seals_failure_and_no_stage_package（patch record_transformation 抛异常 → failed_check "internal"，无 m5 StagePackage）
+    - test_refuses_when_m3_step_run_failed（拒绝时 artifact_revisions / step_runs / audit_log 行数不变）
+    - test_cli_exit_codes（subprocess：正常 0 且以 "M5 OK" 开头；target=PUBLIC_RELEASE 1 且以 "M5 GATE_FAILED" 开头；只灌 m1 的 Ledger 2 且以 "M5 REFUSED" 开头）
+verify:
+  - .venv/bin/python -m unittest discover -s pipeline/validation/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 75
+  - .venv/bin/python -m unittest discover -s pipeline/ledger/tests -t . 2>&1 | tail -3       # OK，用例数不变
+  - .venv/bin/python -m unittest discover -s pipeline/corpus_compiler/tests -t . 2>&1 | tail -3   # OK，用例数不变
+  - TDD §3 回归
+commit:
+  add: [pipeline/validation/package.py, pipeline/validation/step.py, pipeline/validation/__main__.py, pipeline/validation/tests/test_step.py]
+  message: "feat(m5): run_m5 transaction sequence with 14 validators, fail-closed and m5 stage package"
+on_fail: 停止并报告；gate 未通过也必须 succeeded 并封存（D-08 A）；不得改冻结输入；fail-closed 不得静默放行

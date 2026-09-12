@@ -1,0 +1,70 @@
+act_id: impl-03/04
+title: M5 输入解析与上下文：resolve_m5_inputs（17 个冻结修订，只接受 succeeded 上游）+ build_context
+estimated_minutes: 75
+group: K2
+depends_on: [impl-03/03]
+decisions_required: [D-01, D-14, D-15]
+scope:
+  write: [pipeline/validation/inputs.py, pipeline/validation/context.py, pipeline/validation/tests/test_inputs.py]
+tests_first:
+  - 先写 tests/test_inputs.py（用例名与下文逐字）并全红，再实现 inputs.py 与 context.py
+contract: |
+  上游约束（impl-02 ACCEPTANCE §5.3，本 ACT 必须落实）：解析上游 StagePackage 时只接受所属 StepRun 状态为
+    succeeded 的包；非 succeeded（failed / running 等）一律拒绝并抛 ValidationRefused。
+
+  inputs.py：resolve_m5_inputs(reader, edition_part_id) -> dict（只调用 LedgerReadMixin 公开方法；元数据查询允许经
+    reader.store.conn 执行只读 SELECT，集中写在 _m3_step_run / _artifact_types / _stage_package_for_stage 三个私有函数中，D-14 取 A）
+    返回键（逐字）：processing_run_id, technique_id, m3_step_run_id, m3_stage_package_id, m3_package_revision_id,
+      configuration_revision_id, corpus_package_revision_id, corpus_spans_revision_id, coverage_report_revision_id,
+      validation_report_revision_id, batch_revision_ids（按 Checkpoint 链序，mini_ed01 为 5 个）, manifest_revision_id,
+      ocr_page_set_revision_id, page_revision_ids（{页: 修订}）, human_event_revision_ids（[...]）, frozen_revision_ids（有序 17 个）
+    规则：
+      M3 StepRun：list_checkpoints(ep, "m3") 非空，取最新 Checkpoint 的 step_run_id；get_step_run().status 必须 == "succeeded"，
+        否则 ValidationRefused（message 含「M3 未通过」）
+      上游包过滤（D-15）：result_json.output_artifact_ids 与 m3 StagePackage 必须归属于状态为 succeeded 的 StepRun；
+        同一 stage 存在多个 m3 StagePackage（重跑/异常注入留下的失败 StepRun 包）时，只接受属于 succeeded StepRun 的那个；
+        候选项全部属于非 succeeded StepRun → ValidationRefused（message 含「上游包归属失败 StepRun」）
+      M3 输出：从 result_json.output_artifact_ids 按 artifact_type 各恰 1 个取 corpus_package / corpus_spans / coverage_report；
+        validation_report_ids 恰 1 个 → validation_report_revision_id
+      配置：request_json.configuration_artifact_id → configuration；内容 stage == "m3" 且 gate_profile == "structural_only"；
+        其他 gate_profile（impl-10 语义层）→ ValidationRefused（message 含 input_contract，不静默兼容）
+      批次：该 StepRun 的 m3 Checkpoint 链（按写序）中 status == "succeeded" 的 completed_tasks，其 task_id 即批号、
+        artifact_revision_id 即 revision → batch_revision_ids
+      M1/M2（经 M3 冻结）：frozen_inputs 中属于该 StepRun 的行，按 request_json.input_artifact_ids 顺序解析出 source_manifest、
+        ocr_page_set、各 ocr_page（manifest.edition_part.pages 顺序）、human_event
+      全部引用修订 status 必须 == "sealed"（否则 NotConsumable）；缺失 → ValidationRefused（REF_001）
+      若 list_checkpoints(ep, "m5") 中存在属于 succeeded StepRun 的 Checkpoint → ValidationRefused（message 含「M5 已封存」）
+      frozen_revision_ids 顺序固定（共 17）：m3 包、corpus_package、corpus_spans、coverage_report、validation_report、
+        configuration、5 个批次、source_manifest、ocr_page_set、3 个 ocr_page（manifest 页序）、human_event
+      本函数不做任何写入
+
+  context.py：build_context(reader, inputs, *, target_consumption_level) -> dict
+    经 reader.read_object(sha256) 读取每个冻结修订的字节并逐个复算 sha256；返回
+      {"manifest", "ocr_page_set", "page_docs"（{页: 页 JSON}）, "terminal_states", "human_events"（[...]）, "spans_doc",
+       "m3_package", "target_consumption_level",
+       "raw": {"frozen": {rev: {"sha256", "actual_sha256", "doc"}}}}
+    哈希不符或对象缺失时不抛异常：actual_sha256 与登记 sha256 不同（对象缺失时 actual_sha256 与 doc 均为 None），
+      使 g1_frozen_bytes 能判 fail-closed；doc 一律为 dict（yaml.safe_load / json.loads）
+tests:
+  test_inputs.py: |
+    脚手架：tempfile 目录 → LedgerService(root/"ledger") → ingest(FIXTURE, service, stages=("m1","m2","m3"))
+    - test_resolve_returns_seventeen_sealed_revisions_with_roles
+    - test_resolve_frozen_order_and_page_keys_match_manifest
+    - test_resolve_refuses_when_m3_checkpoint_missing
+    - test_resolve_refuses_when_m3_step_run_failed
+    - test_resolve_refuses_when_package_owned_by_failed_step_run（D-15：注入同一 stage 的失败 StepRun 包 → 只取 succeeded 的；无可取 → ValidationRefused）
+    - test_resolve_refuses_when_gate_profile_not_structural_only
+    - test_resolve_refuses_when_m5_already_sealed
+    - test_resolve_refuses_when_unsealed_revision_referenced
+    - test_resolve_performs_no_writes（artifact_revisions / step_runs / audit_log 行数不变）
+    - test_build_context_loads_all_frozen_docs
+    - test_build_context_records_hash_mismatch_without_raising（篡改对象字节 → doc None、actual_sha256 与登记不同）
+    - test_build_context_missing_object_doc_is_none
+verify:
+  - .venv/bin/python -m unittest discover -s pipeline/validation/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 63
+  - grep -rnE 'corpus_compiler' pipeline/validation/inputs.py pipeline/validation/context.py | wc -l   # 0
+  - TDD §3 回归
+commit:
+  add: [pipeline/validation/inputs.py, pipeline/validation/context.py, pipeline/validation/tests/test_inputs.py]
+  message: "feat(m5): resolve frozen M3 inputs (succeeded upstreams only) and build read-only validation context"
+on_fail: 停止并报告；非 succeeded 上游包必须拒绝；inputs.py 不得写入 Ledger；门禁 profile 非 structural_only 不得静默兼容

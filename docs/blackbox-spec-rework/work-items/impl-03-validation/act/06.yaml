@@ -1,0 +1,77 @@
+act_id: impl-03/06
+title: m5-evidence-gate 验收：acceptance.py 十四项判定 + openspec/acceptance/m5-evidence-gate.sh（§19.0 判据）
+estimated_minutes: 80
+group: K2
+depends_on: [impl-03/05]
+decisions_required: [D-12, D-13]
+scope:
+  write: [pipeline/validation/acceptance.py, pipeline/validation/tests/test_acceptance.py, openspec/acceptance/m5-evidence-gate.sh]
+tests_first:
+  - 先写 tests/test_acceptance.py（用例名与下文逐字）并全红，再实现 acceptance.py，最后新建 m5-evidence-gate.sh
+contract: |
+  acceptance.py：python -m pipeline.validation.acceptance --fixture <dir> [--keep]
+    准备：tempfile 目录 → LedgerService(root/"ledger") → ingest(fixture, service, stages=("m1","m2","m3")) →
+      summary = run_m5(service, edition_part_id, target_consumption_level="INTERNAL_DEMO")
+    判定一律自行重算，不信任 run_m5 返回的 gate 报告；acceptance.py 不得 import g1_source / g2_coverage / g3_evidence / replay
+    十四项判定（名称与顺序固定）：
+      inputs_frozen：summary.status == "succeeded"；该 StepRun 的 frozen_inputs 恰 17 个、全部 sealed，且等于 resolve_m5_inputs 的角色集合
+      validator_checkpoints：14 个 validator_report 修订与 14 个 m5 Checkpoint 成链；task_id 依次等于 registry.VALIDATORS 的 validator_id；
+        StepManifest.last_checkpoint_revision_id == 末个
+      g1_source_replay：独立重算 G1 五项（含按 registry 调用 replay 重放），与 gate_results 的 G1 结论一致；fixture 上 G1 唯 4 条未决字符发现
+      g2_coverage：独立重算覆盖页 ∪ 排除页 == manifest 页序、Span 首尾相接、拼接等于页块，与 gate_results 一致
+      g3_anchor_offset：独立重算 offset / quote / 字框 / evidence_level，与 gate_results 的 G3 结论一致
+      gate_and_levels：gate.passed == level_verdicts.INTERNAL_DEMO == passed，且 level_verdicts 为 {passed, failed, failed}
+      package_lineage：m5 StagePackage 过 stage_package.schema.json；content_sha256 == sha256(gate_results 字节)；
+        lineage 输入集合 == frozen_inputs；payload 中 *_revision_id 均可解析；配置记录 target_consumption_level
+      fail_closed_tamper：独立临时 Ledger 上把 corpus_spans 对象改一字节 → 13 个 Validator skipped_fail_closed，三级全 failed，无 m5 StagePackage
+      adversarial_bypass：四个对抗场景全部命中方判 PASS，任一未命中 FAIL（见下）
+      candidate_evidence：BLOCKED，说明逐字「前置缺失: M4 Knowledge Extraction；Candidate 证据范围与 direct proposition 忠实性未实现」
+      g4_content_layering：BLOCKED，说明逐字「前置缺失: M4 Knowledge Extraction；无 Case/editorial 分层输入」
+      g5_concept_search：BLOCKED，说明逐字「前置缺失: M4 Knowledge Extraction；无 confirmed concept」
+      g6_rule_executability：BLOCKED，说明逐字「前置缺失: M4 Knowledge Extraction；ApplicabilityRule 未产出」
+      quote_hash_stored：BLOCKED，说明逐字「前置缺失: M3 Corpus Compilation；spans 未存储 quote hash（§11.1）」
+    对抗场景（D-13 取 A）：每个场景在独立 tempfile Ledger 上用 unittest.mock.patch 同时替换
+      pipeline.corpus_compiler.step.compile_structural（返回篡改后结果，字节经 corpus_compiler.serialize.dump_yaml 重算）
+      与 pipeline.corpus_compiler.step.evaluate_structural（返回 structural: passed），得到布局真实、sealed 的错误 m3 包，再跑 M5 断言：
+        ① offset 偏移一位 → g3 offset_mismatch；② 页图哈希错 → g1 page_image_hash_mismatch；
+        ③ 删末条 Span → g2 缺口/计数；④ 声明 evidence_level=offset_level（target=PUBLIC_RELEASE）→ g3 evidence_level_insufficient
+    输出：每项一行 `PASS <名>` / `FAIL <名> <原因>` / `BLOCKED <名> <说明>`；末行 `SUMMARY pass=<n> fail=<n> blocked=<n>`
+    退出码：3 仅限「<fixture>/manifest.yaml 不存在」或「yaml/jsonschema 不可导入」；准备、run_m5 或任一判定抛异常 →
+      打印 `FAIL m5_acceptance 宿主准备失败: <异常类名>: <消息>` 并退出 1（判定函数内异常转该项 FAIL）；
+      任一 FAIL → 1；无 FAIL 有 BLOCKED → 2；全部 PASS → 0；无 --keep 时删除临时目录
+  m5-evidence-gate.sh（新建，权限 755）：
+    set -u；export LC_ALL=en_US.UTF-8；REPO_ROOT 由脚本所在目录推出（openspec/acceptance → 仓库根）
+    FIXTURE_DIR 默认 "$REPO_ROOT/pipeline/corpus/_fixture/mini_ed01"，可由环境变量覆盖（先解析为绝对路径）
+    PY="$REPO_ROOT/.venv/bin/python"；不可执行 → 打印 `BLOCKED m5_evidence_gate 前置缺失: 测试宿主匮乏；.venv 缺失` 与
+      `SUMMARY pass=0 fail=0 blocked=1` 并 exit 3
+    宿主校验：FIXTURE_DIR="$FIXTURE_DIR" bash "$REPO_ROOT/pipeline/corpus/_fixture/mini_ed01/verify.sh"
+      （永远调用仓库内规范脚本，绝不执行 "$FIXTURE_DIR/verify.sh"）
+      退出 0 或 3（页图缺失）→ 继续；退出 1 → 打印 `FAIL fixture_host <verify.sh 的首个 FAIL 行>` + `SUMMARY pass=0 fail=1 blocked=0` 并 exit 1；
+      其他退出码 → 同样 FAIL exit 1
+    然后 cd "$REPO_ROOT" 执行 "$PY" -m pipeline.validation.acceptance --fixture "$FIXTURE_DIR"，退出码原样返回
+tests:
+  test_acceptance.py: |
+    - test_fixture_yields_nine_pass_five_blocked_exit_2
+    - test_blocked_lines_use_section19_names（M4 Knowledge Extraction / M3 Corpus Compilation 逐字）
+    - test_gate_and_levels_passed_failed_failed
+    - test_adversarial_offset_mismatch_hits_g3
+    - test_adversarial_page_hash_mismatch_hits_g1
+    - test_adversarial_dropped_last_span_hits_g2
+    - test_adversarial_offset_level_for_public_hits_g3
+    - test_adversarial_bypass_requires_all_four
+    - test_fail_closed_tamper_marks_thirteen_skipped
+    - test_prepare_failure_exits_1（patch fixture_ingest.ingest 抛 RuntimeError → exit 1，首行以 "FAIL m5_acceptance 宿主准备失败: RuntimeError" 开头）
+    - test_missing_fixture_exit_3
+    - test_shell_exit_2_on_fixture（subprocess 运行 m5-evidence-gate.sh，末行 SUMMARY pass=9 fail=0 blocked=5，exit 2）
+    - test_shell_never_trusts_copy_verify（副本删一条 span 且副本 verify.sh 换成 `echo FIXTURE OK; exit 0` → FIXTURE_DIR=副本 运行 → exit 1，首行 "FAIL fixture_host"）
+verify:
+  - .venv/bin/python -m unittest discover -s pipeline/validation/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 84
+  - export LC_ALL=en_US.UTF-8; bash openspec/acceptance/m5-evidence-gate.sh; echo exit=$?   # 9 PASS + 5 BLOCKED + SUMMARY pass=9 fail=0 blocked=5；exit=2
+  - grep -c 'FIXTURE_DIR/verify.sh' openspec/acceptance/m5-evidence-gate.sh   # 0
+  - export LC_ALL=en_US.UTF-8; bash openspec/acceptance/run_all.sh | tail -1   # 仍为 SUMMARY pass=2 fail=1 blocked=8（本批不改 run_all.sh）
+  - export LC_ALL=en_US.UTF-8; bash openspec/acceptance/m3-coverage.sh | tail -1   # 仍为 SUMMARY pass=8 fail=0 blocked=1
+  - TDD §3 回归
+commit:
+  add: [pipeline/validation/acceptance.py, pipeline/validation/tests/test_acceptance.py, openspec/acceptance/m5-evidence-gate.sh]
+  message: "feat(m5): m5-evidence-gate acceptance (9 pass, 5 blocked, exit 2) per spec §19.0"
+on_fail: 停止并报告；不得把 BLOCKED 项写成 PASS；不得让 m5-evidence-gate.sh 在本批返回 0

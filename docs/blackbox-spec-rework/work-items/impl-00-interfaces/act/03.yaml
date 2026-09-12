@@ -1,0 +1,83 @@
+act_id: impl-00/03
+title: M7 canonical_snapshot + M8 release_manifest / knowledge_data_pack / evidence_map_pack Schema + 样例
+estimated_minutes: 90
+group: K1
+depends_on: [impl-00/02]
+decisions_required: [D-03, D-04, D-15]
+scope:
+  write: [openspec/schemas/canonical_snapshot.schema.json, openspec/schemas/release_manifest.schema.json, openspec/schemas/knowledge_data_pack.schema.json, openspec/schemas/evidence_map_pack.schema.json, "openspec/schemas/examples/canonical_snapshot.*.yaml", "openspec/schemas/examples/release_manifest.*.yaml", "openspec/schemas/examples/knowledge_data_pack.*.yaml", "openspec/schemas/examples/evidence_map_pack.*.yaml", openspec/schemas/verify.sh]
+tests_first:
+  - 先写全部样例；check_i00.py --upto 03 → FAIL C03，记录 Red；再写 Schema
+tests:
+  examples/ + schemas/verify.sh（本 ACT 不新增单元测试文件）: |
+    - canonical_snapshot：valid 通过；2 个 invalid（human 无 decision / reviewed_editions 为空）失败
+    - release_manifest：valid 通过；3 个 invalid（public+dev / internal 无水印 / public 迁移率 < 1）失败
+    - knowledge_data_pack：valid 通过；3 个 invalid（entry 无主张 / public 机器态 / concept 带规则 DSL）失败
+    - evidence_map_pack：valid 通过；2 个 invalid（缺 source_anchor / 多一段）失败
+    - bash openspec/schemas/verify.sh exit 0 且新增 14 行 PASS
+contract: |
+  通用规则同 impl-00/01
+  canonical_snapshot.schema.json（title "CanonicalSnapshot"）required 键序：
+    schema_version, technique_id, previous_snapshot_revision_id(artifactRevisionId 或 null),
+    reviewed_edition_package_revision_ids(array minItems 1 uniqueItems), edition_part_artifact_ids(array(artifactId) minItems 1 uniqueItems),
+    concepts(array {concept_id conceptId, canonical_name string, aliases array(string), source_entity_revisions array(entityRevisionAnchor) minItems 1}),
+    assertions(array {assertion_id, proposition, subject_entity_id anyOf[conceptId, patternId], evidence array(evidenceLink) minItems 1, school_ids array(schoolId), status contentStatus}),
+    school_views(array)——元素结构与 candidate_set.schema.json 的 school_views 元素相同（用 "$ref": "candidate_set.schema.json#/properties/school_views/items"），
+    conflict_groups(array {conflict_group_id conflictGroupId, school_view_ids array(schoolViewId) minItems 2, changes_current_judgment boolean}),
+    proposals(object required [merge, alias, conflict, evidence_relation]，每项 array {proposal_revision_id artifactRevisionId, resolution enum [auto, human], decision_revision_id artifactRevisionId 或 null}；
+      if resolution const human → decision_revision_id 不得为 null),
+    release_decision_revision_ids(array(artifactRevisionId)), canonical_hash(sha256Hex)
+  release_manifest.schema.json（title "ReleaseManifest"）required 键序：
+    schema_version, release_id(releaseId), previous_release_id(releaseId 或 null), technique_id, consumption_level(consumptionLevel),
+    source_release(enum [internal, dev, release]), canonical_snapshot_revision_id, canonical_hash(sha256Hex),
+    schema_versions(object，additionalProperties {const "1.0.0"}，minProperties 1),
+    profile_versions(object required [fact_set_profile, ast_schema_version]，二者 string 或 null),
+    min_app_version(string pattern ^[0-9]+\.[0-9]+\.[0-9]+$), release_policy(sourceAssetPolicy),
+    rights(array minItems 1 {source_id sourceId, rights_status string minLength 1, distribution_note string minLength 1}),
+    subpacks(array minItems 1 {artifact_type snakeName, artifact_revision_id, sha256 sha256Hex, byte_size integer ≥1}),
+    source_revision_reconciliation(array minItems 1 {source_id, edition_part_artifact_id artifactId, corpus_spans_sha256 sha256Hex, reviewed_edition_package_revision_id}),
+    known_defects(array(string minLength 1)), watermark(boolean),
+    retired_anchor_disclosures(array {from_entity_id string, orphaned_reason string minLength 1}),
+    anchor_migration_rate(number minimum 0 maximum 1，或 null)
+    allOf：
+      if consumption_level const PUBLIC_RELEASE → source_release enum [release] 且 anchor_migration_rate const 1 且 watermark const false
+      if consumption_level const INTERNAL_DEMO → watermark const true 且 known_defects minItems 1
+  knowledge_data_pack.schema.json（title "KnowledgeDataPack"）required 键序：
+    schema_version, release_id, technique_id, consumption_level, watermark(string minLength 1 或 null),
+    entries(array minItems 1 {entry_id entryId, subject_entity_id anyOf[conceptId, patternId], title string minLength 1, assertion_ids array(assertionId) minItems 1,
+      school_view_ids array(schoolViewId), content_status contentStatus,
+      mark_binding object required [omen_carrying, condition_affordance, school_variance_display, changes_current_judgment]
+        （omen_carrying omenCarrying 或 null；condition_affordance array 或 null；school_variance_display array 或 null；changes_current_judgment boolean 或 null）}),
+    concepts(array {concept_id conceptId, name string minLength 1, basic_imagery string 或 null}，additionalProperties false),
+    assertions(array {assertion_id, proposition, subject_entity_id, status contentStatus}),
+    school_views(array，$ref 同 canonical_snapshot), conflict_groups(array {conflict_group_id, school_view_ids, first_layer_display boolean})
+    allOf：
+      if consumption_level const INTERNAL_DEMO → watermark type string
+      if consumption_level const PUBLIC_RELEASE → entries.items.content_status const expert_verified 且 assertions.items.status const expert_verified
+  evidence_map_pack.schema.json（title "EvidenceMapPack"）required 键序：
+    schema_version, release_id, chains(array minItems 1)
+    chain：object，required 恰为 [entry_id, assertion_id, evidence_link, source_span, source_anchor, ocr_page, source_asset]，additionalProperties false：
+      entry_id entryId；assertion_id assertionId；
+      evidence_link {assertion_id, source_span_id sourceSpanId, char_start integer ≥0, char_end integer ≥1, quote_sha256 sha256Hex}；
+      source_span {source_span_id, source_id sourceId, page string, start_offset integer ≥0, end_offset integer ≥0, text string minLength 1}；
+      source_anchor → contract_common sourceAnchor；
+      ocr_page {page string, glyph_ids array(string) minItems 1}；
+      source_asset {page string, image_sha256 sha256Hex}
+    description 中写明：键序由 fixture verify.sh V11 与 M8 验收检查，JSON Schema 不约束键序
+  样例：
+    canonical_snapshot.valid.yaml；canonical_snapshot.invalid_human_resolution_without_decision.yaml、canonical_snapshot.invalid_empty_reviewed_editions.yaml
+    release_manifest.valid.yaml（INTERNAL_DEMO，watermark true，known_defects 1 条）；
+      release_manifest.invalid_public_with_dev_source.yaml、release_manifest.invalid_internal_without_watermark.yaml、release_manifest.invalid_public_rate_below_one.yaml
+    knowledge_data_pack.valid.yaml；knowledge_data_pack.invalid_entry_without_assertion.yaml、knowledge_data_pack.invalid_public_machine_status.yaml、knowledge_data_pack.invalid_concept_with_rule_dsl.yaml（concepts[0] 多 rule_dsl 键）
+    evidence_map_pack.valid.yaml（1 条 chain，锚点复制自 spans.yaml 的 ss_sanche_ed01_p0003_s19）；evidence_map_pack.invalid_chain_missing_anchor.yaml、evidence_map_pack.invalid_chain_extra_segment.yaml
+  openspec/schemas/verify.sh：末尾追加「# 10. M7/M8 core validation」段，规则同 impl-00/02
+verify:
+  - .venv/bin/python docs/blackbox-spec-rework/work-items/impl-00-interfaces/check_i00.py --upto 03; echo exit=$?   # C00–C03 PASS，exit=0
+  - bash openspec/schemas/verify.sh | grep -cE '^PASS (canonical_snapshot|release_manifest|knowledge_data_pack|evidence_map_pack)_'   # 14
+  - bash openspec/schemas/verify.sh >/dev/null; echo $?   # 0
+  - git diff openspec/schemas/verify.sh | grep -c '^-[^-]'   # 0
+  - TDD §3 回归
+commit:
+  add: [openspec/schemas/canonical_snapshot.schema.json, openspec/schemas/release_manifest.schema.json, openspec/schemas/knowledge_data_pack.schema.json, openspec/schemas/evidence_map_pack.schema.json, openspec/schemas/examples, openspec/schemas/verify.sh]
+  message: "spec(schemas): M7 canonical snapshot and M8 release manifest / knowledge data / evidence map schemas (impl-00 K1)"
+on_fail: 停止并报告；跨文件 $ref（candidate_set#/properties/...）在任一校验器下无法解析时停手，不得复制粘贴结构绕过
