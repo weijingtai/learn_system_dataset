@@ -676,7 +676,11 @@
   - [x] 六件套 `work-items/nc-010/`（act/01 API 客户端、act/02 数据库与队列、act/03 控制器、act/04 页面与确认层、act/05 七状态）与守卫 `reviews/nc010_guard.sh`
   - [x] wjt-react 四查：R1 返工 7 项 + 2 建议、R2 返工 2 项，READY（`reviews/NC-010-REVIEW-R1.md`）
   - [ ] 用户派发；主 Agent 按 ACCEPTANCE.md 验收
-- [ ] NC-011：两级评论/回复与编辑删除（状态：`BACKLOG`）
+- [ ] NC-011：两级评论/回复与编辑删除（状态：`READY_FOR_REVIEW`，2026-09-12）
+  - [x] 规格侧契约（主 Agent）：`openspec/annotation-community/contracts/community_discussion.md`（集合与 Thread ID、W7～W9 判定顺序、R2 分页/游标/ETag、R2-05 受控屏障、客户端队列接入/控制器/面板/七状态、参考值、D-NC011-01～20）；`community_api.md` §11 补丁；DESIGN §7.1 mention 上限改 413
+  - [x] 六件套 `work-items/nc-011/`（三线并行：REST act/01 ｜ SERVER act/02→03→04 ｜ CLIENT act/05→06）与守卫 `reviews/nc011_guard.sh`
+  - [ ] wjt-react 四查（`reviews/NC-011-REVIEW-R1.md`）
+  - [ ] 三线派发；主 Agent 按 ACCEPTANCE.md 验收
 - [ ] NC-012：赞踩/收藏/分享/@/关系与举报（状态：`BACKLOG`）
 
 ### 通知
