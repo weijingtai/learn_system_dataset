@@ -252,11 +252,19 @@ def _write_task_checkpoints(fixture, service, stage, step_run_id):
     return checkpoints, human_event_revision_ids
 
 
-def ingest(fixture_dir, service, asset_root=None):
+def ingest(fixture_dir, service, asset_root=None, *, stages=STAGES):
     """用给定 ``LedgerService`` 把 fixture 灌入 Ledger，返回灌入摘要。
 
     ``fixture_dir`` 可以是路径或 ``Fixture`` 实例；``service`` 由调用方持有与关闭。
+    ``stages`` 必须是 ``STAGES`` 的前缀：``("m1",)``、``("m1","m2")``、
+    ``("m1","m2","m3")``，否则 ``SchemaViolation(code="SCH_002")``。
     """
+    if not isinstance(stages, (list, tuple)) or list(stages) != list(STAGES[: len(stages)]):
+        raise SchemaViolation(
+            "stages 必须是 STAGES 的前缀（('m1',) / ('m1','m2') / ('m1','m2','m3')）: %r"
+            % (stages,),
+            code="SCH_002",
+        )
     fixture = fixture_dir if isinstance(fixture_dir, Fixture) else Fixture(fixture_dir)
     constants = {stage: fixture.stage_constants(stage) for stage in STAGES}
     processing_run_id = constants["m1"]["processing_run_id"]
@@ -270,7 +278,7 @@ def ingest(fixture_dir, service, asset_root=None):
     )
 
     # 2) 配置修订：不挂 StepRun（put_run_artifact），写入即 sealed
-    for stage in STAGES:
+    for stage in stages:
         service.put_run_artifact(
             processing_run_id,
             "configuration",
@@ -296,7 +304,7 @@ def ingest(fixture_dir, service, asset_root=None):
         "stage_packages": {},
     }
 
-    for stage in STAGES:
+    for stage in stages:
         constant = constants[stage]
         package = fixture.packages[stage]
 
@@ -396,10 +404,10 @@ def ingest(fixture_dir, service, asset_root=None):
         }
 
     summary["step_runs"] = [
-        summary["stage_packages"][stage]["step_run_id"] for stage in STAGES
+        summary["stage_packages"][stage]["step_run_id"] for stage in stages
     ]
     summary["checkpoint_count"] = sum(
-        len(summary["stage_packages"][stage]["checkpoints"]) for stage in STAGES
+        len(summary["stage_packages"][stage]["checkpoints"]) for stage in stages
     )
     return summary
 
@@ -417,11 +425,17 @@ def main(argv=None):
         default=None,
         help="页图素材根目录（本切片不读页图，仅保留接口）",
     )
+    parser.add_argument(
+        "--stages",
+        default="m1,m2,m3",
+        help="要灌入的阶段（逗号分隔，默认 m1,m2,m3）",
+    )
     args = parser.parse_args(argv)
 
+    stages = tuple(s.strip() for s in args.stages.split(","))
     service = LedgerService(args.root)
     try:
-        summary = ingest(args.fixture, service, asset_root=args.asset_root)
+        summary = ingest(args.fixture, service, asset_root=args.asset_root, stages=stages)
     finally:
         service.close()
 

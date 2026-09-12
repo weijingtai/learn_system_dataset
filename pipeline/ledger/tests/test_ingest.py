@@ -195,6 +195,30 @@ class TestFixtureIngest(IngestTestBase):
             [event_revision_id],
         )
 
+    def test_ingest_stage_prefix_m1_m2(self):
+        """ACT 03 追加：stages=("m2",) → SCH_002；stages=("m1","m2") 只灌 m1+m2。"""
+        from pipeline.ledger.errors import SchemaViolation
+        from pipeline.ledger.fixture_ingest import ingest
+
+        with self.assertRaises(SchemaViolation) as ctx:
+            ingest(FIXTURE_DIR, self.service, stages=("m2",))
+        self.assertEqual(ctx.exception.code, "SCH_002")
+
+        summary = ingest(FIXTURE_DIR, self.service, stages=("m1", "m2"))
+        # 只有 2 个 StepRun（m1 + m2），无 m3 配置修订
+        self.assertEqual(self.count("SELECT COUNT(*) FROM step_runs"), 2)
+        self.assertEqual(self.count("SELECT COUNT(*) FROM stage_checkpoints"), 4)
+        self.assertEqual(self.count("SELECT COUNT(*) FROM transformations"), 2)
+        # m3 配置修订不存在
+        m3_config = self.service.store.conn.execute(
+            "SELECT r.artifact_revision_id FROM artifact_revisions r "
+            "JOIN artifacts a ON a.artifact_id = r.artifact_id "
+            "WHERE a.artifact_type='configuration' AND r.status='sealed'"
+        ).fetchall()
+        self.assertEqual(len(m3_config), 2)  # 只有 m1 和 m2 的配置
+        # summary 中无 m3
+        self.assertNotIn("m3", summary["stage_packages"])
+
     def test_put_run_artifact_only_configuration_types(self):
         summary = ingest(FIXTURE_DIR, self.service)
         processing_run_id = summary["processing_run_id"]
