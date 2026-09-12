@@ -1,0 +1,46 @@
+TASK_ID: NC-012a-D
+PARENT: NC-012a
+STATUS: DRAFT_FOR_REVIEW
+REPO: xuan-migration/reading-notes
+GOAL: MentionRef 单一化、reconcileMentions、互动模型与九个 API 方法、队列五个 case、待处理页摘要；J01～J11
+DEPENDS_ON: []
+ESTIMATE_MINUTES: 55
+WORKLOAD: "models.dart 删除社区 MentionRef 约 30 行并替换 3～5 处调用、追加 10 个类约 330 行；community_api.dart 追加约 200 行；command_queue.dart 5 个 case 约 20 行；pending_queue_page.dart 约 15 行；mention_adapter.dart 约 20 行；reading_notes.dart 1 处删除与 8 行导出；11 个测试约 480 行"
+SCOPE:
+  READ:
+    - /Users/jingtaiwei/Git/Public/learn_system/openspec/annotation-community/contracts/community_interactions.md（§1、§2.2、§9、§10.1～§10.6、§11 J01～J11、§15）
+    - /Users/jingtaiwei/Git/Public/learn_system/openspec/annotation-community/contracts/community_client.md（§3、§4、§10）
+    - /Users/jingtaiwei/Git/Public/learn_system/docs/blackbox-spec-rework/work-items/nc-012a/BDD.md（J01～J11）、TDD.md（§5）
+    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/lib/src/community/{models,community_api,command_queue,pending_queue_page,community_database}.dart
+    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/lib/src/domain/note_revision.dart（MentionRef，只读）
+    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/test/community/discussion_test.dart（K06～K08 真实文件库关闭重开与 RW-5 写法，只读）
+  WRITE_NEW:
+    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/lib/src/community/models.dart（契约 §2.2 ①②）
+    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/lib/reading_notes.dart（删除 hide MentionRef；追加 mention_adapter.dart 导出）
+    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/lib/src/community/community_api.dart（追加 9 方法）
+    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/lib/src/community/command_queue.dart（§10.4 五个 case）
+    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/lib/src/community/pending_queue_page.dart（§10.5）
+    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/lib/src/community/mention_adapter.dart
+    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/test/community/interactions_test.dart（J01～J11）
+  FORBIDDEN:
+    - 契约 §2.2 禁止清单（domain、persistence、editor、history、storage、export 目录及其测试，既有 test/community/*.dart，community_database.dart，pubspec）
+    - learn_system 写入（交付报告除外）；新依赖；真实网络；skip；永真断言；测试内计算 payload_hash 期望；git push
+DEPENDENCY_ALLOWLIST: [沿用 reading-notes 锁定版本，含 http 1.6.0]
+RULES:
+  - "字段、方法签名、头、文案逐字按契约 §10；R1～P1 与 M1～M8 用 §9 字面量"
+  - "每条 flutter 命令带 PATH=/Users/jingtaiwei/flutter/bin:$PATH，并显式设置不少于 600 秒超时"
+  - "只 git add WRITE_NEW 文件；提交消息按 COMMIT_MESSAGE，末尾空一行加 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
+TESTS_FIRST:
+  - "先写 J01～J11，运行 VERIFICATION 第 2 条，保存编译失败原文作为 Red"
+STEPS:
+  - "实现至 VERIFICATION 全部符合期望"
+  - "git add 并提交"
+VERIFICATION:
+  - "cd /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes && PATH=/Users/jingtaiwei/flutter/bin:$PATH flutter analyze（期望 No issues found!）"
+  - "cd /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes && PATH=/Users/jingtaiwei/flutter/bin:$PATH flutter test test/community/interactions_test.dart（期望 +11: All tests passed!）"
+  - "cd /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes && PATH=/Users/jingtaiwei/flutter/bin:$PATH flutter test（期望 +281: All tests passed!）"
+  - "git -C /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes diff-tree -r --name-only d80703b HEAD -- lib/src/domain lib/src/persistence lib/src/editor lib/src/history lib/src/storage lib/src/export test/persistence test/contracts test/editor test/history test/support test/storage test/export test/community/command_queue_test.dart test/community/community_api_test.dart test/community/publication_flow_test.dart test/community/seven_states_test.dart test/community/discussion_test.dart pubspec.yaml pubspec.lock lib/src/community/community_database.dart（期望空）"
+  - "git -C /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes status --short（期望空）"
+ON_FAIL: "停止并在 DELIVERY_REPORT_CLIENT.md 追加「## 待裁决」。哈希或 mention 向量对不上、删除社区 MentionRef 后既有测试变红、需改禁止清单文件，均为停止条件。"
+BASELINE_EXIT_CODES: "开工基线：d80703b，flutter test +270、analyze 0"
+COMMIT_MESSAGE: "feat(community): MentionRef 单一化、mention 校验与互动 API/队列接入（NC-012a-D）"

@@ -1,0 +1,22 @@
+TASK_ID: NC-012a
+STATUS: DRAFT_FOR_REVIEW
+GOAL: 互动能力——REST 响应包装与新读端点、服务端 W10～W14/R3/R4/R7/R8 与规则、ACL E4；客户端 MentionRef 单一化、mention 校验、队列接入、互动与分享控制器、界面
+CONTRACTS:
+  - openspec/annotation-community/contracts/community_interactions.md
+  - openspec/annotation-community/contracts/community_api.md（§4.1、§5、§7、§12）
+  - openspec/annotation-community/contracts/community_discussion.md（§1、§2、§7 范式）
+  - openspec/annotation-community/contracts/community_client.md（§3、§4、§10）
+DISPATCH_PRECONDITION: "NC-003、NC-009、NC-010、NC-011、NC-016a 均 ACCEPTED（2026-09-12 满足）；wjt-react 四查 READY"
+SPLIT:
+  - act/01.yaml（REST，NC-012a-A）
+  - act/02.yaml（SERVER + RULES，NC-012a-B）
+  - act/03.yaml（SERVER，NC-012a-C）
+  - act/04.yaml（CLIENT，NC-012a-D）
+  - act/05.yaml（CLIENT，NC-012a-E）
+  - act/06.yaml（CLIENT，NC-012a-F）
+ORDER: "三线并行：REST act/01 ｜ SERVER act/02 → 03 ｜ CLIENT act/04 → 05 → 06；同一仓库内严格串行，每步以上一步提交为基线"
+ESTIMATE_MINUTES_TOTAL: 330
+DEFERRED:
+  - "NC-012b：宿主社交注入（资料/关注/私信/拉黑）、mention 候选与编辑器接线、三类依赖关系数据的无效 mention（D-NC012-01）"
+  - "复合索引部署、限流开启、收藏列表页、分享 URL 格式、举报进入审核队列、目标 purge 时清理互动文档（D-NC012-20）"
+  - "赞的站内通知投递与合并：NC-013"

@@ -1,0 +1,43 @@
+TASK_ID: NC-012a-C
+PARENT: NC-012a
+STATUS: DRAFT_FOR_REVIEW
+REPO: xuan-server/functions-py
+GOAL: 分享与举报——share_create/share_revoke/report_create 事务、R4 统一 404、R7 我的分享链接、share 与 report 两个 handler；I18～I27；ACL 扫描 E4 转为真实断言
+DEPENDS_ON: [NC-012a-B]
+ESTIMATE_MINUTES: 55
+WORKLOAD: "interaction_service.py 追加约 200 行（三个写函数、resolve_share、list_my_share_links、游标编解码）；handler 追加约 90 行；helpers 追加 seed_share_link 约 25 行；10 个测试约 420 行；ACL 扫描文件三处约 15 行"
+SCOPE:
+  READ:
+    - /Users/jingtaiwei/Git/Public/learn_system/openspec/annotation-community/contracts/community_interactions.md（§3.4、§3.5、§4、§5.3～§5.5、§6.3、§6.4、§7、§8.1、§8.2 I18～I27、§8.3、§9、§15）
+    - /Users/jingtaiwei/Git/Public/learn_system/docs/blackbox-spec-rework/work-items/nc-012a/BDD.md（I18～I27）、TDD.md（§4）
+    - /Users/jingtaiwei/Git/Public/xuan-server/functions-py/xuan/community/discussion_service.py（encode_cursor/decode_cursor 写法，只读）
+    - /Users/jingtaiwei/Git/Public/xuan-server/functions-py/tests/test_community_acl_sweep.py
+  WRITE_NEW:
+    - /Users/jingtaiwei/Git/Public/xuan-server/functions-py/xuan/community/interaction_service.py（追加）
+    - /Users/jingtaiwei/Git/Public/xuan-server/functions-py/xuan/handlers/community_interactions.py（实现 community_share_py、community_report_py）
+    - /Users/jingtaiwei/Git/Public/xuan-server/functions-py/tests/community_helpers.py（只追加 seed_share_link）
+    - /Users/jingtaiwei/Git/Public/xuan-server/functions-py/tests/test_community_interactions.py（追加 I18～I27）
+    - /Users/jingtaiwei/Git/Public/xuan-server/functions-py/tests/test_community_acl_sweep.py（只改契约 §2.1 列出的三处）
+  FORBIDDEN:
+    - 契约 §2.1 禁止清单；改 act/02 测试期望；learn_system 写入（交付报告除外）；新依赖；skip；新增 xfail；永真断言；测试内计算参考值；git push
+DEPENDENCY_ALLOWLIST: [沿用 requirements.txt；不新增]
+RULES:
+  - "判定顺序、字段集合、错误码逐字按契约 §5.3～§5.5、§6.3、§6.4；R4 失败响应体必须是 errors.problem('not_found.content', 404) 的共用体"
+  - "每条命令带 PYTHONDONTWRITEBYTECODE=1 与两个 Emulator 环境变量，pytest 加 -p no:cacheprovider，显式设置不少于 600 秒超时"
+  - "只 git add WRITE_NEW 文件；提交消息按 COMMIT_MESSAGE，末尾空一行加 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
+TESTS_FIRST:
+  - "先追加 I18～I27 与 ACL 扫描三处改动，运行 VERIFICATION 第 1、2 条，保存失败原文作为 Red（期望本步新测试与 E4 三例失败，act/02 的 19 例仍通过）"
+STEPS:
+  - "实现至 VERIFICATION 全部符合期望"
+  - "git add 并提交"
+  - "提交后运行一次 learn_system 守卫 --require-impl server，退出码写入报告"
+VERIFICATION:
+  - "cd /Users/jingtaiwei/Git/Public/xuan-server/functions-py && PYTHONDONTWRITEBYTECODE=1 FIRESTORE_EMULATOR_HOST=192.168.0.165:8080 FIREBASE_AUTH_EMULATOR_HOST=192.168.0.165:9099 .venv/bin/python -m pytest tests/test_community_interactions.py -q -p no:cacheprovider（期望 36 passed）"
+  - "cd /Users/jingtaiwei/Git/Public/xuan-server/functions-py && PYTHONDONTWRITEBYTECODE=1 FIRESTORE_EMULATOR_HOST=192.168.0.165:8080 FIREBASE_AUTH_EMULATOR_HOST=192.168.0.165:9099 .venv/bin/python -m pytest tests/test_community_acl_sweep.py -q -p no:cacheprovider（期望 12 passed, 6 xfailed）"
+  - "cd /Users/jingtaiwei/Git/Public/xuan-server/functions-py && PYTHONDONTWRITEBYTECODE=1 FIRESTORE_EMULATOR_HOST=192.168.0.165:8080 FIREBASE_AUTH_EMULATOR_HOST=192.168.0.165:9099 .venv/bin/python -m pytest tests -q -rf -p no:cacheprovider（期望 5 failed, 535 passed, 6 xfailed；FAILED 恰为五个既有 ID）"
+  - "git -C /Users/jingtaiwei/Git/Public/xuan-server/functions-py diff-tree -r --name-only 0fad16e HEAD -- xuan/community/content_service.py xuan/community/command_service.py xuan/community/discussion_service.py xuan/community/access.py xuan/community/errors.py xuan/community/ids.py xuan/community_hash.py xuan/handlers/community_contents.py xuan/handlers/community_commands.py xuan/handlers/community_comments.py xuan/community/schemas tests/test_community_comments.py tests/test_community_commands.py（期望空）"
+  - "git -C /Users/jingtaiwei/Git/Public/xuan-server/functions-py status --short（期望空）"
+  - "cd /Users/jingtaiwei/Git/Public/learn_system && FIRESTORE_EMULATOR_HOST=192.168.0.165:8080 FIREBASE_AUTH_EMULATOR_HOST=192.168.0.165:9099 bash docs/blackbox-spec-rework/reviews/nc012a_guard.sh --require-impl server（期望 0）"
+ON_FAIL: "停止并在 DELIVERY_REPORT_SERVER.md 追加「## 待裁决」。需改禁止清单文件、既有测试变红、FAILED 集合变化、SCUR 游标对不上、R4 某失败分支无法得到共用体、ACL 扫描需要超出三处的改动，均为停止条件。"
+BASELINE_EXIT_CODES: "开工基线：NC-012a-B 提交，5 failed / 515 passed / 9 xfailed"
+COMMIT_MESSAGE: "feat(community): 分享链接、举报、我的分享列表与 ACL 扫描 E4（NC-012a-C）"

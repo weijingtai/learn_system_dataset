@@ -690,8 +690,11 @@
   - [x] 六件套 `work-items/nc-011/`（三线并行：REST act/01 ｜ SERVER act/02→03→04 ｜ CLIENT act/05→06）与守卫 `reviews/nc011_guard.sh`
   - [x] wjt-react 四查（agy）：R1 返工 4 项（游标写法、K11 可测性、ownerScope 来源、待发送跟踪集合），R2 READY（`reviews/NC-011-REVIEW-R1.md`）
   - [ ] 三线派发；主 Agent 按 ACCEPTANCE.md 验收
-- [ ] NC-012：赞踩/收藏/分享/@/关系与举报（状态：`BACKLOG`）
-  - [ ] 契约须统一 reading-notes 两个同名 `MentionRef`（domain 与 community，公开入口 `hide` 了社区版，宿主无法经公开入口构造带 mentions 的评论请求；NC-011 验收遗留）
+- [ ] NC-012：赞踩/收藏/分享/@/关系与举报（2026-09-12 拆分，D-NC012-01）
+  - [ ] NC-012a：赞踩、收藏、分享、举报与 mention 文本校验（状态：`DRAFT_FOR_REVIEW`；契约 `openspec/annotation-community/contracts/community_interactions.md`，`community_api.md` §12 补丁；六件套 `work-items/nc-012a/`，守卫 `reviews/nc012a_guard.sh`；三线：REST act/01 ｜ SERVER act/02→03 ｜ CLIENT act/04→05→06）
+    - [x] 契约统一 reading-notes 两个同名 `MentionRef`（D-NC012-13，NC-011 验收遗留）
+    - [ ] wjt-react 四查（tmux + cmd）
+  - [ ] NC-012b：宿主社交注入、mention 候选与编辑器接线、三类依赖关系数据的无效 mention（状态：`BLOCKED`，等 NC-001-02）
 
 ### 通知
 

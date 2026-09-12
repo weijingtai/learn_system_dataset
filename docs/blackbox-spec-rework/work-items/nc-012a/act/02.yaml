@@ -1,0 +1,49 @@
+TASK_ID: NC-012a-B
+PARENT: NC-012a
+STATUS: DRAFT_FOR_REVIEW
+REPO: xuan-server/functions-py（另 xuan-migration/xuan-server 规则测试）
+GOAL: 赞踩与收藏——五个集合注册、载荷 Schema、目标解析、reaction_set/bookmark_set 事务、R3/R8、reaction 与 bookmark 两个 handler；I01～I17；规则测试纳入五集合
+DEPENDS_ON: []
+ESTIMATE_MINUTES: 60
+WORKLOAD: "interaction_service.py 约 260 行（check_target、resolve_target、两个 DTO、reaction_set、bookmark_set、get_reaction、get_bookmark）；validation.py 追加约 40 行；handler 约 150 行（鉴权与两个函数）；config/main/conftest 各 1～5 行；17 个测试约 520 行；规则数组 5 项"
+SCOPE:
+  READ:
+    - /Users/jingtaiwei/Git/Public/learn_system/openspec/annotation-community/contracts/community_interactions.md（§1～§5.2、§6.1、§6.2、§7、§8.1、§8.2 I01～I17、§9、§15）
+    - /Users/jingtaiwei/Git/Public/learn_system/openspec/annotation-community/contracts/community_api.md（§4.1、§7、§12）
+    - /Users/jingtaiwei/Git/Public/learn_system/openspec/annotation-community/contracts/community_discussion.md（§7、§8.1 Aborted 与 503 重试写法）
+    - /Users/jingtaiwei/Git/Public/learn_system/docs/blackbox-spec-rework/work-items/nc-012a/BDD.md（I01～I17）、TDD.md（§3）
+    - /Users/jingtaiwei/Git/Public/xuan-server/functions-py/xuan/community/{command_service,content_service,discussion_service,access,validation,errors,ids}.py、xuan/community_hash.py、xuan/community/schemas/（只读）
+    - /Users/jingtaiwei/Git/Public/xuan-server/functions-py/xuan/handlers/{community_comments,community_contents}.py（只读参考）
+    - /Users/jingtaiwei/Git/Public/xuan-server/functions-py/tests/{conftest,community_helpers,test_community_comments}.py（只读参考）
+    - /Users/jingtaiwei/Git/Public/xuan-migration/xuan-server/server/functions/test/community_rules.test.ts
+  WRITE_NEW:
+    - /Users/jingtaiwei/Git/Public/xuan-server/functions-py/xuan/config.py（COLLECTIONS 追加 5 键）
+    - /Users/jingtaiwei/Git/Public/xuan-server/functions-py/xuan/community/validation.py（只追加）
+    - /Users/jingtaiwei/Git/Public/xuan-server/functions-py/xuan/community/interaction_service.py
+    - /Users/jingtaiwei/Git/Public/xuan-server/functions-py/xuan/handlers/community_interactions.py（本步实现 community_reaction_py、community_bookmark_py；community_share_py、community_report_py 定义为对任何请求返回 404 not_found.target）
+    - /Users/jingtaiwei/Git/Public/xuan-server/functions-py/main.py（追加导出一行，四个函数）
+    - /Users/jingtaiwei/Git/Public/xuan-server/functions-py/tests/conftest.py（names 只追加 5 项）
+    - /Users/jingtaiwei/Git/Public/xuan-server/functions-py/tests/test_community_interactions.py
+    - /Users/jingtaiwei/Git/Public/xuan-migration/xuan-server/server/functions/test/community_rules.test.ts（数组追加 5 项）
+  FORBIDDEN:
+    - 契约 §2.1 禁止清单（content_service、command_service、discussion_service、access、errors、ids、community_hash、community_contents、community_commands、community_comments、既有 Schema、表外既有测试）
+    - learn_system 写入（交付报告除外）；新依赖；skip；新增 xfail；永真断言；测试内计算参考值；先实现后补测试；git push
+DEPENDENCY_ALLOWLIST: [沿用 requirements.txt（含 jsonschema==4.26.0）；不新增]
+RULES:
+  - "判定顺序、字段集合、错误码逐字按契约 §4、§5.1、§5.2、§6.1、§6.2；测试名逐字按 §8.2（函数名加 test_ 前缀）"
+  - "每条命令带 PYTHONDONTWRITEBYTECODE=1 与两个 Emulator 环境变量，pytest 加 -p no:cacheprovider；pytest 与 npm 命令显式设置不少于 600 秒超时"
+  - "只 git add WRITE_NEW 文件；functions-py 与 xuan-server 各一个提交；提交消息按 COMMIT_MESSAGE，末尾空一行加 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
+TESTS_FIRST:
+  - "先写 I01～I17，运行 VERIFICATION 第 1 条，保存 ImportError/失败原文作为 Red"
+STEPS:
+  - "按契约实现至 VERIFICATION 全部符合期望"
+  - "git add 并提交（functions-py、xuan-server 各一个）"
+VERIFICATION:
+  - "cd /Users/jingtaiwei/Git/Public/xuan-server/functions-py && PYTHONDONTWRITEBYTECODE=1 FIRESTORE_EMULATOR_HOST=192.168.0.165:8080 FIREBASE_AUTH_EMULATOR_HOST=192.168.0.165:9099 .venv/bin/python -m pytest tests/test_community_interactions.py -q -p no:cacheprovider（期望 19 passed：I11 参数化 3 例）"
+  - "cd /Users/jingtaiwei/Git/Public/xuan-server/functions-py && PYTHONDONTWRITEBYTECODE=1 FIRESTORE_EMULATOR_HOST=192.168.0.165:8080 FIREBASE_AUTH_EMULATOR_HOST=192.168.0.165:9099 .venv/bin/python -m pytest tests -q -rf -p no:cacheprovider（期望 5 failed, 515 passed, 9 xfailed；FAILED 恰为五个既有 ID）"
+  - "cd /Users/jingtaiwei/Git/Public/xuan-migration/xuan-server/server/functions && FIRESTORE_EMULATOR_HOST=192.168.0.165:8080 npm test -- community_rules（期望 Tests: 129 passed）"
+  - "git -C /Users/jingtaiwei/Git/Public/xuan-server/functions-py diff-tree -r --name-only 0fad16e HEAD -- xuan/community/content_service.py xuan/community/command_service.py xuan/community/discussion_service.py xuan/community/access.py xuan/community/errors.py xuan/community/ids.py xuan/community_hash.py xuan/handlers/community_contents.py xuan/handlers/community_commands.py xuan/handlers/community_comments.py xuan/community/schemas tests/test_community_comments.py tests/test_community_commands.py tests/test_community_acl_sweep.py（期望空）"
+  - "git -C /Users/jingtaiwei/Git/Public/xuan-server/functions-py status --short（期望空）"
+ON_FAIL: "停止并在 DELIVERY_REPORT_SERVER.md 追加「## 待裁决」。需改禁止清单文件、既有测试变红、FAILED 集合变化、参考哈希或文档 ID 对不上、存储文档不过 NC-002 Schema、I10 重试 5 次仍 503，均为停止条件。"
+BASELINE_EXIT_CODES: "开工基线：functions-py 0fad16e，5 failed / 496 passed / 9 xfailed；xuan-server dd3445f，rules 89"
+COMMIT_MESSAGE: "feat(community): 赞踩与收藏事务、计数投影与读取端点（NC-012a-B）；规则仓：test(rules): 互动五集合默认拒绝（NC-012a-B）"

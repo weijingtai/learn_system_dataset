@@ -1,0 +1,47 @@
+TASK_ID: NC-012a-F
+PARENT: NC-012a
+STATUS: DRAFT_FOR_REVIEW
+REPO: xuan-migration/reading-notes
+GOAL: InteractionBar、ReportSheet、ReportedFold、ShareLinksPage、ShareLinkLandingPage；ContentDetailPage 与 DiscussionPanel 可选挂载；J20～J26
+DEPENDS_ON: [NC-012a-E]
+ESTIMATE_MINUTES: 60
+WORKLOAD: "五个界面文件合计约 420 行；content_detail_page.dart 约 20 行；discussion_panel.dart 约 8 行；reading_notes.dart 追加 5 行导出；7 个 widget 测试约 450 行"
+SCOPE:
+  READ:
+    - /Users/jingtaiwei/Git/Public/learn_system/openspec/annotation-community/contracts/community_interactions.md（§10.9～§10.11、§11 J20～J26、§15 D-NC012-18）
+    - /Users/jingtaiwei/Git/Public/learn_system/docs/blackbox-spec-rework/work-items/nc-012a/BDD.md（J20～J26）、TDD.md（§7）
+    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/lib/src/community/{content_detail_page,discussion_panel,pending_queue_page,confirmation_dialogs}.dart
+    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/test/community/{seven_states_test,discussion_test}.dart（widget 测试写法，只读）
+  WRITE_NEW:
+    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/lib/src/community/interaction_bar.dart
+    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/lib/src/community/report_sheet.dart
+    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/lib/src/community/reported_fold.dart
+    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/lib/src/community/share_links_page.dart
+    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/lib/src/community/share_link_landing_page.dart
+    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/lib/src/community/content_detail_page.dart（§10.10 两个可选参数）
+    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/lib/src/community/discussion_panel.dart（§10.10 一个可选参数）
+    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/lib/reading_notes.dart（追加 5 行导出）
+    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/test/community/interactions_test.dart（追加 J20～J26）
+  FORBIDDEN:
+    - 契约 §2.2 禁止清单；改 act/04、act/05 已提交的实现文件与测试期望；新增 §10.11 闭集外文案；learn_system 写入（交付报告除外）；新依赖；真实网络；skip；永真断言；git push
+DEPENDENCY_ALLOWLIST: [沿用 reading-notes 锁定版本]
+RULES:
+  - "组件参数、键、文案逐字按契约 §10.9～§10.11；两处挂载在参数为 null 时渲染树与改动前相同"
+  - "每条 flutter 命令带 PATH=/Users/jingtaiwei/flutter/bin:$PATH，并显式设置不少于 600 秒超时"
+  - "只 git add WRITE_NEW 文件；提交消息按 COMMIT_MESSAGE，末尾空一行加 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
+TESTS_FIRST:
+  - "先写 J20～J26，运行 VERIFICATION 第 2 条，保存编译失败原文作为 Red"
+STEPS:
+  - "实现至 VERIFICATION 全部符合期望"
+  - "git add 并提交"
+  - "提交后运行一次 learn_system 守卫 --require-impl client，退出码写入报告"
+VERIFICATION:
+  - "cd /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes && PATH=/Users/jingtaiwei/flutter/bin:$PATH flutter analyze（期望 No issues found!）"
+  - "cd /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes && PATH=/Users/jingtaiwei/flutter/bin:$PATH flutter test test/community/interactions_test.dart（期望 +26: All tests passed!）"
+  - "cd /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes && PATH=/Users/jingtaiwei/flutter/bin:$PATH flutter test（期望 +296: All tests passed!）"
+  - "git -C /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes diff-tree -r --name-only d80703b HEAD -- lib/src/domain lib/src/persistence lib/src/editor lib/src/history lib/src/storage lib/src/export test/persistence test/contracts test/editor test/history test/support test/storage test/export test/community/command_queue_test.dart test/community/community_api_test.dart test/community/publication_flow_test.dart test/community/seven_states_test.dart test/community/discussion_test.dart pubspec.yaml pubspec.lock lib/src/community/community_database.dart（期望空）"
+  - "git -C /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes status --short（期望空）"
+  - "cd /Users/jingtaiwei/Git/Public/learn_system && bash docs/blackbox-spec-rework/reviews/nc012a_guard.sh --require-impl client（期望 0）"
+ON_FAIL: "停止并在 DELIVERY_REPORT_CLIENT.md 追加「## 待裁决」。挂载改动导致既有 seven_states 或 discussion 测试变红、需要新增文案、需改 act/04 或 act/05 文件，均为停止条件。"
+BASELINE_EXIT_CODES: "开工基线：NC-012a-E 提交，flutter test +289"
+COMMIT_MESSAGE: "feat(community): 互动条、举报面板与折叠、分享链接页面与落地页（NC-012a-F）"

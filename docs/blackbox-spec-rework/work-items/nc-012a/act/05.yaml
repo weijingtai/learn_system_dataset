@@ -1,0 +1,40 @@
+TASK_ID: NC-012a-E
+PARENT: NC-012a
+STATUS: DRAFT_FOR_REVIEW
+REPO: xuan-migration/reading-notes
+GOAL: InteractionController（合并快速切换、迟到防回滚、412 不重发、重启恢复、举报本地折叠）、ShareLinksController 与 resolveShare；J12～J19
+DEPENDS_ON: [NC-012a-D]
+ESTIMATE_MINUTES: 60
+WORKLOAD: "interaction_controller.dart 约 260 行；share_links_controller.dart 约 150 行；reading_notes.dart 追加 2 行导出；8 个测试约 520 行（含 Completer 挂起的 MockClient 与关库重开）"
+SCOPE:
+  READ:
+    - /Users/jingtaiwei/Git/Public/learn_system/openspec/annotation-community/contracts/community_interactions.md（§10.4、§10.7、§10.8、§10.11、§11 J12～J19、§15 D-NC012-15～17）
+    - /Users/jingtaiwei/Git/Public/learn_system/docs/blackbox-spec-rework/work-items/nc-012a/BDD.md（J12～J19）、TDD.md（§6）
+    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/lib/src/community/{discussion_controller,command_queue,community_database}.dart（_trackedCommandIds 与 refreshPending 写法，只读）
+    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/lib/src/community/community_database.g.dart（CommunityMetaTableCompanion 与 communityMetaTable 访问器，只读）
+  WRITE_NEW:
+    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/lib/src/community/interaction_controller.dart
+    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/lib/src/community/share_links_controller.dart
+    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/lib/reading_notes.dart（追加 2 行导出）
+    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/test/community/interactions_test.dart（追加 J12～J19）
+  FORBIDDEN:
+    - 契约 §2.2 禁止清单；改 act/04 已提交的实现文件与 J01～J11 期望；learn_system 写入（交付报告除外）；新依赖；真实网络；skip；永真断言；git push
+DEPENDENCY_ALLOWLIST: [沿用 reading-notes 锁定版本]
+RULES:
+  - "状态字段、方法行为、文案逐字按契约 §10.7、§10.8、§10.11"
+  - "每条 flutter 命令带 PATH=/Users/jingtaiwei/flutter/bin:$PATH，并显式设置不少于 600 秒超时"
+  - "只 git add WRITE_NEW 文件；提交消息按 COMMIT_MESSAGE，末尾空一行加 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
+TESTS_FIRST:
+  - "先写 J12～J19，运行 VERIFICATION 第 2 条，保存编译失败原文作为 Red"
+STEPS:
+  - "实现至 VERIFICATION 全部符合期望"
+  - "git add 并提交"
+VERIFICATION:
+  - "cd /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes && PATH=/Users/jingtaiwei/flutter/bin:$PATH flutter analyze（期望 No issues found!）"
+  - "cd /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes && PATH=/Users/jingtaiwei/flutter/bin:$PATH flutter test test/community/interactions_test.dart（期望 +19: All tests passed!）"
+  - "cd /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes && PATH=/Users/jingtaiwei/flutter/bin:$PATH flutter test（期望 +289: All tests passed!）"
+  - "git -C /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes diff-tree -r --name-only d80703b HEAD -- lib/src/domain lib/src/persistence lib/src/editor lib/src/history lib/src/storage lib/src/export test/persistence test/contracts test/editor test/history test/support test/storage test/export test/community/command_queue_test.dart test/community/community_api_test.dart test/community/publication_flow_test.dart test/community/seven_states_test.dart test/community/discussion_test.dart pubspec.yaml pubspec.lock lib/src/community/community_database.dart（期望空）"
+  - "git -C /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes status --short（期望空）"
+ON_FAIL: "停止并在 DELIVERY_REPORT_CLIENT.md 追加「## 待裁决」。J12 的 Completer 挂起无法让第二次切换观察到非终态行、需要改 command_queue 语义或 act/04 文件、既有测试变红，均为停止条件。"
+BASELINE_EXIT_CODES: "开工基线：NC-012a-D 提交，flutter test +281"
+COMMIT_MESSAGE: "feat(community): 互动控制器与分享链接控制器（NC-012a-E）"

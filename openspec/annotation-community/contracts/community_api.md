@@ -293,3 +293,26 @@ L0 闭合码全集：`invalid_argument, not_found, unauthenticated, permission_d
 
 ### 11.5 决定
 本节决定编号 D-NC011-04、05、06、07、11、18，登记于 community_discussion.md §14。
+
+## 12. NC-012a 补丁（2026-09-12，互动、分享与举报；逐项落地见 [community_interactions.md](community_interactions.md)）
+
+### 12.1 写响应包装（替代 §2 W10/W11 成功列与 §7 表对应行，D-NC012-05）
+- W10 成功为 200 `ReactionResponse{reaction: ReactionState, command}`；W11 成功为 200 `BookmarkResponse{bookmark: BookmarkState, command}`；二者 `additionalProperties: false`。§7 表 `reaction.set`、`bookmark.set` 的完整结果 Schema 相应改为这两个包装。
+- W10 同值（If-Match 通过且 value 未变）不写、不升版本，`applied_version` = 当前版本；W11 同理，且 If-Match 可选（D-NC012-03、04）。
+
+### 12.2 新增读端点（§2 端点目录追加，D-NC012-06）
+- R7 `GET /me/share-links?cursor&limit` → 200 `ShareLinkPage{items: ShareLink[] ≤ 100, next_cursor}`：本人创建的链接按 `created_at desc, id desc`，含已撤销；游标 = base64url 去 padding(`"<created_at 6 位微秒>|<share_id>"`)，非法 → 400 `invalid_argument.cursor`；limit 规则同 §6。
+- R8 `GET /bookmarks/{target_type}/{target_id}` → 200 `BookmarkState`（只读本人记录，无记录为 `active=false, version=0`）；目标不可读 → 404。
+
+### 12.3 R3 与 R4
+- R3 ETag = `"<viewer 的 Reaction.version>:<like>:<dislike>"`（无记录版本为 0）；ACL 先于 304（D-NC012-12）。
+- R4：`share_id` 格式不符、不存在、已撤销、目标对当前读者不可读，一律 404 共用 `NotFoundContent` 体；ACL 扫描矩阵 E4 由此转为真实断言（D-NC012-07）。
+
+### 12.4 错误目录增补（§4.1）
+- `forbidden.thread_closed` 行的场景增加：作者对自己不公开的内容（或其下评论）赞踩或创建分享链接。
+- 413 行增加 `too_large.detail`（`limit=500`，举报说明按 code point）。
+- 400 行增加：`invalid_argument.target_type`、`invalid_argument.target_id`（路径参数 `field` 为 `target_type`/`target_id`，请求体为 `/target_type`/`/target_id`）、`invalid_argument.reaction`、`invalid_argument.bookmark`、`invalid_argument.share_link`、`invalid_argument.report`（`field` 为 JSON Pointer）、`invalid_argument.share_id`。
+- `forbidden.not_owner` 行增加 `share.revoke`（非创建者）。
+
+### 12.5 决定
+本节决定编号 D-NC012-03、04、05、06、07、12，登记于 community_interactions.md §15。

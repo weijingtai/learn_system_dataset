@@ -1,0 +1,48 @@
+TASK_ID: NC-012a-A
+PARENT: NC-012a
+STATUS: DRAFT_FOR_REVIEW
+REPO: xuan-migration/repository-rest-adapter
+GOAL: OpenAPI 补 W10/W11 响应包装、R7 我的分享链接、R8 收藏读取、W10 403 与 W14 413；4 个结构测试与 4 个示例
+DEPENDS_ON: []
+ESTIMATE_MINUTES: 40
+WORKLOAD: "openapi.yaml 约 90 行增量（3 个 schema、1 条新路径、1 个新方法、4 处响应修改、3 处描述）；4 个 dart 测试约 120 行；4 个示例 JSON 与 manifest 4 项"
+SCOPE:
+  READ:
+    - /Users/jingtaiwei/Git/Public/learn_system/openspec/annotation-community/contracts/community_interactions.md（§2.3、§9、§12、§15）
+    - /Users/jingtaiwei/Git/Public/learn_system/openspec/annotation-community/contracts/community_api.md（§10、§12）
+    - /Users/jingtaiwei/Git/Public/learn_system/docs/blackbox-spec-rework/work-items/nc-012a/BDD.md（A01～A04）、TDD.md（§2）
+    - /Users/jingtaiwei/Git/Public/xuan-migration/repository-rest-adapter/openapi/openapi.yaml（reactions 约第 1362 行、bookmarks 约第 1444 行、share-links 约第 1488/1529 行、reports 约第 1592 行、R6 me/contents 约第 1158 行、ReactionState/BookmarkState/ShareLink schema、响应组件约第 3753～3876 行）
+    - /Users/jingtaiwei/Git/Public/xuan-migration/repository-rest-adapter/test/community_openapi_contract_test.dart（末尾 NC-011 追加的 4 个测试写法）
+    - /Users/jingtaiwei/Git/Public/xuan-migration/repository-rest-adapter/tool/check_examples.py
+    - /Users/jingtaiwei/Git/Public/xuan-migration/repository-rest-adapter/test/fixtures/openapi/examples/manifest.json
+  WRITE_NEW:
+    - /Users/jingtaiwei/Git/Public/xuan-migration/repository-rest-adapter/openapi/openapi.yaml
+    - /Users/jingtaiwei/Git/Public/xuan-migration/repository-rest-adapter/test/community_openapi_contract_test.dart（只在末尾追加 4 个 test）
+    - /Users/jingtaiwei/Git/Public/xuan-migration/repository-rest-adapter/test/fixtures/openapi/examples/reaction_response_like.json
+    - /Users/jingtaiwei/Git/Public/xuan-migration/repository-rest-adapter/test/fixtures/openapi/examples/bookmark_response_active.json
+    - /Users/jingtaiwei/Git/Public/xuan-migration/repository-rest-adapter/test/fixtures/openapi/examples/share_link_page_with_revoked.json
+    - /Users/jingtaiwei/Git/Public/xuan-migration/repository-rest-adapter/test/fixtures/openapi/examples/reaction_state_value_love.json
+    - /Users/jingtaiwei/Git/Public/xuan-migration/repository-rest-adapter/test/fixtures/openapi/examples/manifest.json（只在末尾追加 4 项）
+  FORBIDDEN:
+    - 上表以外任何文件；修改或删除既有测试、既有示例；契约 §12.1 未列出的路径、方法、组件变化；learn_system 写入（交付报告除外）；新依赖；skip；永真断言；git push
+DEPENDENCY_ALLOWLIST: [沿用仓库锁定版本；Python 用 /Users/jingtaiwei/Git/Public/learn_system/.venv/bin/python]
+RULES:
+  - "OpenAPI 改动逐字按契约 §12.1；可空写 type 数组，禁用 nullable（D-NC003-13）"
+  - "测试名逐字按契约 §12.2；示例内容逐字按 §12.3"
+  - "只 git add WRITE_NEW 文件；提交消息按 COMMIT_MESSAGE，末尾空一行加 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
+TESTS_FIRST:
+  - "先追加 4 个测试与 4 个示例、manifest 4 项，运行 VERIFICATION 第 1 条，保存失败原文作为 Red（期望 4 个新测试失败，既有 23 个通过）"
+STEPS:
+  - "按 §12.1 修改 openapi.yaml，直至 VERIFICATION 全部符合期望"
+  - "git add 并提交"
+  - "提交后运行一次 learn_system 守卫 --require-impl rest，退出码写入报告"
+VERIFICATION:
+  - "cd /Users/jingtaiwei/Git/Public/xuan-migration/repository-rest-adapter && PATH=/Users/jingtaiwei/flutter/bin:$PATH dart test test/community_openapi_contract_test.dart（期望 +27，All tests passed）"
+  - "cd /Users/jingtaiwei/Git/Public/xuan-migration/repository-rest-adapter && PATH=/Users/jingtaiwei/flutter/bin:$PATH dart test（期望 +77: All tests passed!）"
+  - "cd /Users/jingtaiwei/Git/Public/xuan-migration/repository-rest-adapter && tool/validate_openapi openapi/openapi.yaml（期望退出 0）"
+  - "cd /Users/jingtaiwei/Git/Public/xuan-migration/repository-rest-adapter && /Users/jingtaiwei/Git/Public/learn_system/.venv/bin/python tool/check_examples.py（期望退出 0）"
+  - "git -C /Users/jingtaiwei/Git/Public/xuan-migration/repository-rest-adapter diff-tree -r --name-only 4671c92 HEAD（期望恰为 WRITE_NEW 的 7 个文件）"
+  - "cd /Users/jingtaiwei/Git/Public/learn_system && bash docs/blackbox-spec-rework/reviews/nc012a_guard.sh --require-impl rest（期望 0）"
+ON_FAIL: "停止并在 DELIVERY_REPORT_REST.md 追加「## 待裁决」；不改契约与既有测试。validate_openapi 报 ENV_BLOCKED、既有测试变红、check_examples 拒收契约示例（含 CommandResult.resource_ids 键不被接受），均为停止条件。"
+BASELINE_EXIT_CODES: "开工基线：4671c92，dart test +73"
+COMMIT_MESSAGE: "feat(openapi): 互动响应包装、我的分享链接与收藏读取端点（NC-012a-A）"
