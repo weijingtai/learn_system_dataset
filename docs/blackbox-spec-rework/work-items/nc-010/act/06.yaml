@@ -1,0 +1,41 @@
+TASK_ID: NC-010-F
+PARENT: NC-010
+STATUS: READY
+REPO: xuan-migration/reading-notes
+GOAL: 验收返工：payload_hash 规范化——payload 恒含 if_match（无值为 null）、对象键按码点排序；2 测试，flutter test +214
+DEPENDS_ON: [NC-010-E]
+ESTIMATE_MINUTES: 30
+WORKLOAD: "computePayloadHash 改一行；_canonicalJson 换成码点比较约 15 行；2 个单元测试约 40 行"
+SCOPE:
+  READ:
+    - /Users/jingtaiwei/Git/Public/learn_system/openspec/annotation-community/contracts/community_client.md §4、§8、§10
+    - /Users/jingtaiwei/Git/Public/learn_system/docs/blackbox-spec-rework/work-items/nc-010/TDD.md §6b、BDD.md B39～B40、ACCEPTANCE.md 验收记录 R1
+  WRITE_NEW:
+    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/lib/src/community/command_queue.dart（仅 computePayloadHash 与 _canonicalJson）
+    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/test/community/command_queue_test.dart（追加 2 个）
+    - /Users/jingtaiwei/Git/Public/learn_system/docs/blackbox-spec-rework/work-items/nc-010/DELIVERY_REPORT.md（仅追加，不 git add）
+  FORBIDDEN:
+    - /Users/jingtaiwei/Git/Public/learn_system 下除交付报告外的任何写入
+    - reading-notes 其他文件（含 lib/src/{domain,persistence,editor,history}/、pubspec.yaml、pubspec.lock、*.g.dart）
+    - 新依赖；skip；永真断言；测试内计算期望哈希；改既有测试期望；git push；删除文件
+DEPENDENCY_ALLOWLIST: []
+RULES:
+  - "规范化规则与三个参考值逐字按契约 §8、§10.1；期望值为字面量"
+  - "先写测试取得真实 Red 原文再实现"
+  - "只 git add 本步文件；提交消息按 COMMIT_MESSAGE，末尾另起两行 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
+TESTS_FIRST:
+  - "追加 TDD §6b 的 2 个测试；运行 TDD 命令 3，保存失败原文作为 Red（期望 +14 -2）"
+STEPS:
+  - "改 computePayloadHash 与 _canonicalJson 至命令 3 为 +16、命令 6 为 +214、命令 1 为 0 issues"
+  - "git add 本步文件并提交"
+  - "提交后（仅此一次）：bash docs/blackbox-spec-rework/reviews/nc010_guard.sh --require-impl，退出码写入报告"
+VERIFICATION:
+  - "export PATH=/Users/jingtaiwei/flutter/bin:$PATH && cd /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes && flutter analyze（期望 No issues）"
+  - "export PATH=/Users/jingtaiwei/flutter/bin:$PATH && cd /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes && flutter test test/community/command_queue_test.dart（期望 +16）"
+  - "export PATH=/Users/jingtaiwei/flutter/bin:$PATH && cd /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes && flutter test（期望 +214: All tests passed!）"
+  - "cd /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes && git diff-tree -r --name-only 46a5ebf HEAD（期望恰为 lib/src/community/command_queue.dart 与 test/community/command_queue_test.dart）"
+  - "cd /Users/jingtaiwei/Git/Public/learn_system && bash docs/blackbox-spec-rework/reviews/nc010_guard.sh --require-impl（期望 0）"
+  - "git -C /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes status --short（提交后为空）"
+ON_FAIL: "停止并报告失败命令、退出码与原文；既有 payload_hash_matches_python_reference 或其他既有测试变红、需要改清单外文件或既有期望、按契约实现后参考值仍对不上，均为停止条件。"
+BASELINE_EXIT_CODES: "开工基线：reading-notes 46a5ebf（flutter test +212、analyze 0）"
+COMMIT_MESSAGE: "fix(community): payload_hash 恒含 if_match 并按码点排序键（NC-010-F）"

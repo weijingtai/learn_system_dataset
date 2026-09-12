@@ -42,3 +42,5 @@
 | B36 | 缓存 `access_version=5` | 迟到的 committed 响应携带 `access_version=4` | 缓存仍为 5，作者文案不回退 |
 | B37 | 作者笔记 `moderation_state=hidden` | 渲染笔记列表 | 文案「已被管理员暂停展示」旁有「申诉」按钮；点击后注入的 `AppealHandler` 收到 contentId |
 | B38 | 待处理队列中一条 `paused` 命令 | 打开队列并点击该条 | 显示「发送失败，点此重试」；点击后命令 `queued`、`auto_attempts=0`，随后 `MockClient` 收到的写请求 `Idempotency-Key` 与暂停前相同 |
+| B39 | 首次发布命令，`ifMatch` 为 null | `computePayloadHash`（契约 §10.1 样例二） | 等于 `074958695bdd875ce11b8bdf379ca335f81e5e8a1be90a276e18fd0eec450c17` |
+| B40 | body 键为 U+FF41 与 U+1F600 | `computePayloadHash`（契约 §10.1 样例三） | 等于 `822219839fdd8fac8dce019ba46d82944403ade090ed6e8089480af57b40bfda`；§8 样例一仍等于 `c8e2c2b0a842ece53f90cbf84e64fbacf274745a42bf4fb389b670fb0b3b72b5` |

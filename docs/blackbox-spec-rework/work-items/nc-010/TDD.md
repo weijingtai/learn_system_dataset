@@ -8,10 +8,10 @@
 |---|---|---|
 | 1 | `flutter analyze` | 0 issues |
 | 2 | `flutter test test/community/community_api_test.dart` | act/01 后 `+6` |
-| 3 | `flutter test test/community/command_queue_test.dart` | act/02 后 `+14` |
+| 3 | `flutter test test/community/command_queue_test.dart` | act/02 后 `+14`；act/06 后 `+16` |
 | 4 | `flutter test test/community/publication_flow_test.dart` | act/03 后 `+9`；act/04 后 `+17` |
 | 5 | `flutter test test/community/seven_states_test.dart` | act/05 后 `+25` |
-| 6 | `flutter test` | act/01 `+156`；act/02 `+170`；act/03 `+179`；act/04 `+187`；act/05 `+212: All tests passed!` |
+| 6 | `flutter test` | act/01 `+156`；act/02 `+170`；act/03 `+179`；act/04 `+187`；act/05 `+212: All tests passed!`；act/06 `+214: All tests passed!` |
 | 7 | `git diff 9b35e97 HEAD --stat -- lib/src/domain lib/src/persistence lib/src/editor lib/src/history test/persistence test/contracts test/editor test/history test/support` | 空 |
 | 8 | `grep -rn "firebase_auth\|cloud_firestore" lib/src/community` | 无输出 |
 | 9 | `bash docs/blackbox-spec-rework/reviews/nc010_guard.sh --require-impl`（learn_system 内） | 0 |
@@ -53,6 +53,16 @@ Red：先写 8 个测试，运行命令 4 取得原文。
 文件：`test/community/seven_states_test.dart`（参数化生成 25 个 `testWidgets`，名称形如 `seven_states <屏> <状态>`）；如某状态文案在 act/04 页面中缺失，只允许修改 act/04 的页面文件补齐文案，不改其测试。
 
 Red：先写 25 例，运行命令 5 取得原文（act/04 已实现的状态可能部分已绿，报告逐例列出一开始即绿的名称与原因）。
+
+## 6b. act/06：验收返工（契约 §10）
+
+文件：`lib/src/community/command_queue.dart`（仅 `computePayloadHash` 与 `_canonicalJson`）、`test/community/command_queue_test.dart`（追加 2 个）。
+
+2 个测试（名称逐字，期望值为字面量，禁止测试内计算）：
+- `payload_hash_null_if_match_matches_python_reference`（B39）：契约 §10.1 样例二 → `074958695bdd875ce11b8bdf379ca335f81e5e8a1be90a276e18fd0eec450c17`。
+- `payload_hash_sorts_keys_by_code_point`（B40）：契约 §10.1 样例三 → `822219839fdd8fac8dce019ba46d82944403ade090ed6e8089480af57b40bfda`。
+
+Red：先写 2 个测试，对 `46a5ebf` 运行命令 3，期望 `+14 -2`（两个新测试红，既有 `payload_hash_matches_python_reference` 仍绿）。Green：命令 3 为 `+16`，命令 6 为 `+214: All tests passed!`，命令 1 为 0 issues。
 
 ## 7. 禁止
 

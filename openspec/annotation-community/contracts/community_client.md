@@ -166,3 +166,22 @@ typedef AppealHandler = void Function(String contentId);   // 宿主接入既有
 | D-NC010-07 | 自动重试退避 1s/2s/4s/8s、上限 5 次，之后 `paused`（非终态、同键、需用户点重试） | DESIGN §9.1 冻结指标；命令不能丢，暂停而非丢弃 |
 | D-NC010-08 | PRD §5.1 五个确认层中本任务交付收回、彻底删除两个（另加首次发布后果说明），导出/导入归 NC-018、拉黑归 NC-012 | TASKS NC-010 字面要求五个，但导出/导入与拉黑的功能本体不在本任务，确认层随功能交付 |
 | D-NC010-09 | `trashed` 与 `hidden` 同时成立时作者看到「在回收站 · 剩余 N 天」 | SM-C 允许 withdrawn+trashed+hidden；PRD §6.2 未规定重叠优先级；回收站剩余天数对作者更紧迫，审核态在恢复后仍按 SM-4 保留并再次显示 |
+
+## 10. 验收返工补充（2026-09-11 主 Agent 验收 R1 后追加，NC-010 act/06 消费）
+
+### 10.1 payload_hash 规范化补充（D-NC010-10、D-NC010-11）
+- `payload` 中 `if_match` 键**始终出现**：入队时没有 If-Match（W1 首次发布）写 JSON `null`，不得省略。与服务端 `community_contents.py` 构造 `{"path": ..., "body": ..., "if_match": if_match}` 一致。
+- 对象键按 Unicode **码点**升序排序（等同 Python `sort_keys=True` 对 `str` 的比较）；禁止用 Dart `List<String>.sort()` / `String.compareTo` 的 UTF-16 码元序。两者在键含 U+10000 以上字符并与 U+E000～U+FFFF 字符比较时结果不同。
+- 参考样例二（首次发布，`if_match` 为 null）：`operation = "content.publish"`，`path = {}`，`body = {"content_id": "note_00000000000000000000000000000002", "revision_id": "nrev_00000000000000000000000000000002", "content_hash": <64 个小写 a>, "snapshot": {"title": "标题", "markdown": "正文", "attachments": [], "mentions": [], "bindings": []}}`，`if_match = null` → canonical JSON 以 `,"if_match":null,"path":{}}}` 结尾；SHA-256 = `074958695bdd875ce11b8bdf379ca335f81e5e8a1be90a276e18fd0eec450c17`。
+- 参考样例三（码点排序）：`operation = "content.update"`，`path = {"content_id": "note_00000000000000000000000000000003"}`，`body` 两个键：U+FF41（全角 a，Dart 源码写 `'\uFF41'`）→ `1`，U+1F600（Dart 源码写 `'\u{1F600}'`）→ `2`，`if_match = 2`；码点序 U+FF41 在前；SHA-256 = `822219839fdd8fac8dce019ba46d82944403ade090ed6e8089480af57b40bfda`。
+- §8 样例一（`c8e2c2b0…b72b5`）不变。三个值均由主 Agent 以 Python `json.dumps(sort_keys=True, separators=(",", ":"), ensure_ascii=False)` 计算。
+
+### 10.2 回收站剩余天数下限（D-NC010-12）
+§5 公式 `N = ceil((trashed_at + 30d − now) / 1d)` 小于 0 时显示 0（实现已如此）。
+
+### 10.3 决定
+| 编号 | 决定 | 理由 |
+|---|---|---|
+| D-NC010-10 | payload 恒含 `if_match`，无值为 null | 验收盲测：首次发布 Dart 省略该键，与服务端、Python 参考值不同 |
+| D-NC010-11 | canonical_json 键按码点排序 | 验收盲测：键含 U+1F600 与 U+FF41 时 Dart 按 UTF-16 码元排序，与 Python 不同；§4 表原文已写「码点」 |
+| D-NC010-12 | 剩余天数小于 0 显示 0 | 盲测：31 天前放入回收站显示「剩余 0 天」；公式未写下限，负数无意义 |

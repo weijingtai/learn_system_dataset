@@ -1,5 +1,5 @@
 TASK_ID: NC-010
-STATUS: READY
+STATUS: REWORK
 GOAL: 在 reading-notes 实现社区 API 客户端、持久命令队列、发布状态与控制器、四个页面、确认层与七状态矩阵
 CONTRACTS:
   - openspec/annotation-community/contracts/community_client.md
@@ -11,8 +11,9 @@ SPLIT:
   - act/03.yaml
   - act/04.yaml
   - act/05.yaml
-ORDER: "严格按 act/01 → 02 → 03 → 04 → 05；全部提交在 /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes；每步以上一步提交为基线；禁止并行"
-ESTIMATE_MINUTES_TOTAL: 275
+  - act/06.yaml（2026-09-11 验收 R1 返工：payload_hash 恒含 if_match、键按码点排序）
+ORDER: "严格按 act/01 → 02 → 03 → 04 → 05 → 06；全部提交在 /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes；每步以上一步提交为基线；禁止并行"
+ESTIMATE_MINUTES_TOTAL: 305
 DEFERRED:
   - "真实宿主 example/ 与 Functions Emulator 端到端：NC-024（D-NC010-06）"
   - "图片就绪生产端口与上传：NC-008/NC-025（D-NC010-04）"

@@ -1,6 +1,6 @@
 # NC-009：公共发布事务、权限扫描与命令账本服务（服务端）
 
-状态：`REWORK_ACT06`（2026-09-11 主 Agent 验收 R2：act/05 三处缺陷已修复；盲测发现快照补默认值绕过必填、社区日志另有 4 处记异常文本，追加 act/06；记录见 ACCEPTANCE.md）。曾为 `REWORK_ACT05`（2026-09-11 主 Agent 验收 R1：act/01～04 全量与守卫通过，盲测发现快照未按 Schema 校验、畸形 If-Match 412、503 泄露异常，追加 act/05；记录见 ACCEPTANCE.md）。曾为 `READY`（2026-09-11：主 Agent 自审 5 项、R1 返工 3 项 + 2 建议、R2 返工 1 项均落实；记录见 `reviews/NC-009-REVIEW-R1.md`）。派发前置：**NC-003 ACCEPTED（含 act/06，已合入契约 §9 P1/P2）——2026-09-11 已满足（REST 仓 `5730ed9`）**；环境阻塞已于 2026-09-11 解除（见 Baseline）。执行由用户交外部 Agent，PROMPT.md 原样发送。task_id：`NC-009`。权威需求来源：TASKS NC-009；DESIGN §4、§7.3、§7.4、§11.4～11.5；PRD R-05/R-20、§6.2；契约 `contracts/community_server.md`（本任务专属，主 Agent 编写）与 `community_api.md`（NC-003）。
+状态：`ACCEPTED`（2026-09-11 主 Agent 验收 R3：act/06 通过，SERVER `c29a31a`→`df5c3da`、RULES `ea8c9b8`，全量 459 passed；记录见 ACCEPTANCE.md）。曾为 `REWORK_ACT06`（2026-09-11 主 Agent 验收 R2：act/05 三处缺陷已修复；盲测发现快照补默认值绕过必填、社区日志另有 4 处记异常文本，追加 act/06；记录见 ACCEPTANCE.md）。曾为 `REWORK_ACT05`（2026-09-11 主 Agent 验收 R1：act/01～04 全量与守卫通过，盲测发现快照未按 Schema 校验、畸形 If-Match 412、503 泄露异常，追加 act/05；记录见 ACCEPTANCE.md）。曾为 `READY`（2026-09-11：主 Agent 自审 5 项、R1 返工 3 项 + 2 建议、R2 返工 1 项均落实；记录见 `reviews/NC-009-REVIEW-R1.md`）。派发前置：**NC-003 ACCEPTED（含 act/06，已合入契约 §9 P1/P2）——2026-09-11 已满足（REST 仓 `5730ed9`）**；环境阻塞已于 2026-09-11 解除（见 Baseline）。执行由用户交外部 Agent，PROMPT.md 原样发送。task_id：`NC-009`。权威需求来源：TASKS NC-009；DESIGN §4、§7.3、§7.4、§11.4～11.5；PRD R-05/R-20、§6.2；契约 `contracts/community_server.md`（本任务专属，主 Agent 编写）与 `community_api.md`（NC-003）。
 
 ## Goal
 

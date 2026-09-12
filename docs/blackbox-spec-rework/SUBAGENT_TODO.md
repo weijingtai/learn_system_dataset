@@ -664,13 +664,13 @@
 ### 图片与公开社区
 
 - [ ] NC-008：本地图片与公共资源适配（状态：`BACKLOG`）
-- [ ] NC-009：公共发布事务、权限扫描与命令账本服务（状态：`REWORK_ACT05`，2026-09-11：act/01～04 已交付 SERVER `c29a31a`…`55f3980`、RULES `ea8c9b8`，全量 450/5/9、规则 65、守卫 0；盲测发现快照未按 Schema 校验、畸形 If-Match 412、503 泄露异常，追加 act/05，PROMPT 已交用户）
+- [x] NC-009：公共发布事务、权限扫描与命令账本服务（状态：`ACCEPTED`，2026-09-11 R3；SERVER `c29a31a`→`df5c3da`、RULES `ea8c9b8`，act/01～06，全量 459/5/9、规则 65、守卫 0；R1 盲测三处缺陷由 act/05 修复，R2 发现快照补默认值与日志异常文本由 act/06 修复；act/06 经 tmux+agy 执行）
   - [x] 规格侧契约（主 Agent）：`openspec/annotation-community/contracts/community_server.md`（canonical SERVER 与 RULES 仓实值、六集合与文档、账本事务六步、W1～W6 前置顺序与写集、读路径与 ACL 18 条矩阵、规则 jest、测试名、D-NC009-01～08）
   - [x] 六件套 `work-items/nc-009/`（act/01 账本、act/02 发布/更新/收回、act/03 回收站/查询/精简、act/04 ACL/规则/可观测）与守卫 `reviews/nc009_guard.sh`
   - [x] 自审 5 项 + wjt-react R1 返工 3 项 + R2 返工 1 项，READY（`reviews/NC-009-REVIEW-R1.md`）
   - [x] 环境：磁盘清理后重建 `.venv`，基线 411 passed / 5 个既有失败（README 逐名登记）
   - [ ] 用户派发；主 Agent 按 ACCEPTANCE.md 验收
-- [ ] NC-010：客户端命令队列、公共 API 客户端、发布状态与页面（状态：`READY`，2026-09-11；派发前置 NC-003 ACCEPTED 已满足；PROMPT 已交用户）
+- [ ] NC-010：客户端命令队列、公共 API 客户端、发布状态与页面（状态：`REWORK_ACT06`，2026-09-11 R1：act/01～05 已交付 reading-notes `bd894b4`…`46a5ebf`，flutter test +212、analyze 0、守卫 0；盲测发现 payload_hash 无 If-Match 时省略键、键按 UTF-16 排序，契约 §10 + act/06，经 tmux+agy 执行）
   - [x] 规格侧契约（主 Agent）：`openspec/annotation-community/contracts/community_client.md`（独立 CommunityDatabase、IdTokenProvider、API 客户端、命令队列状态机与 R5 对账、payload_hash 跨端参考值、作者视角八档文案、发布流程、四屏七状态、三个确认层、D-NC010-01～07）
   - [x] 六件套 `work-items/nc-010/`（act/01 API 客户端、act/02 数据库与队列、act/03 控制器、act/04 页面与确认层、act/05 七状态）与守卫 `reviews/nc010_guard.sh`
   - [x] wjt-react 四查：R1 返工 7 项 + 2 建议、R2 返工 2 项，READY（`reviews/NC-010-REVIEW-R1.md`）

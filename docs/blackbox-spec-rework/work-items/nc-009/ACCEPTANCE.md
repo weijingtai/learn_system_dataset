@@ -1,6 +1,6 @@
 # NC-009 独立验收
 
-当前：`REWORK_ACT06`（2026-09-11 主 Agent 验收 R2，见文末；R1 为 REWORK_ACT05）。派发前置：NC-003 ACCEPTED（含 act/06，2026-09-11 已满足）；`functions-py/.venv` 已重建，基线 411 passed / 5 failed，5 个既有失败名称与 README 一致，验收比较失败用例名称集合。
+当前：`ACCEPTED`（2026-09-11 主 Agent 验收 R3，见文末；R1 为 REWORK_ACT05，R2 为 REWORK_ACT06）。派发前置：NC-003 ACCEPTED（含 act/06，2026-09-11 已满足）；`functions-py/.venv` 已重建，基线 411 passed / 5 failed，5 个既有失败名称与 README 一致，验收比较失败用例名称集合。
 
 1. ACT 审查：未参与编写者做 wjt-react 四查。
 2. 范围：SERVER 恰 4 个提交（`30a868c` 之后），只含各 ACT WRITE_NEW；`config.py/main.py/conftest.py` 的 diff 只有追加行；`idempotency.py/playground_rest.py/notifications.py` 零改动；RULES 仓恰 1 个提交且只含一个 TS 测试文件。
@@ -40,3 +40,14 @@
   - **偏差 2**（§10.3 只写了 `run_command`，主 Agent 缺口）：社区代码另有 4 处日志仍写 `{exc}`。
   - 已知缺口复现（不计返工，仍留 NC-011）：拒绝终态重放丢失 `field` 附加字段。
 - 判定：**REWORK**（小）；契约 §10.6（D-NC009-18～19）+ act/06；act/06 通过后复跑偏差 1、2 盲测与全量失败集合，关闭 NC-009。
+
+---
+
+## 验收记录 R3（主 Agent，2026-09-11）：act/06 通过，NC-009 ACCEPTED
+
+- 提交：SERVER `df5c3da`（F），7 个文件均在 act/06 WRITE_NEW 内。逐文件对比 `52d8330`：`content_service.py` 两处只把默认值补齐与 `dict()` 换成 `body.get("snapshot")`；4 处日志只把 `{exc}` 换成 `{type(exc).__name__}`；`test_community_publications.py` 只补 `mentions`/`bindings` 空数组 6 处；`test_community_validation.py` 追加 2 个测试。
+- 命令经 tmux + agy 执行（只运行、存原始输出于 `~/tmux-agents/runs/nc010v/`），主 Agent 读原始输出判定：全量 `459 passed, 5 failed, 9 xfailed`，5 个失败名称与基线相同；`nc009_guard.sh --require-impl` 失败条数 0；社区源码无 `{exc}`、`str(exc)`、`repr(exc)`、`exc_info`；工作树干净。
+- 交付报告：act/06 Red 原文 `2 failed, 7 passed`，红因（201；caplog 含 `SECRET-LOG`）与 TDD §5c 一致。
+- 盲测（主 Agent 编写，临时文件已删除）5 passed：① W1 快照缺必填键（两种）、字符串、空数组、null、数字、缺 `snapshot` 键共 7 种 → 均 400 `/snapshot` 且无 access 文档；② `mentions: "abc"` → 400 `/snapshot/mentions`；③ 51 个 mention 且缺 bindings → 413（① 先于 ②）；④ 已发布内容 W2 快照只有 title → 400 `/snapshot`，version 仍为 1；⑤ 命令查询 handler 身份解析抛含路径的异常 → 401，响应体与 DEBUG 日志均无异常文本。
+- 遗留（不阻塞）：拒绝终态重放丢失 `field` 等附加字段，留 NC-011 复用账本时统一裁定。
+- 判定：**ACCEPTED**。SERVER `c29a31a`→`df5c3da`（6 个提交），RULES `ea8c9b8`。
