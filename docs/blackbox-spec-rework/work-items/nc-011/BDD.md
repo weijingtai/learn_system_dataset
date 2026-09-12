@@ -65,7 +65,7 @@ ID 与契约 `community_discussion.md` §9.2（T）、§12（K）、§13.2（A�
 | K08 | 503 command_status；另一条 410 | drain | unknown → R5 404 → 原键重发；410 rejected 且 onGone410 0 次 |
 | K09 | R2 返回人数 3；另一次 404 | `countComments`/`resolveWithdrawCommentCount` | 3 / null 且确认层用通用句式 |
 | K10 | 队列含 comment.create（21 code point 含 emoji）、delete、thread_closed 拒绝 | 打开待处理页 | 「评论：」+前 20 code point、「删除评论」、可复制正文 |
-| K11 | 第一页 20 条 + 游标 | 点「加载更多评论」 | 40 条，首批 Element 未重建，滚动偏移不变，请求带 cursor |
+| K11 | 第一页 20 条 + 游标 | 点「加载更多评论」 | 40 条；滚动到底后的 pixels 与第 20 条的屏幕位置不变；请求带 cursor |
 | K12 | 预览 5 条 + 游标 | 点「展开更多回复」 | 请求 root_id/oldest/limit 5/cursor，第 6 条出现 |
 | K13 | 空页：已公开 / 已收回 | 打开面板 | 「还没有人评论，来写第一条」可发送 / 「该内容不接受新评论」不可发送 |
 | K14 | 离线发送后关库重开 | 恢复联网 drain | 服务器评论 1 条，面板无「待发送」，待处理页「所有操作都已完成同步」 |

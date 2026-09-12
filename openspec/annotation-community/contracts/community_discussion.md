@@ -188,7 +188,7 @@ P1～P5 通过后，逐条保留满足 `0 <= m["start_offset"]` 且 `body[m["sta
 
 ### 6.4 查询与组装
 
-- 一级：`thread_id == T`、`depth == 0`；楼内：`root_id == R`。均 `order_by("created_at", d).order_by("id", d)`（newest 为 DESCENDING，oldest 为 ASCENDING），有游标时 `start_after({"created_at": c, "id": i})`，`limit(limit + 1)`。取回 > limit 条时截断到 limit，`next_cursor` 为第 limit 条的游标，否则 null。评论 ID 为 ASCII，Firestore 字符串序即 UTF-8 字节序（DESIGN §6）。复合索引归部署（D-NC011-20）。
+- 一级：`thread_id == T`、`depth == 0`；楼内：`root_id == R`。均 `order_by("created_at", d).order_by("id", d)`（newest 为 DESCENDING，oldest 为 ASCENDING），有游标时 `start_after([c, i])`（按 `order_by` 字段顺序传值列表，与 `handlers/community_contents.py` 既有写法一致；禁止传字典，审查 R1 返工项 1），`limit(limit + 1)`。取回 > limit 条时截断到 limit，`next_cursor` 为第 limit 条的游标，否则 null。评论 ID 为 ASCII，Firestore 字符串序即 UTF-8 字节序（DESIGN §6）。复合索引归部署（D-NC011-20）。
 - 一级查询时对本页每个一级评论（任何 status）做楼内查询 `oldest`、`limit(6)`：`reply_previews[root.id] = {"items": 前 5 条 dto, "next_cursor": 取回 6 条时第 5 条的游标，否则 None}`；楼内查询时 `reply_previews = {}`。
 - 响应体恰为：`{"items", "next_cursor", "reply_previews", "visible_comment_count", "visible_commenter_count"}`，两计数取 thread 文档（无文档为 0）。
 
@@ -339,7 +339,7 @@ Future<int?> resolveWithdrawCommentCount(CommentCountPort? port, String contentI
 | `setOrder(String o)` | 只接受 `newest`/`oldest`；清空后 `load()` |
 | `send(String body, {String? rootId, String? replyToId})` | `body.trim().isEmpty` → 返回；`body.runes.length > 4000` → `notice = '评论不能超过 4000 字'`，不入队；`closed` → `notice = '该内容不接受新评论'`，不入队；否则 `enqueue(comment.create, …, body: CreateCommentRequest(body, rootId, replyToId, expectedAccessVersion: access.version).toJson())`，加入 `pending`，`notifyListeners()`，`await queue.drain()`，`await refreshPending()` |
 | `edit(Comment c, String body)` / `delete(Comment c)` | 入队 edit/delete；捕获 `PendingOpConflict` → `notice = '该评论有未完成的操作'`；随后 drain 与 `refreshPending()` |
-| `refreshPending()` | 读 `db.communityCommands` 中本 owner、`operation` 以 `comment.` 开头、与本内容相关（create 的 `targetId == contentId`；edit/delete 的 targetId 属于已加载评论）的行：非终态 → `pending`（仅 create）；自上次调用以来变为 `committed` → `load()`；`rejected`：`conflict.access_version` → `notice = '内容状态已变化，请确认后重新发送'`、`restoredDraft` = 请求正文；`forbidden.thread_closed` → `notice = '该内容不接受新评论'`、`restoredDraft`；`not_found.content` → `viewState = notVisible`；其他 → 只设 `restoredDraft` |
+| `refreshPending()` | 本 owner 取 `queue.ownerScope`（构造函数签名不变，审查 R1 返工项 3）。控制器持有 `final Set<String> _trackedCommandIds = {}`。读 `db.communityCommands` 中 `ownerScope == queue.ownerScope`、`operation` 以 `comment.` 开头、与本内容相关（create 的 `targetId == contentId`；edit/delete 的 targetId 属于已加载评论）的行：非终态 → 加入 `_trackedCommandIds`，create 行进入 `pending`；**仅对 `_trackedCommandIds` 中的行**判定终态并随即移出集合（审查 R1 返工项 4）——本次有任一 `committed` → 调用一次 `load()`；`cancelled` → 只移出；`rejected`：`conflict.access_version` → `notice = '内容状态已变化，请确认后重新发送'`、`restoredDraft` = 请求正文；`forbidden.thread_closed` → `notice = '该内容不接受新评论'`、`restoredDraft`；`not_found.content` → `viewState = notVisible`；其他 → 只设 `restoredDraft` |
 
 构造后首次 `load()` 由面板 `initState` 触发；重启后新建控制器即从库中恢复 `pending`。
 
@@ -380,7 +380,7 @@ Future<int?> resolveWithdrawCommentCount(CommentCountPort? port, String contentI
 | 05 | K08 | `comment_410_and_503_never_change_key` | RW-5 ③：503 `unavailable.command_status` → `unknown` → R5 404 → 以原键重发；410 `gone.command_result` → rejected，`onGone410` 调用次数 0；全程 key 唯一 |
 | 05 | K09 | `comment_count_port_reads_visible_commenter_count` | 200 → 3；404 时 `resolveWithdrawCommentCount` 返回 null，`withdrawMessage(commentCount: null)` 为通用句式 |
 | 05 | K10 | `pending_queue_summarizes_comment_commands` | 21 个 code point（含 emoji）正文 → 「评论：」+ 前 20 个 code point；delete →「删除评论」；rejected `forbidden.thread_closed` 可「复制正文」 |
-| 06 | K11 | `discussion_first_level_newest_20_then_load_more_keeps_existing_items` | 20 条 + 游标；「加载更多评论」后 40 条；首批 20 个 `ValueKey` 仍在且为同一 Element；`scrollController.offset` 不变；第二次请求带 cursor |
+| 06 | K11 | `discussion_first_level_newest_20_then_load_more_keeps_existing_items` | 默认测试视口；20 条 + 游标；先断言 `scrollController.position.maxScrollExtent > 0`，`jumpTo(maxScrollExtent)` 后记录 `pixels` 与 `tester.getTopLeft(find.byKey(ValueKey('comment-<第 20 条 id>')))`；点「加载更多评论」并 `pumpAndSettle` 后共 40 条，`pixels` 与第 20 条的 TopLeft 均不变；第二次请求带 cursor（不断言屏幕外 Element，审查 R1 返工项 2） |
 | 06 | K12 | `discussion_replies_preview_5_then_expand_more` | 预览 5 条 +「展开更多回复」；点击请求 `root_id`、`order=oldest`、`limit=5`、`cursor`；追加后第 6 条出现 |
 | 06 | K13 | `discussion_empty_states_distinguish_no_comments_and_closed` | 已公开空页 →「还没有人评论，来写第一条」且「发送」可用；access withdrawn 空页 →「该内容不接受新评论」且无可用发送 |
 | 06 | K14 | `discussion_offline_comment_restart_confirms_once_and_pending_mark_clears` | 离线发送 → 面板与 `PendingQueuePage` 均见「待发送」/条目；关库重开，新控制器仍见「待发送」；换可用假服务器 drain 后服务器评论恰 1 条，面板无「待发送」，待处理页显示「所有操作都已完成同步」 |
