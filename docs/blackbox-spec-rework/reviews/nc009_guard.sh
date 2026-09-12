@@ -18,9 +18,9 @@ def check(ok,name,detail=""):
 def read(p): return p.read_text(encoding="utf-8") if p.is_file() else ""
 check(g1==0 and g2==0,"K01 回归：v1.6 守卫与 verify.sh 均为 0",f"{g1},{g2}")
 c=read(SPEC/"contracts/community_server.md")
-need=["run_command","community_commands","owner_scope__","result_compact_after","compact_once","conflict.object_missing","xfail(strict=True","community_rules.test.ts","transactional","身份 → 存在性 → 归属 → 版本 → 生命周期 → 载荷","192.168.0.165:8080","30a868c","community_pseudonym_mappings","secrets.token_hex","new_ids","internal.state_corrupted","R2-05"]
-ok02=all(n in c for n in need) and all(f"D-NC009-{i:02d}" in c for i in range(1,13)) and all(f"## {i}." in c for i in range(1,10)) and "SHA-256(owner_scope)[:32] 冒名" not in c
-check(ok02,"K02 契约：账本流程、集合、判定顺序、ACL xfail、规则测试、D-NC009-01～12、九节、假名非推导",[n for n in need if n not in c])
+need=["run_command","community_commands","owner_scope__","result_compact_after","compact_once","conflict.object_missing","xfail(strict=True","community_rules.test.ts","transactional","身份 → 存在性 → 归属 → 版本 → 生命周期 → 载荷","192.168.0.165:8080","30a868c","community_pseudonym_mappings","secrets.token_hex","new_ids","internal.state_corrupted","R2-05","server_event_id","8 × 2 × 4 = 64","resolve_access(content_id, owner_scope)"]
+ok02=all(n in c for n in need) and all(f"D-NC009-{i:02d}" in c for i in range(1,15)) and all(f"## {i}." in c for i in range(1,10)) and "SHA-256(owner_scope)[:32] 冒名" not in c
+check(ok02,"K02 契约：账本流程、集合、判定顺序、ACL xfail、规则测试、D-NC009-01～14、九节、假名非推导",[n for n in need if n not in c])
 bdd=read(PACK/"BDD.md"); tdd=read(PACK/"TDD.md"); acts=[read(PACK/"act"/f"0{i}.yaml") for i in range(1,5)]
 bids=re.findall(r"^\| (B\d\d) \|",bdd,re.M); est=[int((re.search(r"^ESTIMATE_MINUTES: (\d+)",a,re.M) or [0,0])[1]) for a in acts]
 deps=[(re.search(r"^DEPENDS_ON: (.*)$",a,re.M) or [0,""])[1].strip() for a in acts]

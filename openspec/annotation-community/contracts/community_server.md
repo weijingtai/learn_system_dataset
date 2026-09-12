@@ -22,7 +22,7 @@
 |---|---|
 | `xuan/community/__init__.py` | 空 |
 | `xuan/community/errors.py` | `CommunityError(code, status, **extra)`；`problem(code, status, extra)` → 满足 `CommunityProblemDetails` 的字典（`type` 按 community_api §4.2 映射，必含 `code`） |
-| `xuan/community/ids.py` | `new_id(prefix)`（`prefix + uuid4().hex`）；`is_valid(prefix, s)`；`is_command_id(s)`（DESIGN §2.1.1 正则） |
+| `xuan/community/ids.py` | `new_id(prefix)`（`prefix + uuid4().hex`）；`is_valid(prefix, s)`；`is_command_id(s)`（DESIGN §2.1.1 正则）；`server_event_id(owner_scope, command_id, event_type)` = `"bev_" + hashlib.sha256(community_hash.encode([owner_scope, command_id, event_type])).hexdigest()[:32]`（DESIGN §11.2，复用 NC-002 已交付的 `xuan/community_hash.py::encode`，D-NC009-14） |
 | `xuan/community/command_service.py` | §3 |
 | `xuan/community/content_service.py` | §4（W1～W6 业务函数，纯事务回调） |
 | `xuan/community/access.py` | §5（读路径鉴权：`resolve_access(content_id, viewer)` → `visible / not_found`） |
@@ -68,7 +68,7 @@ def run_command(ctx: CommandContext, fn: Callable[[Transaction, CommandContext],
 
 ### 3.2 事务流程（单个 `@transactional` 回调，可被 Firestore 自动重跑）
 
-0. **事务外、进入 `@transactional` 之前**（D-NC009-12）：`payload = {"path": 路径参数, "body": 请求体, "if_match": If-Match 解析后的整数或 null}`；`payload_hash = SHA-256_hex(canonical_json({"operation": ctx.operation, "payload": payload}))`，`canonical_json` = `json.dumps(sort_keys=True, separators=(",",":"), ensure_ascii=False)`（D-NC009-01；不复用 `hashing.hash_payload` 的插入序语义）；`new_ids` 一次性生成本命令可能创建的全部对象 ID（`publication_id`、`len(snapshot.bindings)` 个 `cbnd_`、`event_id`、候选 `actor_pseudonym`），事务回调被 Firestore 重跑时复用同一组 ID。
+0. **事务外、进入 `@transactional` 之前**（D-NC009-12）：`payload = {"path": 路径参数, "body": 请求体, "if_match": If-Match 解析后的整数或 null}`；`payload_hash = SHA-256_hex(canonical_json({"operation": ctx.operation, "payload": payload}))`，`canonical_json` = `json.dumps(sort_keys=True, separators=(",",":"), ensure_ascii=False)`（D-NC009-01；不复用 `hashing.hash_payload` 的插入序语义）；`new_ids` 一次性生成本命令可能创建的全部**随机**对象 ID（`publication_id`、`len(snapshot.bindings)` 个 `cbnd_`、候选 `actor_pseudonym`），事务回调被 Firestore 重跑时复用同一组 ID；`event_id` **不在** `new_ids` 中，由 `ids.server_event_id(owner_scope, command_id, operation)` 确定性计算。
 1. 事务回调内不再生成任何 ID，只读 `ctx.new_ids`。
 2. 事务内读 `community_commands/{owner_scope}__{command_id}`：
    - 存在且 `payload_hash` 相同 → **重放**：`result_compacted_at is None` → 返回原 `result_http_status` 与 `result_fields`；已精简 → `410 gone.command_result` + `command`（最小结果）。不执行 `fn`。
@@ -81,7 +81,7 @@ def run_command(ctx: CommandContext, fn: Callable[[Transaction, CommandContext],
 
 ### 3.3 行为事件（DESIGN §11.4/§11.5）
 
-`fn` 在 committed 路径内：事务读 `community_pseudonym_mappings/{owner_scope}`，不存在则用 `ctx.new_ids["actor_pseudonym"]` 创建（D-NC009-04）；写一条 `community_behavior_events`：`{event_id: ctx.new_ids["event_id"], event_type: ctx.operation, actor_pseudonym: 映射值, occurred_at, schema_version: 1, attributes}`；事件表不写 `owner_scope`/`app_user_id`；`attributes` 不含标题/正文/附件名/note_id 原值；rejected 不写事件。
+`fn` 在 committed 路径内：事务读 `community_pseudonym_mappings/{owner_scope}`，不存在则用 `ctx.new_ids["actor_pseudonym"]` 创建（D-NC009-04）；以 create-if-absent 写一条 `community_behavior_events`（文档 ID = event_id）：`{event_id: ids.server_event_id(ctx.owner_scope, ctx.command_id, ctx.operation), event_type: ctx.operation, actor_pseudonym: 映射值, occurred_at, schema_version: 1, attributes}`；事件表不写 `owner_scope`/`app_user_id`；`attributes` 不含标题/正文/附件名/note_id 原值；rejected 不写事件。
 
 ### 3.4 R5 命令查询
 
@@ -94,6 +94,8 @@ def run_command(ctx: CommandContext, fn: Callable[[Transaction, CommandContext],
 ## 4. 内容命令（`content_service.py`，每个函数都是 §3.2 的 `fn`）
 
 前置读取顺序固定：账本（§3.2 已读）→ `community_content_access/{content_id}` → 需要时 `community_publications/{current_publication_id}`。判定顺序固定：**身份 → 存在性 → 归属 → 版本 → 生命周期 → 载荷**（同一请求多错只报第一个）。
+
+**存在性与归属合并判定（D-NC009-13，DESIGN §7.3 403/404 边界）**：access 存在且 `author_id != owner_scope` 时，先用 §5 `resolve_access(content_id, owner_scope)`：结果为 `visible`（他人可读）→ `403 forbidden.not_owner`；结果为 `not_found`（已收回/回收站/隐藏）→ `404 not_found.content`（与读路径共用体）。下表各行「归属」均按此执行，W1 重新发布同样适用。
 
 | 操作 | 前置（按顺序） | 事务写 | 结果 |
 |---|---|---|---|
@@ -132,7 +134,7 @@ R6 `GET /me/contents?cursor&limit`：`author_id == owner_scope` 的 access 列�
 
 ## 6. 安全规则测试（RULES 仓 `functions/test/community_rules.test.ts`）
 
-用 `@firebase/rules-unit-testing` 加载 `../../firestore.rules`：对六个社区集合 + `community_purge_tasks`，分别以匿名上下文、`alice-uid` 认证上下文执行 `get/set/update/delete` → 全部 `assertFails`（默认拒绝生效，共 7 × 2 × 4 = 56 断言，可循环生成）；另断言 `identity_map/alice-uid` 对 alice 可读（回归既有规则未被破坏）。运行：`FIRESTORE_EMULATOR_HOST=192.168.0.165:8080 FIREBASE_AUTH_EMULATOR_HOST=192.168.0.165:9099 npm test -- community_rules`（在 RULES 仓 `functions/` 内）。
+用 `@firebase/rules-unit-testing` 加载 `../../firestore.rules`：对 §2.2 的八个社区集合（`community_content_access`、`community_publications`、`community_public_snapshots`、`community_content_bindings`、`community_commands`、`community_behavior_events`、`community_pseudonym_mappings`、`community_purge_tasks`），分别以匿名上下文、`alice-uid` 认证上下文执行 `get/set/update/delete` → 全部 `assertFails`（默认拒绝生效，共 8 × 2 × 4 = 64 断言，循环生成）；另断言 `identity_map/alice-uid` 对 alice 可读（回归既有规则未被破坏，合计 65 断言）。运行：`FIRESTORE_EMULATOR_HOST=192.168.0.165:8080 FIREBASE_AUTH_EMULATOR_HOST=192.168.0.165:9099 npm test -- community_rules`（在 RULES 仓 `functions/` 内）。
 
 ## 7. 测试判据（pytest，Emulator）
 
@@ -141,7 +143,7 @@ R6 `GET /me/contents?cursor&limit`：`author_id == owner_scope` 的 access 列�
 | 文件 | 测试（名称逐字） |
 |---|---|
 | `test_community_commands.py` | `command_publish_commits_ledger_business_outbox_event_atomically`、`same_key_same_payload_replays_original_response`、`same_key_different_payload_returns_409_idempotency`、`rejected_precondition_writes_rejected_ledger_and_no_business`、`crash_before_commit_leaves_nothing_and_retry_succeeds`（在 `fn` 末尾注入异常一次）、`crash_after_commit_before_response_replays_on_retry`（提交后抛异常，再同键重试）、`compact_after_14_days_then_replay_returns_410_with_command`、`get_command_returns_minimal_result_and_404_unknown`、`command_id_format_invalid_returns_400`、`payload_hash_is_operation_bound`（同载荷不同 operation → 409）、`pseudonym_is_random_and_stable_per_scope`（同 scope 两次命令同一假名；两 scope 假名不同；假名 ≠ `psn_`+SHA-256(scope)[:32]；事件文档不含 owner_scope）、`new_object_ids_are_fixed_across_transaction_retry`（`fn` 首次执行时用另一个客户端改写其已事务读的文档，迫使 Emulator 重跑回调；两次回调观察到的 `new_ids` 相同且最终只有一份业务对象） |
-| `test_community_publications.py` | `publish_creates_access_publication_snapshot_bindings`、`publish_by_other_scope_is_403_not_owner`、`publish_twice_is_409_lifecycle`、`publish_with_attachment_is_409_object_missing`、`publish_oversize_markdown_is_413`、`update_requires_if_match_and_bumps_version`、`update_stale_if_match_is_412_with_current_version`、`withdraw_retracts_clears_bindings_and_bumps_access_version`、`republish_after_withdraw_requires_if_match_and_keeps_content_id`（缺 If-Match → 400，过时 → 412，正确 → 201 且 `content_id` 不变）、`trash_published_is_409_until_withdrawn`、`restore_after_30_days_is_409`、`restore_keeps_hidden`、`purge_from_active_is_409_and_from_trashed_queues_task`、`detail_etag_304_and_returns_published_snapshot_not_later_revision`（发布修订 A 后，不调用 W2 时 R1 快照恒为 A：私改不公开）、`me_contents_pagination_limit_101_is_400`、`illegal_state_combination_reads_500`（直接写坏 access 三元组后 R1 → 500 `internal.state_corrupted` 且日志含标记） |
+| `test_community_publications.py` | `publish_creates_access_publication_snapshot_bindings`、`other_scope_write_is_403_when_visible_404_when_not`（他人对已发布内容 W1 与 W2 → 403；他人对已收回内容 W1/W3 → 404 共用体）、`publish_twice_is_409_lifecycle`、`publish_with_attachment_is_409_object_missing`、`publish_oversize_markdown_is_413`、`update_requires_if_match_and_bumps_version`、`update_stale_if_match_is_412_with_current_version`、`withdraw_retracts_clears_bindings_and_bumps_access_version`、`republish_after_withdraw_requires_if_match_and_keeps_content_id`（缺 If-Match → 400，过时 → 412，正确 → 201 且 `content_id` 不变）、`trash_published_is_409_until_withdrawn`、`restore_after_30_days_is_409`、`restore_keeps_hidden`、`purge_from_active_is_409_and_from_trashed_queues_task`、`detail_etag_304_and_returns_published_snapshot_not_later_revision`（发布修订 A 后，不调用 W2 时 R1 快照恒为 A：私改不公开）、`me_contents_pagination_limit_101_is_400`、`illegal_state_combination_reads_500`（直接写坏 access 三元组后 R1 → 500 `internal.state_corrupted` 且日志含标记） |
 | `test_community_acl_sweep.py` | 18 条参数化（§5） |
 | 可观测性 | `logs_never_contain_title_or_body`（`caplog` 捕获全部 handler 日志，断言不含 fixture 标题与正文前 20 字） |
 
@@ -162,6 +164,8 @@ Red：每个测试文件先于实现提交；`from xuan.community import command
 | D-NC009-09 | W1 的 `If-Match`：首次发布缺省，重新发布必带且等于 access.version | NC-002 冻结 fixture `republish_from_withdrawn` 要求 `if_match_matches`，SM-2a 同；NC-003 W1 未声明该头，由 §9 补丁 P1 补上 |
 | D-NC009-10 | R2-05「收回 vs 评论」并发屏障测试移至 NC-011 | `comment.create` 在 NC-011 实现；NC-009 只保证 withdraw 在同事务提升 `ContentAccess.version`（`withdraw_retracts_clears_bindings_and_bumps_access_version` 断言），为 NC-011 的屏障提供前提 |
 | D-NC009-11 | 非法三元组读取返回 500 `internal.state_corrupted` | DESIGN §4.1 要求读 500 并告警；NC-003 错误目录无 500 行，由 §9 补丁 P2 补上 |
+| D-NC009-13 | 他人写入：可读则 403，不可读则 404（与读路径共用体），在版本与生命周期判定之前执行 | DESIGN §7.3「调用方已被证明拥有读权限时用 403，否则一律 404」；按「身份→存在性→归属→版本→生命周期」顺序，他人对仍公开的内容做 W1 得 403（不是 409），因此 `forbidden.not_owner` 覆盖 `content.publish`；他人对已收回/回收站/隐藏内容一律 404 |
+| D-NC009-14 | 服务端 `event_id` 按 DESIGN §11.2 确定性哈希，复用 NC-002 `community_hash.encode` | 审查 R1 发现初稿把它归入随机 `new_ids`，违反 §11.2 的重跑/重试同 ID 要求 |
 | D-NC009-12 | `payload_hash` 在事务外计算且含 If-Match；新对象 ID 在事务外一次性生成 | DESIGN §7.4 第 2 条「新对象 ID 在事务重跑前固定」；同键异 If-Match 必须判为异载荷 |
 
 ## 9. 对 NC-003 契约的前置补丁（已合入 NC-003 act/06 与 community_api.md §10.4/§10.5；NC-009 派发前置）

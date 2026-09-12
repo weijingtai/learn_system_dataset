@@ -23,7 +23,7 @@ Red：先写测试与 helpers，运行命令 1 取得 `ImportError` 原文。
 
 ## 3. act/02：publish / update / withdraw、access 与 R1
 
-文件：`xuan/community/{content_service,access}.py`（W1～W3）、`xuan/handlers/community_contents.py`（路由 W1～W3、R1）、`main.py` 追加导出；`tests/test_community_publications.py` 前 9 个：`publish_creates_access_publication_snapshot_bindings`、`publish_by_other_scope_is_403_not_owner`、`publish_twice_is_409_lifecycle`、`publish_with_attachment_is_409_object_missing`、`publish_oversize_markdown_is_413`、`update_requires_if_match_and_bumps_version`、`update_stale_if_match_is_412_with_current_version`、`withdraw_retracts_clears_bindings_and_bumps_access_version`、`republish_after_withdraw_requires_if_match_and_keeps_content_id`。
+文件：`xuan/community/{content_service,access}.py`（W1～W3）、`xuan/handlers/community_contents.py`（路由 W1～W3、R1）、`main.py` 追加导出；`tests/test_community_publications.py` 前 9 个：`publish_creates_access_publication_snapshot_bindings`、`other_scope_write_is_403_when_visible_404_when_not`、`publish_twice_is_409_lifecycle`、`publish_with_attachment_is_409_object_missing`、`publish_oversize_markdown_is_413`、`update_requires_if_match_and_bumps_version`、`update_stale_if_match_is_412_with_current_version`、`withdraw_retracts_clears_bindings_and_bumps_access_version`、`republish_after_withdraw_requires_if_match_and_keeps_content_id`。
 
 Red：先写 9 个测试，运行命令 2 取得原文。
 

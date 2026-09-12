@@ -7,7 +7,7 @@
 | B01 | 新 `command_id`，合法 publish 载荷 | W1 | 201；`community_commands/{scope}__{cmd}` 存在且 `outcome=committed`、`result_fields` 为完整响应体（不含 `command`）；access/publication/snapshot/bindings/outbox/behavior_event 各一条，全部在同一次事务后出现 |
 | B02 | B01 后 | 同键同载荷再次 W1 | 201，响应体逐字节等于首次；业务文档数不变 |
 | B03 | B01 后 | 同键、`snapshot.title` 改动 | 409 `conflict.idempotency`，`original_request_hash` 等于账本 `payload_hash`；无写入 |
-| B04 | 他人 scope 对已发布内容 W2 | — | 403 `forbidden.not_owner`；账本 `outcome=rejected`、`result_code=forbidden.not_owner`、`applied_version=null`；无业务写入 |
+| B04 | 他人 scope 对已发布内容 W1 与 W2；他人 scope 对已收回内容 W1（带正确 If-Match）与 W3 | — | 前两者 403 `forbidden.not_owner`；后两者 404 `not_found.content` 且响应体逐字节等于读路径共用体；四者账本均 `outcome=rejected`、`applied_version=null`；无业务写入 |
 | B05 | `fn` 末尾注入一次异常 | W1 | 首次 503 `unavailable`，账本与业务均不存在；同键重试 201 且只有一份业务 |
 | B06 | 事务提交后、响应前注入异常 | W1 再同键重试 | 首次异常；重试 201，业务仍只有一份，响应等于账本 `result_fields` |
 | B07 | B01 后把账本 `result_compact_after` 改为过去，跑 `compact_once(now)` | 同键 W1 | `result_fields=={}`、`result_compacted_at` 非 null；重放 410 `gone.command_result`，体内 `command.compacted=true` 且含 `resource_ids/applied_version` |
@@ -33,4 +33,4 @@
 | B27 | 全流程日志 | `caplog` | 不含 fixture 标题、正文前 20 字、`Idempotency-Key` 原值 |
 | B28 | outbox 新事件类型 | 现有 `handle_outbox_event` 收到 `content.published` | 返回 None，不抛错（已核 `notifications.py` 末尾「未知事件类型：静默忽略」） |
 | B29 | 同 scope 两次命令、另一 scope 一次命令 | 查映射与事件 | 同 scope 同一 `actor_pseudonym`；两 scope 不同；假名 ≠ `psn_`+SHA-256(scope)[:32]；事件文档无 `owner_scope`/`app_user_id` 字段 |
-| B30 | `fn` 首次执行时由另一客户端改写其事务读过的文档 | W1 | 回调被重跑；两次回调的 `new_ids` 相同；最终 Publication/事件各一份 |
+| B30 | `fn` 首次执行时由另一客户端改写其事务读过的文档 | W1 | 回调被重跑；两次回调的 `new_ids` 相同；最终 Publication/事件各一份；事件文档 ID 等于 `"bev_" + sha256(community_hash.encode([scope, command_id, "content.publish"])).hexdigest()[:32]` |
