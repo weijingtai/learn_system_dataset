@@ -99,6 +99,8 @@ Q49 按 P8 须用户确认前缀；Q52/Q53/Q55/Q57/Q62 推迟到 W5 定稿；Q50
 | 29 | M5 w3e：`CHECK_CODES` 映射由实现推导 | 接受；`registry.py` 模块 docstring 必须列出完整「检查名 → 错误码/None」表，主 Agent 验收时核对 |
 | 30 | M5 w3e：`build_context` 键集超出 act/04 字面 | 以 K1 `fixture_context()` 键集为准，K2 新增用例断言两者键集相等 |
 | 31 | M5 w3e：`g1_frozen_bytes` 附加 `fail_closed`；`g3_references` 的 relation/subject 承载 | 接受；`gate_results.broken_relations` 汇总 `g3_references` 全部发现的 (from, to, relation) |
+| 32 | M8 w3f K2：act/03 薄 M1 以 `begin_step_run` 新建 m1 运行写 Checkpoint，被 Ledger 阶段封存守卫拒绝（`service.py:1280-1285`，m1 已由 ingest 运行 succeeded 封存） | 采纳 A：改用 `supersede_step_run` 接替该 EditionPart 最近一个 succeeded 的 m1 运行（经读接口查出，不写死号），其余契约逐字不变；不改 Ledger（P9）。附加：act/03 新增用例断言登记页图前后 `resolve_m3_inputs` 的 `manifest_revision_id` 不变；act/04 以接替后的 m1 运行读取页图登记。impl-09 真实 M1 落地时同样经 supersede 或在首次 M1 运行内登记页图，再议。 |
+| 33 | M5 w3e K2 六条 | ① `g3_evidence` 字框比对缺陷修正落在 `9aaccf5` 而非 `0a77975`，接受登记；② act/04–06 脚手架写 `ingest(m1,m2,m3)` 与 BDD §0「ingest(m1,m2)→run_m3→run_m5」不一致，以 BDD 真实链路为准，文档随 impl-03 收尾修订；③ `build_context` 19 键、`assemble_validation_package` 追加 `gate_results_revision_id`/`edition_part_id` 关键字参数接受；④ errored Validator 报告顶层 `detail` 接受（0.1.0-draft）；⑤ **返工**：begin 之后 `status=failed` 的 CLI 退出码与 M3 一致为 1（`FAILED` 1、`GATE_FAILED` 1、begin 前 `REFUSED` 2、`WriterLocked` 3）；⑥ 知悉。 |
 
 ## 10. 用户待办
 

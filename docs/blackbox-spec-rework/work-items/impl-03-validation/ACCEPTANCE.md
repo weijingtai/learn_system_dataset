@@ -35,3 +35,15 @@
 K1、K2 各自通过后由主 Agent 记 `ACCEPTED` 并同步台账；全部通过后 §19.0「M5 全书与证据校验不足」仍不宣称关闭（返回 2，缺 M4 与 quote hash），`run_all.sh` 不变。结论行由主 Agent 填写。
 
 ## 5. 验收记录由主 Agent 填写
+
+### 5.1 W3-E 实现（2026-09-12，主 Agent 独立验收，`git archive` 干净树）
+
+执行者：tmux 中的 cmd（DeepSeek V4.1 Flash），会话 `w3e`，按 executor_groups 分组停下待验收。
+
+- K1（ACT 00–03：`25b2fcc`、`48ebbfb`、`1fab5b1`、`0a77975`）：范围仅 `pipeline/validation`；`validation` 50 OK、ledger 74 OK、corpus_compiler 68 OK；除 `replay.py` 外无 `corpus_compiler` import；六个纯函数模块无文件/时间/随机/uuid/环境副作用；无 `validator_report`/`gate_report` 字面；全部门禁绿。执行方 amend 未推送的 ACT 00 提交（G7-RULINGS 第 28 条接受）。
+- K2（ACT 04–06：`817cd64`、`9aaccf5`、`6e21038`；返工 `8367893`）：范围仅 `pipeline/validation` 与 `openspec/acceptance/m5-evidence-gate.sh`；`validation` 86 OK（返工后 87 OK）；`m5-evidence-gate.sh` `SUMMARY pass=9 fail=0 blocked=5`、exit 2；`run_all.sh` 仍 `pass=2 fail=1 blocked=8`；`m3-coverage.sh` exit 2；`verify-T.sh` 0 FAIL、`mutations.sh` 109/109、`schemas/verify.sh` 0、`check_d16.py` OK、`check_interfaces.py` 18 PASS。`acceptance.py` 三处 `corpus_compiler` import 仅用于构造真实上游与对抗性篡改（包装 `compile_structural`、替换 `step.evaluate_structural` 放行），判定逻辑不借用 M3 Gate，合规。
+- 矩阵外端到端（主 Agent 脚本 13 项全过）：fixture 上 `run_m5` succeeded、恰 1 个 m5 包、冻结输入 17（corpus_only）、findings 7（warnings 5、failures 0）、INTERNAL_DEMO 下 `validation.passed=true`；两次独立运行 `gate_results`（去身份字段）一致；`corpus_spans`/`corpus_package` 冻结对象改一字节 → StepRun succeeded 但无可消费包（第 21 条）；无 m3 提交 → begin 前 `ValidationRefused` 无包；`PUBLIC_RELEASE` 目标 → 级别判定 `{INTERNAL_DEMO: passed, DEV_SEARCH: failed, PUBLIC_RELEASE: failed}`、无可消费包；begin 后注入异常 → failed/internal 封存、无 m5 包；验收脚本在 Ledger `gate_results` 被改时 exit 1（不信任返回值）。
+- 返工（第 33 条⑤）：begin 之后失败的 CLI 退出码由 2 改 1；主 Agent 在 `8367893` 干净树注入 `write_checkpoint` 异常 → rc 1、末行 `M5 FAILED internal: …`。
+- 登记（第 33 条②）：act/04–06 脚手架文字 `ingest(m1,m2,m3)` 与 BDD 真实链路不一致，实现与测试以 BDD 为准，文档待后续修订。字框比对缺陷修正落在 `9aaccf5`（第 33 条①）。
+
+impl-03（M5 首切片）`ACCEPTED`。`m5-evidence-gate.sh` 返回 2（G4/G5/G6 `not_evaluated` 判 BLOCKED），§19 M5 差距不宣称关闭。

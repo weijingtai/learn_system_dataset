@@ -1,6 +1,8 @@
 # HANDOFF
 
-## G7 W3 实现中：M5（impl-03）与 M8（impl-04）两路并行，K1 均已验收（Dataset 会话；黑箱线最新状态）
+## G7 W3：M5（impl-03）ACCEPTED；M8（impl-04）K2 实现中（Dataset 会话；黑箱线最新状态）
+
+补记（2026-09-12）：impl-03 M5 首切片 `ACCEPTED`（K2 `817cd64`/`9aaccf5`/`6e21038`，CLI 返工 `8367893`；干净树 87 OK、`m5-evidence-gate.sh` exit 2、矩阵外 13 项全过；`impl-03-validation/ACCEPTANCE.md` §5.1）。M8 w3f K2 按 G7-RULINGS 第 32 条（薄 M1 经 `supersede_step_run` 接替）进行中。下文为 K1 时的记录。
 
 更新时间：2026-09-12
 当前分支/worktree：`codex/docs/knowledge-compilation`；`/Users/jingtaiwei/Git/Public/learn_system`
