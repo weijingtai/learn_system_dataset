@@ -15,6 +15,7 @@ contract: |
     - 薄 M1（impl-04 shim，D2；impl-09 M1 落地后替换）：`source_asset_page`（页图字节，rights_scope=internal）、`source_asset_register`
     - M8：`source_asset_pack`、`evidence_map_pack`、`release_manifest`、`publication_package`
     这些行的「状态」列不得写 DEFERRED/纵切后；其余纵切后类型（candidate_set、candidate_package、canonical_snapshot、assembly_package、reviewed_edition、reviewed_edition_package、四类 proposal、rule_index_pack、search_index_pack、graph_projection_pack、technique_profile_pack 等）保留但状态列标「纵切后」
+    删除 §4 表中残留的 `gate_report` 行，以及 §2.5 卡片中的 `gate_report` 字样（G7-RULINGS §9.1 第 24/26 条）；§4 表不得出现 `gate_report` 与 `validator_report`
   B. §4 表头下方加一行说明：唯一登记处为 INTERFACES §4 临时闭集，直至 impl-08 Contract Registry 接管（P2）；同一时刻只有一路写本表。并把 INTERFACES.md 顶部状态行由 `DRAFT` 改为 `READY_FOR_REVIEW`（首纵切 §4 登记完成）
   C. §2.8 M8 卡片同步裁决（§2 D1-A、G7-RULINGS §9 第 3/15 条）：
     - 冻结输入：首切片只读 M3 StagePackage 及其血缘输入（m1 source_manifest、m2 ocr_page_set/ocr_page）+ 薄 M1 登记的派生页图；TechniqueProfile 只有 `technique_profile_id="qizheng"` 字符串
@@ -23,7 +24,7 @@ contract: |
     - 消费级别只签发 INTERNAL_DEMO；DEV_SEARCH/PUBLIC_RELEASE 在 begin 之后以 admission 失败封存
   D. §2.5 M5 卡片同步裁决（§9 第 2/10/12/21 条）：
     - 冻结输入：m3 包及其血缘输入（含 M3 自身冻结的 M1/M2），共 17 个修订，`scope: corpus_only`；配置带 `target_consumption_level`
-    - 输出：主内容 `gate_results` + 阶段输出索引 `validation_package` + 每 task `validator_report`（`validator_report` 的登记状态见 README §5.2 待裁决 1，本 ACT 不改闭集登记结论，只在卡片标注）
+    - 输出：主内容 `gate_results` + 阶段输出索引 `validation_package` + 每 task 复用通用 `validation_report`（G7-RULINGS §9.1 第 24 条：`validator_report` 不入闭集；impl-03 已改为复用 `validation_report`）
     - quote hash：M5 按 `sha256(quote)` 复算，不改 M3 `spans.yaml`（P9）
     - **追加约束（P5 的 M5 特例）**：M5 StagePackage `validation.passed` 如实反映 Gate；下游消费 M5 包须同时满足所属 StepRun `succeeded` 与 `validation.passed == true`
   E. §2.4 M4 / §2.6 M6 / §2.7 M7 卡片各加「纵切后（不在首纵切）」标记（§9 第 3/11/14 条）
@@ -51,6 +52,7 @@ tests:
       IF15 `页图字节登记进 Ledger` 出现（§9 第 16 条）
       IF16 `validation.passed` 出现（§9 第 21 条）
       IF17 `succeeded` 出现（P5 上游终态过滤）
+      IF18 §4 表不含 `gate_report` 与 `validator_report`（G7-RULINGS §9.1 第 24/26 条）
 tests/test_check_interfaces.py: |
     - test_if01_passes_on_repo_copy（复制仓库 INTERFACES.md → IF01 PASS）
     - test_required_type_missing_fails（副本删去 `gate_results` 行 → FAIL IF03 或对应项）
@@ -59,9 +61,10 @@ tests/test_check_interfaces.py: |
     - test_ruling_marker_missing_fails（副本删去 `corpus_only` → FAIL IF13）
     - test_missing_file_exit_3（--file 指向不存在路径 → exit 3）
     - test_summary_line_format（末行匹配 ^I00-IF SUMMARY pass=\d+ fail=\d+$）
+    - test_forbidden_type_present_fails（副本在 §4 表插入 `gate_report` 或 `validator_report` 行 → FAIL IF18）
 verify:
-  - python3 docs/blackbox-spec-rework/work-items/impl-00-interfaces/check_interfaces.py; echo exit=$?   # exit=0，末行 I00-IF SUMMARY pass=17 fail=0
-  - .venv/bin/python -m unittest discover -s docs/blackbox-spec-rework/work-items/impl-00-interfaces/tests -t docs/blackbox-spec-rework/work-items/impl-00-interfaces 2>&1 | tail -3   # OK，用例 ≥ 7
+  - python3 docs/blackbox-spec-rework/work-items/impl-00-interfaces/check_interfaces.py; echo exit=$?   # exit=0，末行 I00-IF SUMMARY pass=18 fail=0
+  - .venv/bin/python -m unittest discover -s docs/blackbox-spec-rework/work-items/impl-00-interfaces/tests -t docs/blackbox-spec-rework/work-items/impl-00-interfaces 2>&1 | tail -3   # OK，用例 ≥ 8
   - grep -c '^| M5 ' docs/blackbox-spec-rework/work-items/impl-00-interfaces/INTERFACES.md   # ≥ 2（gate_results / validation_package）
   - grep -c 'not_compiled' docs/blackbox-spec-rework/work-items/impl-00-interfaces/INTERFACES.md   # ≥ 1
   - git status --short openspec/schemas pipeline/corpus/_fixture pipeline/ledger   # 空

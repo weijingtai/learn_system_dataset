@@ -6,7 +6,7 @@
 
 - **忠实性**：README §4 的 17 条逐条对应 `G7-RULINGS.md` §9 第 1–17 条；首纵切只保留 §9「两类 ACT」中的 (a)，(b) 因无引用不做；`act/00–09` 状态、写范围、依据均未改语义，只加 `status: DEFERRED` 并在 `ACT.yaml` 移出 `executor_groups`。
 - **覆盖性**：`impl-00/10` 覆盖 §2 D4 的 6 个 M8 新类型与 §9 第 10 条的 `gate_results`/`validation_package`；`INTERFACES.md` 其余章节的同步点（M8 尾链、M5 `corpus_only`、§9 第 13/16/21 条）逐条写入 `act/10.yaml` 的 contract A–I。
-- **可执行性**：`act/10.yaml` 有 scope.write、tests_first、tests（`check_interfaces.py` 的 IF01–IF17 检查名与 7 个用例名）、contract、verify（精确命令与期望）、commit；Red 可复现（§4 缺 8 个类型即 FAIL）。
+- **可执行性**：`act/10.yaml` 有 scope.write、tests_first、tests（`check_interfaces.py` 的 IF01–IF18 检查名与 8 个用例名）、contract、verify（精确命令与期望）、commit；Red 可复现（§4 缺 8 个类型即 FAIL）。
 - **独立性**：`impl-00/10` 只写 `INTERFACES.md`、`check_interfaces.py`、`tests/`，与 impl-03（`pipeline/validation/**`）、impl-04（`pipeline/dataset_compiler/**`）写范围不重叠；不触 `openspec/schemas/`、fixture、`pipeline/ledger/`、`openspec/acceptance/`。
 
 ## 1. 范围核对
@@ -36,7 +36,7 @@
 
 `impl-00/10` 执行后（见其 `verify`，`git archive` 干净树）：
 
-- `python3 .../check_interfaces.py` → exit 0，末行 `I00-IF SUMMARY pass=17 fail=0`；`unittest` 7 用例 OK。
+- `python3 .../check_interfaces.py` → exit 0，末行 `I00-IF SUMMARY pass=18 fail=0`；`unittest` 8 用例 OK。
 - `bash openspec/schemas/verify.sh` → 0（未改 schemas）；`run_all.sh` → `SUMMARY pass=2 fail=1 blocked=8`（未改 acceptance）。
 - `git status --short openspec/schemas pipeline/corpus/_fixture pipeline/ledger` 为空；只 add `commit.add` 路径；无 `__pycache__`；`git diff --check` 通过。
 
@@ -45,7 +45,7 @@
 - `INTERFACES.md` §4 闭集与 README §5.1 逐字一致；8 个新类型行状态列无 DEFERRED/纵切后；表内无重复类型名。
 - M8 卡片写清尾链四段与 `knowledge_chain: "not_compiled"`；M5 卡片写清 `corpus_only`、17 个冻结修订、`quote_sha256` 复算、`validation.passed` + 上游 `succeeded` 双条件。
 - §9 第 13 条只读 SELECT 缺口清单（`frozen_inputs`/`artifacts.artifact_type`/`stage_packages`/按 `step_run_id` 取 sealed stage_package）与 README §5.2 一致；第 16 条页图字节登记进 Ledger 写明。
-- 执行方未越权：不改 `ACCEPTANCE.md`，不写结论性措辞；`validator_report` 未自行登记（列 README §5.2 待裁决 1）。
+- 执行方未越权：不改 `ACCEPTANCE.md`，不写结论性措辞；`validator_report`/`gate_report` 未登记（§9.1 第 24/26 条）。
 - 独立复算：`check_interfaces.py` 不信任 `INTERFACES.md` 的自述，按行解析 §4 表逐项判定。
 
 ## 4. 结论

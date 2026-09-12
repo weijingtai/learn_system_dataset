@@ -41,7 +41,7 @@ git diff --check                                                                
 - `pipeline/ledger/`：`fixture_ingest.py`（STAGES 40、STAGE_OUTPUT_TYPES 43–47、任务 167–214、Checkpoint 217–252、ingest 255–412）；`service.py`（RUN_ARTIFACT_TYPES 66、create_processing_run 319–345、register_stage_package 718、human_event 824/922–930、write_checkpoint 1364–1377）；`store.py`；`ids.py` PATTERNS 14–34。
 - `pipeline/corpus_compiler/step.py`（m3 实际 artifact_type 87/159/182/200/215/227/247/373）；`work-items/impl-02-corpus/act/01.yaml` R1–R8、`act/03.yaml` 17–65。
 - fixture `pipeline/corpus/_fixture/mini_ed01/`：`manifest.yaml`、`spans.yaml`、`expected/m1..m3`、`verify.sh`、`tools/build_fixture.py`、`source/transcript_v1.md`。
-- 定稿输入：`work-items/impl-04-dataset/`（提交 `2e4f9a7`：README §4/§6/§7、ACT.yaml、act/*.yaml 的 artifact_type 与消费键）；`work-items/impl-03-validation/ACT.yaml` 与 `act/*.yaml`（只读，取 `gate_results`/`validation_package`/`validator_report` 与输入边界）。
+- 定稿输入：`work-items/impl-04-dataset/`（提交 `2e4f9a7`：README §4/§6/§7、ACT.yaml、act/*.yaml 的 artifact_type 与消费键）；`work-items/impl-03-validation/ACT.yaml` 与 `act/*.yaml`（只读，取 `gate_results`/`validation_package` 与输入边界；`validator_report` 已按 §9.1 第 24 条废弃，复用 `validation_report`）。
 - 模板 `work-items/impl-02-corpus/`（README、BDD、TDD、ACT.yaml、PROMPT-J3.md、ACCEPTANCE.md）。
 
 **起草时实测（2026-09-11/12，本机）**：`run_all.sh` → `SUMMARY pass=2 fail=1 blocked=8`；`m3-coverage.sh` exit 2；fixture `verify.sh` 8 项 PASS + `FIXTURE OK`；生成器重放 `diff -r` 无输出。
@@ -112,11 +112,11 @@ git diff --check                                                                
 - **M5**（§9 第 10 条）：`gate_results`、`validation_package`。
 - 复用（不新增，但首纵切内首次以闭集形式确认）：`configuration`、`validation_report`、`step_log`、`failure_report`、`stage_package`、`source_manifest`、`ocr_page`、`ocr_page_set`、`human_event`、`corpus_batch`、`corpus_spans`、`coverage_report`、`corpus_package`。
 
-### 5.2 待裁决发现（定稿时登记，供主 Agent 处置）
+### 5.2 缺口与已裁项（G7-RULINGS §9.1 第 24/25/26 条）
 
-1. **`validator_report` 未在 §9 第 10 条提名**：impl-03 `act/05.yaml:45/51` 与 README §5.2 使用 `put_artifact "validator_report"` 作为每 task 一个修订的 artifact_type，但 §9 第 10 条只提名 `gate_results`、`validation_package`。按 P2「未入闭集的类型名，实现不得使用」，须由主 Agent 明确是否一并登记。
-2. **Ledger 只读查询缺口清单**（§9 第 13 条要求登记，供 impl-08 补读接口）：impl-03 `act/04.yaml:16` 需 `frozen_inputs`、`artifacts.artifact_type`、`stage_packages` 三类元数据；impl-04 `act/04.yaml:14` 需按 `step_run_id` 取 sealed StagePackage。`LedgerReadMixin`（service.py 111–164）无对应公开方法，两包均按先例走 `reader.store.conn` 只读 SELECT。
-3. **错误码缺口**（§9 第 17 条要求列清单）：impl-03 的 `count_mismatch`、`unproofread_glyphs`、`replay_tool_mismatch` 在现有 9 码中无对应，按裁决填 `code: null`。
+1. **已裁（§9.1 第 24 条）**：`validator_report` **不入** §4 闭集；impl-03 定稿（`1a189ae`）已改为复用通用 `validation_report`；首纵切 M5 新类型只有 `gate_results`、`validation_package`；§4 表残留的 `gate_report` 由 `impl-00/10` 删除。
+2. **已裁（§9.1 第 25 条，按第 13 条）**——Ledger 只读查询缺口清单（本清单为唯一登记处，供 impl-08 补读接口）：impl-03 `act/04.yaml:16` 需 `frozen_inputs`、`artifacts.artifact_type`、`stage_packages` 三类元数据；impl-04 `act/04.yaml:14` 需按 `step_run_id` 取 sealed StagePackage。`LedgerReadMixin`（service.py 111–164）无对应公开方法，首纵切允许只读 SELECT；impl-08 以公开读方法补齐后回改调用方。
+3. **已裁（§9.1 第 26 条，按第 17 条）**——错误码缺口：impl-03 的 `count_mismatch`、`unproofread_glyphs`、`replay_tool_mismatch` 在现有 9 码中无对应，填 `code: null`，缺口并入本清单；错误码闭集扩充随 impl-08 Contract Registry。
 
 ## 6. 与其他并行草案的接口假设（摘要；逐项见 `INTERFACES.md` §6）
 

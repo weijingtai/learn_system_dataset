@@ -35,6 +35,6 @@
    - 不改 m1–m3 的【实际】事实。
 4. 运行 `act/10.yaml` 的 `verify` 全部；再跑 README §1 完成判据。
 5. `git add` 只加 `commit.add` 列出的路径（`INTERFACES.md`、`check_interfaces.py`、`tests/`），按 `commit.message` 提交。一个提交。
-6. 停手规则：开工前提不符；§4 闭集名称与 README §5.1 不一致；impl-03/impl-04 引用到未登记类型（如 `validator_report`，已登记为 README §5.2 待裁决 1，不得自行决定登记）；需要写 scope 外文件；需要改 schemas/fixture/ledger 才能通过。一律停止、不自行决定，把原始输出与 `git status --short` 交主 Agent 裁定。
+6. 停手规则：开工前提不符；§4 闭集名称与 README §5.1 不一致；impl-03/impl-04 引用到未登记类型（`validator_report`、`gate_report` 均不得登记，见 §9.1 第 24/26 条与 README §5.2）；需要写 scope 外文件；需要改 schemas/fixture/ledger 才能通过。一律停止、不自行决定，把原始输出与 `git status --short` 交主 Agent 裁定。
 
 最终报告：提交 hash 与 `git show --stat --oneline HEAD`；开工前提原文；Red 原文；Green 的 `I00-IF SUMMARY` 行与 `unittest` 的 `Ran/OK` 行；`verify` 各项输出；`git status --short`；以及一句「等待主 Agent 独立验收」。
