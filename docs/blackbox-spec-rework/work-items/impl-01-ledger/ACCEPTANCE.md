@@ -1,6 +1,6 @@
 # ACCEPTANCE：impl-01 Artifact Ledger
 
-状态：H1（ACT 00/01/02）`ACCEPTED`；H2 的 ACT 03/04 `ACCEPTED`（`401b449`、`01d32ca`），ACT 05（`45d99a1`）判据全绿但有一处缺陷，返工 ACT 06 `DISPATCHED`（`PROMPT-H3.md`）；见 §5
+状态：`ACCEPTED`（2026-09-11）。H1 `ba9b68e`/`823bead`/`0dff35d`；H2 `401b449`/`01d32ca`/`45d99a1`；返工 ACT 06 `c939575`。见 §5
 
 ## 0. 转译审查（主 Agent 四查，2026-09-11）
 
@@ -62,3 +62,19 @@ H1、H2 各自通过后记 `ACCEPTED`；全部通过后：SUBAGENT_TODO G7 impl-
 - 恢复凭据：库内只存 `v<version>:<sha256>`，明文不落库；错凭据与二次 `resume` 均 `InvalidResumeToken`。
 - 质量：判定函数异常经 `_safe` 一律转 FAIL；场景失败时三个场景判定均 FAIL；无 `except: pass`；字符串中出现的前缀全部属登记册 19 个。
 - **缺陷（返工 ACT 06）**：注入 `fixture_ingest.ingest` 抛异常 → `acceptance.main` 返回 3，`run_all.sh` 显示 `BLOCKED 测试宿主匮乏`。Ledger 写路径的真实回归会被显示为「前置缺失」而非 FAIL，违反 ACT 05「3 仅用于 fixture 不存在或缺依赖」。修法：准备或判定异常一律退出码 1。
+
+### 5.3 返工 ACT 06（`c939575`，`git archive` 干净树）ACCEPTED
+
+- 范围：2 文件（`acceptance.py` +4/−3，`tests/test_acceptance.py` +35）；`git diff --check` 通过。
+- 门禁绿；`unittest` 73/73；`run_all.sh` 仍 `SUMMARY pass=2 fail=1 blocked=8`、exit 1。
+- `return 3` 恰 2 处：fixture `manifest.yaml` 不存在、`_environment_error()` 非 None；缺 fixture 实跑 exit 3。
+- 注入：`fixture_ingest.ingest` 抛异常 → exit 1、首行 `FAIL 20_2 宿主准备失败: RuntimeError`；`evaluate` 抛异常 → exit 1；缺依赖 → exit 3 `BLOCKED_ENV`。
+- 端到端：临时把导出树的 `ingest` 改为首行抛异常 → `run_all.sh 20.2 20.3` 输出 `FAIL 20.2`、`FAIL 20.3`、`SUMMARY pass=0 fail=2 blocked=0`（修复前为 BLOCKED）。
+
+### 5.4 结论
+
+impl-01 `ACCEPTED`。完成判据达成：`openspec/acceptance/run_all.sh` 20.2、20.3 由 BLOCKED 变 PASS，且账本写路径缺陷、fixture 篡改、Ledger 记录篡改都能把它们打回 FAIL。
+
+- 未勾 PLAN D-16 节 C「Artifact Ledger」：`check_d16.py` R5 要求节 C 恰 3 条 `- [ ]`，勾选会让 D-16 门禁变红（主 Agent 当初规则缺陷）。impl-02 ACT 00 先把 R5 改为「节 C 条目合计 3 条（`- [ ]` 与 `- [x]` 合计）」，再勾选并附 `c939575`。
+- 已知缺口：`step_runs.stage` 从配置修订内容推导（StepRequest 无 stage 字段），后续改 L0 Schema 时显式化。
+- 本批未做（按范围）：Pipeline / OCR FastAPI / Flutter 三个消费者接入 Ledger 客户端；旧存储迁移（`legacy-storage-transition.md` 状态不变）。

@@ -9,7 +9,7 @@
 当前 HEAD：`70c05cd` 及其后（G5 准出完成时）
 当前主线状态：`IMPLEMENTATION_PHASE`（2026-09-11 G5 总准出通过，用户确认进入实现阶段；规格文档级状态 `R1_REWORK_CLOSED`）
 
-> 2026-09-11 更新：G4 D 类 D-01～D-19 全部 `ACCEPTED`（`work-items/g4-r1/`、`g4-r2/`、`g4-r3/`），G5 总准出记录 `docs/blackbox-spec-rework/reviews/G5-EXIT-REVIEW.md` 14/14 满足，规格头部翻为 `R1_REWORK_CLOSED`（`70c05cd`）。下一任务：首纵切第一批 Artifact Ledger（§17，判据 `openspec/acceptance/run_all.sh 20.2 20.3` 由 BLOCKED 变 PASS，宿主 `pipeline/corpus/_fixture/mini_ed01/`）。派发方式不变：主 Agent 写六件套与 Prompt，用户交外部 Agent，主 Agent 在 `git archive` 干净树上独立验收。
+> 2026-09-11 更新：G4 D 类 D-01～D-19 全部 `ACCEPTED`（`work-items/g4-r1/`、`g4-r2/`、`g4-r3/`），G5 总准出记录 `docs/blackbox-spec-rework/reviews/G5-EXIT-REVIEW.md` 14/14 满足，规格头部翻为 `R1_REWORK_CLOSED`（`70c05cd`）。首纵切第一批 Artifact Ledger（`pipeline/ledger/`）已于 2026-09-11 `ACCEPTED`，`run_all.sh` 20.2/20.3 PASS；下一任务：impl-02 M3 Corpus Compilation（见 `HANDOFF.md` 黑箱线顶部节）。派发方式不变：主 Agent 写六件套与 Prompt，用户交外部 Agent，主 Agent 在 `git archive` 干净树上独立验收。
 >
 > 2026-09-10 更新：§5 三个阻断已由 `work-items/g3-r5/` 关闭（先红 `5de99fa`、后绿 `241c38c`），验收证据见 `docs/blackbox-spec-rework/work-items/g3-r5/ACCEPTANCE.md`。§4–§9 保留为历史记录，供理解 G3 门禁的设计约束；§6 的机械任务已完成，不得重复派发。
 

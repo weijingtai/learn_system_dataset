@@ -560,7 +560,7 @@
 
 ## G7 首纵切实现（Dataset 会话；§22 顺序 Artifact Ledger → M3 → M5 → M8）
 
-- [ ] impl-01：Artifact Ledger §17（状态：`REVIEWING`，H1 `ACCEPTED`；H2 ACT 03/04 `ACCEPTED`，ACT 05 返工 ACT 06 派发中；工作包 `work-items/impl-01-ledger/`，六个 ACT 分 H1（00–02）/H2（03–05）两轮派发；完成判据 `openspec/acceptance/run_all.sh` 20.2/20.3 由 BLOCKED 变 PASS，`SUMMARY pass=2 fail=1 blocked=8`）
+- [x] impl-01：Artifact Ledger §17（状态：`ACCEPTED` 2026-09-11；H1 `ba9b68e`/`823bead`/`0dff35d`，H2 `401b449`/`01d32ca`/`45d99a1`，返工 `c939575`；`run_all.sh` 20.2/20.3 PASS，`SUMMARY pass=2 fail=1 blocked=8`；验收 `work-items/impl-01-ledger/ACCEPTANCE.md` §5）
   - [x] README/范围/依赖/禁止项
   - [x] BDD 场景
   - [x] TDD 正反用例与精确命令
@@ -574,11 +574,11 @@
   - [x] 派发 H2 执行 Agent（2026-09-11）
   - [x] H2 执行提交与原始证据（ACT 03/04/05：`401b449`、`01d32ca`、`45d99a1`）
   - [x] 主 Agent 规格审查（`impl-01-ledger/ACCEPTANCE.md` §5.2：签名 22/22、`run_all.sh` pass=2、8 例矩阵外篡改命中）
-  - [ ] 返工 ACT 06：宿主准备失败必须退出码 1（`PROMPT-H3.md`）
-  - [ ] 主 Agent 质量审查
-  - [ ] PLAN/HANDOFF 同步
-  - [ ] 主 Agent 标记 `ACCEPTED`
-- [ ] impl-02：M3 Corpus Compilation（状态：`BACKLOG`；impl-01 后）
+  - [x] 返工 ACT 06：宿主准备失败必须退出码 1（`c939575`）
+  - [x] 主 Agent 质量审查
+  - [x] PLAN/HANDOFF 同步（PLAN 节 C 勾选推迟到 impl-02 ACT 00 修 check_d16 R5 之后）
+  - [x] 主 Agent 标记 `ACCEPTED`
+- [ ] impl-02：M3 Corpus Compilation（状态：`PREPARING`；ACT 00 先修 `check_d16.py` R5 并勾选 PLAN 节 C「Artifact Ledger」）
 - [ ] impl-03：M5 Automatic Validation（状态：`BACKLOG`）
 - [ ] impl-04：M8 Dataset Compilation（状态：`BACKLOG`）
 
