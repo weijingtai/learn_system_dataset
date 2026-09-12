@@ -701,9 +701,9 @@
 ### 私人同步、备份与删除
 
 - [ ] NC-016：私人加密 mapper 与设备同步（2026-09-12 拆分，D-NC016-01）
-  - [ ] NC-016a：guard 补丁、AES-GCM AAD、一次一密信封与接收验收（状态：`DISPATCHED`，四查 R1 返工 2 项、R2 READY（`reviews/NC-016a-REVIEW-R1.md`）；契约 `openspec/annotation-community/contracts/private_sync_impl.md`，六件套 `work-items/nc-016a/`，守卫 `reviews/nc016a_guard.sh`；两线：STORAGE act/01 ｜ CLIENT act/02→03）
+  - [x] NC-016a：guard 补丁、AES-GCM AAD、一次一密信封与接收验收（状态：`ACCEPTED`，2026-09-12 R1：守卫 `--require-impl all` 0，盲测 ①～⑥ 通过（pyca 解多块信封、换序截断拒收、JSON 往返、旧会话零写入、200 组 guard 三方一致）；此前 `DISPATCHED`，四查 R1 返工 2 项、R2 READY（`reviews/NC-016a-REVIEW-R1.md`）；契约 `openspec/annotation-community/contracts/private_sync_impl.md`，六件套 `work-items/nc-016a/`，守卫 `reviews/nc016a_guard.sh`；两线：STORAGE act/01 ｜ CLIENT act/02→03）
     - [x] STORAGE act/01（NC-016a-A）：tmux + cmd 会话 nc016s；两次停手（worktree 建树超时、既有测试到期占位值 → D-NC016-14 `c791d94`）；xuan-storage 分支 `fix/nc016-guard-aad` `755a8fc`，main 仍 `8ddb877`；主 Agent 复跑守卫 `--require-impl storage` 为 0（K06 PASS）
-    - [ ] CLIENT act/02→03（NC-016a-B/C）：NC-011 验收后经 tmux + cmd（deepseek/deepseek-v4.1-flash）派发，会话 nc016c（2026-09-12）
+    - [x] CLIENT act/02→03（NC-016a-B/C）：NC-011 验收后经 tmux + cmd（deepseek/deepseek-v4.1-flash）派发，会话 nc016c（2026-09-12）；`a9a9621`→`d80703b`，flutter test +270，无停手
   - [ ] NC-016b：两台真实设备 LAN/WebRTC 集成、中转上传与宿主装配（状态：`BLOCKED`，等 NC-001 设备表）
 - [x] NC-017：口令加密导出文件格式与本机写入（v1.6；状态：`ACCEPTED`，2026-09-12 R1；reading-notes `e913b14`→`4a0d70a`，flutter test +253，Python 独立解码 28 项与盲测 ②～⑥ 全部通过）
   - [x] 规格侧契约（主 Agent）：`openspec/annotation-community/contracts/private_export.md`（容器/清单、Argon2id m65536 t3 p1 经 OpenSSL 交叉核对、带 AAD 分块 AES-GCM、统一失败、`.partial` 原子写入、参考值、D-NC017-01～11）

@@ -1,6 +1,6 @@
 # NC-016a：私人同步实现——guard 补丁、AES-GCM AAD、一次一密信封与接收验收
 
-状态：`READY`（2026-09-12：cmd（deepseek-v4.1-flash）四查 R1 返工 2 项（外键顺序、盲测入口）+ 建议与待裁决，R2 READY，见 `reviews/NC-016a-REVIEW-R1.md`；执行中 STORAGE 停手：过期校验使两条既有测试的 2024 年到期占位值失效，主 Agent 裁定 D-NC016-14，白名单追加两条既有测试的到期时间替换）。派发前置：NC-004、NC-007、NC-015、NC-017 均 `ACCEPTED`（已满足）。task_id：`NC-016a`。NC-016b（两台真实设备 LAN/WebRTC 集成、中转上传、宿主装配）`BLOCKED`，等 NC-001 设备表（D-NC016-01）。权威需求来源：TASKS NC-016；契约 `contracts/private_sync_impl.md`（本任务专属）与 `contracts/private_sync.md`（含 §10）。
+状态：`ACCEPTED`（2026-09-12 R1，见 [ACCEPTANCE](ACCEPTANCE.md) 验收记录；STORAGE `755a8fc`（分支未合并）、CLIENT `a9a9621`→`d80703b`。此前：cmd（deepseek-v4.1-flash）四查 R1 返工 2 项（外键顺序、盲测入口）+ 建议与待裁决，R2 READY，见 `reviews/NC-016a-REVIEW-R1.md`；执行中 STORAGE 停手：过期校验使两条既有测试的 2024 年到期占位值失效，主 Agent 裁定 D-NC016-14，白名单追加两条既有测试的到期时间替换）。派发前置：NC-004、NC-007、NC-015、NC-017 均 `ACCEPTED`（已满足）。task_id：`NC-016a`。NC-016b（两台真实设备 LAN/WebRTC 集成、中转上传、宿主装配）`BLOCKED`，等 NC-001 设备表（D-NC016-01）。权威需求来源：TASKS NC-016；契约 `contracts/private_sync_impl.md`（本任务专属）与 `contracts/private_sync.md`（含 §10）。
 
 ## Goal
 
