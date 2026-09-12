@@ -8,12 +8,14 @@
 
 **先读（按顺序）**：`/Users/jingtaiwei/Git/Public/learn_system/AGENTS.md`；`docs/blackbox-spec-rework/work-items/nc-009/` 下 README.md、BDD.md、TDD.md、ACT.yaml、act/01～04.yaml、ACCEPTANCE.md；`openspec/annotation-community/contracts/community_server.md`（全文）与 `community_api.md`（§2～§7）；SERVER 的 `xuan/identity.py`、`errors.py`、`config.py`、`handlers/playground_rest.py`（只读参考）、`tests/conftest.py`、`tests/test_playground_rest_writes.py`（只读参考 `create_test_id_token`）。
 
+**既有失败基线**：`pytest tests -q` 在开工前即为 `411 passed, 5 failed`，5 个失败是 `tests/test_config.py::test_集合名与_ts_逐项一致` 与 `tests/test_registration.py` 的 `test_全部_callable_已在入口注册`、`test_三个_trigger_已注册`、`test_与_入口总数对齐`、`test_没有多余的未声明导出`；它们与本任务无关，**不要修改这两个测试文件**；每步只要求失败集合与这 5 个名称完全相同，最终 `450 passed, 5 failed, 9 xfailed`。
+
 **先写测试再改实现**：每步先写本步测试并取得真实 Red 原文（贴入报告），再实现。
 
 **只允许写**：各 ACT 的 WRITE_NEW 清单。禁止：learn_system 任何写入；`idempotency.py`、`playground_rest.py`、`notifications.py`、`firestore.rules`；用 `with_idempotency` 包社区命令；事务回调内上传/推送/sleep；`skip`；`assert status in (...)`；内存 fake 代替 Emulator；新增依赖。
 
 **判据来源**：只来自两份契约与 TDD/BDD。契约两种解释、Emulator 不可达、`.venv` 缺失、需要改 `firestore.rules` 或既有 handler：立即停止并原样报告。
 
-**提交**：SERVER 四步各一个提交，RULES 一个提交，只 `git add` 本步文件，不 push。提交消息按 COMMIT_MESSAGE，末尾另起两行加 `Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>`。
+**提交**：SERVER 四步各一个提交，RULES 一个提交，只 `git add` 本步文件，不 push。提交消息按 COMMIT_MESSAGE，末尾另起两行加 `Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>`。
 
-**交付报告**（每步一节）：commit 哈希与 `git show --stat`；Red 原文；VERIFICATION 每条命令退出码与末 20 行；act/04 另附 `pytest tests -q` 末 5 行（含 xfailed 计数）、`npm test -- community_rules` 末 10 行、`nc009_guard.sh --require-impl` 退出码；跳过项与剩余风险。不要把附件发布、清理执行、评论、通知说成完成。
+**交付报告**写入 `/Users/jingtaiwei/Git/Public/learn_system/docs/blackbox-spec-rework/work-items/nc-009/DELIVERY_REPORT.md`（不 git add），每步一节：commit 哈希与 `git show --stat`；Red 原文；VERIFICATION 每条命令退出码与末 20 行；act/04 另附 `pytest tests -q` 末 5 行（含 xfailed 计数）、`npm test -- community_rules` 末 10 行、`nc009_guard.sh --require-impl` 退出码；跳过项与剩余风险。不要把附件发布、清理执行、评论、通知说成完成。

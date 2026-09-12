@@ -18,7 +18,7 @@ SCOPE:
 DEPENDENCY_ALLOWLIST: [无]
 RULES:
   - "字段名与 expected 逐字取自契约与 BDD；不新增字段"
-  - "只 git add fixtures/private_sync；提交消息按 COMMIT_MESSAGE，末尾另起两行 Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
+  - "只 git add fixtures/private_sync；提交消息按 COMMIT_MESSAGE，末尾另起两行 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 TESTS_FIRST:
   - "本步无独立测试；提交前运行 TDD §2 的可解析检查并把 content_hash 取值贴入报告"
 STEPS:

@@ -26,7 +26,7 @@ DEPENDENCY_ALLOWLIST: [无新增；requirements.txt 三项]
 RULES:
   - "集合、字段、判定顺序、错误码只来自 community_server.md 与 community_api.md；期望值只来自 TDD/BDD"
   - "每步先写测试取得真实 Red 原文，再实现；不修改前步测试期望"
-  - "只 git add 本步文件；提交消息按 COMMIT_MESSAGE，末尾另起两行 Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
+  - "只 git add 本步文件；提交消息按 COMMIT_MESSAGE，末尾另起两行 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 TESTS_FIRST:
   - "写 helpers 与 12 个测试；运行 TDD 命令 1，保存 ImportError 原文作为 Red"
 STEPS:

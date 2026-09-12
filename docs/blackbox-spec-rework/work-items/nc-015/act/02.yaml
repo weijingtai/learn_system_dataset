@@ -20,7 +20,7 @@ SCOPE:
 DEPENDENCY_ALLOWLIST: [标准库；.venv 内已有 jsonschema 可用但非必需]
 RULES:
   - "红条件与 expected 闭集逐字取自契约 §8；自测通过 --contract/--fixtures 指向临时副本注入缺陷，不改真实文件"
-  - "只 git add 本步两个文件；提交消息按 COMMIT_MESSAGE，末尾另起两行 Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
+  - "只 git add 本步两个文件；提交消息按 COMMIT_MESSAGE，末尾另起两行 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 TESTS_FIRST:
   - "先写 16 个自测并运行 TDD 命令 2，保存 ImportError/失败原文作为 Red"
 STEPS:

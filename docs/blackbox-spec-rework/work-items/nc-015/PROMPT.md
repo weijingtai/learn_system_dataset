@@ -14,6 +14,6 @@
 
 **判据**：只来自契约与 TDD/BDD。契约有两种以上解释、`content_hash_cases.json` 第一个 case 无 `expected_hash`、检查器需读契约以外文档：立即停止并原样报告。
 
-**提交**：两步各一个提交，只 `git add` 本步文件，不 push；提交消息按各 ACT 的 COMMIT_MESSAGE，末尾另起两行加 `Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>`。仓库工作树可能有其他会话的未跟踪文件，绝不 `git add -A`。
+**提交**：两步各一个提交，只 `git add` 本步文件，不 push；提交消息按各 ACT 的 COMMIT_MESSAGE，末尾另起两行加 `Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>`。仓库工作树可能有其他会话的未跟踪文件，绝不 `git add -A`。
 
 **交付报告**：每步 commit 哈希与 `git show --stat`；act/01 附 `content_hash` 取值与来源 case 名；act/02 附 Red 原文、命令 1/2 输出末 10 行、`nc015_guard.sh --require-impl` 退出码；跳过项与剩余风险。
