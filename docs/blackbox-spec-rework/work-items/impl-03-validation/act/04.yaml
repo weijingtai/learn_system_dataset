@@ -3,7 +3,7 @@ title: M5 输入解析与上下文：resolve_m5_inputs（17 个冻结修订，�
 estimated_minutes: 75
 group: K2
 depends_on: [impl-03/03]
-decisions_required: [D-01, D-14, D-15]
+decisions_applied: [D-01, D-14, D-15]
 scope:
   write: [pipeline/validation/inputs.py, pipeline/validation/context.py, pipeline/validation/tests/test_inputs.py]
 tests_first:

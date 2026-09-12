@@ -3,7 +3,7 @@ title: m5-evidence-gate 验收：acceptance.py 十四项判定 + openspec/accept
 estimated_minutes: 80
 group: K2
 depends_on: [impl-03/05]
-decisions_required: [D-12, D-13]
+decisions_applied: [D-12, D-13]
 scope:
   write: [pipeline/validation/acceptance.py, pipeline/validation/tests/test_acceptance.py, openspec/acceptance/m5-evidence-gate.sh]
 tests_first:
@@ -15,7 +15,7 @@ contract: |
     判定一律自行重算，不信任 run_m5 返回的 gate 报告；acceptance.py 不得 import g1_source / g2_coverage / g3_evidence / replay
     十四项判定（名称与顺序固定）：
       inputs_frozen：summary.status == "succeeded"；该 StepRun 的 frozen_inputs 恰 17 个、全部 sealed，且等于 resolve_m5_inputs 的角色集合
-      validator_checkpoints：14 个 validator_report 修订与 14 个 m5 Checkpoint 成链；task_id 依次等于 registry.VALIDATORS 的 validator_id；
+      validator_checkpoints：14 个 Validator 报告（artifact_type validation_report）修订与 14 个 m5 Checkpoint 成链；task_id 依次等于 registry.VALIDATORS 的 validator_id；
         StepManifest.last_checkpoint_revision_id == 末个
       g1_source_replay：独立重算 G1 五项（含按 registry 调用 replay 重放），与 gate_results 的 G1 结论一致；fixture 上 G1 唯 4 条未决字符发现
       g2_coverage：独立重算覆盖页 ∪ 排除页 == manifest 页序、Span 首尾相接、拼接等于页块，与 gate_results 一致

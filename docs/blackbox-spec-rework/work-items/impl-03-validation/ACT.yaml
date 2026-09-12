@@ -1,10 +1,10 @@
 package: blackbox-impl-03-validation
 title: 首纵切第三批：M5 Automatic Validation（§13）首切片——G1–G3 与 glyphbox_level 证据门禁
-status: DRAFT   # README §4 裁决完成、按裁决定稿为 READY 并做 wjt-react 四查后才可派发
+status: READY_FOR_REVIEW   # README §4「主 Agent 决定」已定稿；执行者按表实现，不重议
 executor_groups:
   K1: [impl-03/00, impl-03/01, impl-03/02, impl-03/03]   # 纯函数模块与 14 个已注册 Validator；K1 全部 ACCEPTED 后才派 K2
   K2: [impl-03/04, impl-03/05, impl-03/06]               # Ledger 读接口、run_m5 事务序列、m5-evidence-gate 验收
-decisions_required:
+decisions_applied:   # 引用 README §4 决定行；这些是已裁决项，执行者不得重议
   impl-03/00: [D-07, D-10]
   impl-03/01: [D-04, D-06]
   impl-03/02: [D-01]
@@ -36,10 +36,13 @@ acts:
     writes: ["pipeline/validation/acceptance.py", "pipeline/validation/tests/test_acceptance.py", "openspec/acceptance/m5-evidence-gate.sh"]
 global_rules:
   - 每个 ACT 先写测试（Red 原文入报告）再实现；unittest；测试只用 tempfile 目录，不写 var/ 与 fixture
-  - 只用标准库 + PyYAML + jsonschema；不新增依赖、不新增 ID 前缀（validator_id、task_id 是任务标签，不是登记册 ID）、不调用模型 API
-  - 生产代码只读 Ledger 冻结修订；元数据查询允许经 reader.store.conn 只读 SELECT，沿用 impl-02 inputs.py 先例
+  - 只用标准库 + PyYAML + jsonschema；不新增依赖、不新增 ID 前缀（validator_id、task_id 是任务标签，不是登记册 ID）、不调用模型 API（P6 零模型调用）
+  - artifact_type 纪律（P2/P3）：本包新类型仅 gate_results、validation_package，且须先由 W2-C 的登记 ACT 写入 INTERFACES §4 闭集后方可实现；每 Validator 报告复用通用 validation_report，不引入 validator_report/gate_report 等新类型名；新内容结构 schema_version "0.1.0-draft"，不新增 openspec/schemas/ 文件
+  - 生产代码只读 Ledger 冻结修订；元数据查询允许经 reader.store.conn 只读 SELECT，沿用 impl-02 inputs.py 先例（缺口清单见 README §5.4）
   - 上游约束（impl-02 ACCEPTANCE §5.3）：解析上游 StagePackage 时只接受 StepRun 状态 succeeded 的包，非 succeeded 包坚决拒绝并抛 ValidationRefused
+  - §9 第 21 条追加约束：m5 StagePackage 的 validation.passed 必须如实等于 gate.passed；下游消费须同时满足 StepRun succeeded 与 validation.passed == true
   - 独立性纪律：g1_source、g2_coverage、g3_evidence 不得 import pipeline.corpus_compiler；唯一允许 import compiler 的是 replay.py；acceptance.py 不得 import 内部验证器逻辑，一律独立重算
+  - 退出码纪律：CLI 0=成功 / 1=gate 未过 / 2=begin 之前被拒 / 3=WriterLocked；验收脚本 0=全 PASS / 1=有 FAIL / 2=无 FAIL 有 BLOCKED / 3=宿主或依赖缺失；任何脚本不得用 0 冒充门禁完成
   - 中文注释与 docstring；公开函数名、参数名、返回键、检查名与 ACT contract 逐字一致
   - 每个 ACT 一个提交；只 add scope.write 中的路径；不得 git add -A / git add .；不得写台账或 ACCEPTED
 gates:

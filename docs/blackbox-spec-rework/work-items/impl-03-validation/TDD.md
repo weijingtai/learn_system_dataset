@@ -22,6 +22,8 @@ shasum -a 256 pipeline/corpus/_fixture/mini_ed01/spans.yaml         # ec6d77b90a
 
 ## 1. 逐 ACT 的 Red → Green
 
+每个 BDD 场景与 ACT `tests` 用例名、本表的对应关系见 `BDD.md` §8。
+
 | ACT | Red（实现前） | Green（实现后） |
 |---|---|---|
 | 00 | `$TV` → ImportError | `$TV` OK，用例 ≥ 10；注册表 14 项；`fixture_context()` 43 条 Span、17 个修订 |
@@ -43,7 +45,11 @@ grep -nE 'from pipeline\.validation\.(g1_source|g2_coverage|g3_evidence|replay)|
 # 不改输入：run_m5 前后，M1–M3 全部修订的 status、sha256 与 artifact_revisions 行数（除 M5 新增行外）不变
 # 不读 fixture：pipeline/validation 非 tests 文件不出现 "_fixture"（acceptance.py 只经 --fixture 参数除外）
 # 不调模型：grep -rE '^\s*(import|from) (requests|openai|anthropic|httpx)' pipeline/validation | wc -l   # 0
-# 错误码闭集：registry.CHECK_CODES 的值 ⊆ ERROR_CODES ∪ {None}
+# 错误码闭集：registry.CHECK_CODES 的值 ⊆ ERROR_CODES ∪ {None}；缺口清单见 README §5.5
+# artifact_type 闭集：本包新类型仅 gate_results、validation_package（先由 W2-C 登记入 INTERFACES §4）
+grep -rnE '"(validator_report|gate_report)"' pipeline/validation --include='*.py' | wc -l   # 0
+# 新内容 schema_version：gate_results / validation_package / Validator 报告恒 "0.1.0-draft"（P3）
+# §9 第 21 条：m5 StagePackage validation.passed 如实等于 gate.passed；gate 未过时 StepRun 仍 succeeded 但下游不得放行
 # 矩阵外篡改（主 Agent 自定，不预告）：页 JSON、终态、人工事件、批次、m3 包 ArtifactRef、m3 配置、字框坐标各至少 1 例，M5 必须命中且不得 gate.passed 于受影响级别
 # fail-closed：注入任一 Validator 抛异常 → 该 task errored、三级 failed；g1_frozen_bytes error → 其余 13 个 skipped_fail_closed
 # 写入原子性：begin_step_run 之前被拒时 Ledger 行数（artifact_revisions、step_runs、audit_log）不变

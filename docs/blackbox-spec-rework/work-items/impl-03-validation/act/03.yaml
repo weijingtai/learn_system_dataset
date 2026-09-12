@@ -3,7 +3,7 @@ title: G3 身份、引用与证据锚点（Span 身份、引用闭合、严格 o
 estimated_minutes: 80
 group: K1
 depends_on: [impl-03/02]
-decisions_required: [D-02, D-03, D-05]
+decisions_applied: [D-02, D-03, D-05]
 scope:
   write: [pipeline/validation/g3_evidence.py, pipeline/validation/tests/test_g3.py]
 tests_first:

@@ -3,7 +3,7 @@ title: M5 骨架、错误类型、规范 JSON、Finding 与 Validator 注册表
 estimated_minutes: 75
 group: K1
 depends_on: []
-decisions_required: [D-07, D-10]
+decisions_applied: [D-07, D-10]
 scope:
   write: [pipeline/validation/__init__.py, pipeline/validation/errors.py, pipeline/validation/serialize.py, pipeline/validation/findings.py, pipeline/validation/registry.py, pipeline/validation/tests/__init__.py, pipeline/validation/tests/helpers.py, pipeline/validation/tests/test_registry.py]
 tests_first:

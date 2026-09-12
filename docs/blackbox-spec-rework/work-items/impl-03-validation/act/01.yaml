@@ -3,7 +3,7 @@ title: G1 来源与可重放性（冻结字节、页登记、全链哈希、未�
 estimated_minutes: 85
 group: K1
 depends_on: [impl-03/00]
-decisions_required: [D-04, D-06]
+decisions_applied: [D-04, D-06]
 scope:
   write: [pipeline/validation/g1_source.py, pipeline/validation/replay.py, pipeline/validation/tests/test_g1.py]
 tests_first:

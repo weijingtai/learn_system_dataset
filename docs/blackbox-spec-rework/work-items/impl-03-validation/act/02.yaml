@@ -3,7 +3,7 @@ title: G2 全书覆盖（页对账、连续覆盖、批次划分、期望与实�
 estimated_minutes: 80
 group: K1
 depends_on: [impl-03/00]
-decisions_required: [D-01]
+decisions_applied: [D-01]
 scope:
   write: [pipeline/validation/g2_coverage.py, pipeline/validation/tests/test_g2.py]
 tests_first:
