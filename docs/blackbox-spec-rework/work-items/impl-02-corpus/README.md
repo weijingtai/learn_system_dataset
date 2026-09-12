@@ -1,6 +1,6 @@
 # impl-02：M3 Corpus Compilation（§11）结构层首切片
 
-状态：`READY`（主 Agent 2026-09-11 四查通过；J1 待派发，J2 在 J1 `ACCEPTED` 后派发）
+状态：`REVIEWING`（J1 `ACCEPTED`；J2 独立验收发现 5 处缺陷，返工 ACT 05 / `PROMPT-J3.md` 待派发）
 
 ## 1. 目标
 

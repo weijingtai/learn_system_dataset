@@ -4,6 +4,7 @@ status: READY
 executor_groups:
   J1: [impl-02/00, impl-02/01, impl-02/02]   # 一个执行 Agent 串行；J1 全部 ACCEPTED 后才派 J2
   J2: [impl-02/03, impl-02/04]
+  J3: [impl-02/05]   # J2 验收返工
 acts:
   - file: act/00.yaml
     id: impl-02/00
@@ -20,6 +21,9 @@ acts:
   - file: act/04.yaml
     id: impl-02/04
     writes: ["pipeline/corpus_compiler/acceptance.py", "pipeline/corpus_compiler/tests/test_acceptance.py", "openspec/acceptance/m3-coverage.sh"]
+  - file: act/05.yaml
+    id: impl-02/05
+    writes: ["pipeline/corpus_compiler/step.py", "pipeline/corpus_compiler/tests/test_step.py", "pipeline/corpus_compiler/acceptance.py", "pipeline/corpus_compiler/tests/test_acceptance.py"]
 global_rules:
   - 每个 ACT 先写测试（Red 原文入报告）再实现；unittest；测试只用 tempfile 目录，不写 var/ 与 fixture
   - 只用标准库 + PyYAML + jsonschema；不新增依赖、不新增 ID 前缀（批号是任务标签，不是登记册 ID）、不调用模型 API

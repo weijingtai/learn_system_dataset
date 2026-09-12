@@ -65,7 +65,7 @@ contract: |
       失败时：failed_check, failure_revision_id, reason
 
   __main__.py：python -m pipeline.corpus_compiler --root <ledger_root> --edition-part <art_id> [--batch-size 10]
-    LedgerService(<root>/ledger)（与 acceptance.prepare 的布局一致）→ run_m3 → stdout 末行：
+    LedgerService(<root>)：--root 即 Ledger 根目录，与 pipeline.ledger.cli 一致（J2 验收裁定，原写 <root>/ledger）→ run_m3 → stdout 末行：
       成功 `M3 OK <step_run_id> spans=<n> batches=<m>` exit 0；失败 `M3 FAILED <step_run_id> <failed_check>` exit 1；
       begin 之前被拒（CompileRefused/MissingReference/NotConsumable）`M3 REFUSED <异常类名>: <消息>` exit 2；WriterLocked exit 3
 tests:

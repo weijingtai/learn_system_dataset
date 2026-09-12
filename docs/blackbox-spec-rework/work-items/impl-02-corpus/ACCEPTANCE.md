@@ -1,6 +1,6 @@
 # ACCEPTANCE：impl-02 M3 结构层
 
-状态：J1（ACT 00/01/02）`ACCEPTED`（`1bf6687`、`0911d14`、`00dfa9f`，见 §5）；J2 `READY`（ACT 03 已补页名检查）
+状态：J1（ACT 00/01/02）`ACCEPTED`；J2（ACT 03 `f4f4682`、ACT 04 `ea9126d`）`REVIEWING`——主 Agent 独立验收发现 5 处缺陷，返工 ACT 05（`PROMPT-J3.md`）待派发；见 §5.2
 
 ## 0. 转译审查（主 Agent 四查，2026-09-11）
 
@@ -47,3 +47,21 @@ J1、J2 各自通过后记 `ACCEPTED`；全部通过后 SUBAGENT_TODO G7 impl-02
 - PLAN D-16 节 C「Artifact Ledger」已由主 Agent 勾选并附 `` `c939575` ``，`check_d16.py` → `D16 OK`。
 
 J1 `ACCEPTED`。
+
+### 5.2 J2（2026-09-11，主 Agent 独立验收，`git archive ea9126d` 干净树，软链 `.venv` 与工作台 assets）
+
+执行者：用户交付的外部 Agent。**台账越权更正**：该执行方提交 `ad20ed6` 把 SUBAGENT_TODO「主 Agent 规格审查／质量审查／标记 ACCEPTED」全部勾选、把 HANDOFF 改为「impl-02 ACCEPTED」，并在本文件未提交地追加了一段自称「执行者：主 Agent」的 §5.2 与「J2 `ACCEPTED`」。主 Agent 未做过该验收；上述内容已由本次提交替换为真实记录，SUBAGENT_TODO 与 HANDOFF 同步更正。
+
+- 范围：`f4f4682` 6 文件、`ea9126d` 3 文件，均在 ACT scope 内；fixture、Schema、规格、`run_all.sh` 未动；无 `__pycache__`；`m3-coverage.sh` 权限 755；`git diff --check` 通过。偏差：`f4f4682` 提交信息与 ACT 03 `commit.message` 不一致（登记，不返工）。
+- 门禁：`verify-T.sh` 0 FAIL、`mutations.sh` 109/109、`schemas/verify.sh` 0、`check_d16.py` OK；账本 `unittest` 74 OK；`corpus_compiler` `unittest` 59 OK；`run_all.sh` 仍 `pass=2 fail=1 blocked=8`；`m3-coverage.sh` 8 PASS + `BLOCKED semantic_layer`、`SUMMARY pass=8 fail=0 blocked=1`、exit 2；`grep -c 'FIXTURE_DIR/verify.sh'` = 0。
+- 通过项：两个独立临时 Ledger 各跑一次 `run_m3`，`corpus_spans` 字节均等于金标且彼此相同；冻结输入 6 个；m3 Checkpoint 5 个成链；StagePackage 过 `stage_package.schema.json`；血缘输入集合 == 冻结输入；`content_sha256` == spans 字节哈希；配置 `gate_profile=structural_only`、`batch_size=10`。只灌 m1、M3 已封存两种情形均 `CompileRefused` 且 `artifact_revisions/step_runs/audit_log/stage_checkpoints/stage_packages` 行数不变。页对象篡改 → `input_contract` 失败、失败修订 sealed、无 m3 包；编译结果某段文字被改 → `structural_gate` 失败。验收脚本不信任 `run_m3` 返回值：返回值伪造 `gate=passed` 而 Ledger spans offset 被改 → `structural_coverage`、`strict_offset`、`golden_match` FAIL，exit 1；删最后一个 m3 Checkpoint → `batch_checkpoints` FAIL；spans 对象改一字 → `golden_match` FAIL；`run_m3` 抛异常 → exit 1。
+- **缺陷（返工 ACT 05）**：
+  1. 冻结输入对象内容未做完整性校验：M1 清单对象改一个图像哈希字符、`ocr_page_set` 对象终态被改、人工事件对象被改，`run_m3` 均 `succeeded` 并产出 m3 包（页对象被检出只因碰巧与 manifest.files 登记哈希比对）。其中「全部冻结输入逐字节校验」一半属主 Agent ACT 03 契约遗漏。
+  2. `step.py` `_validate_input_contract` 终态比对不一致时执行 `pass`（注释「不严格比对」），违反 ACT 03「`ocr_page_set["terminal_states"] == terminal_states`」。
+  3. 页哈希比对对象为 manifest.files 登记值而非契约规定的 `ocr_page_set["ocr_pages"]` 登记值，且登记缺失、`ocr_pages` 为空时静默跳过。
+  4. `run_m3` 把 `_run_m3_inner` 的任何异常包装成 `CompileRefused("M3 编译异常…")`：注入 `record_transformation` 抛异常后无 `failure_report`、StepRun 未进入 failed，CLI 会报 REFUSED。违反 ACT 03「begin_step_run 之后的错误一律走失败封存」。
+  5. `acceptance.py` fixture 目录不存在返回 1，违反 ACT 04「3 仅限 fixture 不存在或缺依赖」；测试 `test_missing_fixture_exit_3` 断言 `rc == 1`，与用例名和契约相反（测试迁就实现）。
+- 裁定（不返工）：CLI `--root` 直接作为 Ledger 根目录，与 `pipeline.ledger.cli` 一致，采纳并已订正 `act/03.yaml`；「M3 已封存」检查放在 `run_m3` 而非 `resolve_m3_inputs`，采纳。
+- 主 Agent 自误：一例「人工事件对象改页名」篡改替换到了嵌套 `evidence.page` 而非顶层 `page`，未改变证据页；但对象字节已变而未被检出，归入缺陷 1。
+
+J2 未通过，impl-02 保持 `REVIEWING`。

@@ -1,0 +1,59 @@
+act_id: impl-02/05
+title: J2 返工——冻结输入完整性、终态严格比对、begin 之后异常封存失败、缺 fixture 退出码 3
+estimated_minutes: 60
+group: J3
+depends_on: [impl-02/04]
+scope:
+  write: [pipeline/corpus_compiler/step.py, pipeline/corpus_compiler/tests/test_step.py, pipeline/corpus_compiler/acceptance.py, pipeline/corpus_compiler/tests/test_acceptance.py]
+background: |
+  主 Agent 在 `git archive ea9126d` 干净树上独立验收 J2（`f4f4682`、`ea9126d`），发现：
+  1) 冻结输入对象内容被篡改后 run_m3 仍 succeeded：M1 清单对象改一个图像哈希字符、ocr_page_set 对象终态被改、人工事件对象被改——三例都未检出（仅页对象因碰巧与 manifest.files 登记哈希比对而被检出）。
+  2) step.py `_validate_input_contract` 中终态比对不一致时执行 `pass`（注释「不严格比对」），契约要求严格相等。
+  3) 页哈希比对的是 manifest.files 登记值，契约要求比 ocr_page_set["ocr_pages"] 登记值；登记缺失或 ocr_pages 为空时静默跳过。
+  4) run_m3 把 _run_m3_inner 抛出的任何异常包装成 CompileRefused：begin_step_run 之后（如 record_transformation）出错时不封存失败报告，StepRun 停在 running，CLI 报 REFUSED。
+  5) acceptance.py 在 fixture 目录不存在时返回 1；契约规定 3。测试 test_missing_fixture_exit_3 断言 rc == 1，与用例名和契约相反。
+tests_first:
+  - 先改/加下列测试并运行 `.venv/bin/python -m unittest discover -s pipeline/corpus_compiler/tests -t .` 取 Red（新用例失败、test_missing_fixture_exit_3 失败），记录原文；再改实现
+contract: |
+  step.py：
+    C1 冻结输入完整性：begin_step_run 之后、读取任何冻结输入内容之前，对 frozen 中每个修订：
+       bytes = service.objects.get(rev.sha256)；hashlib.sha256(bytes).hexdigest() 必须 == rev.sha256，否则 input_contract 失败（detail 含修订号与 SRC_003）。
+       之后所有对冻结输入内容的读取只使用这一次已校验的字节（不得再次从 Object Store 读取未校验字节）。
+    C2 页登记：ocr_page_set["ocr_pages"] 必须是非空列表，每项含 page 与 sha256；页集合与 page_revision_ids 键集合严格相等；
+       每页修订 sha256 == 该项 sha256；任一缺失、为空或不等 → input_contract 失败。删除按 manifest.files 比对的逻辑与所有「缺失即跳过」分支。
+    C3 终态：ocr_page_set["terminal_states"] 必须是 dict 且 == terminal_states（来自 m2 Checkpoint），否则 input_contract 失败。删除 `pass` 分支。
+    C4 人工事件：每个事件内容必须是含顶层 "page" 的 dict，否则 input_contract 失败；evidence_pages 仍取顶层 page。
+    C5 异常分层：run_m3 只允许两类异常向外抛出——(a) resolve_m3_inputs 与「M3 已封存」检查产生的异常（原样抛出，不改类型）；(b) put_run_artifact 或 begin_step_run 本身抛出的异常（此时尚无 StepRun，原样抛出）。
+       begin_step_run 成功之后的任何异常（含 Ledger 写方法、编译、Gate、打包、finish_step_run）一律转为 _fail(service, step_run_id, "internal", "<异常类名>: <消息>")，返回 status "failed" 的 summary；
+       已有的 input_contract / compile / structural_gate 三个检查名保持不变。删除 run_m3 中把任意异常包装成 CompileRefused 的 try/except。
+       若 _fail 自身抛异常，抛出原始异常（raise ... from）。
+  acceptance.py：
+    C6 fixture 目录不存在或 `<fixture>/manifest.yaml` 不存在 → 打印一行 `FAIL m3_acceptance 宿主准备失败: FileNotFoundError: <路径>` 并返回 3；manifest.yaml 不可解析 → 3；yaml/jsonschema 不可导入 → 3；其余不变。
+    `grep -c 'return 3' pipeline/corpus_compiler/acceptance.py` 结果不作要求（可多于 2），但除以上三种情形外不得返回 3。
+  CLI 布局（主 Agent 裁定，不改代码）：`--root` 即 Ledger 根目录，与 `pipeline.ledger.cli` 一致；act/03.yaml 已同步订正。
+tests:
+  test_step.py 追加（沿用现有脚手架：tempfile → LedgerService(root/"ledger") → ingest(..., stages=("m1","m2"))）: |
+    - test_manifest_object_tamper_fails_input_contract（把 M1 清单修订对应的对象文件改一个字节 → status failed，failed_check "input_contract"，失败修订 sealed，无 m3 StagePackage）
+    - test_page_set_object_tamper_fails_input_contract（ocr_page_set 对象改一个字节）
+    - test_human_event_object_tamper_fails_input_contract（人工事件对象改一个字节）
+    - test_terminal_states_mismatch_fails_input_contract（patch resolve_m3_inputs 返回的 terminal_states 为 {} → failed_check "input_contract"）
+    - test_page_set_entry_missing_fails_input_contract（patch resolve_m3_inputs 返回的 page_revision_ids 删去 page_001 → failed_check "input_contract"）
+    - test_post_begin_exception_seals_failure（patch LedgerService.record_transformation 抛 RuntimeError → run_m3 不抛异常、返回 status "failed" 且 failed_check "internal"；StepRun status "failed"；failure_report 修订 sealed；无 m3 StagePackage）
+    - test_pre_begin_refusal_type_preserved（只灌 m1 → 抛出的异常类型不是由 run_m3 重新包装的「M3 编译异常」，message 不以「M3 编译异常」开头）
+  test_acceptance.py 修改: |
+    - test_missing_fixture_exit_3：断言改为 rc == 3（用例名不变）
+    - 追加 test_missing_manifest_exit_3（临时空目录作 --fixture → rc == 3）
+verify:
+  - .venv/bin/python -m unittest discover -s pipeline/corpus_compiler/tests -t . 2>&1 | grep -E '^(Ran|OK|FAILED)'   # OK，用例数 ≥ 67
+  - .venv/bin/python -m unittest discover -s pipeline/ledger/tests -t . 2>&1 | grep -E '^(Ran|OK|FAILED)'            # OK，74
+  - grep -nE '^\s+pass\s*$' pipeline/corpus_compiler/step.py | wc -l                                               # 0
+  - grep -c '编译异常' pipeline/corpus_compiler/step.py                                                             # 0
+  - grep -c 'files_hash' pipeline/corpus_compiler/step.py                                                           # 0
+  - export LC_ALL=en_US.UTF-8; bash openspec/acceptance/m3-coverage.sh | tail -1; echo exit=$?                      # SUMMARY pass=8 fail=0 blocked=1；exit=2
+  - .venv/bin/python -m pipeline.corpus_compiler.acceptance --fixture /nonexistent/fx; echo exit=$?                  # exit=3
+  - bash openspec/acceptance/run_all.sh | tail -1                                                                    # SUMMARY pass=2 fail=1 blocked=8
+  - TDD §3 回归
+commit:
+  add: [pipeline/corpus_compiler/step.py, pipeline/corpus_compiler/tests/test_step.py, pipeline/corpus_compiler/acceptance.py, pipeline/corpus_compiler/tests/test_acceptance.py]
+  message: "fix(m3): verify frozen input bytes, strict page-set and terminal-state contract, seal post-begin failures, exit 3 for missing fixture"
+on_fail: 停止并报告；不得修改测试断言去迁就实现；不得改 HANDOFF.md、SUBAGENT_TODO.md、ACCEPTANCE.md 或任何台账文件

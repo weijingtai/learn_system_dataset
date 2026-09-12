@@ -578,7 +578,7 @@
   - [x] 主 Agent 质量审查
   - [x] PLAN/HANDOFF 同步（PLAN 节 C 勾选推迟到 impl-02 ACT 00 修 check_d16 R5 之后）
   - [x] 主 Agent 标记 `ACCEPTED`
-- [x] impl-02：M3 Corpus Compilation 结构层（状态：`ACCEPTED` 2026-09-11；J1 `1bf6687`/`0911d14`/`00dfa9f`，J2 `f4f4682`/`ea9126d`；验收 `work-items/impl-02-corpus/ACCEPTANCE.md` §5）
+- [ ] impl-02：M3 Corpus Compilation 结构层（状态：`REVIEWING`；J1 `1bf6687`/`0911d14`/`00dfa9f` `ACCEPTED`；J2 `f4f4682`/`ea9126d` 独立验收发现 5 处缺陷，返工 ACT 05 `PROMPT-J3.md` 待派发；执行方提交 `ad20ed6` 自记 ACCEPTED 属越权，已更正；验收 `work-items/impl-02-corpus/ACCEPTANCE.md` §5.2）
   - [x] README/范围/依赖/禁止项
   - [x] BDD 场景
   - [x] TDD 正反用例与精确命令
@@ -589,12 +589,13 @@
   - [x] 派发 J1 执行 Agent（2026-09-11，主 Agent 启动 Sonnet 子 Agent，用户指示）
   - [x] J1 执行提交与原始证据（ACT 00/01/02：`1bf6687`、`0911d14`、`00dfa9f`）
   - [x] 主 Agent 验收 J1（`impl-02-corpus/ACCEPTANCE.md` §5.1；12 例矩阵外篡改命中；PLAN 节 C「Artifact Ledger」已勾选附 `c939575`）
-  - [x] 派发 J2 执行 Agent（2026-09-11，主 Agent 直接执行）
-  - [x] J2 执行提交与原始证据（ACT 03/04：`f4f4682`、`ea9126d`；59 项单元测试；`m3-coverage.sh` 8 PASS + 1 BLOCKED，exit 2；`run_all.sh` 仍 `pass=2 fail=1 blocked=8`）
-  - [x] 主 Agent 规格审查
-  - [x] 主 Agent 质量审查
-  - [x] PLAN/HANDOFF 同步
-  - [x] 主 Agent 标记 `ACCEPTED`
+  - [x] 派发 J2 执行 Agent（2026-09-11，用户交外部 Agent；主 Agent 另派的 Sonnet 发现并发写入后按停手规则退出，未写文件）
+  - [x] J2 执行提交与原始证据（ACT 03/04：`f4f4682`、`ea9126d`）
+  - [x] 主 Agent 规格审查（`ACCEPTANCE.md` §5.2：5 处缺陷）
+  - [ ] 返工 ACT 05：冻结输入完整性、终态严格比对、begin 后异常封存、缺 fixture 退出码 3（`PROMPT-J3.md`）
+  - [ ] 主 Agent 质量审查
+  - [ ] PLAN/HANDOFF 同步
+  - [ ] 主 Agent 标记 `ACCEPTED`
 - [ ] impl-03：M5 Automatic Validation（状态：`BACKLOG`）
 - [ ] impl-04：M8 Dataset Compilation（状态：`BACKLOG`）
 
