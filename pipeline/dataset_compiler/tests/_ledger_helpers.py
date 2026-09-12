@@ -13,6 +13,7 @@ from pathlib import Path
 import yaml
 
 from pipeline.ledger import ids
+from pipeline.ledger.fixture_ingest import ingest
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 FIXTURE = REPO_ROOT / "pipeline" / "corpus" / "_fixture" / "mini_ed01"
@@ -165,3 +166,97 @@ def table_counts(service):
 def sha256_hex(data):
     """测试内使用的 SHA-256 助手。"""
     return hashlib.sha256(data).hexdigest()
+
+
+def prepare_m3(service):
+    """灌入 m1/m2 并在真实 Ledger 上跑 ``run_m3``。
+
+    返回 ``{"edition_part_id", "m3": summary}``。
+    """
+    from pipeline.corpus_compiler.step import run_m3
+
+    summary = ingest(FIXTURE, service, stages=("m1", "m2"))
+    edition_part_id = summary["edition_part_id"]
+    m3_summary = run_m3(service, edition_part_id)
+    return {"edition_part_id": edition_part_id, "m3": m3_summary}
+
+
+def prepare_m8_ready(service):
+    """``prepare_m3`` 后再登记本机真实页图。返回 ``{"edition_part_id", "m3", "assets"}``。"""
+    from pipeline.dataset_compiler.shim.m1_shim_source_assets import (
+        register_source_assets,
+    )
+
+    prepared = prepare_m3(service)
+    prepared["assets"] = register_source_assets(
+        service, prepared["edition_part_id"], REPO_ASSET_ROOT
+    )
+    return prepared
+
+
+def seed_succeeded_m8_checkpoint(service, edition_part_id):
+    """只用于 R1 测试：造一个 succeeded 的 m8 StepRun 及其 Checkpoint。"""
+    processing_run_id = service.create_processing_run(
+        "release_run", edition_part_id, "qizheng"
+    )
+    _, config_revision_id = service.put_run_artifact(
+        processing_run_id,
+        "configuration",
+        json.dumps(
+            {"stage": "m8", "tool": "test.seed", "tool_version": "0"},
+            sort_keys=True,
+            ensure_ascii=False,
+        ).encode("utf-8"),
+        producer_module="test.seed",
+        producer_version="0",
+    )
+    step_run_id = service.begin_step_run(
+        {
+            "schema_version": "1.0.0",
+            "processing_run_id": processing_run_id,
+            "step_run_id": ids.new_id("step_run_id"),
+            "input_artifact_ids": [],
+            "technique_profile_id": "qizheng",
+            "configuration_artifact_id": config_revision_id,
+        }
+    )
+    _, log_revision_id = service.put_artifact(
+        step_run_id,
+        "step_log",
+        b"seed_succeeded_m8_checkpoint",
+        producer_module="test.seed",
+        producer_version="0",
+    )
+    service.seal_revision(log_revision_id)
+    service.write_checkpoint(
+        step_run_id,
+        edition_part_id=edition_part_id,
+        stage="m8",
+        completed_tasks=[
+            {
+                "task_id": "seed",
+                "artifact_revision_id": log_revision_id,
+                "status": "succeeded",
+                "terminal_state": None,
+            }
+        ],
+        human_decisions=[],
+        pending_queue=[],
+        next_pointer=None,
+    )
+    current_version = service.get_step_run(step_run_id)["status_version"]
+    service.finish_step_run(
+        step_run_id,
+        {
+            "schema_version": "1.0.0",
+            "processing_run_id": processing_run_id,
+            "step_run_id": step_run_id,
+            "status_version": current_version + 1,
+            "status": "succeeded",
+            "output_artifact_ids": [log_revision_id],
+            "validation_report_ids": [],
+            "log_artifact_ids": [log_revision_id],
+            "failure_artifact_ids": [],
+        },
+    )
+    return step_run_id
