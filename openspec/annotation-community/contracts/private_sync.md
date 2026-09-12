@@ -149,3 +149,9 @@ WebRTC DataChannel 强制 DTLS，每次连接 ECDHE 临时密钥（S6 §4.2）�
 | D-NC015-08 | `accountBindingCertHash` = SHA-256(app_user_id|peerDeviceId|peerPublicKeyFingerprint)，本机计算 | S6 与 PairingResult 都不产出「证书」，字段既有则给它一个可验证语义 |
 | D-NC015-09 | 接收端会话 X25519 公钥须带设备 Ed25519 签名，发送端验签后才包装 DEK | 中转路径无 DTLS 可依附，否则中转方或中间人可替换会话公钥令密文对其可解 |
 | D-NC015-07 | 样例中的签名与密文为格式级（hex 长度、字段齐全、哈希与 NC-002 fixture 逐字一致），密码学有效性由 NC-016 的 Dart 测试用真实 Ed25519/X25519 密钥生成并验证 | 规格仓 Python 环境无 Ed25519/X25519 库；检查器只守契约结构与闭集，不冒充密码学验证 |
+
+## 10. NC-016a 实现补充（2026-09-12，逐项落地见 [private_sync_impl.md](private_sync_impl.md)）
+
+- **块级 AAD（D-NC016-05，加强 D-NC015-05）**：§4.3 的 `aad` 用于包装 DEK；逐块加密使用 `aad ‖ 块号（4 B 大端）‖ 末块标记（0x01/0x00）`，防块换序、截断与追加。包装 DEK 的 GCM nonce 取 `nonce_w` 前 12 字节，HKDF salt 用完整 16 字节。
+- **线上 op（D-NC016-06）**：§4.4 的 `op` 取 OutboxOp 数据库值；NC-016a 只同步 `revision_saved`、`heads_merged`，其余归 NC-019。§7 `envelope_valid.json` 的 `op: "upsert"` 为格式级占位，不作取值依据。
+- **接收第 0 步（D-NC016-07）**：§6 第 1 步之前先做信封结构校验（字段、hex 长度、内联载荷 ≤ 262144 字节），失败为 `reject:schema_invalid`；§6 第 1～7 步顺序不变。

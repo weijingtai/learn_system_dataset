@@ -1,0 +1,41 @@
+TASK_ID: NC-016a-C
+PARENT: NC-016a
+STATUS: READY_FOR_REVIEW
+REPO: xuan-migration/reading-notes
+GOAL: private_note_sync.dart——端口、SealedEnvelope、发送端 seal（会话公钥验签、X25519+HKDF 包装、分块 AES-GCM、Ed25519 签名）、接收端 openSession/receive（第 0～7 步）；S07～S17
+DEPENDS_ON: [NC-016a-B]
+ESTIMATE_MINUTES: 60
+WORKLOAD: "private_note_sync.dart 约 380 行；11 个测试约 560 行（双仓库、真实密钥、参考值字面量）"
+SCOPE:
+  READ:
+    - /Users/jingtaiwei/Git/Public/learn_system/openspec/annotation-community/contracts/private_sync_impl.md（§6、§7、§8 S07～S17、§9、§10）
+    - /Users/jingtaiwei/Git/Public/learn_system/openspec/annotation-community/contracts/private_sync.md（§4.3、§4.4、§6、§10）
+    - /Users/jingtaiwei/Git/Public/learn_system/openspec/annotation-community/fixtures/community/content_hash_cases.json（第一例 C01_base，只读）
+    - /Users/jingtaiwei/Git/Public/learn_system/docs/blackbox-spec-rework/work-items/nc-016a/BDD.md（S07～S17）、TDD.md（§4）
+    - act/02 已提交的 private_note_mapper.dart、note_repository.dart 追加方法与测试
+    - /Users/jingtaiwei/.pub-cache/hosted/pub.dev/cryptography-2.9.0/lib/src/cryptography/（X25519、Ed25519、Hkdf、AesGcm 签名，只读）
+  WRITE_NEW:
+    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/lib/src/storage/private_note_sync.dart
+    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/lib/reading_notes.dart（追加 export 'src/storage/private_note_sync.dart';）
+    - /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/test/storage/private_note_sync_test.dart（追加 S07～S17，不改 S01～S06 期望）
+  FORBIDDEN:
+    - act/02 文件再改（发现缺陷停手上报）；其他 lib 与 test 文件；pubspec；新依赖；真实网络；skip；永真断言；测试内调用被测函数生成参考值；learn_system 写入（交付报告除外）；git push；删除文件
+DEPENDENCY_ALLOWLIST: [同 act/02]
+RULES:
+  - "密码学步骤、AAD、nonce、HKDF info、签名消息拼接、判定顺序与结果码逐字按契约 §6"
+  - "S08 参考值逐字取自契约 §9；S07 写在最前"
+  - "只 git add WRITE_NEW 文件；提交消息按 COMMIT_MESSAGE，末尾空一行加 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
+TESTS_FIRST:
+  - "先写 S07～S17，运行 VERIFICATION 第 2 条，保存失败原文作为 Red"
+STEPS:
+  - "实现至 VERIFICATION 全部符合期望；提交"
+  - "提交后运行一次 learn_system 守卫 --require-impl client，退出码写入报告"
+VERIFICATION:
+  - "cd /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes && PATH=/Users/jingtaiwei/flutter/bin:$PATH flutter analyze（期望 No issues found!）"
+  - "cd /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes && PATH=/Users/jingtaiwei/flutter/bin:$PATH flutter test test/storage/private_note_sync_test.dart（期望 +17: All tests passed!）"
+  - "cd /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes && PATH=/Users/jingtaiwei/flutter/bin:$PATH flutter test（期望 +270: All tests passed!）"
+  - "git -C /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes status --short（期望空）"
+  - "cd /Users/jingtaiwei/Git/Public/learn_system && bash docs/blackbox-spec-rework/reviews/nc016a_guard.sh --require-impl client（期望 0）"
+ON_FAIL: "停止并在 DELIVERY_REPORT_CLIENT.md 追加「## 待裁决」。§9 参考值对不上（含 newKeyPairFromSeed 与 pyca 不一致）、需改 act/02 文件、既有测试变红，均为停止条件。"
+BASELINE_EXIT_CODES: "开工基线：act/02 提交（flutter test +259、analyze 0）"
+COMMIT_MESSAGE: "feat(storage): 一次一密信封、Ed25519 签名与接收七步验收（NC-016a-C）"

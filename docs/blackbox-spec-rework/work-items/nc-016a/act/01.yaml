@@ -1,0 +1,48 @@
+TASK_ID: NC-016a-A
+PARENT: NC-016a
+STATUS: READY_FOR_REVIEW
+REPO: xuan-migration/xuan-storage（worktree .worktrees/nc016-guard-aad，分支 fix/nc016-guard-aad）
+GOAL: SameAccountSessionGuard 补设备 ID/指纹/过期三条比较（可选 nowUtcMs）；BlobCipher 接口与 AesGcm/Identity 实现加可选 associatedData；X01～X03
+DEPENDS_ON: []
+ESTIMATE_MINUTES: 45
+WORKLOAD: "guard 约 15 行；接口与两个实现各约 5 行；TestPrivateCipher 签名 2 处；2 个新测试文件约 150 行；复制 8 个样例"
+SCOPE:
+  READ:
+    - /Users/jingtaiwei/Git/Public/learn_system/openspec/annotation-community/contracts/private_sync_impl.md（§1、§2.1、§3、§10）
+    - /Users/jingtaiwei/Git/Public/learn_system/openspec/annotation-community/contracts/private_sync.md（§3.3、§4.3、§7）
+    - /Users/jingtaiwei/Git/Public/learn_system/docs/blackbox-spec-rework/work-items/nc-016a/BDD.md（X01～X03）、TDD.md（§1～§2）
+    - /Users/jingtaiwei/Git/Public/xuan-migration/xuan-storage/AGENTS.md（分支纪律与 worktree 须 pub get）
+    - /Users/jingtaiwei/Git/Public/xuan-migration/xuan-storage/core/lib/model/im_models.dart（TIMPeerAuthorization，只读）
+    - /Users/jingtaiwei/Git/Public/xuan-migration/xuan-storage/core/test/same_account_im_reconciliation_test.dart（写法参考，只读）
+  WRITE_NEW:
+    - <worktree>/core/lib/sync/same_account_im_reconciliation.dart（只改 verifyPeerSession）
+    - <worktree>/core/lib/model/blob_cipher.dart（两个方法各加可选命名参数）
+    - <worktree>/drift/lib/blob/aes_gcm_blob_cipher.dart
+    - <worktree>/drift/lib/blob/identity_blob_cipher.dart
+    - <worktree>/drift/test/blob/blob_cipher_test.dart（只改 TestPrivateCipher 两个签名）
+    - <worktree>/core/test/private_sync_guard_fixtures_test.dart
+    - <worktree>/core/test/fixtures/private_sync/auth_*.json（8 个，逐字节复制自 learn_system openspec/annotation-community/fixtures/private_sync/）
+    - <worktree>/drift/test/blob/aes_gcm_aad_test.dart
+  FORBIDDEN:
+    - xuan-storage main 分支上的任何写入、merge、rebase、push；其他 worktree；白名单外文件；pubspec.yaml；新依赖；改既有断言；skip；永真断言；learn_system 写入（交付报告除外）；删除文件
+DEPENDENCY_ALLOWLIST: [沿用 xuan-storage 各包 pubspec；worktree 内 flutter pub get 生成的 pubspec.lock 与 .dart_tool 不入库]
+RULES:
+  - "<worktree> = /Users/jingtaiwei/Git/Public/xuan-migration/xuan-storage/.worktrees/nc016-guard-aad；所有 git 与 flutter 命令先 cd 到 worktree 或其子包"
+  - "guard 第 6～8 步顺序与结果逐字按契约 §3.1；接口签名逐字按 §3.2"
+  - "只 git add WRITE_NEW 文件；提交在分支 fix/nc016-guard-aad；消息按 COMMIT_MESSAGE，末尾空一行加 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
+TESTS_FIRST:
+  - "按 TDD §2 先记录改动前通过数，再复制样例、写测试，取得 Red 原文"
+STEPS:
+  - "实现至 VERIFICATION 全部符合期望；提交"
+  - "提交后运行一次 learn_system 守卫 --require-impl storage，退出码写入报告"
+VERIFICATION:
+  - "cd /Users/jingtaiwei/Git/Public/xuan-migration/xuan-storage/.worktrees/nc016-guard-aad/core && PATH=/Users/jingtaiwei/flutter/bin:$PATH flutter test test/private_sync_guard_fixtures_test.dart（期望 +2: All tests passed!）"
+  - "cd /Users/jingtaiwei/Git/Public/xuan-migration/xuan-storage/.worktrees/nc016-guard-aad/core && PATH=/Users/jingtaiwei/flutter/bin:$PATH flutter test test/same_account_im_reconciliation_test.dart（期望 +4: All tests passed!）"
+  - "cd /Users/jingtaiwei/Git/Public/xuan-migration/xuan-storage/.worktrees/nc016-guard-aad/p2p && PATH=/Users/jingtaiwei/flutter/bin:$PATH flutter test test/same_account_security_boundary_test.dart（期望 +3: All tests passed!）"
+  - "cd /Users/jingtaiwei/Git/Public/xuan-migration/xuan-storage/.worktrees/nc016-guard-aad/drift && PATH=/Users/jingtaiwei/flutter/bin:$PATH flutter test test/blob/aes_gcm_aad_test.dart test/blob/aes_gcm_blob_cipher_test.dart test/blob/blob_cipher_test.dart（期望全部通过，通过数 = 改动前 + 1）"
+  - "git -C /Users/jingtaiwei/Git/Public/xuan-migration/xuan-storage/.worktrees/nc016-guard-aad diff-tree -r --name-only 8ddb877 HEAD（期望恰为 WRITE_NEW 内实际改动的文件）"
+  - "git -C /Users/jingtaiwei/Git/Public/xuan-migration/xuan-storage rev-parse main（期望 8ddb877 开头，main 未动）"
+  - "cd /Users/jingtaiwei/Git/Public/learn_system && bash docs/blackbox-spec-rework/reviews/nc016a_guard.sh --require-impl storage（期望 0）"
+ON_FAIL: "停止并在 DELIVERY_REPORT_STORAGE.md 追加「## 待裁决」。worktree 创建或 pub get 失败、需改 pubspec、既有测试变红、需要在 main 上操作，均为停止条件。"
+BASELINE_EXIT_CODES: "开工基线：main 8ddb877；core guard +4、p2p +3、drift cipher +10"
+COMMIT_MESSAGE: "fix(sync): guard 比较设备 ID/指纹/过期，BlobCipher 可选 AAD（NC-016a-A）"

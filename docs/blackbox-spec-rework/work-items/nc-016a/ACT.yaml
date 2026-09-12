@@ -1,0 +1,17 @@
+TASK_ID: NC-016a
+STATUS: READY_FOR_REVIEW
+GOAL: S6 私人同步进程内实现——STORAGE guard 三条比较与 BlobCipher 可选 AAD；CLIENT mapper、授权判定、一次一密信封、接收七步验收与远端修订落库
+CONTRACTS:
+  - openspec/annotation-community/contracts/private_sync_impl.md
+  - openspec/annotation-community/contracts/private_sync.md（§2～§7、§10）
+DISPATCH_PRECONDITION: "NC-004、NC-007、NC-015、NC-017 ACCEPTED（已满足）；wjt-react 四查 READY"
+SPLIT:
+  - act/01.yaml（STORAGE，NC-016a-A）
+  - act/02.yaml（CLIENT，NC-016a-B）
+  - act/03.yaml（CLIENT，NC-016a-C）
+ORDER: "两线并行：STORAGE act/01 ｜ CLIENT act/02 → act/03；CLIENT 与其他 reading-notes 任务不并行"
+ESTIMATE_MINUTES_TOTAL: 165
+DEFERRED:
+  - "NC-016b：两台真实设备 LAN/WebRTC 集成测试、中转上传与 notifier 信令、宿主装配与 SyncRuntime entityType 注册（BLOCKED，等 NC-001 设备表）"
+  - "STORAGE 分支 fix/nc016-guard-aad 合并到 main：仓库所有者决定"
+  - "生命周期 op（note_trashed/restored/purged）同步与 tombstone 窗口：NC-019"
