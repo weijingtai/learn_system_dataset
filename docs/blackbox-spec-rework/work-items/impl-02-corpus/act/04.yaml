@@ -45,7 +45,7 @@ tests:
     - test_shell_exit_2_on_fixture（subprocess 运行 m3-coverage.sh，末行 SUMMARY pass=8 fail=0 blocked=1，exit 2）
     - test_shell_never_trusts_copy_verify（fixture 副本删一条 span，并把副本 verify.sh 换成 `echo FIXTURE OK; exit 0` → FIXTURE_DIR=副本 运行 m3-coverage.sh，exit 1，首行以 "FAIL fixture_host" 开头）
 verify:
-  - .venv/bin/python -m unittest discover -s pipeline/corpus_compiler/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 57
+  - .venv/bin/python -m unittest discover -s pipeline/corpus_compiler/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 58
   - export LC_ALL=en_US.UTF-8; bash openspec/acceptance/m3-coverage.sh; echo exit=$?               # 8 PASS + BLOCKED semantic_layer + SUMMARY pass=8 fail=0 blocked=1；exit=2
   - grep -c 'FIXTURE_DIR/verify.sh' openspec/acceptance/m3-coverage.sh                              # 0
   - grep -c 'return 3' pipeline/corpus_compiler/acceptance.py                                       # 2

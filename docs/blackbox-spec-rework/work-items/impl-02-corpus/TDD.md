@@ -24,8 +24,8 @@ shasum -a 256 pipeline/corpus/_fixture/mini_ed01/spans.yaml              # ec6d7
 | 00 | 副本勾选 Artifact Ledger → `D16 FAIL R5 新节 C 未勾选项数=2（应 3）` | 副本 A `D16 OK`；副本 B/C `FAIL R5` |
 | 01 | `$TC` → ImportError | `$TC` OK，用例 ≥ 16；金标字节相等 |
 | 02 | 新增用例全 ERROR | `$TC` OK，用例 ≥ 37 |
-| 03 | 新增用例全 ERROR | `$TL` OK ≥ 74；`$TC` OK ≥ 49；`run_all.sh` 不变 |
-| 04 | `m3-coverage.sh` 不存在（exit 127）；新增用例全 ERROR | `$TC` OK ≥ 57；`m3-coverage.sh` → `SUMMARY pass=8 fail=0 blocked=1`、exit 2 |
+| 03 | 新增用例全 ERROR | `$TL` OK ≥ 74；`$TC` OK ≥ 50；`run_all.sh` 不变 |
+| 04 | `m3-coverage.sh` 不存在（exit 127）；新增用例全 ERROR | `$TC` OK ≥ 58；`m3-coverage.sh` → `SUMMARY pass=8 fail=0 blocked=1`、exit 2 |
 
 ## 2. 主 Agent 验收附加判据（执行者不需跑，但不得让其失败）
 

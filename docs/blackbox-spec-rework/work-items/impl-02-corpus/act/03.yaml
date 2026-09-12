@@ -36,6 +36,7 @@ contract: |
       4 输入契约（失败检查名 input_contract）：经 service.read_object / objects 读取冻结修订字节；manifest = yaml.safe_load；ocr_page_set = json.loads；
         ocr_page_set["ocr_pages"] 的页集合 == page_revision_ids 键集合；每页修订 sha256 == 该页登记 sha256（否则 HashMismatch SRC_003）；
         ocr_page_set["terminal_states"] == terminal_states；每个人工事件内容 JSON 的 "page" 字段收集为 evidence_pages
+        manifest["edition_part"]["pages"] 中每个页名匹配 ^page_[0-9]{3,4}$（J1 验收发现：排除页不经 page_number 校验，故在此补检；不符 → input_contract 失败）
       5 result = compiler.compile_structural(manifest=…, page_docs=…, terminal_states=…, batch_size=…)（异常检查名 compile）
       6 每个批次：put_artifact(step, "corpus_batch", json.dumps(该批 Span 列表, sort_keys=True, ensure_ascii=False).encode()) → seal；
         write_checkpoint(step, edition_part_id=…, stage="m3", completed_tasks=[{"task_id": 批号, "artifact_revision_id": 修订, "status": "succeeded", "terminal_state": None}], human_decisions=[], pending_queue=[{"task_id": 其后批号} …], next_pointer=首个待办或 None)
@@ -82,11 +83,12 @@ tests:
     - test_refuses_second_run_when_m3_sealed
     - test_page_hash_mismatch_fails_step_run（patch resolve_m3_inputs 交换 page_001/page_003 修订 → status failed，failed_check "input_contract"，失败修订 sealed，无 m3 StagePackage）
     - test_gate_failure_fails_step_run（patch compiler.compile_structural 返回的 spans_doc 删去一条 Span → failed_check "structural_gate"，无 m3 StagePackage）
+    - test_malformed_page_name_fails_input_contract（patch 读取后的 manifest 把 page_002 改名 page_2 → failed_check "input_contract"）
     - test_deferred_terminal_state_fails_step_run（patch 解析结果 page_002 终态为 deferred → failed_check "compile" 或 "input_contract"）
     - test_cli_exit_codes（subprocess：成功 0 且末行以 "M3 OK" 开头；只灌 m1 的 Ledger → 2 且以 "M3 REFUSED" 开头）
 verify:
   - .venv/bin/python -m unittest discover -s pipeline/ledger/tests -t . 2>&1 | tail -3            # OK，用例数 ≥ 74
-  - .venv/bin/python -m unittest discover -s pipeline/corpus_compiler/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 49
+  - .venv/bin/python -m unittest discover -s pipeline/corpus_compiler/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 50
   - export LC_ALL=en_US.UTF-8; bash openspec/acceptance/run_all.sh | tail -1                       # SUMMARY pass=2 fail=1 blocked=8
   - TDD §3 回归
 commit:

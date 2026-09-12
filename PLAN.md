@@ -89,7 +89,7 @@ G6 注解社区线各节（「G6 注解社区线」「NC-001 首包补齐」「�
 
 ### C. §19 无既有条目的三行：新增登记（判据取自 `openspec/acceptance/run_all.sh`）
 
-- [ ] Artifact Ledger（§19 L1，首纵切内）：Object Store / Metadata Ledger / Revision / Lineage Graph 按规格 §17 实现；判据 `bash openspec/acceptance/run_all.sh 20.2 20.3` 由 BLOCKED 变 PASS ｜ owner `docs/blackbox-spec-rework/SUBAGENT_TODO.md`（G5 后实现批次）。
+- [x] Artifact Ledger（§19 L1，首纵切内）：Object Store / Metadata Ledger / Revision / Lineage Graph 按规格 §17 实现；判据 `bash openspec/acceptance/run_all.sh 20.2 20.3` 由 BLOCKED 变 PASS ｜ owner `docs/blackbox-spec-rework/SUBAGENT_TODO.md`（G5 后实现批次）。（已完成：impl-01 `c939575`，`run_all.sh` 20.2/20.3 PASS，2026-09-11）
 - [ ] Local Orchestrator（§19 L2，首纵切后）：EditionRun/ReleaseRun 状态机、阶段 Gate、StageCheckpoint、失效传播按规格 §5 / §6 / §14.1 / §17.1 实现；判据 `bash openspec/acceptance/run_all.sh 20.1` 由 BLOCKED 变 PASS ｜ owner `docs/blackbox-spec-rework/SUBAGENT_TODO.md`。
 - [ ] M7 Incremental Assembly（§19，首纵切后）：可执行 Assembler、跨 Edition 对勘、稳定 Pattern 聚合与提案裁决按规格 §15 实现；判据 `bash openspec/acceptance/run_all.sh 20.5` 由 BLOCKED 变 PASS ｜ owner `knowledge_system/EXECUTION_PLAN.md`。
 
