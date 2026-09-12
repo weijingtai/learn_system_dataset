@@ -112,6 +112,15 @@ class TestAcceptanceUnit(unittest.TestCase):
         finally:
             shutil.rmtree(tmp, True)
 
+    def test_missing_yaml_exit_3(self):
+        from pipeline.corpus_compiler import acceptance as acceptance_module
+        with patch.object(acceptance_module, "yaml", None):
+            with patch("builtins.print") as mock_print:
+                rc = acceptance_module.main(["--fixture", str(FIXTURE_DIR)])
+        self.assertEqual(rc, 3)
+        first_line = mock_print.call_args_list[0].args[0]
+        self.assertTrue(first_line.startswith("FAIL m3_acceptance 宿主准备失败: ImportError"))
+
 
 class TestShellScript(unittest.TestCase):
     """m3-coverage.sh 集成测试。"""

@@ -19,12 +19,25 @@ import sys
 import tempfile
 from pathlib import Path
 
-import yaml
+try:
+    import yaml
+except ImportError:  # 宿主缺依赖：main 返回 3
+    yaml = None
 
 from pipeline.corpus_compiler.errors import CompileRefused
-from pipeline.corpus_compiler.step import run_m3
-from pipeline.ledger.fixture_ingest import ingest
 from pipeline.ledger.service import LedgerService
+
+try:
+    # 这两个模块在其顶层依赖 PyYAML，宿主缺 PyYAML 时导入本身会失败；
+    # 延迟到此处捕获，main() 中据此返回 3（同 yaml 缺失时的处理）。
+    from pipeline.corpus_compiler.step import run_m3
+except ImportError:
+    run_m3 = None
+
+try:
+    from pipeline.ledger.fixture_ingest import ingest
+except ImportError:
+    ingest = None
 
 
 SEMANTIC_LAYER_TEXT = (
@@ -41,6 +54,13 @@ def main(argv=None):
     parser.add_argument("--fixture", required=True, help="Fixture 根目录")
     parser.add_argument("--keep", action="store_true", help="保留临时目录")
     args = parser.parse_args(argv)
+
+    if yaml is None:
+        print("FAIL m3_acceptance 宿主准备失败: ImportError: PyYAML 不可导入")
+        return 3
+    if run_m3 is None or ingest is None:
+        print("FAIL m3_acceptance 宿主准备失败: ImportError: PyYAML 不可导入（间接依赖）")
+        return 3
 
     fixture_dir = Path(args.fixture)
     if not fixture_dir.is_dir():

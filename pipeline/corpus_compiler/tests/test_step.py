@@ -312,6 +312,8 @@ class TestRunM3J3Rework(StepTestBase):
         failure_rev = self.service.get_revision(result["failure_revision_id"])
         self.assertEqual(failure_rev["status"], "sealed")
         self.assertNotIn("stage_package_id", result)
+        count = self.service.store.conn.execute("select count(*) from stage_packages where stage='m3'").fetchone()[0]
+        self.assertEqual(count, 0)
 
     def test_page_set_object_tamper_fails_input_contract(self):
         from pipeline.corpus_compiler.step import run_m3
@@ -324,6 +326,8 @@ class TestRunM3J3Rework(StepTestBase):
         failure_rev = self.service.get_revision(result["failure_revision_id"])
         self.assertEqual(failure_rev["status"], "sealed")
         self.assertNotIn("stage_package_id", result)
+        count = self.service.store.conn.execute("select count(*) from stage_packages where stage='m3'").fetchone()[0]
+        self.assertEqual(count, 0)
 
     def test_human_event_object_tamper_fails_input_contract(self):
         from pipeline.corpus_compiler.step import run_m3
@@ -337,6 +341,8 @@ class TestRunM3J3Rework(StepTestBase):
         failure_rev = self.service.get_revision(result["failure_revision_id"])
         self.assertEqual(failure_rev["status"], "sealed")
         self.assertNotIn("stage_package_id", result)
+        count = self.service.store.conn.execute("select count(*) from stage_packages where stage='m3'").fetchone()[0]
+        self.assertEqual(count, 0)
 
     def test_terminal_states_mismatch_fails_input_contract(self):
         from pipeline.corpus_compiler import step as step_mod
@@ -392,6 +398,8 @@ class TestRunM3J3Rework(StepTestBase):
             failure_rev = self.service.get_revision(result["failure_revision_id"])
             self.assertEqual(failure_rev["status"], "sealed")
             self.assertNotIn("stage_package_id", result)
+            count = self.service.store.conn.execute("select count(*) from stage_packages where stage='m3'").fetchone()[0]
+            self.assertEqual(count, 0)
         finally:
             LedgerService.record_transformation = original
 
