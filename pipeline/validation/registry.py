@@ -6,6 +6,58 @@
 
 本模块不 import 任何 Validator 实现模块（避免注册表与实现循环依赖，也让
 各 Validator 可独立实现）；``resolve`` 在调用时才导入。
+
+权威「检查名 → 错误码 / None」表（与 ``CHECK_CODES`` 逐项一致）：
+    G1：
+        object_missing → SRC_001
+        hash_mismatch → SRC_003
+        page_set_mismatch → REF_001
+        page_hash_mismatch → SRC_003
+        terminal_state_mismatch → REF_001
+        content_sha256_mismatch → SRC_003
+        spans_revision_mismatch → REF_001
+        forbidden_char_in_text → TXT_001
+        unresolved_glyph → SRC_001
+        unproofread_glyphs → None（§5.5 缺口：无语义吻合码）
+        replay_tool_mismatch → None（§5.5 缺口）
+        replay_bytes_mismatch → SRC_003
+    G2：
+        page_missing → REF_001
+        page_unregistered → REF_001
+        page_without_span → SRC_001
+        page_deferred → REF_001
+        excluded_page_no_evidence → SEM_001
+        coverage_gap → TXT_001
+        coverage_overlap → TXT_001
+        span_text_mismatch → TXT_001
+        span_boundary_mismatch → TXT_001
+        batch_span_leak → REF_001
+        batch_span_duplicate → ID_002
+        batch_cross_page → ID_002
+        batch_oversize → SCH_002
+        count_mismatch → None（§5.5 缺口）
+    G3：
+        span_id_format → ID_001
+        span_id_duplicate → ID_002
+        page_line_mismatch → REF_001
+        source_id_mismatch → REF_001
+        content_status_invalid → SCH_002
+        dangling_ref → REF_001
+        not_consumable → REF_001
+        ref_type_mismatch → REF_001
+        offset_out_of_range → TXT_001
+        offset_mismatch → TXT_001
+        quote_hash_mismatch → TXT_001
+        quote_hash_not_stored → SCH_001
+        page_image_hash_mismatch → SRC_003
+        line_box_mismatch → TXT_001
+        glyph_box_mismatch → TXT_001
+        anchor_out_of_page → TXT_001
+        anchor_field_missing → SCH_001
+        glyph_text_misaligned → TXT_001
+        evidence_level_insufficient → SEM_001
+        glyphbox_incomplete → SCH_001
+        evidence_level_invalid → SCH_002
 """
 
 import importlib
