@@ -25,7 +25,7 @@
 - Validator 纯函数性；G2/G3 独立重算覆盖与文本块；`acceptance.py` 独立重算、不信任 `run_m5` 返回值。
 - `run_m5` 事务序列与 §17 一致；begin 之前的拒绝无写入；begin 之后的失败封存完整、无 m5 StagePackage。
 - 冻结输入恰 17 个且全部 sealed，等于 `resolve_m5_inputs` 角色集合；上游 StagePackage 只接受 `succeeded` StepRun（D-15）。
-- 新 artifact_type 仅 `gate_results`、`validation_package`（已入 INTERFACES §4 闭集），每 Validator 报告复用 `validation_report`；新内容 `schema_version: "0.1.0-draft"`；未新增 `openspec/schemas/` 文件。
+- 新 artifact_type 仅 `gate_results`、`validation_package`，与 `INTERFACES.md` §4 逐字一致（`check_interfaces.py` 末行 `I00-IF SUMMARY pass=18 fail=0`、exit 0），每 Validator 报告复用 `validation_report`；新内容 `schema_version: "0.1.0-draft"`；未新增 `openspec/schemas/` 文件。
 - m5 StagePackage `validation.passed` 如实等于 `gate.passed`；gate 未过时 StepRun 仍 `succeeded` 且下游不得仅凭 `succeeded` 放行（§9 第 21 条）。
 - 错误码取值 ⊆ `errors.ERROR_CODES ∪ {None}`，缺口清单与 README §5.5 一致；只读 SELECT 仅限 README §5.4 清单。
 - 退出码纪律；BLOCKED 行名逐字属 §19 第一列；中文注释；无 `except: pass`；零模型调用。

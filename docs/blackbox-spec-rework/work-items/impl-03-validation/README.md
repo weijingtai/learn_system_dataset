@@ -78,7 +78,7 @@ fixture 上的期望判定（目标消费级别 `INTERNAL_DEMO`，§22.1 第 968
 
 写（全部新建）：`pipeline/validation/**`、`openspec/acceptance/m5-evidence-gate.sh`。
 
-**artifact_type 纪律**（P2）：本包只新增 `gate_results`、`validation_package` 两个类型，**由 W2-C 的登记 ACT 写入 `impl-00-interfaces/INTERFACES.md` §4 临时闭集后才可实现**；未入闭集前不得开始实现。每 Validator 报告复用通用已登记类型 `validation_report`，**不引入** `validator_report`、`gate_report` 等新类型名。新内容结构以代码内草案契约表达，`schema_version: "0.1.0-draft"`（P3），不新增 `openspec/schemas/` 文件。
+**artifact_type 纪律**（P2）：本包只新增 `gate_results`、`validation_package` 两个类型，须与 `impl-00-interfaces/INTERFACES.md` §4 临时闭集**逐字一致**——**开工前实跑 `python3 docs/blackbox-spec-rework/work-items/impl-00-interfaces/check_interfaces.py`，末行 `I00-IF SUMMARY pass=18 fail=0` 且 exit 0 才可实现**；不满足不得开始实现。每 Validator 报告复用通用已登记类型 `validation_report`，**不引入** `validator_report`、`gate_report` 等新类型名。新内容结构以代码内草案契约表达，`schema_version: "0.1.0-draft"`（P3），不新增 `openspec/schemas/` 文件。
 
 禁止：改规格正文、`openspec/schemas/**`、fixture 目录、`pipeline/ledger/**`、`pipeline/corpus_compiler/**`、`openspec/acceptance/run_all.sh` 与 `m3-coverage.sh`、`PLAN.md`、`HANDOFF.md`、`SUBAGENT_TODO.md`、任何台账或 ACCEPTANCE 文件；新增依赖（只用标准库 + PyYAML + jsonschema）；新增 ID 前缀（`validator_id`、`task_id` 是任务标签，不是登记册 ID）；调用任何模型 API；生产代码读 fixture 路径或工作目录文件（只读 Ledger 冻结修订，元数据查询允许经 `reader.store.conn` 只读 SELECT，沿用 impl-02 inputs.py 先例，缺口清单见 §5.4）。
 

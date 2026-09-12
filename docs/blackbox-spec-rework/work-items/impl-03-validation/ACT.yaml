@@ -37,7 +37,7 @@ acts:
 global_rules:
   - 每个 ACT 先写测试（Red 原文入报告）再实现；unittest；测试只用 tempfile 目录，不写 var/ 与 fixture
   - 只用标准库 + PyYAML + jsonschema；不新增依赖、不新增 ID 前缀（validator_id、task_id 是任务标签，不是登记册 ID）、不调用模型 API（P6 零模型调用）
-  - artifact_type 纪律（P2/P3）：本包新类型仅 gate_results、validation_package，且须先由 W2-C 的登记 ACT 写入 INTERFACES §4 闭集后方可实现；每 Validator 报告复用通用 validation_report，不引入 validator_report/gate_report 等新类型名；新内容结构 schema_version "0.1.0-draft"，不新增 openspec/schemas/ 文件
+  - artifact_type 纪律（P2/P3）：本包新类型仅 gate_results、validation_package，且须与 INTERFACES §4 临时闭集逐字一致（开工前实跑 docs/blackbox-spec-rework/work-items/impl-00-interfaces/check_interfaces.py，末行 I00-IF SUMMARY pass=18 fail=0 且 exit 0）后方可实现；每 Validator 报告复用通用 validation_report，不引入 validator_report/gate_report 等新类型名；新内容结构 schema_version "0.1.0-draft"，不新增 openspec/schemas/ 文件
   - 生产代码只读 Ledger 冻结修订；元数据查询允许经 reader.store.conn 只读 SELECT，沿用 impl-02 inputs.py 先例（缺口清单见 README §5.4）
   - 上游约束（impl-02 ACCEPTANCE §5.3）：解析上游 StagePackage 时只接受 StepRun 状态 succeeded 的包，非 succeeded 包坚决拒绝并抛 ValidationRefused
   - §9 第 21 条追加约束：m5 StagePackage 的 validation.passed 必须如实等于 gate.passed；下游消费须同时满足 StepRun succeeded 与 validation.passed == true

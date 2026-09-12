@@ -46,7 +46,7 @@ grep -nE 'from pipeline\.validation\.(g1_source|g2_coverage|g3_evidence|replay)|
 # 不读 fixture：pipeline/validation 非 tests 文件不出现 "_fixture"（acceptance.py 只经 --fixture 参数除外）
 # 不调模型：grep -rE '^\s*(import|from) (requests|openai|anthropic|httpx)' pipeline/validation | wc -l   # 0
 # 错误码闭集：registry.CHECK_CODES 的值 ⊆ ERROR_CODES ∪ {None}；缺口清单见 README §5.5
-# artifact_type 闭集：本包新类型仅 gate_results、validation_package（先由 W2-C 登记入 INTERFACES §4）
+# artifact_type 闭集：本包新类型仅 gate_results、validation_package，与 INTERFACES §4 逐字一致（check_interfaces.py 末行 I00-IF SUMMARY pass=18 fail=0、exit 0）
 grep -rnE '"(validator_report|gate_report)"' pipeline/validation --include='*.py' | wc -l   # 0
 # 新内容 schema_version：gate_results / validation_package / Validator 报告恒 "0.1.0-draft"（P3）
 # §9 第 21 条：m5 StagePackage validation.passed 如实等于 gate.passed；gate 未过时 StepRun 仍 succeeded 但下游不得放行

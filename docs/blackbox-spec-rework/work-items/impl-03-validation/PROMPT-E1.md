@@ -4,7 +4,7 @@
 
 ## 开工前提（任一不符停手上报，不得开工）
 
-1. `impl-03-validation/ACT.yaml` 状态为 `READY_FOR_REVIEW` 且主 Agent 已放行（P2：`gate_results`、`validation_package` 已由 W2-C 的登记 ACT 写入 `impl-00-interfaces/INTERFACES.md` §4 临时闭集；未入闭集前不得实现）。
+1. `impl-03-validation/ACT.yaml` 状态为 `READY_FOR_REVIEW` 且主 Agent 已放行（P2：`gate_results`、`validation_package` 与 `impl-00-interfaces/INTERFACES.md` §4 临时闭集**逐字一致**；开工前实跑 `python3 docs/blackbox-spec-rework/work-items/impl-00-interfaces/check_interfaces.py`，末行 `I00-IF SUMMARY pass=18 fail=0` 且 exit 0 才可开工）。
 2. `git status --short pipeline/validation openspec/acceptance pipeline/corpus_compiler pipeline/ledger` 无输出。
 3. 退出码/基线套件全绿：`verify-T.sh` 0 FAIL、`g3-r3/mutations.sh all` 109/109、`openspec/schemas/verify.sh` 返回 0、`check_d16.py` D16 OK。
 4. `$TC`（corpus_compiler）与 `$TL`（ledger）`unittest` OK；`grep -cE '^\s+pass\s*$' pipeline/corpus_compiler/step.py` 为 0。
@@ -53,7 +53,7 @@
 
 ## 停手规则
 
-基线不符；`gate_results`/`validation_package` 未入 INTERFACES §4 闭集；某个新用例无法按定义写出；contract 有两种理解；需要改「只允许写」之外的任何文件；任一门禁变红；`m3-coverage.sh` 不再是 `pass=8 fail=0 blocked=1` 且 exit 2，或 `run_all.sh` 末行改变。一律停止、不自行决定，把原始输出与 `git status --short` 交主 Agent 裁定。
+基线不符；`docs/blackbox-spec-rework/work-items/impl-00-interfaces/check_interfaces.py` 末行不是 `I00-IF SUMMARY pass=18 fail=0` 或 exit 非 0（即 `gate_results`/`validation_package` 未与 INTERFACES §4 逐字一致）；某个新用例无法按定义写出；contract 有两种理解；需要改「只允许写」之外的任何文件；任一门禁变红；`m3-coverage.sh` 不再是 `pass=8 fail=0 blocked=1` 且 exit 2，或 `run_all.sh` 末行改变。一律停止、不自行决定，把原始输出与 `git status --short` 交主 Agent 裁定。
 
 ## 最终报告（每次停手均写）
 
