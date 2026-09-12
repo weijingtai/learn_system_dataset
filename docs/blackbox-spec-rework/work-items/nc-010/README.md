@@ -9,7 +9,7 @@
 ## Scope
 
 - 允许写：仅 `/Users/jingtaiwei/Git/Public/xuan-migration/reading-notes/` 内：`pubspec.yaml`（仅追加 `http: 1.6.0` 一行）、`pubspec.lock`、`lib/reading_notes.dart`（追加导出）、`lib/src/community/**`（含 Drift 生成的 `community_database.g.dart`）、`test/community/**`。
-- 只读：NC-004～NC-007 的 `lib/src/{domain,persistence,editor,history}` 与全部既有测试；learn_system 契约。
+- 只读：NC-004～NC-007 的 `lib/src/{domain,persistence,editor,history}` 与全部既有测试（`notes.pending_op` 只经 `NoteRepository.db` 的 Drift API 写入，不改这些文件，D-NC010-03）；learn_system 契约。
 - 禁止：写入 learn_system；改 NC-004～NC-007 文件；引入 `firebase_auth`/`cloud_firestore` 或契约外依赖；真实网络；`skip`、永真断言；在测试内调用被测函数生成期望值（payload_hash 用契约 §8 字面量）；先实现后补测试。
 
 ## Inputs
@@ -27,7 +27,7 @@
 
 ## 执行顺序
 
-`act/01`（端口、模型、API 客户端，6 测试）→ `act/02`（CommunityDatabase 与命令队列，10 测试）→ `act/03`（缓存、作者文案、发布控制器，7 测试）→ `act/04`（页面与确认层，6 测试）→ `act/05`（四屏七状态参数化，25 测试）。每步一个提交，全量 `+150 → +156 → +166 → +173 → +179 → +204`。
+`act/01`（端口、模型、API 客户端，6 测试）→ `act/02`（CommunityDatabase 与命令队列，14 测试）→ `act/03`（缓存、作者文案、发布控制器、pending_op 回写，9 测试）→ `act/04`（页面、确认层与申诉入口，7 测试）→ `act/05`（四屏七状态参数化，25 测试）。每步一个提交，全量 `+150 → +156 → +170 → +179 → +186 → +211`。
 
 ## 一次性交付与阅读顺序
 

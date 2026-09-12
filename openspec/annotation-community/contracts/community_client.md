@@ -20,6 +20,7 @@ typedef IdTokenProvider = Future<String?> Function();   // 宿主传 () => Fireb
 class CommunityEndpoint { final Uri baseUri; const CommunityEndpoint(this.baseUri); }  // 例：https://<region>-<project>.cloudfunctions.net/community_contents_py 前缀，路径拼 /v1/community/...
 abstract class CommunityClock { DateTime nowUtc(); }
 abstract class ClipboardPort { Future<void> copyText(String text); }   // 复用 NC-005 同名语义，本包内新定义以免跨目录依赖
+typedef AppealHandler = void Function(String contentId);   // 宿主接入既有申诉/举报渠道；笔记列表与作者详情必须注入
 ```
 
 `IdTokenProvider` 返回 `null` → 客户端不发请求，命令保持 `queued`，界面按 §6 OFFLINE/未登录处理（D-NC010-02）。
@@ -57,7 +58,9 @@ abstract class ClipboardPort { Future<void> copyText(String text); }   // 复用
 | `if_match` | int nullable | 入队时确定，重试不变 |
 | `payload_hash` | text | `SHA-256_hex(canonical_json({"operation": op, "payload": {"path": ..., "body": ..., "if_match": ...}}))`，`canonical_json` 键按码点排序、无空白、UTF-8（与 D-NC009-01 逐字节一致；测试以 Python 参考值断言） |
 | `state` | text | §4.2 闭集 |
-| `attempt_count` | int | 默认 0 |
+| `attempt_count` | int | 默认 0；累计全部发送次数 |
+| `auto_attempts` | int | 默认 0；当前自动重试窗口内的发送次数，用户「重试」时归 0 |
+| `next_attempt_at` | text nullable | ISO UTC；退避到期时间 |
 | `last_problem_code` | text nullable | |
 | `result_json` | text nullable | committed 时完整响应体；rejected 时 Problem Details |
 | `created_at` / `updated_at` | text | ISO UTC |
@@ -73,22 +76,28 @@ abstract class ClipboardPort { Future<void> copyText(String text); }   // 复用
 | `sending` | 2xx | `committed` | 存 `result_json`；更新 §5.1 缓存 |
 | `sending` | 4xx 且 `code ≠ unavailable.*`（含 409/412/403/404/410） | `rejected` | 存 Problem；410 `gone.command_result` 另存 `command` 字段并按其 `resource_ids` 触发 R1 刷新 |
 | `sending` | 503 `unavailable.command_status` | `unknown` | 保留键；下一次 `drain` 先 R5 查询，查到终态按其结果落定，查无（404）→ `queued` 同键重发 |
-| `sending` | `transport` 或 503 `unavailable` / 5xx | `queued` | 退避：`min(2^attempt, 60)` 秒（经 `CommunityClock`），不生成新键 |
+| `sending` | `transport` 或 503 `unavailable` / 5xx，且 `auto_attempts < 5` | `queued` | 退避逐次为 1s / 2s / 4s / 8s（DESIGN §9.1），写 `next_attempt_at`，不生成新键 |
+| `sending` | 同上，且 `auto_attempts == 5` | `paused` | 非终态，保留键，不再自动发送；待处理队列显示「发送失败，点此重试」 |
+| `paused` | 用户「重试」 | `queued` | `auto_attempts = 0`，同键 |
 | `sending` | 应用在响应前被杀 | （重启后仍为 `sending`） | `recover()` 把 `sending` 视同 `unknown`：先 R5，再按上一行 |
 | `queued` 且 `attempt_count == 0` | 用户取消 | `cancelled` | 已发送过（attempt ≥ 1）不可取消（SM-5 末行），抛 `CommandAlreadySent` |
+| `queued/unknown/paused` 且 `now − created_at > 14 天` | `drain` 取到该行 | （先 R5） | DESIGN §7.4 第 5 条：先 `GET /commands/{id}` 对账；查到终态按其落定，404 → 按原状态继续（同键） |
 | `committed/rejected/cancelled` | 任意 | ✘ | 终态 |
 
-`drain()`：按 `created_at` 串行发送同 owner 的 `queued/unknown` 命令；同一时刻只运行一个 `drain`；`IdTokenProvider` 返回 null 时立即返回不改状态。
+`drain()`：按 `created_at` 串行发送同 owner 的 `queued/unknown` 命令（`next_attempt_at` 未到的跳过，`paused` 不发）；同一时刻只运行一个 `drain`（并发调用返回同一个进行中的 `Future`，写请求只发一次）；`IdTokenProvider` 返回 null 时立即返回不改状态。
 
 ### 4.3 与 pending_op（SM-5）
 
-`pending_op` 由队列派生而非存进 NC-004 `notes` 表（D-NC010-03）：某 `target_id` 存在非终态 `content.withdraw/trash/purge` 命令 → `withdraw_requested/trash_requested/purge_requested`；否则 `none`。NC-004 `Note.pendingOp` 列本任务不读不写。
+`pending_op` 的持久字段是 NC-004 `notes.pending_op`（SM-5 所有者列为 `Note.pending_op`；community-models §1.1；NC-019 验收读它），命令队列是其来源（D-NC010-03）：
+- 入队 `content.withdraw/trash/purge` 成功落库后，`PendingOpWriter` 把对应笔记的 `notes.pending_op` 写为 `withdraw_requested/trash_requested/purge_requested`；该命令到达 `committed/rejected/cancelled` 后写回 `none`。
+- 写入经 `NoteRepository.db`（公开字段）的 Drift `update(db.notes)`，写前比较 `repository.sessionGeneration == repository.db.activeGeneration`，不等抛 NC-004 `StaleSessionError`；不修改 NC-004 任何文件。
+- 两库非同一事务：以社区库为真源，`recover()` 时对该 owner 全部笔记按队列重算并回写 `pending_op`（幂等），修复崩溃造成的不一致。
 
 ## 5. 发布状态与控制器（`publication_controller.dart`）
 
 ### 5.1 缓存表 `content_access_cache`
 
-列：`content_id` PK、`owner_scope`、`visibility`、`lifecycle`、`moderation_state`、`current_publication_id`、`published_revision_id`、`access_version`、`fetched_at`。写入来源只有 committed 响应与 R1/R6 返回；404 `not_found.content` → 删除该行（视为 never_published）。
+列：`content_id` PK、`owner_scope`、`visibility`、`lifecycle`、`moderation_state`、`current_publication_id`、`published_revision_id`、`access_version`、`fetched_at`。写入来源只有 committed 响应与 R1/R6 返回；404 `not_found.content` → 删除该行（视为 never_published）。**版本单调**（DESIGN §7.4 第 6 条）：写入前比较 `access_version`，新值 `<` 缓存值则丢弃本次写入（迟到的旧响应不回滚 UI）；相等则只更新 `fetched_at`。
 
 ### 5.2 作者视角状态派生（PRD §6.2 文案闭集，逐字）
 
@@ -99,7 +108,7 @@ abstract class ClipboardPort { Future<void> copyText(String text); }   // 复用
 | `pending_op ≠ none` 且操作为 withdraw/trash | `stoppingPublic` | 正在停止公开，他人可能仍可访问 |
 | `lifecycle == purge_pending`（缓存）或 `pending_op == purge_requested` | `purging` | 正在彻底清除 |
 | `lifecycle == trashed` | `inTrash(daysLeft)` | 在回收站 · 剩余 N 天（N = `ceil((trashed_at + 30d − now) / 1d)`，N 取运行时值） |
-| `moderation_state == hidden` 且 visibility ∈ {published, withdrawn} | `hiddenByAdmin` | 已被管理员暂停展示 |
+| `moderation_state == hidden` 且 visibility ∈ {published, withdrawn} | `hiddenByAdmin` | 已被管理员暂停展示（附申诉入口：文案旁「申诉」按钮，调用宿主注入的 `AppealHandler(contentId)`） |
 | `visibility == withdrawn` | `stopped` | 已停止公开 |
 | `visibility == published` 且 `Note.preferredHeadId ≠ published_revision_id` | `publishedWithChanges` | 已公开 · 有未发布的修改 |
 | `visibility == published` | `published` | 当前公开版本 |
@@ -135,9 +144,9 @@ abstract class ClipboardPort { Future<void> copyText(String text); }   // 复用
 
 | 文件 | 测试（名称逐字） |
 |---|---|
-| `test/community/command_queue_test.dart` | `enqueue_persists_before_send_and_generates_valid_command_id`、`payload_hash_matches_python_reference`（常量来自 §8 样例）、`same_target_second_command_throws_pending_op_conflict`、`transport_error_requeues_with_same_key_and_backoff`、`restart_with_sending_row_queries_command_then_resends_same_key`、`unavailable_command_status_becomes_unknown_then_resolves_by_get_command`、`rejected_4xx_is_terminal_and_keeps_problem`、`gone_410_is_rejected_with_minimal_command_and_triggers_refresh`、`cancel_only_before_first_send`、`drain_noop_without_id_token` |
+| `test/community/command_queue_test.dart` | `enqueue_persists_before_send_and_generates_valid_command_id`、`payload_hash_matches_python_reference`（常量来自 §8 样例）、`same_target_second_command_throws_pending_op_conflict`、`transport_error_requeues_with_same_key_and_backoff`、`restart_with_sending_row_queries_command_then_resends_same_key`、`unavailable_command_status_becomes_unknown_then_resolves_by_get_command`、`rejected_4xx_is_terminal_and_keeps_problem`、`gone_410_is_rejected_with_minimal_command_and_triggers_refresh`、`cancel_only_before_first_send`、`drain_noop_without_id_token`、`restart_with_real_file_close_reopen_resends_same_key`（关闭真实文件库后以同一路径重开）、`concurrent_drain_calls_send_request_once`、`backoff_1_2_4_8_then_paused_and_manual_retry_keeps_key`、`stale_over_14_days_queries_command_before_resend` |
 | `test/community/community_api_test.dart` | `publish_sends_auth_idempotency_and_no_if_match_on_first_publish`、`republish_sends_if_match`、`versioned_writes_send_if_match`、`get_content_304_returns_not_modified`、`problem_without_code_is_transport`、`parses_nullable_fields_as_null` |
-| `test/community/publication_flow_test.dart` | `author_labels_follow_priority_table`（8 行逐字）、`preview_switch_revision_recomputes_readiness`、`attachment_not_ready_disables_publish_with_reason`、`first_publish_shows_consequence_once`、`success_only_after_committed`、`public_view_excludes_unpublished_revision`、`version_conflict_keeps_private_revision_and_refreshes`、`offline_publish_stays_in_pending_queue`、`pending_queue_terminated_item_offers_copy_text`、`pending_queue_empty_text`、`withdraw_confirmation_text_uses_runtime_or_generic_count`、`purge_confirmation_counts_revisions_and_attachments`、`trash_published_locally_rejected_before_enqueue` |
+| `test/community/publication_flow_test.dart` | `author_labels_follow_priority_table`（8 行逐字）、`preview_switch_revision_recomputes_readiness`、`attachment_not_ready_disables_publish_with_reason`、`first_publish_shows_consequence_once`、`success_only_after_committed`、`public_view_excludes_unpublished_revision`、`version_conflict_keeps_private_revision_and_refreshes`、`offline_publish_stays_in_pending_queue`、`pending_queue_terminated_item_offers_copy_text`、`pending_queue_empty_text`、`withdraw_confirmation_text_uses_runtime_or_generic_count`、`purge_confirmation_counts_revisions_and_attachments`、`trash_published_locally_rejected_before_enqueue`、`pending_op_column_mirrors_queue_and_recovers_after_restart`、`late_older_access_version_does_not_overwrite_cache`、`hidden_by_admin_shows_appeal_entry` |
 | `test/community/seven_states_test.dart` | 参数化：笔记列表 × 7、公开详情 × 6（PARTIAL 不适用）、发布预览 × 6（STALE 不适用）、待处理队列 × 6（PARTIAL 不适用）= 25 例，逐例断言 §6 表文案逐字出现 |
 
 ## 8. payload_hash 参考样例（跨端逐字节一致）
@@ -150,8 +159,10 @@ abstract class ClipboardPort { Future<void> copyText(String text); }   // 复用
 |---|---|---|
 | D-NC010-01 | 社区命令队列与缓存用独立 `CommunityDatabase` 文件 | 不改 NC-004 已验收的 `NoteDatabase` 表与 `user_version==1` 断言；社区数据与私人修订库生命周期不同 |
 | D-NC010-02 | 包内不依赖 Firebase，宿主注入 `IdTokenProvider` | reading-notes 是纯包；宿主现有 playground 仓储即以 `currentUser.getIdToken()` 取 token |
-| D-NC010-03 | `pending_op` 由命令队列派生，不写 NC-004 `notes.pending_op` | 单一真源；避免两处状态不一致；NC-004 列保留给 NC-016 同步 |
+| D-NC010-03 | 队列为 `pending_op` 的来源，同步回写 NC-004 `notes.pending_op`，重启时按队列重算 | SM-5 所有者为 `Note.pending_op`，NC-019 验收读该列（R1 审查指出初稿不写违背 DESIGN §4.2）；经 `NoteRepository.db` 写，不改 NC-004 文件 |
 | D-NC010-04 | 含附件修订在无 `AttachmentReadinessPort` 时不可发布并明示原因 | NC-008/NC-025 未交付；服务端 D-NC009-03 同样拒绝，不造「上传中」假象 |
 | D-NC010-05 | 收回确认层的评论数由 `CommentCountPort` 注入，缺省用不含数量的句式 | 评论计数属 NC-011；PRD §5.1 禁止未替换占位符，宁可不写数也不写假数 |
 | D-NC010-06 | 真实宿主 `example/` 与 Emulator 端到端归 NC-024 | 需 NC-009 部署到 Functions Emulator；本任务 TASKS 验收命令只要求 `publication_flow_test.dart` |
-| D-NC010-07 | 队列退避 `min(2^attempt, 60)` 秒，无上限次数 | 命令不能丢；用户可在待处理队列取消未发送项 |
+| D-NC010-07 | 自动重试退避 1s/2s/4s/8s、上限 5 次，之后 `paused`（非终态、同键、需用户点重试） | DESIGN §9.1 冻结指标；命令不能丢，暂停而非丢弃 |
+| D-NC010-08 | PRD §5.1 五个确认层中本任务交付收回、彻底删除两个（另加首次发布后果说明），导出/导入归 NC-018、拉黑归 NC-012 | TASKS NC-010 字面要求五个，但导出/导入与拉黑的功能本体不在本任务，确认层随功能交付 |
+| D-NC010-09 | `trashed` 与 `hidden` 同时成立时作者看到「在回收站 · 剩余 N 天」 | SM-C 允许 withdrawn+trashed+hidden；PRD §6.2 未规定重叠优先级；回收站剩余天数对作者更紧迫，审核态在恢复后仍按 SM-4 保留并再次显示 |

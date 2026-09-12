@@ -33,7 +33,7 @@ STEPS:
 VERIFICATION:
     - "export PATH=/Users/jingtaiwei/flutter/bin:$PATH && cd /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes && flutter analyze"
     - "cd /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes && flutter test test/community/seven_states_test.dart（期望 +25）"
-    - "cd /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes && flutter test（期望 +204）"
+    - "cd /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes && flutter test（期望 +211）"
     - "cd /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes && git diff 9b35e97 HEAD --stat -- lib/src/domain lib/src/persistence lib/src/editor lib/src/history test/persistence test/contracts test/editor test/history test/support（期望空）"
     - "cd /Users/jingtaiwei/Git/Public/learn_system && bash docs/blackbox-spec-rework/reviews/nc010_guard.sh --require-impl（期望 0）"
     - "git -C /Users/jingtaiwei/Git/Public/xuan-migration/reading-notes status --short（提交后除未跟踪报告外为空）"

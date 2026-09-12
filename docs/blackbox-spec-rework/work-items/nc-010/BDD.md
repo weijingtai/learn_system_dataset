@@ -7,8 +7,8 @@
 | B01 | 空队列 | `enqueue(content.withdraw, ...)` 后在 `MockClient` 被调用前读库 | 库中已有该行 `state=queued`；`command_id` 匹配 `^cmd_[0-9a-f]{12}4[0-9a-f]{3}[89ab][0-9a-f]{15}$`；1000 次生成无重复 |
 | B02 | 契约 §8 输入 | 计算 payload_hash | 等于字面量 `c8e2c2b0a842ece53f90cbf84e64fbacf274745a42bf4fb389b670fb0b3b72b5` |
 | B03 | 某 content 已有非终态命令 | 再 `enqueue` 同 target | 抛 `PendingOpConflict`，库中只有一行 |
-| B04 | `MockClient` 抛 `SocketException` | `drain` | 行回到 `queued`、`attempt_count=1`；下一次请求的 `Idempotency-Key` 与首次相同；时钟未到 `2^1` 秒前不重发 |
-| B05 | 库中残留 `sending` 行（模拟杀进程） | 新建队列并 `recover(); drain()` | 先发 `GET /v1/community/commands/{id}`；R5 返回 404 → 以同键重发写请求；R5 返回 200 committed → 不重发、行 `committed` |
+| B04 | `MockClient` 抛 `SocketException` | `drain` | 行回到 `queued`、`attempt_count=1`、`auto_attempts=1`；下一次请求的 `Idempotency-Key` 与首次相同；时钟未到 1 秒前不重发 |
+| B05 | 库中残留 `sending` 行（写入后**关闭真实文件库**，再以同一文件路径重开并新建队列） | 新建队列并 `recover(); drain()` | 先发 `GET /v1/community/commands/{id}`；R5 返回 404 → 以同键重发写请求；R5 返回 200 committed → 不重发、行 `committed` |
 | B06 | 写请求返回 503 `unavailable.command_status` | `drain` 两次 | 首次后行为 `unknown`；第二次先 R5 查询再落定 |
 | B07 | 写请求返回 409 `conflict.lifecycle` | `drain` | 行 `rejected`，`last_problem_code=conflict.lifecycle`，不再发送 |
 | B08 | 写请求返回 410 `gone.command_result`（体含 `command`） | `drain` | 行 `rejected` 且 `result_json` 含 `command`；随后对 `resource_ids.content_id` 发 R1 |
@@ -20,7 +20,7 @@
 | B14 | `getContent(id, ifNoneMatchVersion: 7)`，服务器 304 | — | 请求头 `If-None-Match: "7"`；返回 `ApiResult.notModified` |
 | B15 | 错误体为 `application/problem+json` 但缺 `code` | 任一调用 | 返回 `ApiResult.transport` |
 | B16 | R1 响应中 `current_publication_id: null`、`published_at: null` | 解析 | Dart 字段为 null，不抛 |
-| B17 | 契约 §5.2 八行条件各构造一例（含 N 天的运行时计算） | 派生作者文案 | 文案逐字等于表格；`inTrash` 的 N 按注入时钟计算 |
+| B17 | 契约 §5.2 八行条件各构造一例（含 N 天的运行时计算）＋ `trashed` 与 `hidden` 同时成立一例 | 派生作者文案 | 文案逐字等于表格；`inTrash` 的 N 按注入时钟计算；重叠例为「在回收站 · 剩余 N 天」（D-NC010-09） |
 | B18 | 笔记有 3 个修订，其中 1 个含附件 | 预览中切换选中修订 | 每次切换 `PublishReadiness` 重算；含附件修订（无端口）不可发布并显示「含图片的笔记暂不能发布，请移除图片后再发布」 |
 | B19 | 注入端口：两图分别 `uploading(40)`、`missing` | 打开预览 | 发布禁用；两图位置分别显示「上传中 40%」「文件已丢失」 |
 | B20 | 发布命令入队，`MockClient` 延迟响应 | 发送期间与 201 返回后 | 期间显示进行中且无成功页；201 后才进入成功页 |
@@ -34,3 +34,10 @@
 | B28 | 注入 `CommentCountPort` 返回 12 / 未注入 | 打开收回确认层 | 前者含「12 人的评论将无法访问」；后者含「该内容下的评论将无法访问」；两者都不含字面量「N 人」 |
 | B29 | 笔记 4 个修订、附件去重后 3 张 | 打开彻底删除确认层 | 含「及其 4 个历史版本、3 张图片」，需二次点击才入队 |
 | B30 | 契约 §6 表四屏 | 逐状态构造 | 25 例各自断言表中文案逐字出现 |
+| B31 | 真实文件库中写入 `sending` 行后关闭数据库 | 同一路径重开、新建队列、`recover(); drain()` | 先 R5，R5 404 后以同键重发；`MockClient` 记录的两次写请求 `Idempotency-Key` 相同 |
+| B32 | 一条 `queued` 命令，`MockClient` 延迟 200 ms | 同时调用两次 `drain()` | 写请求恰 1 次；两次调用返回的 `Future` 都完成 |
+| B33 | `MockClient` 连续抛 `SocketException` | 推进 `FakeAsync` 并反复 `drain` | 五次发送之间的间隔依次为 1s/2s/4s/8s；第 5 次失败后 `paused`，再推进 60 s 无请求；用户 `retry()` 后 `queued`、`auto_attempts=0`、键不变 |
+| B34 | `queued` 命令 `created_at` 为 14 天 + 1 秒前 | `drain` | 第一个请求是 `GET /v1/community/commands/{id}`；返回 200 committed → 不发写请求，行 `committed` |
+| B35 | 已发布笔记入队 `content.withdraw` | 查询 `NoteRepository.getNote` | `pendingOp == withdraw_requested`；命令 committed 后为 `none`；手动把 `notes.pending_op` 改为 `none` 后重启 `recover()` 且命令仍 `queued` → 恢复为 `withdraw_requested` |
+| B36 | 缓存 `access_version=5` | 迟到的 committed 响应携带 `access_version=4` | 缓存仍为 5，作者文案不回退 |
+| B37 | 作者笔记 `moderation_state=hidden` | 渲染笔记列表 | 文案「已被管理员暂停展示」旁有「申诉」按钮；点击后注入的 `AppealHandler` 收到 contentId |
