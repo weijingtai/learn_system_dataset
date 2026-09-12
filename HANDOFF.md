@@ -18,13 +18,14 @@
 下一步（第一件事）：拿到用户确认 → 派发 g5-01 → 验收 → `PROJECT_COLD_START_HANDOFF.md` 状态改 `IMPLEMENTATION_PHASE` → 写首纵切第一批（Artifact Ledger，§17，判据 `run_all.sh 20.2 20.3`）六件套；之后 M3 → M5 → M8，判据 `run_all.sh 20.N` 由 BLOCKED 变 PASS。
 已知的坑：PLAN.md 时间窗已向 C/S 解除；PLAN 的 D-16 节要求「零删行」，今后改 PLAN 只能追加或把 `- [ ]` 改 `- [x]` 并附取代者；验收仍在 `git archive` 导出树上跑。 **`check_d16.py` 刚性缺陷**：R3 把表 B 行数写死为 43、R4 要求黑箱节任何新 `- [ ]` 都登记进表 B，因此现在无法往 PLAN 黑箱节新增未勾选项（G5 记录条目因此只写在 SUBAGENT_TODO/HANDOFF）；首纵切第一批 ACT 必须先把 R3 改为「≥ 43」并允许表 B 追加行，再往 PLAN 加实现条目。
 
-## G6 NC-003/NC-015 READY 已派发；NC-009 DRAFT；环境阻塞：磁盘（C/S 会话）
+## G6 NC-003 验收 REWORK（act/06 待派）；NC-015 待执行；NC-009 R2 复核中（C/S 会话）
 
 更新时间：2026-09-11
 当前分支/worktree：`codex/docs/knowledge-compilation`；`/Users/jingtaiwei/Git/Public/learn_system`
-刚完成：① 规格 v1.6（S6 模型）落地（`0eec9cd`）。② NC-003 两轮四查 READY（`c831412`），PROMPT 已交用户。③ NC-015 接入型契约 + 六件套，R1（含十二攻击场景）返工 5 项、R2 返工 1 项均落实，READY（`656115f`），PROMPT 已交用户。④ NC-009 服务端契约 `contracts/community_server.md` 与六件套 DRAFT（`d145f94`），四查进行中。
-进行到一半的事（精确到文件和章节）：**环境阻塞**——本机磁盘剩余 427 MiB（228 GiB 卷 97%），functions-py `.venv` 依赖安装因 `No space left on device` 失败（残缺 venv 已删）；NC-009 派发前须用户清理磁盘（候选：`~/Library/Caches` 1.8G、`~/.pub-cache` 7.5G 中旧版本、`xuan-migration` 13G 内的日志/构建产物），然后主 Agent 重建 `.venv`、跑既有 pytest 填 README 基线。NC-009 四查（Sonnet）进行中。
-下一步（第一件事）：收 NC-003/NC-015 执行报告 → 按各自 ACCEPTANCE 验收（NC-003 盲测：PyYAML 复算 22→0、jsonschema 262144/262145、枚举 diff、22 对 22 头参数、错误码抽查；NC-015 盲测：七项篡改副本）。NC-009 四查回来 → 落实返工 → 等磁盘 → 派发。之后 NC-016（S6 接入实现，需 xuan-storage 薄层）与 NC-010（客户端列表/发布页，依赖 NC-009）契约。
+刚完成：① NC-003 act/01～05 交付（REST 仓 `67910c3`…`89cc68d`），守卫与五项盲测通过，但原样 3.1 校验发现社区 Schema 用 `nullable`（null 被拒、check_examples 改写掩盖）、共享 `ProblemDetails` 被加必填 `code`（遗留端点契约与服务端不符，主 Agent 契约缺陷）、markdown 字节上限用 `maxLength` 表达——判 REWORK，契约 §10（D-NC003-13～15）+ act/06（合入 NC-009 前置补丁 P1 `IfMatchOptional`、P2 `500StateCorrupted`，全量 +69），PROMPT 末尾已追加，执行方需补交 act/01～05 报告。② 磁盘清理后重建 functions-py `.venv`：基线 411 passed / 5 个既有失败（test_config 读已删除 TS 文件、test_registration 清单过期），写入 NC-009 README。③ NC-009 自审五项 + R1 返工三项（event_id 按 §11.2 确定性哈希、§6 八集合 65 断言、他人写入 403/404 边界）落实（`7f0bc84`），R2 复核（Sonnet）进行中。
+进行到一半的事（精确到文件和章节）：等 NC-003 act/06 与 NC-015 执行报告；NC-009 R2 结果；NC-010（客户端笔记列表/公开详情/发布页）契约准备中。
+下一步（第一件事）：NC-003 act/06 回来 → 复跑 R1 盲测 + null 原样校验 + 遗留组件与 `0f8bf52` 逐项比较 → ACCEPTED 后 NC-009 可派发。NC-015 回来 → 七项篡改副本盲测。
+已知的坑：工作树里 `pipeline/ledger/*` 的未提交改动属 Dataset 会话，不要暂存；python 批量替换脚本任一处不匹配会中途退出但已写入前面的修改，务必检查 `git status` 后再提交。
 已知的坑：PLAN.md 今后只能追加或把 `- [ ]` 改 `- [x]`（D-16 零删行判据；`check_d16.py` 只查黑箱侧条目，不查 G6 节）；G6 新条目不需登记进 D-16 映射表。一次性 Dart 盲测需 `import 'package:drift/drift.dart'` 才能用 `interceptWith`；执行方报告在 reading-notes 根目录未跟踪，验收不入库。
 
 ## G4 第二批验收通过：D-15 fixture、D-18 §20 判据化、前缀登记（Dataset 会话；黑箱线最新状态）
