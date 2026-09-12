@@ -1,7 +1,7 @@
 # G7 黑箱剩余工作分波计划（Dataset 会话）
 
 更新时间：2026-09-12
-执行方式：tmux + agy（`~/tmux-agents`），**同时最多 2～3 路**；主 Agent 只写裁决、只读报告文件与待裁决表，验收用脚本在 `git archive` 干净树上跑。
+执行方式：tmux + `cmd --yolo`，模型 `deepseek/deepseek-v4.1-flash`（用户 2026-09-12 指令；W1 期间用 agy，额度不稳后切换，监控用 `tmux-watch.sh --agent cmd`），**同时最多 2～3 路**；主 Agent 只写裁决、只读报告文件与待裁决表，验收用脚本在 `git archive` 干净树上跑。裁决见 `G7-RULINGS.md`。
 
 ## 0. 现状
 
