@@ -597,10 +597,10 @@
   - [x] PLAN/HANDOFF 同步（HANDOFF 已更新；语义层未做、`m3-coverage.sh` exit 2，PLAN 不勾选 M3）
   - [x] 主 Agent 标记 `ACCEPTED`
   - [x] 跟进 ACT 06：缺 PyYAML → exit 3；失败用例直查 Ledger 无 m3 包（`eee3c35`，`ACCEPTANCE.md` §5.4 `ACCEPTED`）
-- 分波计划：`docs/blackbox-spec-rework/G7-PLAN.md`（tmux+agy，同时最多 2～3 路）。以下 9 个草稿由子 Agent 起草、因会话限额中途中断，原样提交为 DRAFT 快照，W1 收稿对账后统一裁决。
-- [ ] impl-00：跨模块接口总表、新 Schema、fixture m4..m8 金标规划（状态：`DRAFT`；W1-A 补全，W2-C 执行契约 ACT）
-- [ ] impl-03：M5 Automatic Validation（状态：`DRAFT`，缺 ACT；W1-A 补全，W2-D 定稿，W3-E 实现）
-- [ ] impl-04：M8 Dataset Compilation（状态：`DRAFT`；W2-D 定稿，W3-F 实现）
+- 分波计划：`docs/blackbox-spec-rework/G7-PLAN.md`（W2 起执行器 tmux + `cmd --yolo` DeepSeek V4.1 Flash，审查用 GLM 5.3 Flash，同时最多 2～3 路）；裁决 `G7-RULINGS.md`（P1–P9、§9、§9.1、§9.2）；对账审查 `reviews/G7-DRAFTS-REVIEW-R1.md`/`R2.md`。
+- [x] impl-00：跨模块接口总表（状态：首纵切部分 `ACCEPTED`——act/10 INTERFACES §4 闭集登记 `ea90ca8`，检查器 18 项；其余 10 个 ACT `DEFERRED` 纵切后；验收 `impl-00-interfaces/ACCEPTANCE.md` §5.1）
+- [ ] impl-03：M5 Automatic Validation（状态：`DISPATCHED`；定稿 `1a189ae`，四查 R1 REWORK → 返工 `06d7d08`/`881538d` → R2 READY `6b548c6`；W3-E 实现中：K1 ACT 00–03 `25b2fcc`/`48ebbfb`/`1fab5b1`/`0a77975` 主 Agent 验收通过并放行 K2）
+- [ ] impl-04：M8 Dataset Compilation（状态：`DISPATCHED`；定稿 `2e4f9a7`，四查 R1 READY `7f809ea`，整改 `8758a00`/`8554ced`；W3-F 实现中：K1 ACT 00–02 `a64d0e9`/`000386e`/`4a79ef5` 主 Agent 验收通过并放行 K2）
 - [ ] impl-05：M4 Knowledge Extraction 最薄接入（状态：`DRAFT`；W3-G）
 - [ ] impl-06：M6 Review & Curation 最薄接入（状态：`DRAFT`；W4-H）
 - [ ] impl-07：M7 Incremental Assembly（状态：`DRAFT`；首纵切外，W5-L）
@@ -693,7 +693,8 @@
 - [ ] NC-012：赞踩/收藏/分享/@/关系与举报（2026-09-12 拆分，D-NC012-01）
   - [ ] NC-012a：赞踩、收藏、分享、举报与 mention 文本校验（状态：`DRAFT_FOR_REVIEW`；契约 `openspec/annotation-community/contracts/community_interactions.md`，`community_api.md` §12 补丁；六件套 `work-items/nc-012a/`，守卫 `reviews/nc012a_guard.sh`；三线：REST act/01 ｜ SERVER act/02→03 ｜ CLIENT act/04→05→06）
     - [x] 契约统一 reading-notes 两个同名 `MentionRef`（D-NC012-13，NC-011 验收遗留）
-    - [ ] wjt-react 四查（tmux + cmd）
+    - [x] wjt-react 四查（tmux + agy，会话 nc012r）：R1 READY、返工 0 项（`reviews/NC-012a-REVIEW-R1.md`）；主 Agent 采纳建议 1～3 写死 resource_ids 字典、refreshPending 防重入、I10 重试间隔
+    - [ ] 三线派发（tmux + agy：nc012a-rest ｜ nc012a-srv ｜ nc012a-cli）；主 Agent 按 ACCEPTANCE.md 验收
   - [ ] NC-012b：宿主社交注入、mention 候选与编辑器接线、三类依赖关系数据的无效 mention（状态：`BLOCKED`，等 NC-001-02）
 
 ### 通知

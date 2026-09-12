@@ -1,6 +1,6 @@
 TASK_ID: NC-012a-B
 PARENT: NC-012a
-STATUS: DRAFT_FOR_REVIEW
+STATUS: READY
 REPO: xuan-server/functions-py（另 xuan-migration/xuan-server 规则测试）
 GOAL: 赞踩与收藏——五个集合注册、载荷 Schema、目标解析、reaction_set/bookmark_set 事务、R3/R8、reaction 与 bookmark 两个 handler；I01～I17；规则测试纳入五集合
 DEPENDS_ON: []

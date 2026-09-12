@@ -1,6 +1,6 @@
 # 互动契约：赞踩、收藏、分享、举报与 mention 文本校验（NC-012a）
 
-状态：`DRAFT_FOR_REVIEW`（2026-09-12）。权威来源：[TASKS](../TASKS.md) NC-012；[community_api.md](community_api.md)（W10～W14、R3、R4、§4.1 错误目录、§5 Schema、§6 限流、§7 账本；本任务补丁见其 §12）；[community_server.md](community_server.md)（`run_command` 事务、§5 ACL 扫描矩阵 E4）；[community_client.md](community_client.md)（命令队列、payload_hash）；[community_discussion.md](community_discussion.md)（NC-011 已交付的集合、handler 写法、403/404 边界，本文照抄其范式）；[DESIGN](../DESIGN.md) §2（Reaction/Bookmark/ShareLink 行）、§6（计数投影、mention 三元组与 code point）、§7.3；[community-models](community-models.md) §2.5；[PRD](../PRD.md) R-09、R-10、§5（踩/收藏/分享默认不通知）、§6「我的」分享链接管理与举报折叠、§6.2「该内容已不可访问」统一文案。执行者照抄；与上游冲突以上游为准并停手上报主 Agent。
+状态：`READY`（2026-09-12：agy 四查 R1 READY、返工 0 项，见 `docs/blackbox-spec-rework/reviews/NC-012a-REVIEW-R1.md`；主 Agent 采纳其建议 1～3，写死 `resource_ids` 字典写法、`refreshPending` 防重入顺序与 I10 重试间隔）。权威来源：[TASKS](../TASKS.md) NC-012；[community_api.md](community_api.md)（W10～W14、R3、R4、§4.1 错误目录、§5 Schema、§6 限流、§7 账本；本任务补丁见其 §12）；[community_server.md](community_server.md)（`run_command` 事务、§5 ACL 扫描矩阵 E4）；[community_client.md](community_client.md)（命令队列、payload_hash）；[community_discussion.md](community_discussion.md)（NC-011 已交付的集合、handler 写法、403/404 边界，本文照抄其范式）；[DESIGN](../DESIGN.md) §2（Reaction/Bookmark/ShareLink 行）、§6（计数投影、mention 三元组与 code point）、§7.3；[community-models](community-models.md) §2.5；[PRD](../PRD.md) R-09、R-10、§5（踩/收藏/分享默认不通知）、§6「我的」分享链接管理与举报折叠、§6.2「该内容已不可访问」统一文案。执行者照抄；与上游冲突以上游为准并停手上报主 Agent。
 
 ## 1. 拆分、仓库、基线与线
 
@@ -147,7 +147,7 @@ REPORT_CREATE_SCHEMA = {"type": "object", "additionalProperties": False, "requir
 | 6 | `old = doc.value 或 None`；`new = body["value"]`；`old == new` | 不写任何文档；`CommandOutcome(200, None, ids, cur, {"reaction": reaction_state(当前)})`（D-NC012-03） |
 | 7 | 写 reaction（7 字段，`version=cur+1`）；计数：`old` 非 None 则该键 −1，`new` 非 None 则该键 +1，写计数文档 5 字段；§3.6 条件成立时写 outbox | `CommandOutcome(200, None, ids, cur+1, {"reaction": reaction_state(新)})` |
 
-`ids = {"target_type", "target_id", "reaction_id"}`。
+`ids = {"target_type": target_type, "target_id": target_id, "reaction_id": reaction_id}`（Python dict，值为字符串；`run_command` 以 `.items()` 读取）。
 
 ### 5.2 `bookmark_set`（W11，200）
 
@@ -158,7 +158,7 @@ REPORT_CREATE_SCHEMA = {"type": "object", "additionalProperties": False, "requir
 | 2 | `resolve_target` 为 `not_found` | 404（`closed` 允许收藏） |
 | 3 | 读收藏文档；`cur = doc.version 或 0`；`ctx.if_match is not None and ctx.if_match != cur` | 412 `conflict.version`，`current_version=cur`（If-Match 可选，D-NC012-04） |
 | 4 | `(doc.active 或 False) == body["active"]` | 不写；200，`applied_version=cur`，`{"bookmark": bookmark_state(当前)}` |
-| 5 | 写收藏文档（7 字段，`version=cur+1`） | 200，`applied_version=cur+1`，`{"bookmark": bookmark_state(新)}`；`ids = {"target_type", "target_id", "bookmark_id"}` |
+| 5 | 写收藏文档（7 字段，`version=cur+1`） | 200，`applied_version=cur+1`，`{"bookmark": bookmark_state(新)}`；`ids = {"target_type": target_type, "target_id": target_id, "bookmark_id": bookmark_id}`（dict） |
 
 ### 5.3 `share_create`（W12，201）
 
@@ -181,7 +181,7 @@ REPORT_CREATE_SCHEMA = {"type": "object", "additionalProperties": False, "requir
 | 1 | 文档不存在 | 404 `not_found.share_link` |
 | 2 | `created_by != ctx.owner_scope` | 403 `forbidden.not_owner` |
 | 3 | `revoked_at` 非 None | 不写；200，`{"share_link": dto}`（D-NC012-09） |
-| 4 | 写 `revoked_at = now` | 200，`{"share_link": dto}`；`ids = {"share_id"}`，`applied_version=0` |
+| 4 | 写 `revoked_at = now` | 200，`{"share_link": dto}`；`ids = {"share_id": share_id}`（dict），`applied_version=0` |
 
 目标当前是否可读不影响撤销。
 
@@ -257,7 +257,7 @@ REPORT_CREATE_SCHEMA = {"type": "object", "additionalProperties": False, "requir
 | 02 | I07 | `reaction_old_like_replay_after_cancel_returns_original_and_state_stays_null` | 命令 A like(If-Match 0) → v1；命令 B null(If-Match 1) → v2；以 A 的键与原载荷重放 → 200 且响应体与 A 首响应相等（`version=1`、`applied_version=1`）；文档 `value=None, version=2`；R3 `version=2`、`value=null` |
 | 02 | I08 | `reaction_two_devices_same_baseline_one_commits_one_412` | 同账号两命令均 If-Match 0：like → 200 v1；dislike → 412 `current_version=1`；文档 like v1；`dislike=0` |
 | 02 | I09 | `reaction_two_accounts_have_independent_values_and_shared_counts` | 甲 like、乙 dislike → 计数 1/1；甲 R3 `value=like`、乙 R3 `value=dislike`，两者 `counts` 相同 |
-| 02 | I10 | `reaction_ten_concurrent_accounts_count_exactly_ten` | 10 个账号经 `threading.Barrier(10)` 同时 `run_command(ctx_i, interaction_service.reaction_set)`（If-Match 0，like）；返回 503 时同一 ctx 重试，最多 5 次；最终全部 200；`like=10`；reaction 文档 10 份；outbox `reaction.liked` 10 条；行为事件 `reaction.set` 10 条 |
+| 02 | I10 | `reaction_ten_concurrent_accounts_count_exactly_ten` | 10 个账号经 `threading.Barrier(10)` 同时 `run_command(ctx_i, interaction_service.reaction_set)`（If-Match 0，like）；返回 503 时同一 ctx 重试，最多 5 次，第 k 次（k=1..5）重试前 `time.sleep(0.05 * k + random.Random(线程序号 * 10 + k).uniform(0, 0.05))`；最终全部 200；`like=10`；reaction 文档 10 份；outbox `reaction.liked` 10 条；行为事件 `reaction.set` 10 条 |
 | 02 | I11 | `reaction_on_non_public_content_is_404_for_others` | 参数化 withdrawn / trashed / hidden：非作者 W10 → 404、响应体等于 `SHARED_NOT_FOUND_CONTENT_BODY`；无 reaction 文档、无计数文档 |
 | 02 | I12 | `reaction_author_closed_403_and_comment_target_rules` | 作者对自己 withdrawn 内容 W10 → 403 `forbidden.thread_closed`；公开内容下 visible 评论 → 200；deleted 评论 → 404 `not_found.comment` |
 | 02 | I13 | `reaction_after_target_purge_replay_does_not_revive` | like v1 后测试直接：access 改 `visibility=withdrawn, lifecycle=purge_pending`，删除 reaction 与计数文档；A 键重放 → 200 且体同首响应，reaction 文档仍不存在；新命令 like(If-Match 0) → 404 `not_found.content`，仍不存在 |
@@ -393,7 +393,7 @@ List<MentionRef> reconcileMentions(String text, List<MentionRef> mentions);
 | `toggleBookmark()` | 同上结构：`desired = !displayBookmarked`；有非终态 `bookmark.set` 行则记入 `_pendingBookmark`；否则入队（`ifMatch: null`）、drain、`refreshPending()` |
 | `report(String reason, String detail)` | `reported` 为 true 直接返回；`detail.runes.length > 500` → `notice = '补充说明不能超过 500 字'` 返回；入队 `report.create` 得 `commandId`；写 `community_meta`（`key = 'reported:<targetKey>'`、`value = commandId`、`updated_at = clock 现时 ISO`）；`reported = true`；`notice = '举报已提交，待发送'`；`notifyListeners()`；drain；`refreshPending()` |
 | `unfold()` | `revealed = true`；`notifyListeners()` |
-| `refreshPending()` | 读本 owner、`targetId == targetKey`、`operation ∈ {reaction.set, bookmark.set, report.create}` 的行：非终态 → 加入 `_tracked`；`reaction.set` 非终态 → `displayReaction` = 该行请求体 `value`（重启恢复）；`bookmark.set` 非终态 → `displayBookmarked` = 请求体 `active`。**仅对 `_tracked` 中的行**判定终态并移出：`reaction.set` committed → `applyReaction(ReactionResponse.fromJson(resultJson).reaction)`，然后若 `_hasPendingReaction` 且 `_pendingReaction != reaction.value` → 清标志并 `_sendReaction(_pendingReaction)`，否则清标志、`displayReaction = reaction.value`；`reaction.set` rejected 且 `lastProblemCode == 'conflict.version'` → 清标志，`notice = '赞踩状态已在其他设备更新'`，`getReaction` ok 时**直接赋值** `reaction = 新状态`（不经采纳规则）、`displayReaction = reaction.value`，不自动重发（D-NC012-15）；`lastProblemCode` 以 `not_found.` 开头 → `viewState = notVisible`；其他 rejected → `displayReaction = reaction?.value`、`notice = '操作未能完成'`。`bookmark.set` 同构（412 文案同为「操作未能完成」并以 `getBookmark` 直接赋值）。`report.create` committed → `notice = '举报已受理'`；rejected → 删除该 meta 行、`reported = false`、`notice = '举报未能提交，请重试'`。最后 `notifyListeners()` |
+| `refreshPending()` | 读本 owner、`targetId == targetKey`、`operation ∈ {reaction.set, bookmark.set, report.create}` 的行：非终态 → 加入 `_tracked`；`reaction.set` 非终态 → `displayReaction` = 该行请求体 `value`（重启恢复）；`bookmark.set` 非终态 → `displayBookmarked` = 请求体 `active`。**仅对 `_tracked` 中的行**判定终态并移出：`reaction.set` committed → `applyReaction(ReactionResponse.fromJson(resultJson).reaction)`，然后先取 `final had = _hasPendingReaction; final next = _pendingReaction;` 并立即清空两个标志（`_hasPendingReaction = false; _pendingReaction = null;`），再判断：`had && next != reaction.value` → `await _sendReaction(next)`；否则 `displayReaction = reaction.value`（防止 `_sendReaction` 末尾的 `refreshPending()` 重入时再次读到旧标志）；`reaction.set` rejected 且 `lastProblemCode == 'conflict.version'` → 清标志，`notice = '赞踩状态已在其他设备更新'`，`getReaction` ok 时**直接赋值** `reaction = 新状态`（不经采纳规则）、`displayReaction = reaction.value`，不自动重发（D-NC012-15）；`lastProblemCode` 以 `not_found.` 开头 → `viewState = notVisible`；其他 rejected → `displayReaction = reaction?.value`、`notice = '操作未能完成'`。`bookmark.set` 同构（412 文案同为「操作未能完成」并以 `getBookmark` 直接赋值）。`report.create` committed → `notice = '举报已受理'`；rejected → 删除该 meta 行、`reported = false`、`notice = '举报未能提交，请重试'`。最后 `notifyListeners()` |
 
 ### 10.8 `share_links_controller.dart`
 

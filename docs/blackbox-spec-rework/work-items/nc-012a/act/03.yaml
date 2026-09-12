@@ -1,6 +1,6 @@
 TASK_ID: NC-012a-C
 PARENT: NC-012a
-STATUS: DRAFT_FOR_REVIEW
+STATUS: READY
 REPO: xuan-server/functions-py
 GOAL: 分享与举报——share_create/share_revoke/report_create 事务、R4 统一 404、R7 我的分享链接、share 与 report 两个 handler；I18～I27；ACL 扫描 E4 转为真实断言
 DEPENDS_ON: [NC-012a-B]

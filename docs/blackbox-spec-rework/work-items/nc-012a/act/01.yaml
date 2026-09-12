@@ -1,6 +1,6 @@
 TASK_ID: NC-012a-A
 PARENT: NC-012a
-STATUS: DRAFT_FOR_REVIEW
+STATUS: READY
 REPO: xuan-migration/repository-rest-adapter
 GOAL: OpenAPI 补 W10/W11 响应包装、R7 我的分享链接、R8 收藏读取、W10 403 与 W14 413；4 个结构测试与 4 个示例
 DEPENDS_ON: []

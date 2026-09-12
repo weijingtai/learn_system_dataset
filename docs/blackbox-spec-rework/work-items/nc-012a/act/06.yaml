@@ -1,6 +1,6 @@
 TASK_ID: NC-012a-F
 PARENT: NC-012a
-STATUS: DRAFT_FOR_REVIEW
+STATUS: READY
 REPO: xuan-migration/reading-notes
 GOAL: InteractionBar、ReportSheet、ReportedFold、ShareLinksPage、ShareLinkLandingPage；ContentDetailPage 与 DiscussionPanel 可选挂载；J20～J26
 DEPENDS_ON: [NC-012a-E]
