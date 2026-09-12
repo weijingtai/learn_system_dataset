@@ -1,5 +1,5 @@
 TASK_ID: NC-010
-STATUS: REWORK
+STATUS: ACCEPTED
 GOAL: 在 reading-notes 实现社区 API 客户端、持久命令队列、发布状态与控制器、四个页面、确认层与七状态矩阵
 CONTRACTS:
   - openspec/annotation-community/contracts/community_client.md

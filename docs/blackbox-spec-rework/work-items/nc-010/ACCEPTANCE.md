@@ -1,6 +1,6 @@
 # NC-010 独立验收
 
-当前：`REWORK_ACT06`（2026-09-11 主 Agent 验收 R1，见文末）。派发前置：NC-003 ACCEPTED（已满足）。
+当前：`ACCEPTED`（2026-09-11 主 Agent 验收 R2，见文末；R1 为 REWORK_ACT06）。派发前置：NC-003 ACCEPTED（已满足）。
 
 1. ACT 审查：未参与编写者做 wjt-react 四查。
 2. 范围：reading-notes 恰 5 个提交（`9b35e97` 之后），只含各 ACT WRITE_NEW；TDD 命令 7 diff 为空；`pubspec.yaml` 相对基线只多 `http: 1.6.0` 一行；`pubspec.lock` 中既有九个版本不变；`note_database.g.dart` 未改。
@@ -23,3 +23,13 @@
   - **缺陷 2**：`_canonicalJson` 用 `List<String>.sort()`（UTF-16 码元序），契约 §4 表写明「键按码点排序」。键含 U+1F600 与 U+FF41 时 Dart `d70a36d7…` ≠ Python `7a9dbfff…`；Python 侧改按 UTF-16 排序即得 Dart 值。
   - 影响：`payload_hash` 目前只落本地命令行，未参与服务端比对，功能暂未出错；但违反「跨端逐字节一致」，NC-011/NC-012 复用队列前必须修正。
 - 判定：**REWORK**（小）；契约 §10（D-NC010-10～12）+ act/06；通过后复跑两组盲测哈希与全量计数，关闭 NC-010。
+
+---
+
+## 验收记录 R2（主 Agent，2026-09-11）：act/06 通过，NC-010 ACCEPTED
+
+- 提交：reading-notes `4588f78`（F），`git diff-tree` 恰为 `lib/src/community/command_queue.dart` 与 `test/community/command_queue_test.dart`。逐文件对比 `46a5ebf`：`'if_match': ?ifMatch` 改为 `'if_match': ifMatch`；新增 `_compareByCodePoint`（逐个比较 `runes`），`_canonicalJson` 键排序改用它；测试追加 B39/B40 两个，期望值为字面量，U+FF41 与 U+1F600 以转义写入。
+- 交付报告 §3.6：Red `+2 -2`，两个新测试红（实际值 `295d0642…`、`dbc116ed…`），既有 `payload_hash_matches_python_reference` 保持绿，与 TDD §6b 一致。
+- 命令经 tmux + agy 执行（新会话，只运行、存原始输出于 `~/tmux-agents/runs/nc010fv/`），主 Agent 读原始输出判定：`flutter analyze` No issues；`flutter test` `+214: All tests passed!`；`nc010_guard.sh --require-impl` 失败条数 0；工作树干净。
+- 盲测复跑（R1 同一份输入，主 Agent 编写，临时文件已删除）：四组 payload_hash Dart 与 Python 逐字相等——`c8e2c2b0…`、`d9216833…`（首次发布 if_match 为 null）、`27c6f57b…`、`7a9dbfff…`（码点排序）；作者文案 N 值与 R1 相同。
+- 判定：**ACCEPTED**。reading-notes `bd894b4`→`4588f78`（6 个提交），flutter test +214。
