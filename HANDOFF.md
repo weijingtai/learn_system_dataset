@@ -1,13 +1,13 @@
 # HANDOFF
 
-## impl-02 J1 ACCEPTED，J2 READY（Dataset 会话；黑箱线最新状态）
+## impl-02 ACCEPTED；下一步 impl-03（Dataset 会话；黑箱线最新状态）
 
 更新时间：2026-09-11
 当前分支/worktree：`codex/docs/knowledge-compilation`；`/Users/jingtaiwei/Git/Public/learn_system`
-刚完成：G5 准出记录 `reviews/G5-EXIT-REVIEW.md` 14/14 满足；用户 2026-09-11 确认「确认可以进入」；外部 Agent 按 `work-items/g5/PROMPT-G.md` 提交 `70c05cd`，规格头部 `REVIEW_FAILED_R1` → `R1_REWORK_CLOSED`（节标签未动），主 Agent 干净树验收通过。执行者上报 numstat 与 ACT 不符，裁定为主 Agent 算术错误（`375ff8b` 订正）。`PROJECT_COLD_START_HANDOFF.md` 状态改 `IMPLEMENTATION_PHASE`。
-进行到一半的事（精确到文件和章节）：impl-02 J1（ACT 00 `1bf6687`、01 `0911d14`、02 `00dfa9f`）已验收 `ACCEPTED`：`pipeline/corpus_compiler/` 有纯函数编译器与独立结构 Gate，37 测试，金标字节一致；PLAN D-16 节 C「Artifact Ledger」已勾选。J2（ACT 03 Ledger 上真实编译、ACT 04 `m3-coverage.sh`）`READY`，`PROMPT-J2.md` 待派发；ACT 03 已补「页名格式」输入检查（J1 验收发现的契约遗漏）。
-下一步（第一件事）：J2 报告回来 → 干净树验收（冻结输入 6 个、每批 Checkpoint、StagePackage 血缘、begin 前拒绝无写入、失败封存、`m3-coverage.sh` exit 2、副本假 verify.sh、准备异常 exit 1）→ impl-02 `ACCEPTED` → 规划 impl-03（M5 Automatic Validation）。
-已知的坑：实现批次会第一次产生 `pipeline/` 下的新代码与测试，验收要跑真实测试而不只是 grep；`run_all.sh` 的 20.2/20.3 规则里 BLOCKED 分支是硬编码的，实现落地后 ACT 必须同时改 `run_all.sh` 对应规则（属 D-18 产物，改动需在 ACT 内写明）。
+刚完成：impl-02 J1（ACT 00 `1bf6687`、01 `0911d14`、02 `00dfa9f`）+ J2（ACT 03 `f4f4682`、04 `ea9126d`）全部 `ACCEPTED`。`pipeline/corpus_compiler/` 有纯函数编译器、结构 Gate、Ledger 事务集成、`m3-coverage.sh`（8 PASS + 1 BLOCKED semantic_layer，exit 2）；59 测试，`run_all.sh` 仍 `pass=2 fail=1 blocked=8`。验收记录 `work-items/impl-02-corpus/ACCEPTANCE.md` §5。
+进行到一半的事（精确到文件和章节）：无。impl-02 已完成。
+下一步（第一件事）：规划 impl-03（M5 Automatic Validation）。
+已知的坑：语义层（SemanticSpan §11 第 2–5 条：双模型边界提议与分歧人工裁决）未实现，`m3-coverage.sh` 返回 2 而非 0；下一批 impl-03 的 ACT 必须同时改 `run_all.sh` 对应规则（属 D-18 产物，改动需在 ACT 内写明）。
 
 ## G4 D 类全部 ACCEPTED：D-16 映射表与 pat_/ent_ 登记验收通过（Dataset 会话；黑箱线最新状态）
 
