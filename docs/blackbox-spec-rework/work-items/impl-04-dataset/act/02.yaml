@@ -71,7 +71,7 @@ tests:
     - test_knowledge_chain_compiled_claim_fails
     - test_check_exception_becomes_fail_not_raise（page_docs 删 page_003 → glyph_anchor_closure ok False，函数不抛）
 verify: |
-  .venv/bin/python -m unittest discover -s pipeline/dataset_compiler/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 72
+  .venv/bin/python -m unittest discover -s pipeline/dataset_compiler/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 73
   grep -nE '^\s*(from|import) .*(packs|canonical|levels|step)' pipeline/dataset_compiler/gate.py | wc -l   # 0
   TDD §3 回归
 commit:

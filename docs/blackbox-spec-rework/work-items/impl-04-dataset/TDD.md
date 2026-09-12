@@ -31,12 +31,12 @@ ls ocr/data_work/sanche_pages/page_001.png ocr/data_work/sanche_pages/page_002.p
 |---|---|---|
 | 00 | `$TD` → ImportError（目录不存在或无模块） | `$TD` OK，用例 ≥ 18 |
 | 01 | 新增用例全 ERROR（`packs` 不存在） | `$TD` OK ≥ 45；fixture 上 41/2/230/39 键碰撞数字逐字出现在断言中 |
-| 02 | 新增用例全 ERROR | `$TD` OK ≥ 72；gate 不 import packs/canonical/levels/step |
-| 03 | 新增用例全 ERROR | `$TD` OK ≥ 83，无 skipped；shim CLI 缺图退出 3 |
-| 04 | 新增用例全 ERROR | `$TD` OK ≥ 89；`resolve_m8_inputs` 前后 Ledger 行数不变 |
+| 02 | 新增用例全 ERROR | `$TD` OK ≥ 73；gate 不 import packs/canonical/levels/step |
+| 03 | 新增用例全 ERROR | `$TD` OK ≥ 84，无 skipped；shim CLI 缺图退出 3 |
+| 04 | 新增用例全 ERROR | `$TD` OK ≥ 90；`resolve_m8_inputs` 前后 Ledger 行数不变 |
 | 05 | 新增用例全 ERROR | `$TD` OK ≥ 102；`run_m8` fixture 成功，counts 与第 6.1 条一致 |
-| 06 | `DEV_SEARCH`/`PUBLIC_RELEASE` 用例失败（ACT 05 在 begin 之前拒绝）；`compile`/`internal` 用例失败（异常外抛）；CLI 用例 ERROR | `$TD` OK ≥ 115 |
-| 07 | `m8-span-identity.sh` 不存在（exit 127）；新增用例全 ERROR | `$TD` OK ≥ 126；`m8-span-identity.sh` → `SUMMARY pass=7 fail=0 blocked=1`、exit 2 |
+| 06 | `DEV_SEARCH`/`PUBLIC_RELEASE` 用例失败（ACT 05 在 begin 之前拒绝）；`compile`/`internal` 用例失败（异常外抛）；CLI 用例 ERROR | `$TD` OK ≥ 112 |
+| 07 | `m8-span-identity.sh` 不存在（exit 127）；新增用例全 ERROR | `$TD` OK ≥ 124；`m8-span-identity.sh` → `SUMMARY pass=7 fail=0 blocked=1`、exit 2 |
 | 08 | `run_all.sh 20.4` 输出仍为 `前置缺失: M8 Dataset Compilation；PublicationPackage 反向追溯未实现` | 20.4/20.8 为 `前置缺失: M4 Knowledge Extraction；…`；注入副本 20.4 FAIL；SUMMARY 不变 |
 
 ## 2. 主 Agent 验收附加判据（执行者不需要跑，但不得让其失败）

@@ -19,7 +19,7 @@
 ```bash
 export LC_ALL=en_US.UTF-8
 .venv/bin/python -m unittest discover -s pipeline/dataset_compiler/tests -t . 2>&1 | tail -1
-# 期望：OK（用例 ≥ 126；本机页图存在，不得出现 skipped）
+# 期望：OK（用例 ≥ 124；本机页图存在，不得出现 skipped）
 bash openspec/acceptance/m8-span-identity.sh; echo exit=$?
 # 期望：7 行 PASS（run_succeeded span_key_unique legacy_collision_exposed span_page_binding anchor_to_page_image glyph_closure reverse_index）
 #       + 1 行 BLOCKED mentions_mapping + SUMMARY pass=7 fail=0 blocked=1；exit=2
@@ -70,9 +70,9 @@ bash openspec/acceptance/run_all.sh | tail -1
 - `run_all.sh` → `SUMMARY pass=2 fail=1 blocked=8`。
 - `ocr/data_work/sanche_pages/page_001..003.png` 存在；fixture 页 JSON 与清单尺寸都是 1203×1654。
 - 43 条 span 的字框共 230 个，全部在页框内。
-- 其中 2 条 span 的文本比字框多 1 字：
-  - `ss_sanche_ed01_p0001_s03`：6 字 / 5 框
-  - `ss_sanche_ed01_p0001_s04`：17 字 / 16 框
+- 其中 2 条 span 的文本与其字框拼接不一致（「框」按 `source_anchor.chars` 全部条目计，含空字符框；5/16 是拼接后的**非空字符数**）：
+  - `ss_sanche_ed01_p0001_s03`：文本 6 字 / 字框 8 个（其中空字符框 3 个）/ 拼接后非空字符 5
+  - `ss_sanche_ed01_p0001_s04`：文本 17 字 / 字框 18 个（其中空字符框 2 个）/ 拼接后非空字符 16
 - 按 `build_index.py` 的 `(source_id, sNN)` 规则给 fixture 的 43 条 span 取键，会塌缩为 **39 键、4 组碰撞**。宿主本身就能复现 §19 登记的缺陷类别。
 
 ## 3. 范围

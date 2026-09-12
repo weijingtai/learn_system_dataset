@@ -63,6 +63,7 @@ contract: |
         manifest.input_artifacts = ref(全部 frozen)；manifest.output_artifacts = [ref(publication_package)]；manifest.counts 逐字 == {"spans": 43, "pages": 3, "source_assets": 3,
           "glyph_highlights": 41, "line_bbox_highlights": 2, "packs": 2}（fixture）；manifest.content_sha256 = sha256(release_manifest bytes)
         lineage.upstream_artifacts 含 ref(m3 StagePackage) 与 ref(manifest)；transformations 记 operation "compile_dataset"；register_stage_package(...) → seal
+        信封其余必填键（`schema_version`、`stage`、`status`、`validation`、`logs`、`failures`）比照 impl-02 `act/03.yaml:49-58` 模板：`validation` == {"passed": true, "report_artifacts": [ref(validation_report)]}；`logs` == [ref(step_log)]；`failures` == []
       14 log = put "step_log"（每步一行、不含时间戳）→ seal；finish_step_run(step, {"schema_version": "1.0.0", "processing_run_id", "step_run_id", "status_version": 当前值 + 1,
           "status": "succeeded", "output_artifact_ids": [source_asset_pack, evidence_map_pack, release_manifest, publication_package, package_revision_id],
           "validation_report_ids": [validation_report], "log_artifact_ids": [log], "failure_artifact_ids": []})

@@ -45,7 +45,7 @@ tests:
     - test_refuses_when_m8_sealed（prepare_m3 + seed_succeeded_m8_checkpoint → message 含「M8 已封存」）
     - test_resolve_does_not_write（table_counts 前后相等）
 verify: |
-  .venv/bin/python -m unittest discover -s pipeline/dataset_compiler/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 89；本机不得出现 skipped
+  .venv/bin/python -m unittest discover -s pipeline/dataset_compiler/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 90；本机不得出现 skipped
   grep -nE '\b(put_|seal_|write_|begin_|finish_|fail_|create_|register_|record_)' pipeline/dataset_compiler/inputs.py | wc -l   # 0
   TDD §3 回归
 commit:

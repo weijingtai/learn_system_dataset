@@ -26,7 +26,7 @@
 
 ## 2. 门禁与判据（`git archive` 干净树，软链 `.venv` 与工作台 assets，`FIXTURE_ASSET_ROOT` 指本机页图）
 
-- `ACT.yaml` 全部 `gates` 绿；两套 `unittest` 全过且用例数达 `TDD.md` §1 阈值；`m8-span-identity.sh` → `SUMMARY pass=7 fail=0 blocked=1`、exit 2；`acceptance.py --check publication` → `SUMMARY pass=8 fail=0 blocked=1`、exit 2；`FIXTURE_ASSET_ROOT=/nonexistent` → exit 3；`run_all.sh` → `pass=2 fail=1 blocked=8`。
+- `ACT.yaml` 全部 `gates` 绿；三套 `unittest`（ledger、corpus_compiler、dataset_compiler）全过且用例数达 `TDD.md` §1 阈值；`m8-span-identity.sh` → `SUMMARY pass=7 fail=0 blocked=1`、exit 2；`acceptance.py --check publication` → `SUMMARY pass=8 fail=0 blocked=1`、exit 2；`FIXTURE_ASSET_ROOT=/nonexistent` → exit 3；`run_all.sh` → `pass=2 fail=1 blocked=8`。
 - `TDD.md` §2 附加判据逐条实跑；`README.md` §1 完成判据逐条复现。
 
 ## 3. 语义与质量审查清单

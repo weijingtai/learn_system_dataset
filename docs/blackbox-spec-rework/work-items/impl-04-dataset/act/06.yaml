@@ -34,7 +34,7 @@ tests:
     - test_cli_assets_unregistered_exit_2（prepare_m3 未登记页图 → 末行以 "M8 REFUSED" 开头，exit 2）
     - test_cli_illegal_level_exit_2（--level internal_demo → exit 2；Ledger 无新增写入）
 verify: |
-  .venv/bin/python -m unittest discover -s pipeline/dataset_compiler/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 115
+  .venv/bin/python -m unittest discover -s pipeline/dataset_compiler/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 112
   grep -c '"admission"' pipeline/dataset_compiler/step.py                                          # >= 1
   TDD §3 回归
 commit:

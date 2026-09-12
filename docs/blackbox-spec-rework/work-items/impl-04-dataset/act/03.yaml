@@ -23,10 +23,11 @@ contract: |
          data = path.read_bytes()；sha256 != item["sha256"] → HashMismatch(code="SRC_003")；packs.png_size(data) != (item["width"], item["height"]) → HashMismatch(code="SRC_003")（非 PNG 由 png_size 抛 SCH_002）
       P5 写入（§17 事务序列）：
          processing_run_id = m1 StepRun 的 processing_run_id
-         config = service.put_run_artifact(processing_run_id, "configuration", canonical_bytes({"stage": "m1", "tool": SHIM_TOOL, "tool_version": SHIM_TOOL_VERSION, "task": "register_source_assets", "asset_count": n}), producer_module=SHIM_TOOL, producer_version=SHIM_TOOL_VERSION)
+         （put_artifact 与 put_run_artifact 均返回二元组 (artifact_id, revision_id)；下文 `put "<type>"` 简写指取返回的修订号，显式调用处按二元组解包）
+         config_id, config = service.put_run_artifact(processing_run_id, "configuration", canonical_bytes({"stage": "m1", "tool": SHIM_TOOL, "tool_version": SHIM_TOOL_VERSION, "task": "register_source_assets", "asset_count": n}), producer_module=SHIM_TOOL, producer_version=SHIM_TOOL_VERSION)
          step = service.begin_step_run({"schema_version": "1.0.0", "processing_run_id", "step_run_id": ids.new_id("step_run_id"), "input_artifact_ids": [manifest_revision_id], "technique_profile_id": manifest["technique_id"], "configuration_artifact_id": config})
          begin 之后任何异常 → _fail(step, "internal", "<异常类名>: <消息>")：put "failure_report"（canonical {"check","detail"}）→ seal → fail_step_run；_fail 自身抛异常 → raise 原异常 from
-         每页（清单 source_assets 顺序）：rev = put_artifact(step, "source_asset_page", data, producer_module=SHIM_TOOL, producer_version=SHIM_TOOL_VERSION, rights_scope="internal") → seal
+         每页（清单 source_assets 顺序）：_, rev = put_artifact(step, "source_asset_page", data, producer_module=SHIM_TOOL, producer_version=SHIM_TOOL_VERSION, rights_scope="internal") → seal
            write_checkpoint(step, edition_part_id=ep, stage="m1", completed_tasks=[{"task_id": "source_asset_" + page, "artifact_revision_id": rev, "status": "succeeded", "terminal_state": None}],
                             human_decisions=[], pending_queue=[{"task_id": "source_asset_" + 其后各页}], next_pointer=首个待办或 None)
          register = put "source_asset_register"（canonical {页: {"artifact_revision_id", "sha256", "size", "width", "height"}}）→ seal
@@ -61,7 +62,7 @@ tests:
     - test_fixture_real_assets_when_available（@skipUnless(assets_available())：ingest(FIXTURE, service, stages=("m1","m2")) → register(REPO_ASSET_ROOT) → 三页修订 sha256 == 清单）
     - test_cli_exit_codes（subprocess：合成场景成功 exit 0 且末行以 "ASSETS OK" 开头；空 asset-root exit 3 且首行以 "BLOCKED_SOURCE_ASSET_MISSING" 开头）
 verify: |
-  .venv/bin/python -m unittest discover -s pipeline/dataset_compiler/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 83；本机不得出现 skipped
+  .venv/bin/python -m unittest discover -s pipeline/dataset_compiler/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 84；本机不得出现 skipped
   grep -rn "sanche_pages" pipeline/dataset_compiler --include='*.py' | grep -v '/tests/' | wc -l    # 0（生产代码不写死素材路径）
   TDD §3 回归
 commit:

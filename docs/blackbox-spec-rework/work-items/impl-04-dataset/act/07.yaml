@@ -15,7 +15,7 @@ contract: |
       判定函数只读 Ledger 与 fixture 金标，不信任 run_m8 的 gate 报告，须自行重算（不 import packs/gate，不读 run_m8 summary["gate"]）
     检查 span_identity（名称与顺序固定，7 项）：
       run_succeeded：m8 StepRun 状态 "succeeded"
-      span_key_unique：EvidenceMapPack 的 entries 键集合 == spans_doc span_id 集合；len(entries) == spans_doc["span_count"] == 43；无重复
+      span_key_unique：EvidenceMapPack 的 entries 键集合 == spans_doc span_id 集合 == fixture `spans.yaml` 金标 span_id 集合（金标副本被删一条 span 时在此 FAIL）；len(entries) == spans_doc["span_count"] == 43；无重复
       legacy_collision_exposed：按 pipeline/rag/build_index.py:133-138 的 (source_id, int(sNN)) 规则对同一批 span 取键，独立复算得 legacy_keys=39、collision_groups=4，而 pack_keys=43；
         三数均由 fixture 重算，不得写成常量；PASS 行说明逐字含 `legacy_keys=39 collision_groups=4 pack_keys=43`
       span_page_binding：entries 键中 _p<4位> == int(entry["page"][5:])、_s<2位> == entry["line_index"] + 1；entry["page"] == spans_doc 同 span 的 page
@@ -56,7 +56,7 @@ tests:
     - test_legacy_collision_exposed_numbers_recomputed（PASS 行含 legacy_keys=39 collision_groups=4 pack_keys=43）
     - test_mentions_mapping_blocked_exact_text
     - test_knowledge_chain_blocked_exact_text
-    - test_tampered_span_golden_fails（fixture 临时副本 spans.yaml 改一个字 → acceptance.main 直接调用，span_key_unique 或 golden 相关 FAIL，exit 1）
+    - test_tampered_span_golden_fails（fixture 临时副本 `spans.yaml` 删一条 span → FIXTURE_DIR 指向副本、acceptance.main 直接调用，`span_key_unique` FAIL，exit 1）
     - test_dropped_entry_fails（patch 编译结果删一条 entry → evidence_chain_closure FAIL，exit 1）
     - test_prepare_failure_exits_1（patch fixture_ingest.ingest 抛 RuntimeError → exit 1，首行以 "FAIL m8_acceptance 宿主准备失败: RuntimeError" 开头）
     - test_missing_fixture_exit_3
@@ -64,7 +64,7 @@ tests:
     - test_shell_exit_2_on_fixture（subprocess 运行 m8-span-identity.sh，末行 SUMMARY pass=7 fail=0 blocked=1，exit 2）
     - test_shell_never_trusts_copy_verify（fixture 副本删一条 span 并把副本 verify.sh 换成 `echo FIXTURE OK; exit 0` → FIXTURE_DIR=副本 运行 m8-span-identity.sh，exit 1，首行以 "FAIL fixture_host" 开头）
 verify: |
-  .venv/bin/python -m unittest discover -s pipeline/dataset_compiler/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 126
+  .venv/bin/python -m unittest discover -s pipeline/dataset_compiler/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 124
   export LC_ALL=en_US.UTF-8; bash openspec/acceptance/m8-span-identity.sh; echo exit=$?             # 7 PASS + BLOCKED mentions_mapping + SUMMARY pass=7 fail=0 blocked=1；exit=2
   FIXTURE_ASSET_ROOT=/nonexistent bash openspec/acceptance/m8-span-identity.sh; echo exit=$?        # 首行 BLOCKED m8_acceptance BLOCKED_SOURCE_ASSET_MISSING …；exit=3
   .venv/bin/python -m pipeline.dataset_compiler.acceptance --fixture pipeline/corpus/_fixture/mini_ed01 --check publication; echo exit=$?   # 8 PASS + BLOCKED knowledge_chain；exit=2
