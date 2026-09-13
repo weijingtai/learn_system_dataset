@@ -50,3 +50,14 @@
 ## 5. 验收记录
 
 §5 验收记录由主 Agent 填写。
+
+### 5.1 W3-F 实现（2026-09-12，主 Agent 独立验收，`git archive` 干净树）
+
+执行者：tmux 中的 cmd（DeepSeek V4.1 Flash），会话 `w3f`，按 K1/K2/K3 分组停下待验收。
+
+- K1（ACT 00–02：`a64d0e9`、`000386e`、`4a79ef5`）：范围仅 `pipeline/dataset_compiler`；`dataset_compiler` 73 OK、ledger 74 OK、corpus_compiler 68 OK；`gate.py` 不 import 编译器实现；`canonical/levels/packs/gate` 无文件、时间、随机、uuid、环境副作用；全部门禁绿。回归取行方式裁定为 `grep -E "^(Ran|OK|FAILED)"`（G7-RULINGS 第 27 条）。
+- K2（ACT 03–06：`7dcf032`、`5a54d42`、`f85471e`、`338c157`）：`dataset_compiler` 113 OK。ACT 03 薄 M1 按第 32 条改用 `supersede_step_run` 接替 m1 运行（不改 Ledger），并新增 `test_register_assets_keeps_m3_input_resolution`。矩阵外端到端 15 项全过：INTERNAL_DEMO succeeded、恰 1 个 m8 包、EvidenceMapPack 43 个唯一完整 `span_id`、知识链前三段 `not_compiled`、ReleaseManifest 级别 INTERNAL_DEMO、两次运行（去身份字段）一致、登记页图后 `resolve_m3_inputs` 清单不变、DEV_SEARCH/PUBLIC_RELEASE `failed/admission` 无包、页图目录缺失 `SourceAssetMissing`、未登记页图 `DatasetRefused`、M3 spans 与页图对象篡改 `failed/input_contract`、fixture 灌入 m3 包（无 `spans_revision_id`）拒绝、begin 后注入异常 `failed/internal` 无包。
+- K3（ACT 07 `c36d628`、ACT 08 `950b77b`）：`dataset_compiler` 125 OK；`m8-span-identity.sh` `SUMMARY pass=7 fail=0 blocked=1`、exit 2（`mentions_mapping` BLOCKED）；`run_all.sh` 改前改后均 `pass=2 fail=1 blocked=8`，除 20.4/20.8 外无行变化，两条仍 `BLOCKED 前置缺失: M4 Knowledge Extraction` 并写明已判定段，20.4/20.8 段无 `pass_line`。fixture 副本删一条 span：`m8-span-identity.sh` exit 1 落点 `FAIL fixture_host`，`run_all.sh 20.4` `FAIL fixture_host`，直接调用 acceptance 模块落点 `FAIL span_key_unique`（第 44 条；BDD §9.2 与 act/08 verify 注释已订正 `ccbfe64`）。`acceptance.py` 三处 import 为 `run_m3`/`register_source_assets`/`run_m8` 用于构造真实链路，发布判定由自身 `_evaluate_publication` 重算；`DEFAULT_FIXTURE` 常量仅作 `--fixture` 缺省值（建议，登记不返工）。
+- 全部门禁（`950b77b` 干净树）：`verify-T.sh` 0 FAIL、`mutations.sh` 109/109、`schemas/verify.sh` 0、`check_d16.py` OK、`check_interfaces.py` 18 PASS、`m3-coverage.sh` exit 2。
+
+impl-04（M8 首切片，证据尾链发布包，INTERNAL_DEMO）`ACCEPTED`。§20.4/§20.8 仍 BLOCKED（M4 未接入），§19 M8 差距不宣称关闭。

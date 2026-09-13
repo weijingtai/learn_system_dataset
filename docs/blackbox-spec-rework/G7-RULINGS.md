@@ -123,6 +123,13 @@ Q49 按 P8 须用户确认前缀；Q52/Q53/Q55/Q57/Q62 推迟到 W5 定稿；Q50
 |---|---|---|
 | 44 | ACT 08：fixture 副本删一条 span 时 20.4 的失败落点（act/08 正文「fx 先行」vs BDD §9.2「落点 span_key_unique」） | 采纳 A：保持 `fx` 先行，被改副本在仓库内规范 `verify.sh` 的 `manifest_sha256` 先失败，20.4/20.8 落点 `FAIL fixture_host`（D-18，且与已验收 ACT 07 `test_shell_never_trusts_copy_verify` 一致）。BDD §9.2 与 act/08 verify 注释的「span_key_unique」为文档错误，由主 Agent 修订；`span_key_unique` 落点以直接调用 `python -m pipeline.dataset_compiler.acceptance --check span_identity` 证明。 |
 
+### 9.5 impl-08 四查 R1（`5ab873c`）阻断项裁定
+
+| # | 条目 | 裁决 |
+|---|---|---|
+| 45 | F1 `stage_package_valid`「每个有效 StepRun 恰 1 包」与第 40 条（不承载包的接替运行不移除被接替者）矛盾，m1 Gate 必 blocked | 包判定改为：该阶段有效运行中**承载 StagePackage 的运行恰 1 个且包合法**；不承载包的接替运行（如 m1_shim）不计入包判定，但须 `succeeded` 且在 lineage 可达 |
+| 46 | F2 Gate 报告「落为下游 StepRun 首个 artifact」不可由公开读接口取回，运行级类型又受 `service.py:66` 限制，改 Ledger 违反 P9 | **修订第 34 条**：首纵切 Stage Gate 报告不落盘，由 `evaluate_stage_gate` 返回、CLI 打印、EditionRun 结果 JSON 携带，验收独立重算；落盘随 D-6 读缺口关闭后另立 ACT（`DEFERRED`） |
+
 ## 10. 用户待办
 
 1. W4-J 前：撰写真实前十页人工终态决定表（P7，Q37）。

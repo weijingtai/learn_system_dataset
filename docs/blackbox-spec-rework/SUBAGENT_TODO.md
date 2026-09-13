@@ -600,11 +600,11 @@
 - 分波计划：`docs/blackbox-spec-rework/G7-PLAN.md`（W2 起执行器 tmux + `cmd --yolo` DeepSeek V4.1 Flash，审查用 GLM 5.3 Flash，同时最多 2～3 路）；裁决 `G7-RULINGS.md`（P1–P9、§9、§9.1、§9.2）；对账审查 `reviews/G7-DRAFTS-REVIEW-R1.md`/`R2.md`。
 - [x] impl-00：跨模块接口总表（状态：首纵切部分 `ACCEPTED`——act/10 INTERFACES §4 闭集登记 `ea90ca8`，检查器 18 项；其余 10 个 ACT `DEFERRED` 纵切后；验收 `impl-00-interfaces/ACCEPTANCE.md` §5.1）
 - [x] impl-03：M5 Automatic Validation 首切片（状态：`ACCEPTED` 2026-09-12；定稿 `1a189ae`，四查 R1 REWORK → 返工 `06d7d08`/`881538d` → R2 READY `6b548c6`；K1 `25b2fcc`/`48ebbfb`/`1fab5b1`/`0a77975`；K2 `817cd64`/`9aaccf5`/`6e21038`；返工 `8367893`；`m5-evidence-gate.sh` 9 PASS + 5 BLOCKED exit 2；验收 `impl-03-validation/ACCEPTANCE.md` §5.1）
-- [ ] impl-04：M8 Dataset Compilation（状态：`DISPATCHED`；定稿 `2e4f9a7`，四查 R1 READY `7f809ea`，整改 `8758a00`/`8554ced`；W3-F 实现中：K1 ACT 00–02 `a64d0e9`/`000386e`/`4a79ef5` 主 Agent 验收通过并放行 K2）
+- [x] impl-04：M8 Dataset Compilation 首切片（状态：`ACCEPTED` 2026-09-12；定稿 `2e4f9a7`，四查 R1 READY `7f809ea`，整改 `8758a00`/`8554ced`；K1 `a64d0e9`/`000386e`/`4a79ef5`；K2 `7dcf032`/`5a54d42`/`f85471e`/`338c157`；K3 `c36d628`/`950b77b`；裁定 32/44；`m8-span-identity.sh` 7 PASS + 1 BLOCKED exit 2；验收 `impl-04-dataset/ACCEPTANCE.md` §5.1）——首纵切关键路径 Ledger→M3→M5→M8 跑通
+- [ ] impl-08：Local Orchestrator + Contract Registry（状态：`REVIEWING`；定稿 `cd6c7a6`，四查 R1 REWORK `5ab873c`（F1/F2 阻断，裁定 45/46），返工中）
 - [ ] impl-05：M4 Knowledge Extraction 最薄接入（状态：`DRAFT`；W3-G）
 - [ ] impl-06：M6 Review & Curation 最薄接入（状态：`DRAFT`；W4-H）
 - [ ] impl-07：M7 Incremental Assembly（状态：`DRAFT`；首纵切外，W5-L）
-- [ ] impl-08：Local Orchestrator + Contract Registry（状态：`DRAFT`；W4-I）
 - [ ] impl-09：M1 Source Intake + M2 Digitization 真实接入（状态：`DRAFT`；W4-J）
 - [ ] impl-10：M3 语义层 SemanticSpan（状态：`DRAFT`；W5-K）
 
