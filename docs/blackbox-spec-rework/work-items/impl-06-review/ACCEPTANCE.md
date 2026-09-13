@@ -55,3 +55,15 @@
 ## 5. 验收记录
 
 §5 验收记录由主 Agent 填写。
+
+### 5.1 K1（2026-09-13，主 Agent 独立验收，`git archive 4a5e86f` 干净树）
+
+执行者：agy 会话 `w5h1`（ACT 03 中途按用户要求由 Gemini 3.1 Pro High 切换为 Gemini 3.8 Flash Medium，续接原对话）；工作包 R3 READY `4390b6c`，前置 impl-00 act/13 `ACCEPTED`。
+
+- 范围：ACT 01 `bc75e87`（`__init__`、`errors`、`model`、`tests/__init__`、`tests/test_model`）、ACT 02 `6904e5a`（`gate`、`tests/test_gate`）、ACT 03 `4a5e86f`（`propagation`、`tests/test_propagation`），全部在 `pipeline/review/` 内；Ledger/M3/M4/M5/M8/Orchestrator/Schema/fixture/`run_all.sh` 改动 0。
+- Red（执行方原文）：ACT 01、02、03 各 `FAILED (errors=1)`（新测试模块导入失败）；Green 分别 `Ran 23`、`Ran 48`、`Ran 63` OK。执行方开工基线初写「run_all 未执行，假设一致」，经主 Agent 更正后补跑原文（`schemas/verify.sh` 0、`run_all` `pass=2 fail=1 blocked=8`）。
+- 复验：`pipeline/review/tests` `Ran 63` OK（阈值 23/48/63）；具名用例 63 个与 act/01–03 `tests` 逐字一致（无缺无多）；ledger 74、corpus_compiler 68、knowledge_extraction 133、validation 87 均 OK。
+- 独立性与纯函数：`gate.py` 不 import `model/propagation/step/rework`（0 处）；`propagation.py` 不写 Ledger、不调 `invalidate_revision`（0 处）；`model.py` 复用 `review_events.build_review_decision` 与 `required_decision_types`（第 67 条）；各源文件副作用/网络、`_fixture`、裸 except 均 0。
+- 门禁：`check_interfaces` `pass=29 fail=0`；`schemas/verify.sh` 0；`verify-T.sh` `FAIL 合计: 0`；`mutations.sh` `109/109 rejected`；`run_all.sh` `pass=2 fail=1 blocked=8`。
+
+K1 `ACCEPTED`。K2 已放行。

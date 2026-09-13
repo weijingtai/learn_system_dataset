@@ -63,3 +63,15 @@
 - 发现：`empty_snapshot_knowledge(..., {"pattern": [...]})` 被 `validate_snapshot_knowledge` 拒（要求 `pat_<technique>` 键）。实现忠实于 act/g0-01:59；根因为工作包 g0-02 输入层与存储层键形未定义转换 → 第 70 条裁定（两层分立，g0-02 写回时改键），G0-01 不返工。
 
 G0-01 `ACCEPTED`。
+
+### 5.2 G0-01a 与 G0-02（2026-09-13，主 Agent 独立验收，`git archive 749fc04` 干净树）
+
+执行者：agy 会话 `w5g0`（G0-02 中途按用户要求由 Gemini 3.8 Flash High 切换为 Medium，续接原对话）。G0-02 执行中停手上报 `allocated` 与活对象重叠检查阻断 → 裁定 71（`9979657`）。
+
+- G0-01a `8f9917f`：范围恰为 `model.py`、`tests/test_model.py`；改动只删「allocated 与活对象号重叠」拒绝、改为只与 retired 比，新增 `patterns[].pattern_id` 互异（ID_002）；未删既有断言，新增具名用例 `test_snapshot_allocated_id_alive_pattern_allowed`、`test_snapshot_duplicate_alive_pattern_id_ID_002`。Red（执行方原文）`FAILED (failures=1, errors=1)`，Green `Ran 32` OK。
+- G0-02 `749fc04`：范围恰为 `genesis.py`、`tests/test_genesis.py`；具名用例 21 个与 act/g0-02 逐字一致。Red（执行方原文）`Ran 21 … FAILED (errors=21)`。
+- 复验：`pipeline/assembly/tests` `Ran 53` OK（阈值 ≥ 53）；ledger 74 OK、knowledge_extraction 133 OK；`genesis.py` 不开文件、不触 Ledger、无随机/时间/网络、裸 except 0；`check_interfaces` `fail=0`；`schemas/verify.sh` 0；`verify-T.sh` `FAIL 合计: 0`；`run_all.sh` `pass=2 fail=1 blocked=8`。
+- 矩阵外（干净树内联脚本）：同输入两次 `knowledge_bytes` 相同；输入未被修改；`knowledge.id_range` 存储键为 `{"pat_qizheng": [1, 100]}`（第 70 条改键）；输入 `id_range` 缺 `pattern`、`start > end`、负数、非列表四种均 `AssemblyRefused(SCH_002)`；Assertion `content_status` 与 `approved` 原值一致；Pattern/Concept 顶层无 `content_status`。
+- 备注：Red 顺序（测试先于实现）无法由 git 独立证明（测试与实现同提交，第 56 条既有局限）；G0-02 实现在裁定 71 前已写出，裁定后仅补 G0-01a，未见事后删改断言。
+
+G0-01a、G0-02 `ACCEPTED`。
