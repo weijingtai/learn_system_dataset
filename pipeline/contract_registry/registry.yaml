@@ -1,0 +1,153 @@
+# 声明式 Contract Registry（规格 §5/§19 L2'）。
+# 唯一写入方为本包；schema sha256 为执行者对 openspec/schemas/<id>.schema.json 的实算值。
+registry_version: "0.1.0"
+
+schemas:
+  - schema_id: artifact_ref
+    path: openspec/schemas/artifact_ref.schema.json
+    schema_version: "1.0.0"
+    sha256: 90cd3046d6972038c5f2477a15506df3559533e7b92678212a3d4bea5ccec509
+  - schema_id: stage_package
+    path: openspec/schemas/stage_package.schema.json
+    schema_version: "1.0.0"
+    sha256: 918b92d088d7c4d3afdddfd7d2f8c6d477a10ec4e70c440006298076cb74abcc
+  - schema_id: step_request
+    path: openspec/schemas/step_request.schema.json
+    schema_version: "1.0.0"
+    sha256: 5e08e2ae0ee237b6006a25d37bd5c57ad1b7b3a57f3e92aaacfb25e167e45293
+  - schema_id: step_result
+    path: openspec/schemas/step_result.schema.json
+    schema_version: "1.0.0"
+    sha256: 6306e6e93e1be204b7d2c8d3348ab2b7aac84b596bdce31beee60a0f622618c5
+
+# 规格 §19 第一列逐字（:875–882）
+stage_rows:
+  m1: "M1 Source Intake"
+  m2: "M2 Digitization & Correction"
+  m3: "M3 Corpus Compilation"
+  m4: "M4 Knowledge Extraction"
+  m5: "M5 Automatic Validation"
+  m6: "M6 Review Workbench"
+  m7: "M7 Incremental Assembly"
+  m8: "M8 Dataset Compilation"
+
+# 规格 §5 五个专用队列逐字（:120–124）
+human_queues:
+  m2: "M2 异常页与低置信字"
+  m3: "M3 边界分歧"
+  m4: "M4 类别分歧"
+  m6: "M6 待签发"
+  m7: "M7 待裁决"
+
+# 首纵切 Module 描述符（字段键序固定）
+modules:
+  - module_id: m1.fixture_import
+    stage: m1
+    kind: thin_import
+    binding: imported
+    entry: null
+    version: mini_ed01
+    consumes: []
+    produces:
+      - artifact_type: source_manifest
+    human_queue: false
+    supports_recovery: false
+    entry_kwargs: {}
+    owns_processing_run: false
+  - module_id: m2.fixture_import
+    stage: m2
+    kind: thin_import
+    binding: imported
+    entry: null
+    version: mini_ed01
+    consumes:
+      - artifact_type: source_manifest
+        from_stage: m1
+    produces:
+      - artifact_type: ocr_page_set
+    human_queue: true
+    supports_recovery: false
+    entry_kwargs: {}
+    owns_processing_run: false
+  - module_id: m3.corpus_structural
+    stage: m3
+    kind: production
+    binding: legacy_self_driving
+    entry: "pipeline.corpus_compiler.step:run_m3"
+    version: "0.1.0"
+    consumes:
+      - artifact_type: source_manifest
+        from_stage: m1
+      - artifact_type: ocr_page_set
+        from_stage: m2
+      - artifact_type: ocr_page
+        from_stage: m2
+    produces:
+      - artifact_type: corpus_package
+    human_queue: false
+    supports_recovery: false
+    entry_kwargs: {}
+    owns_processing_run: false
+  - module_id: m5.automatic_validation
+    stage: m5
+    kind: production
+    binding: legacy_self_driving
+    entry: "pipeline.validation.step:run_m5"
+    version: "0.1.0"
+    consumes:
+      - artifact_type: corpus_package
+        from_stage: m3
+      - artifact_type: corpus_spans
+        from_stage: m3
+      - artifact_type: coverage_report
+        from_stage: m3
+    produces:
+      - artifact_type: validation_package
+    human_queue: false
+    supports_recovery: false
+    entry_kwargs:
+      target_consumption_level: INTERNAL_DEMO
+    owns_processing_run: false
+  - module_id: m8.dataset_compilation
+    stage: m8
+    kind: production
+    binding: legacy_self_driving
+    entry: "pipeline.dataset_compiler.step:run_m8"
+    version: "0.1.0"
+    consumes:
+      - artifact_type: source_manifest
+        from_stage: m1
+      - artifact_type: source_asset_page
+        from_stage: m1
+      - artifact_type: ocr_page_set
+        from_stage: m2
+      - artifact_type: corpus_package
+        from_stage: m3
+    produces:
+      - artifact_type: publication_package
+    human_queue: false
+    supports_recovery: false
+    entry_kwargs:
+      consumption_level: INTERNAL_DEMO
+    owns_processing_run: true
+
+# 端口与 Adapter（键序 port_id, adjacent_interface, adapters）
+ports:
+  - port_id: storage
+    adjacent_interface: [artifact_ref, stage_package, step_request, step_result]
+    adapters:
+      - adapter_id: ledger_direct
+        entry: "pipeline.contract_registry.ports:DirectLedgerAdapter"
+      - adapter_id: ledgerd_client
+        entry: "pipeline.contract_registry.ports:LedgerdClientAdapter"
+  - port_id: ocr
+    adjacent_interface: [step_request, step_result]
+    adapters:
+      - adapter_id: ocr_engine_current
+        entry: null
+  - port_id: model
+    adjacent_interface: [step_request, step_result]
+    adapters: []
+  - port_id: index
+    adjacent_interface: [step_request, step_result]
+    adapters: []
