@@ -12,6 +12,7 @@ import json
 import yaml
 
 from pipeline.ledger import ids
+from pipeline.ledger.errors import SchemaViolation
 
 from . import (
     CANDIDATE_SCHEMA_VERSION,
@@ -39,6 +40,9 @@ GATE_PROFILE = "thin_no_model"
 SPAN_LAYER = "structural"
 CROSS_MODEL = "not_evaluated"
 TERM_LAYERING = "verify_only"
+
+# 类别裁决选择闭集（§6.4(a)）
+RULING_CHOICES = ("a", "b", "both", "neither")
 
 
 class _InputContractError(Exception):
@@ -604,6 +608,280 @@ def run_m4(
             id_factory,
         )
     except Exception as exc:  # noqa: BLE001 —— begin 之后未预期异常一律内部失败封存
+        return _fail(
+            service, step_run_id, "internal", "%s: %s" % (type(exc).__name__, exc)
+        )
+
+
+# ------------------------------------------------------------------ 类别裁决 / 恢复
+def _edition_part_id(service, processing_run_id):
+    row = service.store.conn.execute(
+        "SELECT edition_part_id FROM processing_runs WHERE processing_run_id=?",
+        (processing_run_id,),
+    ).fetchone()
+    return row[0] if row else None
+
+
+def _own_sealed_revisions(service, step_run_id, artifact_type):
+    return [
+        row[0]
+        for row in service.store.conn.execute(
+            "SELECT r.artifact_revision_id FROM artifact_revisions r "
+            "JOIN artifacts a ON a.artifact_id = r.artifact_id "
+            "WHERE r.step_run_id=? AND a.artifact_type=? AND r.status='sealed' "
+            "ORDER BY r.created_at, r.rowid",
+            (step_run_id, artifact_type),
+        ).fetchall()
+    ]
+
+
+def _registered_rulings(service, step_run_id, ordered=False):
+    """本 StepRun 已登记的人工裁决事件 ``[(dispute_id, event_revision_id), ...]``。"""
+    rows = service.store.conn.execute(
+        "SELECT h.event_revision_id FROM human_events h WHERE h.step_run_id=? "
+        "ORDER BY h.created_at, h.rowid",
+        (step_run_id,),
+    ).fetchall()
+    pairs = []
+    for (revision_id,) in rows:
+        content = _read_doc(service, revision_id) or {}
+        pairs.append((content.get("dispute_id"), revision_id))
+    if ordered:
+        return pairs
+    return {dispute_id for dispute_id, _revision_id in pairs}
+
+
+def _inputs_from_frozen(service, step_run_id, frozen):
+    """沿 supersedes 链上该运行冻结的修订，按 ``artifact_type`` 重建 inputs（只读）。"""
+    step = service.get_step_run(step_run_id)
+    request = json.loads(step["request_json"] or "{}")
+    types = _artifact_types(service, frozen)
+    inputs = {
+        "processing_run_id": step["processing_run_id"],
+        "technique_id": request["technique_profile_id"],
+        "corpus_stage_package_revision_id": None,
+        "corpus_package_revision_id": None,
+        "spans_revision_id": None,
+        "technique_profile_revision_id": None,
+        "submissions": {},
+    }
+    for revision_id in frozen:
+        kind = types.get(revision_id)
+        if kind == "stage_package":
+            inputs["corpus_stage_package_revision_id"] = revision_id
+        elif kind == "corpus_package":
+            inputs["corpus_package_revision_id"] = revision_id
+        elif kind == "corpus_spans":
+            inputs["spans_revision_id"] = revision_id
+        elif kind == "technique_profile":
+            inputs["technique_profile_revision_id"] = revision_id
+        elif kind == "candidate_submission":
+            doc = _read_doc(service, revision_id)
+            key = "%s/%s" % (doc["category"], doc["lane"])
+            inputs["submissions"][key] = {
+                "revision_id": revision_id,
+                "step_run_id": None,
+                "channel": doc.get("channel"),
+            }
+    return inputs
+
+
+def _required_for(inputs, config):
+    effective = dict(config.get("required_lanes") or {})
+    present = sorted({key.split("/")[0] for key in inputs["submissions"]})
+    return {category: list(effective.get(category, [])) for category in present}
+
+
+def _verify_lane_integrity(service, step_run_id, ctx):
+    """按冻结输入重算 lane 集与 disputes，必须与已封存修订逐字节/逐项相同。"""
+    sealed_lane_bytes = {}
+    lane_set_revision_ids = {}
+    for revision_id in _own_sealed_revisions(service, step_run_id, "candidate_lane_set"):
+        data = _read_bytes(service, revision_id)
+        doc = json.loads(data.decode("utf-8"))
+        key = "%s/%s" % (doc["category"], doc["lane"])
+        sealed_lane_bytes[key] = data
+        lane_set_revision_ids[key] = revision_id
+    if sealed_lane_bytes != ctx["lane_set_bytes"]:
+        raise _InputContractError("按冻结输入重算的 lane 集字节与已封存 candidate_lane_set 不一致")
+    queue_revisions = _own_sealed_revisions(service, step_run_id, "dispute_queue")
+    if len(queue_revisions) != 1:
+        raise _InputContractError("本 StepRun 自有 dispute_queue 修订 %d 个" % len(queue_revisions))
+    sealed_queue = json.loads(_read_bytes(service, queue_revisions[0]).decode("utf-8"))
+    recomputed = assemble.reconcile_lanes(
+        ctx["lane_results"], required_lanes=ctx["required_lanes"]
+    )["disputes"]
+    if sealed_queue.get("disputes") != recomputed:
+        raise _InputContractError("重算 disputes 与已封存 dispute_queue 不一致")
+    return lane_set_revision_ids
+
+
+def record_category_ruling(service, step_run_id, resume_token, ruling_doc):
+    """登记一条 m4 类别裁决人工事件，并立即写一个 Checkpoint（§17.1）。"""
+    step = service.get_step_run(step_run_id)
+    if step is None:
+        raise ExtractionRefused("StepRun 不存在: %s" % step_run_id, code="REF_001")
+    if step["status"] != "awaiting_human":
+        raise ExtractionRefused(
+            "StepRun 不处于 awaiting_human（当前 %s）" % step["status"]
+        )
+    if not isinstance(ruling_doc, dict):
+        raise SchemaViolation("裁决文档必须是对象", code="SCH_001")
+    allowed = {
+        "schema_version",
+        "dispute_id",
+        "choice",
+        "rationale",
+        "synthetic_fixture",
+        "actor_ref",
+    }
+    required = {"schema_version", "dispute_id", "choice", "rationale"}
+    keys = set(ruling_doc)
+    if not required <= keys or not keys <= allowed:
+        raise ExtractionRefused("ruling_doc 键集合非法: %s" % sorted(keys), code="SCH_002")
+    if ruling_doc["schema_version"] != CANDIDATE_SCHEMA_VERSION:
+        raise ExtractionRefused("schema_version 不符", code="SCH_002")
+    rationale = ruling_doc["rationale"]
+    if not isinstance(rationale, str) or not rationale.strip():
+        raise ExtractionRefused("rationale 必须为非空字符串", code="SCH_001")
+    if ruling_doc["choice"] not in RULING_CHOICES:
+        raise ExtractionRefused("choice 非闭集: %r" % (ruling_doc["choice"],), code="SCH_002")
+    synthetic = ruling_doc.get("synthetic_fixture", False)
+    if not isinstance(synthetic, bool):
+        raise ExtractionRefused("synthetic_fixture 必须为 bool", code="SCH_002")
+
+    queues = _own_sealed_revisions(service, step_run_id, "dispute_queue")
+    if len(queues) != 1:
+        raise ExtractionRefused(
+            "本 StepRun 自有 dispute_queue 修订 %d 个" % len(queues), code="REF_001"
+        )
+    queue_revision_id = queues[0]
+    queue = _read_doc(service, queue_revision_id) or {}
+    dispute_ids = [row["dispute_id"] for row in queue.get("disputes") or []]
+    dispute_id = ruling_doc["dispute_id"]
+    if dispute_id not in dispute_ids:
+        raise ExtractionRefused("未知 dispute_id: %s" % dispute_id, code="REF_001")
+    if dispute_id in _registered_rulings(service, step_run_id):
+        raise ExtractionRefused("该 dispute 已有裁决: %s" % dispute_id, code="ID_002")
+
+    event = {
+        "schema_version": CANDIDATE_SCHEMA_VERSION,
+        "event_kind": "category_ruling",
+        "stage": "m4",
+        "processing_run_id": step["processing_run_id"],
+        "step_run_id": step_run_id,
+        "dispute_id": dispute_id,
+        "choice": ruling_doc["choice"],
+        "rationale": rationale,
+        "actor_ref": ruling_doc.get("actor_ref") or service.actor(),
+        "synthetic_fixture": synthetic,
+        "seen": {"dispute_queue_revision_id": queue_revision_id},
+    }
+    _, event_revision_id = service.put_artifact(
+        step_run_id,
+        "human_event",
+        canonical_json(event),
+        producer_module=M4_TOOL,
+        producer_version=M4_TOOL_VERSION,
+    )
+    service.seal_revision(event_revision_id)
+    service.record_human_event(
+        step_run_id, resume_token, event_revision_id, decision_type=None
+    )
+    registered = _registered_rulings(service, step_run_id, ordered=True)
+    human_decisions = [revision_id for _dispute_id, revision_id in registered]
+    ruled_ids = {row[0] for row in registered}
+    remaining = [row for row in dispute_ids if row not in ruled_ids]
+    pending = [{"task_id": row} for row in remaining] + [{"task_id": "assemble"}]
+    checkpoint_revision_id = service.write_checkpoint(
+        step_run_id,
+        edition_part_id=_edition_part_id(service, step["processing_run_id"]),
+        stage="m4",
+        completed_tasks=[
+            {
+                "task_id": dispute_id,
+                "artifact_revision_id": event_revision_id,
+                "status": "succeeded",
+                "terminal_state": None,
+            }
+        ],
+        human_decisions=human_decisions,
+        pending_queue=pending,
+        next_pointer=pending[0] if pending else None,
+    )
+    return {
+        "event_revision_id": event_revision_id,
+        "checkpoint_revision_id": checkpoint_revision_id,
+        "remaining_dispute_ids": remaining,
+    }
+
+
+def resume_m4(service, step_run_id, resume_token, *, id_factory=None):
+    """消费 ``resume_token`` 并在同一运行内完成装配（以 Ledger 人工暂停恢复语义为准）。"""
+    step = service.get_step_run(step_run_id)
+    if step is None:
+        raise ExtractionRefused("StepRun 不存在: %s" % step_run_id, code="REF_001")
+    if step["status"] != "awaiting_human":
+        raise ExtractionRefused(
+            "StepRun 不处于 awaiting_human（当前 %s）" % step["status"]
+        )
+    queues = _own_sealed_revisions(service, step_run_id, "dispute_queue")
+    if len(queues) != 1:
+        raise ExtractionRefused(
+            "本 StepRun 自有 dispute_queue 修订 %d 个" % len(queues), code="REF_001"
+        )
+    queue = _read_doc(service, queues[0]) or {}
+    dispute_ids = [row["dispute_id"] for row in queue.get("disputes") or []]
+    ruled_pairs = _registered_rulings(service, step_run_id, ordered=True)
+    ruled = {dispute_id for dispute_id, _revision_id in ruled_pairs}
+    for dispute_id in dispute_ids:
+        if dispute_id not in ruled:
+            raise ExtractionRefused("仍有未裁决分歧: %s" % dispute_id)
+
+    request = json.loads(step["request_json"] or "{}")
+    frozen = service._frozen_input_ids(step_run_id)
+    config = _read_doc(service, request.get("configuration_artifact_id")) or {}
+    edition_part_id = _edition_part_id(service, step["processing_run_id"])
+
+    service.resume(step_run_id, resume_token)
+    try:
+        inputs = _inputs_from_frozen(service, step_run_id, frozen)
+        try:
+            ctx = _build_ctx(service, step_run_id, inputs, config)
+        except _InputContractError as exc:
+            return _fail(service, step_run_id, "input_contract", str(exc))
+        ctx["edition_part_id"] = edition_part_id
+        ctx["configuration_revision_id"] = request.get("configuration_artifact_id")
+        ctx["frozen"] = list(frozen)
+        id_range = dict(config.get("id_range") or DEFAULT_ID_RANGE)
+        ctx["id_range"] = id_range
+        ctx["config"] = {"gate_profile": config.get("gate_profile", GATE_PROFILE), "id_range": id_range}
+        ctx["required_lanes"] = _required_for(inputs, config)
+        ctx["id_factory"] = id_factory
+        try:
+            lane_set_revision_ids = _verify_lane_integrity(service, step_run_id, ctx)
+        except _InputContractError as exc:
+            return _fail(service, step_run_id, "input_contract", str(exc))
+        ctx["lane_set_revision_ids"] = lane_set_revision_ids
+        ctx["dispute_queue_revision_id"] = queues[0]
+        ctx["checkpoint_revision_ids"] = [
+            row["artifact_revision_id"]
+            for row in service.list_checkpoints(edition_part_id, "m4")
+            if row["content"]["step_run_id"] == step_run_id
+        ]
+        rulings = {
+            dispute_id: (_read_doc(service, revision_id) or {}).get("choice")
+            for dispute_id, revision_id in ruled_pairs
+        }
+        human_event_revision_ids = [revision_id for _dispute_id, revision_id in ruled_pairs]
+        return _complete(
+            service,
+            step_run_id,
+            ctx,
+            rulings=rulings,
+            human_event_revision_ids=human_event_revision_ids,
+        )
+    except Exception as exc:  # noqa: BLE001 —— resume 之后未预期异常一律内部失败封存
         return _fail(
             service, step_run_id, "internal", "%s: %s" % (type(exc).__name__, exc)
         )

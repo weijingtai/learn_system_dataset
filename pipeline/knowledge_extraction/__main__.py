@@ -7,6 +7,8 @@ NotConsumable）→ 2；``WriterLocked`` → 3；失败封存 → 1；等待人�
 import argparse
 from pathlib import Path
 
+import yaml
+
 from pipeline.ledger.errors import (
     MissingReference,
     NotConsumable,
@@ -17,7 +19,7 @@ from pipeline.ledger.service import LedgerService
 
 from .adapters.registry import register_technique_profile
 from .errors import ExtractionRefused
-from .step import run_m4
+from .step import record_category_ruling, resume_m4, run_m4
 from .submit import run_m4_submit
 
 _REFUSALS = (ExtractionRefused, SchemaViolation, MissingReference, NotConsumable)
@@ -43,7 +45,40 @@ def _build_parser():
     assemble = sub.add_parser("assemble")
     assemble.add_argument("--root", required=True)
     assemble.add_argument("--edition-part", required=True)
+
+    rule = sub.add_parser("rule")
+    rule.add_argument("--root", required=True)
+    rule.add_argument("--step-run", required=True)
+    rule.add_argument("--token", required=True)
+    rule.add_argument("--from", dest="from_path", required=True)
+
+    resume = sub.add_parser("resume")
+    resume.add_argument("--root", required=True)
+    resume.add_argument("--step-run", required=True)
+    resume.add_argument("--token", required=True)
     return parser
+
+
+def _emit_assemble(summary):
+    if summary["status"] == "succeeded":
+        counts = summary["counts"]
+        print(
+            "M4 OK %s assertions=%d disputes=%d"
+            % (summary["step_run_id"], counts["assertions"], counts["disputes"])
+        )
+        return 0
+    if summary["status"] == "awaiting_human":
+        print(
+            "M4 AWAITING_HUMAN %s disputes=%s token=%s"
+            % (
+                summary["step_run_id"],
+                ",".join(summary["dispute_ids"]),
+                summary["resume_token"],
+            )
+        )
+        return 4
+    print("M4 FAILED %s %s" % (summary["step_run_id"], summary["failed_check"]))
+    return 1
 
 
 def _dispatch(args, service):
@@ -83,30 +118,28 @@ def _dispatch(args, service):
         print("M4 SUBMIT FAILED %s %s" % (summary["step_run_id"], summary["failed_check"]))
         return 1
 
+    if args.command == "rule":
+        ruling = yaml.safe_load(Path(args.from_path).read_text(encoding="utf-8"))
+        try:
+            result = record_category_ruling(service, args.step_run, args.token, ruling)
+        except _REFUSALS as exc:
+            print("M4 REFUSED %s: %s" % (type(exc).__name__, exc))
+            return 2
+        print(
+            "M4 RULED %s remaining=%d"
+            % (ruling["dispute_id"], len(result["remaining_dispute_ids"]))
+        )
+        return 0
+
     try:
-        summary = run_m4(service, args.edition_part)
+        if args.command == "resume":
+            summary = resume_m4(service, args.step_run, args.token)
+        else:
+            summary = run_m4(service, args.edition_part)
     except _REFUSALS as exc:
         print("M4 REFUSED %s: %s" % (type(exc).__name__, exc))
         return 2
-    if summary["status"] == "succeeded":
-        counts = summary["counts"]
-        print(
-            "M4 OK %s assertions=%d disputes=%d"
-            % (summary["step_run_id"], counts["assertions"], counts["disputes"])
-        )
-        return 0
-    if summary["status"] == "awaiting_human":
-        print(
-            "M4 AWAITING_HUMAN %s disputes=%s token=%s"
-            % (
-                summary["step_run_id"],
-                ",".join(summary["dispute_ids"]),
-                summary["resume_token"],
-            )
-        )
-        return 4
-    print("M4 FAILED %s %s" % (summary["step_run_id"], summary["failed_check"]))
-    return 1
+    return _emit_assemble(summary)
 
 
 def main(argv=None):
