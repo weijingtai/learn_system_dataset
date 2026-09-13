@@ -459,10 +459,12 @@ def validate_snapshot_knowledge(knowledge: dict) -> None:
         raise SchemaViolation("id_range 值必须为 [start, end] 且 start <= end: %r" % (rng_val,), code="SCH_002")
     start, end = rng_val[0], rng_val[1]
 
-    # 校验列表排序
     _check_sorted(knowledge.get("editions", []), key_fn=lambda x: x["source_id"], name="editions")
     _check_sorted(knowledge.get("concepts", []), key_fn=lambda x: x["concept_id"], name="concepts")
     _check_sorted(knowledge.get("patterns", []), key_fn=lambda x: x["pattern_id"], name="patterns")
+    patterns_ids = [p["pattern_id"] for p in knowledge.get("patterns", [])]
+    if len(patterns_ids) != len(set(patterns_ids)):
+        raise DuplicateIdentifier("patterns 中存在重复 pattern_id", code="ID_002")
     _check_sorted(knowledge.get("assertions", []), key_fn=lambda x: x["assertion_id"], name="assertions")
     _check_sorted(knowledge.get("school_views", []), key_fn=lambda x: x["school_view_id"], name="school_views")
     _check_sorted(knowledge.get("conflict_groups", []), key_fn=lambda x: x["conflict_group_id"], name="conflict_groups")
@@ -477,7 +479,7 @@ def validate_snapshot_knowledge(knowledge: dict) -> None:
 
     # 活对象收集
     alive_concepts = set(c["concept_id"] for c in knowledge.get("concepts", []))
-    alive_patterns = set(p["pattern_id"] for p in knowledge.get("patterns", []))
+    alive_patterns = set(patterns_ids)
     alive_assertions = set(a["assertion_id"] for a in knowledge.get("assertions", []))
     alive_svs = set(sv["school_view_id"] for sv in knowledge.get("school_views", []))
     all_alive = alive_concepts | alive_patterns | alive_assertions | alive_svs
@@ -526,9 +528,9 @@ def validate_snapshot_knowledge(knowledge: dict) -> None:
                 "allocated_pattern_id %s 超出 id_range [%d, %d]" % (pid, start, end),
                 code="SCH_002",
             )
-        if pid in alive_patterns or pid in retired_set:
+        if pid in retired_set:
             raise DuplicateIdentifier(
-                "allocated_pattern_id %s 与活对象或 retired 重叠" % pid,
+                "allocated_pattern_id %s 与 retired 重叠" % pid,
                 code="ID_002",
             )
         allocated_numbers.append(val)

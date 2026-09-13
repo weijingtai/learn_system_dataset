@@ -417,6 +417,20 @@ class TestModel(unittest.TestCase):
             validate_snapshot_knowledge(k)
         self.assertEqual(ctx.exception.code, "SCH_002")
 
+    def test_snapshot_allocated_id_alive_pattern_allowed(self):
+        k = make_valid_snapshot_knowledge()
+        k["allocated_pattern_ids"] = ["pat_qizheng_000001"]
+        validate_snapshot_knowledge(k)
+
+    def test_snapshot_duplicate_alive_pattern_id_ID_002(self):
+        k = make_valid_snapshot_knowledge()
+        p_dup = dict(k["patterns"][0])
+        k["patterns"].append(p_dup)
+        with self.assertRaises(DuplicateIdentifier) as ctx:
+            validate_snapshot_knowledge(k)
+        self.assertEqual(ctx.exception.code, "ID_002")
+
 
 if __name__ == "__main__":
     unittest.main()
+
