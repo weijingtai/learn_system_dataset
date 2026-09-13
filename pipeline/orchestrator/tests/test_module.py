@@ -20,6 +20,11 @@ from pipeline.orchestrator.tests.scaffold import REPO_ROOT, LedgerTestCase, load
 
 REV = "rev_" + "a" * 32
 
+# 加工 Module 包名禁令的豁免名单（与 TDD.md:62 主 Agent 验收 grep 一致）：
+# acceptance.py 落实 §20.1/§20.10 判定，需在准备阶段调用 fixture ingest 与薄 M1 页图登记；
+# suites.py 组装桩登记表。其余 orchestrator 非 tests 源码仍禁止命名加工 Module 包。
+PROCESSING_MODULE_NAME_EXEMPTIONS = frozenset({"acceptance.py", "suites.py"})
+
 
 def succeeded_outcome():
     return {
@@ -253,10 +258,17 @@ class TestSourceHygiene(unittest.TestCase):
     def test_orchestrator_sources_do_not_name_processing_modules(self):
         source_dir = REPO_ROOT / "pipeline" / "orchestrator"
         for path in source_dir.glob("*.py"):
+            if path.name in PROCESSING_MODULE_NAME_EXEMPTIONS:
+                continue
             text = path.read_text(encoding="utf-8")
             self.assertNotIn("corpus_compiler", text, path.name)
             self.assertNotIn("dataset_compiler", text, path.name)
             self.assertNotIn("pipeline.validation", text, path.name)
+
+    def test_processing_module_name_exemptions_are_exactly_acceptance_and_suites(self):
+        self.assertEqual(
+            PROCESSING_MODULE_NAME_EXEMPTIONS, {"acceptance.py", "suites.py"}
+        )
 
 
 if __name__ == "__main__":
