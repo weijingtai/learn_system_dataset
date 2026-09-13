@@ -64,7 +64,7 @@ tests:
     - test_recover_after_checkpoint_write_crash（patch write_checkpoint 在第 2 条决定后抛异常 → recover_review → 补写 Checkpoint；新运行 human_decisions 含 2 条旧决定；replayed_pending 3 项；旧决定修订未重录）
     - test_recover_old_run_still_awaiting_human（依 D-15 A）
 verify:
-  - .venv/bin/python -m unittest discover -s pipeline/review/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 79
+  - .venv/bin/python -m unittest discover -s pipeline/review/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 86
   - grep -rn 'testing\|_fixture' pipeline/review/step.py | wc -l                          # 0
   - TDD §3 回归
 commit:

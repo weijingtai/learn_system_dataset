@@ -28,10 +28,10 @@ contract: |
       7 若 warnings 非空：写 human_event {schema_version, event_kind:"rework_threshold_ack", stage:"m6", step_run_id, rework_impact_report_revision_id, warnings, actor_ref} → seal → record_human_event(decision_type=None) → write_checkpoint（human_decisions 追加）
       返回键：同 open_review，另加 rework_impact_report_revision_id, carried_decision_revision_ids, acknowledgement_revision_id
   step.py 修改（保持 ACT 05/06 用例全绿）：
-    record_decision 与 close_review 在 mode == "rework" 时：
-      fold 的立场集合 = carried 决定（standing 视为 "carried_forward"，carried_from_revision_id = 其 seen_artifact_revision_id，trigger_correction_request_id = 报告 trigger，current_target_revision_id = 新候选修订）+ 本运行新决定（active）
-      队列覆盖检查使用完整队列（carried 项 + 本运行 needs_review 项）；reviewed_edition.rework_impact_report_revision_id = 报告修订
-      Transformation human_event_revision_ids 含 carried 决定、本运行决定、阈值确认事件
+    record_decision 与 close_review 在 mode == "rework" 时（第 69 条）：
+      carried 条目经 model.decision_entry(standing="carried_forward", event=首审原始决定事件, queue_item=复审队列项, carried_to_revision_id=复审队列项 seen_artifact_revision_id, carried_content_hash=该对象旧修订 content_hash)：**seen_revision_id 保持首审审核者实际所见的旧修订（不改写为新修订）**；carried_from_revision_id = 首审决定事件修订；trigger_correction_request_id = 报告 trigger；reviewed_edition.decisions.current_target_revision_id = carried_to_revision_id
+      本运行 needs_review 项经正常 active 流程重新决定；队列覆盖检查使用完整队列（carried 项 + 本运行 needs_review 项）；Gate 另传 prior_decision_events = 首审决定事件 [{decision_revision_id, seen_revision_id}]
+      reviewed_edition.rework_impact_report_revision_id = 报告修订；Transformation human_event_revision_ids 含 carried 决定、本运行决定、阈值确认事件
   console.py 追加：rework-open --edition-part --report <rev> [--ack-rework-warning]：`M6 AWAITING <step_run_id> token=<token> pending=<n> carried=<m>`
 tests:
   test_rework_review.py: |
@@ -41,11 +41,13 @@ tests:
     - test_rereview_queue_only_needs_review_items（== expected_review.rereview.queue，3 项：as_…001#source_fidelity、sv_…1#source_fidelity、sv_…1#school_attribution）
     - test_rereview_seen_revision_is_new_candidate_set_revision
     - test_carried_decisions_not_rerecorded（本运行 human_events 表中无 carried 决定修订）
+    - test_carried_entry_seen_keeps_first_review_revision（第 69 条：carried entry.seen_revision_id == 首审旧修订，非新修订）
+    - test_carried_entry_carried_to_is_new_revision_and_hash_matches（carried_to_revision_id == 复审队列项 seen；carried_content_hash == 当前对象 content_hash）
     - test_close_rereview_standings_three_active_two_carried
     - test_rereview_edition_references_report_and_trigger
     - test_rereview_transformation_includes_carried_and_ack_events
 verify:
-  - .venv/bin/python -m unittest discover -s pipeline/review/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 120
+  - .venv/bin/python -m unittest discover -s pipeline/review/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 129
   - TDD §3 回归
 commit:
   add: [pipeline/review/rework.py, pipeline/review/step.py, pipeline/review/testing/upstream_stub.py, pipeline/review/tests/test_rework_review.py, pipeline/review/console.py]

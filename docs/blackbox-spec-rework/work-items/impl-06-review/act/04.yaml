@@ -47,7 +47,7 @@ tests:
     - test_refuses_when_candidate_package_not_bound_to_m3
     - test_refuses_when_candidate_revision_not_sealed（supersede/invalidate 后 → NotConsumable）
 verify:
-  - .venv/bin/python -m unittest discover -s pipeline/review/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 64
+  - .venv/bin/python -m unittest discover -s pipeline/review/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 71
   - grep -rn 'testing' pipeline/review/inputs.py | wc -l                                  # 0
   - grep -rn '_fixture' pipeline/review/inputs.py | wc -l                                 # 0
   - TDD §3 回归

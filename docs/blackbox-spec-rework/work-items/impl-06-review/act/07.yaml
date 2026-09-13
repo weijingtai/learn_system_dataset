@@ -37,7 +37,7 @@ tests:
     - test_close_with_pending_exit_2
     - test_wrong_token_exit_2
 verify:
-  - .venv/bin/python -m unittest discover -s pipeline/review/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 100
+  - .venv/bin/python -m unittest discover -s pipeline/review/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 107
   - .venv/bin/python -m pipeline.review --help >/dev/null; echo $?                         # 0
   - TDD §3 回归
 commit:

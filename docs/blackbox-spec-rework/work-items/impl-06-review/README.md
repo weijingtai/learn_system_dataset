@@ -19,7 +19,7 @@ M4 已实现（impl-05 `ACCEPTED`，`pipeline/knowledge_extraction/**`），M5 �
 
 ```bash
 export LC_ALL=en_US.UTF-8
-.venv/bin/python -m unittest discover -s pipeline/review/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK（用例 ≥ 129）
+.venv/bin/python -m unittest discover -s pipeline/review/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK（用例 ≥ 138）
 bash openspec/acceptance/m6-data-fields.sh; echo exit=$?
 # 期望：11 行 PASS + BLOCKED snapshot_projection（第 61 条）+ BLOCKED legacy_workbench_seed + BLOCKED upstream_real
 #       末行 SUMMARY pass=11 fail=0 blocked=3；exit=2
@@ -104,6 +104,8 @@ bash openspec/acceptance/m3-coverage.sh | tail -1  # 与开工基线相同（不
 
 **第 68 条（F2）｜事件锚点恒为 `seen_revision_id`。** `modify` 决定另携 `modified_revision_id`，纳入 `decision_entry` 键集并由 Gate `decision_anchoring` 校验存在性；act/01/02/05 与 BDD 1.3/5.5 统一。
 
+**第 69 条（N1）｜carried 条目锚点语义。** carried 条目 `seen_revision_id` 保持首审审核者实际所见的**旧**修订（不得改写为新修订），另携 `carried_to_revision_id`（= 复审队列项当前修订）、`carried_from_revision_id`（= 原决定事件修订）、`carried_content_hash`（旧修订哈希）。Gate `decision_anchoring` 条件式：active ⇒ seen == 当前修订；carried ⇒ carried_to == 当前修订、carried_from 指向存在的首审事件且其 seen 与条目 seen 相同、旧/新内容哈希相等。`fold_decisions` 对 carried 条目不以 seen 不等报 REF_001（改判 carried_to）。`model.decision_entry` 增 carried 构造模式；act/02/05/09 与 BDD §9 统一。
+
 ### 4.2 草稿与已落地代码的对账（定稿修正清单）
 
 | # | 草稿假设 | 已落地事实（文件:行号） | 定稿处理 |
@@ -136,7 +138,7 @@ M6 拒绝条件：任一上游 StepRun 非 `succeeded`、修订非 `sealed`、M5
 ### 5.2 本包内部对象
 
 - **ReviewQueue 项**：`queue_item_id="<entity_id>#<decision_type>"`、`target_entity_id`、`kind`、`decision_type`、`seen_artifact_revision_id`（=`candidate_target_revision_id`，首审为首审运行立场所依据的候选修订，返工为 M4' 新 `candidate_set` 修订）。队列由 `review_events.required_decision_types` 逐对象推导（第 67 条）。
-- **decision_entry（M6 运行内决定记录，供 Gate 与 `reviewed_edition`）**：`{decision_revision_id, queue_item_id, target_entity_id, kind, decision_type, verdict, standing, seen_artifact_revision_id, modified_revision_id, carried_from_revision_id, rationale}`。**事件锚点恒为 `seen_artifact_revision_id`**；`modify` 决定另携 `modified_revision_id`（=`reviewed_candidate` 修订），纳入本键集并由 Gate `decision_anchoring` 校验存在性（第 68 条）。
+- **decision_entry（M6 运行内决定记录，供 Gate 与 `reviewed_edition`）**：`{decision_revision_id, queue_item_id, target_entity_id, kind, decision_type, verdict, standing, seen_revision_id, modified_revision_id, carried_from_revision_id, carried_to_revision_id, carried_content_hash, rationale}`。active 模式：**事件锚点恒为 `seen_revision_id`**；`modify` 决定另携 `modified_revision_id`（=`reviewed_candidate` 修订），由 Gate `decision_anchoring` 校验存在性（第 68 条）。carried 模式（第 69 条）：`seen_revision_id` 保持首审审核者实际所见的**旧**修订（**不得改写为新修订**），另携 `carried_to_revision_id`（= 复审队列项当前修订）、`carried_from_revision_id`（= 原决定事件修订）、`carried_content_hash`（该对象旧修订哈希，须等于当前修订哈希）；Gate 条件式校验（active ⇒ seen == 当前修订；carried ⇒ carried_to == 当前修订、carried_from 指向存在且 seen 相符的首审事件、旧/新内容哈希相等）。
 - **ReviewDecision（`human_event` 内容）**：逐字复用 `review_events.build_review_decision`（`schema_version`、`event_kind="review_decision"`、`stage="m6"`、`decision_type`、`verdict`、`target{entity_kind,entity_id,artifact_revision_id}`、`processing_run_id`、`step_run_id`、`actor_ref`、`rationale`、`evidence_refs`、`consumption_level`）；决定身份 = 该修订的 `artifact_revision_id`，无新前缀。同一队列项的后续决定为该队列项重新写入的新事件（历史保留）。`synthetic_fixture: true` 仅出现在 fixture 合成事件中（第 52/53 条），**不得**写进 `review_decision` 顶层键（会被 `validate_review_decision` 拒收）——合成标记写在外层测试数据/README，不进入事件内容。
 - **CorrectionRequest（`human_event`，D-10）**：`{schema_version, event_kind:"correction_request", stage:"m6", step_run_id, source_span_ids[], description, target_stage:"m2", actor_ref}`。
 - **ReworkThresholdAck（`human_event`）**：`{schema_version, event_kind:"rework_threshold_ack", stage:"m6", step_run_id, rework_impact_report_revision_id, warnings[], actor_ref}`。
@@ -145,7 +147,7 @@ M6 拒绝条件：任一上游 StepRun 非 `succeeded`、修订非 `sealed`、M5
 
 ### 5.3 下游输出契约（只写接口需求，不改其他包）
 
-- **`reviewed_edition`（JSON，m6 主内容）**：`{schema_version, edition_part_artifact_id, candidate_set_revision_id, candidate_package_revision_id, validation_package_revision_id, approved[{entity_id, kind, artifact_revision_id, content_status:"expert_verified", decision_revision_ids}], rejected[{entity_id, kind, artifact_revision_id, content_status, decision_revision_ids}], decisions[{decision_revision_id, queue_item_id, target_entity_id, seen_artifact_revision_id, current_target_revision_id, modified_revision_id, decision_type, verdict, standing, carried_from_revision_id, trigger_correction_request_id}], evidence_links[{entity_id, source_span_id, corpus_spans_revision_id, start_offset, end_offset, quote_sha256}], school_views[{school_view_id, school_id, subject_entity_id, conflict_group_id, changes_current_judgment}], correction_request_revision_ids[], rework_impact_report_revision_id|null, unresolved_count:0}`。
+- **`reviewed_edition`（JSON，m6 主内容）**：`{schema_version, edition_part_artifact_id, candidate_set_revision_id, candidate_package_revision_id, validation_package_revision_id, approved[{entity_id, kind, artifact_revision_id, content_status:"expert_verified", decision_revision_ids}], rejected[{entity_id, kind, artifact_revision_id, content_status, decision_revision_ids}], decisions[{decision_revision_id, queue_item_id, target_entity_id, seen_artifact_revision_id, current_target_revision_id, modified_revision_id, decision_type, verdict, standing, carried_from_revision_id, carried_to_revision_id, trigger_correction_request_id}], evidence_links[{entity_id, source_span_id, corpus_spans_revision_id, start_offset, end_offset, quote_sha256}], school_views[{school_view_id, school_id, subject_entity_id, conflict_group_id, changes_current_judgment}], correction_request_revision_ids[], rework_impact_report_revision_id|null, unresolved_count:0}`。
 
   本节取代原 §5.2 草案；`reviewed_edition` 消费者为 M7（`CanonicalKnowledgeSnapshot` 由 M7 创世汇编薄切片产出，第 61 条）。
 - **`reviewed_edition_package`（JSON，m6 阶段输出索引）**：`{schema_version, reviewed_edition_revision_id, decision_revision_ids[], decision_count, approved_count, rejected_count, unresolved_count:0, correction_request_revision_ids[], rework_impact_report_revision_id|null}`。

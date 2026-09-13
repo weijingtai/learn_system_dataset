@@ -1,5 +1,5 @@
 act_id: impl-06/01
-title: 纯函数领域模型：审核队列（由 required_decision_types 推导）、ReviewDecision 事件（复用 review_events）、规范化内容哈希、决定折叠与 outcome（§8.1 双锚、§8.2 八类、§14）
+title: 纯函数领域模型：审核队列（由 required_decision_types 推导）、ReviewDecision 事件（复用 review_events）、决定记录（active/carried）、规范化内容哈希、折叠与 outcome
 estimated_minutes: 60
 group: K1
 depends_on: []
@@ -28,13 +28,13 @@ contract: |
       每个候选按其 required_types 列表顺序生成队列项；队列项键序逐字：queue_item_id, target_entity_id, kind, decision_type, seen_artifact_revision_id（每项同一 seen_revision_id）
     decision_event(*, queue_item, seen_artifact_revision_id, processing_run_id, step_run_id, verdict, rationale, actor_ref, evidence_refs=(), consumption_level="INTERNAL_DEMO") -> dict
       直接调用 pipeline.knowledge_extraction.review_events.build_review_decision(decision_type=queue_item["decision_type"], verdict=…, entity_kind=queue_item["kind"], entity_id=queue_item["target_entity_id"], seen_artifact_revision_id=…, processing_run_id=…, step_run_id=…, actor_ref=…, rationale=…, evidence_refs=…, consumption_level=…)
-      返回其产物；本函数不新增任何顶层键（第 68 条：事件锚点恒为 seen；modified_revision_id/standing/carried_from_revision_id 不进事件）
+      返回其产物；本函数不新增任何顶层键（第 68 条：事件锚点恒为 seen；modified_revision_id/standing/carried_* 不进事件）
     event_bytes(event) -> bytes：json.dumps(event, sort_keys=True, ensure_ascii=False).encode("utf-8")
-    decision_entry(*, decision_revision_id, queue_item, event, standing="active", carried_from_revision_id=None, modified_revision_id=None) -> dict
-      校验（第 68 条）：event["event_kind"]=="review_decision"；event["target"]["entity_id"] == queue_item["target_entity_id"]；event["target"]["artifact_revision_id"] == queue_item["seen_artifact_revision_id"]（恒 seen）；
-        event["verdict"] == "modify" ⇔ modified_revision_id 非空且经 validate("artifact_revision_id")（否则 ReviewRefused SCH_001 / InvalidIdentifier ID_001）；
-        standing ∈ STANDINGS；standing == "carried_forward" ⇒ carried_from_revision_id 经 validate("artifact_revision_id")，否则必须为 None
-      键序逐字：decision_revision_id, queue_item_id, target_entity_id, kind, decision_type, verdict, standing, seen_artifact_revision_id, modified_revision_id, carried_from_revision_id, rationale
+    decision_entry(*, decision_revision_id, queue_item, event=None, standing="active", carried_from_revision_id=None, carried_to_revision_id=None, carried_content_hash=None, modified_revision_id=None) -> dict
+      active（standing == "active"，event 必填）：event["event_kind"]=="review_decision"；event["target"]["entity_id"] == queue_item["target_entity_id"]；event["target"]["artifact_revision_id"] == queue_item["seen_artifact_revision_id"]（事件锚恒 seen，第 68 条）；verdict=="modify" ⇔ modified_revision_id 非空且 validate("artifact_revision_id")（否则 ReviewRefused SCH_001 / InvalidIdentifier ID_001）；carried_from_revision_id/carried_to_revision_id/carried_content_hash 必须为 None；seen_revision_id = event target 修订
+      carried（standing == "carried_forward"，event 必填为该决定的**首审原始事件**，第 69 条）：seen_revision_id = event["target"]["artifact_revision_id"]（首审审核者实际所见的**旧**修订，**不得改写为复审新修订**）；carried_to_revision_id == queue_item["seen_artifact_revision_id"]（复审队列项当前修订）且 validate("artifact_revision_id")；carried_from_revision_id == decision_revision_id（原决定事件修订）且 validate("artifact_revision_id")；carried_content_hash 非空（该对象旧修订的 content_hash）；modified_revision_id 必须为 None
+      needs_review（standing == "needs_review"）：仅由 propagation/复审对照产出，流经 fold/outcome，不写 Ledger；seen_revision_id = queue_item["seen_artifact_revision_id"]，carried_* 为 None
+      键序逐字：decision_revision_id, queue_item_id, target_entity_id, kind, decision_type, verdict, standing, seen_revision_id, modified_revision_id, carried_from_revision_id, carried_to_revision_id, carried_content_hash, rationale
     normalize_content(candidate, spans_by_id) -> bytes
       obj = candidate["source_object"] 去掉 NON_CONTENT_KEYS 后的浅拷贝；追加
         "evidence_quotes": [{"source_span_id": l["source_span_id"], "quote": spans_by_id[id]["text"][start:end]} for l in source_object.get("evidence", [])]
@@ -45,7 +45,9 @@ contract: |
     content_hash(candidate, spans_by_id) -> str：hashlib.sha256(normalize_content(...)).hexdigest()
     fold_decisions(queue, decision_entries) -> dict
       返回 {queue_item_id: 该项最后一条 decision_entry 或 None}，键覆盖全部队列项；条目按给定顺序，后者覆盖前者
-      条目 queue_item_id 不在队列 → ReviewRefused(code="REF_001")；条目 target_entity_id 与队列项不符，或 seen_artifact_revision_id != 队列项 seen_artifact_revision_id → ReviewRefused(code="REF_001")
+      条目 queue_item_id 不在队列 → ReviewRefused(code="REF_001")；条目 target_entity_id 与队列项不符 → ReviewRefused(code="REF_001")
+      active/needs_review：entry.seen_revision_id != 队列项 seen_artifact_revision_id → ReviewRefused(code="REF_001")
+      carried_forward：**不以 seen 不等报 REF_001**（第 69 条；seen 为首审旧修订）；改判 entry.carried_to_revision_id == 队列项 seen_artifact_revision_id，否则 ReviewRefused(code="REF_001")
     outcome(queue, folded) -> dict
       按 target_entity_id 分组（保持队列首次出现顺序）：任一项为 None、verdict == "request_evidence" 或该项 standing == "needs_review" → unresolved；否则任一 verdict == "reject" → rejected；否则 approved
       返回键：approved([entity_id]), rejected([entity_id]), unresolved([queue_item_id])
@@ -60,24 +62,27 @@ tests:
     - test_queue_unknown_kind_SCH_002
     - test_decision_event_matches_review_events_key_order
     - test_decision_event_has_no_standing_key
-    - test_decision_entry_seen_anchor_and_modify_modified_revision（事件锚 = seen；modify 另携 modified_revision_id）
+    - test_decision_entry_seen_anchor_and_modify_modified_revision（active；事件锚 = seen；modify 另携 modified_revision_id）
     - test_decision_entry_accept_forbids_modified_revision
     - test_decision_entry_modify_requires_modified_revision
-    - test_decision_entry_carried_requires_carried_from_revision
+    - test_decision_entry_active_forbids_carried_fields
+    - test_decision_entry_carried_keeps_old_seen_and_carried_to（第 69 条：seen = 首审旧修订；carried_to = 复审队列项 seen）
+    - test_decision_entry_carried_requires_carried_from_and_content_hash
     - test_decision_empty_rationale_rejected
     - test_decision_school_dispute_requires_school_attribution
     - test_decision_invalid_verdict_rejected
-    - test_fold_last_wins_history_kept
-    - test_fold_unknown_item_and_seen_mismatch_REF_001
+    - test_fold_carried_entry_seen_mismatch_allowed（第 69 条：carried 不以 seen 不等报 REF_001，改判 carried_to）
+    - test_fold_active_entry_seen_mismatch_REF_001
+    - test_fold_unknown_item_REF_001
     - test_outcome_approved_rejected_unresolved
     - test_content_hash_ignores_geometry_but_not_text
     - test_normalize_missing_span_and_bad_offsets
 verify:
-  - .venv/bin/python -m unittest discover -s pipeline/review/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 20
+  - .venv/bin/python -m unittest discover -s pipeline/review/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 23
   - grep -rE '^\s*(import|from) (requests|openai|anthropic|httpx)' pipeline/review | wc -l   # 0
   - grep -nE 'datetime|time\.|random|uuid' pipeline/review/model.py | wc -l                  # 0
   - TDD §3 回归
 commit:
   add: [pipeline/review]
-  message: "feat(m6): pure review model - queue from required_decision_types, review_events-backed decisions, normalized content hash (spec §8.1/§8.2/§14)"
-on_fail: 停止并报告；D-03/D-04/D-06/D-07 与已落地 review_events 契约冲突时不得自行调和
+  message: "feat(m6): pure review model - queue from required_decision_types, active/carried decision entries, normalized content hash (spec §8.1/§8.2/§14)"
+on_fail: 停止并报告；D-03/D-04/D-06/D-07 与已落地 review_events 契约不符（第 67/68/69 条）时不得自行调和

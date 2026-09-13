@@ -75,8 +75,8 @@
 ## 9. 复审只重放待复核项（ACT 09）
 
 - 9.1 Given 报告有告警且未确认，When `open_rework_review`，Then 拒绝且零写入；确认后先写 `rework_threshold_ack` 事件。
-- 9.2 Then 复审队列只有 3 项（as_…001#source_fidelity、sv_…1#source_fidelity、sv_…1#school_attribution），`seen_artifact_revision_id` 指向 M4' 新修订；2 条继承决定（as_…002、as_…003）不重录。
-- 9.3 When 三项重新 accept 并 `close_review`，Then 新 `reviewed_edition` 中 5 条立场决定：3 `active`、2 `carried_forward`（带 `carried_from_revision_id` 与 `trigger_correction_request_id`），`rework_impact_report_revision_id` 非空。
+- 9.2 Then 复审队列只有 3 项（as_…001#source_fidelity、sv_…1#source_fidelity、sv_…1#school_attribution），`seen_artifact_revision_id` 指向 M4' 新修订；2 条继承决定（as_…002、as_…003）不重录。**carried 条目（第 69 条）**：`seen_revision_id` 保持首审审核者实际所见的**旧**修订（不得改写为新修订），`carried_to_revision_id` = 复审队列项当前（新）修订，`carried_from_revision_id` = 首审决定事件修订，`carried_content_hash` = 该对象旧修订哈希（与当前修订相等，故 carried）。
+- 9.3 When 三项重新 accept 并 `close_review`，Then 新 `reviewed_edition` 中 5 条立场决定：3 `active`、2 `carried_forward`（carried 项 `seen_revision_id` 为首审旧修订，带 `carried_from_revision_id`/`carried_to_revision_id` 与 `trigger_correction_request_id`（第 69 条）），`rework_impact_report_revision_id` 非空。
 
 ## 10. Snapshot 直通投影（已撤回，第 61 条）
 

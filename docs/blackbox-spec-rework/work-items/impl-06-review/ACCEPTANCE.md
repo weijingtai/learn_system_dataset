@@ -17,8 +17,9 @@
   - 第 62 条（D-08）：采纳 B——M6 不改 M4 修订状态（`rework.py` 不含 `invalidate_revision`），旧 candidate_set 由 M4' 以 `supersede_revision` 替换。
   - 第 67 条（F1/D-04）：队列以 `review_events.required_decision_types` 为唯一来源，M6 不另立映射；BDD/期望/计数按推导重算（队列 5、失效计数 3/3/3/4/0.75）。
   - 第 68 条（F2）：事件锚点恒为 `seen_revision_id`；`modify` 另携 `modified_revision_id`（纳入 `decision_entries` 键集，Gate `decision_anchoring` 校验）。
-- **覆盖性**：BDD 各条都能在某个 `act/*.yaml` 的 `tests` 用例名或 `verify` 命令上找到落点；K1–K3 串行前置与 `depends_on` 一致；`README.md` §1 完成判据覆盖单测（≥129）、`m6-data-fields.sh`、`run_all.sh` 基线、`m3-coverage.sh` 基线四项。
-- **可执行性**：每个 ACT 有 `scope.write`、先红后绿的具名用例名、contract（函数签名/规则/检查名/退出码）、精确 `verify`、`commit.add`/`message`；用例数阈值等于具名用例实际累计（20/41/56/64/79/91/100/112/120/129，F4）；ACT 时长 ≤ 110 分钟；回归取行用 `2>&1 | grep -E "^(Ran|OK|FAILED)"`。ACT 10 已 WITHDRAWN（第 61 条），不计入阈值累计。
+  - 第 69 条（N1）：carried 条目 `seen_revision_id` 保持首审旧修订，另携 `carried_to_revision_id`/`carried_from_revision_id`/`carried_content_hash`；Gate `decision_anchoring` 条件式；`fold_decisions` 对 carried 不以 seen 不等报 REF_001。
+- **覆盖性**：BDD 各条都能在某个 `act/*.yaml` 的 `tests` 用例名或 `verify` 命令上找到落点；K1–K3 串行前置与 `depends_on` 一致；`README.md` §1 完成判据覆盖单测（≥138）、`m6-data-fields.sh`、`run_all.sh` 基线、`m3-coverage.sh` 基线四项。
+- **可执行性**：每个 ACT 有 `scope.write`、先红后绿的具名用例名、contract（函数签名/规则/检查名/退出码）、精确 `verify`、`commit.add`/`message`；用例数阈值等于具名用例实际累计（23/48/63/71/86/98/107/119/129/138，F4）；ACT 时长 ≤ 110 分钟；回归取行用 `2>&1 | grep -E "^(Ran|OK|FAILED)"`。ACT 10 已 WITHDRAWN（第 61 条），不计入阈值累计。
 - **独立性**：`gate.py` 不 import `model`/`propagation`/`step`/`rework`；`acceptance.py` 不 import `gate`/`model`/`propagation`/`step`/`rework`，不读 `close_review` 返回的 gate 报告；`propagation.py` 与 `rework.py` 不调用 `invalidate_revision`。
 - **写范围**：仅 `pipeline/review/**` 与 `openspec/acceptance/m6-data-fields.sh`；与 impl-08 零交集；不写 `run_all.sh`、fixture、已验收模块。
 

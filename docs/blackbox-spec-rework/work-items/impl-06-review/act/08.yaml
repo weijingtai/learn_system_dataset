@@ -60,7 +60,7 @@ tests:
     - test_rework_refuses_without_succeeded_review_zero_writes
     - test_console_rework_line
 verify:
-  - .venv/bin/python -m unittest discover -s pipeline/review/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 112
+  - .venv/bin/python -m unittest discover -s pipeline/review/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 119
   - grep -c 'invalidate_revision' pipeline/review/rework.py | wc -l                         # 0（D-08 推荐 B）
   - TDD §3 回归
 commit:

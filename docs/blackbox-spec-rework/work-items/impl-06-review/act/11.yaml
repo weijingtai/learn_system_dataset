@@ -30,10 +30,10 @@ contract: |
       recovery_replays_pending_only：恢复运行 supersedes 旧运行；恢复前已接受决定修订不在恢复运行的 human_events 表中重录；恢复运行首个 Checkpoint 的 pending_queue == 旧运行未决项
       precise_invalidation：ReworkImpactReport 各计数、changed_span_ids、reachable_entity_ids、ratio、warnings == expected.rework；独立重算可达集合（按 D-07 键比较新旧 spans + 引用闭包）一致；Checkpoint 引用报告
       no_cross_module_status_change：m1–m5 全部修订、旧 candidate_set、validation_package、全部决定修订均非 invalidated（D-08 B：M6 不改 M4 修订状态）；旧 candidate_set 仅被 M4' 经 supersede_revision 取代
-      rework_rereview_scope：复审队列项号 == expected.rereview.queue（3 项）；复审 reviewed_edition 立场 active 3、carried_forward 2，carried 项带 carried_from_revision_id 与 trigger_correction_request_id；阈值确认事件存在
+      rework_rereview_scope：复审队列项号 == expected.rereview.queue（3 项）；复审 reviewed_edition 立场 active 3、carried_forward 2，carried 项 seen_revision_id 保持首审旧修订且带 carried_from_revision_id/carried_to_revision_id 与 trigger_correction_request_id（第 69 条）；阈值确认事件存在
       snapshot_projection：恒 BLOCKED，说明逐字「前置缺失: M7 创世汇编」（第 61 条：CanonicalKnowledgeSnapshot 归 M7，本包删除 ACT 10；输出行前缀 `BLOCKED` 由打印格式统一加，说明内不重复）
       legacy_workbench_seed：恒 BLOCKED，说明「前置缺失: M6 Review Workbench；pattern_knowledge_workbench 旧数据体未迁入（准入判定见 run_all 20.7）」
-      upstream_real：恒 BLOCKED，说明「前置缺失: M4 Knowledge Extraction；M5 仍 scope=corpus_only，candidate 级校验未实现；本次为 fixture_gold + 非生产合成决定」
+      upstream_real：恒 BLOCKED，说明「前置缺失: M4 Knowledge Extraction；M5 仍 scope=corpus_only，candidate 级校验未实现；本次为非生产合成 M4 输入与合成决定」
     输出：每项一行 `PASS <名>` / `FAIL <名> <原因>` / `BLOCKED <名> <说明>`；末行 `SUMMARY pass=<n> fail=<n> blocked=<n>`
     退出码：3 仅限「<fixture>/manifest.yaml 不存在」或「yaml/jsonschema 不可导入」；准备或判定抛异常 → `FAIL m6_acceptance 宿主准备失败: <异常类名>: <消息>` 退出 1（判定函数内异常转该项 FAIL）；任一 FAIL → 1；无 FAIL 有 BLOCKED → 2；全 PASS → 0
     无 --keep 时删除临时目录
@@ -54,7 +54,7 @@ tests:
     - test_shell_exit_2_on_fixture（subprocess，末行 SUMMARY pass=11 fail=0 blocked=3）
     - test_shell_never_trusts_copy_verify（副本删一条 span 并换假 verify.sh → exit 1，首行 FAIL fixture_host）
 verify:
-  - .venv/bin/python -m unittest discover -s pipeline/review/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 129
+  - .venv/bin/python -m unittest discover -s pipeline/review/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 138
   - export LC_ALL=en_US.UTF-8; bash openspec/acceptance/m6-data-fields.sh; echo exit=$?    # 11 PASS + 3 BLOCKED + SUMMARY pass=11 fail=0 blocked=3；exit=2
   - grep -c 'FIXTURE_DIR/verify.sh' openspec/acceptance/m6-data-fields.sh                   # 0
   - grep -nE '^(from|import) .*review\.(gate|model|propagation|step|rework)' pipeline/review/acceptance.py | wc -l   # 0
