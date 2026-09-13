@@ -1,6 +1,6 @@
 # INTERFACES：M1–M8 跨模块接口总表（impl-00 草案）
 
-状态：`READY_FOR_REVIEW`（`impl-00/10` 已登记 §4 临时闭集并同步首纵切裁决；W2-C1 定稿 2026-09-12）。本表是 M1/M2 薄接入、M3 语义层、M4、M5、M6、M7、M8、Orchestrator/Contract Registry 各并行草案的对账基准。
+状态：`READY_FOR_REVIEW`（`impl-00/10` 已登记 §4 首纵切闭集；`impl-00/12` 追加 M4 五类型并把 §2.4/§3.1/§3.2/§3.10/§6 I-11 对齐 impl-05 薄接入；2026-09-13）。本表是 M1/M2 薄接入、M3 语义层、M4、M5、M6、M7、M8、Orchestrator/Contract Registry 各并行草案的对账基准。
 
 图例：
 - 【规格】规格原文可引，给出行号（`openspec/learn-system-blackbox-architecture.md`，共 1001 行）；
@@ -126,21 +126,21 @@
 | 下游消费键 | 【草案】M4：`spans[].span_id/.text/.page`；M5：全部 span 与锚点字段；M8：`source_anchor` 整体随包发布（713） |
 | 未定义 | SemanticSpan 形状（504、513–519）→ D-12；spans 没有 quote hash（527、G3 67）→ D-12 取 A 时由 M4 以 `sha256(quote)` 写入 evidence |
 
-### 2.4 M4 Knowledge Extraction（纵切后，不在首纵切）
+### 2.4 M4 Knowledge Extraction（M4 薄接入；下一波，act/12 登记类型）
 
 | 项 | 内容 |
 |---|---|
 | 运行归属 | EditionRun，`stage=m4`【规格】143 |
-| 冻结输入【草案】 | m3 `corpus_package` + `corpus_spans`；`technique_profile` 修订；L1 canon / L2 homographs 表修订（128、540、547——仓库中不存在，D-11）；`model_run` 录制修订（D-11 取 A 时） |
-| 任务与 Checkpoint【草案】 | 按「类别 × 批次」一个 task，因为不同类别不得由一个模型一次混合完成（572）；`task_id = m4_<category>_<batch_id>`，category ∈ `term_layering, concept, assertion, school_view`（`rule / case_editorial` 在 D-08 前锁 0）；模型运行记录在 task 内部，不另立 Checkpoint；类别分歧每个人工决定 1 个 Checkpoint（843） |
-| 输出 artifact_type【草案】 | 任务级 `candidate_batch`、`model_run`（Prompt/输入/Response/参数/版本/解析/错误，574）、`candidate_diff_report`；人工 `human_event`（类别 ReviewDecision）；主内容 `candidate_set`；阶段输出 `candidate_package`；另有通用 `validation_report`、`step_log` |
-| payload【草案】 | `stage_payload_m4`：`{candidate_set_revision_id, span_layer, extraction_mode, unresolved_disputes: 0}` |
-| counts【草案】 | `{concepts, assertions, evidence_links, applicability_rules, school_views, cases}`；content_sha256 = sha256(candidate_set 字节)；operation `extract_knowledge` |
-| Gate | 【规格】572：未解决语义分歧为 0 才能通过；【草案】检查名 `category_isolation, ab_independence, c_rereads_source, disputes_resolved, raw_model_artifacts_complete, evidence_present(SEM_001)` |
+| 冻结输入 | m3 StagePackage + `corpus_package` + `corpus_spans` + `technique_profile`（Contract Registry 快照；首切片 canon 6 文件、homographs/glossary/schools 为空）+ 全部 `candidate_submission` 修订；上游包须所属 StepRun `succeeded`（P5） |
+| 任务与 Checkpoint | 每路（category×lane）一个 submit StepRun（task `submit_<category>_<lane>`，1 Checkpoint）；assemble StepRun 每路 `lane_<category>_<lane>` → `reconcile` → 每条裁决 1 个 → `assemble`（843） |
+| 输出 artifact_type | 任务级 `candidate_submission` / `candidate_lane_set` / `dispute_queue`；人工 `human_event`（内容 `event_kind: category_ruling`，`decision_type=None`）；主内容 `candidate_set`；阶段输出 `candidate_package`；另有 `validation_report`、`step_log`、`failure_report` |
+| payload | `{candidate_set_revision_id, corpus_stage_package_revision_id, spans_revision_id, technique_profile_revision_id, gate_profile:"thin_no_model", span_layer:"structural", cross_model:"not_evaluated", term_layering:"verify_only", content_status_counts}` |
+| counts | `{assertions, patterns, school_views, concept_mentions, new_concept_candidates, rejected, disputes, human_decisions}`；content_sha256 = sha256(candidate_set 字节)；operation `extract_candidates` |
+| Gate | 候选 Gate 十二项检查（名称见 impl-05 act/02）；结果作为 M4 自身 StepRun 的 `validation_report` 落盘并列入 `validation_report_ids`（G7-RULINGS §9.6 第 50 条） |
 | 人工队列 | 队列 3「M4 类别分歧」【规格】122 |
-| Tag 字段 | `omen_carrying`、`condition_affordance`、`school_variance_display`、`concept_id`、「是否改变当前判断」由 M4 生产（803–815）；candidate_set 预留对应字段（§3.2） |
-| 下游消费键 | M5：candidate_set 全量；M6：`assertions[]/concepts[]` 与 evidence；M7：获批子集 |
-| 未定义 | ApplicabilityRule AST 结构（738–743 只列 operator 集与 `ast_schema_version`）；L1/L2 表；模型调用方式 → D-08、D-11、D-12 |
+| 内容成熟度 | 上限 `needs_expert`（`machine_extracted` / `disputed` / `needs_expert`）；`expert_verified` 由 M6 签发（P7） |
+| 下游消费键 | M5：证据键（`source_span_id, support_type, start_offset, end_offset, quote, quote_sha256`）+ `content_status`、`span_layer`；M6/M8：见 impl-05 README §6.6 |
+| 未定义 | ApplicabilityRule AST 结构（738–743）、Tag 字段（`omen_carrying` 等，803–815，首切片不产出）、L1/L2 表；模型调用方式随 impl-10 / Model Adapter（D-01/P6） |
 
 ### 2.5 M5 Automatic Validation（首纵切内）
 
@@ -233,29 +233,31 @@
 | `sha256Hex` | `^[0-9a-f]{64}$` | — |
 | `box` | `{x, y, w, h}`，均为 number | spans.yaml 实际 |
 | `sourceAnchor` | `{page, image_sha256, line_id, bbox: box, chars[{char_index, glyph_id, char, box}]}` | spans.yaml 实际；528 |
-| `evidenceLink` | `{source_span_id, support_type: direct|interpreted, char_start ≥0, char_end ≥1, quote (minLength 1), quote_sha256}` | SCHEMA.md 52–54；G3 67–68；D-08/D-12 |
+| `evidenceLink` | `{source_span_id, support_type: direct|interpreted, start_offset ≥0, end_offset ≥1, quote (minLength 1), quote_sha256}`；`start_offset/end_offset` 为**相对页块的绝对偏移**（与 `corpus_spans` 同一坐标系，`start_offset = span.start_offset + 局部起点`） | SCHEMA.md 52–54；G3 67–68；G7-RULINGS §9.6 第 49 条 / §9.7 第 51 条 |
 | `entityRevisionAnchor` | `{entity_id: string, artifact_revision_id}` | 265 |
 | `omenCarrying` | `canonical / none` | 811 |
 
-### 3.2 `candidate_set.schema.json`（M4 主内容）
+### 3.2 `candidate_set.schema.json`（M4 主内容；impl-05 薄接入草案，P3）
 
-必填顶层键及草案：
+内容结构以代码草案表达，`schema_version: "0.1.0-draft"`；顶层键序逐字：
 
 | 键 | 类型 / 约束 | 来源 |
 |---|---|---|
-| `schema_version` | const "1.0.0" | §8 |
-| `source_id` / `edition_part_artifact_id` / `technique_id` | sourceId / artifactId / `^[a-z][a-z0-9]*$` | 271、290 |
-| `corpus_package_revision_id` | artifactRevisionId | 207 |
-| `span_layer` | `structural / semantic` | D-12 |
-| `extraction_mode` | `fixture_rule / model_replay / model_live` | D-11 |
-| `term_layers` | `{l1_hits[{surface, concept_id: sharedConceptId, span_id}], l2_hits[{surface, homograph_id, concept_id: techniqueConceptId|null, span_id, uncertain: bool}], l3_new_concept_candidates[{surface, span_ids[] minItems 1}]}`；`l2_hits` 中 `concept_id` 为 null 时 `uncertain` 必须为 true | 534–557 |
-| `concepts[]` | `{concept_id: conceptId, canonical_name, aliases[], layer: L1|L2|L3, homograph_id: hg|null, mention_span_ids[] minItems 1, omen_carrying: omenCarrying|null, status: contentStatus}` | 90、549、811 |
-| `patterns[]` | `{pattern_id, concept_id, assertion_ids[], status}` | 91、317 |
-| `assertions[]` | `{assertion_id, proposition, proposition_id, subject_entity_id: conceptId|patternId, relation: supports|qualifies|opposes|corresponds|equivalent, evidence[evidenceLink] minItems 1, conditions[], exceptions[], school_ids[schoolId], canon_refs[sharedConceptId], layer: general|case|editorial, status: contentStatus}` | SCHEMA.md 44–66；G4 601；SEM_001 |
-| `applicability_rules` / `cases` / `editorial_notes` | array，`maxItems: 0`（D-08 前锁死） | D-08 |
-| `school_views[]` | `{school_view_id, school_id, subject_entity_id, claim_refs[assertionId], conflict_group_id|null, changes_current_judgment: bool, source_refs[sourceSpanId]}` | 570 |
-| `uncertainties[]` | `{span_id, surface, reason}` | 550 |
-| `model_run_revision_ids[]` | artifactRevisionId | 574 |
+| `schema_version` | const "0.1.0-draft" | D-10/P3 |
+| `technique_id` / `source_id` / `edition_part_artifact_id` | `^[a-z][a-z0-9]*$` / sourceId / artifactId | 271、290 |
+| `evidence_level` | `offset_level / glyphbox_level`（继承 `corpus_spans`，不得提升） | 527–528 |
+| `span_layer` | const `"structural"`（首切片；SemanticSpan 纵切后） | D-03 |
+| `source_channels` | `{category: {lane: channel}}` | 提交件 |
+| `assertions[]` | `{assertion_id, proposition_id, proposition, relation: supports\|qualifies\|opposes\|corresponds\|equivalent, evidence[evidenceLink] minItems 1, conditions[], exceptions[], concept_refs[], school_ids[], layer: general\|case\|editorial, content_status: machine_extracted\|disputed\|needs_expert, origin{lane,item_index}}` | SCHEMA.md 44–66；§13.1 G4 |
+| `patterns[]` | `{pattern_id, name, assertion_ids[], evidence, interpretation, interpretation_status: not_captured\|captured, recognition_rule_status: not_captured, content_status, origin}` | 91、317；§20.6 |
+| `school_views[]` | `{school_view_id, school_id, subject_entity_id, claim_refs[], conflict_group_id\|null, changes_current_judgment, source_refs[], evidence, content_status, origin}` | 570 |
+| `concept_mentions[]` | `{surface, concept_ref, evidence, content_status, origin}` | 549 |
+| `new_concept_candidates[]` | `{surface, technique_id, evidence, content_status, origin}`（未绑定，不占 `concept_id`） | 557 |
+| `rejected[]` | `{category, lane, item_index, disposition: refused\|ruled_out, reason_code: 九码之一\|null, detail}` | G7-RULINGS §3 D-13 |
+| `disputes[]` | `{dispute_id: ^m4_d[0-9]{3}$, category, key: [[span_id, start_offset, end_offset], ...], choice: a\|b\|both\|neither}` | 572 |
+| `counts` | `{assertions, patterns, school_views, concept_mentions, new_concept_candidates, rejected, disputes, human_decisions}`，均非负整数 | — |
+
+修订号与索引不入 `candidate_set`（在 `candidate_package`，见 impl-05 README §6.3(2)）。旧草案键 `corpus_package_revision_id` / `extraction_mode` / `term_layers` / `concepts[]` / `applicability_rules` / `cases` / `editorial_notes` / `uncertainties[]` 与模型运行修订号键（`model_` 一族）已随 G7 薄接入删除（impl-05 首切片不产出；`new_concept_candidates` 取代 L3）。
 
 ### 3.3 `gate_results.schema.json`（M5 主内容；M8 的 `release_validation_report` 复用）
 
@@ -298,7 +300,7 @@
 
 ### 3.10 `evidence_map_pack.schema.json`
 
-`{release_id, chains[] minItems 1}`；每条 chain 必须恰含 7 个键 `entry_id, assertion_id, evidence_link{assertion_id, source_span_id, char_start, char_end, quote_sha256}, source_span{source_span_id, source_id, page, start_offset, end_offset, text}, source_anchor: sourceAnchor, ocr_page{page, glyph_ids[] minItems 1}, source_asset{page, image_sha256}`。JSON Schema 无法约束键序，**键序由 fixture `verify.sh` V11 与 M8 验收检查**。来源 705–714。
+`{release_id, chains[] minItems 1}`；每条 chain 必须恰含 7 个键 `entry_id, assertion_id, evidence_link{assertion_id, source_span_id, start_offset, end_offset, quote_sha256}, source_span{source_span_id, source_id, page, start_offset, end_offset, text}, source_anchor: sourceAnchor, ocr_page{page, glyph_ids[] minItems 1}, source_asset{page, image_sha256}`。JSON Schema 无法约束键序，**键序由 fixture `verify.sh` V11 与 M8 验收检查**。来源 705–714；坐标口径见 §3.1（G7-RULINGS §9.6 第 49 条 / §9.7 第 51 条）。
 
 ### 3.11 `source_asset_pack.schema.json`
 
@@ -318,13 +320,13 @@
 
 ### 3.15 不在本包范围
 
-`rule_index_pack / search_index_pack / graph_projection_pack / technique_profile_pack`（规格字段不足，纵切后，D-15）；四类 Proposal、`model_run`、`term_layer_report`、`correction_request`、`review_queue`（由 M4/M6/M7 包各自起草，回填到本表 §4）。
+`rule_index_pack / search_index_pack / graph_projection_pack / technique_profile_pack`（规格字段不足，纵切后，D-15）；四类 Proposal、`term_layer_report`、`correction_request`、`review_queue`（由 M4/M6/M7 包各自起草，回填到本表 §4）。
 
 ---
 
 ## 4. artifact_type 总表（在 Contract Registry 落地前充当临时闭集，D-10）
 
-登记纪律：唯一登记处为本表，直至 impl-08 Contract Registry 接管（P2）；同一时刻只有一路写本表。未入本表的类型名，实现不得使用；M5 任务级报告已按 G7-RULINGS §9.1 第 24/26 条删除，每 task 复用通用 `validation_report`。
+登记纪律：唯一登记处为本表，直至 impl-08 Contract Registry 接管（P2）；同一时刻只有一路写本表。未入本表的类型名，实现不得使用；M5 任务级报告已按 G7-RULINGS §9.1 第 24/26 条删除，每 task 复用通用 `validation_report`。M4 五行由 `impl-00/12` 登记，其 `candidate_set` 内容结构为代码草案（P3），正式化随 impl-08 Contract Registry。
 
 | 阶段 | artifact_type | 角色 | 内容 Schema | 状态 |
 |---|---|---|---|---|
@@ -336,7 +338,11 @@
 | 薄 M1 | `source_asset_page` / `source_asset_register` | 派生页图字节（rights_scope=internal）/ 页图登记 | 代码草案（P3） | 首纵切（impl-04 shim，D2；impl-09 M1 落地后替换） |
 | M2 | `ocr_page` / `ocr_page_set` | 任务级 / 阶段输出 | — | 【实际】 |
 | M3 | `corpus_batch` / `corpus_spans` / `coverage_report` / `corpus_package` | 任务级 / 主内容 / 报告 / 阶段输出 | — | 【实际】 |
-| M4 | `candidate_batch` / `model_run` / `candidate_diff_report` / `candidate_set` / `candidate_package` | 任务级 / 模型留痕 / 差异 / 主内容 / 阶段输出 | candidate_set | 纵切后（D-11） |
+| M4 | `candidate_submission` | 任务级（每路 category×lane 的提交件） | 代码草案 0.1.0-draft（P3） | M4 薄接入（act/12 登记；实现见 impl-05） |
+| M4 | `candidate_lane_set` | 任务级（每路规范化结果） | 代码草案（P3） | 同上 |
+| M4 | `dispute_queue` | 队列（M4 类别分歧） | 代码草案（P3） | 同上 |
+| M4 | `candidate_set` | 主内容 | `candidate_set` 代码草案（见 §3.2） | 同上 |
+| M4 | `candidate_package` | 阶段输出索引 | 代码草案（P3） | 同上 |
 | M5 | `gate_results` | 主内容 | 代码草案 0.1.0-draft（P3） | 首纵切（§9 第 10 条） |
 | M5 | `validation_package` | 阶段输出索引 | 代码草案（P3） | 首纵切（§9 第 10 条） |
 | M6 | `review_queue` / `correction_request` / `rework_impact_report` / `reviewed_edition` / `reviewed_edition_package` | 队列 / 退回 / 失效报告 / 主内容 / 阶段输出 | rework_impact_report、reviewed_edition | 纵切后（D-14） |
@@ -401,6 +407,6 @@ L0 契约（已冻结）  L1 Ledger（impl-01 ACCEPTED）  M3 结构层（impl-0
 8. 【I-8】m7/m8 属 release_run，`edition_part_id` 取首个 Part（D-04）。
 9. 【I-9】生产代码经 Contract Registry `load_schema(name)` 加载新 Schema；不得修改 Ledger 私有 loader（D-13）。
 10. 【I-10】不新增 ID 前缀；无前缀对象按 D-08 取身份；`applicability_rules / cases / editorial_notes` 在 v1.0.0 中锁 0。
-11. 【I-11】quote hash = sha256(quote 的 UTF-8 字节)；evidence 的 `char_start/char_end` 相对所引 span 的 `text`（D-12）。
+11. 【I-11】quote hash = sha256(quote 的 UTF-8 字节)；evidence 的 `start_offset/end_offset` 为**相对页块的绝对偏移**（与 M3 `corpus_spans` 同一坐标系，`start_offset = span.start_offset + 局部起点`），`quote` 逐字等于该区间文本；跨包（M5/M8）一致（G7-RULINGS §9.6 第 49 条 / §9.7 第 51 条）。
 12. 【I-12】目标消费级别为 INTERNAL_DEMO 时 blocked 门禁可放行，但必须在 gate_results 与 ReleaseManifest `known_defects` 逐条披露；DEV_SEARCH/PUBLIC_RELEASE 时 blocked 视同 failed（D-09）。
 13. 【I-13】M5 等下游解析上游 StagePackage 时只接受所属 StepRun 状态为 `succeeded` 的包（impl-02 ACCEPTANCE §5.3 登记的下游约束）。

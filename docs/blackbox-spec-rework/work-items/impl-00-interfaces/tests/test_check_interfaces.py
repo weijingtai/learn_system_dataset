@@ -87,6 +87,38 @@ class CheckInterfacesTest(unittest.TestCase):
         res = statuses(ci.run_checks(self._copy(text)))
         self.assertEqual(res["IF18"], "FAIL")
 
+    def test_m4_required_types_present(self):
+        res = statuses(ci.run_checks(REPO_DOC))
+        for num in ("IF19", "IF20", "IF21", "IF22", "IF23"):
+            self.assertEqual(res[num], "PASS")
+
+    def test_m4_type_missing_fails(self):
+        res = statuses(
+            ci.run_checks(self._copy(self._drop_lines(self.text, "`candidate_submission`")))
+        )
+        self.assertEqual(res["IF19"], "FAIL")
+
+    def test_m4_type_marked_deferred_fails(self):
+        text = self._mutate_status_cell(self.text, "`candidate_lane_set`", "纵切后")
+        res = statuses(ci.run_checks(self._copy(text)))
+        self.assertEqual(res["IF11"], "FAIL")
+
+    def test_m4_duplicate_type_fails(self):
+        out = []
+        for line in self.text.splitlines():
+            out.append(line)
+            if line.lstrip().startswith("|") and "`dispute_queue`" in line:
+                out.append(line)
+        res = statuses(ci.run_checks(self._copy("\n".join(out) + "\n")))
+        self.assertEqual(res["IF10"], "FAIL")
+
+    def test_legacy_m4_name_present_fails(self):
+        marker = "\n## 5."
+        row = "\n| M4 | `candidate_batch` | 任务级 | — | 纵切后 |\n"
+        text = self.text.replace(marker, row + marker, 1)
+        res = statuses(ci.run_checks(self._copy(text)))
+        self.assertEqual(res["IF24"], "FAIL")
+
     def test_missing_file_exit_3(self):
         rc = ci.main(["--file", str(self.tmp / "nope.md")])
         self.assertEqual(rc, 3)
@@ -97,6 +129,7 @@ class CheckInterfacesTest(unittest.TestCase):
             rc = ci.main(["--file", str(REPO_DOC)])
         last = buf.getvalue().strip().splitlines()[-1]
         self.assertTrue(SUMMARY_RE.match(last), last)
+        self.assertIn("fail=0", last)
         self.assertEqual(rc, 0)
 
 
