@@ -147,6 +147,13 @@ Q49 按 P8 须用户确认前缀；Q52/Q53/Q55/Q57/Q62 推迟到 W5 定稿；Q50
 | 52 | A2 m4 金标生成器位置；以及金标内人工裁决事件 `ruling_m4_d001` 的性质 | 采纳 A：生成器放 fixture `m4/build_expected_m4.py`，不改 `tools/build_fixture.py` 与 m1–m3 字节。**补充（P7）**：fixture 中新增的人工裁决/签发事件属测试合成，须在内容中显式标注 `synthetic_fixture: true`（actor 标为 fixture 作者），README 写明「仅供验收宿主，不计入真实 expert_verified、不得进入任何发布级别判定」；验收与实现不得把它当作真实人工决定 |
 | 53 | 跨包：impl-05 act/05 `record_category_ruling` 要求 ruling_doc 键**恰为** `{schema_version, dispute_id, choice, rationale}`，会拒收第 52 条带 `synthetic_fixture`/`actor_ref` 的 fixture 金标（`3f32700` 交接） | 放宽为「⊇ 四键、⊆ 六键（另加 `synthetic_fixture`、`actor_ref`）」；带 `synthetic_fixture: true` 的裁决写入的 human_event 必须保留该标记，M5/M8/消费级别判定一律不得把合成事件计为真实 `expert_verified` 或任何发布依据，并补具名用例断言。随 impl-05 四查 R1 结论合并返工 |
 
+### 9.8 impl-05 四查 R1（`1a7919e`）与 W4G 审查（`b401c61`）跨包裁定
+
+| # | 条目 | 裁决 |
+|---|---|---|
+| 54 | impl-05 F2：开工前提硬编码 `check_interfaces.py pass=18`，与第 47 条 act/12 在 K2 前执行后 `pass=24` 互斥 | 所有工作包的「闭集登记完整性」前提与门禁一律写为「`check_interfaces.py` 末行 `fail=0` 且 exit 0，且所需类型对应的 PASS 行存在」，**不写死 pass 总数**；已验收包（impl-03/04）的历史提示词不回改，主 Agent 验收脚本只取 `fail=0` |
+| 55 | W4G W2：m4 裁决金标按第 52 条增加 `synthetic_fixture`/`actor_ref` 后不再逐字等于 impl-05 附录 A，impl-05 act/07 字节等同测试必失败 | 同步修改 impl-05 附录 A（及 act/00 `tests/data/appendix_a/*` 与 act/07 期望），使附录 A 裁决文档含两键并与 fixture 金标逐字相同；与第 53 条同批返工。impl-05 F4 需要登记的只读 SELECT（`human_events`、`processing_runs`）并入 impl-00 README §5.2 唯一缺口清单 |
+
 ## 10. 用户待办
 
 1. W4-J 前：撰写真实前十页人工终态决定表（P7，Q37）。
