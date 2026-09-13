@@ -181,6 +181,15 @@ Q49 按 P8 须用户确认前缀；Q52/Q53/Q55/Q57/Q62 推迟到 W5 定稿；Q50
 | 61 | impl-06 D-01 CanonicalKnowledgeSnapshot 归属（M6 直通 / M7 / M8 薄适配器） | **归 M7**（规格 §6.2）：把 M7「创世汇编」薄切片提前——单个 ReviewedEditionPackage（空基底）→ CanonicalKnowledgeSnapshot，作为 impl-07 的独立执行组先行定稿与实现；impl-06 删除 ACT 10（Snapshot 直通），相关验收项在 M7 创世薄切片落地前判 BLOCKED；不让 M6/M8 承担 M7 职责，避免日后拆除临时实现 |
 | 62 | impl-06 D-08 M6 调 `invalidate_revision` 改写 M4 修订状态 | 采纳 B：M6 不改他模块修订状态（§2:32、P9），只在 ReworkImpactReport/失效登记中记录；M4 以自身 `supersede_revision` 产出替换修订 |
 
+### 9.13 impl-07 创世薄切片（`91e5348`）待裁决
+
+| # | 条目 | 裁决 |
+|---|---|---|
+| 63 | R1 Snapshot 粒度与身份 | 采纳：每个 technique 一个 CanonicalKnowledgeSnapshot Artifact（§6.2:165、§16:699），后续 Release 以新修订续写 |
+| 64 | R2 Pattern 身份发号 | 采纳：保留 M4 已发 `pat_`，仅对 `pattern_id: null` 的候选补发；补发只从配置修订登记的 `id_range` 确定性取号，不新增前缀（P8），号段与补发清单写入 Snapshot 修订 |
+| 65 | R3 M4/M6 内容缺口（`concepts[]`、`patterns[].concept_id`、`rules[]`） | 采纳：创世薄切片缩水，知识链按 `pat_` 聚合；缺口登记为对 M4/M6 的接口需求（写入 impl-07 README 与 INTERFACES 相应卡片的「接口需求」），不在 M7 内补造内容 |
+| 66 | R4 创世验收宿主 | 采纳：用包内合成宿主（`pipeline/assembly/tests/data/`），不改共享 fixture（P4）。附条件：合成输入中的人工决定须标 `synthetic_fixture: true`（同第 52 条）且不计 `expert_verified`；「消费真实 M6 产出」验收项在 impl-06 实现并验收前判 BLOCKED |
+
 ## 10. 用户待办
 
 1. W4-J 前：撰写真实前十页人工终态决定表（P7，Q37）。
