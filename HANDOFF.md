@@ -1,6 +1,10 @@
 # HANDOFF
 
-## G7 首纵切关键路径跑通：M5（impl-03）与 M8（impl-04）均 ACCEPTED；W4 impl-08 返工中（Dataset 会话；黑箱线最新状态）
+## G7 W4：impl-08 Orchestrator + Contract Registry ACCEPTED；impl-05 M4 K3 验收中（Dataset 会话；黑箱线最新状态）
+
+补记三（2026-09-12）：impl-08 首切片 `ACCEPTED`（K4 `f79eafd`；§20.1/§20.10 由 run_all 计算化判定并如实 BLOCKED；`impl-08-orchestrator/ACCEPTANCE.md` §5.1）。impl-00 首纵切 ACT（10、12、05）全部 `ACCEPTED`。impl-05 M4 最薄接入 K1/K2 已验收、K3（`03f7f90`/`32192dd`）验收中，会话 `w4k`；裁定 57–59（Gate 读 YAML 包、acceptance/suites 豁免、同阶段后续运行经 supersede 续写）。下一步：impl-05 K4（m4-stage-gate.sh）→ impl-05 ACCEPTED → W4-P impl-04 GraphProjectionPack/知识链跟进定稿 → W5（M6、M1/M2 真实接入、M3 语义层，后两者需用户待办）。
+
+## （上一节）G7 首纵切关键路径跑通：M5（impl-03）与 M8（impl-04）均 ACCEPTED
 
 补记二（2026-09-12）：impl-04 M8 首切片 `ACCEPTED`（K3 `c36d628`/`950b77b`；干净树 125 OK、`m8-span-identity.sh` exit 2、`run_all.sh` 仅 20.4/20.8 改判仍 BLOCKED、副本篡改落点 fixture_host；`impl-04-dataset/ACCEPTANCE.md` §5.1）。用户决定首纵切维持关键路径（G7-RULINGS 第 43 条），§20.1/§20.9 如实 BLOCKED；`G7-PLAN.md` 已改为 W4（impl-08 实现、impl-05 M4 最薄接入、impl-04 GraphProjectionPack 跟进）→ W5（M6、M1/M2 真实接入、M3 语义层）→ W6（M7）。impl-08 定稿 `cd6c7a6` 四查 R1 REWORK（`5ab873c`），按第 45/46 条在 tmux 会话 `w4i` 返工，完成后由 `w4r8`（GLM）复审。
 

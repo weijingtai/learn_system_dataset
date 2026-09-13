@@ -35,3 +35,16 @@
 ## 5. 验收记录
 
 §5 验收记录由主 Agent 填写。
+
+### 5.1 W4-I 实现（2026-09-12，主 Agent 独立验收，`git archive` 干净树）
+
+执行者：tmux 中的 cmd（DeepSeek V4.1 Flash），会话 `w4o`，按 K1–K4 分组停下待验收。定稿 `cd6c7a6`，四查 R1 REWORK `5ab873c`（裁定 45/46）→ 返工 `559a359` → R2 READY `d49094b`。
+
+- K1（`8aa2ad6`、`772b44b`）：范围仅 `pipeline/contract_registry`；contract_registry 30 OK，其余四套 OK；`REGISTRY OK modules=5 ports=4`；`DirectLedgerAdapter.read_object` 经 `objects.get` 只读字节属第 36 条登记读缺口。
+- K2（`8fb9189`、`0b2a947`、`74c4cbf`）：orchestrator 59 OK；`gate.py` 不复用被判模块实现；未新增 `.store/.objects` 访问。第 56 条：ACT 04 事后构造 Red 登记，K3 起纠正。
+- K3（`1658a82`、`c72c90e`）：orchestrator 87 OK；Red 原文早于实现。
+- K4（裁定 57 `59d5d73`、裁定 59 `8ca41e9`、ACT 07 `640ab4c`、ACT 08 `a8494a3`、ACT 09 `f79eafd`）：各提交范围在授权路径内（`59d5d73` 仅 gate.py 与其测试，`_read_package_content` 改 `yaml.safe_load` 且非映射拒绝；`8ca41e9` 仅 test_module.py；ACT 09 仅 run_all.sh 与 test_run_all.py）。干净树 `f79eafd`：ledger 74、corpus_compiler 68、validation 87、dataset_compiler 125、contract_registry 45、orchestrator 100 均 OK；gate/acceptance/conformance 独立；生产代码 `.store/.objects` 仅 ports.py 适配器与 acceptance.py 检测正则字面量；`orchestrator-gate.sh` `pass=5 fail=0 blocked=1` exit 2；`contract-registry.sh` `pass=3 fail=0 blocked=2` exit 2；m3/m5/m8 判据均 exit 2；`verify-T.sh` 0 FAIL、`mutations.sh` 109/109、`schemas/verify.sh` 0、`check_d16.py` OK、`check_interfaces.py` 24 PASS。
+- `run_all.sh` 改前改后（`c72c90e` → `f79eafd`）：均 `pass=2 fail=1 blocked=8`，行数 12→12，除 20.1/20.10 外无变化。20.1 `BLOCKED 前置缺失: M4 Knowledge Extraction；Local Orchestrator 首切片已串联 m1–m3、m5 Gate，m4/m6 未登记生产 Module`（第 43 条不伪造 PASS）；20.10 `BLOCKED 前置缺失: Contract Registry；m3/m5/m8 入口直接访问 Ledger 内部（运行时列示，共 15/12/15 处）`（第 38/39 条）。
+- 执行方两处实现裁量接受：acceptance.py 按第 59 条豁免 import 加工模块；端口泄漏列示入口文件命中优先、总数运行时计数。
+
+impl-08（Local Orchestrator + Contract Registry 首切片）`ACCEPTED`。act/10（Ledger 公开读方法）、act/11（Gate 报告落盘）`DEFERRED`。§20.1、§20.10 仍 BLOCKED，不宣称关闭。
