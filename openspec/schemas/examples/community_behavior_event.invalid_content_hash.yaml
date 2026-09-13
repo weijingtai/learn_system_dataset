@@ -11,4 +11,4 @@ platform: server
 app_version: 0.0.0
 attributes:
   is_republish: false
-unknown_field: forbidden
+content_hash: 2be56a4060534a55fda8d1767be56a551743236f617bfec52d4f0178fff80673

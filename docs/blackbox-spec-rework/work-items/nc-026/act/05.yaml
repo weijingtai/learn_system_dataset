@@ -1,0 +1,36 @@
+TASK_ID: NC-026-E
+PARENT: NC-026
+STATUS: READY
+REPO: xuan-server/xuan-server（Windows `D:/Programme/xuan-server/xuan-server`；macOS `/Users/jingtaiwei/Git/Public/xuan-migration/xuan-server`）
+GOAL: `server/functions/test/community_rules.test.ts` 追加 BehaviorEvent 只追加显式用例（2 上下文 × update/delete = 4），153 → 157
+DEPENDS_ON: []
+ESTIMATE_MINUTES: 30
+WORKLOAD: "community_rules.test.ts +1 个 describe、4 个用例，约 30 行（照既有 `deny update on ${col}` 用例仿写）"
+BASELINE_HEAD: a354463
+SCOPE:
+  READ:
+    - D:/Programme/learn_system/openspec/annotation-community/contracts/community_behavior.md（§3.4、§7、§12.4）
+    - D:/Programme/learn_system/docs/blackbox-spec-rework/work-items/nc-026/BDD.md（R01～R03）
+    - D:/Programme/xuan-server/xuan-server/server/functions/test/community_rules.test.ts（:76-118 既有用例形态与 :25-45 清单数组）
+    - D:/Programme/xuan-server/xuan-server/server/firestore.rules（顶层默认拒绝，只读）
+  WRITE_NEW:
+    - D:/Programme/xuan-server/xuan-server/server/functions/test/community_rules.test.ts（只在文件末尾追加一个 describe 与 4 个用例）
+  FORBIDDEN:
+    - 上表以外任何文件；server/firestore.rules（不新增 match，D-NC026-10）；既有 153 个用例；COMMUNITY_COLLECTIONS 清单数组；git push
+DEPENDENCY_ALLOWLIST: [沿用 package-lock（node_modules 已 npm ci）]
+RULES:
+  - "不新增任何 match；用例以 assertFails 证明 authenticated/unauthenticated 对 community_behavior_events 的 update 与 delete 均被拒"
+  - "只追加，不改既有 describe 与清单数组"
+TESTS_FIRST:
+  - "先追加 4 个用例，运行 VERIFICATION 第 1 条，保存输出原文作为 Red（默认拒绝已生效时，红值为新增用例落地前的计数差 153 → 157）"
+STEPS:
+  - "照既有 `deny update on ${col}` / `deny delete on ${col}` 形态追加两个上下文的 4 个用例"
+  - "git add 并提交"
+  - "提交后运行 learn_system 守卫 --require-impl rules，退出码写入报告"
+VERIFICATION:
+  - "cd D:/Programme/xuan-server/xuan-server/server/functions && FIRESTORE_EMULATOR_HOST=192.168.0.165:8080 FIREBASE_AUTH_EMULATOR_HOST=192.168.0.165:9099 npm test -- community_rules（期望 Tests: 157 passed, 157 total）"
+  - "git -C D:/Programme/xuan-server/xuan-server diff-tree -r --name-only a354463 HEAD（期望恰 1 个文件）"
+  - "cd D:/Programme/learn_system && bash docs/blackbox-spec-rework/reviews/nc026_guard.sh --require-impl rules（期望 0）"
+ON_FAIL: "停止并在 DELIVERY_REPORT_RULES.md 追加「## 待裁决」+ 输出 NC-026-E 停手待裁决。harness 报错无法归因于用例写法、既有 153 例变红、计数不等于 157，均为停止条件。"
+BASELINE_EXIT_CODES: "开工基线：a354463，rules 153 passed"
+COMMIT_MESSAGE: "test(rules): 行为事件只追加显式用例（NC-026-E）"

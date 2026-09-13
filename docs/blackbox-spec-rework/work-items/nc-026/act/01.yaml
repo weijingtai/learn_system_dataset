@@ -1,0 +1,46 @@
+TASK_ID: NC-026-A
+PARENT: NC-026
+STATUS: READY
+REPO: xuan/repository-rest-adapter（Windows `D:/Programme/xuan/repository-rest-adapter`；macOS `/Users/jingtaiwei/Git/Public/xuan-migration/repository-rest-adapter`）
+GOAL: OpenAPI 补 W17 `POST /v1/analytics/events`、R11 `GET /v1/analytics/pseudonym` 与四个 Schema；4 个结构测试与 2 个示例；expectedCatalog 两行与 twenty 断言同步
+DEPENDS_ON: []
+ESTIMATE_MINUTES: 45
+WORKLOAD: "openapi.yaml 约 95 行增量（4 schema、2 条路径、2 个方法、1 处 maxItems、2 处错误行、1 处限流行）；4 个 dart 测试约 150 行；2 个示例 JSON 与 manifest 2 项"
+BASELINE_HEAD: b60bfbd
+SCOPE:
+  READ:
+    - D:/Programme/learn_system/openspec/annotation-community/contracts/community_behavior.md（§5、§9.3、§10、§14）
+    - D:/Programme/learn_system/openspec/annotation-community/contracts/community_api.md（§2、§3.1、§3.2、§4.1、§5.3、§6、§14）
+    - D:/Programme/learn_system/docs/blackbox-spec-rework/work-items/nc-026/BDD.md（A01～A04）、TDD.md（§2）
+    - D:/Programme/xuan/repository-rest-adapter/openapi/openapi.yaml（notifications 区约第 1500 行、ShareLinkPage 组件区约第 3800 行、components/parameters 区）
+    - D:/Programme/xuan/repository-rest-adapter/test/community_openapi_contract_test.dart（expectedCatalog 与 examples manifest 测试）
+    - D:/Programme/xuan/repository-rest-adapter/tool/check_examples.py、test/fixtures/openapi/examples/manifest.json
+  WRITE_NEW:
+    - D:/Programme/xuan/repository-rest-adapter/openapi/openapi.yaml
+    - D:/Programme/xuan/repository-rest-adapter/test/community_openapi_contract_test.dart（只在末尾追加 4 个 test；另按契约 §10 只改两处既有断言：expectedCatalog 追加两行、twenty equals(20) 改 greaterThanOrEqualTo(20)）
+    - D:/Programme/xuan/repository-rest-adapter/test/fixtures/openapi/examples/analytics_events_batch.json
+    - D:/Programme/xuan/repository-rest-adapter/test/fixtures/openapi/examples/analytics_pseudonym.json
+    - D:/Programme/xuan/repository-rest-adapter/test/fixtures/openapi/examples/manifest.json（只在末尾追加 2 项）
+  FORBIDDEN:
+    - 上表以外任何文件；修改或删除既有测试与既有示例（两处授权断言除外）；契约 §10 未列出的路径、方法、组件变化；learn_system 写入（交付报告除外）；新依赖；skip；永真断言；git push；NOTIFIER 仓任何文件
+DEPENDENCY_ALLOWLIST: [沿用仓库锁定版本；Python 用 D:/Programme/learn_system/.venv/Scripts/python.exe（macOS .venv/bin/python）]
+RULES:
+  - "OpenAPI 改动逐字按契约 §10 与 community_api §14；可空写 type 数组，禁用 nullable（D-NC003-13）"
+  - "测试名逐字按 TDD §2；analytics_pseudonym.json 用 §9.3 的假名字面量 psn_0123456789abcdef0123456789abcdef"
+  - "只 git add WRITE_NEW 文件；提交消息按 COMMIT_MESSAGE，末尾空一行加 Co-Authored-By: <执行模型> <厂商域>"
+TESTS_FIRST:
+  - "先追加 4 个测试与 2 个示例、manifest 2 项，运行 VERIFICATION 第 1 条，保存失败原文作为 Red（期望 4 个新测试失败，既有 81 个通过）"
+STEPS:
+  - "按契约 §10/§14 修改 openapi.yaml，直至 VERIFICATION 全部符合期望"
+  - "git add 并提交"
+  - "提交后运行一次 learn_system 守卫 --require-impl rest，退出码写入报告"
+VERIFICATION:
+  - "cd D:/Programme/xuan/repository-rest-adapter && dart test test/community_openapi_contract_test.dart（期望本文件全绿）"
+  - "cd D:/Programme/xuan/repository-rest-adapter && dart test（期望 +85: All tests passed!）"
+  - "cd D:/Programme/xuan/repository-rest-adapter && bash tool/validate_openapi openapi/openapi.yaml（Windows 经 bash；期望退出 0；OPENAPI_VALIDATOR=D:/Programme/learn_system/openspec/annotation-community/.venv-openapi/Scripts/openapi-spec-validator.exe）"
+  - "cd D:/Programme/xuan/repository-rest-adapter && D:/Programme/learn_system/.venv/Scripts/python.exe tool/check_examples.py（期望退出 0；PYTHON 同 venv）"
+  - "git -C D:/Programme/xuan/repository-rest-adapter diff-tree -r --name-only b60bfbd HEAD（期望恰为 WRITE_NEW 的 5 个文件）"
+  - "cd D:/Programme/learn_system && bash docs/blackbox-spec-rework/reviews/nc026_guard.sh --require-impl rest（期望 0）"
+ON_FAIL: "停止并在 DELIVERY_REPORT_REST.md 追加「## 待裁决」；不改契约与既有测试。validate_openapi 报 ENV_BLOCKED、既有测试变红、check_examples 拒收契约示例，均为停止条件。"
+BASELINE_EXIT_CODES: "开工基线：b60bfbd，dart test +81"
+COMMIT_MESSAGE: "feat(openapi): 行为事件上报与假名交付端点契约（NC-026-A）"

@@ -11,4 +11,4 @@ platform: server
 app_version: 0.0.0
 attributes:
   is_republish: false
-unknown_field: forbidden
+device_fingerprint: 4f2a1b0c9d8e7f60

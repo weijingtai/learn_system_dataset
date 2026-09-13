@@ -12,8 +12,7 @@
       "minimum": 1
     },
     "event_type": {
-      "type": "string",
-      "minLength": 1
+      "$ref": "#/$defs/eventType"
     },
     "occurred_at": {
       "$ref": "community_common.schema.json#/$defs/timestamp"
@@ -47,8 +46,7 @@
       ]
     },
     "platform": {
-      "type": "string",
-      "minLength": 1
+      "$ref": "#/$defs/platform"
     },
     "app_version": {
       "type": "string",
@@ -71,5 +69,284 @@
     "platform",
     "app_version",
     "attributes"
-  ]
+  ],
+  "allOf": [
+    {
+      "if": {
+        "required": [
+          "event_type"
+        ],
+        "properties": {
+          "event_type": {
+            "const": "content.publish"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "attributes": {
+            "$ref": "#/$defs/attributesContentPublish"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "event_type"
+        ],
+        "properties": {
+          "event_type": {
+            "const": "reaction.set"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "attributes": {
+            "$ref": "#/$defs/attributesReactionSet"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "event_type"
+        ],
+        "properties": {
+          "event_type": {
+            "enum": [
+              "content.update",
+              "content.withdraw",
+              "content.trash",
+              "content.restore",
+              "content.purge",
+              "comment.create",
+              "comment.edit",
+              "comment.delete",
+              "bookmark.set",
+              "share.create",
+              "share.revoke",
+              "report.create",
+              "backup.begin",
+              "backup.complete",
+              "backup.delete"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "attributes": {
+            "$ref": "#/$defs/attributesEmpty"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "event_type"
+        ],
+        "properties": {
+          "event_type": {
+            "const": "private_note.revision_saved"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "object_type": {
+            "type": "null"
+          },
+          "object_id": {
+            "type": "null"
+          },
+          "note_ref": {
+            "$ref": "community_common.schema.json#/$defs/hex64"
+          },
+          "attributes": {
+            "$ref": "#/$defs/attributesPrivateNoteRevisionSaved"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "event_type"
+        ],
+        "properties": {
+          "event_type": {
+            "const": "private_note.session_ended"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "object_type": {
+            "type": "null"
+          },
+          "object_id": {
+            "type": "null"
+          },
+          "note_ref": {
+            "$ref": "community_common.schema.json#/$defs/hex64"
+          },
+          "attributes": {
+            "$ref": "#/$defs/attributesPrivateNoteSessionEnded"
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "eventType": {
+      "type": "string",
+      "enum": [
+        "content.publish",
+        "content.update",
+        "content.withdraw",
+        "content.trash",
+        "content.restore",
+        "content.purge",
+        "comment.create",
+        "comment.edit",
+        "comment.delete",
+        "reaction.set",
+        "bookmark.set",
+        "share.create",
+        "share.revoke",
+        "report.create",
+        "backup.begin",
+        "backup.complete",
+        "backup.delete",
+        "private_note.revision_saved",
+        "private_note.session_ended"
+      ]
+    },
+    "platform": {
+      "type": "string",
+      "enum": [
+        "server",
+        "android",
+        "ios",
+        "windows",
+        "macos",
+        "linux",
+        "web"
+      ]
+    },
+    "droppedBefore": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "attributesContentPublish": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "is_republish": {
+          "type": "boolean"
+        },
+        "image_count": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "attributesReactionSet": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "value": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "like",
+            "dislike",
+            null
+          ]
+        },
+        "previous_value": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "like",
+            "dislike",
+            null
+          ]
+        }
+      }
+    },
+    "attributesEmpty": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {}
+    },
+    "attributesPrivateNoteRevisionSaved": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "char_count",
+        "attachment_count",
+        "mention_count",
+        "binding_count",
+        "is_restore",
+        "is_merge"
+      ],
+      "properties": {
+        "char_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "attachment_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "mention_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "binding_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "is_restore": {
+          "type": "boolean"
+        },
+        "is_merge": {
+          "type": "boolean"
+        },
+        "dropped_before": {
+          "$ref": "#/$defs/droppedBefore"
+        }
+      }
+    },
+    "attributesPrivateNoteSessionEnded": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "edit_duration_seconds",
+        "revisions_saved"
+      ],
+      "properties": {
+        "edit_duration_seconds": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "revisions_saved": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "dropped_before": {
+          "$ref": "#/$defs/droppedBefore"
+        }
+      }
+    }
+  }
 }

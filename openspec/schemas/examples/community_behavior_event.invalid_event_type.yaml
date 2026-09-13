@@ -1,6 +1,6 @@
 event_id: bev_0123456789abcdef0123456789abcdef
 schema_version: 1
-event_type: content.publish
+event_type: note.view
 occurred_at: '2026-09-10T12:00:00Z'
 received_at: '2026-09-10T12:00:00Z'
 actor_pseudonym: psn_0123456789abcdef0123456789abcdef
@@ -11,4 +11,3 @@ platform: server
 app_version: 0.0.0
 attributes:
   is_republish: false
-unknown_field: forbidden

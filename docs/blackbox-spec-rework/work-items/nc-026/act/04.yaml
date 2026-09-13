@@ -1,0 +1,45 @@
+TASK_ID: NC-026-D
+PARENT: NC-026
+STATUS: READY
+REPO: xuan/reading-notes（Windows `D:/Programme/xuan/reading-notes`；macOS `/Users/jingtaiwei/Git/Public/xuan-migration/reading-notes`）
+GOAL: 新增 `lib/src/analytics/private_note_metrics.dart`（上报端口、注入式本地队列、假名缓存、10000 上限与 dropped_before、code point 计数）与 18 个测试
+DEPENDS_ON: []
+ESTIMATE_MINUTES: 55
+WORKLOAD: "private_note_metrics.dart 约 320 行；test/analytics/private_note_metrics_test.dart 约 480 行"
+BASELINE_HEAD: 107ec90
+SCOPE:
+  READ:
+    - D:/Programme/learn_system/openspec/annotation-community/contracts/community_behavior.md（§5.1、§5.2、§6、§9.3）
+    - D:/Programme/learn_system/docs/blackbox-spec-rework/work-items/nc-026/BDD.md（C01～C18）、TDD.md（§5）
+    - D:/Programme/xuan/reading-notes/lib/src/domain/clock.dart、lib/src/domain/ids.dart（只读消费）
+    - D:/Programme/xuan/reading-notes/lib/src/persistence/note_repository.dart（saveSnapshot/restoreRevision/mergeHeads 的 SaveResult 语义，只读）
+    - D:/Programme/xuan/reading-notes/lib/src/editor/note_editor_controller.dart（会话与保存调用点，只读）
+    - D:/Programme/xuan/reading-notes/lib/src/community/community_api.dart（HTTP transport 与错误处理范式，只读）
+    - D:/Programme/xuan/reading-notes/test/support/temp_db.dart、test/support/fake_clock.dart（测试基建范式）
+  WRITE_NEW:
+    - D:/Programme/xuan/reading-notes/lib/src/analytics/private_note_metrics.dart（新建）
+    - D:/Programme/xuan/reading-notes/test/analytics/private_note_metrics_test.dart（新建，只含 TDD §5 的 18 个测试）
+  FORBIDDEN:
+    - 上表以外任何文件；lib/src/persistence/note_database.dart、note_repository.dart；lib/src/editor/*；lib/src/community/*；pubspec.yaml（不新增依赖，用 dart:io/dart:convert/dart:math 与既有端口）；新依赖；skip；永真断言；测试内现算 note_ref 或 char_count 期望值；git push
+DEPENDENCY_ALLOWLIST: [沿用 pubspec.yaml 锁定版本；不新增任何包]
+RULES:
+  - "接口与默认实现逐字按契约 §6.1；队列用追加式 JSONL + 临时文件 rename 原子替换，不新建 Drift 表（D-NC026-20）"
+  - "char_count 用 String.runes.length，禁用 utf8.encode(...).length 与 String.length"
+  - "note_ref 用契约 §9.3 假名与 note_id 输入，期望值抄 §9.3 字面量 2be56a4060534a55fda8d1767be56a551743236f617bfec52d4f0178fff80673，禁止现算"
+  - "flush 失败不抛穿（返回 FlushResult.failed）；批大小 500；只删除被确认（accepted + duplicates）的事件"
+  - "上报 payload 恰为契约 §5.1 的 8 键；不得出现 note_id 原值、标题、正文、附件名"
+TESTS_FIRST:
+  - "先写 18 个测试，运行 flutter test test/analytics/private_note_metrics_test.dart，保存「文件不存在 / 未定义符号」原文作为 Red"
+STEPS:
+  - "实现 private_note_metrics.dart 直至 VERIFICATION 全部符合期望"
+  - "git add 并提交（单提交）"
+  - "提交后运行 learn_system 守卫 --require-impl client，退出码写入报告"
+VERIFICATION:
+  - "cd D:/Programme/xuan/reading-notes && D:/apps/apps/flutter/bin/flutter test test/analytics/private_note_metrics_test.dart（期望 18 passed）"
+  - "cd D:/Programme/xuan/reading-notes && D:/apps/apps/flutter/bin/flutter test（期望 +314: All tests passed!）"
+  - "cd D:/Programme/xuan/reading-notes && D:/apps/apps/flutter/bin/flutter analyze（期望 No issues found!）"
+  - "git -C D:/Programme/xuan/reading-notes diff-tree -r --name-only 107ec90 HEAD（期望恰为 WRITE_NEW 的 2 个文件）"
+  - "cd D:/Programme/learn_system && bash docs/blackbox-spec-rework/reviews/nc026_guard.sh --require-impl client（期望 0）"
+ON_FAIL: "停止并在 DELIVERY_REPORT_CLIENT.md 追加「## 待裁决」+ 输出 NC-026-D 停手待裁决。参考值对不上、既有 +296 变红、需要改白名单外文件，均为停止条件。"
+BASELINE_EXIT_CODES: "开工基线：107ec90，flutter test +296、analyze 0"
+COMMIT_MESSAGE: "feat(analytics): 私人笔记元数据上报队列与假名缓存（NC-026-D）"

@@ -642,7 +642,7 @@
   - [x] 执行（2 个提交）；主 Agent 验收 R1 ACCEPTED（V0～V8 原始输出、盲测 BT0～BT7 全 PASS、八场景攻击审查；修正契约 §5 第 95 行 TTL 文案）；解锁 NC-016
 - [ ] NC-020a：消费端书籍契约核对清单（状态：`BACKLOG`）
 - [ ] NC-025：生产 BlobGateway（公共 + 私有）（状态：`BACKLOG`；R1 新增，NC-008/017 的硬前置）
-- [ ] NC-026：行为事件数据源、假名化与私人笔记元数据上报（状态：`BACKLOG`；v1.5 新增）
+- [ ] NC-026：行为事件数据源、假名化与私人笔记元数据上报（状态：`PREPARING`；v1.5 新增；专属契约 `openspec/annotation-community/contracts/community_behavior.md`，API 补丁 `community_api.md` §14，六件套 `work-items/nc-026/`，守卫 `reviews/nc026_guard.sh`；spec 侧冻结 `openspec/schemas/community_behavior_event.schema.json`（attributes 收紧，SHA `f3467224…`）与 23 个行为事件示例；**注销子项 DEFERRED**（NC-001 第⑩项证据缺失，D-NC026-13）；待裁决 P1～P4 见 `work-items/nc-026/ACCEPTANCE.md`；2026-09-13 规格作者会话落盘，待四查）
 
 ### 本地笔记与编辑器
 
