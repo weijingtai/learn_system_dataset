@@ -1,62 +1,101 @@
 package: blackbox-impl-07-assembly
-title: 纵切后第一批：M7 Incremental Knowledge Assembly（§15、§6.2）
-status: DRAFT   # README §4 D-01～D-18 裁决前不得派发
+title: 首切片：M7 创世汇编（W5-L0）——空基底 + 单个 ReviewedEditionPackage → CanonicalKnowledgeSnapshot 修订（§6.2、§15）
+status: READY_FOR_REVIEW（创世薄切片）   # W5-L0 定稿 2026-09-13，依 G7-RULINGS §1 P1–P9、§5 impl-07、§9.12 第 61 条；未经实现；派发前置见 preconditions
 executor_groups:
-  F:  [impl-07/00, impl-07/01]              # fixture 与金标；不得与任何 J 组同一 Agent
-  J1: [impl-07/02, impl-07/03, impl-07/04]  # F 组 ACCEPTED 后派发
-  J2: [impl-07/05, impl-07/06]
-  J3: [impl-07/07, impl-07/08]
-  J4: [impl-07/09, impl-07/10]              # ACT 10 仅在 D-13 选 A/B 且主 Agent 书面授权改 run_all.sh 时派发
+  G0: [impl-07/G0-01, impl-07/G0-02, impl-07/G0-03, impl-07/G0-04, impl-07/G0-05]   # 串行；每个 ACT ACCEPTED 后派下一个
+preconditions:
+  - impl-01 Artifact Ledger 状态 ACCEPTED（已满足）；G0 只经 Ledger 公开方法与只读查询读写（§17:836）
+  - P2/impl-00 闭集：本切片不新增 artifact_type 名（使用 INTERFACES.md §4 M7 行已登记的 canonical_snapshot、assembly_package）。开工前提为 `python3 docs/blackbox-spec-rework/work-items/impl-00-interfaces/check_interfaces.py` 末行 `fail=0` 且 exit 0（第 54 条，不写死 pass 总数）。建议（不阻塞实现）由该波 impl-00 登记 ACT 把 §4 M7 行状态由「纵切后」更新为「创世薄切片（W5-L0）」并登记内容草案
+  - 上游只认 succeeded（P5）：解析 m6 StagePackage 及其血缘 candidate_package 时，其所属 StepRun 必须 succeeded（INTERFACES.md:24【I-13】）
+  - M6 未实现（impl-06 status READY_FOR_REVIEW，且已按第 61 条删除 Snapshot 直通 ACT 10）：G0-04/G0-05 用包内非生产 fixture_seed.py + tests/data/ 的合成 ReviewedEditionPackage 灌入临时 Ledger（标 synthetic: true，§9.7 第 52 条口径）；真实 M6 输出存在时优先，否则 m7-assembler.sh 保留 BLOCKED upstream_m6_real
+  - P7：不伪造人工决定；本切片无人工回路，合成输入不得计为真实 expert_verified 或任何发布依据
+  - P3：内容结构以代码草案表达 schema_version "0.1.0-draft"；不向 openspec/schemas/ 新增文件
+  - 写范围零交集：G0 只写 pipeline/assembly/** 与 openspec/acceptance/m7-assembler.sh；不写 run_all.sh、pipeline/ledger/**、pipeline/review/**、pipeline/dataset_compiler/**、pipeline/orchestrator/**、fixture、规格、Schema、台账
 acts:
-  - file: act/00.yaml
-    id: impl-07/00
-    writes: ["pipeline/corpus/_fixture/mini_release01/README.md", "pipeline/corpus/_fixture/mini_release01/manifest.yaml", "pipeline/corpus/_fixture/mini_release01/verify.sh", "pipeline/corpus/_fixture/mini_release01/tools/build_fixture.py", "pipeline/corpus/_fixture/mini_release01/editions/", "pipeline/corpus/_fixture/mini_release01/decisions/"]
-  - file: act/01.yaml
-    id: impl-07/01
-    writes: ["pipeline/corpus/_fixture/mini_release01/tools/build_fixture.py", "pipeline/corpus/_fixture/mini_release01/expected/", "pipeline/corpus/_fixture/mini_release01/manifest.yaml", "pipeline/corpus/_fixture/mini_release01/verify.sh"]
-  - file: act/02.yaml
-    id: impl-07/02
+  - file: act/g0-01.yaml
+    id: impl-07/G0-01
     writes: ["pipeline/assembly/__init__.py", "pipeline/assembly/errors.py", "pipeline/assembly/canonical.py", "pipeline/assembly/model.py", "pipeline/assembly/tests/__init__.py", "pipeline/assembly/tests/test_canonical.py", "pipeline/assembly/tests/test_model.py"]
-  - file: act/03.yaml
-    id: impl-07/03
-    writes: ["pipeline/assembly/matcher.py", "pipeline/assembly/tests/test_matcher.py"]
-  - file: act/04.yaml
-    id: impl-07/04
-    writes: ["pipeline/assembly/apply.py", "pipeline/assembly/tests/test_apply.py"]
-  - file: act/05.yaml
-    id: impl-07/05
-    writes: ["pipeline/assembly/incremental.py", "pipeline/assembly/tests/test_incremental.py"]
-  - file: act/06.yaml
-    id: impl-07/06
+  - file: act/g0-02.yaml
+    id: impl-07/G0-02
+    writes: ["pipeline/assembly/genesis.py", "pipeline/assembly/tests/test_genesis.py"]
+  - file: act/g0-03.yaml
+    id: impl-07/G0-03
     writes: ["pipeline/assembly/gate.py", "pipeline/assembly/tests/test_gate.py"]
-  - file: act/07.yaml
-    id: impl-07/07
-    writes: ["pipeline/assembly/fixture_seed.py", "pipeline/assembly/inputs.py", "pipeline/assembly/step.py", "pipeline/assembly/__main__.py", "pipeline/assembly/tests/test_step.py"]
-  - file: act/08.yaml
-    id: impl-07/08
-    writes: ["pipeline/assembly/step.py", "pipeline/assembly/inputs.py", "pipeline/assembly/__main__.py", "pipeline/assembly/tests/test_human_loop.py"]
-  - file: act/09.yaml
-    id: impl-07/09
-    writes: ["pipeline/assembly/acceptance.py", "pipeline/assembly/tests/test_acceptance.py", "openspec/acceptance/m7-assembler.sh"]
-  - file: act/10.yaml
-    id: impl-07/10
-    writes: ["openspec/acceptance/run_all.sh"]
+  - file: act/g0-04.yaml
+    id: impl-07/G0-04
+    writes: ["pipeline/assembly/inputs.py", "pipeline/assembly/fixture_seed.py", "pipeline/assembly/step.py", "pipeline/assembly/__main__.py", "pipeline/assembly/tests/data/genesis_package.json", "pipeline/assembly/tests/test_genesis_ledger.py"]
+  - file: act/g0-05.yaml
+    id: impl-07/G0-05
+    writes: ["pipeline/assembly/acceptance.py", "pipeline/assembly/tests/data/genesis_expected_knowledge.json", "pipeline/assembly/tests/test_acceptance.py", "openspec/acceptance/m7-assembler.sh"]
 global_rules:
-  - 每个 ACT 先写测试（Red 原文入报告）再实现；unittest；测试只用 tempfile 目录，不写 var/ 与任何 fixture
+  - 每个 ACT 先写具名测试（Red 原文入报告）再实现；unittest；测试只用 tempfile 目录，不写 var/ 与任何 fixture
   - 只用标准库 + PyYAML + jsonschema；不新增依赖；不新增 ID 前缀；不调用模型 API；不做模糊文本相似度
-  - 生产代码只读 Ledger 冻结修订；fixture_seed.py 与 acceptance.py 只经 --fixture/参数读 fixture；测试可读 fixture 作为输入或金标
-  - 不改任何 m6 StagePackage 或 reviewed_edition_knowledge 修订的状态；不读其他 ReleaseRun 的人工决定
-  - M7 不发 ent_ / rel_；不合成或升级 content_status
+  - 生产代码只读 Ledger 冻结修订；fixture_seed.py 与 acceptance.py 是唯二可读 tests/data 的非测试模块，且只经参数
+  - 同阶段后续运行一律经 supersede_step_run 接替该阶段最近一个 succeeded 运行（经读接口查出，不写死号，第 58 条）
+  - 不改任何 m6 StagePackage / reviewed_edition 修订的状态；不读其他 ReleaseRun 的人工决定（§6.2:173、:175）
+  - M7 不发 ent_ / rel_；不合成或升级 content_status（§8.2:440）；关系端点与 SchoolView 主体一律改写为正式号
   - 中文注释与 docstring；公开函数名、参数名、返回键、检查名、rule_id 与 ACT contract 逐字一致
   - 每个 ACT 一个提交；只 git add contract 列出的路径；不得 git add -A / git add .
-  - 执行者不得写 SUBAGENT_TODO.md、HANDOFF.md、PLAN.md，不得自记 ACCEPTED
+  - 执行者不写 SUBAGENT_TODO.md、HANDOFF.md、PLAN.md、G7-*.md，不得自记 ACCEPTED
 gates:
   - bash docs/blackbox-spec-rework/verify-T.sh | tail -1                          # FAIL 合计: 0
   - bash openspec/schemas/verify.sh >/dev/null; echo $?                           # 0
+  - python3 docs/blackbox-spec-rework/work-items/impl-00-interfaces/check_interfaces.py; echo exit=$?   # 末行 fail=0 且 exit 0（第 54 条）
   - bash pipeline/corpus/_fixture/mini_ed01/verify.sh >/dev/null; echo $?         # 0 或 3
-  - bash pipeline/corpus/_fixture/mini_release01/verify.sh >/dev/null; echo $?    # ACT 01 起 0
-  - .venv/bin/python -m unittest discover -s pipeline/ledger/tests -t .           # OK
-  - .venv/bin/python -m unittest discover -s pipeline/assembly/tests -t .         # OK（ACT 02 起）
-  - export LC_ALL=en_US.UTF-8; bash openspec/acceptance/run_all.sh | tail -1      # ACT 10 前：SUMMARY pass=2 fail=1 blocked=8
+  - .venv/bin/python -m unittest discover -s pipeline/ledger/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"      # OK，与基线相同
+  - .venv/bin/python -m unittest discover -s pipeline/assembly/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"    # OK（G0-01 起）
+  - export LC_ALL=en_US.UTF-8; bash openspec/acceptance/m7-assembler.sh; echo exit=$?                          # G0-05 起：SUMMARY pass=10 fail=0 blocked=6；exit=2
+  - export LC_ALL=en_US.UTF-8; bash openspec/acceptance/run_all.sh | tail -1      # SUMMARY pass=2 fail=1 blocked=8（本切片不改 run_all.sh）
   - git diff --check
-on_fail: 停止并报告；contract 有两种理解、金标与实现不一致、测试无法按定义写出、需要改 scope 外文件、Ledger API 行为与 contract 描述不符 → 一律停手上报，不得自行改金标或 Ledger
+deferred_groups:
+  F: [impl-07/00, impl-07/01]
+  J1: [impl-07/02, impl-07/03, impl-07/04]
+  J2: [impl-07/05, impl-07/06]
+  J3: [impl-07/07, impl-07/08]
+  J4: [impl-07/09, impl-07/10]
+deferred_acts:
+  - file: act/00.yaml
+    id: impl-07/00
+    status: DEFERRED
+    writes: ["pipeline/corpus/_fixture/mini_release01/README.md", "pipeline/corpus/_fixture/mini_release01/manifest.yaml", "pipeline/corpus/_fixture/mini_release01/verify.sh", "pipeline/corpus/_fixture/mini_release01/tools/build_fixture.py", "pipeline/corpus/_fixture/mini_release01/editions/", "pipeline/corpus/_fixture/mini_release01/decisions/"]
+  - file: act/01.yaml
+    id: impl-07/01
+    status: DEFERRED
+    writes: ["pipeline/corpus/_fixture/mini_release01/tools/build_fixture.py", "pipeline/corpus/_fixture/mini_release01/expected/", "pipeline/corpus/_fixture/mini_release01/manifest.yaml", "pipeline/corpus/_fixture/mini_release01/verify.sh"]
+  - file: act/02.yaml
+    id: impl-07/02
+    status: DEFERRED
+    writes: ["pipeline/assembly/__init__.py", "pipeline/assembly/errors.py", "pipeline/assembly/canonical.py", "pipeline/assembly/model.py", "pipeline/assembly/tests/__init__.py", "pipeline/assembly/tests/test_canonical.py", "pipeline/assembly/tests/test_model.py"]
+  - file: act/03.yaml
+    id: impl-07/03
+    status: DEFERRED
+    writes: ["pipeline/assembly/matcher.py", "pipeline/assembly/tests/test_matcher.py"]
+  - file: act/04.yaml
+    id: impl-07/04
+    status: DEFERRED
+    writes: ["pipeline/assembly/apply.py", "pipeline/assembly/tests/test_apply.py"]
+  - file: act/05.yaml
+    id: impl-07/05
+    status: DEFERRED
+    writes: ["pipeline/assembly/incremental.py", "pipeline/assembly/tests/test_incremental.py"]
+  - file: act/06.yaml
+    id: impl-07/06
+    status: DEFERRED
+    writes: ["pipeline/assembly/gate.py", "pipeline/assembly/tests/test_gate.py"]
+  - file: act/07.yaml
+    id: impl-07/07
+    status: DEFERRED
+    writes: ["pipeline/assembly/fixture_seed.py", "pipeline/assembly/inputs.py", "pipeline/assembly/step.py", "pipeline/assembly/__main__.py", "pipeline/assembly/tests/test_step.py"]
+  - file: act/08.yaml
+    id: impl-07/08
+    status: DEFERRED
+    writes: ["pipeline/assembly/step.py", "pipeline/assembly/inputs.py", "pipeline/assembly/__main__.py", "pipeline/assembly/tests/test_human_loop.py"]
+  - file: act/09.yaml
+    id: impl-07/09
+    status: DEFERRED
+    writes: ["pipeline/assembly/acceptance.py", "pipeline/assembly/tests/test_acceptance.py", "openspec/acceptance/m7-assembler.sh"]
+  - file: act/10.yaml
+    id: impl-07/10
+    status: DEFERRED
+    writes: ["openspec/acceptance/run_all.sh"]
+on_fail: 停止并报告；contract 有两种理解、合成金标与实现不一致、测试无法按定义写出、需要改 scope 外文件、Ledger API 行为与 contract 描述不符 → 一律停手上报，不得自行改金标或 Ledger

@@ -1,0 +1,60 @@
+act_id: impl-07/G0-05
+title: m7-assembler 验收：acceptance.py 创世判定 + openspec/acceptance/m7-assembler.sh（§19.0 判据，本切片 exit 2）
+estimated_minutes: 110
+group: G0
+depends_on: [impl-07/G0-04]
+scope:
+  write: [pipeline/assembly/acceptance.py, pipeline/assembly/tests/data/genesis_expected_knowledge.json, pipeline/assembly/tests/test_acceptance.py, openspec/acceptance/m7-assembler.sh]
+tests_first:
+  - 先写 tests/test_acceptance.py（用例名逐字）并全红，再实现 acceptance.py，最后新建 m7-assembler.sh（chmod 755）
+contract: |
+  acceptance.py：python -m pipeline.assembly.acceptance [--keep]
+    准备（临时 Ledger；经 fixture_seed.seed_genesis_package 灌入 tests/data/genesis_package.json 的合成 m6 输入）：
+      R1 = run_m7(edition_part_id, technique_id="qizheng", reviewed_package_revision_ids=[合成 m6 包修订], base_snapshot_revision_id=None)
+    判定函数只读 Ledger 与 tests/data 金标，自行重算；允许 import canonical、model、gate；禁止 import genesis（不信任 run_m7 返回的 gate/report）
+    判定项（名称与顺序固定，共 10 项 PASS）：
+      genesis_snapshot            Snapshot 修订 knowledge 规范字节 == tests/data/genesis_expected_knowledge.json；再次运行同一输入字节相同；StepRun succeeded
+      configuration_and_scope     ProcessingRun kind == release_run；edition_part_id == 传入 Part；configuration.stage == "m7"
+      package_lineage             m7 StagePackage 过 stage_package.schema.json；lineage 输入集合 == frozen_inputs；output 恰 1 个 assembly_package
+      identity_and_allocation     新发 pat_ 号 > 候选既有号且互异；id_allocation == 最大号；retired_entity_ids 为空
+      provenance_and_fidelity     gate.evaluate_genesis 全部检查通过
+      no_silent_fold_and_display  冲突组成员与 first_layer_display 与视图一致
+      upstream_immutable          运行前后 m6 包与 reviewed_edition 的 status/sha256 不变
+      checkpoints                 m7 Checkpoint 链为 propose_r1 → seal_snapshot，prev 成链
+      closed_set_types            产出修订的 artifact_type 恰为 {canonical_snapshot, assembly_package, validation_report}，无闭集外类型名
+      no_model_calls              pipeline/assembly 无 requests/openai/anthropic/httpx import
+    BLOCKED（共 6 项；不判 PASS，说明含 DEFERRED 项，绝不伪造）：
+      incremental_multi_edition   多 Edition 增量对勘未实现（§15:655）
+      edition_collation           Alignment/VariantReading/Addition/Omission 未实现
+      identity_delta              跨版本身份迁移未实现（§6.3、§16:732）
+      rework_replacement          M6 返工替换未实现（D-14）
+      upstream_m6_real            真实 M6 Review Workbench 未实现；输入为合成 ReviewedEditionPackage
+      run_all_20_5                §20.5 未接线（Q29 采纳 C）
+    输出：每项一行 `PASS <名>` / `FAIL <名> <原因>` / `BLOCKED <名> <说明>`；末行 `SUMMARY pass=<n> fail=<n> blocked=<n>`
+    退出码：3 仅限「.venv 不可用」或「jsonschema 不可导入」；准备或运行抛异常 → 打印 `FAIL m7_acceptance 宿主准备失败: <异常类名>: <消息>` 并退出 1；任一 FAIL → 1；无 FAIL 有 BLOCKED → 2；全部 PASS → 0
+    无 --keep 时删除临时目录
+  m7-assembler.sh（新建，权限 755）：
+    set -u；export LC_ALL=en_US.UTF-8；REPO_ROOT 由脚本目录推出；PY="$REPO_ROOT/.venv/bin/python"
+    宿主校验：bash "$REPO_ROOT/pipeline/corpus/_fixture/mini_ed01/verify.sh" 退出 0 或 3 → 继续；否则 `FAIL fixture_host mini_ed01 <首个 FAIL 行>` + SUMMARY，exit 1
+      （永不执行被验目录自带脚本；不接受 FIXTURE_* 环境改写；本切片无共享 release fixture）
+    然后 cd "$REPO_ROOT" 执行 "$PY" -m pipeline.assembly.acceptance；退出码原样返回（期望 2）
+tests:
+  test_acceptance.py: |
+    - test_genesis_acceptance_summary_and_exit_2（直调 acceptance.main；SUMMARY pass=10 fail=0 blocked=6）
+    - test_blocked_lines_exact_text（6 行 BLOCKED 说明逐字）
+    - test_acceptance_does_not_import_genesis_for_judgement（ast 检查判定模块 import）
+    - test_golden_mismatch_fails（临时副本改 genesis_expected_knowledge 一字节 → genesis_snapshot FAIL，exit 1）
+    - test_prepare_failure_exits_1（patch fixture_seed.seed_genesis_package 抛 RuntimeError → 首行以 "FAIL m7_acceptance 宿主准备失败: RuntimeError" 开头）
+    - test_shell_returns_2（subprocess，末行 SUMMARY pass=10 fail=0 blocked=6）
+    - test_shell_missing_env_exit_3（.venv 不可用模拟 → SUMMARY blocked=1，exit 3）
+    - test_shell_never_trusts_copy_verify（副本目录假 verify.sh → 仍调用仓库内规范脚本，不受影响）
+verify:
+  - .venv/bin/python -m unittest discover -s pipeline/assembly/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 82
+  - export LC_ALL=en_US.UTF-8; bash openspec/acceptance/m7-assembler.sh; echo exit=$?   # 10 PASS + 6 BLOCKED + SUMMARY pass=10 fail=0 blocked=6；exit=2
+  - bash openspec/acceptance/run_all.sh | tail -1   # SUMMARY pass=2 fail=1 blocked=8（本切片不改 run_all.sh）
+  - grep -c 'FIXTURE_RELEASE_DIR/verify.sh' openspec/acceptance/m7-assembler.sh   # 0
+  - TDD §3 回归
+commit:
+  add: [pipeline/assembly/acceptance.py, pipeline/assembly/tests/data/genesis_expected_knowledge.json, pipeline/assembly/tests/test_acceptance.py, openspec/acceptance/m7-assembler.sh]
+  message: "feat(m7): m7-assembler genesis acceptance (implemented checks PASS, deferred increments BLOCKED) per spec §19.0"
+on_fail: 停止并报告；不得把 6 项 DEFERRED 写成 PASS；m7-assembler.sh 本切片不得返回 0

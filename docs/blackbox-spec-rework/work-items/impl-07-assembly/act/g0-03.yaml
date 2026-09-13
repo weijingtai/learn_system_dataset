@@ -1,0 +1,49 @@
+act_id: impl-07/G0-03
+title: 独立创世 Gate evaluate_genesis（不 import genesis，自行重算身份与保真）
+estimated_minutes: 75
+group: G0
+depends_on: [impl-07/G0-02]
+scope:
+  write: [pipeline/assembly/gate.py, pipeline/assembly/tests/test_gate.py]
+tests_first:
+  - 先写 tests/test_gate.py（用例名逐字）并全红，再实现
+contract: |
+  gate.py（纯函数；只允许 import canonical、model、pipeline.ledger.ids、pipeline.ledger.states、标准库；禁止 import genesis）
+    evaluate_genesis(*, candidate_set, reviewed_edition, knowledge) -> dict
+      参数取 model.validate_candidate_set / validate_reviewed_edition 的返回值与原 knowledge dict
+      返回 {"passed": bool, "checks": {名: {"passed": bool, "detail": str}}}；检查名与顺序固定：
+      schema_and_ids           model.validate_snapshot_knowledge 通过
+      identity_preserved       knowledge.retired_entity_ids 为空（创世无退役）；无 base 输入、无 identity_delta
+      allocation_monotonic     新发 pat_ 号全部 > 候选 set 既有合法 pat_ 号且互异；id_allocation ≥ 活对象最大号
+      provenance_complete      reviewed_edition.approved 中每个 assertion/pattern/school_view 都在 knowledge 中出现；
+                               approved 中 Concept 类若无绑定（excluded_unbound）允许缺席，其余缺席即失败
+      view_objects_unaltered   pattern.name/interpretation、assertion.proposition 与候选 NFC 后一致；provenance.content_sha256 可复算
+      no_silent_fold           approved 的每个 SchoolView 在 knowledge.school_views 中存在；每组 conflict_groups 成员不少于视图声明
+      first_layer_display     每组 first_layer_display == 任一成员 changes_current_judgment
+      maturity_not_synthesized knowledge 中 content_status 等于 approved 原值；Pattern/Concept 顶层不得出现 content_status 键
+      decisions_consistent     本切片无人工决定：knowledge.meta.decision_refs 为空；approved/rejected 集合与 knowledge 一致
+      genesis_only             无 relations、无 identity_delta、meta.base_snapshot_revision_id 为 null
+      说明：gate 从 candidate_set 与 reviewed_edition 独立重算，不信任 assembler 的 report
+tests:
+  test_gate.py: |
+    - test_genesis_all_checks_pass
+    - test_gate_does_not_import_genesis（ast 解析 gate.py 的 import，不含 genesis）
+    篡改矩阵（每例断言指定检查 passed False 且总体 passed False；用 G0-02 的合法输出为基底 deepcopy 后篡改）：
+    - test_tamper_drop_approved_assertion → provenance_complete
+    - test_tamper_duplicate_allocated_id → allocation_monotonic
+    - test_tamper_allocated_below_candidate_max → allocation_monotonic
+    - test_tamper_revive_retired_id → identity_preserved
+    - test_tamper_relations_nonempty → genesis_only
+    - test_tamper_drop_school_view → no_silent_fold
+    - test_tamper_first_layer_display_false → first_layer_display
+    - test_tamper_synthesized_content_status → maturity_not_synthesized
+    - test_tamper_proposition_changed → view_objects_unaltered
+    - test_tamper_meta_base_revision_set → genesis_only
+verify:
+  - .venv/bin/python -m unittest discover -s pipeline/assembly/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 54
+  - grep -nE '^\s*(from|import) .*genesis' pipeline/assembly/gate.py | wc -l   # 0
+  - TDD §3 回归
+commit:
+  add: [pipeline/assembly/gate.py, pipeline/assembly/tests/test_gate.py]
+  message: "feat(m7): independent genesis gate re-deriving identity and fidelity (spec §15, §20.5)"
+on_fail: 停止并报告；合成输入下任一检查不通过时报告检查名与明细，不得放宽检查

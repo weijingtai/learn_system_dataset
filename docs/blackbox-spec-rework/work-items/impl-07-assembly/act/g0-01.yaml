@@ -1,0 +1,92 @@
+act_id: impl-07/G0-01
+title: 包骨架 + 规范化（canonical_json / make_key / nfc_key）+ ReviewedEditionPackage / candidate_set / Snapshot knowledge 校验
+estimated_minutes: 75
+group: G0
+depends_on: []
+scope:
+  write: [pipeline/assembly/__init__.py, pipeline/assembly/errors.py, pipeline/assembly/canonical.py, pipeline/assembly/model.py, pipeline/assembly/tests/__init__.py, pipeline/assembly/tests/test_canonical.py, pipeline/assembly/tests/test_model.py]
+tests_first:
+  - 先写 tests/test_canonical.py 与 tests/test_model.py（用例名逐字），运行 `.venv/bin/python -m unittest discover -s pipeline/assembly/tests -t .` 因 ImportError 全红，记录 Red 原文；再实现
+contract: |
+  __init__.py：
+    M7_TOOL = "pipeline.assembly"；M7_TOOL_VERSION = "0.1.0"；SNAPSHOT_SCHEMA_VERSION = "0.1.0-draft"
+    M6_STAGE_PACKAGE_STAGE = "m6"；SNAPSHOT_ARTIFACT_TYPE = "canonical_snapshot"；PACKAGE_ARTIFACT_TYPE = "assembly_package"
+  errors.py：class AssemblyRefused(pipeline.ledger.errors.LedgerError)，构造 AssemblyRefused(message, code=None)
+  canonical.py（纯函数）：
+    canonical_json(obj) -> bytes = (json.dumps(obj, ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False) + "\n").encode("utf-8")
+    sha256_hex(data: bytes) -> str
+    content_sha256(obj) -> str = sha256_hex(canonical_json(obj))
+    nfc_key(text) -> str = unicodedata.normalize("NFC", text).strip()；非 str → SchemaViolation(SCH_002)
+    PROPOSAL_KINDS = ("merge", "alias", "conflict", "evidence")
+    RELATION_KINDS = ("attached", "alias_of", "distinct_from", "merged_into", "alignment", "variant_reading", "addition", "omission")
+    make_key(kind, subject_tuple) -> str = kind + ":" + content_sha256(list(subject_tuple))[:32]；kind 不在两闭集 → SchemaViolation(SCH_002)
+    work_key(source_id) -> str：正则 ^src_([a-z][a-z0-9]*)_ed([0-9]{2})$ 第 1 组；不匹配 → InvalidIdentifier(ID_001)
+  model.py（纯函数；错误类取自 pipeline.ledger.errors；号格式经 pipeline.ledger.ids.validate）：
+    validate_reviewed_package(doc) -> dict
+      必填：schema_version, reviewed_edition_revision_id, decision_revision_ids, decision_count, approved_count, rejected_count, unresolved_count, correction_request_revision_ids, rework_impact_report_revision_id
+      unresolved_count != 0 → AssemblyRefused(SCH_001，message 含「未解决」)；缺键 → SchemaViolation(SCH_001)
+      reviewed_edition_revision_id 与 correction_request_revision_ids 非空者按 §8.1 校验 → ID_001
+      返回 {"doc": 深拷贝, "reviewed_edition_revision_id"}
+    validate_reviewed_edition(doc) -> dict
+      必填：schema_version, edition_part_artifact_id, candidate_set_revision_id, candidate_package_revision_id, validation_package_revision_id, approved, rejected, decisions, evidence_links, school_views, correction_request_revision_ids, rework_impact_report_revision_id, unresolved_count（键逐字取 impl-06-review/README.md §5.3）
+      unresolved_count != 0 → AssemblyRefused(SCH_001，message 含「未解决」)；缺键 → SchemaViolation(SCH_001)
+      approved/rejected 元素键：entity_id, kind, artifact_revision_id, content_status, decision_revision_ids；kind ∈ {"assertion","pattern","school_view","concept"}，否则 SCH_002
+      号：edition_part_artifact_id(art_)、candidate_set_revision_id/candidate_package_revision_id/validation_package_revision_id/artifact_revision_id/decision_revision_ids(rev_)、approved/rejected 的 entity_id 与 school_view_id、conflict_group_id(非 null)、evidence_links 的 source_span_id(ss_) → ID_001
+      同一 entity_id 在 approved ∪ rejected 重复 → DuplicateIdentifier(ID_002)
+      evidence_links[].entity_id 必须 ∈ approved ∪ rejected；school_views[].subject_entity_id 必须在 approved ∪ rejected 中可解析 → MissingReference(REF_001)
+      返回 {"work_key", "edition_part_artifact_id", "candidate_package_revision_id", "doc": 深拷贝,
+            "approved_index": {entity_id: 元素}, "rejected_ids": [升序], "hashes": {entity_id: content_sha256(对应 approved 元素)}}
+    validate_candidate_set(doc) -> dict
+      必填：schema_version, technique_id, source_id, edition_part_artifact_id, evidence_level, span_layer, assertions, patterns, school_views, concept_mentions, new_concept_candidates, rejected, disputes, counts
+      technique_id 非空且 ^[a-z][a-z0-9]*$；source_id/edition_part_artifact_id 按 §8.1 → ID_001
+      assertions：assertion_id(as_)、subject 必须等于本视图内某 pattern_id、candidate_key 或 concept_id，school_view_ids 的元素在 school_views 中存在，content_status ∈ CONTENT_MATURITY → 否则 REF_001/SCH_002
+      patterns：pattern_id 为 null 时必须有 candidate_key；pattern_id 非 null 时按 §8.1 → ID_001；同一 candidate_key 重复 → ID_002
+      school_views：school_view_id、school_id(sch_)、subject_entity_id 在视图内可解析、conflict_group_id(cg_|null) → ID_001/REF_001
+      concept_mentions：concept_ref(co_…|null) 按 §8.1；new_concept_candidates 无号
+      返回 {"work_key", "technique_id", "source_id", "edition_part_artifact_id", "doc": 深拷贝,
+            "pattern_ids": [concept 类升序], "candidate_keys": [升序], "hashes": {"<kind>:<key>": content_sha256(对象)}}
+    empty_snapshot_knowledge(technique_id) -> dict：{"technique_id", "id_allocation": {}, "retired_entity_ids": [], "editions": [], "concepts": [], "patterns": [], "assertions": [], "school_views": [], "conflict_groups": [], "relations": []}
+    validate_snapshot_knowledge(knowledge) -> None（形状见 README §0.4）
+      列表排序：editions 按 source_id；concepts/patterns/assertions/school_views/conflict_groups 按各自主键；relations 按 relation_key；retired_entity_ids 升序 → 否则 SchemaViolation(SCH_002)
+      活对象号与 retired 交集非空 → DuplicateIdentifier(ID_002)
+      id_allocation["pat_<technique>"] 存在时 < 活对象与 retired 中该命名空间最大号 → SchemaViolation(SCH_002)
+      relations 端点（非 null）必须是活对象；conflict_groups 成员必须是 school_views 中的号 → MissingReference(REF_001)
+      pattern 顶层不得出现 content_status 键；assertion.evidence 的 start_offset ≤ end_offset → SchemaViolation(SCH_002)
+tests:
+  test_canonical.py: |
+    - test_canonical_json_key_order_independent
+    - test_canonical_json_trailing_newline_and_utf8
+    - test_nfc_key_normalizes_and_strips
+    - test_make_key_format
+    - test_make_key_never_matches_registered_prefix（全部 kind 各一次，pipeline.ledger.ids.kind_of 返回 None）
+    - test_make_key_rejects_unknown_kind
+    - test_work_key_from_source_id
+    - test_work_key_rejects_bad_source_id
+  test_model.py: |
+    内联构造合法样本（reviewed_edition_package / reviewed_edition / candidate_set / snapshot knowledge），逐例 deepcopy 后篡改
+    - test_valid_reviewed_package_passes
+    - test_reviewed_package_unresolved_nonzero_refused
+    - test_valid_reviewed_edition_passes
+    - test_reviewed_edition_missing_top_level_key_SCH_001
+    - test_reviewed_edition_bad_entity_id_ID_001
+    - test_reviewed_edition_duplicate_entity_across_approved_rejected_ID_002
+    - test_evidence_link_entity_not_approved_or_rejected_REF_001
+    - test_school_view_subject_dangling_REF_001
+    - test_valid_candidate_set_passes
+    - test_candidate_set_dangling_subject_REF_001
+    - test_candidate_set_bad_content_status_SCH_002
+    - test_candidate_set_pattern_without_id_and_candidate_key_SCH_001
+    - test_empty_snapshot_knowledge_shape
+    - test_snapshot_unsorted_list_SCH_002
+    - test_snapshot_retired_alive_ID_002
+    - test_snapshot_allocation_below_max_SCH_002
+    - test_snapshot_dangling_relation_REF_001
+    - test_snapshot_pattern_with_content_status_SCH_002
+verify:
+  - .venv/bin/python -m unittest discover -s pipeline/assembly/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 26
+  - grep -rE '^\s*(import|from) (requests|openai|anthropic|httpx)' pipeline/assembly | wc -l   # 0
+  - TDD §3 回归
+commit:
+  add: [pipeline/assembly]
+  message: "feat(m7): canonical serialization, proposal keys and ReviewedEditionPackage/candidate-set/snapshot validation (spec §15, §6.2, §8.1)"
+on_fail: 停止并报告；内联样本不能通过校验时不得放宽校验，报告首个违规键与错误码

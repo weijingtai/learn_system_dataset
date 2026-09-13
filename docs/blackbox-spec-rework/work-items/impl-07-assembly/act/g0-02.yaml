@@ -1,0 +1,67 @@
+act_id: impl-07/G0-02
+title: 创世汇编纯函数（空基底 + 单 Edition 视图 → knowledge、提案与报告）
+estimated_minutes: 90
+group: G0
+depends_on: [impl-07/G0-01]
+scope:
+  write: [pipeline/assembly/genesis.py, pipeline/assembly/tests/test_genesis.py]
+tests_first:
+  - 先写 tests/test_genesis.py（用例名逐字）并全红，再实现
+contract: |
+  genesis.py（纯函数；只 import canonical、model、errors、pipeline.ledger.errors/ids）
+    propose_genesis(candidate_set, reviewed_edition) -> dict
+      参数取 model.validate_candidate_set / validate_reviewed_edition 的返回值
+      前置拒绝（抛出，不返回）：
+        候选 pattern_id 为 null 且无 candidate_key → SchemaViolation(SCH_001)（本应在 model 拦截）
+        approved 的 pattern 其 subject 在候选 assertions 中无法解析 → AssemblyRefused(REF_001)
+      规则（空基底，只走自动分支；resolution 恒 "auto"，decision_type 恒 null，depends_on 恒 []）：
+        R02  pattern_id 非空且格式合法 → merge admit_new auto，保留该号，auto_choice "admit_new"，subject 元组 ["pattern", source_id, pattern_id]
+        R03e pattern_id 为 null → merge admit_new auto（待发号），subject 元组 ["pattern", source_id, candidate_key]
+        R04  已绑定 concept_mention（concept_ref 非空）→ merge admit_new auto；无号 new_concept_candidates 不提案，计入 excluded_unbound
+        R05  assertion 不单独提案，挂到 subject 裁决后的正式对象，在报告中按 subject 归类
+        R06' SchoolView 原样保留，其 conflict_group_id 直接成为 Snapshot 冲突组（同 cg_ 多成员一组；无跨版合并）
+      返回 {"round": 1, "proposals": [...按 proposal_key 升序], "excluded_unbound": [...按 surface 升序],
+            "resolved_subjects": {candidate_key 或 candidate 主体引用: pattern_id|null}}
+      proposal 键序逐字：proposal_key, kind, rule_id, resolution, subject, targets, options, auto_choice, decision_type, basis_sha256, depends_on
+        basis_sha256 = content_sha256({"target": null, "candidate": {name, aliases 升序, concept_id, recognition_rule_status}})
+    assemble_genesis(candidate_set, reviewed_edition, proposals, *, id_factory=None) -> dict
+      发号：R03e 候选按 (source_id, candidate_key) 升序分配 pat_<technique>_<6位>，起点 = max(候选 set 中既有合法 pat_ 号, 0) + 1；
+            id_factory 可注入（默认取 pipeline.ledger.ids）；写回 id_allocation（仅在新发号时出现该键）
+      实体装配：
+        editions 1 条 {source_id, work_key, reviewed_edition_package_revision_id, reviewed_edition_revision_id, stage_package_id, edition_part_artifact_ids, edition_complete}
+        concepts 由已绑定 concept_mentions 按 concept_ref 聚合：name = 按 surface 升序首个，其余 surface 入 aliases（NFC 去重升序），provenance[{source_id, content_sha256, content_status}]
+        patterns：approved 的 pattern；concept_id 恒 null（薄切片）；rules = []；recognition_rule_status = "not_captured"；assertion_ids 为其 subject 解析到该号的 assertion；school_view_ids
+        assertions：proposition = nfc_key(候选 proposition)；text_sha256 = sha256(NFC(proposition))；evidence 取 reviewed_edition.evidence_links[entity_id]（缺则回退候选 evidence，字段 source_span_id/start_offset/end_offset/quote_sha256）；
+                    source_span_ids = evidence 的 source_span_id 升序；subject_entity_id = 解析后的正式号；school_view_ids；collation_key
+        school_views：原字段 + source_conflict_group_id（= 视图原 conflict_group_id），subject_entity_id 改为正式号
+        conflict_groups：按 conflict_group_id 分组，member_school_view_ids 升序，first_layer_display = 任一成员 changes_current_judgment 为 true，resolutions []
+        relations = []；retired_entity_ids = []
+      内容成熟度：content_status 取 reviewed_edition.approved 的原值，不合成、不升级
+      结果经 model.validate_snapshot_knowledge 自检
+      返回键：knowledge, knowledge_bytes(= canonical_json(knowledge)), knowledge_sha256(= sha256_hex(knowledge_bytes)),
+              canonical_hash(= sha256_hex(canonical_json({concepts, patterns, assertions, school_views, conflict_groups}))),
+              report
+      report 键序逐字：proposals_count, proposals_auto, excluded_unbound, editions, concepts, patterns, assertions, school_views, conflict_groups, allocated_pattern_ids
+tests:
+  test_genesis.py: |
+    - test_genesis_single_view_bytes_deterministic（同一输入两次字节相同）
+    - test_genesis_all_proposals_auto（无 human/blocked）
+    - test_genesis_preserves_m4_pattern_id（R02）
+    - test_genesis_allocates_for_null_pattern_id（R03e，按 (source_id, candidate_key) 升序）
+    - test_genesis_concepts_from_bound_mentions
+    - test_genesis_excludes_unbound_new_concepts
+    - test_genesis_assertion_subject_resolved_to_snapshot_id
+    - test_genesis_assertion_evidence_from_reviewed_edition
+    - test_genesis_conflict_group_preserved_and_first_layer_display
+    - test_genesis_no_content_status_synthesis
+    - test_genesis_relations_empty_and_retired_empty
+    - test_genesis_id_allocation_monotonic
+    - test_genesis_result_self_validates
+verify:
+  - .venv/bin/python -m unittest discover -s pipeline/assembly/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 42
+  - grep -nE 'difflib|SequenceMatcher|random|time\(\)' pipeline/assembly/genesis.py | wc -l   # 0
+  - TDD §3 回归
+commit:
+  add: [pipeline/assembly/genesis.py, pipeline/assembly/tests/test_genesis.py]
+  message: "feat(m7): genesis assembly from a single reviewed edition into canonical snapshot knowledge (spec §6.2, §15)"
+on_fail: 停止并报告；规则表推不出唯一结果或与 README §0.4 冲突时列出差异点，不得自选

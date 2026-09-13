@@ -1,6 +1,64 @@
 # TDD：impl-07 M7 增量汇编
 
-`export LC_ALL=en_US.UTF-8`；`PY=.venv/bin/python`；`TL="$PY -m unittest discover -s pipeline/ledger/tests -t ."`；`TA="$PY -m unittest discover -s pipeline/assembly/tests -t ."`；`FR=pipeline/corpus/_fixture/mini_release01`；在仓库根运行。
+`export LC_ALL=en_US.UTF-8`；`PY=.venv/bin/python`；`TL="$PY -m unittest discover -s pipeline/ledger/tests -t ."`；`TA="$PY -m unittest discover -s pipeline/assembly/tests -t ."`；在仓库根运行。
+
+## G0. 创世薄切片（W5-L0，本波）
+
+### G0.0 开工基线（每个 ACT 后复跑）
+
+```bash
+git status --short pipeline/assembly openspec/acceptance/m7-assembler.sh    # 空
+bash docs/blackbox-spec-rework/verify-T.sh | tail -1                        # FAIL 合计: 0
+python3 docs/blackbox-spec-rework/work-items/impl-00-interfaces/check_interfaces.py; echo exit=$?   # 末行 fail=0 且 exit 0
+bash openspec/schemas/verify.sh >/dev/null; echo $?                         # 0
+bash pipeline/corpus/_fixture/mini_ed01/verify.sh >/dev/null; echo $?       # 0 或 3
+$TL 2>&1 | grep -E "^(Ran|OK|FAILED)"                                       # OK
+bash openspec/acceptance/run_all.sh | tail -1                               # SUMMARY pass=2 fail=1 blocked=8
+bash openspec/acceptance/m7-assembler.sh >/dev/null 2>&1; echo $?            # G0-05 前 127；之后 2
+```
+
+### G0.1 逐 ACT 的 Red → Green
+
+| ACT | Red（实现前） | Green（实现后） |
+|---|---|---|
+| G0-01 | `$TA` → ImportError（包不存在） | `$TA` OK，用例数 ≥ 26 |
+| G0-02 | 新增用例全 ERROR | `$TA` OK ≥ 42；两次运行字节相同 |
+| G0-03 | 新增用例全 ERROR | `$TA` OK ≥ 54；篡改矩阵 ≥ 10 例命中指定检查 |
+| G0-04 | 新增用例全 ERROR | `$TA` OK ≥ 72；`$TL` 与基线相同；Ledger 无写入的拒绝路径成立 |
+| G0-05 | `m7-assembler.sh` exit 127；新增用例全 ERROR | `$TA` OK ≥ 82；`m7-assembler.sh` → `SUMMARY pass=10 fail=0 blocked=6`、exit 2 |
+
+### G0.2 主 Agent 验收附加判据（执行者不需跑，但不得让其失败）
+
+```bash
+# 签名逐字：act/g0-* contract 中的函数名、参数名、返回键、检查名、rule_id 在实现中逐字存在
+# 独立性：gate.py 不 import genesis；acceptance.py 不 import genesis，不以 run_m7 返回的 gate/report 作为判定依据
+# 合成宿主纪律：fixture_seed.py 与 acceptance.py 是 pipeline/assembly 非 tests 文件中仅有的读 tests/data 者；production 不出现 _fixture
+# P5：只认 succeeded；上游 m6/m4 StepRun 非 succeeded 时 begin 之前拒绝
+# P7：无 human_event 产出；合成输入标 synthetic: true，不计为真实 expert_verified
+# 不改上游：任一 run_m7 前后，m6 包与 reviewed_edition 的 status、sha256、revision_status_events 行数不变
+# 写入原子性：begin_step_run 之前被拒时 artifact_revisions、step_runs、audit_log 行数不变
+# 闭集：产出修订的 artifact_type 恰为 {canonical_snapshot, assembly_package, validation_report}；check_interfaces.py fail=0
+# 无模型调用：grep -rE '^\s*(import|from) (requests|openai|anthropic|httpx|urllib\.request)' pipeline/assembly → 0
+# 退出码：acceptance 宿主异常 → 1；.venv 缺失 → 3；m7-assembler.sh 本切片 → 2
+```
+
+### G0.3 回归（每个 ACT 后）
+
+```bash
+bash docs/blackbox-spec-rework/verify-T.sh | tail -1
+python3 docs/blackbox-spec-rework/work-items/impl-00-interfaces/check_interfaces.py >/dev/null; echo $?   # 0
+bash openspec/schemas/verify.sh >/dev/null; echo $?
+bash pipeline/corpus/_fixture/mini_ed01/verify.sh >/dev/null; echo $?      # 0 或 3
+$TL 2>&1 | grep -E "^(Ran|OK|FAILED)"
+$TA 2>&1 | grep -E "^(Ran|OK|FAILED)"                                      # G0-01 起
+bash openspec/acceptance/run_all.sh | tail -1                              # 本切片不改 run_all.sh
+git diff --check
+git status --short | grep -v '^??' | grep -vE 'pipeline/assembly|openspec/acceptance/m7-assembler.sh'   # 空
+```
+
+## 完整增量汇编（DEFERRED，下一波）
+
+`FR=pipeline/corpus/_fixture/mini_release01`。
 
 ## 0. 开工基线（每组开工各一次）
 
