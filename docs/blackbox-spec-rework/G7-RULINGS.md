@@ -166,6 +166,12 @@ Q49 按 P8 须用户确认前缀；Q52/Q53/Q55/Q57/Q62 推迟到 W5 定稿；Q50
 |---|---|---|
 | 57 | `orchestrator/gate.py` `_read_package_content` 以 `json.loads` 读包内容，而 `fixture_ingest` 写入的 m1/m2 StagePackage 为 YAML 字节（`fixture_ingest.py:370`），真实链在 m1 被 Gate 阻断；修正需改 ACT 03 已验收文件 | 授权最小修正：仅该函数改为 `yaml.safe_load`（JSON 为其子集），结果非映射仍判不可读；新增具名用例（YAML 字节包可读、非映射拒绝），先红后绿，单独提交 `fix(orchestrator)`，由 K4 验收复核 gate 全量用例。不改 `fixture_ingest`（P9）、不为 imported 阶段设特例（避免 Gate 双口径）；属读取格式兼容，不构成复用被判模块实现 |
 
+### 9.11 impl-05 K2 停手（阶段封存守卫）
+
+| # | 条目 | 裁决 |
+|---|---|---|
+| 58 | impl-05 ACT 03「每路一个 m4 submit StepRun」：第一路 succeeded 后 Ledger 封存 m4 阶段，第 2、3 路 begin 被 `IllegalTransition` 拒绝（与第 32 条 m1_shim 同源） | **推广第 32 条为通用规则**：同一 EditionPart 同一阶段的后续 StepRun 一律经 `supersede_step_run` 接替该阶段最近一个 succeeded 运行（经读接口查出，不写死号），语义为续写而非替换；输入解析沿 supersedes 链回溯收集全部 succeeded 运行，不以「最新运行」代表全阶段；不改 Ledger（P9）。与第 40/45 条 carrier 判定一致（不承载包的接替运行保留在有效集）。impl-05 补具名用例：三路依次接替全部可解析、不经接替被守卫拒绝 |
+
 ## 10. 用户待办
 
 1. W4-J 前：撰写真实前十页人工终态决定表（P7，Q37）。

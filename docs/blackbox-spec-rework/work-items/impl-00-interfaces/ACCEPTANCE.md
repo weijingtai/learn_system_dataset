@@ -73,3 +73,14 @@ act/10 `ACCEPTED`。impl-00 其余 10 个 ACT 为 `DEFERRED`（纵切后）。
 - 复验：`check_interfaces.py` 末行 `I00-IF SUMMARY pass=24 fail=0`、exit 0；unittest 13 OK；INTERFACES 中旧 M4 名（`candidate_batch`/`model_run`/`candidate_diff_report`）0 处、`char_start`/`char_end` 0 处；§4 M4 行 5 条（`candidate_submission`、`candidate_lane_set`、`dispute_queue`、`candidate_set`、`candidate_package`）。矩阵外篡改：删去 `dispute_queue` 的 §4 行 → `FAIL IF11`、`FAIL IF21`、exit 1。
 
 act/12 `ACCEPTED`。act/05（m4 金标）执行中。
+
+### 5.3 act/05 m4 金标（2026-09-12，主 Agent 独立验收，`git archive 7d805e6` 干净树）
+
+执行者：tmux 中的 cmd（DeepSeek V4.1 Flash），会话 `w4g`；独占 fixture ACT，不由 impl-05 实现方生成（第 48 条）。
+
+- 范围：`7d805e6` 恰为 `mini_ed01/m4/`（README、SHA256SUMS、build_expected_m4.py、candidate_set.yaml、ruling_m4_d001.yaml、三件提交件）、`expected/m4.stage_package.yaml`、`verify.sh` 共 10 文件；m1–m3 期望包、`spans.yaml`、`manifest.yaml`、`pages/`、`tools/`、`anomalies.yaml` 变更 0；`spans.yaml` sha256 仍 `ec6d77b9…`。
+- Red（执行方原文）：`verify.sh` 扩展后生成前 5 项 FAIL、exit 1。
+- 复验：`verify.sh` 11 PASS、`FIXTURE OK`、exit 0；生成器两次输出相同；`shasum -a 256 -c m4/SHA256SUMS` 0；`ruling_m4_d001.yaml` 含 `synthetic_fixture: true`（第 52 条）；生成器中 `knowledge_extraction`、`uuid/time/random` 仅出现在「不 import / 无」声明的文档字符串。四件金标与 impl-05 README 附录 A 逐字相同（执行方逐字比对 IDENTICAL×4，复审 S1）。矩阵外篡改：副本 `candidate_set.yaml` 改一字节 → `FAIL expected_hash`、`FAIL m4_sha256sums`、exit 1。
+- 下游不受影响：`m3-coverage.sh`、`m5-evidence-gate.sh`、`m8-span-identity.sh` 均 exit 2；`run_all.sh` `pass=2 fail=1 blocked=8`；`schemas/verify.sh` 0；`check_interfaces.py` 24 PASS。
+
+act/05 `ACCEPTED`。W4G 组完成。
