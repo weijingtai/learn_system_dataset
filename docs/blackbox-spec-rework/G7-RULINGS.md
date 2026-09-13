@@ -102,6 +102,21 @@ Q49 按 P8 须用户确认前缀；Q52/Q53/Q55/Q57/Q62 推迟到 W5 定稿；Q50
 | 32 | M8 w3f K2：act/03 薄 M1 以 `begin_step_run` 新建 m1 运行写 Checkpoint，被 Ledger 阶段封存守卫拒绝（`service.py:1280-1285`，m1 已由 ingest 运行 succeeded 封存） | 采纳 A：改用 `supersede_step_run` 接替该 EditionPart 最近一个 succeeded 的 m1 运行（经读接口查出，不写死号），其余契约逐字不变；不改 Ledger（P9）。附加：act/03 新增用例断言登记页图前后 `resolve_m3_inputs` 的 `manifest_revision_id` 不变；act/04 以接替后的 m1 运行读取页图登记。impl-09 真实 M1 落地时同样经 supersede 或在首次 M1 运行内登记页图，再议。 |
 | 33 | M5 w3e K2 六条 | ① `g3_evidence` 字框比对缺陷修正落在 `9aaccf5` 而非 `0a77975`，接受登记；② act/04–06 脚手架写 `ingest(m1,m2,m3)` 与 BDD §0「ingest(m1,m2)→run_m3→run_m5」不一致，以 BDD 真实链路为准，文档随 impl-03 收尾修订；③ `build_context` 19 键、`assemble_validation_package` 追加 `gate_results_revision_id`/`edition_part_id` 关键字参数接受；④ errored Validator 报告顶层 `detail` 接受（0.1.0-draft）；⑤ **返工**：begin 之后 `status=failed` 的 CLI 退出码与 M3 一致为 1（`FAILED` 1、`GATE_FAILED` 1、begin 前 `REFUSED` 2、`WriterLocked` 3）；⑥ 知悉。 |
 
+### 9.3 impl-08 定稿（`cd6c7a6`）待裁决
+
+| # | 条目 | 裁决 |
+|---|---|---|
+| 34 | D-4 Stage Gate 报告是否落盘 | 采纳 B：作为下游 StepRun 的首个 artifact 落盘 |
+| 35 | N-4 Gate 报告 artifact_type | 采纳 A：复用已登记 `validation_report`（内容 `kind=stage_gate`），不新增类型（P2） |
+| 36 | D-6 Ledger 读缺口补法 | 采纳 A：首纵切不改 `pipeline/ledger`（P9），act/10 公开读方法 `DEFERRED`，缺口仍以 impl-00 README §5.2 为唯一清单 |
+| 37 | D-7 §20.1 是否计入 imported（fixture 灌入）与 legacy 绑定 | 采纳 A：计入，并在 PASS/BLOCKED 行逐项披露来源 |
+| 38 | D-8 §20.10 判定口径 | 采纳 C：OCR/模型/索引/存储四类 Adapter 逐项判定，合成结论取最弱；首纵切只有存储端口可判，其余 BLOCKED |
+| 39 | D-9 M3 入口越过端口访问 Ledger 内部 | 采纳 B：该项判 BLOCKED 并列出 文件:行号，不改 impl-02（P9），端口化随后续批次 |
+| 40 | N-2 m1_shim supersede 与 Gate/lineage | 采纳 A：仅当接替者承载 StagePackage 时才从有效运行中移除被接替者；lineage 用 succeeded 集合 |
+| 41 | N-3 M8 legacy 绑定 | 采纳 A：descriptor 增 `entry_kwargs` 与 `owns_processing_run` |
+| 42 | D-16 ReworkImpact/ThroughputEstimate 口径 | 采纳 A：血缘可达计数 + 历时均值 |
+| 43 | N-1 §22.3 要求 §20.1（及 20.9）成立 vs P1 | **用户决定（2026-09-12）：维持关键路径**。首纵切交付「Ledger→M3→M5→M8」可跑通证据链；§20.1、§20.9 在首纵切内如实判 BLOCKED 并写明原因（M4/M6 未接入、GraphProjectionPack 未编译），不伪造 PASS；M4/M6 最薄接入与 GraphProjectionPack 排入下一波，接入后由判据自动转判。首纵切「完成」以 §20.3/20.4/20.8 可判且 20.1/20.9 BLOCKED 披露为准，不改规格 §22.3 正文。 |
+
 ## 10. 用户待办
 
 1. W4-J 前：撰写真实前十页人工终态决定表（P7，Q37）。
