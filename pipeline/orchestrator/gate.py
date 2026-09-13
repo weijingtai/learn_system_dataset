@@ -9,6 +9,7 @@ import json
 from pathlib import Path
 
 import jsonschema
+import yaml
 from referencing import Registry as _SchemaRegistry, Resource
 from referencing.jsonschema import DRAFT202012
 
@@ -110,14 +111,20 @@ def _package_revisions(port, row):
 
 
 def _read_package_content(port, package_revision):
-    """读取 StagePackage 内容 JSON；不可读返回 ``None``。"""
+    """读取 StagePackage 内容；非映射或不可读返回 ``None``。
+
+    StagePackage 修订字节由产出方决定：``run_m3``/``run_m5``/``run_m8`` 写 JSON，
+    ``fixture_ingest`` 写 YAML 金标信封（``expected/mN.stage_package.yaml``）。用
+    ``yaml.safe_load`` 容错读取（JSON 是 YAML 子集），仅接受映射（裁定 57）。
+    """
     sha256 = package_revision.get("sha256")
     if not sha256:
         return None
     try:
-        return json.loads(port.read_object(sha256).decode("utf-8"))
+        content = yaml.safe_load(port.read_object(sha256).decode("utf-8"))
     except Exception:  # noqa: BLE001 - 内容不可读按失败处理
         return None
+    return content if isinstance(content, dict) else None
 
 
 def effective_step_runs(port, handle, stage):

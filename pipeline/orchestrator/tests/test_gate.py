@@ -7,11 +7,16 @@
 import ast
 import json
 import sqlite3
+import tempfile
 import unittest
+from pathlib import Path
 
 import yaml
 
-from pipeline.contract_registry.catalog import Registry
+from pipeline.contract_registry.catalog import Registry, load_registry
+from pipeline.contract_registry.ports import DirectLedgerAdapter
+from pipeline.ledger.fixture_ingest import ingest
+from pipeline.ledger.service import LedgerService
 from pipeline.orchestrator.gate import (
     GATE_CHECKS,
     effective_step_runs,
@@ -56,6 +61,27 @@ def _finalize(adapter, request, outcome):
         adapter.fail_step_run(step_run_id, outcome["failure_artifact_ids"], "stub failed")
         return None
     return adapter.await_human(step_run_id, outcome["pending_queue_artifact_ids"])
+
+
+class NonMappingPackageModule(StubModule):
+    """登记 schema 合法的 StagePackage，但把修订字节写成非映射内容（裁定 57 负例）。"""
+
+    def _register_package(self, port, request, outputs, payloads, report_revision, log_revision):
+        class _SwapPort:
+            def __init__(self, inner):
+                self._inner = inner
+
+            def register_stage_package(self, step_run_id, package, data, **kwargs):
+                return self._inner.register_stage_package(
+                    step_run_id, package, b"- not a mapping\n", **kwargs
+                )
+
+            def __getattr__(self, name):
+                return getattr(self._inner, name)
+
+        return super()._register_package(
+            _SwapPort(port), request, outputs, payloads, report_revision, log_revision
+        )
 
 
 class GateTestCase(LedgerTestCase):
@@ -193,6 +219,18 @@ class TestStageGate(GateTestCase):
         )
         self.assertEqual(gate["gate"], "blocked")
         self.assertFalse(gate["checks"]["stage_package_valid"]["ok"])
+
+    def test_stage_package_valid_rejects_non_mapping_content(self):
+        stub = NonMappingPackageModule("m1")
+        registry = self.registry_with([stub])
+        processing_run_id, edition_part_id = self.start_run()
+        self.execute_stub(stub, processing_run_id, edition_part_id)
+        gate = evaluate_stage_gate(
+            self.adapter, registry, self.handle(processing_run_id, edition_part_id), "m1"
+        )
+        check = gate["checks"]["stage_package_valid"]
+        self.assertFalse(check["ok"])
+        self.assertIn("内容不可读", check["detail"])
 
     def test_blocked_when_validation_not_passed(self):
         stub = StubModule("m1", validation_passed=False)
@@ -475,6 +513,33 @@ class TestEffectiveRuns(GateTestCase):
         succeeded = succeeded_step_runs(self.adapter, handle, "m1")
         self.assertEqual([run["step_run_id"] for run in succeeded], [request["step_run_id"]])
         self.assertEqual(evaluate_stage_gate(self.adapter, registry, handle, "m1")["gate"], "passed")
+
+
+class TestStagePackageYamlBytes(unittest.TestCase):
+    """裁定 57：Gate 读取 ``fixture_ingest`` 写入的 YAML 字节包（非 JSON）。"""
+
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmp.cleanup)
+        self.root = Path(self._tmp.name) / "ledger"
+        self.fixture_dir = REPO_ROOT / "pipeline" / "corpus" / "_fixture" / "mini_ed01"
+
+    def test_stage_package_valid_accepts_yaml_bytes_package(self):
+        service = LedgerService(self.root)
+        try:
+            summary = ingest(self.fixture_dir, service, stages=("m1", "m2"))
+        finally:
+            service.close()
+        adapter = DirectLedgerAdapter(self.root)
+        self.addCleanup(adapter.close)
+        handle = {
+            "processing_run_id": summary["processing_run_id"],
+            "edition_part_id": summary["edition_part_id"],
+            "technique_id": summary["technique_id"],
+        }
+        gate = evaluate_stage_gate(adapter, load_registry(), handle, "m1")
+        check = gate["checks"]["stage_package_valid"]
+        self.assertTrue(check["ok"], check["detail"])
 
 
 if __name__ == "__main__":
