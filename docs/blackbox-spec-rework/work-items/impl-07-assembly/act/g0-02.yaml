@@ -11,8 +11,9 @@ contract: |
   genesis.py（纯函数；只 import canonical、model、errors、pipeline.ledger.errors/ids）
     propose_genesis(candidate_set, reviewed_edition) -> dict
       参数取 model.validate_candidate_set / validate_reviewed_edition 的返回值
-      前置拒绝（抛出，不返回）：
-        候选 pattern_id 为 null 且无 candidate_key → SchemaViolation(SCH_001)（防御分支，上游当前不产出；见 README §0.7）
+      前置（防御分支，当前上游不产出；见 README §0.7）：
+        model 层 pattern_id 为 null 且无 candidate_key → SCH_002（已在 model.validate_candidate_set 拒绝，不进入本函数）；
+        有 candidate_key → 放行至 R03e（补发）
       approved 的 pattern 其 assertion_ids 在候选中无法解析 → model 已拦（REF_001）
       规则（空基底，只走自动分支；resolution 恒 "auto"，decision_type 恒 null，depends_on 恒 []）：
         R02  pattern_id 合法 pat_（impl-05 恒发号，assemble.py:484）→ merge admit_new auto，保留该号，auto_choice "admit_new"，subject 元组 ["pattern", source_id, pattern_id]

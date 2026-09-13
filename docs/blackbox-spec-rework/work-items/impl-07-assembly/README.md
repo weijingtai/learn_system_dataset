@@ -132,7 +132,7 @@ M8 冻结输入第 1 项为 CanonicalKnowledgeSnapshot Revision（`§16:661-662`
 2. **`candidate_set.patterns[].concept_id` / `aliases`**（M4）：当前候选 Pattern 无该绑定、无别名（`assemble.py:485-498`）。需求：M4 给出 `concept_id`（可为 null）与 `aliases[]`。在此之前 Snapshot `patterns[].concept_id = null`、`patterns[].aliases = []`，M8 `KnowledgeEntry.subject_entity_id` 按 `pat_` 聚合。
 3. **`candidate_set.patterns[].rules[]`**（M4）：当前 `recognition_rule_status = not_captured`，无 `{rule_key, ast_sha256}`。需求：M4 补规则 AST 与哈希。在此之前 Snapshot `patterns[].rules = []` 且 `recognition_rule_status = "not_captured"`（`§20.6:942`：`not_captured` 不得误判为不存在）。
 4. **`reviewed_edition` 内容内嵌与否**（M6，可选）：本切片经 m6 冻结血缘读 M4 `candidate_set`（D-0-2），M6 契约保持不变。若后续要求 `reviewed_edition` 自包含内容实体，须经另立契约变更 ACT，并同步 M7 上游解析（§0.3）。
-5. **无号 Pattern 候选的稳定键**（M4，防御）：impl-05 已验收代码**恒为每个 pattern 发 `pat_` 号**（`assemble.py:484`），不产出 `pattern_id: null` 的候选，也无 `candidate_key`。故 M7 的 R03e（`pattern_id` 为 null → 从 `id_range` 补发）在当前上游下**不出现**，仅作防御分支保留：若未来 M4 引入无号候选，必须同时提供稳定 `candidate_key`（否则 M7 以 `SCH_001` 拒绝）。本条与第 64/65 条一致。
+5. **无号 Pattern 候选的稳定键**（M4，防御）：impl-05 已验收代码**恒为每个 pattern 发 `pat_` 号**（`assemble.py:484`），不产出 `pattern_id: null` 的候选，也无 `candidate_key`。故 M7 的 R03e（`pattern_id` 为 null → 从 `id_range` 补发）在当前上游下**不出现**，仅作防御分支保留：若未来 M4 引入无号候选，必须同时提供稳定 `candidate_key`——**model 层 `pattern_id` 为 null 且无 `candidate_key` → `SCH_002`；有 `candidate_key` 放行至 R03e（当前上游不产出）**。本条与第 64/65 条一致。
 
 ## 0.8 待主 Agent 裁决
 
