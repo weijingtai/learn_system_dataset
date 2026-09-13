@@ -197,6 +197,12 @@ Q49 按 P8 须用户确认前缀；Q52/Q53/Q55/Q57/Q62 推迟到 W5 定稿；Q50
 | 67 | F1 M6 审核队列：act/05 以 `required_decision_types` 合并得 5 项（school_view 恒含 source_fidelity），与 README D-04 默认映射及 BDD/expected 的 4 项矛盾 | 以已验收 impl-05 `review_events.required_decision_types` 为唯一来源（P9，签发所需决定类型由 M4 契约定义）；M6 不另立映射；BDD、期望产物、队列与失效计数一律按推导结果（school_view 含 source_fidelity）重算，README D-04 改写为「由 required_decision_types 推导」 |
 | 68 | F2 modify 决定锚点语义（事件锚 = seen 还是 modified） | 人工决定事件锚点一律为 `seen_revision_id`（审核者所见修订，§14.1 精确失效依据）；`modify` 决定另携 `modified_revision_id`（修改产出的新修订），该键纳入 decision_entries 键集并由 Gate `decision_anchoring` 校验存在性；BDD 1.3/5.5、act/01/02/05 统一 |
 
+### 9.15 impl-06 四查 R2（`d77867e`）阻断 N1
+
+| # | 条目 | 裁决 |
+|---|---|---|
+| 69 | 复审中 carried 条目锚点语义未定义（act/02 `fold_decisions`/`decision_anchoring` 要求 entry seen == 当前修订，act/09 carried 条目源自首审旧修订） | carried 条目 `seen_revision_id` **保持首审审核者实际所见的旧修订**（不改写为新修订，避免伪造所见，P7 精神），另携 `carried_to_revision_id`（= 复审队列项当前修订）与 `carried_from`（= 原决定事件修订）。Gate `decision_anchoring` 条件式：active ⇒ `seen_revision_id == 当前修订`；carried ⇒ `carried_to_revision_id == 当前修订`、`carried_from` 指向存在的决定事件且其 seen 与条目 seen 相同、且该对象在旧/新修订的规范化内容哈希相等（§14.1 carried_forward 前提）。`fold_decisions` 对 carried 条目不以 seen 不等报 REF_001；`model.decision_entry` 增 carried 构造模式并有具名用例 |
+
 ## 10. 用户待办
 
 1. W4-J 前：撰写真实前十页人工终态决定表（P7，Q37）。
