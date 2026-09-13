@@ -139,6 +139,13 @@ Q49 按 P8 须用户确认前缀；Q52/Q53/Q55/Q57/Q62 推迟到 W5 定稿；Q50
 | 49 | N3 候选证据坐标（页块绝对 `start_offset/end_offset` vs INTERFACES I-11 span 相对 `char_start/char_end`） | 采纳 A：以页块绝对坐标为准，与 M3 span 偏移、M5 严格 offset 校验同一坐标系；INTERFACES §3.1/I-11 随 act/12 同步改写 |
 | 50 | N4 M4 候选 Gate 结果是否落盘 | 采纳 A：作为 M4 自身 StepRun 的 `validation_report` 落盘并列入 `validation_report_ids`（可公开读回）；与编排层 Stage Gate 报告（第 46 条不落盘）无关 |
 
+### 9.7 impl-00 前置 ACT（`6cd4379`）待裁决
+
+| # | 条目 | 裁决 |
+|---|---|---|
+| 51 | A1 act/12 是否一并把 §3.10 `evidence_map_pack.evidence_link` 改为页块绝对坐标 | 采纳：一并改。已验收 `pipeline/dataset_compiler`、`pipeline/validation` 代码与 impl-04 文档中 `char_start/char_end` 均为 0 处（M8 首切片知识链前三段 `not_compiled`，未冻结该字段），与第 49 条同一坐标系 |
+| 52 | A2 m4 金标生成器位置；以及金标内人工裁决事件 `ruling_m4_d001` 的性质 | 采纳 A：生成器放 fixture `m4/build_expected_m4.py`，不改 `tools/build_fixture.py` 与 m1–m3 字节。**补充（P7）**：fixture 中新增的人工裁决/签发事件属测试合成，须在内容中显式标注 `synthetic_fixture: true`（actor 标为 fixture 作者），README 写明「仅供验收宿主，不计入真实 expert_verified、不得进入任何发布级别判定」；验收与实现不得把它当作真实人工决定 |
+
 ## 10. 用户待办
 
 1. W4-J 前：撰写真实前十页人工终态决定表（P7，Q37）。
