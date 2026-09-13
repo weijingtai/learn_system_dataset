@@ -332,7 +332,7 @@ if spans is not None:
 
 # ------------------------------------------------------- V5 expected_schema
 v5_bad = []
-for stage in ("m1", "m2", "m3"):
+for stage in ("m1", "m2", "m3", "m4"):
     rel = "expected/%s.stage_package.yaml" % stage
     target = os.path.join(FIX, rel)
     if not os.path.exists(target):
@@ -349,7 +349,7 @@ for stage in ("m1", "m2", "m3"):
 if v5_bad:
     fail("expected_schema", "; ".join(v5_bad))
 else:
-    emit("PASS", "expected_schema", "m1/m2/m3")
+    emit("PASS", "expected_schema", "m1/m2/m3/m4")
 
 # --------------------------------------------------------- V6 expected_hash
 v6_bad = []
@@ -382,9 +382,14 @@ try:
         },
         "m3": {"spans": len(spans), "batches": len({s["batch_id"] for s in spans})},
     }
-    expected_hashes = {"m1": m1_hash, "m2": m2_hash, "m3": m3_hash}
+    m4_cset_path = os.path.join(FIX, "m4/candidate_set.yaml")
+    m4_hash = sha256_file(m4_cset_path)
+    with open(m4_cset_path, "rb") as fh:
+        m4_cset = json.loads(fh.read().decode("utf-8"))
+    actual_counts["m4"] = m4_cset["counts"]
+    expected_hashes = {"m1": m1_hash, "m2": m2_hash, "m3": m3_hash, "m4": m4_hash}
 
-    for stage in ("m1", "m2", "m3"):
+    for stage in ("m1", "m2", "m3", "m4"):
         doc = load_yaml("expected/%s.stage_package.yaml" % stage)
         if doc["manifest"]["content_sha256"] != expected_hashes[stage]:
             v6_bad.append("%s content_sha256 不符" % stage)
@@ -397,7 +402,7 @@ except Exception as exc:  # noqa: BLE001
 if v6_bad:
     fail("expected_hash", "; ".join(v6_bad))
 else:
-    emit("PASS", "expected_hash", "m1/m2/m3")
+    emit("PASS", "expected_hash", "m1/m2/m3/m4")
 
 # ---------------------------------------------------------------- V7 assets
 v7_bad = []
@@ -431,6 +436,107 @@ if banned:
     fail("no_images", "fixture 内含图像文件: %s" % ", ".join(banned[:5]))
 else:
     emit("PASS", "no_images", "0")
+
+# ------------------------------------------------------- V9 m4_sha256sums
+v9_bad = []
+sums_path = os.path.join(FIX, "m4/SHA256SUMS")
+sums_count = 0
+if not os.path.exists(sums_path):
+    v9_bad.append("m4/SHA256SUMS 缺失")
+else:
+    with open(sums_path, encoding="utf-8") as fh:
+        for line in fh:
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            sums_count += 1
+            parts = line.split(None, 1)
+            if len(parts) != 2:
+                v9_bad.append("行格式非法: %s" % line)
+                continue
+            want, rel = parts[0], parts[1].strip()
+            target = os.path.join(FIX, rel)
+            if not os.path.exists(target):
+                v9_bad.append("%s 缺失" % rel)
+            elif sha256_file(target) != want:
+                v9_bad.append("%s sha256 不符" % rel)
+if v9_bad:
+    fail("m4_sha256sums", "; ".join(v9_bad[:3]))
+else:
+    emit("PASS", "m4_sha256sums", "files=%d" % sums_count)
+
+# ------------------------------------------- V10 m4_submission_closed_set
+v10_bad = []
+CATEGORIES = ("assertion", "pattern", "school_view", "concept_mention")
+LANES = ("a", "b", "c")
+CHANNELS = ("fixture_gold", "task_pipeline_manual", "model_adapter", "legacy_workbench")
+try:
+    span_by_id = {sp["span_id"]: sp for sp in (spans or [])}
+    m4_docs = {}
+    for name in (
+        "submission_assertion_a.yaml",
+        "submission_assertion_b.yaml",
+        "submission_concept_mention_a.yaml",
+        "ruling_m4_d001.yaml",
+    ):
+        with open(os.path.join(FIX, "m4", name), encoding="utf-8") as fh:
+            m4_docs[name] = yaml.safe_load(fh)
+    for name, doc in m4_docs.items():
+        if not isinstance(doc, dict):
+            v10_bad.append("%s 不可解析" % name)
+            continue
+        if "category" in doc:
+            if doc.get("category") not in CATEGORIES:
+                v10_bad.append("%s category 越界" % name)
+            if doc.get("lane") not in LANES:
+                v10_bad.append("%s lane 越界" % name)
+            if doc.get("channel") not in CHANNELS:
+                v10_bad.append("%s channel 越界" % name)
+    for name in ("submission_assertion_a.yaml", "submission_concept_mention_a.yaml"):
+        for item in m4_docs[name]["items"]:
+            for ev in item["evidence"]:
+                sp = span_by_id.get(ev["source_span_id"])
+                if sp is None:
+                    v10_bad.append("%s 引用未知 span %s" % (name, ev["source_span_id"]))
+                    continue
+                text = sp["text"]
+                if "span_char_start" in ev:
+                    s, e = ev["span_char_start"], ev["span_char_end"]
+                    if not (0 <= s < e <= len(text)):
+                        v10_bad.append("%s 区间越界 %s" % (name, ev["source_span_id"]))
+                elif "quote" in ev:
+                    if text.count(ev["quote"]) != 1:
+                        v10_bad.append("%s quote 不唯一: %s" % (name, ev["quote"]))
+except Exception as exc:  # noqa: BLE001
+    v10_bad.append("m4 提交件不可读: %s" % exc)
+if v10_bad:
+    fail("m4_submission_closed_set", "; ".join(v10_bad[:3]))
+else:
+    emit("PASS", "m4_submission_closed_set", "4/4")
+
+# --------------------------------------- V11 m4_synthetic_human_events
+v11_bad = []
+ruling_files = []
+try:
+    import glob as _glob
+
+    ruling_files = sorted(_glob.glob(os.path.join(FIX, "m4", "ruling_*.yaml")))
+    if not ruling_files:
+        v11_bad.append("m4/ruling_*.yaml 缺失")
+    for path in ruling_files:
+        with open(path, encoding="utf-8") as fh:
+            doc = yaml.safe_load(fh) or {}
+        rel = os.path.relpath(path, FIX)
+        if doc.get("synthetic_fixture") is not True:
+            v11_bad.append("%s 缺 synthetic_fixture: true" % rel)
+        if doc.get("actor_ref") != "fixture:mini_ed01":
+            v11_bad.append("%s actor_ref 非 fixture 作者" % rel)
+except Exception as exc:  # noqa: BLE001
+    v11_bad.append("ruling 不可读: %s" % exc)
+if v11_bad:
+    fail("m4_synthetic_human_events", "; ".join(v11_bad[:3]))
+else:
+    emit("PASS", "m4_synthetic_human_events", "ruling=%d" % len(ruling_files))
 
 # ---------------------------------------------------------------- 退出码
 if fails:

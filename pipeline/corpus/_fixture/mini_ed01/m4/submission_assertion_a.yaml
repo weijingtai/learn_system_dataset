@@ -1,0 +1,19 @@
+schema_version: 0.1.0-draft
+category: assertion
+lane: a
+channel: fixture_gold
+technique_id: qizheng
+producer: {kind: fixture, name: mini_ed01, model_id: null, prompt_sha256: null, response_sha256: null}
+source_task: null
+items:
+- proposition: 三辰通載三十卷
+  relation: supports
+  evidence:
+  - {source_span_id: ss_sanche_ed01_p0001_s04, support_type: direct, span_char_start: 0, span_char_end: 7}
+  layer: editorial
+- proposition: 宋錢如璧撰
+  relation: supports
+  evidence:
+  - {source_span_id: ss_sanche_ed01_p0001_s04, support_type: direct, span_char_start: 7, span_char_end: 12}
+  - {source_span_id: ss_sanche_ed01_p0001_s02, support_type: direct, quote: 錢如璧撰}
+  layer: editorial

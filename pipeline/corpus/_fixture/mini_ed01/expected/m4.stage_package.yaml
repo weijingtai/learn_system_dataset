@@ -1,0 +1,115 @@
+schema_version: 1.0.0
+stage_package_id: pkg_m4_00000000000000000000000000000000
+artifact_revision_id: rev_00000000000000000000000000000001
+stage: m4
+status: sealed
+payload:
+  candidate_set_revision_id: rev_0000000000000000000000000000000b
+  corpus_stage_package_revision_id: rev_00000000000000000000000000000002
+  spans_revision_id: rev_00000000000000000000000000000004
+  technique_profile_revision_id: rev_00000000000000000000000000000005
+  gate_profile: thin_no_model
+  span_layer: structural
+  cross_model: not_evaluated
+  term_layering: verify_only
+  content_status_counts:
+    assertions: 2
+    concept_mentions: 0
+    disputes: 1
+    human_decisions: 1
+    new_concept_candidates: 2
+    patterns: 0
+    rejected: 1
+    school_views: 0
+manifest:
+  schema_version: 1.0.0
+  processing_run_id: prun_00000000000000000000000000000000
+  step_run_id: srun_00000000000000000000000000000000
+  input_artifacts:
+  - schema_version: 1.0.0
+    artifact_kind: stage_package
+    artifact_revision_id: rev_00000000000000000000000000000002
+    artifact_type: stage_package
+    stage_package_id: pkg_m3_00000000000000000000000000000000
+  - schema_version: 1.0.0
+    artifact_kind: artifact
+    artifact_revision_id: rev_00000000000000000000000000000003
+    artifact_type: corpus_package
+    artifact_id: art_00000000000000000000000000000003
+  - schema_version: 1.0.0
+    artifact_kind: artifact
+    artifact_revision_id: rev_00000000000000000000000000000004
+    artifact_type: corpus_spans
+    artifact_id: art_00000000000000000000000000000004
+  - schema_version: 1.0.0
+    artifact_kind: artifact
+    artifact_revision_id: rev_00000000000000000000000000000005
+    artifact_type: technique_profile
+    artifact_id: art_00000000000000000000000000000005
+  - schema_version: 1.0.0
+    artifact_kind: artifact
+    artifact_revision_id: rev_00000000000000000000000000000007
+    artifact_type: candidate_submission
+    artifact_id: art_00000000000000000000000000000007
+  - schema_version: 1.0.0
+    artifact_kind: artifact
+    artifact_revision_id: rev_00000000000000000000000000000008
+    artifact_type: candidate_submission
+    artifact_id: art_00000000000000000000000000000008
+  - schema_version: 1.0.0
+    artifact_kind: artifact
+    artifact_revision_id: rev_00000000000000000000000000000009
+    artifact_type: candidate_submission
+    artifact_id: art_00000000000000000000000000000009
+  output_artifacts:
+  - schema_version: 1.0.0
+    artifact_kind: artifact
+    artifact_revision_id: rev_0000000000000000000000000000000a
+    artifact_type: candidate_package
+    artifact_id: art_0000000000000000000000000000000a
+  counts:
+    assertions: 2
+    concept_mentions: 0
+    disputes: 1
+    human_decisions: 1
+    new_concept_candidates: 2
+    patterns: 0
+    rejected: 1
+    school_views: 0
+  content_sha256: 189880a07f8cacbdf8dde784d3d01abf982a98111352cfc8212a1ac58422199e
+validation:
+  passed: true
+  report_artifacts: []
+lineage:
+  upstream_artifacts:
+  - schema_version: 1.0.0
+    artifact_kind: stage_package
+    artifact_revision_id: rev_00000000000000000000000000000002
+    artifact_type: stage_package
+    stage_package_id: pkg_m3_00000000000000000000000000000000
+  - schema_version: 1.0.0
+    artifact_kind: artifact
+    artifact_revision_id: rev_00000000000000000000000000000004
+    artifact_type: corpus_spans
+    artifact_id: art_00000000000000000000000000000004
+  - schema_version: 1.0.0
+    artifact_kind: artifact
+    artifact_revision_id: rev_00000000000000000000000000000005
+    artifact_type: technique_profile
+    artifact_id: art_00000000000000000000000000000005
+  transformations:
+  - operation: extract_candidates
+    step_run_id: srun_00000000000000000000000000000000
+    configuration_artifact_revision_id: rev_00000000000000000000000000000006
+    input_artifact_revision_ids:
+    - rev_00000000000000000000000000000002
+    - rev_00000000000000000000000000000003
+    - rev_00000000000000000000000000000004
+    - rev_00000000000000000000000000000005
+    - rev_00000000000000000000000000000007
+    - rev_00000000000000000000000000000008
+    - rev_00000000000000000000000000000009
+    output_artifact_revision_ids:
+    - rev_0000000000000000000000000000000a
+logs: []
+failures: []
