@@ -160,6 +160,12 @@ Q49 按 P8 须用户确认前缀；Q52/Q53/Q55/Q57/Q62 推迟到 W5 定稿；Q50
 |---|---|---|
 | 56 | w4o ACT 04 以「实现先行、临时移出模块」取得 Red 证据 | 按 impl-02 J3 先例接受并登记（K2 验收其余全绿）；属违反先红后绿纪律，自 K3 起必须先写测试、取得真实 Red 原文后再实现，再犯判返工。K1/K2 验收记录注明此项 |
 
+### 9.10 impl-08 K4 开工停手
+
+| # | 条目 | 裁决 |
+|---|---|---|
+| 57 | `orchestrator/gate.py` `_read_package_content` 以 `json.loads` 读包内容，而 `fixture_ingest` 写入的 m1/m2 StagePackage 为 YAML 字节（`fixture_ingest.py:370`），真实链在 m1 被 Gate 阻断；修正需改 ACT 03 已验收文件 | 授权最小修正：仅该函数改为 `yaml.safe_load`（JSON 为其子集），结果非映射仍判不可读；新增具名用例（YAML 字节包可读、非映射拒绝），先红后绿，单独提交 `fix(orchestrator)`，由 K4 验收复核 gate 全量用例。不改 `fixture_ingest`（P9）、不为 imported 阶段设特例（避免 Gate 双口径）；属读取格式兼容，不构成复用被判模块实现 |
+
 ## 10. 用户待办
 
 1. W4-J 前：撰写真实前十页人工终态决定表（P7，Q37）。
