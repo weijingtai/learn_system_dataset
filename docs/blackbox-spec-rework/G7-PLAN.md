@@ -26,8 +26,8 @@
 | W1 | 2 | **A** 补全 impl-00 接口总表与 impl-03（M5）草稿；**B** 对账审查 impl-04～10 草稿与 impl-00 的接口一致性，汇总全部待裁决项 | A：`impl-00-interfaces/`、`impl-03-validation/`；B：`reviews/G7-DRAFTS-REVIEW-R1.md` | 主 Agent 一次性裁决，写 `G7-RULINGS.md` |
 | W2 | 2 | **C** 执行 impl-00 契约 ACT（新 Schema、fixture m4/m5/m8 期望产物、verify 扩展）；**D** 按裁决定稿 impl-03、impl-04 为 READY 并做 wjt-react 四查 | C：schemas + fixture（独占）；D：两个工作包目录 | 主 Agent 验收 C；D 判 READY |
 | W3 | 2 | **E** impl-03 M5 实现（`ACCEPTED`）；**F** impl-04 M8 实现（K1–K3 验收收尾）。原 **G** impl-05 按用户决定（G7-RULINGS 第 43 条）移出首纵切 | `pipeline/validation/`、`pipeline/dataset_compiler/` 各自独占 | 首纵切关键路径 Ledger→M3→M5→M8 跑通；`m5-evidence-gate.sh`、`m8-span-identity.sh` exit 2；§20.1/§20.9 如实 BLOCKED |
-| W4 | ≤3 | **I** impl-08 Orchestrator + Contract Registry（定稿 `cd6c7a6`，四查中；实现）；**G** impl-05 M4 最薄接入（按 G7-RULINGS 裁剪定稿 → 四查 → 实现）；**P** impl-04 跟进批：GraphProjectionPack 与知识链前三段接 M4 候选（定稿后实现） | 各自宿主目录；`run_all.sh` 仍单写者（I 的 act/09 排在 impl-04 ACT 08 之后） | §20.1、§20.9 由 BLOCKED 转判的前置到位 |
-| W5 | ≤3 | **H** impl-06 M6 最薄接入；**J** impl-09 M1/M2 真实接入（前置：用户撰写真实前十页人工终态决定表，P7）；**K** impl-10 M3 语义层（前置：用户确认 SemanticSpan 前缀，P8） | 各自宿主目录 | §20.1 PASS；`m3-coverage.sh` exit 0 |
+| W4 | ≤3 | **I** impl-08 Orchestrator + Contract Registry（`ACCEPTED`，K4 `f79eafd`）；**G** impl-05 M4 最薄接入（K1–K3 `ACCEPTED`，K4 验收脚本进行中）；impl-00 前置 act/12、act/05（`ACCEPTED`） | 各自宿主目录；`run_all.sh` 单写者 | §20.1、§20.10 已计算化判定（仍 BLOCKED） |
+| W5 | ≤3 | **H** impl-06 M6 最薄接入（定稿中，先于 P：M8 知识链需要 M6 正式知识）；**P** impl-04 跟进批：知识链前三段与 GraphProjectionPack 接 M6 正式知识（H 定稿后起草）；**J** impl-09 M1/M2 真实接入（前置：用户撰写真实前十页人工终态决定表，P7）；**K** impl-10 M3 语义层（前置：用户确认 SemanticSpan 前缀，P8） | 各自宿主目录 | §20.1、§20.4、§20.8、§20.9 转判；`m3-coverage.sh` exit 0 |
 | W6 | 1 | **L** impl-07 M7 增量汇编（首纵切外） | `pipeline/assembly/` | §20.5 |
 
 每一波全部验收后才开下一波；某路返工只占用该路名额。
