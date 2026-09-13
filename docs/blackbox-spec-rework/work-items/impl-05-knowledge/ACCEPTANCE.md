@@ -49,3 +49,15 @@
 ## 5. 验收记录
 
 §5 验收记录由主 Agent 填写。
+
+### 5.1 W4-G 实现（2026-09-12，主 Agent 独立验收，`git archive` 干净树）
+
+执行者：tmux 中的 cmd（DeepSeek V4.1 Flash），会话 `w4k`，按 K1–K4 分组停下待验收（K5 可选 legacy 准入未派发）。定稿 `8cedae2`（裁定 47–50）→ 四查 R1 REWORK `1a7919e` → 返工 `d982dd6`（裁定 53–55）→ R2 READY `930c972`；前置 impl-00 act/12 `b8db05d`、act/05 `7d805e6` 均已验收。
+
+- K1（`fab45cb`、`5ba7049`、`d16eccf`）：范围仅 `pipeline/knowledge_extraction`；65 OK；gate.py 不 import assemble/submission；serialize/submission/assemble/gate 无副作用；无模型 API。
+- K2（`ca42ee9`、`2d46155`）：97 OK（阈值 95 + 第 58 条 2 例）。第 58 条：同阶段后续运行经 `supersede_step_run` 续写。矩阵外 9 项：三路提交依次接替且 `collect_submissions` 列出 3 份；重复提交与无 m3 均 begin 前拒绝无写入；assemble 接替第 3 路并因 a/b 分歧 `awaiting_human`、无 m4 包；不经接替续写被 Ledger `IllegalTransition` 拒绝。
+- K3（`03f7f90`、`32192dd`）：122 OK；review_events 无副作用；生产代码 `_fixture` 字样仅为 `synthetic_fixture` 字段。矩阵外 9 项：合成裁决事件保留 `synthetic_fixture: true` 与 `actor_ref`；`resume_m4` 同一运行 succeeded 且恰 1 个 m4 包、未另起运行；重复 resume/重复裁决/第 7 键/错误 token 均拒；仅四键裁决可登记（第 53 条）。
+- K4（前置对齐 `a8172f8`，ACT 07 `06d1a28`）：`a8172f8` 将 TXT_001 文案回正为 act/01 契约原文并同步附录 A 测试数据（第 60 条登记程序偏差）。133 OK（阈值 131 + 2）；acceptance.py 独立；`m4-stage-gate.sh` `SUMMARY pass=13 fail=0 blocked=3`、exit 2，BLOCKED 为 `cross_model_extraction`（无模型薄接入）、`semantic_span_input`（SemanticSpan 未实现）、`term_layering_scan`（术语表缺失）；输出无 `expert_verified` 计入。矩阵外：fixture 副本 `candidate_set.yaml` 改一字节 → `FAIL fixture_host`、exit 1；副本放置恒真 `verify.sh` 仍 `FAIL fixture_host`（D-18，不信任副本脚本）。
+- 全部门禁：`verify-T.sh` 0 FAIL、`mutations.sh` 109/109、`schemas/verify.sh` 0、`check_d16.py` OK、`check_interfaces.py` 24 PASS、`m3-coverage.sh` exit 2、`run_all.sh` `pass=2 fail=1 blocked=8`。
+
+impl-05（M4 最薄接入，无模型、合成裁决金标）`ACCEPTED`。真实 `expert_verified` 签发依赖用户撰写决定表（P7），相关判定保持 BLOCKED；§20.4/20.8 仍 BLOCKED（M6 正式知识未接入）。

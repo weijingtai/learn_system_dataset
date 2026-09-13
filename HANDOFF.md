@@ -1,6 +1,10 @@
 # HANDOFF
 
-## G7 W4：impl-08 Orchestrator + Contract Registry ACCEPTED；impl-05 M4 K3 验收中（Dataset 会话；黑箱线最新状态）
+## G7 W4 收尾：impl-08 与 impl-05 均 ACCEPTED；W5 impl-06/impl-07 创世薄切片定稿中（Dataset 会话；黑箱线最新状态）
+
+补记四（2026-09-12）：impl-05 M4 最薄接入 `ACCEPTED`（K4 `06d1a28`，`m4-stage-gate.sh` 13 PASS + 3 BLOCKED；`impl-05-knowledge/ACCEPTANCE.md` §5.1）。W4 全部完成。W5：impl-06 M6 定稿 `981156c`，裁定 61（Snapshot 归 M7，提前 M7 创世汇编薄切片）、62（M6 不改 M4 状态）；会话 `w5h` 落实并起草 impl-00 act/13（M6 闭集），会话 `w5l` 定稿 impl-07 创世薄切片；随后 GLM 四查（会话 `w4r5`）→ 实现。
+
+## （上一节）G7 W4：impl-08 ACCEPTED；impl-05 K3 验收中
 
 补记三（2026-09-12）：impl-08 首切片 `ACCEPTED`（K4 `f79eafd`；§20.1/§20.10 由 run_all 计算化判定并如实 BLOCKED；`impl-08-orchestrator/ACCEPTANCE.md` §5.1）。impl-00 首纵切 ACT（10、12、05）全部 `ACCEPTED`。impl-05 M4 最薄接入 K1/K2 已验收、K3（`03f7f90`/`32192dd`）验收中，会话 `w4k`；裁定 57–59（Gate 读 YAML 包、acceptance/suites 豁免、同阶段后续运行经 supersede 续写）。下一步：impl-05 K4（m4-stage-gate.sh）→ impl-05 ACCEPTED → W4-P impl-04 GraphProjectionPack/知识链跟进定稿 → W5（M6、M1/M2 真实接入、M3 语义层，后两者需用户待办）。
 

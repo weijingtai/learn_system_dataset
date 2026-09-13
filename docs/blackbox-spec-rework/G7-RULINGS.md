@@ -173,6 +173,14 @@ Q49 按 P8 须用户确认前缀；Q52/Q53/Q55/Q57/Q62 推迟到 W5 定稿；Q50
 |---|---|---|
 | 58 | impl-05 ACT 03「每路一个 m4 submit StepRun」：第一路 succeeded 后 Ledger 封存 m4 阶段，第 2、3 路 begin 被 `IllegalTransition` 拒绝（与第 32 条 m1_shim 同源） | **推广第 32 条为通用规则**：同一 EditionPart 同一阶段的后续 StepRun 一律经 `supersede_step_run` 接替该阶段最近一个 succeeded 运行（经读接口查出，不写死号），语义为续写而非替换；输入解析沿 supersedes 链回溯收集全部 succeeded 运行，不以「最新运行」代表全阶段；不改 Ledger（P9）。与第 40/45 条 carrier 判定一致（不承载包的接替运行保留在有效集）。impl-05 补具名用例：三路依次接替全部可解析、不经接替被守卫拒绝 |
 
+### 9.12 impl-05 K4 与 impl-06 定稿（`981156c`）
+
+| # | 条目 | 裁决 |
+|---|---|---|
+| 60 | impl-05 K4 前置提交 `a8172f8` 改动 K1 已验收文件：`assemble.locate_evidence` TXT_001 文案由「quote 不在 Span 内: <quote>」改为 act/01 契约原文「quote 不在 Span 内」，`tests/data/appendix_a/*` 三件格式与 fixture 金标对齐 | 接受并登记：属实现偏离契约的回正与第 55 条数据同步，内容正确；但执行方改动已验收文件未先停手，登记为程序偏差；主 Agent K1 验收未核对报错文案，今后验收抽查契约逐字文案 |
+| 61 | impl-06 D-01 CanonicalKnowledgeSnapshot 归属（M6 直通 / M7 / M8 薄适配器） | **归 M7**（规格 §6.2）：把 M7「创世汇编」薄切片提前——单个 ReviewedEditionPackage（空基底）→ CanonicalKnowledgeSnapshot，作为 impl-07 的独立执行组先行定稿与实现；impl-06 删除 ACT 10（Snapshot 直通），相关验收项在 M7 创世薄切片落地前判 BLOCKED；不让 M6/M8 承担 M7 职责，避免日后拆除临时实现 |
+| 62 | impl-06 D-08 M6 调 `invalidate_revision` 改写 M4 修订状态 | 采纳 B：M6 不改他模块修订状态（§2:32、P9），只在 ReworkImpactReport/失效登记中记录；M4 以自身 `supersede_revision` 产出替换修订 |
+
 ## 10. 用户待办
 
 1. W4-J 前：撰写真实前十页人工终态决定表（P7，Q37）。
