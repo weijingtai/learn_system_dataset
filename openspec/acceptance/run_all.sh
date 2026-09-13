@@ -40,6 +40,24 @@ ledger_check() {   # $1 条目号 $2 检查名(20_2|20_3) $3 说明
     *) block_line "$1" "测试宿主匮乏" "pipeline.ledger 不可用（退出码 $rc）" ;;
   esac
 }
+# 20.1 / 20.10 的编排判定：调用 acceptance，按其退出码与首个 BLOCKED 行落点。
+accept_check() {   # $1 条目号 $2 python 模块 $3 PASS 说明；其余参数透传给模块
+  local item="$1" mod="$2" desc="$3" out rc line rest row why
+  shift 3
+  out="$(cd "$REPO_ROOT" && "$PY" -m "$mod" "$@" 2>&1)"; rc=$?
+  case "$rc" in
+    0) pass_line "$item" "$desc" ;;
+    1) fail_line "$item" "$desc" "$(printf '%s\n' "$out" | grep -m1 '^FAIL ')" ;;
+    2) line="$(printf '%s\n' "$out" | grep -m1 '^BLOCKED ')"
+       rest="${line#*前置缺失: }"; row="${rest%%；*}"; why="${rest#*；}"
+       if [ -z "$line" ] || [ "$rest" = "$line" ] || [ "$row" = "$rest" ]; then
+         block_line "$item" "测试宿主匮乏" "$mod 的 BLOCKED 行无法解析"
+       else
+         block_line "$item" "$row" "$why"
+       fi ;;
+    *) block_line "$item" "测试宿主匮乏" "$mod 不可用（退出码 $rc）" ;;
+  esac
+}
 # 20.4 / 20.8 的 M8 判定：在临时 Ledger 上运行 M8 判定，返回三态字符串。
 #   OK      判定无 FAIL 有 BLOCKED 或全 PASS（acceptance 退出 0 或 2）
 #   FAIL    任一条目 FAIL（退出 1）
@@ -194,7 +212,7 @@ run_item() {
         return 0
       fi
       case "$(probe_status "$n")" in
-        OK) block_line "$n" "Local Orchestrator" "M4–M6 Gate 未实现" ;;
+        OK) accept_check "$n" pipeline.orchestrator.acceptance "一个 EditionPart 严格按 M1–M6 阶段 Gate 完成（宿主 mini_ed01 真实 Ledger）" --fixture "$FIXTURE_DIR" ${FIXTURE_ASSET_ROOT:+--asset-root "$FIXTURE_ASSET_ROOT"} ;;
         FAIL) fail_line "$n" "三包 stage 递增与 lineage 串联不成立" "$(probe_reason "$n")" ;;
         *) block_line "$n" "测试宿主匮乏" "判据探针无输出" ;;
       esac
@@ -319,7 +337,8 @@ run_item() {
         fail_line "$n" "契约不稳定" "openspec/schemas/verify.sh 未以退出码 0 通过"
         return 0
       fi
-      block_line "$n" "Contract Registry" "无第二 Adapter 可做替换验证"
+      if [ ! -x "$PY" ]; then block_line "$n" "测试宿主匮乏" ".venv 缺失"; return 0; fi
+      accept_check "$n" pipeline.contract_registry.acceptance "更换 OCR/模型/索引/存储 Adapter 不改变相邻 Module 的 Interface"
       ;;
     20.11)
       block_line "$n" "M8 Dataset Compilation" "尚无两个 Release 可比，IdentityMigrationMap 未产出"
