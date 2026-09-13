@@ -1,6 +1,19 @@
 # HANDOFF
 
-## G7 W4 收尾：impl-08 与 impl-05 均 ACCEPTED；W5 impl-06/impl-07 创世薄切片定稿中（Dataset 会话；黑箱线最新状态）
+## G7 W5 进行中：impl-06 返工 N1、impl-07 G0 READY（修 S3）、impl-00 act/13 执行中（Dataset 会话；黑箱线最新状态）
+
+补记五（2026-09-12，供会话压缩后续接）：
+- 已验收：impl-01 Ledger、impl-02 M3 结构层、impl-03 M5、impl-04 M8、impl-05 M4 最薄接入、impl-08 Orchestrator+Contract Registry、impl-00 act/10/12/05。`run_all.sh` 仍 `pass=2 fail=1 blocked=8`（20.1/20.4/20.8/20.10 计算化判定仍 BLOCKED）。裁决书 `docs/blackbox-spec-rework/G7-RULINGS.md` 至第 69 条；计划 `G7-PLAN.md`。
+- 在跑的 tmux 会话（`cmd --yolo` DeepSeek V4.1 Flash；回报 `~/tmux-agents/runs/<会话>.report.md`）：
+  - `w5h`：impl-06 M6 按 R2 阻断 N1 与第 69 条返工（carried 条目保留原 seen + carried_to/carried_from），完成后交 `w4r5`（GLM，z-ai/glm-5.3-flash）做 R3 复审；
+  - `w5l`：impl-07 G0 R2 READY（`e2c8d79`），正在修建议 S3（防御分支错误码统一），修完派 G0 实现（新开 cmd 会话，外包分组停下规则，照 w4k/w4o 提示词模板 `~/tmux-agents/runs/prompts/w4k.txt`）；
+  - `w5x`：执行 impl-00 act/13（M6 闭集登记，R2 READY `6f2d41e`），完成后主 Agent 独立验收（干净树跑 check_interfaces 与 13+ 用例、删一行 M6 登记的篡改）。
+- 监控：`~/tmux-agents/bin/tmux-watch.sh --session <名> --agent cmd --interval 60 --idle-need 3 --stall 1800`（Claude 会话退出会杀监控，续接先 `tmux ls` 并重挂）。
+- 验收脚本（会话 scratchpad，git archive 干净树、只打印结论行）：`accept_m4.sh`、`accept_m5.sh`、`accept_m8.sh`、`accept_orch.sh`、`runall_diff.sh <base> <head> "<允许条目>"`；M7/M6 实现开始时照 `accept_m4.sh` 派生。
+- 下一步顺序：act/13 验收 → impl-06 R3 READY → impl-06 实现（前置 act/13）；impl-07 G0 实现 → 验收；之后起草 impl-04 跟进（知识链前三段 + GraphProjectionPack，依赖 M6 正式知识与 M7 Snapshot）；impl-09、impl-10 等用户待办。
+- 用户待办：真实前十页人工终态决定表（impl-09）；`expert_verified` 签发决定表（M4/M6 真实签发）；SemanticSpan ID 前缀确认（impl-10）。
+
+## （上一节）G7 W4 收尾：impl-08 与 impl-05 均 ACCEPTED
 
 补记四（2026-09-12）：impl-05 M4 最薄接入 `ACCEPTED`（K4 `06d1a28`，`m4-stage-gate.sh` 13 PASS + 3 BLOCKED；`impl-05-knowledge/ACCEPTANCE.md` §5.1）。W4 全部完成。W5：impl-06 M6 定稿 `981156c`，裁定 61（Snapshot 归 M7，提前 M7 创世汇编薄切片）、62（M6 不改 M4 状态）；会话 `w5h` 落实并起草 impl-00 act/13（M6 闭集），会话 `w5l` 定稿 impl-07 创世薄切片；随后 GLM 四查（会话 `w4r5`）→ 实现。
 
