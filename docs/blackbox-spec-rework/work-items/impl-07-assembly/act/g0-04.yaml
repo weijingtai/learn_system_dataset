@@ -62,7 +62,7 @@ tests:
     - test_synthetic_human_decisions_marked_and_not_expert_verified（genesis_package.json 中每个决定含 synthetic_fixture: true；Snapshot 中无 expert_verified 泄漏，第 66 条）
     - test_synthetic_candidate_set_matches_impl05_shape（读 genesis_package.json 的 candidate_set → model.validate_candidate_set 通过；断言无 subject/无 school_view_ids/无 candidate_key）
 verify:
-  - .venv/bin/python -m unittest discover -s pipeline/assembly/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 77
+  - .venv/bin/python -m unittest discover -s pipeline/assembly/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 79（第 71 条 G0-01a +2）
   - .venv/bin/python -m unittest discover -s pipeline/ledger/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"      # OK，与基线相同（Ledger 未改）
   - grep -rE '_fixture' pipeline/assembly --include='*.py' | grep -v '/tests/' | grep -vE 'fixture_seed.py|acceptance.py' | wc -l   # 0
   - TDD §3 回归

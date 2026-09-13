@@ -76,7 +76,7 @@ tests:
     - test_genesis_id_range_exhausted_refused（区间不足 → 「号段不足」）
     - test_genesis_knowledge_carries_id_range_and_allocation_list
 verify:
-  - .venv/bin/python -m unittest discover -s pipeline/assembly/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 51
+  - .venv/bin/python -m unittest discover -s pipeline/assembly/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 53（第 71 条 G0-01a +2）
   - grep -nE 'difflib|SequenceMatcher|random|time\(\)' pipeline/assembly/genesis.py | wc -l   # 0
   - TDD §3 回归
 commit:

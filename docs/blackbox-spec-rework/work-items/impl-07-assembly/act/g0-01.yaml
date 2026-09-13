@@ -57,7 +57,8 @@ contract: |
       活对象号与 retired 交集非空 → DuplicateIdentifier(ID_002)
       id_allocation["pat_<technique>"] 存在时 < 活对象与 retired 中该命名空间最大号 → SchemaViolation(SCH_002)
       id_range 必填且键形如 "pat_<technique>"，值为 [start, end] 两个非负整数且 start ≤ end → 否则 SchemaViolation(SCH_002)
-      allocated_pattern_ids 升序、互异、每个 ∈ 对应 id_range 区间；与活对象号或 retired 重叠 → DuplicateIdentifier(ID_002)/SchemaViolation(SCH_002)
+      allocated_pattern_ids 升序、互异、每个 ∈ 对应 id_range 区间 → 否则 SchemaViolation(SCH_002)；与 retired 重叠 → DuplicateIdentifier(ID_002)；**补发号本身即活 Pattern 的号，不以「与活对象号重叠」拒绝**（第 71 条，G0-01a 修正）
+      patterns[].pattern_id 互异（重复 → DuplicateIdentifier(ID_002)；保证补发号不与保留的 M4 号撞号，第 71 条）
       id_allocation["pat_<technique>"]（存在时）必须 == max(活对象中该命名空间号 ∪ allocated_pattern_ids)；allocated_pattern_ids 非空时 id_allocation 必须存在（第 64 条）
       relations 端点（非 null）必须是活对象；conflict_groups 成员必须是 school_views 中的号 → MissingReference(REF_001)
       pattern 顶层不得出现 content_status 键；assertion.evidence 的 start_offset ≤ end_offset → SchemaViolation(SCH_002)

@@ -52,7 +52,7 @@ tests:
     - test_upstream_m6_real_blocked_until_impl06_accepted（该项恒 BLOCKED，说明含「impl-06 实现并验收前」）
     - test_synthetic_decisions_not_counted_expert_verified（合成决定的 synthetic_fixture: true 保留，不计 expert_verified，第 66 条）
 verify:
-  - .venv/bin/python -m unittest discover -s pipeline/assembly/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 87
+  - .venv/bin/python -m unittest discover -s pipeline/assembly/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 89（第 71 条 G0-01a +2）
   - export LC_ALL=en_US.UTF-8; bash openspec/acceptance/m7-assembler.sh; echo exit=$?   # 10 PASS + 6 BLOCKED + SUMMARY pass=10 fail=0 blocked=6；exit=2
   - bash openspec/acceptance/run_all.sh | tail -1   # SUMMARY pass=2 fail=1 blocked=8（本切片不改 run_all.sh）
   - grep -c 'FIXTURE_RELEASE_DIR/verify.sh' openspec/acceptance/m7-assembler.sh   # 0

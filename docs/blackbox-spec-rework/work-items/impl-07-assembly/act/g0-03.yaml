@@ -42,7 +42,7 @@ tests:
     - test_tamper_proposition_changed → view_objects_unaltered
     - test_tamper_meta_base_revision_set → genesis_only
 verify:
-  - .venv/bin/python -m unittest discover -s pipeline/assembly/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 64
+  - .venv/bin/python -m unittest discover -s pipeline/assembly/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 66（第 71 条 G0-01a +2）
   - grep -nE '^\s*(from|import) .*genesis' pipeline/assembly/gate.py | wc -l   # 0
   - TDD §3 回归
 commit:
