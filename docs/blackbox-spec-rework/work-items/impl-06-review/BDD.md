@@ -67,14 +67,12 @@
 - 9.2 Then 复审队列只有 2 项（as_…001、sv_…1），`seen_artifact_revision_id` 指向 M4' 新修订；2 条继承决定不重录。
 - 9.3 When 两项重新 accept 并 `close_review`，Then 新 `reviewed_edition` 中 4 条立场决定：2 `active`、2 `carried_forward`（带 `carried_from_revision_id` 与 `trigger_correction_request_id`），`rework_impact_report_revision_id` 非空。
 
-## 10. Snapshot 直通投影（ACT 10，依 D-01）
+## 10. Snapshot 直通投影（已撤回，第 61 条）
 
-- 10.1 Given 首审包，When `project_snapshot`，Then entities 只含 3 个获批对象、conflict_groups 含 cg_…1、`canonical_hash` 两次相同、改任一实体修订则哈希变。
-- 10.2 Given `previous_snapshot` 非空，Then 拒绝（增量汇编属 M7）；Given 获批对象修订已 invalidated/superseded，Then `run_snapshot` 拒绝。
-- 10.3 `run_snapshot` 产出 `release_run` 下 stage m7 StepRun、`canonical_knowledge_snapshot` sealed、m7 StagePackage 过 Schema。
+- WITHDRAWN：`CanonicalKnowledgeSnapshot` 归 M7（M7 创世汇编薄切片由 impl-07 先行），本包删除 ACT 10；Snapshot 验收项 `snapshot_projection` 在 M7 落地前恒 BLOCKED（前置缺失: M7 创世汇编）。
 
 ## 11. 验收脚本（ACT 11）
 
-- 11.1 Given 规范 fixture，When `m6-data-fields.sh`，Then 12 PASS、`legacy_workbench_seed` 与 `upstream_real` BLOCKED、exit 2。
+- 11.1 Given 规范 fixture，When `m6-data-fields.sh`，Then 11 PASS、`snapshot_projection`（第 61 条）、`legacy_workbench_seed` 与 `upstream_real` 三项 BLOCKED、exit 2。
 - 11.2 Given 桩期望文件被改、决定修订被删一条、准备阶段异常，Then exit 1；缺 fixture exit 3。
 - 11.3 Given 副本 `verify.sh` 被换成假脚本且数据被改，Then 仍 `FAIL fixture_host`、exit 1。

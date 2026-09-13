@@ -2,7 +2,7 @@ act_id: impl-06/11
 title: m6 验收：acceptance.py 十四项判定 + openspec/acceptance/m6-data-fields.sh（§19.0:910 判据）
 estimated_minutes: 90
 group: K3
-depends_on: [impl-06/09, impl-06/10]
+depends_on: [impl-06/09]
 decisions_required: [D-11, D-12, D-17]
 scope:
   write: [pipeline/review/acceptance.py, pipeline/review/tests/test_acceptance.py, openspec/acceptance/m6-data-fields.sh]
@@ -17,7 +17,7 @@ contract: |
       4 在恢复运行上完成第 3、4 条 → close_review（correction_request_revision_ids 含步骤 2 的修订）
       5 seed_corrected_corpus → run_rework_propagation(correction_request_revision_id=步骤 2 修订)
       6 seed_rerun_m4_m5 → open_rework_review(acknowledge_rework_warning=True) → 两个 needs_review 项重新 accept → close_review
-      7 run_snapshot（D-01=A 时）
+      （Snapshot 不在本包：第 61 条归 M7，不做 run_snapshot）
     判定只读 Ledger 与 testing/data/expected_review.yaml（或 --expected）；不 import gate/model/propagation/step/rework 的判定函数，不信任上述函数返回的报告，须自行重算
     十四项判定（名称与顺序固定）：
       inputs_frozen：首审 StepRun frozen_inputs == m3 包/spans + m4 包/candidate_set + m5 包/gate_results，全部当时 sealed（查 revision_status_events 判定冻结时刻状态）
@@ -31,7 +31,7 @@ contract: |
       precise_invalidation：ReworkImpactReport 各计数、changed_span_ids、reachable_entity_ids、ratio、warnings == expected.rework；独立重算可达集合（按 D-07 键比较新旧 spans + 引用闭包）一致；Checkpoint 引用报告
       no_cross_module_status_change：m1–m5 全部修订、旧 candidate_set、validation_package、全部决定修订均非 invalidated（D-08 B：M6 不改 M4 修订状态）；旧 candidate_set 仅被 M4' 经 supersede_revision 取代
       rework_rereview_scope：复审队列项号 == expected.rereview.queue；复审 reviewed_edition 立场 active 2、carried_forward 2，carried 项带 carried_from_revision_id 与 trigger_correction_request_id；阈值确认事件存在
-      snapshot_projection：D-01=A 时 m7 StagePackage 过 Schema、processing_run.kind == release_run、canonical_hash 独立重算一致、entities == 复审后获批集合；D-01≠A 时恒 BLOCKED，说明「前置缺失: M7 Incremental Assembly；CanonicalKnowledgeSnapshot 未实现」
+      snapshot_projection：恒 BLOCKED，说明逐字「BLOCKED 前置缺失: M7 创世汇编」（第 61 条：CanonicalKnowledgeSnapshot 归 M7，本包删除 ACT 10）
       legacy_workbench_seed：恒 BLOCKED，说明「前置缺失: M6 Review Workbench；pattern_knowledge_workbench 旧数据体未迁入（准入判定见 run_all 20.7）」
       upstream_real：恒 BLOCKED，说明「前置缺失: M4 Knowledge Extraction；M5 仍 scope=corpus_only，candidate 级校验未实现；本次为 fixture_gold + 非生产合成决定」
     输出：每项一行 `PASS <名>` / `FAIL <名> <原因>` / `BLOCKED <名> <说明>`；末行 `SUMMARY pass=<n> fail=<n> blocked=<n>`
@@ -44,18 +44,18 @@ contract: |
     cd "$REPO_ROOT" 执行 "$PY" -m pipeline.review.acceptance --fixture "$FIXTURE_DIR"，退出码原样返回
 tests:
   test_acceptance.py: |
-    - test_fixture_yields_twelve_pass_two_blocked_exit_2（D-01=A）
+    - test_fixture_yields_eleven_pass_three_blocked_exit_2
     - test_blocked_lines_exact_text
     - test_expected_review_tampered_fails（testing/data 临时副本改 invalidated_count → precise_invalidation FAIL，exit 1；经 --expected 指向副本）
     - test_deleted_decision_event_fails（patch 使一条决定未写 Checkpoint → checkpoint_per_decision FAIL）
     - test_cross_module_status_change_detected（patch 额外 invalidate 一条 m4 修订 → no_cross_module_status_change FAIL）
     - test_prepare_failure_exits_1（patch seed_upstream 抛 RuntimeError → 首行以 "FAIL m6_acceptance 宿主准备失败: RuntimeError" 开头）
     - test_missing_fixture_exit_3
-    - test_shell_exit_2_on_fixture（subprocess，末行 SUMMARY pass=12 fail=0 blocked=2）
+    - test_shell_exit_2_on_fixture（subprocess，末行 SUMMARY pass=11 fail=0 blocked=3）
     - test_shell_never_trusts_copy_verify（副本删一条 span 并换假 verify.sh → exit 1，首行 FAIL fixture_host）
 verify:
-  - .venv/bin/python -m unittest discover -s pipeline/review/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 116
-  - export LC_ALL=en_US.UTF-8; bash openspec/acceptance/m6-data-fields.sh; echo exit=$?    # 12 PASS + 2 BLOCKED + SUMMARY pass=12 fail=0 blocked=2；exit=2（D-01=A）
+  - .venv/bin/python -m unittest discover -s pipeline/review/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 110
+  - export LC_ALL=en_US.UTF-8; bash openspec/acceptance/m6-data-fields.sh; echo exit=$?    # 11 PASS + 3 BLOCKED + SUMMARY pass=11 fail=0 blocked=3；exit=2
   - grep -c 'FIXTURE_DIR/verify.sh' openspec/acceptance/m6-data-fields.sh                   # 0
   - grep -nE '^(from|import) .*review\.(gate|model|propagation|step|rework)' pipeline/review/acceptance.py | wc -l   # 0
   - bash openspec/acceptance/run_all.sh | tail -1                                           # == BASELINE_RUN_ALL（未改动）

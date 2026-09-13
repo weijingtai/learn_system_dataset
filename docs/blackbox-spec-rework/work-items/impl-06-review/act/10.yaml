@@ -1,10 +1,12 @@
+# WITHDRAWN（G7-RULINGS §9.12 第 61 条）：CanonicalKnowledgeSnapshot 归 M7（M7 创世汇编薄切片由 impl-07 先行）。本 ACT 不再派发，保留文件备查；Snapshot 验收项在 M7 落地前恒 BLOCKED（前置缺失: M7 创世汇编）。
+status: WITHDRAWN
 act_id: impl-06/10
-title: （依 D-01 方案 A）CanonicalKnowledgeSnapshot 首切片直通投影：project_snapshot 纯函数 + release_run/stage m7 StepRun（§6.2、§16:661-668、§16:725）
+title: （已撤回）CanonicalKnowledgeSnapshot 首切片直通投影：project_snapshot 纯函数 + release_run/stage m7 StepRun（§6.2、§16:661-668、§16:725）
 estimated_minutes: 45
 group: K3
 depends_on: [impl-06/09]
 decisions_required: [D-01, D-13]
-dispatch_condition: "仅当主 Agent 裁定 D-01 = A；否则删除本 ACT，ACT 11 第 12 项（snapshot_projection）恒 BLOCKED（前置缺失: M7 Incremental Assembly）"
+dispatch_condition: "WITHDRAWN（第 61 条）：不派发"
 scope:
   write: [pipeline/review/snapshot.py, pipeline/review/tests/test_snapshot.py]
 tests_first:

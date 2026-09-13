@@ -1,16 +1,17 @@
 package: blackbox-impl-06-review
 title: 首纵切薄用：M6 Review & Curation（§14）+ 精确失效传播（§14.1）+ 命令行 Review Console
-status: READY_FOR_REVIEW   # W5-H 定稿 2026-09-13，依 G7-RULINGS §1 P1–P9、§4 impl-06、§9.3 第 34–43 条、§9.5 第 45–46 条、§9.6–§9.11 第 47–58 条；未经实现
+status: READY_FOR_REVIEW   # W5-H 定稿 2026-09-13，依 G7-RULINGS §1 P1–P9、§4 impl-06、§9.3 第 34–43 条、§9.5 第 45–46 条、§9.6–§9.11 第 47–58 条、§9.12 第 61–62 条；未经实现
 executor_groups:
   K1: [impl-06/01, impl-06/02, impl-06/03]             # 纯函数，无 Ledger；一个执行 Agent 串行
   K2: [impl-06/04, impl-06/05, impl-06/06, impl-06/07] # 前置 impl-05/impl-03 ACCEPTED 且 K1 ACCEPTED
-  K3: [impl-06/08, impl-06/09, impl-06/10, impl-06/11] # 前置 K2 ACCEPTED；impl-06/10 依 D-01
+  K3: [impl-06/08, impl-06/09, impl-06/11]             # 前置 K2 ACCEPTED；impl-06/10 已 WITHDRAWN（第 61 条）
 preconditions:
   - K2 起：impl-05（M4）、impl-03（M5）状态 ACCEPTED，且 run_m4/run_m5 输出契约与 README §5.1 一致
   - 下游解析上游 StagePackage 只接受所属 StepRun `succeeded` 的包（P5）；M5 包另须 StagePackage `validation.passed == true`（第 21 条）
-  - P2/待裁决：本包新增 artifact_type（review_queue / reviewed_edition / reviewed_edition_package / rework_impact_report；D-01=A 时另加 canonical_knowledge_snapshot）须由该波登记 ACT 写入 impl-00-interfaces/INTERFACES.md §4 闭集；开工前提为 `python3 docs/blackbox-spec-rework/work-items/impl-00-interfaces/check_interfaces.py` 末行 `fail=0` 且 exit 0，且所需类型各自 PASS 行存在（第 54 条：不写死 pass 总数；未登记不得实现）
+  - P2：本包新增 artifact_type（review_queue / reviewed_edition / reviewed_edition_package / rework_impact_report）须由 impl-00 `act/13.yaml` 登记写入 impl-00-interfaces/INTERFACES.md §4 闭集；开工前提为 `python3 docs/blackbox-spec-rework/work-items/impl-00-interfaces/check_interfaces.py` 末行 `fail=0` 且 exit 0，且上述类型各自 PASS 行存在（第 54 条：不写死 pass 总数；未登记不得实现）
   - P7：真实 `expert_verified` 签发决定表由用户撰写（README §9）；本包测试只用非生产合成数据并在 README/数据中显式标注 synthetic_fixture，不计为真实签发
-  - ACT 10 依 D-01：主 Agent 裁定 A 才派发；否则删除本 ACT，acceptance 第 12 项恒 BLOCKED
+  - 第 61 条（D-01）：ACT 10 已 WITHDRAWN（`act/10.yaml` 保留备查），不派发；acceptance 第 12 项 snapshot_projection 恒 BLOCKED（前置缺失: M7 创世汇编）
+  - 第 62 条（D-08）：采纳 B，M6 不改 M4 修订状态（rework.py 不含 invalidate_revision），旧 candidate_set 由 M4' 以 supersede_revision 替换
   - 本包写范围与 impl-08（pipeline/orchestrator/、pipeline/contract_registry/）零交集；不写 run_all.sh
 acts:
   - file: act/01.yaml
@@ -42,6 +43,7 @@ acts:
     writes: ["pipeline/review/rework.py", "pipeline/review/step.py", "pipeline/review/testing/upstream_stub.py", "pipeline/review/tests/test_rework_review.py", "pipeline/review/console.py"]
   - file: act/10.yaml
     id: impl-06/10
+    status: WITHDRAWN   # G7-RULINGS §9.12 第 61 条：CanonicalKnowledgeSnapshot 归 M7；不派发，保留文件备查
     writes: ["pipeline/review/snapshot.py", "pipeline/review/tests/test_snapshot.py"]
   - file: act/11.yaml
     id: impl-06/11

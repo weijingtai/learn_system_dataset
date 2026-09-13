@@ -47,9 +47,9 @@ bash openspec/acceptance/m6-data-fields.sh >/dev/null 2>&1; echo $?         # K1
 
 另需确认：
 
-- **P2**：本包新增 artifact_type（`review_queue`、`reviewed_edition`、`reviewed_edition_package`、`rework_impact_report`；D-01=A 时另加 `canonical_knowledge_snapshot`）已由该波登记 ACT 写入 `INTERFACES.md` §4 临时闭集；`check_interfaces.py` 末行 `fail=0` 且 exit 0，且上述类型各自 PASS 行存在（第 54 条，不写死 pass 总数）。未登记不得实现。
+- **P2**：本包新增 artifact_type（`review_queue`、`reviewed_edition`、`reviewed_edition_package`、`rework_impact_report`）已由 impl-00 `act/13.yaml` 登记写入 `INTERFACES.md` §4 临时闭集；`check_interfaces.py` 末行 `fail=0` 且 exit 0，且上述类型各自 PASS 行存在（第 54 条，不写死 pass 总数）。未登记不得实现。
 - **K2 前置**：impl-05（M4）、impl-03（M5）状态 `ACCEPTED`。
-- **D-01**：ACT 10 仅当主 Agent 裁定 A 时派发；否则删除 ACT 10，ACT 11 第 12 项恒 BLOCKED。
+- **第 61 条（D-01）**：Snapshot 归 M7，ACT 10 已 WITHDRAWN，不派发；ACT 11 第 12 项 `snapshot_projection` 恒 BLOCKED（前置缺失: M7 创世汇编）。**第 62 条（D-08）**：M6 不改 M4 修订状态。
 - **fixture m6 金标（若需）**：如需 fixture 金标，属 impl-00 目录下的独占 ACT（P4），与本包实现分离；本包不写 fixture。
 
 ## 逐步
@@ -58,7 +58,7 @@ bash openspec/acceptance/m6-data-fields.sh >/dev/null 2>&1; echo $?         # K1
 
 1. **K1（ACT 01 → 02 → 03）**：纯函数。ACT 01 `model.py`（队列、事件复用 review_events、规范化内容哈希、fold/outcome）；ACT 02 独立 M6 Review Gate（九项，不 import model/propagation/step/rework）；ACT 03 §14.1 失效传播（不写 Ledger、不调用 invalidate_revision）。每个 ACT 一个提交，`commit.add`/`commit.message` 逐字照 act 文件。
 2. **K2（ACT 04 → 05 → 06 → 07）**：ACT 04 非生产 `testing/` 桩（驱动真实 M3/M4/M5）+ `resolve_m6_inputs`；ACT 05 `open_review`/`record_decision`/`recover_review`（每条决定即时 Checkpoint）；ACT 06 `close_review`（Gate、`reviewed_edition` + `reviewed_edition_package`、m6 StagePackage）；ACT 07 CLI Console。前置 impl-05/impl-03 `ACCEPTED`。
-3. **K3（ACT 08 → 09 → 10 → 11）**：ACT 08 CorrectionRequest + `run_rework_propagation`（D-08 推荐 B：不改 M4 修订状态）；ACT 09 `open_rework_review` 只重放待复核项；ACT 10 Snapshot（依 D-01）；ACT 11 `acceptance.py`（14 项：12 PASS + 2 BLOCKED、exit 2）与 `m6-data-fields.sh`。
+3. **K3（ACT 08 → 09 → 11）**：ACT 08 CorrectionRequest + `run_rework_propagation`（第 62 条：不改 M4 修订状态）；ACT 09 `open_rework_review` 只重放待复核项；ACT 11 `acceptance.py`（14 项：11 PASS + 3 BLOCKED、exit 2）与 `m6-data-fields.sh`。ACT 10 已 WITHDRAWN（第 61 条）。
 4. 每个 ACT 后运行该 ACT `verify` 全部与 `TDD.md` §3 回归；`git add` 只加该 ACT `commit.add` 列出的路径，一个提交。
 5. 每个 ACT 完成后在 `~/tmux-agents/runs/w5h.report.md` 追加一行「- [x] ACT <id>」，并附该 ACT 的 Red/Green 原文；每组结束停下等待主 Agent 验收。
 
@@ -71,7 +71,7 @@ bash openspec/acceptance/m6-data-fields.sh >/dev/null 2>&1; echo $?         # K1
 - 上游 `run_m4`/`run_m5` 实际输出与 README §5.1 不符（字段名、artifact_type、`candidate_package`/`validation_package` 键）。
 - 某个测试无法按 ACT `tests` 定义写出；contract 有两种理解；需要改 scope 外文件；需要改 `pipeline/ledger` 或 `openspec/schemas`。
 - 需要伪造人工签发或把 BLOCKED 写成 PASS。
-- 任一门禁变红；`m6-data-fields.sh` 不再是 12 PASS + 2 BLOCKED、exit 2。
+- 任一门禁变红；`m6-data-fields.sh` 不再是 11 PASS + 3 BLOCKED、exit 2。
 
 ## 最终报告（写 `~/tmux-agents/runs/w5h.report.md`）
 

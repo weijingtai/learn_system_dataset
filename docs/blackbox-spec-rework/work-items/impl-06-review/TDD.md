@@ -33,8 +33,8 @@ test ! -e openspec/acceptance/m6-data-fields.sh; echo $?                    # K1
 | 07 | 新增用例全 ERROR | `$TR` OK ≥ 88；`python -m pipeline.review --help` 退出 0 |
 | 08 | 新增用例全 ERROR | `$TR` OK ≥ 98；报告计数 6/3/2 |
 | 09 | 新增用例全 ERROR | `$TR` OK ≥ 104 |
-| 10 | 新增用例全 ERROR（依 D-01；未采纳 A 则跳过本 ACT） | `$TR` OK ≥ 110 |
-| 11 | `m6-data-fields.sh` 不存在（exit 127）；新增用例全 ERROR | `$TR` OK ≥ 116；脚本 `SUMMARY pass=12 fail=0 blocked=2`、exit 2 |
+| 10 | WITHDRAWN（第 61 条：Snapshot 归 M7）——不派发 | — |
+| 11 | `m6-data-fields.sh` 不存在（exit 127）；新增用例全 ERROR | `$TR` OK ≥ 110；脚本 `SUMMARY pass=11 fail=0 blocked=3`、exit 2 |
 
 ## 2. 主 Agent 验收附加判据（执行者不需跑，但不得让其失败）
 
