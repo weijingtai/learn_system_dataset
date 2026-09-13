@@ -12,17 +12,19 @@ contract: |
   step.py 追加：
     RULING_CHOICES = ("a", "b", "both", "neither")
     record_category_ruling(service, step_run_id, resume_token, ruling_doc) -> dict
+      ep = 该 StepRun 的 processing_run_id 在 processing_runs 表的 edition_part_id（只读 SELECT；与 R3/R4 同源）
       写入前校验（任一失败 → ExtractionRefused，Ledger 无新增修订）：
         R1 StepRun 存在且 status == "awaiting_human"
-        R2 ruling_doc 键恰为 {schema_version, dispute_id, choice, rationale}；schema_version == CANDIDATE_SCHEMA_VERSION；rationale 非空；choice ∈ RULING_CHOICES（否则 code SCH_002）
+        R2 ruling_doc 键 ⊇ {schema_version, dispute_id, choice, rationale} 且 ⊆ {schema_version, dispute_id, choice, rationale, synthetic_fixture, actor_ref}（G7-RULINGS §9.7 第 53 条）；schema_version == CANDIDATE_SCHEMA_VERSION；rationale 非空；choice ∈ RULING_CHOICES；synthetic_fixture 缺省 False，存在时必须为 bool（否则 code SCH_002）
         R3 本 StepRun 自有、sealed、artifact_type == "dispute_queue" 的修订恰 1 个（只读 SELECT）；dispute_id ∈ 其内容 disputes（否则 code REF_001）
         R4 本 StepRun 已登记人工事件（human_events 表只读 SELECT）的内容中无相同 dispute_id（否则 code ID_002）
       写入：
-        W1 event = {"schema_version", "event_kind": "category_ruling", "stage": "m4", "processing_run_id", "step_run_id", "dispute_id", "choice", "rationale", "actor_ref": service 当前 actor, "seen": {"dispute_queue_revision_id"}}
+        W1 event = {"schema_version", "event_kind": "category_ruling", "stage": "m4", "processing_run_id", "step_run_id", "dispute_id", "choice", "rationale", "actor_ref": ruling_doc.get("actor_ref") or service 当前 actor, "synthetic_fixture": bool(ruling_doc.get("synthetic_fixture", False)), "seen": {"dispute_queue_revision_id"}}
+            第 53 条：带 synthetic_fixture: true 的裁决，写入的 human_event 必须原样保留该标记（true），actor_ref 取裁决文件所标的 fixture 作者；**合成事件不得计为真实 expert_verified，也不得作为 M5/M8/任何发布级别判定的依据**（内容成熟度推导与消费级别判定先按该标记排除）
         W2 _, event_rev = put_artifact(step, "human_event", canonical_json(event), producer_module=M4_TOOL, producer_version=M4_TOOL_VERSION) → seal
         W3 service.record_human_event(step, resume_token, event_rev, decision_type=None)
             （已知限制：token 非法时 W2 的 sealed 修订已存在但未登记为人工事件；验收只认 human_events 表，Checkpoint 不写）
-        W4 write_checkpoint(step, stage="m4", completed_tasks=[{"task_id": dispute_id, "artifact_revision_id": event_rev, "status": "succeeded", "terminal_state": None}],
+        W4 write_checkpoint(step, edition_part_id=ep, stage="m4", completed_tasks=[{"task_id": dispute_id, "artifact_revision_id": event_rev, "status": "succeeded", "terminal_state": None}],
                            human_decisions=[本 StepRun 全部已登记裁决事件修订，按登记顺序], pending_queue=[其余未裁决 dispute_id …] + [{"task_id": "assemble"}], next_pointer=首个待办)
       返回 {"event_revision_id", "checkpoint_revision_id", "remaining_dispute_ids"}
     resume_m4(service, step_run_id, resume_token, *, id_factory=None) -> dict
@@ -44,6 +46,7 @@ tests:
     - test_gold_full_path_succeeds（rule m4_d001=a → resume_m4 → succeeded；assertions 2：as_qizheng_000001 == 宋錢如璧撰；rejected 1 且为 assertion/b/2/TXT_001；new_concept_candidates 2；counts 与附录 A 一致）
     - test_ruling_checkpoint_written_immediately（rule 之后、resume 之前，最新 m4 Checkpoint 的 completed_tasks[0].task_id == "m4_d001" 且 human_decisions 含事件修订）
     - test_human_event_registered_with_null_decision_type
+    - test_synthetic_ruling_event_retains_marker_not_expert_verified（金标裁决含 synthetic_fixture: true、actor_ref: fixture:mini_ed01 → human_event 保留 synthetic_fixture: true 且 actor_ref 为 fixture 作者；所有 m4 修订字节不含 expert_verified，不得计为发布依据；§9.7 第 53 条）
     - test_transformation_carries_ruling_event_ids
     - test_six_assemble_checkpoints_in_order（lane_assertion_a、lane_assertion_b、lane_concept_mention_a、reconcile、m4_d001、assemble）
     - test_resume_refused_when_unruled_token_not_consumed（未裁决即 resume → 拒绝；随后 rule + resume 成功）
@@ -54,7 +57,7 @@ tests:
     - test_tampered_lane_set_fails_input_contract（patch assemble.normalize_lane 在 resume 时返回不同结果 → failed_check input_contract）
     - test_cli_rule_and_resume（subprocess：rule 末行以 "M4 RULED m4_d001" 开头 exit 0；resume 末行以 "M4 OK" 开头 exit 0）
 verify:
-  - .venv/bin/python -m unittest discover -s pipeline/knowledge_extraction/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 106
+  - .venv/bin/python -m unittest discover -s pipeline/knowledge_extraction/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 108
   - TDD §3 回归
 commit:
   add: [pipeline/knowledge_extraction/step.py, pipeline/knowledge_extraction/__main__.py, pipeline/knowledge_extraction/tests/test_ruling.py]

@@ -10,7 +10,7 @@ ls pipeline/knowledge_extraction 2>/dev/null | grep -v __pycache__ | wc -l   # K
 bash docs/blackbox-spec-rework/verify-T.sh | tail -1                          # FAIL 合计: 0
 bash docs/blackbox-spec-rework/work-items/g3-r3/mutations.sh all | tail -1    # 与基线相同
 bash openspec/schemas/verify.sh >/dev/null; echo $?                           # 0
-python3 docs/blackbox-spec-rework/work-items/impl-00-interfaces/check_interfaces.py; echo exit=$?   # 末行 I00-IF SUMMARY pass=18 fail=0；exit=0（P2/N1 前置）
+python3 docs/blackbox-spec-rework/work-items/impl-00-interfaces/check_interfaces.py; echo exit=$?   # 末行 fail=0 且 exit 0，且 candidate_submission/candidate_lane_set/dispute_queue/candidate_set/candidate_package 五个 PASS 行存在（第 54 条；不写死 pass 总数）
 $TL 2>&1 | grep -E "^(Ran|OK|FAILED)"                                         # OK（记录用例数）
 $TC 2>&1 | grep -E "^(Ran|OK|FAILED)"                                         # OK（K2 起必须是 impl-02 ACCEPTED 之后的值）
 bash openspec/acceptance/run_all.sh | tail -1                                 # 记为 BASELINE_RUN_ALL
@@ -28,12 +28,12 @@ grep -c 'for stage in ("m1", "m2", "m3")' pipeline/corpus/_fixture/mini_ed01/ver
 | 00 | `$TK` → ImportError | `$TK` OK，用例 ≥ 16 |
 | 01 | 新增用例全 ERROR | `$TK` OK ≥ 41；金标装配 counts 与附录 A 一致；两次字节相同 |
 | 02 | 新增用例全 ERROR | `$TK` OK ≥ 65；gate.py 无 `assemble`/`submission` import |
-| 03 | 新增用例全 ERROR | `$TK` OK ≥ 80；`$TL`、`$TC` 与基线相同 |
-| 04 | 新增用例全 ERROR | `$TK` OK ≥ 94；CLI assemble 三种退出码 0/2/4 |
-| 05 | 新增用例全 ERROR | `$TK` OK ≥ 106；金标全路径 succeeded |
-| 06 | 新增用例全 ERROR | `$TK` OK ≥ 118 |
-| 07 | `m4-stage-gate.sh` 不存在（exit 127）；新增用例全 ERROR | `$TK` OK ≥ 129；`m4-stage-gate.sh` → `SUMMARY pass=13 fail=0 blocked=3`、exit 2 |
-| 08（可选） | 新增用例全 ERROR | `$TK` OK ≥ 134；20.7 仍 FAIL |
+| 03 | 新增用例全 ERROR | `$TK` OK ≥ 81；`$TL`、`$TC` 与基线相同 |
+| 04 | 新增用例全 ERROR | `$TK` OK ≥ 95；CLI assemble 三种退出码 0/2/4 |
+| 05 | 新增用例全 ERROR | `$TK` OK ≥ 108；金标全路径 succeeded |
+| 06 | 新增用例全 ERROR | `$TK` OK ≥ 120 |
+| 07 | `m4-stage-gate.sh` 不存在（exit 127）；新增用例全 ERROR | `$TK` OK ≥ 131；`m4-stage-gate.sh` → `SUMMARY pass=13 fail=0 blocked=3`、exit 2 |
+| 08（可选） | 新增用例全 ERROR | `$TK` OK ≥ 136；20.7 仍 FAIL |
 
 用例数阈值为该 ACT 完成后 `pipeline/knowledge_extraction/tests` 的**具名用例累计**；数值以 ACT 文件 `tests` 段列名逐条计数，实现不得少于该数。
 
@@ -62,7 +62,7 @@ grep -c 'for stage in ("m1", "m2", "m3")' pipeline/corpus/_fixture/mini_ed01/ver
 bash docs/blackbox-spec-rework/verify-T.sh | tail -1
 bash docs/blackbox-spec-rework/work-items/g3-r3/mutations.sh all | tail -1
 bash openspec/schemas/verify.sh >/dev/null; echo $?
-python3 docs/blackbox-spec-rework/work-items/impl-00-interfaces/check_interfaces.py; echo exit=$?
+python3 docs/blackbox-spec-rework/work-items/impl-00-interfaces/check_interfaces.py; echo exit=$?   # 末行 fail=0 且 exit 0；M4 五类型 PASS 行存在（第 54 条）
 $TL 2>&1 | grep -E "^(Ran|OK|FAILED)"
 $TC 2>&1 | grep -E "^(Ran|OK|FAILED)"
 $TK 2>&1 | grep -E "^(Ran|OK|FAILED)"

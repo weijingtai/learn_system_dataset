@@ -28,6 +28,7 @@ contract: |
               其输出取该 StepRun 的 result_json["output_artifact_ids"]，按 artifacts.artifact_type 只读 SELECT，恰 1 个 corpus_package、1 个 corpus_spans、1 个 coverage_report
               （与已验收的 pipeline/validation/inputs.py resolve_m5_inputs 同法；不得依赖 list_transformations 返回输出）
         候选 0 个 → ExtractionRefused(code="REF_001", message 含「M3 未通过」)；多于 1 个 → ExtractionRefused(message 含「多个 M3 结果」)
+        输出形状不符（corpus_package / corpus_spans / coverage_report 任一非恰 1 个；fixture-only m3 即落此支）→ ExtractionRefused(code="REF_001", message 含「M3 未通过」）
         m3 StagePackage：该 StepRun 在 stage_packages 表中 stage == "m3" 的记录恰 1 条（列名以 pipeline/ledger/store.py 为准），其修订 sealed；
           内容 JSON payload.spans_revision_id == spans_revision_id，payload.gate_profile == "structural_only"，否则 ExtractionRefused(code="REF_001")
         technique_id 取该 ProcessingRun 的 technique_id（processing_runs 表只读 SELECT）
@@ -76,10 +77,11 @@ tests:
     - test_model_adapter_channel_refused_no_writes
     - test_lane_c_refused_no_writes
     - test_shape_error_refused_before_begin
+    - test_submit_refused_after_m4_sealed（先 run_m4 至 succeeded 封存，再 run_m4_submit → begin 之前拒绝，Ledger 行数不变）
     - test_resolve_m4_inputs_lists_three_gold_submissions
     - test_resolve_m4_inputs_multiple_profiles_refused
 verify:
-  - .venv/bin/python -m unittest discover -s pipeline/knowledge_extraction/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 80
+  - .venv/bin/python -m unittest discover -s pipeline/knowledge_extraction/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 81
   - .venv/bin/python -m unittest discover -s pipeline/ledger/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"                 # 与基线相同
   - .venv/bin/python -m unittest discover -s pipeline/corpus_compiler/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"        # 与基线相同
   - TDD §3 回归

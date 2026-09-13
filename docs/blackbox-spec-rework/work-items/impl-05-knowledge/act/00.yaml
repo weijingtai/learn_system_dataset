@@ -7,7 +7,7 @@ pending_decisions: [D-01, D-10, D-16]
 scope:
   write: [pipeline/knowledge_extraction/__init__.py, pipeline/knowledge_extraction/errors.py, pipeline/knowledge_extraction/serialize.py, pipeline/knowledge_extraction/submission.py, pipeline/knowledge_extraction/adapters/__init__.py, pipeline/knowledge_extraction/adapters/task_pipeline.py, pipeline/knowledge_extraction/tests/__init__.py, pipeline/knowledge_extraction/tests/test_submission.py, pipeline/knowledge_extraction/tests/test_task_pipeline_adapter.py, pipeline/knowledge_extraction/tests/data/appendix_a/submission_assertion_a.yaml, pipeline/knowledge_extraction/tests/data/appendix_a/submission_assertion_b.yaml, pipeline/knowledge_extraction/tests/data/appendix_a/submission_concept_mention_a.yaml, pipeline/knowledge_extraction/tests/data/appendix_a/ruling_m4_d001.yaml]
 tests_first:
-  - 先把 README 附录 A 的四个 YAML 逐字落到 tests/data/appendix_a/（B 路与 concept_mention 按附录文字展开为完整 YAML，顶层键同 A 路）
+  - 先把 README 附录 A 的四个 YAML 逐字落到 tests/data/appendix_a/（B 路与 concept_mention 按附录文字展开为完整 YAML，顶层键同 A 路；裁决件 ruling_m4_d001.yaml 含 synthetic_fixture 为 true 与 actor_ref 为 fixture:mini_ed01 两键，G7-RULINGS §9.7 第 52 条 / §9.8 第 55 条，不得当作真实人工决定）
   - 再写 tests/test_submission.py 与 tests/test_task_pipeline_adapter.py（用例名逐字），运行 `.venv/bin/python -m unittest discover -s pipeline/knowledge_extraction/tests -t .` 因 ImportError 全红，记录 Red；再实现
 contract: |
   __init__.py：
@@ -29,7 +29,7 @@ contract: |
     }
   errors.py：class ExtractionRefused(pipeline.ledger.errors.LedgerError)，构造 ExtractionRefused(message, code=None)
   serialize.py：
-    canonical_json(obj) -> bytes = json.dumps(obj, sort_keys=True, ensure_ascii=False).encode("utf-8")
+    canonical_json(obj) -> bytes = json.dumps(obj, sort_keys=True, ensure_ascii=False, separators=(",", ":"), allow_nan=False).encode("utf-8")   # 与 README §5.3 固化默认逐字一致
     sha256_hex(data: bytes) -> str
   submission.py（纯函数）：validate_submission(doc, *, technique_id) -> dict
     返回深拷贝后的规范化提交件；异常一律 pipeline.ledger.errors.SchemaViolation（整件拒收）

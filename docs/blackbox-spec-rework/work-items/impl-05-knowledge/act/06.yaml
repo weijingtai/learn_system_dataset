@@ -50,7 +50,7 @@ tests:
     - test_modify_or_request_evidence_gives_needs_expert
     - test_decision_on_other_revision_ignored
 verify:
-  - .venv/bin/python -m unittest discover -s pipeline/knowledge_extraction/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 118
+  - .venv/bin/python -m unittest discover -s pipeline/knowledge_extraction/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 120
   - grep -nE '^\s*(from|import) .*(service|store)|open\(' pipeline/knowledge_extraction/review_events.py | wc -l   # 0
   - TDD §3 回归
 commit:

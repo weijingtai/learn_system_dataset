@@ -30,6 +30,7 @@ contract: |
       references：concept_refs / concept_ref ∈ technique_profile canon ∪ glossary；school_id ∈ profile schools；pattern / school_view 引用可解析
       dispute_ruling：assemble StepRun 事件序列含 await_human → human_event（次数 == disputes 数）→ resume，顺序正确；human_events 表 decision_type 为 NULL；
         每条裁决事件之后存在 completed_tasks.task_id == dispute_id 且 human_decisions 含该事件的 Checkpoint；candidate_set.disputes 的 choice == 金标裁决文件 choice
+        （金标裁决文件含 synthetic_fixture: true / actor_ref: fixture:mini_ed01，只读其 choice；合成事件不计为真实 expert_verified，也不作为任何发布级别判定依据，§9.7 第 53 条）
       task_checkpoints：assemble StepRun 的 m4 Checkpoint task_id 依次 == [lane_assertion_a, lane_assertion_b, lane_concept_mention_a, reconcile, m4_d001, assemble]；prev 指针成链；
         StepManifest.last_checkpoint_revision_id == 末个；每个 submit StepRun 恰 1 个 submit_<category>_<lane>
       package_lineage：m4 StagePackage 修订字节过 stage_package.schema.json；stage == "m4"；manifest.content_sha256 == sha256(candidate_set 字节)；M3 包输入 ArtifactRef artifact_kind == "stage_package"；
@@ -65,7 +66,7 @@ tests:
     - test_shell_exit_2_on_fixture（subprocess 运行 m4-stage-gate.sh，末行 SUMMARY pass=13 fail=0 blocked=3，exit 2）
     - test_shell_never_trusts_copy_verify（fixture 副本删一条 span，把副本 verify.sh 换成 `echo FIXTURE OK; exit 0` → exit 1，首行以 "FAIL fixture_host" 开头）
 verify:
-  - .venv/bin/python -m unittest discover -s pipeline/knowledge_extraction/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 129
+  - .venv/bin/python -m unittest discover -s pipeline/knowledge_extraction/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 131
   - export LC_ALL=en_US.UTF-8; bash openspec/acceptance/m4-stage-gate.sh; echo exit=$?               # 13 PASS + 3 BLOCKED + SUMMARY pass=13 fail=0 blocked=3；exit=2
   - grep -c 'FIXTURE_DIR/verify.sh' openspec/acceptance/m4-stage-gate.sh                              # 0
   - grep -nE '^\s*(from|import) .*(assemble|\.gate|submission)' pipeline/knowledge_extraction/acceptance.py | wc -l   # 0

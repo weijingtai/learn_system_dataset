@@ -36,7 +36,7 @@ git status --short pipeline/knowledge_extraction openspec/acceptance/m4-stage-ga
 bash docs/blackbox-spec-rework/verify-T.sh | tail -1                                   # FAIL 合计: 0
 bash docs/blackbox-spec-rework/work-items/g3-r3/mutations.sh all | tail -1             # 与基线相同
 bash openspec/schemas/verify.sh >/dev/null; echo $?                                    # 0
-python3 docs/blackbox-spec-rework/work-items/impl-00-interfaces/check_interfaces.py; echo exit=$?   # 末行 I00-IF SUMMARY pass=18 fail=0；exit=0
+python3 docs/blackbox-spec-rework/work-items/impl-00-interfaces/check_interfaces.py; echo exit=$?   # 末行 fail=0 且 exit 0，且 M4 五类型 PASS 行存在（第 54 条）
 .venv/bin/python -m unittest discover -s pipeline/ledger/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"           # OK
 .venv/bin/python -m unittest discover -s pipeline/corpus_compiler/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"  # OK
 bash openspec/acceptance/m4-stage-gate.sh >/dev/null 2>&1; echo $?                     # K1–K3: 127（尚未创建）
@@ -45,7 +45,7 @@ test ! -e pipeline/tools/import_legacy_candidates.py; echo $?                   
 
 另需确认：
 
-- **P2/N1**：本包新增 artifact_type（`candidate_submission`、`candidate_lane_set`、`dispute_queue`、`candidate_set`、`candidate_package`）已由该波登记 ACT 写入 `impl-00-interfaces/INTERFACES.md` §4 临时闭集；`check_interfaces.py` 末行 `I00-IF SUMMARY pass=18 fail=0` 且 exit 0。若 §4 仍只有旧命名（`candidate_batch`/`model_run`/`candidate_diff_report`）→ 停手上报（README §10 N1）。
+- **P2/N1**：本包新增 artifact_type（`candidate_submission`、`candidate_lane_set`、`dispute_queue`、`candidate_set`、`candidate_package`）已由该波登记 ACT 写入 `impl-00-interfaces/INTERFACES.md` §4 临时闭集；`check_interfaces.py` 末行 `fail=0` 且 exit 0，且上述五个 M4 类型各自的 PASS 行存在（第 54 条，不写死 pass 总数）。若 §4 仍只有旧命名（`candidate_batch`/`model_run`/`candidate_diff_report`）→ 停手上报（README §10 N1）。
 - **K4 前置（D-02/P4）**：`pipeline/corpus/_fixture/mini_ed01/m4/` 已由主 Agent 的独占 ACT 落地附录 A 四个文件、`expected/m4.stage_package.yaml` 存在，且 fixture `verify.sh` V5/V6 已扩展到 m4。缺失即停手上报，**不得自建金标、不得改 fixture、不得把 BLOCKED 写成 PASS**。
 - **K2 前置**：`impl-02`（M3 结构层）状态 `ACCEPTED`。
 
@@ -65,7 +65,7 @@ test ! -e pipeline/tools/import_legacy_candidates.py; echo $?                   
 
 遇下列任一，停止、不自行决定，把原始输出与 `git status --short` 交主 Agent 裁定：
 
-- 基线任一门禁不符；`check_interfaces.py` 末行非 `I00-IF SUMMARY pass=18 fail=0` 或 exit ≠ 0，或 §4 未登记本包 M4 类型。
+- 基线任一门禁不符；`check_interfaces.py` 末行非 `fail=0` 或 exit ≠ 0，或 §4 未登记本包 M4 类型（五个 PASS 行不齐）。
 - K4 前 fixture `m4/` 金标或 `verify.sh` V5/V6 扩展未落地。
 - impl-02 非 `ACCEPTED`（K2 起）。
 - 上游 `run_m3` 实际输出与 README §6.1 不符（字段名、artifact_type、`manifest.content_sha256`）。

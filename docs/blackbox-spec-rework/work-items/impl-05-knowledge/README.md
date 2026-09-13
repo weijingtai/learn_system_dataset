@@ -18,7 +18,7 @@
 
 ```bash
 export LC_ALL=en_US.UTF-8
-.venv/bin/python -m unittest discover -s pipeline/knowledge_extraction/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK（用例 ≥ 129，K4 止；K5 另加 5 条）
+.venv/bin/python -m unittest discover -s pipeline/knowledge_extraction/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK（用例 ≥ 131，K4 止；K5 另加 5 条）
 bash openspec/acceptance/m4-stage-gate.sh; echo exit=$?
 # 期望：13 行 PASS + 3 行 BLOCKED（cross_model_extraction / semantic_span_input / term_layering_scan）
 #       末行 SUMMARY pass=13 fail=0 blocked=3；exit=2
@@ -145,7 +145,7 @@ glossary: []       # 首切片为空（qizheng 术语表不存在）
 schools: []        # 首切片为空（流派闭集未冻结）
 ```
 
-**Ledger（impl-01，不改其行为）**：`put_run_artifact`、`begin_step_run`、`put_artifact`、`seal_revision`、`write_checkpoint`、`await_human`、`record_human_event`、`resume`、`record_transformation`、`register_stage_package`、`finish_step_run`、`fail_step_run`；读：`get_revision`、`get_step_run`、`list_step_runs`、`list_transformations`、`list_checkpoints`、`read_object`；允许经 `reader.store.conn` 只读 SELECT（`artifacts.artifact_type`、`stage_packages`、`frozen_inputs`、`human_events`、`processing_runs`；缺口清单以 impl-00 README §5.2 为唯一清单）。
+**Ledger（impl-01，不改其行为）**：`put_run_artifact`、`begin_step_run`、`put_artifact`、`seal_revision`、`write_checkpoint`、`await_human`、`record_human_event`、`resume`、`record_transformation`、`register_stage_package`、`finish_step_run`、`fail_step_run`；读：`get_revision`、`get_step_run`、`list_step_run_events`（StepRun 事件流，F3 订正）、`list_transformations`、`list_checkpoints`、`read_object`；允许经 `reader.store.conn` 只读 SELECT（`artifacts.artifact_type`、`stage_packages`、`frozen_inputs`、`human_events`、`processing_runs`；其中 `human_events`、`processing_runs` 两类经 G7-RULINGS §9.8 第 55 条并入 impl-00 README §5.2 唯一缺口清单，F4 订正）。
 
 #### 6.1.1 artifact_type 提名（P2；本包只提名，登记由该波独占 ACT 写入 INTERFACES §4）
 
@@ -390,7 +390,7 @@ openspec/acceptance/m4-stage-gate.sh
 
 - 背景与证据：`INTERFACES.md` §4 M4 行仍列旧命名 `candidate_batch` / `model_run` / `candidate_diff_report` / `candidate_set` / `candidate_package`（状态「纵切后（D-11）」）；§2.4 M4 卡片的冻结输入/任务/输出/payload 与 §3.2 `candidate_set.schema.json`（含 `concepts[]`、`term_layers`、`extraction_mode`、`model_run_revision_ids[]`）均为 G7 薄接入**之前**的旧设计。本包实际使用 `candidate_submission` / `candidate_lane_set` / `dispute_queue` / `candidate_set` / `candidate_package`（**只提名**，P2）。`check_interfaces.py:REQUIRED_TYPES` 也未枚举任何 M4 类型。
 - 选项：
-  - A（推荐）：由该波登记 ACT（impl-00 侧）一次性把 §4 M4 行改写为本包提名清单、删除旧命名，并把 §2.4/§3.2 重写为 §6.3 的薄结构；同时把 M4 类型加入 `check_interfaces.py` 的 `REQUIRED_TYPES`，作为 impl-05 的开工前提（复刻 impl-04 的 `I00-IF SUMMARY` 前置）。
+  - A（推荐）：由该波登记 ACT（impl-00 侧）一次性把 §4 M4 行改写为本包提名清单、删除旧命名，并把 §2.4/§3.2 重写为 §6.3 的薄结构；同时把 M4 类型加入 `check_interfaces.py` 的必查清单，作为 impl-05 的开工前提（第 54 条：只取末行 `fail=0` 且 exit 0 与 M4 五类型 PASS 行，不写死 pass 总数）。
   - B：impl-05 改用 §4 旧命名（`candidate_batch` 等），不提名新名（与 D-04「每路一个 submit StepRun、输出 `candidate_submission`」的裁决冲突，不推荐）。
   - C：旧命名与新提名并存，先在 §4 增行、不删旧行（闭集出现两套同义名，违反 P2「单一闭集、同一时刻只有一路写」）。
 - 推荐：A。
@@ -453,7 +453,7 @@ items:
 
 `m4/submission_concept_mention_a.yaml`：`category: concept_mention`、`lane: a`；items：`{surface: 身宮, evidence: [{source_span_id: ss_sanche_ed01_p0003_s12, support_type: direct, span_char_start: 1, span_char_end: 3}]}`、`{surface: 官祿宮, evidence: [{source_span_id: ss_sanche_ed01_p0003_s19, support_type: direct, span_char_start: 1, span_char_end: 4}]}`。
 
-`m4/ruling_m4_d001.yaml`：`{schema_version: 0.1.0-draft, dispute_id: m4_d001, choice: a, rationale: B 路 relation=qualifies 与题记直述不符}`。
+`m4/ruling_m4_d001.yaml`：`{schema_version: 0.1.0-draft, dispute_id: m4_d001, choice: a, rationale: B 路 relation=qualifies 与题记直述不符, synthetic_fixture: true, actor_ref: fixture:mini_ed01}`（后两键按 G7-RULINGS §9.7 第 52 条与 §9.8 第 55 条；此裁决为测试合成人工决定，human_event 保留 `synthetic_fixture: true`，不计入真实 `expert_verified`、不得进入任何发布级别判定）。
 
 期望结果（`expected/m4.stage_package.yaml` 的 counts 与 payload 依此计算）：
 
