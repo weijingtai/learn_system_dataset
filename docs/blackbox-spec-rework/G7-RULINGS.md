@@ -145,6 +145,7 @@ Q49 按 P8 须用户确认前缀；Q52/Q53/Q55/Q57/Q62 推迟到 W5 定稿；Q50
 |---|---|---|
 | 51 | A1 act/12 是否一并把 §3.10 `evidence_map_pack.evidence_link` 改为页块绝对坐标 | 采纳：一并改。已验收 `pipeline/dataset_compiler`、`pipeline/validation` 代码与 impl-04 文档中 `char_start/char_end` 均为 0 处（M8 首切片知识链前三段 `not_compiled`，未冻结该字段），与第 49 条同一坐标系 |
 | 52 | A2 m4 金标生成器位置；以及金标内人工裁决事件 `ruling_m4_d001` 的性质 | 采纳 A：生成器放 fixture `m4/build_expected_m4.py`，不改 `tools/build_fixture.py` 与 m1–m3 字节。**补充（P7）**：fixture 中新增的人工裁决/签发事件属测试合成，须在内容中显式标注 `synthetic_fixture: true`（actor 标为 fixture 作者），README 写明「仅供验收宿主，不计入真实 expert_verified、不得进入任何发布级别判定」；验收与实现不得把它当作真实人工决定 |
+| 53 | 跨包：impl-05 act/05 `record_category_ruling` 要求 ruling_doc 键**恰为** `{schema_version, dispute_id, choice, rationale}`，会拒收第 52 条带 `synthetic_fixture`/`actor_ref` 的 fixture 金标（`3f32700` 交接） | 放宽为「⊇ 四键、⊆ 六键（另加 `synthetic_fixture`、`actor_ref`）」；带 `synthetic_fixture: true` 的裁决写入的 human_event 必须保留该标记，M5/M8/消费级别判定一律不得把合成事件计为真实 `expert_verified` 或任何发布依据，并补具名用例断言。随 impl-05 四查 R1 结论合并返工 |
 
 ## 10. 用户待办
 
