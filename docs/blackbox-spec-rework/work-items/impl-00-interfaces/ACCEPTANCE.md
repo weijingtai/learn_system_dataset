@@ -63,3 +63,13 @@
 - 执行方报告的 `schemas/verify.sh` 0、`run_all.sh` `pass=2 fail=1 blocked=8` 与主 Agent 前序门禁一致。
 
 act/10 `ACCEPTED`。impl-00 其余 10 个 ACT 为 `DEFERRED`（纵切后）。
+
+### 5.2 act/12（2026-09-12，主 Agent 独立验收，`git archive b8db05d` 干净树）
+
+执行者：tmux 中的 cmd（DeepSeek V4.1 Flash），会话 `w4g`。起草 `6cd4379`/`3f32700`，审查 R1 REWORK `b401c61` → 返工 `a42259f` → R2 READY `b7c3788`；裁定 47、49、51、54、55。
+
+- 范围：`b8db05d` 恰为 `INTERFACES.md`、`check_interfaces.py`、`tests/test_check_interfaces.py` 3 文件。
+- Red（执行方原文）：检查器 `pass=19 fail=5`（IF11、IF19–IF21、IF24），unittest 13 例中 3 例失败。
+- 复验：`check_interfaces.py` 末行 `I00-IF SUMMARY pass=24 fail=0`、exit 0；unittest 13 OK；INTERFACES 中旧 M4 名（`candidate_batch`/`model_run`/`candidate_diff_report`）0 处、`char_start`/`char_end` 0 处；§4 M4 行 5 条（`candidate_submission`、`candidate_lane_set`、`dispute_queue`、`candidate_set`、`candidate_package`）。矩阵外篡改：删去 `dispute_queue` 的 §4 行 → `FAIL IF11`、`FAIL IF21`、exit 1。
+
+act/12 `ACCEPTED`。act/05（m4 金标）执行中。
