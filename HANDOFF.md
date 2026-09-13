@@ -5,8 +5,9 @@
 补记六（2026-09-13）：
 - 已验收：impl-01 Ledger、impl-02 M3 结构层、impl-03 M5、impl-04 M8、impl-05 M4 最薄接入、impl-08 Orchestrator+Contract Registry、impl-00 act/10/12/05/**13**（`573c3fb`，ACCEPTANCE §5.4）。`run_all.sh` 仍 `pass=2 fail=1 blocked=8`。裁决书 `G7-RULINGS.md` 至第 69 条；计划 `G7-PLAN.md`。
 - 执行器按用户 2026-09-13 指令切回 **tmux + agy**（`--agent agy`，从已信任的 `/Users/jingtaiwei/Git/Public` 启动；tmux 须在沙箱外拉起）。在跑：
-  - `w5r6`：impl-06 R3 复审（`gemini-3.1-pro-high`，异厂商于写包者 DeepSeek），对象 `c740603`，产出 `reviews/IMPL-06-REVIEW-R3.md`；READY 后派 impl-06 实现（`PROMPT-H1.md`，外包分组停下）。
-  - `w5g0`：impl-07 G0 实现（`gemini-3.8-flash-high`，提示词 `~/tmux-agents/runs/prompts/w5g0.txt` 包 `PROMPT-L0.md`，**逐 ACT 停下**待验收）；已预裁 §0.3 与 impl-06 §5.3 键一致（§5.3 为超集）。
+  - `w5r6`（已关）：impl-06 R3 `READY` `4390b6c`；主 Agent 复核阈值与 carried 条件式属实。
+  - `w5h1`：impl-06 实现（`gemini-3.1-pro-high`，提示词 `~/tmux-agents/runs/prompts/w5h1.txt` 包 `PROMPT-H1.md`，K1→K2→K3 **分组停下**，回报 `w5h1.report.md`）。
+  - `w5g0`：impl-07 G0 实现（`gemini-3.8-flash-high`，提示词 `w5g0.txt` 包 `PROMPT-L0.md`，**逐 ACT 停下**，回报 `w5g0.report.md`）；已预裁 §0.3 与 impl-06 §5.3 键一致（§5.3 为超集）。G0-01 `c79b36a` 已停下，主 Agent 验收中（`accept_g0.sh c79b36a g0_01_e2e.py`）。放行用 `tmux-agent.sh send --session w5g0 --text "…"`。
   - `w5h`/`w5l`/`w5x`（cmd）已完成：`c740603`、`3d97bb2`、`573c3fb`。遗留：impl-07 `BDD.md §2.3`/`act/02.yaml`（DEFERRED 完整波次）仍写 SCH_001，完整波次定稿时统一为 SCH_002。
 - 监控：`tmux-watch.sh --session <名> --agent agy --interval 60 --idle-need 3 --stall 1800 --max 7200`（放后台，沙箱外）。
 - 验收脚本：旧 scratchpad 已被清空，`accept_m4.sh` 等不存在；现有 `accept_act13.sh`（干净树 + 篡改 + 门禁模板）。G0 验收需另写 `accept_m7.sh`：干净树、`pipeline/assembly` 单测、`genesis`/`gate` 独立性 grep、纯函数副作用 grep、`m7-assembler.sh` 10 PASS + 6 BLOCKED exit 2、`run_all` 不变。
