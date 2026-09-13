@@ -8,7 +8,11 @@ scope:
 tests_first:
   - 先写 tests/test_module.py（用例名逐字），`.venv/bin/python -m unittest discover -s pipeline/orchestrator/tests -t .` 因 ImportError 全红，记录 Red；再实现
 contract: |
-  __init__.py：ORCH_TOOL = "pipeline.orchestrator"；ORCH_TOOL_VERSION = "0.1.0"；EDITION_STAGES = ("m1", "m2", "m3", "m4", "m5", "m6")（§6.1 :138，M7/M8 属 ReleaseRun）
+  __init__.py：ORCH_TOOL = "pipeline.orchestrator"；ORCH_TOOL_VERSION = "0.1.0"
+    EDITION_STAGES = ("m1", "m2", "m3", "m4", "m5", "m6")（§6.1 :138；§20.1 的 M1–M6 判据基准）
+    RELEASE_STAGES = ("m8",)（首切片 release 段；M7 与多 Part 汇编 DEFERRED，README §9）
+    FIRST_SLICE_EDITION_STAGES = ("m1", "m2", "m3", "m5")（首纵切计划；m4/m6 DEFERRED 已声明缺口）
+    DEFERRED_STAGES = ("m4", "m6", "m7")
   errors.py：class OrchestratorRefused(pipeline.ledger.errors.LedgerError)，构造 OrchestratorRefused(message, code=None)
   module.py：
     STEP_OUTCOME_STATUSES = ("succeeded", "failed", "awaiting_human")
@@ -21,8 +25,9 @@ contract: |
       非 dict；status 不在 STEP_OUTCOME_STATUSES；缺任一 OUTCOME_LIST_KEYS 或其值非 list[str]；含 OUTCOME_RESERVED_KEYS 任一；
       status == "awaiting_human" 且 pending_queue_artifact_ids 缺失或空；status != "awaiting_human" 却含 pending_queue_artifact_ids；
       status == "failed" 且 failure_artifact_ids 为空；列表内重复修订号；修订号不匹配 ^rev_[0-9a-f]{32}$
-    class ModuleBinding：属性 descriptor(dict), binding(str), target(对象或可调用或 None)
+    class ModuleBinding：属性 descriptor(dict), binding(str), target(对象或可调用或 None), entry_kwargs(dict), owns_processing_run(bool)
       executable -> bool（binding != "imported"）
+      entry_kwargs = descriptor.get("entry_kwargs", {})（非 dict → OrchestratorRefused）；owns_processing_run = bool(descriptor.get("owns_processing_run", False))（非 bool → OrchestratorRefused）
     bind_module(descriptor, *, modules=None) -> ModuleBinding
       modules 是 {module_id: 对象} 注入表（测试与验收桩用），优先于 entry
       imported → target None；step_request → target 必须有可调用 plan 与 execute，否则 OrchestratorRefused("step_request 绑定缺 plan/execute")；
@@ -72,12 +77,13 @@ tests:
     - test_bind_module_injected_step_request_object
     - test_bind_module_step_request_missing_execute_refused
     - test_bind_module_entry_unresolvable_refused
+    - test_bind_module_carries_entry_kwargs_and_owns_processing_run（m5/m8 形描述符 → 属性就位；entry_kwargs 非 dict → refused）
     - test_stub_execute_writes_checkpoint_per_task_and_valid_stage_package（jsonschema 校验 stage_package.schema.json；Checkpoint 数 == 任务数）
     - test_stub_awaiting_human_outcome_on_fresh
     - test_stub_skips_recovery_completed_tasks
     - test_orchestrator_sources_do_not_name_processing_modules（pipeline/orchestrator 非 tests 的 .py 不含 "corpus_compiler"）
 verify:
-  - .venv/bin/python -m unittest discover -s pipeline/orchestrator/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 14
+  - .venv/bin/python -m unittest discover -s pipeline/orchestrator/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 15
   - grep -rnE '\.store\b|\.objects\b' pipeline/orchestrator --include='*.py' | grep -v '/tests/' | wc -l   # 0
   - TDD §3 回归
 commit:

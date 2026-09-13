@@ -10,7 +10,9 @@ scope:
 tests_first:
   - 先写 tests/test_acceptance.py（用例名逐字）并全红，再实现 acceptance.py，最后新建 orchestrator-gate.sh
 contract: |
-  acceptance.py：python -m pipeline.orchestrator.acceptance --fixture <dir> [--keep] [--registry <path>]
+  acceptance.py：python -m pipeline.orchestrator.acceptance --fixture <dir> [--asset-root <dir>] [--keep] [--registry <path>]
+    （--asset-root 默认取环境变量 FIXTURE_ASSET_ROOT，否则 pipeline 仓库内 ocr/data_work/sanche_pages；仅 real_chain_mini_ed01 的准备阶段使用）
+    前置：impl-02/impl-03/impl-04 均 ACCEPTED；缺派生页图 → 该项 `BLOCKED real_chain_mini_ed01 前置缺失: M1 Source Intake；派生页图缺失`（无 FAIL 有 BLOCKED → exit 2，与「缺 fixture」的 exit 3 区分）。
     六项判定（名称与顺序固定；每项自建 tempfile Ledger；输出行格式同 m3-coverage：`PASS <名>` / `FAIL <名> <原因>` / `BLOCKED <名> 前置缺失: <§19 行名>；<说明>`；末行 `SUMMARY pass=<n> fail=<n> blocked=<n>`）
       gate_blocks_incomplete（桩登记表）：五个负例各自独立 Ledger：
         failed_task（m3 桩 fail_on_task）/ awaiting_human（m2 桩 human_queue）/ validation_failed（m3 桩 validation_passed=False）/
@@ -20,16 +22,20 @@ contract: |
         各 StepRun 冻结输入 ⊇ 上游 StagePackage 修订；以上全部由本判定从 Ledger 直接读取重算，不调用 gate.evaluate_stage_gate
       edition_conjunction（桩登记表）：两个 Part（两个 start_edition_run），A 跑完、B 停在 m3 失败 → edition_status.complete False；B 经 rerun_from_checkpoint 完成后 → True
       recovery_via_orchestrator（桩登记表）：m4 桩 t2 失败 → rerun_from_checkpoint("m4") → 旧 StepRun failed 且失败修订 sealed；新 StepRun supersedes 旧；t1 执行一次；advance 继续至 complete
-      real_chain_mini_ed01（生产登记表 + fixture）：
-        准备 A：LedgerService(root) → ingest(fixture, service, stages=("m1","m2")) → service.close() → DirectLedgerAdapter(root) → adopt_edition_run(processing_run_id=summary.processing_run_id, edition_part_id=summary.edition_part_id, technique_id=summary.technique_id)
-        advance → action executed、stage m3、step_result.status succeeded（legacy 绑定）；再 advance → action refused、stage m4、reason 含 "M4 Knowledge Extraction"
-        独立重算（不调用 gate.evaluate_stage_gate、不信任 step_result）：m1/m2/m3 各恰 1 个有效 StepRun 且 succeeded；m3 StepRun 冻结输入含 m1 StepRun 产出与 m2 StepRun 产出；
-          m3 result.output_artifact_ids 中 schema_id == stage_package 的修订恰 1、内容过 Schema、stage == "m3"、validation.passed True、failures []；
-          m3 StagePackage manifest.content_sha256 == fixture expected/m3.stage_package.yaml 的 content_sha256
-        准备 B（负例）：另一 Ledger 只灌 m1 → adopt → advance → action refused、stage m2、reason 含 "imported"；Ledger 中无 stage == "m3" 的 StepRun
+      real_chain_mini_ed01（生产登记表 + fixture；首纵切链 m1/m2 → m3 → m5 → m8）：
+        准备 A：LedgerService(root) → ingest(fixture, service, stages=("m1","m2")) → register_source_assets(service, edition_part_id, asset_root)（薄 M1，impl-04；须在 Orchestrator 串联之前完成）→ service.close()
+          → DirectLedgerAdapter(root) → adopt_edition_run(processing_run_id=summary.processing_run_id, edition_part_id=summary.edition_part_id, technique_id=summary.technique_id)
+        EditionRun 段：run_until(port, registry, handle, "m5", stages=FIRST_SLICE_EDITION_STAGES) → m1/m2 Gate passed（imported）、m3 executed succeeded（legacy）、m5 executed succeeded（legacy）
+        release 段：run_release(port, registry, edition_part_id=..., technique_id=...) → action executed、stage m8、step_result.status succeeded、processing_run_id 为 run_m8 自建 release_run
+        独立重算（不调用 gate.evaluate_stage_gate、不信任 step_result）：m1/m2/m3/m5 各恰 1 个有效 StepRun 且 succeeded；
+          m3 冻结输入含 m1/m2 产出、m5 冻结输入含 m3 产出、m8 冻结输入含 m1/m2/m3 产出；
+          m3/m5/m8 的 StagePackage 各恰 1、过 Schema、stage 正确、validation.passed True、failures []；
+          m3 StagePackage manifest.content_sha256 == fixture expected/m3.stage_package.yaml 的 content_sha256；
+          m8 StagePackage payload.consumption_level == "INTERNAL_DEMO"
+        准备 B（负例）：另一 Ledger 只灌 m1 → adopt → advance（stages=FIRST_SLICE_EDITION_STAGES）→ action refused、stage m2、reason 含 "imported"；Ledger 中无 stage == "m3" 的 StepRun
       registered_modules_m1_m6（生产登记表）：对 EDITION_STAGES 依序取 module_for；首个 None 的 stage s →
-        BLOCKED 行 `BLOCKED registered_modules_m1_m6 前置缺失: <registry.stage_rows[s]>；Local Orchestrator 已串联 <m1>–<s 的前一 stage> Gate，<s>–m6 未登记生产 Module`
-        （当前逐字：`前置缺失: M4 Knowledge Extraction；Local Orchestrator 已串联 m1–m3 Gate，m4–m6 未登记生产 Module`）；
+        BLOCKED 行 `BLOCKED registered_modules_m1_m6 前置缺失: <registry.stage_rows[s]>；Local Orchestrator 首切片已串联 <FIRST_SLICE_EDITION_STAGES 以「、」连接，但写「m1–m3、m5」> Gate，<其余未登记 stage 以「/」连接> 未登记生产 Module`
+        （当前逐字：`前置缺失: M4 Knowledge Extraction；Local Orchestrator 首切片已串联 m1–m3、m5 Gate，m4/m6 未登记生产 Module`）；
         全部登记 → PASS（届时 real_chain_mini_ed01 须扩展至 m6，不在本 ACT）
         桩（kind stub）永不计入；--registry 指向含桩的表时 check_registry 报 stub_in_production → 本项 FAIL
     退出码：3 仅限「<fixture>/manifest.yaml 不存在」或「yaml/jsonschema 不可导入」；准备或判定抛异常 → 该项 `FAIL <名> 宿主准备失败: <类名>: <消息>`；
@@ -38,20 +44,21 @@ contract: |
     set -u；export LC_ALL=en_US.UTF-8；REPO_ROOT 由脚本目录推出；FIXTURE_DIR 默认 "$REPO_ROOT/pipeline/corpus/_fixture/mini_ed01"（可覆盖，先解析绝对路径）
     PY 不可执行 → `BLOCKED orchestrator_gate 前置缺失: 测试宿主匮乏；.venv 缺失` + `SUMMARY pass=0 fail=0 blocked=1` exit 3
     宿主校验：FIXTURE_DIR="$FIXTURE_DIR" bash "$REPO_ROOT/pipeline/corpus/_fixture/mini_ed01/verify.sh"（绝不执行 "$FIXTURE_DIR/verify.sh"）；0 或 3 继续；其他 → `FAIL fixture_host <首个 FAIL 行>` + `SUMMARY pass=0 fail=1 blocked=0` exit 1
-    cd "$REPO_ROOT" && "$PY" -m pipeline.orchestrator.acceptance --fixture "$FIXTURE_DIR"，退出码原样返回
+    cd "$REPO_ROOT" && "$PY" -m pipeline.orchestrator.acceptance --fixture "$FIXTURE_DIR" ${FIXTURE_ASSET_ROOT:+--asset-root "$FIXTURE_ASSET_ROOT"}，退出码原样返回
 tests:
   test_acceptance.py: |
     - test_fixture_yields_five_pass_one_blocked_exit_2
     - test_blocked_line_exact_text_m4
     - test_gate_bypass_defect_detected（patch pipeline.orchestrator.gate.evaluate_stage_gate 恒返回 passed → gate_blocks_incomplete FAIL，exit 1）
     - test_real_chain_detects_missing_upstream_lineage（--registry 指向临时登记表副本，把 m3 entry 改为本测试文件内的假 legacy 入口 fake_run_m3_without_m2_inputs：自建配置与 StepRun，冻结输入只含 m1 manifest 修订，其余照常封存合法 StagePackage 并 finish → real_chain_mini_ed01 FAIL）
+    - test_real_chain_reaches_m5_and_m8（生产登记表 + fixture + 页图：m3/m5 各 executed succeeded，run_release 执行 m8；缺页图时该项 BLOCKED 而非 FAIL）
     - test_stub_registry_never_counts（--registry 指向含 kind stub 的临时表 → registered_modules_m1_m6 FAIL，不得 PASS）
     - test_prepare_failure_exits_1（patch fixture_ingest.ingest 抛 RuntimeError → exit 1，real_chain_mini_ed01 行以 "FAIL real_chain_mini_ed01 宿主准备失败: RuntimeError" 开头）
     - test_missing_fixture_exit_3
     - test_shell_exit_2_on_fixture（subprocess：末行 SUMMARY pass=5 fail=0 blocked=1，exit 2）
     - test_shell_never_trusts_copy_verify（fixture 副本删一条 span 并把副本 verify.sh 换成 `echo FIXTURE OK; exit 0` → exit 1，首行以 "FAIL fixture_host" 开头）
 verify:
-  - .venv/bin/python -m unittest discover -s pipeline/orchestrator/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 72
+  - .venv/bin/python -m unittest discover -s pipeline/orchestrator/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 74
   - export LC_ALL=en_US.UTF-8; bash openspec/acceptance/orchestrator-gate.sh; echo exit=$?     # 5 PASS + BLOCKED registered_modules_m1_m6 + SUMMARY pass=5 fail=0 blocked=1；exit=2
   - grep -c 'FIXTURE_DIR/verify.sh' openspec/acceptance/orchestrator-gate.sh                    # 0
   - bash openspec/acceptance/run_all.sh | tail -1                                                # SUMMARY pass=2 fail=1 blocked=8（本 ACT 未改 run_all.sh）
@@ -59,5 +66,5 @@ verify:
   - TDD §3 回归
 commit:
   add: [pipeline/orchestrator/acceptance.py, pipeline/orchestrator/tests/test_acceptance.py, openspec/acceptance/orchestrator-gate.sh]
-  message: "feat(orchestrator): §20.1 acceptance — gated m1–m3 real chain on mini_ed01, stub m1–m6 chain, blocked on unregistered M4"
-on_fail: 停止并报告；不得把 registered_modules_m1_m6 写成 PASS；真实链因 run_m3 缺陷失败时如实 FAIL 并上报，不得改 corpus_compiler
+  message: "feat(orchestrator): §20.1 acceptance — gated m1/m2→m3→m5 real chain plus legacy M8 release step on mini_ed01, stub m1–m6 chain, blocked on unregistered M4"
+on_fail: 停止并报告；不得把 registered_modules_m1_m6 写成 PASS；真实链因 run_m3/run_m5/run_m8 缺陷失败时如实 FAIL 并上报，不得改 corpus_compiler/validation/dataset_compiler

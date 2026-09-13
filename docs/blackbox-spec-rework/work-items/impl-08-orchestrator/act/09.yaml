@@ -3,6 +3,10 @@ title: run_all.sh 的 20.1 / 20.10 case 体改为调用两个 acceptance（BLOCK
 estimated_minutes: 45
 group: K4
 depends_on: [impl-08/08]
+preconditions:
+  - impl-04 ACT 08 已验收（P4：`openspec/acceptance/run_all.sh` 每波至多一个写者；W3 内为 impl-04 ACT 08，本 ACT 为其后唯一写者）
+  - 开工前确认无并发改 `run_all.sh`（`git status --short openspec/acceptance/run_all.sh` 干净）；不满足则停手上报
+  - impl-02/impl-03/impl-04 均 ACCEPTED，且本包 ACT 07/08 已验收（两个 acceptance 可跑出期望行）
 scope:
   write: [openspec/acceptance/run_all.sh, pipeline/contract_registry/tests/test_run_all.py]
 tests_first:
@@ -27,19 +31,19 @@ contract: |
       }
       （用 bash 参数展开切分全角「；」，不用 sed 多字节括号表达式，避免 BSD sed 在 UTF-8 下的差异）
     (2) case 20.1 中，`OK) block_line "$n" "Local Orchestrator" "M4–M6 Gate 未实现" ;;` 一行替换为
-          `OK) accept_check "$n" pipeline.orchestrator.acceptance "一个 EditionPart 严格按 M1–M6 阶段 Gate 完成（宿主 mini_ed01 真实 Ledger）" --fixture "$FIXTURE_DIR" ;;`
+          `OK) accept_check "$n" pipeline.orchestrator.acceptance "一个 EditionPart 严格按 M1–M6 阶段 Gate 完成（宿主 mini_ed01 真实 Ledger）" --fixture "$FIXTURE_DIR" ${FIXTURE_ASSET_ROOT:+--asset-root "$FIXTURE_ASSET_ROOT"} ;;`
         case 20.10 中，`block_line "$n" "Contract Registry" "无第二 Adapter 可做替换验证"` 一行替换为
           `if [ ! -x "$PY" ]; then block_line "$n" "测试宿主匮乏" ".venv 缺失"; return 0; fi` 与
           `accept_check "$n" pipeline.contract_registry.acceptance "更换 OCR/模型/索引/存储 Adapter 不改变相邻 Module 的 Interface"`
     其余行（含 20.1 的 fx/PY/探针 FAIL 分支、20.10 的 verify.sh FAIL 分支、头部注释）逐字不变
-  期望输出（impl-02 ACCEPTED 且本包 ACT 07/08 通过时）：
-    BLOCKED  20.1  前置缺失: M4 Knowledge Extraction；Local Orchestrator 已串联 m1–m3 Gate，m4–m6 未登记生产 Module
-    BLOCKED  20.10  前置缺失: Contract Registry；m3.corpus_structural 入口直接访问 Ledger 内部（…）
+  期望输出（impl-02/03/04 ACCEPTED 且本包 ACT 07/08 通过时）：
+    BLOCKED  20.1  前置缺失: M4 Knowledge Extraction；Local Orchestrator 首切片已串联 m1–m3、m5 Gate，m4/m6 未登记生产 Module
+    BLOCKED  20.10  前置缺失: Contract Registry；m3.corpus_structural、m5.automatic_validation、m8.dataset_compilation 入口直接访问 Ledger 内部（…）
     全量 SUMMARY pass=2 fail=1 blocked=8；退出码 1
 tests:
   test_run_all.py: |
     subprocess，cwd 仓库根，env 继承并设 LC_ALL=en_US.UTF-8
-    - test_20_1_blocked_line_computed（`run_all.sh 20.1` 首行以 "BLOCKED  20.1  前置缺失: M4 Knowledge Extraction；Local Orchestrator 已串联 m1–m3 Gate" 开头；末行 SUMMARY pass=0 fail=0 blocked=1）
+    - test_20_1_blocked_line_computed（`run_all.sh 20.1` 首行以 "BLOCKED  20.1  前置缺失: M4 Knowledge Extraction；Local Orchestrator 首切片已串联 m1–m3、m5 Gate" 开头；末行 SUMMARY pass=0 fail=0 blocked=1）
     - test_20_10_blocked_line_computed（`run_all.sh 20.10` 首行以 "BLOCKED  20.10  前置缺失: Contract Registry；" 开头）
     - test_full_summary_unchanged（末行 == "SUMMARY pass=2 fail=1 blocked=8"，退出码 1）
     - test_accept_check_fail_path（临时 PATH 替身不可行时改为：env FIXTURE_DIR 指向删了一条 span 的 fixture 副本 → `run_all.sh 20.1` 首行以 "FAIL  20.1" 开头）

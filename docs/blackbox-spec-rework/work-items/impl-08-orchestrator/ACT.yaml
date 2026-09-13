@@ -1,11 +1,11 @@
 package: blackbox-impl-08-orchestrator
 title: L2 Local Orchestrator + L2' Contract Registry 首切片（§5/§6.1/§7/§7.1/§17；§20 第 1、10 条判据计算化）
-status: DRAFT   # §4 共 18 条待主 Agent 裁决；ACT 按「推荐」起草
+status: READY_FOR_REVIEW   # W4-I 定稿 2026-09-12；§4 主 Agent 决定，§4.1 待主 Agent 裁决未裁前不得据此实现
 executor_groups:
-  K1: [impl-08/00, impl-08/01]              # Registry 目录与端口；不依赖 impl-02
-  K2: [impl-08/02, impl-08/03, impl-08/04]  # Module 接口、Gate、EditionRun；只用桩与假入口
+  K1: [impl-08/00, impl-08/01]              # Registry 目录与端口；不依赖 impl-02/03/04
+  K2: [impl-08/02, impl-08/03, impl-08/04]  # Module 接口、Gate、EditionRun/release 段；只用桩与假入口
   K3: [impl-08/05, impl-08/06]              # 人工暂停/恢复、六项查询与 CLI
-  K4: [impl-08/07, impl-08/08, impl-08/09]  # 真实链验收、Registry 验收、run_all.sh；前置 impl-02 ACCEPTED
+  K4: [impl-08/07, impl-08/08, impl-08/09]  # 真实链验收、Registry 验收、run_all.sh；ACT 09 须待 impl-04 ACT 08 验收后
 acts:
   - file: act/00.yaml
     id: impl-08/00
@@ -33,13 +33,22 @@ acts:
     writes: ["pipeline/orchestrator/acceptance.py", "pipeline/orchestrator/tests/test_acceptance.py", "openspec/acceptance/orchestrator-gate.sh"]
   - file: act/08.yaml
     id: impl-08/08
-    writes: ["pipeline/contract_registry/suites.py", "pipeline/contract_registry/acceptance.py", "pipeline/contract_registry/tests/test_acceptance.py", "openspec/acceptance/contract-registry.sh", "openspec/acceptance/run_all.sh"]
+    writes: ["pipeline/orchestrator/suites.py", "pipeline/contract_registry/acceptance.py", "pipeline/contract_registry/tests/test_acceptance.py", "openspec/acceptance/contract-registry.sh"]
+  - file: act/09.yaml
+    id: impl-08/09
+    writes: ["openspec/acceptance/run_all.sh", "pipeline/contract_registry/tests/test_run_all.py"]
+  - file: act/10.yaml
+    id: impl-08/10
+    status: DEFERRED
+    writes: ["pipeline/ledger/service.py", "pipeline/ledger/tests/test_read_api.py"]
+    note: "D-6 B：Ledger 公开读方法；本批不改 pipeline/ledger/**（P9），待主 Agent 裁定归属波次后启用"
 global_rules:
-  - 每个 ACT 先写测试（Red 原文入报告）再实现；unittest；测试只用 tempfile 目录，不写 var/ 与 fixture
-  - 只用标准库 + PyYAML + jsonschema；不新增依赖、不新增 ID 前缀（module_id/port_id/adapter_id 是登记表标签）、不调用模型 API
-  - 不得改 pipeline/ledger/**、pipeline/corpus_compiler/**、openspec/schemas/**、规格、fixture；发现需要改动时停手上报
+  - 每个 ACT 先写测试（用例名与 ACT tests 逐字；Red 原文入报告）再实现；unittest；测试只用 tempfile 目录，不写 var/ 与 fixture
+  - 只用标准库 + PyYAML + jsonschema；不新增依赖、不新增 ID 前缀（module_id/port_id/adapter_id 是登记表标签）、不调用模型 API（P6）
+  - 不得改 pipeline/ledger/**（P9）、pipeline/corpus_compiler/**、pipeline/validation/**、pipeline/dataset_compiler/**、openspec/schemas/**、规格、fixture、其他 work-items、台账；发现需要改动时停手上报
   - Orchestrator 与 Registry 非测试源码不 import 任何加工 Module 包；Module 只经 registry entry + importlib 或 modules= 注入解析
   - Orchestrator 只经 LedgerPort 闭集方法访问 Ledger（不得出现 .store / .objects）；legacy 绑定经 port.unwrap() 取直连服务是唯一例外，且只在 module.py/runner.py 中
+  - 新增 artifact_type 一律先经 INTERFACES.md §4 登记（P2）；本包不新增，Gate 证据复用 validation_report（D-11、N-4 A）
   - 中文注释与 docstring；公开函数名、参数名、返回键、检查名、CLI 末行与 ACT contract 逐字一致
   - 每个 ACT 一个提交；不得 git add -A / git add .；执行者不得写 ACCEPTED 或台账
 gates:

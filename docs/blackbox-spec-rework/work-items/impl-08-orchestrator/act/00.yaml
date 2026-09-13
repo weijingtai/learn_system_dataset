@@ -23,14 +23,23 @@ contract: |
     schemas: 四项 {schema_id, path(相对仓库根), schema_version: "1.0.0", sha256: 执行者对 openspec/schemas/<id>.schema.json 实算后写入}
     stage_rows: 同 STAGE_ROWS_EXPECTED
     human_queues: 同 HUMAN_QUEUES_EXPECTED
-    modules（三项，字段键序逐字 module_id, stage, kind, binding, entry, version, consumes, produces, human_queue, supports_recovery）：
-      - {module_id: m1.fixture_import, stage: m1, kind: thin_import, binding: imported, entry: null, version: mini_ed01, consumes: [], produces: [{artifact_type: source_manifest}], human_queue: false, supports_recovery: false}
-      - {module_id: m2.fixture_import, stage: m2, kind: thin_import, binding: imported, entry: null, version: mini_ed01, consumes: [{artifact_type: source_manifest, from_stage: m1}], produces: [{artifact_type: ocr_page_set}], human_queue: true, supports_recovery: false}
+    modules（五项，字段键序逐字 module_id, stage, kind, binding, entry, version, consumes, produces, human_queue, supports_recovery, entry_kwargs, owns_processing_run）：
+      - {module_id: m1.fixture_import, stage: m1, kind: thin_import, binding: imported, entry: null, version: mini_ed01, consumes: [], produces: [{artifact_type: source_manifest}], human_queue: false, supports_recovery: false, entry_kwargs: {}, owns_processing_run: false}
+      - {module_id: m2.fixture_import, stage: m2, kind: thin_import, binding: imported, entry: null, version: mini_ed01, consumes: [{artifact_type: source_manifest, from_stage: m1}], produces: [{artifact_type: ocr_page_set}], human_queue: true, supports_recovery: false, entry_kwargs: {}, owns_processing_run: false}
       - {module_id: m3.corpus_structural, stage: m3, kind: production, binding: legacy_self_driving, entry: "pipeline.corpus_compiler.step:run_m3", version: "0.1.0",
          consumes: [{artifact_type: source_manifest, from_stage: m1}, {artifact_type: ocr_page_set, from_stage: m2}, {artifact_type: ocr_page, from_stage: m2}],
-         produces: [{artifact_type: corpus_package}], human_queue: false, supports_recovery: false}
-      produces 语义（逐字）：该 Stage 的 StagePackage 在 manifest.output_artifacts 中自述的 artifact_type 集合。
-        理由：LedgerPort 读不到 artifacts.artifact_type（get_revision 只返回 artifact_revisions 行，store.py:36–59、:363–369），Gate 只能比对 StagePackage 自述类型（README §4 第 6 条）
+         produces: [{artifact_type: corpus_package}], human_queue: false, supports_recovery: false, entry_kwargs: {}, owns_processing_run: false}
+      - {module_id: m5.automatic_validation, stage: m5, kind: production, binding: legacy_self_driving, entry: "pipeline.validation.step:run_m5", version: "0.1.0",
+         consumes: [{artifact_type: corpus_package, from_stage: m3}, {artifact_type: corpus_spans, from_stage: m3}, {artifact_type: coverage_report, from_stage: m3}],
+         produces: [{artifact_type: validation_package}], human_queue: false, supports_recovery: false, entry_kwargs: {target_consumption_level: INTERNAL_DEMO}, owns_processing_run: false}
+      - {module_id: m8.dataset_compilation, stage: m8, kind: production, binding: legacy_self_driving, entry: "pipeline.dataset_compiler.step:run_m8", version: "0.1.0",
+         consumes: [{artifact_type: source_manifest, from_stage: m1}, {artifact_type: source_asset_page, from_stage: m1}, {artifact_type: ocr_page_set, from_stage: m2}, {artifact_type: corpus_package, from_stage: m3}],
+         produces: [{artifact_type: publication_package}], human_queue: false, supports_recovery: false, entry_kwargs: {consumption_level: INTERNAL_DEMO}, owns_processing_run: true}
+      produces 语义（逐字）：该 Stage 的 StagePackage 在 manifest.output_artifacts 中自述的 artifact_type 集合（m1=source_manifest、m2=ocr_page_set、m3=corpus_package、m5=validation_package、m8=publication_package）。
+        理由：LedgerPort 读不到 artifacts.artifact_type（get_revision 只返回 artifact_revisions 行，store.py:36–59、:363–369），Gate 只能比对 StagePackage 自述类型（README §6.1）
+      entry_kwargs（N-3 A）：legacy_self_driving 绑定调用 entry 时透传的关键字参数；m5 与 m8 的入口要求必填/显式关键字（validation/step.py:59、dataset_compiler/step.py:194）。
+      owns_processing_run（N-3 A）：true 表示入口自建 ProcessingRun（run_m8 自建 release_run，dataset_compiler/step.py:212），run_legacy 不比对 handle.processing_run_id 而采用入口返回的 processing_run_id；false 表示入口在调用方 ProcessingRun 内运行。
+      consumes 顺序逐字：先列 from_stage 早的；同 stage 内按 artifact_type 字典序（source_asset_page < source_manifest）。
       consumes 的 artifact_type 只进文档与指纹；Gate 只按 from_stage 判血缘
       （artifact_type 名以 fixture_ingest.py:43–47 与 fixture expected/m1–m3.stage_package.yaml 的 output_artifacts 为准；若与上列不同，停手上报，不得猜）
     ports（键序 port_id, adjacent_interface, adapters）：
@@ -52,6 +61,7 @@ contract: |
          entry_forbidden（binding imported 却 entry 非 null）、entry_required（非 imported 且 entry 不匹配 ^[a-z_][a-z0-9_.]*:[A-Za-z_][A-Za-z0-9_]*$）、
          entry_unresolvable（仅 resolve_entries=True：importlib 导入模块并 getattr 失败）
       R4 consumes_stage_order（from_stage 不严格早于本 stage）、artifact_type_invalid（不匹配 ^[a-z][a-z0-9_]*$）
+      R3 续：entry_kwargs_invalid（存在但不是 dict）、owns_processing_run_invalid（存在但非 bool）
       R5 stub_in_production（allow_stub=False 且 kind == "stub"）、stage_module_duplicate（同 stage 非桩 >1）
       R6 port_invalid（port_id 不在 PORT_IDS 或缺任一 PORT_IDS）、adapter_id_duplicate（全局唯一）、adjacent_interface_unknown（引用未登记 schema_id）
     interface_fingerprint(registry, module_id) -> str
@@ -73,12 +83,13 @@ tests:
     - test_consumes_from_later_stage_detected
     - test_stub_in_production_detected_and_allowed_with_flag（allow_stub=True 时无该问题）
     - test_port_closed_set_enforced（缺 index 或多出 graph → port_invalid）
-    - test_module_for_zero_one_many（m4 → None；m3 → m3.corpus_structural；两个非桩 m3 → RegistryInvalid）
+    - test_module_for_zero_one_many（m4 → None；m5 → m5.automatic_validation；两个非桩 m3 → RegistryInvalid）
+    - test_legacy_entry_kwargs_carried（m5/m8 条目带 entry_kwargs；m8 owns_processing_run 为 true；非 dict/非 bool → 对应问题码）
     - test_fingerprint_ignores_version_but_not_produces
-    - test_cli_ok_and_invalid_exit_codes（subprocess：仓库表 → 0 且末行 `REGISTRY OK modules=3 ports=4`；临时损坏表 → 1 且末行以 `REGISTRY INVALID` 开头）
+    - test_cli_ok_and_invalid_exit_codes（subprocess：仓库表 → 0 且末行 `REGISTRY OK modules=5 ports=4`；临时损坏表 → 1 且末行以 `REGISTRY INVALID` 开头）
 verify:
-  - .venv/bin/python -m unittest discover -s pipeline/contract_registry/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 14
-  - .venv/bin/python -m pipeline.contract_registry check | tail -1                                   # REGISTRY OK modules=3 ports=4
+  - .venv/bin/python -m unittest discover -s pipeline/contract_registry/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 15
+  - .venv/bin/python -m pipeline.contract_registry check | tail -1                                   # REGISTRY OK modules=5 ports=4
   - grep -c 'kind: stub' pipeline/contract_registry/registry.yaml                                    # 0
   - TDD §3 回归
 commit:

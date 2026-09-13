@@ -25,46 +25,62 @@ contract: |
         result = base + {"status": "awaiting_human", "status_version": 迁移后值, "resume_token": token, "pending_queue_artifact_ids": list(...)}
     _seal_failure(port, request, check, detail) -> StepResult：put_artifact(step, "failure_report", json {"check", "detail"}（sort_keys, ensure_ascii False）,
       producer_module=ORCH_TOOL, producer_version=ORCH_TOOL_VERSION) → seal → fail_step_run(step, [rev], "orchestrator %s: %s" % (check, detail)) → failed StepResult（failure_artifact_ids=[rev]，其余列表为空）
-    run_legacy(port, binding, handle) -> dict StepResult
+    run_legacy(port, binding, handle) -> dict {"step_run_id", "processing_run_id", "step_result"}
       service = port.unwrap()（NotImplementedError → OrchestratorRefused("legacy_self_driving 需要直连 Ledger Adapter")，零写入）
-      summary = binding.target(service, handle["edition_part_id"])；入口抛异常 → 原样包装为 OrchestratorRefused（message 含异常类名；此时入口承诺 begin 之前零写入）
-      step = port.get_step_run(summary["step_run_id"])；step.processing_run_id != handle.processing_run_id → OrchestratorRefused
-      succeeded：result = json.loads(step.result_json)，校验 Schema 后返回
-      failed：从 list_step_run_events 的 failure 事件 payload 取 failure_revision_ids，构造 failed StepResult（status_version 取当前值）并校验 Schema
+      summary = binding.target(service, handle["edition_part_id"], **binding.entry_kwargs)；入口抛异常 → 原样包装为 OrchestratorRefused（message 含异常类名；此时入口承诺 begin 之前零写入）
+      step = port.get_step_run(summary["step_run_id"]）
+      binding.owns_processing_run 为 False（N-3 A）：step["processing_run_id"] != handle["processing_run_id"] → OrchestratorRefused；processing_run_id 取 handle 值
+      binding.owns_processing_run 为 True（N-3 A；run_m8 自建 release_run，dataset_compiler/step.py:212）：processing_run_id = summary["processing_run_id"]，不与 handle 比对
+      succeeded：result = json.loads(step["result_json"]，校验 Schema 后返回)
+      failed：从 list_step_run_events 的 failure 事件 payload.failure_revision_ids 构造 failed StepResult（status_version 取当前值）并校验 Schema
       其他状态 → OrchestratorRefused
+      返回前一律 jsonschema 校验 step_result.schema.json，失败抛 SchemaViolation(SCH_001)
   edition_run.py：
     start_edition_run(port, *, edition_part_id, technique_id) -> handle（port.create_processing_run("edition_run", edition_part_id, technique_id)）
     adopt_edition_run(port, *, processing_run_id, edition_part_id, technique_id) -> handle
       交叉校验：run_status 可读；每个 StepRun 的 request.technique_profile_id == technique_id；
       EDITION_STAGES 中已有 Checkpoint 的 stage，其 latest_checkpoint(ep, stage).step_run_id 属于本运行；任一不符 → OrchestratorRefused，零写入
     ADVANCE_ACTIONS = ("executed", "waiting", "blocked", "refused", "complete")
-    advance(port, registry, handle, *, modules=None) -> dict
+    advance(port, registry, handle, *, modules=None, stages=FIRST_SLICE_EDITION_STAGES) -> dict
       返回键（逐字）：action, stage, step_run_id, step_result, gate, reason
-      for stage in EDITION_STAGES：
+      for stage in stages（stages 默认 FIRST_SLICE_EDITION_STAGES；纵切后完整模式传 EDITION_STAGES，此时 m4/m6 因未登记而 refused）：
         gate = evaluate_stage_gate(port, registry, handle, stage)；passed → continue
-        eff = effective_step_runs(...)
+        eff = effective_step_runs(port, handle, stage)
         有 status ∈ {running, awaiting_human, suspended} → action waiting（step_run_id 取首个），零写入
         有 failed → action blocked，reason "存在失败未重跑的 StepRun"，零写入
         eff 非空（全 succeeded）→ action blocked，reason = 首个失败检查名，零写入
         descriptor = registry.module_for(stage)；None → refused，reason "阶段 %s 未登记 Module（%s）" % (stage, registry.stage_rows[stage])
         binding = bind_module(descriptor, modules=modules)；imported → refused，reason 含 "imported"
-        legacy_self_driving → step_result = run_legacy(...)；action executed
+        legacy_self_driving → out = run_legacy(port, binding, handle)；step_result = out["step_result"]；action executed
         step_request →
-          planned = binding.target.plan(PortGuard(port), edition_part_id=, processing_run_id=, technique_id=, upstream={s: [succeeded 有效 StepRun] for s in 早于 stage 的 EDITION_STAGES})
+          planned = binding.target.plan(PortGuard(port), edition_part_id=, processing_run_id=, technique_id=, upstream={s: [succeeded 有效 StepRun] for s in stages 中早于 stage 者})
           写入前校验（任一不符 → refused，零写入）：configuration 为 dict 且 stage == descriptor.stage 且 module_id == descriptor.module_id；
             input_artifact_ids 全部 get_revision 存在且 status == "sealed"
           config_rev = port.put_run_artifact(prun, "configuration", json.dumps(configuration, sort_keys=True, ensure_ascii=False).encode(), producer_module=descriptor.module_id, producer_version=descriptor.version)[1]
           request = {"schema_version": "1.0.0", "processing_run_id", "step_run_id": ids.new_id("step_run_id"), "input_artifact_ids", "technique_profile_id": handle.technique_id, "configuration_artifact_id": config_rev}
           jsonschema 校验 step_request → port.begin_step_run(request)
-          stage != "m1" → 上游 gate（EDITION_STAGES 前一项）以 put_artifact(step, "stage_gate_report", json.dumps(上游 gate, sort_keys=True, ensure_ascii=False).encode(), producer_module=ORCH_TOOL, producer_version=ORCH_TOOL_VERSION) 写入并 seal（本 StepRun 首个 artifact）
+          stages 中 stage 的前一项 s_prev 存在 → 上游 gate（evaluate_stage_gate(port, registry, handle, s_prev)）
+            以 put_artifact(step, "validation_report", json.dumps({"kind": "stage_gate", **上游 gate}, sort_keys=True, ensure_ascii=False).encode(),
+            producer_module=ORCH_TOOL, producer_version=ORCH_TOOL_VERSION) 写入并 seal（本 StepRun 首个 artifact）
+            （D-11/N-4 A：复用已登记的 validation_report，不新增 artifact_type；P2）
           step_result = execute_step(port, binding, request, StepContext(mode="fresh", edition_part_id, stage, module_id))
           action executed，gate = 执行前本阶段 gate
         return
-      全部 passed → action complete，stage None
-    run_until(port, registry, handle, stage, *, modules=None, max_steps=16) -> list[dict]
+      stages 全部 passed → action complete，stage None
+    run_release(port, registry, *, edition_part_id, technique_id, modules=None) -> dict
+      首切片 release 段（单 M8 legacy 步；§6.2 ReleaseRun 状态机 DEFERRED，README §9）：
+      descriptor = registry.module_for("m8")；None → refused，reason "阶段 m8 未登记 Module（%s）" % registry.stage_rows["m8"]
+      binding = bind_module(descriptor, modules=modules)；binding.binding != "legacy_self_driving" → refused（首切片只支持 legacy release）
+      out = run_legacy(port, binding, {"edition_part_id": edition_part_id, "processing_run_id": None, "technique_id": technique_id})
+      handle = {"processing_run_id": out["processing_run_id"], "edition_part_id": edition_part_id, "technique_id": technique_id}
+      gate = evaluate_stage_gate(port, registry, handle, "m8")
+      返回 {"action": "executed", "stage": "m8", "step_run_id": out["step_run_id"], "processing_run_id": out["processing_run_id"], "step_result": out["step_result"], "gate": gate, "reason": None}
+    run_until(port, registry, handle, stage, *, modules=None, stages=FIRST_SLICE_EDITION_STAGES, max_steps=16) -> list[dict]
       循环 advance：遇 action != "executed" 停；或 executed 后 step_result.status != "succeeded" 停；或目标 stage 的 gate 已 passed 停；超过 max_steps → OrchestratorRefused
-    edition_status(port, registry, handles) -> dict {"complete": bool, "parts": {edition_part_id: "complete"|"incomplete"}}
-      某 Part complete ⇔ EDITION_STAGES 六个 gate 全 passed；Edition complete ⇔ 全部 Part complete 且 handles 非空（§6.1 :149 合取）
+    edition_status(port, registry, handles) -> dict {"complete": bool, "parts": {edition_part_id: "complete"|"incomplete"}, "deferred_stages": [...]}
+      某 Part complete ⇔ EDITION_STAGES 六个 gate 全 passed（首纵切下 m4/m6 无 Module，必然 incomplete）；
+      deferred_stages 为本计划未串联、缺生产 Module 的 EDITION_STAGES 项（首切片为 ["m4", "m6"]）；
+      Edition complete ⇔ 全部 Part complete 且 handles 非空（§6.1 :149 合取）
 tests:
   test_runner.py: |
     - test_execute_step_succeeded_result_validates_schema_and_finishes
@@ -75,6 +91,8 @@ tests:
     - test_finish_rejection_converted_to_failed（桩返回别的 StepRun 的修订作为输出 → finish_step_run 抛错 → failed，check outcome_contract）
     - test_module_receives_port_guard（桩在 execute 内访问 port.store → module_exception）
     - test_run_legacy_rebuilds_result_from_ledger（测试内假入口：用 service 自建配置+StepRun+StagePackage 并 finish）
+    - test_run_legacy_passes_entry_kwargs（m5/m8 形条目带 entry_kwargs → 假入口断言收到目标消费级别关键字）
+    - test_run_legacy_owns_processing_run_skips_prun_check（owns_processing_run=true：入口自建 release_run → 采纳入口返回的 prun，不 refused）
     - test_run_legacy_refused_before_begin_zero_writes（假入口直接 raise → OrchestratorRefused；三表行数不变）
     - test_run_legacy_refused_on_ledgerd_adapter（LedgerdClientAdapter 或 unwrap 抛 NotImplementedError 的替身）
   test_edition_run.py: |
@@ -91,8 +109,10 @@ tests:
     - test_plan_unsealed_input_refused_before_write
     - test_adopt_rejects_foreign_technique
     - test_edition_status_conjunction_two_parts
+    - test_first_slice_plan_runs_m1_m2_m3_m5_and_reports_gap（stages=FIRST_SLICE_EDITION_STAGES：m1/m2 imported 判 Gate、m3/m5 执行；edition_status.deferred_stages == ["m4","m6"]；m4 无 StepRun）
+    - test_run_release_invokes_m8_and_gates（假 m8 legacy 入口 → run_release 返回 processing_run_id 并给出 m8 Gate；未登记 m8 → refused，reason 含 "M8 Dataset Compilation"）
 verify:
-  - .venv/bin/python -m unittest discover -s pipeline/orchestrator/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 42
+  - .venv/bin/python -m unittest discover -s pipeline/orchestrator/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 46
   - grep -rnE '\.store\b|\.objects\b' pipeline/orchestrator --include='*.py' | grep -v '/tests/' | wc -l   # 0
   - export LC_ALL=en_US.UTF-8; bash openspec/acceptance/run_all.sh | tail -1                           # SUMMARY pass=2 fail=1 blocked=8
   - TDD §3 回归

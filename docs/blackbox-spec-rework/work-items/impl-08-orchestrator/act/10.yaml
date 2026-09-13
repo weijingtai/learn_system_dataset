@@ -1,0 +1,42 @@
+act_id: impl-08/10
+title: "[DEFERRED] Ledger 公开只读方法：frozen_inputs / artifacts.artifact_type / 按 step_run_id 取 sealed stage_package"
+estimated_minutes: 90
+group: null
+status: DEFERRED
+depends_on: [impl-08/08]
+preconditions:
+  - 主 Agent 就 §4.1 D-6 作出裁决并指定归属波次
+  - 本批禁令禁止改 pipeline/ledger/**（P9）；未获该裁决与独立派发前不得执行本 ACT
+scope:
+  write: [pipeline/ledger/service.py, pipeline/ledger/tests/test_read_api.py]
+rationale: |
+  依据 G7-RULINGS §9 第 13 条与 §9.1 第 25 条，Ledger 读缺口（impl-00 README §5.2 为唯一清单）
+  应由 impl-08「以公开读方法补齐后回改调用方」。缺口三处：
+    1. frozen_inputs（按 step_run_id 列出冻结输入修订）；
+    2. artifacts.artifact_type（按修订查 artifact_type）；
+    3. 按 step_run_id 取 sealed stage_package（含包内容读取）。
+  首纵切内 impl-03/impl-04 以 reader.store.conn 只读 SELECT 绕过（先例 impl-02 act/03.yaml:17）；
+  本包 ACT 08 的 modules_port_clean 会把这些调用点列为 BLOCKED 证据。
+contract: |
+  service.py：在 LedgerReadMixin 增加且仅增加三个只读方法（不改既有方法签名与行为）：
+    frozen_inputs(step_run_id) -> list[str]：按 artifact_revision_id 升序返回冻结输入修订（等价 _frozen_input_ids，但不经私有连接）
+    artifact_type_of(artifact_revision_id) -> str | None：返回 artifacts.artifact_type（缺 → None）
+    sealed_stage_package(step_run_id) -> dict | None：返回该 StepRun 名下唯一 sealed 且 schema_id == "stage_package" 的
+      {"artifact_revision_id", "stage_package_id", "content": <解析后的 package dict>}；0 个 → None；>1 个 → LedgerError
+  pipeline/ledger/client.py 不改；ledgerd 经既有 op 反射自动暴露（若未自动暴露则停手上报，不得改协议）
+  回改（同一 ACT 内，独立提交）：pipeline/validation/inputs.py、pipeline/dataset_compiler/inputs.py、pipeline/corpus_compiler/inputs.py
+    的 reader.store.conn 只读 SELECT 改为上述公开方法；改后 modules_port_clean 由 BLOCKED 转 PASS 的判定留给主 Agent 复算
+tests:
+  test_read_api.py: |
+    - test_frozen_inputs_matches_private
+    - test_artifact_type_of_known_and_missing
+    - test_sealed_stage_package_unique_none_many
+verify:
+  - .venv/bin/python -m unittest discover -s pipeline/ledger/tests -t . 2>&1 | tail -3     # OK
+  - .venv/bin/python -m unittest discover -s pipeline/validation/tests -t . 2>&1 | tail -3  # OK（回改后）
+  - .venv/bin/python -m unittest discover -s pipeline/dataset_compiler/tests -t . 2>&1 | tail -3   # OK（回改后）
+  - TDD §3 回归
+commit:
+  add: [pipeline/ledger/service.py, pipeline/ledger/tests/test_read_api.py]
+  message: "feat(ledger): public read methods for frozen inputs, artifact types and sealed stage packages (impl-00 §5.2 gap closure)"
+on_fail: 停止并报告；不得改 ledgerd 协议或既有方法行为；回改任一调用方导致其测试变红时停手上报

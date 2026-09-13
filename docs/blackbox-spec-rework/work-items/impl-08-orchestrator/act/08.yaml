@@ -33,10 +33,11 @@ contract: |
       report.substitutable 且附加断言成立 → PASS；否则 FAIL「<problems 以 "; " 连接 或 附加断言说明>」
     modules_port_clean：
       hits = scan_ledger_internals(ORCHESTRATOR_SCAN_ROOTS)；非空 → FAIL「Orchestrator 越过 LedgerPort: <path:line>, …」（Orchestrator 自身越界是缺陷，不是前置缺失）
-      对 registry.modules 中 kind != "stub" 且 binding != "imported" 者：包目录 = entry 冒号前模块路径去掉最后一段后转目录（pipeline.corpus_compiler.step → pipeline/corpus_compiler）；
+      对 registry.modules 中 kind != "stub" 且 binding != "imported" 者（首纵切生产表为 m3.corpus_structural / m5.automatic_validation / m8.dataset_compilation）：包目录 = entry 冒号前模块路径去掉最后一段后转目录（pipeline.corpus_compiler.step → pipeline/corpus_compiler；pipeline.validation.step → pipeline/validation；pipeline.dataset_compiler.step → pipeline/dataset_compiler）；
         hits 非空 → 记入 dirty[module_id]
       dirty 非空 → BLOCKED `前置缺失: Contract Registry；<module_id> 入口直接访问 Ledger 内部（<path:line>, …，最多列 5 处，超出写「等共 <n> 处」）`（多个模块以「；」再连接）
       全部干净 → PASS
+      实测命中（2026-09-12 工作树）：m3 → corpus_compiler/step.py:431,446,534、inputs.py:101,103,122；m5 → validation/step.py:29,37、inputs.py:28,41,52,67,158、context.py:20,37；m8 → dataset_compiler/step.py:57,73,94,238、inputs.py:22,45,73,199、shim/m1_shim_source_assets.py:44,260（tests/ 目录不计入）
     other_ports_adapters：对 ("ocr", "model", "index") 统计 entry 非 null 的 adapter 数 n_ocr/n_model/n_index
       任一 < 2 → BLOCKED `前置缺失: Contract Registry；ocr/model/index 端口 Adapter 数不足 2（ocr=<n>, model=<n>, index=<n>）`
       全部 ≥ 2 → BLOCKED `前置缺失: Contract Registry；ocr/model/index 端口未登记一致性套件`（本包不存在这三类套件，永不 PASS）
@@ -48,7 +49,7 @@ contract: |
 tests:
   test_acceptance.py: |
     - test_repository_yields_three_pass_two_blocked_exit_2
-    - test_modules_port_clean_blocked_lists_corpus_compiler_lines（BLOCKED 行含 "m3.corpus_structural" 与 "pipeline/corpus_compiler/"）
+    - test_modules_port_clean_blocked_lists_three_dirty_modules（BLOCKED 行含 "m3.corpus_structural"、"m5.automatic_validation"、"m8.dataset_compilation"，且含 "pipeline/corpus_compiler/"、"pipeline/validation/"、"pipeline/dataset_compiler/"）
     - test_other_ports_blocked_counts_text（含 "ocr=0, model=0, index=0"）
     - test_tampered_registry_hash_fails_exit_1（临时登记表副本改一个 sha256 → --registry → registry_consistent FAIL）
     - test_storage_outcome_divergence_fails（patch conformance.normalize_outcome：第二次调用结果追加一个事件 → storage_port_substitutable FAIL，exit 1）

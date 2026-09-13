@@ -13,8 +13,13 @@ contract: |
     GATE_CHECKS = ("tasks_present", "all_tasks_succeeded", "stage_package_valid", "output_contract", "validation_passed", "failures_zero", "no_pending_work", "upstream_lineage")
     句柄 handle = {"processing_run_id", "edition_part_id", "technique_id"}（dict）
     effective_step_runs(port, handle, stage) -> list[dict]
-      run_status(prun)["step_runs"] 中 stage 相同者，去掉「被本运行内另一 StepRun 以 supersedes_step_run_id 指向」的；保持 created_at 顺序；
+      run_status(prun)["step_runs"] 中 stage 相同者，去掉「被本运行内另一 StepRun 沿 supersedes_step_run_id 链指向且该接替者自身为本 stage 承载恰 1 个 StagePackage」的；保持 created_at 顺序；
       每项为 get_step_run 行，request_json/result_json 解析为 dict 后放入键 request / result（缺为 None）
+      （N-2 A：薄 M1 shim 以 supersede 接替 fixture m1 运行但不写 StagePackage（shim:180–234），故该被接替运行仍是有效运行，否则 m1 Gate 会因缺包而假失败；仅当接替者承载 StagePackage 时才移除旧运行）
+    succeeded_step_runs(port, handle, stage) -> list[dict]
+      同 stage 且 status == "succeeded" 的全部 StepRun（含已被 supersede 者，保持 created_at 顺序，request/result 解析同上）；
+      仅供 upstream_lineage 判定血缘（P5：仍只认 succeeded；严格不用 failed/running）。
+      （N-2 A：M3 冻结的 manifest 属被 m1_shim 接替的 m1 运行，lineage 必须接受 succeeded 祖先运行；G7-RULINGS §9.1 第 32 条附加要求「登记页图前后 resolve_m3_inputs 的 manifest_revision_id 不变」）
     evaluate_stage_gate(port, registry, handle, stage) -> dict
       返回键（逐字）：stage, edition_part_id, processing_run_id, gate("passed"|"blocked"), checks({名: {"ok": bool, "detail": str}}，键序 = GATE_CHECKS), effective_step_run_ids
       descriptor = registry.module_for(stage)（None 时 produces/consumes 视为空，并在 output_contract.detail 写「未登记 Module」但不据此判失败）
@@ -31,7 +36,7 @@ contract: |
       no_pending_work：latest_checkpoint(ep, stage) 为 None，或其 step_run_id ∈ effective 且 pending_queue == [] 且 next_pointer is None；
         且各 effective StepRun 的最后一个 await_human 事件之后存在 resume 事件（或从未 await_human）
       upstream_lineage：descriptor 为 None 或 consumes 为空 → ok；否则对每个 from_stage s：
-        上游有效 succeeded StepRun 集合 U = effective_step_runs(port, handle, s) 中 succeeded 者；
+        上游 succeeded StepRun 集合 U = succeeded_step_runs(port, handle, s) 的 step_run_id 集合（含被接替者，N-2 A）；
         本阶段每个 effective StepRun 的 request.input_artifact_ids 中至少 1 个修订满足 get_revision(rev)["step_run_id"] ∈ U 的 step_run_id；否则失败，detail 列出 (srun, s)
       tasks_present 失败时其余检查 ok=False、detail="无任务"（不抛异常）
       gate = "passed" 当且仅当八项 ok 全为 True
@@ -51,10 +56,12 @@ tests:
     - test_blocked_when_checkpoint_has_pending（手工再写一个带 pending_queue 的 Checkpoint 于 finish 前 → no_pending_work）
     - test_blocked_when_upstream_output_not_frozen（m2 StepRun 冻结输入不含 m1 产出 → upstream_lineage）
     - test_superseded_failed_run_ignored（supersede_step_run 后新运行 succeeded → passed）
+    - test_superseded_run_without_stage_package_stays_effective（模拟 m1_shim：新 m1 运行 succeeded 但注册的产出里无 StagePackage → 旧 m1 运行仍有效，m1 Gate passed）
+    - test_upstream_lineage_accepts_superseded_succeeded_ancestor（m2 的冻结输入引用被接替的 m1 运行产出 → upstream_lineage ok；若引用 failed 运行 → 失败）
     - test_gate_performs_no_writes（前后 artifact_revisions/step_runs/audit_log 行数相等；行数经测试内只读 sqlite3 连接统计）
     - test_gate_module_imports_are_independent（解析 gate.py AST：不含 runner/module/stubs/edition_run/corpus_compiler 导入）
 verify:
-  - .venv/bin/python -m unittest discover -s pipeline/orchestrator/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 28
+  - .venv/bin/python -m unittest discover -s pipeline/orchestrator/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 30
   - grep -nE '^\s*(from|import) .*(runner|module|stubs|edition_run|corpus_compiler)' pipeline/orchestrator/gate.py | wc -l   # 0
   - TDD §3 回归
 commit:
