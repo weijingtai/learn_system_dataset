@@ -21,12 +21,12 @@ contract: |
       esac
     20.8：同理，check 取 publication，OK 行的段说明为「已判定: publication 8 PASS + knowledge_chain BLOCKED；缺结构化知识（§20:944）」
     硬性：20.4、20.8 两段**不得出现 pass_line 调用**；不得改动 `SUMMARY` 计数逻辑；其余条目（20.5/20.6/20.9/20.11 等）保持原样
-    边界（BDD §9）：注入方式 = 把 fixture 副本的 `spans.yaml` 删一条 span，`FIXTURE_DIR=副本` 运行 20.4 → `FAIL`（判定落点 `span_key_unique` 的 fixture 金标比对）；`FIXTURE_ASSET_ROOT=/nonexistent` → 20.4/20.8 为 `BLOCKED … 测试宿主匮乏；…`
+    边界（BDD §9）：注入方式 = 把 fixture 副本的 `spans.yaml` 删一条 span，`FIXTURE_DIR=副本` 运行 20.4 → `FAIL`（落点 `fixture_host`：规范 `verify.sh` 先拦截被改副本；`span_key_unique` 落点由直接调用 acceptance 模块证明，G7-RULINGS 第 44 条订正）；`FIXTURE_ASSET_ROOT=/nonexistent` → 20.4/20.8 为 `BLOCKED … 测试宿主匮乏；…`
 verify: |
   bash openspec/acceptance/run_all.sh 20.4 | tail -1      # BLOCKED 20.4 前置缺失: M4 Knowledge Extraction；已判定: …
   bash openspec/acceptance/run_all.sh 20.8 | tail -1      # BLOCKED 20.8 前置缺失: M4 Knowledge Extraction；已判定: …
   FIXTURE_ASSET_ROOT=/nonexistent bash openspec/acceptance/run_all.sh 20.4 | tail -1   # BLOCKED … 测试宿主匮乏；…
-  d=$(mktemp -d); cp -r pipeline/corpus/_fixture/mini_ed01 "$d/fx"; .venv/bin/python -c "import yaml;f='$d/fx/spans.yaml';s=yaml.safe_load(open(f));s['spans'].pop();yaml.safe_dump(s,open(f,'w'),allow_unicode=True)"; FIXTURE_DIR="$d/fx" bash openspec/acceptance/run_all.sh 20.4 | tail -1   # FAIL 20.4 M8 判定未通过 …（span_key_unique 金标比对）
+  d=$(mktemp -d); cp -r pipeline/corpus/_fixture/mini_ed01 "$d/fx"; .venv/bin/python -c "import yaml;f='$d/fx/spans.yaml';s=yaml.safe_load(open(f));s['spans'].pop();yaml.safe_dump(s,open(f,'w'),allow_unicode=True)"; FIXTURE_DIR="$d/fx" bash openspec/acceptance/run_all.sh 20.4 | tail -1   # FAIL 20.4 统一验收宿主校验未通过: manifest_sha256 …（fixture_host 落点，G7-RULINGS 第 44 条）
   export LC_ALL=en_US.UTF-8; bash openspec/acceptance/run_all.sh | tail -1             # SUMMARY pass=2 fail=1 blocked=8
   bash openspec/acceptance/run_all.sh 20.4 | grep -c '^PASS'                            # 0
   sed -n '/^    20\.4)/,/^    20\.5)/p' openspec/acceptance/run_all.sh | grep -c 'pass_line'   # 0

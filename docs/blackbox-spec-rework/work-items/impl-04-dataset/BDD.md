@@ -68,5 +68,5 @@
 ## 9. run_all（ACT 08）
 
 - 9.1 Given 本机宿主，When `run_all.sh 20.4` 与 `run_all.sh 20.8`，Then 均为 `BLOCKED  20.N  前置缺失: M4 Knowledge Extraction；…`（说明写明已判定段），全量 `SUMMARY pass=2 fail=1 blocked=8`。
-- 9.2 Given 把一份 fixture 副本的 `spans.yaml` 删一条 span（`FIXTURE_DIR` 指该副本），Then 20.4 为 `FAIL`，判定落点为 `span_key_unique` 的 fixture 金标比对。
+- 9.2 Given 把一份 fixture 副本的 `spans.yaml` 删一条 span（`FIXTURE_DIR` 指该副本），Then 20.4 为 `FAIL`，落点为 `fixture_host`（仓库内规范 `verify.sh` 先在 `manifest_sha256` 拦截被改副本，D-18）；直接调用 `python -m pipeline.dataset_compiler.acceptance --fixture <副本> --check span_identity` 时落点为 `span_key_unique` 的 fixture 金标比对（G7-RULINGS 第 44 条订正）。
 - 9.3 Given `FIXTURE_ASSET_ROOT=/nonexistent`，Then 20.4、20.8 为 `BLOCKED … 测试宿主匮乏；…`。

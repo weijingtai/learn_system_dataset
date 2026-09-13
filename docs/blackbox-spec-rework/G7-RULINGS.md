@@ -117,6 +117,12 @@ Q49 按 P8 须用户确认前缀；Q52/Q53/Q55/Q57/Q62 推迟到 W5 定稿；Q50
 | 42 | D-16 ReworkImpact/ThroughputEstimate 口径 | 采纳 A：血缘可达计数 + 历时均值 |
 | 43 | N-1 §22.3 要求 §20.1（及 20.9）成立 vs P1 | **用户决定（2026-09-12）：维持关键路径**。首纵切交付「Ledger→M3→M5→M8」可跑通证据链；§20.1、§20.9 在首纵切内如实判 BLOCKED 并写明原因（M4/M6 未接入、GraphProjectionPack 未编译），不伪造 PASS；M4/M6 最薄接入与 GraphProjectionPack 排入下一波，接入后由判据自动转判。首纵切「完成」以 §20.3/20.4/20.8 可判且 20.1/20.9 BLOCKED 披露为准，不改规格 §22.3 正文。 |
 
+### 9.4 impl-04 K3 待裁决
+
+| # | 条目 | 裁决 |
+|---|---|---|
+| 44 | ACT 08：fixture 副本删一条 span 时 20.4 的失败落点（act/08 正文「fx 先行」vs BDD §9.2「落点 span_key_unique」） | 采纳 A：保持 `fx` 先行，被改副本在仓库内规范 `verify.sh` 的 `manifest_sha256` 先失败，20.4/20.8 落点 `FAIL fixture_host`（D-18，且与已验收 ACT 07 `test_shell_never_trusts_copy_verify` 一致）。BDD §9.2 与 act/08 verify 注释的「span_key_unique」为文档错误，由主 Agent 修订；`span_key_unique` 落点以直接调用 `python -m pipeline.dataset_compiler.acceptance --check span_identity` 证明。 |
+
 ## 10. 用户待办
 
 1. W4-J 前：撰写真实前十页人工终态决定表（P7，Q37）。
