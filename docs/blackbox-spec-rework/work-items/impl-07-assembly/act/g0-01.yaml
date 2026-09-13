@@ -14,6 +14,8 @@ contract: |
   errors.py：class AssemblyRefused(pipeline.ledger.errors.LedgerError)，构造 AssemblyRefused(message, code=None)
   canonical.py（纯函数）：
     canonical_json(obj) -> bytes = (json.dumps(obj, ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False) + "\n").encode("utf-8")
+      # S1：本包规范字节**带尾部换行**，与 impl-05/impl-00 的无换行口径（impl-05 act/00.yaml:33）不同；包内自洽（knowledge 字节与 canonical_hash 同函数），
+      # 但**不得**用本函数与 M4 candidate_set 字节互比，也不得直接复用其哈希；跨包复用前须显式处理尾部换行
     sha256_hex(data: bytes) -> str
     content_sha256(obj) -> str = sha256_hex(canonical_json(obj))
     nfc_key(text) -> str = unicodedata.normalize("NFC", text).strip()；非 str → SchemaViolation(SCH_002)
@@ -37,14 +39,18 @@ contract: |
       返回 {"work_key", "edition_part_artifact_id", "candidate_package_revision_id", "doc": 深拷贝,
             "approved_index": {entity_id: 元素}, "rejected_ids": [升序], "hashes": {entity_id: content_sha256(对应 approved 元素)}}
     validate_candidate_set(doc) -> dict
-      必填：schema_version, technique_id, source_id, edition_part_artifact_id, evidence_level, span_layer, assertions, patterns, school_views, concept_mentions, new_concept_candidates, rejected, disputes, counts
-      technique_id 非空且 ^[a-z][a-z0-9]*$；source_id/edition_part_artifact_id 按 §8.1 → ID_001
-      assertions：assertion_id(as_)、subject 必须等于本视图内某 pattern_id、candidate_key 或 concept_id，school_view_ids 的元素在 school_views 中存在，content_status ∈ CONTENT_MATURITY → 否则 REF_001/SCH_002
-      patterns：pattern_id 为 null 时必须有 candidate_key；pattern_id 非 null 时按 §8.1 → ID_001；同一 candidate_key 重复 → ID_002
-      school_views：school_view_id、school_id(sch_)、subject_entity_id 在视图内可解析、conflict_group_id(cg_|null) → ID_001/REF_001
-      concept_mentions：concept_ref(co_…|null) 按 §8.1；new_concept_candidates 无号
+      键逐字取已验收 pipeline/knowledge_extraction/assemble.py:637-651（无 candidate_key；assertion 无 subject、无 school_view_ids；pattern 恒有 pat_）
+      必填顶层键：schema_version, technique_id, source_id, edition_part_artifact_id, evidence_level, span_layer, source_channels, assertions, patterns, school_views, concept_mentions, new_concept_candidates, rejected, disputes, counts
+      technique_id 非空且 ^[a-z][a-z0-9]*$；source_id/edition_part_artifact_id 按 §8.1 → ID_001；span_layer 必须为 "structural"；evidence_level ∈ {offset_level, glyphbox_level} → 否则 SCH_002
+      assertions（已验收键，无 subject/school_view_ids）：assertion_id(as_)、proposition_id(pr_)、proposition 非空、relation ∈ RELATIONS、evidence 非空、conditions/exceptions/concept_refs 为 list、school_ids 为 list（元素 sch_）、layer ∈ {general,case,editorial}、content_status ∈ CONTENT_MATURITY、origin → 号格式 ID_001，其余 SCH_002
+      patterns：pattern_id 恒为合法 pat_（impl-05 assemble.py:484 恒发号；为 null → SCH_002，防御分支见 README §0.7）；name 非空；assertion_ids ⊆ assertions 的 assertion_id（悬空 → REF_001）；interpretation_status/recognition_rule_status ∈ {not_captured, captured}；content_status
+      断言↔Pattern 关联：**以 patterns[].assertion_ids 为唯一来源**，据此建 assertion_id → [pattern_id 升序] 映射（供 g0-02 解析 subject_entity_id；不再引用不存在的 assertions[].subject）
+      school_views：school_view_id(sv_)、school_id(sch_)、subject_entity_id 必须 ∈ assertion_id ∪ pattern_id（悬空 → REF_001）、claim_refs ⊆ assertion_id（悬空 → REF_001）、conflict_group_id(cg_|null)、changes_current_judgment 为 bool、source_refs、content_status
+      concept_mentions：surface 非空、concept_ref(co_…) 按 §8.1、evidence、content_status；new_concept_candidates：surface、technique_id、evidence、content_status（无号）
+      counts 与各列表长度一致 → 否则 SCH_002
       返回 {"work_key", "technique_id", "source_id", "edition_part_artifact_id", "doc": 深拷贝,
-            "pattern_ids": [concept 类升序], "candidate_keys": [升序], "hashes": {"<kind>:<key>": content_sha256(对象)}}
+            "pattern_ids": [升序], "assertion_ids": [升序], "assertion_to_patterns": {assertion_id: [pattern_id 升序]},
+            "school_view_ids": [升序], "hashes": {"<kind>:<key>": content_sha256(对象)}}
     empty_snapshot_knowledge(technique_id, id_range) -> dict：{"technique_id", "id_allocation": {}, "id_range": id_range, "allocated_pattern_ids": [], "retired_entity_ids": [], "editions": [], "concepts": [], "patterns": [], "assertions": [], "school_views": [], "conflict_groups": [], "relations": []}
     validate_snapshot_knowledge(knowledge) -> None（形状见 README §0.4）
       列表排序：editions 按 source_id；concepts/patterns/assertions/school_views/conflict_groups 按各自主键；relations 按 relation_key；retired_entity_ids 升序 → 否则 SchemaViolation(SCH_002)
@@ -76,9 +82,11 @@ tests:
     - test_evidence_link_entity_not_approved_or_rejected_REF_001
     - test_school_view_subject_dangling_REF_001
     - test_valid_candidate_set_passes
-    - test_candidate_set_dangling_subject_REF_001
+    - test_candidate_set_dangling_pattern_assertion_ref_REF_001（patterns[].assertion_ids 悬空）
     - test_candidate_set_bad_content_status_SCH_002
-    - test_candidate_set_pattern_without_id_and_candidate_key_SCH_001
+    - test_candidate_set_pattern_id_always_issued_SCH_002（pattern_id 为 null 且无防御键 → 拒）
+    - test_candidate_set_school_view_dangling_subject_REF_001
+    - test_candidate_set_school_view_claim_refs_dangling_REF_001
     - test_empty_snapshot_knowledge_shape
     - test_snapshot_unsorted_list_SCH_002
     - test_snapshot_retired_alive_ID_002
@@ -88,7 +96,7 @@ tests:
     - test_snapshot_id_range_and_allocation_list_shape_SCH_002
     - test_snapshot_allocated_id_outside_range_SCH_002
 verify:
-  - .venv/bin/python -m unittest discover -s pipeline/assembly/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 28
+  - .venv/bin/python -m unittest discover -s pipeline/assembly/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 30
   - grep -rE '^\s*(import|from) (requests|openai|anthropic|httpx)' pipeline/assembly | wc -l   # 0
   - TDD §3 回归
 commit:

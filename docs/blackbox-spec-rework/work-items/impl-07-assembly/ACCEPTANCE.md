@@ -14,8 +14,9 @@
   - P7：无人工回路、无 `human_event`；合成输入标 `synthetic: true`，不计为真实 `expert_verified`。
   - 第 58 条：同阶段后续运行经 `supersede_step_run`（`begin_or_supersede` helper + 具名用例）。
   - §6.2:175：不改任何已封存 m6 StagePackage / `reviewed_edition` 修订状态。
-- **覆盖性**：`BDD.md` §G0.1–G0.13 各条都能在某个 `act/g0-*.yaml` 的 `tests` 用例名或 `verify` 命令上找到落点；G0-01→G0-05 的串行前置与 `depends_on` 一致；`README.md` §0.2 完成判据覆盖单测、`m7-assembler.sh`、`run_all.sh` 基线、`m3-coverage.sh` 基线、`git diff --check`。
-- **可执行性**：每个 ACT 有 `scope.write`、先红后绿的具名用例名、contract（函数签名/规则/检查名/退出码）、精确 `verify`、`commit.add`/`message`；用例数阈值等于具名用例累计（28/46/59/71/81）；ACT 时长 ≤ 110 分钟；回归取行用 `2>&1 | grep -E "^(Ran|OK|FAILED)"`。
+- **覆盖性**：`BDD.md` §G0.1–G0.14 各条都能在某个 `act/g0-*.yaml` 的 `tests` 用例名或 `verify` 命令上找到落点；G0-01→G0-05 的串行前置与 `depends_on` 一致；`README.md` §0.2 完成判据覆盖单测、`m7-assembler.sh`、`run_all.sh` 基线、`m3-coverage.sh` 基线、`git diff --check`。
+- **可执行性**：每个 ACT 有 `scope.write`、先红后绿的具名用例名、contract（函数签名/规则/检查名/退出码）、精确 `verify`、`commit.add`/`message`；用例数阈值等于具名用例累计（30/51/64/77/87）；ACT 时长 ≤ 110 分钟；回归取行用 `2>&1 | grep -E "^(Ran|OK|FAILED)"`。
+- **F1/S1/S2（四查 R1 返工项）**：F1——`validate_candidate_set` 按 impl-05 已验收 `candidate_set` 真实键（`assemble.py:637-651`）重写：assertion 无 `subject`/`school_view_ids`、用 `school_ids`；pattern 恒有 `pat_`、无 `candidate_key`；断言↔Pattern 关联经 `patterns[].assertion_ids`；合成宿主同形；`candidate_key`/`pattern_id: null` 移入 §0.7 接口需求 5，R03e 为防御分支。S1——G0 canonical 字节带尾部换行，写明不与 M4 字节互比。S2——`ACT.yaml` gates 补 `m3-coverage.sh` 基线。
 - **独立性**：`genesis.py`/`gate.py`/`acceptance.py` 不读文件、不访问 Ledger（`gate.py` 与 `acceptance.py` 不 import `genesis`）；`inputs.py` 只读 Ledger；`step.py` 是唯一写 Ledger 的模块。
 - **写范围**：仅 `pipeline/assembly/**` 与 `openspec/acceptance/m7-assembler.sh`；与 `pipeline/review/`、`pipeline/dataset_compiler/`、`pipeline/orchestrator/`、`pipeline/ledger/`、`pipeline/knowledge_extraction/`、`pipeline/validation/` 零交集；不写 `run_all.sh`、fixture、Schema。
 

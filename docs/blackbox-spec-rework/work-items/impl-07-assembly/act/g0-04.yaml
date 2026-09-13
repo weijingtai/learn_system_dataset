@@ -23,6 +23,7 @@ contract: |
       写 m4 StepRun（succeeded，输出 candidate_package）与 m6 StepRun（succeeded，输出 reviewed_edition_package + m6 StagePackage）
       写配置修订（put_run_artifact）；返回 {"candidate_set_revision_id", "candidate_package_revision_id", "reviewed_edition_revision_id", "reviewed_edition_package_revision_id", "m6_package_revision_id"}
     合成输入标 synthetic: true（§9.7 第 52 条）；test/data/genesis_package.json 中任何人工决定（decisions/human_event）必须含 synthetic_fixture: true，且不得计为真实 expert_verified 或任何发布依据（P7、第 66 条）
+    合成 candidate_set 段必须为 impl-05 已验收真实形状（F1，键同 assemble.py:637-651）：assertion 无 subject/school_view_ids、用 school_ids；pattern 恒有合法 pat_、无 candidate_key；断言↔Pattern 关联经 patterns[].assertion_ids；school_view.subject_entity_id 解析到 assertion_id 或 pattern_id
   step.py（最小事务）
     run_m7(service, edition_part_id, *, technique_id, reviewed_package_revision_ids, base_snapshot_revision_id=None) -> dict
       begin 之前的拒绝（无写入）：base_snapshot_revision_id 非 None → AssemblyRefused（message 含「纵切后」）；
@@ -59,8 +60,9 @@ tests:
     - test_configuration_registers_id_range（配置修订含 id_range 且 run_m7 据此取号）
     - test_snapshot_knowledge_records_id_range_and_allocation_list（Snapshot 修订的 knowledge.id_range/allocated_pattern_ids 与配置一致）
     - test_synthetic_human_decisions_marked_and_not_expert_verified（genesis_package.json 中每个决定含 synthetic_fixture: true；Snapshot 中无 expert_verified 泄漏，第 66 条）
+    - test_synthetic_candidate_set_matches_impl05_shape（读 genesis_package.json 的 candidate_set → model.validate_candidate_set 通过；断言无 subject/无 school_view_ids/无 candidate_key）
 verify:
-  - .venv/bin/python -m unittest discover -s pipeline/assembly/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 71
+  - .venv/bin/python -m unittest discover -s pipeline/assembly/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 77
   - .venv/bin/python -m unittest discover -s pipeline/ledger/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"      # OK，与基线相同（Ledger 未改）
   - grep -rE '_fixture' pipeline/assembly --include='*.py' | grep -v '/tests/' | grep -vE 'fixture_seed.py|acceptance.py' | wc -l   # 0
   - TDD §3 回归

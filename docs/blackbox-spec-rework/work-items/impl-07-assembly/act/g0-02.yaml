@@ -12,32 +12,36 @@ contract: |
     propose_genesis(candidate_set, reviewed_edition) -> dict
       参数取 model.validate_candidate_set / validate_reviewed_edition 的返回值
       前置拒绝（抛出，不返回）：
-        候选 pattern_id 为 null 且无 candidate_key → SchemaViolation(SCH_001)（本应在 model 拦截）
-        approved 的 pattern 其 subject 在候选 assertions 中无法解析 → AssemblyRefused(REF_001)
+        候选 pattern_id 为 null 且无 candidate_key → SchemaViolation(SCH_001)（防御分支，上游当前不产出；见 README §0.7）
+      approved 的 pattern 其 assertion_ids 在候选中无法解析 → model 已拦（REF_001）
       规则（空基底，只走自动分支；resolution 恒 "auto"，decision_type 恒 null，depends_on 恒 []）：
-        R02  pattern_id 非空且格式合法 → merge admit_new auto，保留该号，auto_choice "admit_new"，subject 元组 ["pattern", source_id, pattern_id]
-        R03e pattern_id 为 null → merge admit_new auto（待发号），subject 元组 ["pattern", source_id, candidate_key]
+        R02  pattern_id 合法 pat_（impl-05 恒发号，assemble.py:484）→ merge admit_new auto，保留该号，auto_choice "admit_new"，subject 元组 ["pattern", source_id, pattern_id]
+        R03e **防御分支**（当前上游不产出 pattern_id 为 null 的候选；README §0.7 接口需求）：pattern_id 为 null 且有 candidate_key → merge admit_new auto（待发号），subject 元组 ["pattern", source_id, candidate_key]
         R04  已绑定 concept_mention（concept_ref 非空）→ merge admit_new auto；无号 new_concept_candidates 不提案，计入 excluded_unbound
-        R05  assertion 不单独提案，挂到 subject 裁决后的正式对象，在报告中按 subject 归类
+        R05  assertion 不单独提案，挂到 patterns[].assertion_ids 解析出的正式 Pattern（唯一关联来源），在报告中按 subject 归类
         R06' SchoolView 原样保留，其 conflict_group_id 直接成为 Snapshot 冲突组（同 cg_ 多成员一组；无跨版合并）
       返回 {"round": 1, "proposals": [...按 proposal_key 升序], "excluded_unbound": [...按 surface 升序],
-            "resolved_subjects": {candidate_key 或 candidate 主体引用: pattern_id|null}}
+            "resolved_subjects": {pattern_id: pattern_id} ∪ {防御分支 candidate_key: 补发号}}
       proposal 键序逐字：proposal_key, kind, rule_id, resolution, subject, targets, options, auto_choice, decision_type, basis_sha256, depends_on
-        basis_sha256 = content_sha256({"target": null, "candidate": {name, aliases 升序, concept_id, recognition_rule_status}})
+        basis_sha256 = content_sha256({"target": null, "candidate": {name: nfc_key(name), recognition_rule_status}})（候选 pattern 无 aliases/concept_id，不引用不存在字段）
     assemble_genesis(candidate_set, reviewed_edition, proposals, *, id_range, id_factory=None) -> dict
       id_range = {"pattern": [<start>, <end>]}，由调用方从本 Run 配置修订取得（第 64 条）
-      发号（第 64 条）：R03e 候选按 (source_id, candidate_key) 升序，从 id_range["pattern"][0] 起在 [start, end] 内确定性取号，
-            跳过已被保留 M4 号（candidate_set 中合法 pat_）占用的值，依次分配 pat_<technique>_<6位>；
-            区间不足 → AssemblyRefused(SCH_002，message 含「号段不足」)；不新增前缀（P8）；id_factory 可注入（默认取 pipeline.ledger.ids）
+      发号（第 64 条）：仅防御分支（pattern_id 为 null 且带 candidate_key）的候选按 (source_id, candidate_key) 升序，
+            从 id_range["pattern"][0] 起在 [start, end] 内确定性取号，跳过已被保留 M4 号（candidate_set 中合法 pat_）占用的值，
+            依次分配 pat_<technique>_<6位>；区间不足 → AssemblyRefused(SCH_002，message 含「号段不足」)；
+            不新增前缀（P8）；id_factory 可注入（默认取 pipeline.ledger.ids）
       knowledge 写回：id_allocation {"pat_<technique>": max(活对象中该命名空间号 ∪ 补发号)}（仅新发号时出现）、
             id_range 原样、allocated_pattern_ids = 本次补发号升序（号段与补发清单写入 Snapshot 修订，第 64 条）
-      实体装配：
+      实体装配（关联解析按已验收 candidate_set 真实形状，F1）：
         editions 1 条 {source_id, work_key, reviewed_edition_package_revision_id, reviewed_edition_revision_id, stage_package_id, edition_part_artifact_ids, edition_complete}
         concepts 由已绑定 concept_mentions 按 concept_ref 聚合：name = 按 surface 升序首个，其余 surface 入 aliases（NFC 去重升序），provenance[{source_id, content_sha256, content_status}]
-        patterns：approved 的 pattern；concept_id 恒 null（薄切片）；rules = []；recognition_rule_status = "not_captured"；assertion_ids 为其 subject 解析到该号的 assertion；school_view_ids
+        patterns：approved 的 pattern；aliases = []（候选无 aliases）、concept_id 恒 null（薄切片）；rules = []；recognition_rule_status = "not_captured"；
+                  assertion_ids = 候选 patterns[].assertion_ids（过滤到 approved，升序）；school_view_ids = subject_entity_id == 该 pattern_id 的 SchoolView 号（升序）
         assertions：proposition = nfc_key(候选 proposition)；text_sha256 = sha256(NFC(proposition))；evidence 取 reviewed_edition.evidence_links[entity_id]（缺则回退候选 evidence，字段 source_span_id/start_offset/end_offset/quote_sha256）；
-                    source_span_ids = evidence 的 source_span_id 升序；subject_entity_id = 解析后的正式号；school_view_ids；collation_key
-        school_views：原字段 + source_conflict_group_id（= 视图原 conflict_group_id），subject_entity_id 改为正式号
+                    source_span_ids = evidence 的 source_span_id 升序；collation_key；
+                    **subject_entity_id = model.assertion_to_patterns 解析**：恰 1 个 Pattern → 该 pat_；多个 → 字典序最小者；零个 → null（关联唯一来源是 patterns[].assertion_ids，不引用不存在的 assertions[].subject）；
+                    school_view_ids = 满足 (school_view.subject_entity_id == 该 assertion_id) 或 (该 assertion_id ∈ school_view.claim_refs) 的 SchoolView 号（升序，F1 反解）
+        school_views：原字段 + source_conflict_group_id（= 视图原 conflict_group_id）；subject_entity_id 保持候选已解析值（assertion_id / pattern_id；若其 subject 属防御分支重发号则映射为补发号）
         conflict_groups：按 conflict_group_id 分组，member_school_view_ids 升序，first_layer_display = 任一成员 changes_current_judgment 为 true，resolutions []
         relations = []；retired_entity_ids = []
       内容成熟度：content_status 取 reviewed_edition.approved 的原值，不合成、不升级
@@ -50,12 +54,15 @@ tests:
   test_genesis.py: |
     - test_genesis_single_view_bytes_deterministic（同一输入两次字节相同）
     - test_genesis_all_proposals_auto（无 human/blocked）
-    - test_genesis_preserves_m4_pattern_id（R02）
-    - test_genesis_allocates_for_null_pattern_id（R03e，按 (source_id, candidate_key) 升序）
+    - test_genesis_preserves_m4_pattern_id（R02；impl-05 恒发号）
+    - test_genesis_defensive_allocates_when_pattern_id_null（R03e 防御分支，上游当前不产出；带 candidate_key，按 (source_id, candidate_key) 升序）
     - test_genesis_concepts_from_bound_mentions
     - test_genesis_excludes_unbound_new_concepts
+    - test_genesis_assertion_subject_from_pattern_assertion_ids（唯一关联来源；恰 1 / 多命中取字典序最小 / 零命中为 null）
     - test_genesis_assertion_subject_resolved_to_snapshot_id
     - test_genesis_assertion_evidence_from_reviewed_edition
+    - test_genesis_assertion_school_view_ids_reverse_derived（subject_entity_id 或 claim_refs 反解）
+    - test_genesis_pattern_school_view_ids_from_school_views
     - test_genesis_conflict_group_preserved_and_first_layer_display
     - test_genesis_no_content_status_synthesis
     - test_genesis_relations_empty_and_retired_empty
@@ -67,7 +74,7 @@ tests:
     - test_genesis_id_range_exhausted_refused（区间不足 → 「号段不足」）
     - test_genesis_knowledge_carries_id_range_and_allocation_list
 verify:
-  - .venv/bin/python -m unittest discover -s pipeline/assembly/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 46
+  - .venv/bin/python -m unittest discover -s pipeline/assembly/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 51
   - grep -nE 'difflib|SequenceMatcher|random|time\(\)' pipeline/assembly/genesis.py | wc -l   # 0
   - TDD §3 回归
 commit:

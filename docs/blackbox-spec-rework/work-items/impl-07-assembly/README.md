@@ -52,6 +52,8 @@ M7 只经 Ledger 冻结修订读取（`§17:826-836`），解析上游时**只�
 
 **为什么读 M4 `candidate_set`（D-0-2，主 Agent 决定）**：`impl-06` 定稿的 `reviewed_edition` 只承载审核结论（approved/rejected + `content_status`）、证据链与 SchoolView 摘要，**不含** Concept 名称、Pattern 名称/规则、Assertion 命题文本；这些内容实体在 M4 `candidate_set`。M7 经 m6 包的冻结血缘解析 `candidate_package` 属「消费 ReviewedEditionPackage 的冻结输入」，不改 impl-06 契约（P9 精神），也不让 M6 承担 M7 职责（第 61 条边界）。替代方案（要求 impl-06 在 `reviewed_edition` 内嵌内容）须改已定稿的上游契约，见 §0.7 接口需求（第 65 条）。
 
+**`candidate_set` 的真实形状（F1，键逐字取已验收 `pipeline/knowledge_extraction/assemble.py:637-651`）**：顶层 `schema_version / technique_id / source_id / edition_part_artifact_id / evidence_level / span_layer / source_channels / assertions / patterns / school_views / concept_mentions / new_concept_candidates / rejected / disputes / counts`。要点：**assertion 无 `subject`、无 `school_view_ids`，用 `school_ids`**（`:428-442`）；**pattern 恒有合法 `pat_` 号、无 `candidate_key`**（`:484-498`）；**断言↔Pattern 关联以 `patterns[].assertion_ids` 为唯一来源**；`school_view.subject_entity_id` 解析到 `assertion_id` 或 `pattern_id`（`:560-572`）。M7 一律照此解析，不引用自造字段（合成宿主 `tests/data/genesis_package.json` 同此形状）。
+
 ### 0.4 下游契约：M8 知识链前三段与 GraphProjectionPack 所需 Snapshot 字段
 
 M8 冻结输入第 1 项为 CanonicalKnowledgeSnapshot Revision（`§16:661-662`）；GraphProjectionPack 与移动端数据必须与 Snapshot 共享 `release_id`、`canonical_hash`、实体 ID 与关系 ID（`§16:725`）。本切片 Snapshot 内容形状（`schema_version: "0.1.0-draft"`，P3）：
@@ -88,7 +90,7 @@ M8 冻结输入第 1 项为 CanonicalKnowledgeSnapshot Revision（`§16:661-662`
 | `KnowledgeEntry.subject_entity_id` | `patterns[].pattern_id` / `concepts[].concept_id` | 本切片 Pattern 可无 `concept_id`（见 §0.7 接口需求） |
 | `KnowledgeEntry.title` | `patterns[].name` / `concepts[].name` | |
 | `KnowledgeEntry.assertion_ids` / `school_view_ids` | `patterns[].assertion_ids` / `patterns[].school_view_ids` | |
-| `Assertion` | `assertions[]{assertion_id, proposition, subject_entity_id, source_span_ids, content_status}` | `proposition` 为本切片相对草稿 §5.2 新增的字段（草稿只存 `text_sha256`，不足以供给 M8 的 KnowledgeEntry/Assertion） |
+| `Assertion` | `assertions[]{assertion_id, proposition, subject_entity_id, school_view_ids, source_span_ids, content_status}` | `proposition` 为本切片相对草稿 §5.2 新增；`subject_entity_id` 由 `patterns[].assertion_ids` 反查（恰 1 个 → 该 `pat_`，多个 → 字典序最小，零个 → null，F1）；`school_view_ids` 由 `school_views[].subject_entity_id` / `claim_refs` 反解（F1） |
 | `EvidenceLink` | `assertions[].evidence[]{source_span_id, start_offset, end_offset, quote_sha256}` | 坐标与 M3 `corpus_spans` 同源（`INTERFACES.md:410`【I-11】） |
 | `school_ids` | 经 `assertions[].school_view_ids` → `school_views[].school_id` | |
 | Graph 节点 / 边 | `patterns` / `concepts` / `assertions` / `school_views` 的稳定号 + `relations[]` + `conflict_groups` 成员 | 本切片 `relations` 为空，Graph 只有 subject 边与冲突组成员边 |
@@ -127,9 +129,10 @@ M8 冻结输入第 1 项为 CanonicalKnowledgeSnapshot Revision（`§16:661-662`
 以下为创世薄切片暴露、需由 M4/M6 负责方在完整波次补齐的接口需求。**本切片不在 M7 内补造内容**；登记入 `INTERFACES.md` §2.4/§2.6 卡片的「接口需求」（由 impl-00 后续登记 ACT 或 M4/M6 负责方执行，本包不写该文件）：
 
 1. **`candidate_set.concepts[]`**（M4）：当前只有 `concept_mentions[]`（已绑定 `concept_ref`）与无号 `new_concept_candidates[]`，无正式 Concept 对象（名称/别名/规范面）。需求：M4 产出 `concepts[{concept_id, name, aliases[], content_status}]`，使 Snapshot `concepts[].name/aliases` 有权威来源；在此之前 M7 由已绑定 `concept_mentions` 按 `concept_ref` 聚合（`name` 取 surface 升序首个，其余入 `aliases`）。
-2. **`candidate_set.patterns[].concept_id`**（M4）：当前无该绑定。需求：M4 给出候选 Pattern 的 `concept_id`（可为 null）。在此之前 Snapshot `patterns[].concept_id = null`，M8 `KnowledgeEntry.subject_entity_id` 按 `pat_` 聚合。
+2. **`candidate_set.patterns[].concept_id` / `aliases`**（M4）：当前候选 Pattern 无该绑定、无别名（`assemble.py:485-498`）。需求：M4 给出 `concept_id`（可为 null）与 `aliases[]`。在此之前 Snapshot `patterns[].concept_id = null`、`patterns[].aliases = []`，M8 `KnowledgeEntry.subject_entity_id` 按 `pat_` 聚合。
 3. **`candidate_set.patterns[].rules[]`**（M4）：当前 `recognition_rule_status = not_captured`，无 `{rule_key, ast_sha256}`。需求：M4 补规则 AST 与哈希。在此之前 Snapshot `patterns[].rules = []` 且 `recognition_rule_status = "not_captured"`（`§20.6:942`：`not_captured` 不得误判为不存在）。
 4. **`reviewed_edition` 内容内嵌与否**（M6，可选）：本切片经 m6 冻结血缘读 M4 `candidate_set`（D-0-2），M6 契约保持不变。若后续要求 `reviewed_edition` 自包含内容实体，须经另立契约变更 ACT，并同步 M7 上游解析（§0.3）。
+5. **无号 Pattern 候选的稳定键**（M4，防御）：impl-05 已验收代码**恒为每个 pattern 发 `pat_` 号**（`assemble.py:484`），不产出 `pattern_id: null` 的候选，也无 `candidate_key`。故 M7 的 R03e（`pattern_id` 为 null → 从 `id_range` 补发）在当前上游下**不出现**，仅作防御分支保留：若未来 M4 引入无号候选，必须同时提供稳定 `candidate_key`（否则 M7 以 `SCH_001` 拒绝）。本条与第 64/65 条一致。
 
 ## 0.8 待主 Agent 裁决
 

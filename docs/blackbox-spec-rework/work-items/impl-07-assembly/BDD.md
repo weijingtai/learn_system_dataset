@@ -5,9 +5,9 @@
 输入为合成 ReviewedEditionPackage（`tests/data/genesis_package.json`，标 `synthetic: true`）与其冻结血缘 M4 `candidate_set`；空基底。以下场景对应 `act/g0-01.yaml`–`act/g0-05.yaml`。
 
 - G0.1 Given 空基底与单个 ReviewedEditionPackage，When `assemble_genesis` 两次，Then `knowledge` 规范 JSON 字节相同，`knowledge_sha256` 可复算，全部提案 `resolution == "auto"`。
-- G0.2 Given 候选 Pattern 一个带合法 `pat_`、一个 `pattern_id: null`，When 创世汇编（配置修订登记 `id_range = {"pattern": [start, end]}`），Then 前者保留原号（R02），后者按 `(source_id, candidate_key)` 升序**只从 `id_range` 区间内跳过已占用值确定性取号**（R03e）；`knowledge.id_range` 记录号段、`knowledge.allocated_pattern_ids` 为补发清单（升序）、`id_allocation` 为历史最高号；区间不足 → 拒绝（「号段不足」，第 64 条）。
+- G0.2 Given 候选 Pattern（impl-05 恒发合法 `pat_`，无 `candidate_key`），When 创世汇编（配置修订登记 `id_range = {"pattern": [start, end]}`），Then 保留原号（R02）；`knowledge.id_range` 记录号段、`knowledge.allocated_pattern_ids` 为补发清单（当前为空）、`id_allocation` 为历史最高号。**防御分支**（当前上游不产出）：若出现 `pattern_id: null` 且带 `candidate_key` 的候选（README §0.7 接口需求 5），按 `(source_id, candidate_key)` 升序**只从 `id_range` 区间内跳过已占用值确定性取号**（R03e）；区间不足 → 拒绝（「号段不足」，第 64 条）。
 - G0.3 Given 已绑定 `concept_mentions` 与无号 `new_concept_candidates`，Then Snapshot `concepts` 只含绑定项（按 `concept_ref` 聚合，`name` 取 surface 升序首个），无号项进 `assembly_package.report.excluded_unbound`，不进 Snapshot。
-- G0.4 Given `reviewed_edition.approved` 的 Assertion 与 `evidence_links`，Then `knowledge.assertions[].proposition` 与候选 NFC 后一致、`text_sha256` 可复算、`evidence[]` 的 `source_span_id/start_offset/end_offset/quote_sha256` 取自 `evidence_links`、`subject_entity_id` 为解析后的正式号。
+- G0.4 Given `reviewed_edition.approved` 的 Assertion 与 `evidence_links`，Then `knowledge.assertions[].proposition` 与候选 NFC 后一致、`text_sha256` 可复算、`evidence[]` 的 `source_span_id/start_offset/end_offset/quote_sha256` 取自 `evidence_links`；`subject_entity_id` 由 `patterns[].assertion_ids` 反查（恰 1 → 该 `pat_`，多 → 字典序最小，零 → null，F1）；`school_view_ids` 由 `school_views[].subject_entity_id`/`claim_refs` 反解（F1）。
 - G0.5 Given SchoolView 带 `conflict_group_id` 且成员 `changes_current_judgment`，Then `conflict_groups` 恰一组、`first_layer_display == true`，`school_views[].source_conflict_group_id` 保留原值。
 - G0.6 Given 创世 knowledge，Then `relations == []`、`retired_entity_ids == []`、`meta.base_snapshot_revision_id == null`、Pattern/Concept 顶层无 `content_status`、`decision_refs == {}`。
 - G0.7 Given 独立 Gate `evaluate_genesis`，Then 合法输入 10 项检查全过；篡改矩阵每例命中指定检查（去掉 approved Assertion→`provenance_complete`、重复发号/低于候选最大号→`allocation_monotonic`、复活 retired→`identity_preserved`、relations 非空或 meta 有 base→`genesis_only`、删 SchoolView→`no_silent_fold`、`first_layer_display` 置假、合成 `content_status`、改 proposition→`view_objects_unaltered`）。
@@ -17,6 +17,7 @@
 - G0.11 Given `m7-assembler.sh`，Then 10 项 PASS + 6 项 BLOCKED（`incremental_multi_edition`/`edition_collation`/`identity_delta`/`rework_replacement`/`upstream_m6_real`/`run_all_20_5`）+ 末行 `SUMMARY pass=10 fail=0 blocked=6`、exit 2；宿主 `.venv` 缺失 → `SUMMARY blocked=1`、exit 3；金标改一字节 → `FAIL genesis_snapshot`、exit 1。
 - G0.12 Given 合成输入 `tests/data/genesis_package.json` 中的人工决定与 `fixture_seed` 灌入的 `human_event`，Then 每个决定含 `synthetic_fixture: true`，其产生的 `human_event` 保留该标记，Snapshot 与 Gate 均不计为真实 `expert_verified`、不进任何发布级别判定（P7；§9.7 第 52 条；第 66 条）。
 - G0.13 Given `m7-assembler.sh` 的 `upstream_m6_real` 项，Then 在 impl-06 实现并验收前**恒为 BLOCKED**（说明逐字含「impl-06 实现并验收前」），不得因合成输入而判 PASS（第 66 条）。
+- G0.14 Given 合成宿主 `tests/data/genesis_package.json` 与真实 `candidate_set`，Then candidate_set 键为 impl-05 已验收真实形状（`assemble.py:637-651`）：assertion 无 `subject`/`school_view_ids`、用 `school_ids`；pattern 恒有合法 `pat_`、无 `candidate_key`；关联经 `patterns[].assertion_ids`；经 `model.validate_candidate_set` 通过（F1）。
 
 ## 完整增量汇编（DEFERRED，下一波）
 

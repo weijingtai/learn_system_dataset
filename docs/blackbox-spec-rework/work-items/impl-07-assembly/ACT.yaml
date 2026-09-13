@@ -45,6 +45,7 @@ gates:
   - bash openspec/schemas/verify.sh >/dev/null; echo $?                           # 0
   - python3 docs/blackbox-spec-rework/work-items/impl-00-interfaces/check_interfaces.py; echo exit=$?   # 末行 fail=0 且 exit 0（第 54 条）
   - bash pipeline/corpus/_fixture/mini_ed01/verify.sh >/dev/null; echo $?         # 0 或 3
+  - bash openspec/acceptance/m3-coverage.sh | tail -1                             # == 开工基线（本切片不改 M3）
   - .venv/bin/python -m unittest discover -s pipeline/ledger/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"      # OK，与基线相同
   - .venv/bin/python -m unittest discover -s pipeline/assembly/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"    # OK（G0-01 起）
   - export LC_ALL=en_US.UTF-8; bash openspec/acceptance/m7-assembler.sh; echo exit=$?                          # G0-05 起：SUMMARY pass=10 fail=0 blocked=6；exit=2
