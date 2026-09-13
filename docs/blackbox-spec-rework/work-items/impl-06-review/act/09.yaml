@@ -38,14 +38,14 @@ tests:
     脚手架：ACT 08 场景 → run_rework_propagation → seed_rerun_m4_m5 → open_rework_review
     - test_warning_requires_acknowledgement_zero_writes
     - test_acknowledgement_recorded_as_human_event_with_checkpoint
-    - test_rereview_queue_only_needs_review_items（== expected_review.rereview.queue）
+    - test_rereview_queue_only_needs_review_items（== expected_review.rereview.queue，3 项：as_…001#source_fidelity、sv_…1#source_fidelity、sv_…1#school_attribution）
     - test_rereview_seen_revision_is_new_candidate_set_revision
     - test_carried_decisions_not_rerecorded（本运行 human_events 表中无 carried 决定修订）
-    - test_close_rereview_standings_two_active_two_carried
+    - test_close_rereview_standings_three_active_two_carried
     - test_rereview_edition_references_report_and_trigger
     - test_rereview_transformation_includes_carried_and_ack_events
 verify:
-  - .venv/bin/python -m unittest discover -s pipeline/review/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 104
+  - .venv/bin/python -m unittest discover -s pipeline/review/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 120
   - TDD §3 回归
 commit:
   add: [pipeline/review/rework.py, pipeline/review/step.py, pipeline/review/testing/upstream_stub.py, pipeline/review/tests/test_rework_review.py, pipeline/review/console.py]

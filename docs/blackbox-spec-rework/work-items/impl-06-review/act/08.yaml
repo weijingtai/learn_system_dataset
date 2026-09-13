@@ -49,7 +49,7 @@ tests:
     脚手架：seed_upstream → open_review → request_correction(corrections.correction_request) → 按 m6_decisions 逐条决定 → close_review → seed_corrected_corpus(corrections) → run_rework_propagation
     - test_request_correction_is_human_event_with_checkpoint
     - test_request_correction_unknown_span_zero_writes
-    - test_rework_counts_match_expected_review（与 expected_review.rework 逐项相等：3/3/2/4/0.75）
+    - test_rework_counts_match_expected_review（与 expected_review.rework 逐项相等：3/3/3/4/0.75）
     - test_rework_report_lists_reachable_invalidated_objects（report.invalidated 3 个可达候选）
     - test_rework_does_not_change_any_revision_status（Ledger status='invalidated' 集合为空；m1–m6 全部修订非 invalidated，D-08 B）
     - test_rework_report_sealed_and_checkpoint_references_it（stage_checkpoints.rework_impact_report_revision_id）
@@ -60,7 +60,7 @@ tests:
     - test_rework_refuses_without_succeeded_review_zero_writes
     - test_console_rework_line
 verify:
-  - .venv/bin/python -m unittest discover -s pipeline/review/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 98
+  - .venv/bin/python -m unittest discover -s pipeline/review/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 112
   - grep -c 'invalidate_revision' pipeline/review/rework.py | wc -l                         # 0（D-08 推荐 B）
   - TDD §3 回归
 commit:

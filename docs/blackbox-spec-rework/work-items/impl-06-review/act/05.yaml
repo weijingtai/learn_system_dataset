@@ -12,28 +12,30 @@ contract: |
   step.py：
     open_review(service, edition_part_id, *, required_decision_types=None) -> dict
       1 inputs = resolve_m6_inputs(service, edition_part_id)（拒绝原样抛出，零写入）
-      2 mapping = required_decision_types or {kind: list(review_events.required_decision_types(对象, entity_kind=kind)) 合并}
-        config = service.put_run_artifact(processing_run_id, "configuration", canonical_json {"stage":"m6","task":"review","tool":M6_TOOL,"tool_version":M6_TOOL_VERSION,"required_decision_types":mapping,"verdicts":list(review_events.VERDICTS),"console":"cli"}, producer_module=M6_TOOL, producer_version=M6_TOOL_VERSION)
+      2 逐对象推导必审类型（第 67 条，唯一来源 review_events）：required_decision_types = {obj["entity_id"]: list(review_events.required_decision_types(obj["source_object"], entity_kind=obj["kind"])) for obj in inputs["candidate_objects"]}；参数显式传入时以其为准（仅供测试）
+        config = service.put_run_artifact(processing_run_id, "configuration", canonical_json {"stage":"m6","task":"review","tool":M6_TOOL,"tool_version":M6_TOOL_VERSION,"required_decision_types":required_decision_types,"verdicts":list(review_events.VERDICTS),"console":"cli"}, producer_module=M6_TOOL, producer_version=M6_TOOL_VERSION)
       3 frozen = [corpus_stage_package_revision_id, corpus_package_revision_id, spans_revision_id, candidate_package_revision_id, candidate_set_revision_id, validation_package_revision_id, gate_results_revision_id]
         step = begin_step_run({"schema_version":"1.0.0","processing_run_id","step_run_id":ids.new_id("step_run_id"),"input_artifact_ids":frozen,"technique_profile_id":technique_id,"configuration_artifact_id":config})
       4 begin 之后任何异常 → _fail(step, 检查名, detail)（input_contract / internal），形状同 impl-02 step._fail：put "failure_report" → seal → fail_step_run
         输入契约（input_contract）：读冻结修订；候选对象 entity_id/kind 与 candidate_set 一致；每条证据/Span 存在于 corpus_spans；quote_sha256 与截取引文一致；candidate_package 与 candidate_set 修订号自洽
-      5 queue = model.build_review_queue(candidates=inputs["candidate_objects"], required_decision_types=mapping, seen_revision_id=inputs["candidate_set_revision_id"]) → put "review_queue"（canonical_json）→ seal
-      6 write_checkpoint(step, edition_part_id=…, stage="m6", completed_tasks=[{"task_id":"build_review_queue","artifact_revision_id":queue_rev,"status":"succeeded","terminal_state":None}], human_decisions=[], pending_queue=[{"task_id": "<entity_id>#<decision_type>"} …], next_pointer=首项)
+      5 queue = model.build_review_queue(candidates=inputs["candidate_objects"], seen_revision_id=inputs["candidate_set_revision_id"]) → put "review_queue"（canonical_json）→ seal
+      6 write_checkpoint(step, edition_part_id=…, stage="m6", completed_tasks=[{"task_id":"build_review_queue","artifact_revision_id":queue_rev,"status":"succeeded","terminal_state":None}], human_decisions=[], pending_queue=[{"task_id": 项号} …], next_pointer=首项)
       7 token = service.await_human(step, [queue_rev])
       返回键：status("awaiting_human"), processing_run_id, step_run_id, resume_token, configuration_revision_id, frozen_input_revision_ids, queue_revision_id, queue, checkpoint_revision_id
+      candidate_objects 传入 Gate 时逐对象附 required_decision_types（= required_decision_types[entity_id]）
     record_decision(service, step_run_id, resume_token, *, queue_item_id, verdict, rationale, modified_content=None, evidence_refs=()) -> dict
       前置（任何失败直接抛出，零写入、不消费 token）：StepRun status == "awaiting_human"；读本运行 review_queue 修订；queue_item_id ∈ 队列（否则 ReviewRefused REF_001）；
         verdict 及 rationale 由 model.decision_event 预校验（不合法即抛）
-      1 若 verdict == "modify"：modified_content 必须保留原候选 entity_id 与 kind（否则 ReviewRefused SCH_002）；内容 = 原候选 source_object + modified_content 覆盖 content 键 → put "reviewed_candidate"(prev_revision_id=None) → seal；modified_revision_id 记入本运行立场映射
+      1 若 verdict == "modify"：modified_content 必须保留原候选 entity_id 与 kind（否则 ReviewRefused SCH_002）；内容 = 原候选 source_object + modified_content 覆盖 content 键 → put "reviewed_candidate"(prev_revision_id=None) → seal → modified_revision_id
       2 event = model.decision_event(queue_item=…, seen_artifact_revision_id=queue_item["seen_artifact_revision_id"], processing_run_id=…, step_run_id=…, verdict, rationale, actor_ref=service.actor(), evidence_refs)
-        rev = put "human_event"（model.event_bytes(event)）→ seal
+        rev = put "human_event"（model.event_bytes(event)）→ seal（第 68 条：事件锚恒为 seen）
       3 service.record_human_event(step_run_id, resume_token, rev, decision_type=queue_item["decision_type"])
-      4 folded = model.fold_decisions(queue, 本运行已记录决定事件（含继承，按 Checkpoint human_decisions 顺序）)
+      4 entry = model.decision_entry(decision_revision_id=rev, queue_item=…, event=event, standing="active", modified_revision_id=modified_revision_id)
+        folded = model.fold_decisions(queue, 本运行已记录 decision_entry（含继承，按 Checkpoint human_decisions 顺序）)
         human_decisions = 继承决定修订 + 本运行全部 human_event 修订（按记录顺序）
         completed_tasks = [build_review_queue 项] + [{"task_id": "m6_review_%s_%s" % (entity_id, decision_type), "artifact_revision_id": 该项最后决定修订, "status":"succeeded","terminal_state":None} for 已有决定的项（队列顺序）]
         pending = [项 for 项 in 队列 if folded[项] is None or folded[项]["verdict"] == "request_evidence"]
-        write_checkpoint(step, stage="m6", completed_tasks, human_decisions, pending_queue=[{"task_id": "<entity_id>#<decision_type>"}…], next_pointer=首个 pending 或 None)
+        write_checkpoint(step, stage="m6", completed_tasks, human_decisions, pending_queue=[{"task_id": 项号}…], next_pointer=首个 pending 或 None)
       返回键：decision_revision_id, modified_revision_id, checkpoint_revision_id, remaining(len(pending))
     recover_review(service, edition_part_id, *, reason) -> dict
       1 old = latest_checkpoint(ep, "m6")（不存在 → MissingReference）；其 StepRun 必须非终态（awaiting_human 或 suspended）否则 ReviewRefused
@@ -48,20 +50,21 @@ tests:
     脚手架：tempfile → LedgerService → seed_upstream → open_review
     - test_open_review_awaiting_human_with_token
     - test_open_frozen_inputs_exact_seven
+    - test_open_queue_five_items_from_required_decision_types
     - test_open_queue_sealed_and_first_checkpoint
     - test_open_refuses_without_upstream_zero_writes
     - test_open_input_contract_failure_fails_step_run（patch 读取后的候选 quote_sha256 → failed_check input_contract）
-    - test_four_decisions_four_human_events_with_decision_type
+    - test_five_decisions_five_human_events_with_decision_type
     - test_decision_event_matches_review_events_contract
-    - test_checkpoint_per_decision_chain_and_cumulative_lists（Checkpoint 共 5，human_decisions 长度 0→4，pending 4→0）
-    - test_modify_seals_reviewed_candidate_first
+    - test_checkpoint_per_decision_chain_and_cumulative_lists（Checkpoint 共 6，human_decisions 长度 0→5，pending 5→0）
+    - test_modify_seals_reviewed_candidate_and_entry_carries_modified_revision
     - test_redecide_request_evidence_then_accept_keeps_history
     - test_wrong_token_zero_writes
     - test_unknown_item_zero_writes
-    - test_recover_after_checkpoint_write_crash（patch write_checkpoint 在第 2 条决定后抛异常 → recover_review → 补写 Checkpoint；新运行 human_decisions 含 2 条旧决定；replayed_pending 2 项；旧决定修订未重录）
+    - test_recover_after_checkpoint_write_crash（patch write_checkpoint 在第 2 条决定后抛异常 → recover_review → 补写 Checkpoint；新运行 human_decisions 含 2 条旧决定；replayed_pending 3 项；旧决定修订未重录）
     - test_recover_old_run_still_awaiting_human（依 D-15 A）
 verify:
-  - .venv/bin/python -m unittest discover -s pipeline/review/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 70
+  - .venv/bin/python -m unittest discover -s pipeline/review/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 79
   - grep -rn 'testing\|_fixture' pipeline/review/step.py | wc -l                          # 0
   - TDD §3 回归
 commit:

@@ -32,12 +32,12 @@ tests:
     - test_open_without_upstream_refused_exit_2
     - test_show_read_only_row_counts_unchanged
     - test_show_prints_evidence_anchor_fields
-    - test_decide_batch_full_then_close_ok（末行 `M6 OK … approved=3 rejected=1 decisions=4`）
+    - test_decide_batch_full_then_close_ok（末行 `M6 OK … approved=3 rejected=1 decisions=5`）
     - test_decide_batch_stops_on_third_invalid_keeps_first_two
     - test_close_with_pending_exit_2
     - test_wrong_token_exit_2
 verify:
-  - .venv/bin/python -m unittest discover -s pipeline/review/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 88
+  - .venv/bin/python -m unittest discover -s pipeline/review/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 100
   - .venv/bin/python -m pipeline.review --help >/dev/null; echo $?                         # 0
   - TDD §3 回归
 commit:

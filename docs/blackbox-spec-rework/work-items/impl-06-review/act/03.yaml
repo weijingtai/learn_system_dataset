@@ -42,14 +42,15 @@ contract: |
         valid_object_count, invalidated_ratio, warnings, affected_queues(needs_review 非空 → ["m6"] 否则 [])
 tests:
   test_propagation.py: |
-    脚手架：old_spans_doc = fixture spans.yaml 解析结果；new_spans_doc = 深拷贝后按场景修改；候选、校验条目、立场决定内联构造（与 BDD 首审金标一致，每候选 1 条校验条目）
+    脚手架：old_spans_doc = fixture spans.yaml 解析结果；new_spans_doc = 深拷贝后按场景修改；候选、校验条目、立场决定内联构造（5 条立场：as_…001/as_…002/as_…003 各 source_fidelity、sv_…1 的 source_fidelity 与 school_attribution；每候选 1 条校验条目）
     场景 S1：p0003_s08 文字第 4 字「宮」改为「官」（合成修正，逐字框 char 同步改）；p0003_s05 source_anchor.bbox.x += 1.0
     - test_changed_spans_excludes_offset_shift（p0003_s06 文字加一字并平移其后 offset → changed 只含 s06）
     - test_changed_removed_added_sets
     - test_reachable_direct_and_transitive（S1 → [as_qizheng_000001, as_qizheng_000002, sv_…1]）
-    - test_s1_counts_exact（invalidated 3、carried_forward 3、needs_review 2、valid 4、ratio 0.75；首切片 validation_entries=[]）
+    - test_s1_counts_exact（invalidated 3、carried_forward 3、needs_review 3、valid 4、ratio 0.75；首切片 validation_entries=[]）
     - test_s1_equal_content_reachable_decision_carried（as_qizheng_000002 reject → carried_forward）
-    - test_s1_changed_content_decisions_need_review（as_…001、sv_…1 → reason content_changed）
+    - test_s1_changed_content_decisions_need_review（as_…001 与 sv_…1 的两条决定 → reason content_changed）
+    - test_s1_school_view_two_decisions_need_review（sv_…1 的 source_fidelity 与 school_attribution 各计 1）
     - test_unreachable_object_and_decision_carried_with_from_revision
     - test_removed_span_gives_target_removed
     - test_threshold_by_round（rework_round_before=2，单改 p0001_s02 字框 → round 3 且告警）
@@ -59,7 +60,7 @@ tests:
     - test_module_does_not_reference_invalidate_revision（源码不含 "invalidate_revision"）
     - test_deterministic_twice
 verify:
-  - .venv/bin/python -m unittest discover -s pipeline/review/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 50
+  - .venv/bin/python -m unittest discover -s pipeline/review/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 56
   - grep -nE 'datetime|time\.|random|uuid|open\(' pipeline/review/propagation.py | wc -l   # 0
   - grep -c 'invalidate_revision' pipeline/review/propagation.py                            # 0（D-08 推荐 B）
   - TDD §3 回归

@@ -10,15 +10,15 @@ tests_first:
   - 先写 tests/test_gate.py（用例名逐字），新增用例全 ERROR 后再实现
 contract: |
   gate.py（纯函数；不得 import pipeline.review.model / propagation / step / rework；8 类/5 verdict/3 standing 常量在本文件内独立重写，不从 review_events import 常量）：
-    evaluate_review(*, candidate_objects, required_decision_types, seen_revision_id, validation_package, corpus_spans_doc, decision_entries, reviewed_edition) -> dict
-      参数：candidate_objects = [{entity_id, kind}]；required_decision_types = {kind: [decision_type]}；validation_package = M5 包内容；
-            corpus_spans_doc = corpus_spans YAML 解析结果；decision_entries = [{decision_revision_id, queue_item_id, target_entity_id, kind, decision_type, verdict, standing, carried_from_revision_id, rationale}]；
+    evaluate_review(*, candidate_objects, seen_revision_id, validation_package, corpus_spans_doc, decision_entries, reviewed_edition) -> dict
+      参数：candidate_objects = [{entity_id, kind, required_decision_types}]（required_decision_types 由 review_events.required_decision_types 逐对象推导，第 67 条）；validation_package = M5 包内容；
+            corpus_spans_doc = corpus_spans YAML 解析结果；decision_entries = [{decision_revision_id, queue_item_id, target_entity_id, kind, decision_type, verdict, standing, seen_artifact_revision_id, modified_revision_id, carried_from_revision_id, rationale}]；
             reviewed_edition = 待封存的主内容
       返回：{"review": "passed"|"failed", "checks": {名: {"passed": bool, "detail": str}}}，checks 键序逐字如下
       九项检查（名称与顺序固定）：
         validation_intake：validation_package["gate"]["passed"] is True 且 validation_package["scope"] == "corpus_only"（M5 首切片只到 corpus 级；candidate 级由本 Gate 承担）
-        queue_coverage：独立重算 {entity_id#decision_type} = candidate_objects × required_decision_types[kind]；decision_entries 的 queue_item_id 集合 == 该集合
-        decision_anchoring：每条 decision 的 target_entity_id ∈ candidate_objects；standing == "active" 时其修订锚点 == seen_revision_id；standing == "carried_forward" 时 carried_from_revision_id 非空；每条 decision_revision_id 形如 rev_<32hex>
+        queue_coverage：独立重算 {entity_id#decision_type} = ∪ 逐对象 {entity_id, required_decision_types[dt]}；decision_entries 的 queue_item_id 集合 == 该集合
+        decision_anchoring（第 68 条）：每条 decision 的 target_entity_id ∈ candidate_objects；seen_artifact_revision_id == seen_revision_id（事件锚恒 seen，含 modify）；verdict == "modify" ⇔ modified_revision_id 非空且形如 rev_<32hex>，否则必须为 None；standing == "carried_forward" ⇒ carried_from_revision_id 非空且形如 rev_<32hex>；decision_revision_id 形如 rev_<32hex>
         decision_closed_sets：decision_type ∈ 本文件独立列出的 8 类；verdict ∈ {accept, modify, reject, request_evidence, school_dispute}；standing ∈ {active, carried_forward, needs_review}；rationale 非空
         zero_unresolved：reviewed_edition["unresolved_count"] == 0；无 verdict == "request_evidence" 或 standing == "needs_review" 的立场；每个队列项恰有 1 条立场
         outcome_consistency：独立推导 approved/rejected（全部必审维度 accept/modify → approved；任一 reject → rejected）与 reviewed_edition 两列表集合相等；approved 项 content_status == "expert_verified"；approved ∪ rejected == 全部候选 entity_id
@@ -28,13 +28,15 @@ contract: |
       review == "passed" 当且仅当九项全过
 tests:
   test_gate.py: |
-    脚手架：内联构造 BDD 首审金标（3 获批、1 驳回、4 决定）的全部参数；corpus_spans_doc 取 fixture spans.yaml 解析结果（测试允许读 fixture）
+    脚手架：内联构造 BDD 首审金标（3 获批、1 驳回、5 决定，含 sv_…1 两条）的全部参数；corpus_spans_doc 取 fixture spans.yaml 解析结果（测试允许读 fixture）
     - test_golden_all_nine_pass
     - test_check_names_and_order_exact
     - test_validation_gate_not_passed_fails_validation_intake
     - test_validation_scope_not_corpus_only_fails_validation_intake
     - test_missing_queue_item_fails_queue_coverage
-    - test_wrong_anchor_fails_decision_anchoring
+    - test_wrong_seen_anchor_fails_decision_anchoring
+    - test_modify_without_modified_revision_fails_decision_anchoring
+    - test_accept_with_modified_revision_fails_decision_anchoring
     - test_carried_without_carried_from_fails_decision_anchoring
     - test_unknown_decision_type_fails_closed_sets
     - test_empty_rationale_fails_closed_sets
@@ -49,7 +51,7 @@ tests:
     - test_count_mismatch_fails_package_counts
     - test_gate_does_not_import_model_or_propagation（读源码 AST，import 名单不含 model/propagation/step/rework）
 verify:
-  - .venv/bin/python -m unittest discover -s pipeline/review/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 36
+  - .venv/bin/python -m unittest discover -s pipeline/review/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 41
   - grep -nE '^(from|import) .*(model|propagation|step|rework)' pipeline/review/gate.py | wc -l   # 0
   - TDD §3 回归
 commit:

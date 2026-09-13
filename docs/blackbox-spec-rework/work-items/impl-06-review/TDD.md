@@ -24,17 +24,19 @@ test ! -e openspec/acceptance/m6-data-fields.sh; echo $?                    # K1
 
 | ACT | Red（实现前） | Green（实现后） |
 |---|---|---|
-| 01 | `$TR` → ImportError | `$TR` OK，用例 ≥ 16 |
-| 02 | 新增用例全 ERROR | `$TR` OK ≥ 36；`gate.py` 无 model/propagation/step/rework 的 import（`grep -nE` 检查为空） |
-| 03 | 新增用例全 ERROR | `$TR` OK ≥ 50；BDD 3.1 计数逐字相等 |
-| 04 | 新增用例全 ERROR | `$TR` OK ≥ 58；`$TK`、`$TV`、`$TL`、`$TC` 不变 |
-| 05 | 新增用例全 ERROR | `$TR` OK ≥ 70；5 个 Checkpoint 成链 |
-| 06 | 新增用例全 ERROR | `$TR` OK ≥ 80；m6 StagePackage 过 `stage_package.schema.json` |
-| 07 | 新增用例全 ERROR | `$TR` OK ≥ 88；`python -m pipeline.review --help` 退出 0 |
-| 08 | 新增用例全 ERROR | `$TR` OK ≥ 98；报告计数 6/3/2 |
-| 09 | 新增用例全 ERROR | `$TR` OK ≥ 104 |
+| 01 | `$TR` → ImportError | `$TR` OK，用例 ≥ 20 |
+| 02 | 新增用例全 ERROR | `$TR` OK ≥ 41；`gate.py` 无 model/propagation/step/rework 的 import（`grep -nE` 检查为空） |
+| 03 | 新增用例全 ERROR | `$TR` OK ≥ 56；BDD 3.1 计数逐字相等（3/3/3/4/0.75） |
+| 04 | 新增用例全 ERROR | `$TR` OK ≥ 64；`$TK`、`$TV`、`$TL`、`$TC` 不变 |
+| 05 | 新增用例全 ERROR | `$TR` OK ≥ 79；6 个 Checkpoint 成链 |
+| 06 | 新增用例全 ERROR | `$TR` OK ≥ 91；m6 StagePackage 过 `stage_package.schema.json` |
+| 07 | 新增用例全 ERROR | `$TR` OK ≥ 100；`python -m pipeline.review --help` 退出 0 |
+| 08 | 新增用例全 ERROR | `$TR` OK ≥ 112；报告计数 3/3/3 |
+| 09 | 新增用例全 ERROR | `$TR` OK ≥ 120 |
 | 10 | WITHDRAWN（第 61 条：Snapshot 归 M7）——不派发 | — |
-| 11 | `m6-data-fields.sh` 不存在（exit 127）；新增用例全 ERROR | `$TR` OK ≥ 110；脚本 `SUMMARY pass=11 fail=0 blocked=3`、exit 2 |
+| 11 | `m6-data-fields.sh` 不存在（exit 127）；新增用例全 ERROR | `$TR` OK ≥ 129；脚本 `SUMMARY pass=11 fail=0 blocked=3`、exit 2 |
+
+阈值 = 各 ACT 具名用例（`- test_` 行）实际累计：20/41/56/64/79/91/100/112/120/129（F4；ACT 10 WITHDRAWN 不计）。
 
 ## 2. 主 Agent 验收附加判据（执行者不需跑，但不得让其失败）
 
@@ -49,6 +51,7 @@ test ! -e openspec/acceptance/m6-data-fields.sh; echo $?                    # K1
 # 写入原子性：open_review/record_decision/close_review/open_rework_review 的前置拒绝前后各表行数不变
 # 退出码：acceptance 注入异常 → 1；缺 fixture → 3；m6-data-fields.sh 在副本假 verify.sh 下 → 1
 # BLOCKED 行名：「M6 Review Workbench」「M4 Knowledge Extraction」逐字属 §19 第一列
+# 第 61 条豁免：snapshot_projection 的说明「前置缺失: M7 创世汇编」非 §19 第一列，经第 61 条授权，只有该行的说明不经 §19 行名校验
 ```
 
 ## 3. 回归（每个 ACT 后）

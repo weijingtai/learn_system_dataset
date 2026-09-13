@@ -19,13 +19,13 @@ contract: |
       2 构造 reviewed_edition（键序逐字，README §5.3）：
           approved：对 outcome.approved 按候选顺序 {entity_id, kind, artifact_revision_id(modify 取最后 reviewed_candidate 修订，否则候选修订), content_status:"expert_verified", decision_revision_ids}
           rejected：{entity_id, kind, artifact_revision_id(候选修订), content_status(候选原值), decision_revision_ids}
-          decisions：每个队列项的立场 {decision_revision_id, queue_item_id, target_entity_id, seen_artifact_revision_id, current_target_revision_id(modify 取 reviewed_candidate，否则 seen), decision_type, verdict, standing, carried_from_revision_id, trigger_correction_request_id}
+          decisions：每个队列项的立场 {decision_revision_id, queue_item_id, target_entity_id, seen_artifact_revision_id, current_target_revision_id(取 entry.modified_revision_id，无则 seen), modified_revision_id(第 68 条；= entry.modified_revision_id), decision_type, verdict, standing, carried_from_revision_id, trigger_correction_request_id}
           evidence_links：获批对象（modify 取修订后内容）的 evidence 复算 quote_sha256 + corpus_spans_revision_id
           school_views：获批 school_view {school_view_id, school_id, subject_entity_id, conflict_group_id, changes_current_judgment(取候选 source_object)}
           correction_request_revision_ids：冻结输入与本运行中 event_kind == "correction_request" 的 human_event 修订（按记录顺序）
           rework_impact_report_revision_id: None（返工运行由 ACT 09 填写）
           unresolved_count: 0
-      3 gate_report = gate.evaluate_review(candidate_objects=inputs["candidate_objects"], required_decision_types=mapping, seen_revision_id=inputs["candidate_set_revision_id"], validation_package=inputs["validation_package"], corpus_spans_doc=…, decision_entries=…, reviewed_edition=reviewed_edition)
+      3 gate_report = gate.evaluate_review(candidate_objects=[{**obj, "required_decision_types": required_decision_types[obj["entity_id"]]} for obj in inputs["candidate_objects"]], seen_revision_id=inputs["candidate_set_revision_id"], validation_package=inputs["validation_package"], corpus_spans_doc=…, decision_entries=…, reviewed_edition=reviewed_edition)
         validation_report = put "validation_report"（canonical_json {"gate_profile":"m6_review_v1","review":gate.review,"checks":gate.checks,"failed_checks":[…]）→ seal
         log = put "step_log"（每步一行 UTF-8，不含时间戳）→ seal
         gate.review == "failed" → _fail("review_gate", 失败检查名以逗号连接)
@@ -47,19 +47,20 @@ contract: |
 tests:
   test_step_close.py: |
     脚手架：seed_upstream → open_review → 按 testing/data/m6_decisions.yaml 逐条 record_decision → close_review
-    - test_close_succeeds_three_approved_one_rejected（与 expected_review.first_review 逐项相等）
+    - test_close_succeeds_three_approved_one_rejected（与 expected_review.first_review 逐项相等：approved 3/rejected 1/decisions 5）
     - test_close_consumes_token_and_step_succeeded
     - test_reviewed_edition_decisions_have_entity_and_seen_revision（§8.1:265 双锚）
+    - test_reviewed_edition_decision_includes_modified_revision_id（第 68 条：modify 项 modified_revision_id 非空，其余为 null）
     - test_modified_object_uses_reviewed_candidate_revision
     - test_evidence_links_quote_hash_recomputed_from_ledger_spans
     - test_stage_package_validates_schema_and_content_sha
-    - test_transformation_records_all_human_events（human_event_revision_ids 集合 == 4 条决定）
+    - test_transformation_records_all_human_events（human_event_revision_ids 集合 == 5 条决定）
     - test_close_refuses_with_unresolved_zero_writes_token_kept
-    - test_close_lists_correction_requests_without_blocking（首审期间 request_correction 覆盖 p0003_s08，4 条决定后仍可结审，包内 correction_request_revision_ids 含该修订）
+    - test_close_lists_correction_requests_without_blocking（首审期间 request_correction 覆盖 p0003_s08，5 条决定后仍可结审，包内 correction_request_revision_ids 含该修订）
     - test_gate_failure_fails_step_run_no_stage_package（patch gate.evaluate_review 返回 failed）
     - test_exception_after_resume_fails_internal（patch record_transformation 抛异常 → failed_check internal，失败修订 sealed）
 verify:
-  - .venv/bin/python -m unittest discover -s pipeline/review/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 80
+  - .venv/bin/python -m unittest discover -s pipeline/review/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 91
   - export LC_ALL=en_US.UTF-8; bash openspec/acceptance/run_all.sh | tail -1               # == BASELINE_RUN_ALL（未改动）
   - TDD §3 回归
 commit:

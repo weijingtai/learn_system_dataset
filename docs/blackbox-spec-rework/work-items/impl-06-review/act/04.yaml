@@ -10,21 +10,20 @@ tests_first:
   - 先写 tests/test_inputs.py（用例名逐字）并全红，再写 testing 数据与桩，最后实现 inputs.py
 contract: |
   testing/data（合成数据；注释首行写明「合成数据，仅验证结构与血缘；fixture 前 3 页为书名页与目录；合成人工决定 synthetic_fixture: true，不计为真实 expert_verified」）：
-    m4_candidates.yaml：[{entity_id, kind}] 与预期候选对象索引（as_qizheng_000001/000002/000003 assertion、sv_…1 school_view）
+    m4_candidates.yaml：合成候选对象索引（as_qizheng_000001/000002/000003 assertion、sv_…1 school_view）；每对象的 required_decision_types 由 review_events.required_decision_types 推导（第 67 条）
     m5_validation.yaml：校验条目期望（首切片为空列表，附注释说明 M5 scope=corpus_only）
-    m6_decisions.yaml：4 条 {queue_item_id, verdict, rationale, modified_content?, evidence_refs?}：as_…001 accept；as_…002 reject；as_…003 modify（modified_content.text「（宋）錢如璧撰」）；sv_…1 accept
-      （verdict 闭集取 review_events.VERDICTS；文件顶层写 synthetic_fixture: true）
+    m6_decisions.yaml：5 条 {queue_item_id, verdict, rationale, modified_content?, evidence_refs?}：as_…001#review_source_fidelity accept；as_…002#review_source_fidelity reject；as_…003#review_source_fidelity modify（modified_content.text「（宋）錢如璧撰」）；sv_…1#review_source_fidelity accept；sv_…1#review_school_attribution accept
+      （队列项号按 required_decision_types 推导，共 5；verdict 闭集取 review_events.VERDICTS；文件顶层写 synthetic_fixture: true）
     corrections.yaml：correction_request {source_span_ids: [ss_sanche_ed01_p0003_s08], description}；span_patches [{span_id: ss_sanche_ed01_p0003_s08, char_index: 3, char: 官}, {span_id: ss_sanche_ed01_p0003_s05, bbox_dx: 1.0}]
-    expected_review.yaml：first_review {approved: [as_qizheng_000001, as_qizheng_000003, sv_…1], rejected: [as_qizheng_000002], decisions: 4, checkpoints: 5}；
-      rework {changed_span_ids: [ss_sanche_ed01_p0003_s05, ss_sanche_ed01_p0003_s08], reachable_entity_ids: [as_qizheng_000001, as_qizheng_000002, sv_…1], invalidated_count: 3, carried_forward_count: 3, needs_review_count: 2, valid_object_count: 4, invalidated_ratio: 0.75, warnings: [rework_threshold_exceeded], rework_round: 1}；
-      rereview {queue: [as_qizheng_000001#review_source_fidelity, sv_…1#review_school_attribution], active: 2, carried_forward: 2}
+    expected_review.yaml：first_review {approved: [as_qizheng_000001, as_qizheng_000003, sv_…1], rejected: [as_qizheng_000002], decisions: 5, checkpoints: 6}；
+      rework {changed_span_ids: [ss_sanche_ed01_p0003_s05, ss_sanche_ed01_p0003_s08], reachable_entity_ids: [as_qizheng_000001, as_qizheng_000002, sv_…1], invalidated_count: 3, carried_forward_count: 3, needs_review_count: 3, valid_object_count: 4, invalidated_ratio: 0.75, warnings: [rework_threshold_exceeded], rework_round: 1}；
+      rereview {queue: [as_qizheng_000001#review_source_fidelity, sv_…1#review_source_fidelity, sv_…1#review_school_attribution], active: 3, carried_forward: 2}
   testing/upstream_stub.py（非生产；STUB_TOOL = "pipeline.review.testing.upstream_stub"，STUB_TOOL_VERSION = "0.1.0"）：
     seed_upstream(service, fixture_dir) -> dict
-      1 from pipeline.ledger.fixture_ingest import ingest；ingest(fixture_dir, service, stages=("m1","m2")) → from pipeline.corpus_compiler.step import run_m3；run_m3(service, edition_part_id)（必须 succeeded）
+      1 from pipeline.ledger.fixture_ingest import ingest；ingest(fixture_dir, service, stages=("m1","m2")) → from pipeline.corpus_compiler.step import run_m3；run_m3(service, edition_part_id)（必须 succeeded；提供真实 corpus_package/corpus_spans）
       2 technique_profile：从 pipeline.knowledge_extraction.adapters.registry 建并登记（canon 目录取默认）
-      3 三路 fixture_gold 提交件（fixture m4 金标 submission_assertion_a/b.yaml、submission_concept_mention_a.yaml）经 pipeline.knowledge_extraction.submit.run_m4_submit 登记
-      4 run_m4：若进 awaiting_human（分歧），用 m4/ruling_m4_d001.yaml 经 record_category_ruling 裁决并 resume_m4，直至 succeeded
-      5 from pipeline.validation.step import run_m5；run_m5(service, edition_part_id, target_consumption_level="INTERNAL_DEMO")
+      3 **合成 M4 输入**（非生产，D-11 A；fixture 金标 candidate_set 无 school_view，故本桩按 testing/data/m4_candidates.yaml 经真实 Ledger 写路径注入 4 个对象）：新建 m4 StepRun，冻结 m3 包与 spans；写合成 candidate_set（as_…001/000002/000003 + sv_…1；evidence 一律页块绝对 offset，quote_sha256 按 corpus_spans 截取复算）+ candidate_package + Checkpoint + Transformation（operation "extract_candidates_stub"）+ m4 StagePackage（validation.passed=true）→ 该 m4 StepRun succeeded
+      4 from pipeline.validation.step import run_m5；run_m5(service, edition_part_id, target_consumption_level="INTERNAL_DEMO")（corpus_only）
       返回键：edition_part_id, processing_run_id, corpus_stage_package_revision_id, spans_revision_id, candidate_package_revision_id, candidate_set_revision_id, validation_package_revision_id, gate_results_revision_id, m3_step_run_id, m4_step_run_id, m5_step_run_id
     load_data(name) -> dict：读 testing/data/<name>.yaml
   inputs.py：resolve_m6_inputs(reader, edition_part_id) -> dict（只调用 Ledger 读接口；查 artifact_type 允许经 reader.store.conn 只读 SELECT，同 impl-05 inputs.py）
@@ -40,7 +39,7 @@ tests:
   test_inputs.py: |
     脚手架：tempfile → LedgerService(root/"ledger") → seed_upstream(FIXTURE, service)
     - test_seed_upstream_all_stages_succeeded
-    - test_seed_candidates_match_fixture_gold
+    - test_seed_candidates_four_objects_include_school_view
     - test_resolve_returns_exact_revisions_and_objects
     - test_resolve_writes_nothing（前后 artifact_revisions、step_runs、audit_log 行数相等）
     - test_refuses_when_m5_missing
@@ -48,7 +47,7 @@ tests:
     - test_refuses_when_candidate_package_not_bound_to_m3
     - test_refuses_when_candidate_revision_not_sealed（supersede/invalidate 后 → NotConsumable）
 verify:
-  - .venv/bin/python -m unittest discover -s pipeline/review/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 58
+  - .venv/bin/python -m unittest discover -s pipeline/review/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 64
   - grep -rn 'testing' pipeline/review/inputs.py | wc -l                                  # 0
   - grep -rn '_fixture' pipeline/review/inputs.py | wc -l                                 # 0
   - TDD §3 回归
