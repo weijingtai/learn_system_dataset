@@ -158,21 +158,20 @@
 | 下游消费键 | M6：`gate_results.gates[].checks[]`、`rework_tasks[]`、`broken_relations[]`；M8：`known_defects` 取 blocked 项 |
 | 未定义 | 输入清单、目标消费级别入参（D-02）；新失败类别的错误码（D-17） |
 
-### 2.6 M6 Review & Curation（纵切后，不在首纵切）
+### 2.6 M6 Review & Curation（薄接入；act/13 登记类型）
 
 | 项 | 内容 |
 |---|---|
 | 运行归属 | EditionRun，`stage=m6` |
-| 冻结输入 | m4 `candidate_package`、m5 `validation_package`、m3 `corpus_package`【规格】618、624；M2 扫描与字框只读（629）；【草案】前置条件为 `m5_gate_passed=true` |
-| 任务与 Checkpoint | 每个人工决定被 Ledger 接受后即时 1 个 Checkpoint【规格】843；【草案】`task_id = m6_review_<entity_id>_<decision_type>` |
-| 人工挂起 | StepRun 转 `awaiting_human`，`pending_queue_artifact_ids` 指向 `review_queue` 修订【草案】；恢复语义按 §7.1 213–224 |
-| 输出 artifact_type【草案】 | `human_event`（内容符合 `review_decision.schema.json`）、`correction_request`（629，退回 M2）、`rework_impact_report`（641）；主内容 `reviewed_edition`；阶段输出 `reviewed_edition_package` |
-| payload【草案】 | `stage_payload_m6`：`{reviewed_edition_revision_id, decision_revision_ids, unresolved_count: 0}` |
-| counts【草案】 | `{approved, rejected, decisions, correction_requests}`；content_sha256 = sha256(reviewed_edition)；operation `review_candidates` |
-| Gate | 【规格】631 未解决项为 0；【草案】检查名 `decisions_complete, decision_anchor_pair(265), decision_types_closed(349–364), no_save_as_verified(889 回归)` |
-| 人工队列 | 队列 4「M6 待签发」【规格】123 |
-| 失效传播 | CorrectionRequest → M2 返工 → 按 §14.1 635–645 精确失效；`rework_round ≥ 3` 或单轮失效 ≥ 30% 时登记 `rework_threshold_exceeded`（642） |
-| 未定义 | verdict 枚举与 content_status 迁移（D-14）；Review Console 与 Ledger 的写入通道（620，Flutter 客户端纵切后） |
+| 冻结输入 | m3 `corpus_package`/`corpus_spans` + m4 `candidate_package`/`candidate_set` + m5 `validation_package`/`gate_results`（各恰 1；上游 StepRun `succeeded`，M5 另须 `validation.passed == true`，第 21 条） |
+| 任务与 Checkpoint | 首 task `build_review_queue`；此后每条人工决定/人工事件 1 个 Checkpoint（task_id `m6_review_<entity_id>_<decision_type>`）（§17.1:840-846） |
+| 输出 artifact_type | 人工 `human_event`（`event_kind=review_decision`，内容逐字由 `pipeline.knowledge_extraction.review_events.build_review_decision` 产出；另有 `correction_request`、`rework_threshold_ack` 事件）；队列 `review_queue`；失效报告 `rework_impact_report`；主内容 `reviewed_edition`；阶段输出 `reviewed_edition_package`；另有 `validation_report`、`step_log`、`failure_report` |
+| payload | `{reviewed_edition_revision_id, decision_revision_ids, unresolved_count: 0}` |
+| counts | `{approved, rejected, decisions, correction_requests}`；content_sha256 = sha256(reviewed_edition 字节)；operation `review_candidates` |
+| Gate | 独立 M6 Review Gate 九项检查（名称见 impl-06 act/02）；结果作为 M6 自身 StepRun 的 `validation_report` 落盘 |
+| 人工队列 | 队列 4「M6 待签发」 |
+| 失效传播 | CorrectionRequest → M2 返工 → §14.1 精确失效；`rework_round ≥ 3` 或单轮失效 ≥ 30% 登记 `rework_threshold_exceeded`；M6 **不**改 M4 修订状态（第 62 条：M4' 以 `supersede_revision` 替换旧 `candidate_set`） |
+| Snapshot | 不在 M6；`CanonicalKnowledgeSnapshot` 归 M7（第 61 条） |
 
 ### 2.7 M7 Incremental Knowledge Assembly（纵切后，不在首纵切）
 
@@ -276,15 +275,15 @@
 
 ### 3.4 `review_decision.schema.json`（`human_event` 内容）
 
-`{decision_type: reviewDecisionType, verdict: accept|modify|reject|request_evidence|school_dispute, target: entityRevisionAnchor, stage: m3|m4|m6|m7, scope_consumption_level: consumptionLevel|null, rationale (minLength 1), modified_revision_id: rev|null, content_status_after: contentStatus|null, actor_ref}`；约束：`verdict=modify` 时 `modified_revision_id` 必填且非 null；`content_status_after=expert_verified` 时 `verdict` 必须为 `accept`。来源 265、351–364、618、622–625、830；D-14。
+顶层键**恰为** `{schema_version, event_kind("review_decision"), stage("m6"), decision_type(8 类), verdict(accept|modify|reject|request_evidence|school_dispute), target{entity_kind(assertion|pattern|school_view), entity_id, artifact_revision_id(恒为 seen 修订，第 68 条)}, processing_run_id, step_run_id, actor_ref, rationale(minLength 1), evidence_refs[sourceSpanId]（元素为 `ss_` 前缀 span 号，`validate("source_span_id")`）, consumption_level(INTERNAL_DEMO|DEV_SEARCH|PUBLIC_RELEASE)}`；校验拒收多余键；`verdict=school_dispute` 只能配 `review_school_attribution`；`modify` 的修改产出锚不入事件，由 M6 `decision_entry.modified_revision_id` 承载（第 68 条）。来源 265、351–364、618、622–625、830；`pipeline/knowledge_extraction/review_events.py`；D-14。
 
 ### 3.5 `reviewed_edition.schema.json`（M6 主内容）
 
-`{edition_part_artifact_id, candidate_package_revision_id, validation_package_revision_id, approved[{entity_id, artifact_revision_id, content_status}], rejected[{entity_id, artifact_revision_id, decision_revision_id}], decision_revision_ids[] minItems 1, correction_request_revision_ids[], unresolved_count: const 0}`。来源 631。
+`{schema_version, edition_part_artifact_id, candidate_set_revision_id, candidate_package_revision_id, validation_package_revision_id, approved[{entity_id, kind, artifact_revision_id, content_status, decision_revision_ids}], rejected[{entity_id, kind, artifact_revision_id, content_status, decision_revision_ids}], decisions[{decision_revision_id, queue_item_id, target_entity_id, seen_artifact_revision_id, current_target_revision_id, modified_revision_id, decision_type, verdict, standing, carried_from_revision_id, trigger_correction_request_id}], evidence_links[{entity_id, source_span_id, corpus_spans_revision_id, start_offset, end_offset, quote_sha256}], school_views[{school_view_id, school_id, subject_entity_id, conflict_group_id, changes_current_judgment}], correction_request_revision_ids[], rework_impact_report_revision_id|null, unresolved_count: const 0}`；`standing ∈ {active, carried_forward, needs_review}`（D-06，不进 Ledger 状态表）。来源 631；impl-06 README §5.3。
 
 ### 3.6 `rework_impact_report.schema.json`（M6 / Orchestrator）
 
-`{edition_part_artifact_id, trigger_correction_request_revision_id, rework_round ≥1, invalidated_count, carried_forward_count, needs_review_count, affected_queues[queueName], invalidated[entityRevisionAnchor], carried_forward[{entity_id, carried_from_revision_id}], needs_review[entityRevisionAnchor], threshold_exceeded: bool}`。来源 637–643。
+`{schema_version, trigger_correction_request_revision_id, rework_round ≥1, changed_span_ids[], removed_span_ids[], reachable_entity_ids[], invalidated[{kind, entity_id, revision_id}], carried_forward[{kind, entity_id, revision_id, carried_from_revision_id}], needs_review[{decision_revision_id, target_entity_id, queue_item_id, reason}], invalidated_count, carried_forward_count, needs_review_count, valid_object_count, invalidated_ratio, warnings[], affected_queues[queueName]}`。来源 637–643；impl-06 README §5.2。
 
 ### 3.7 `canonical_snapshot.schema.json`（M7 主内容）
 
@@ -320,13 +319,13 @@
 
 ### 3.15 不在本包范围
 
-`rule_index_pack / search_index_pack / graph_projection_pack / technique_profile_pack`（规格字段不足，纵切后，D-15）；四类 Proposal、`term_layer_report`、`correction_request`、`review_queue`（由 M4/M6/M7 包各自起草，回填到本表 §4）。
+`rule_index_pack / search_index_pack / graph_projection_pack / technique_profile_pack`（规格字段不足，纵切后，D-15）；四类 Proposal、`term_layer_report`（由 M4/M7 包各自起草，回填到本表 §4）。
 
 ---
 
 ## 4. artifact_type 总表（在 Contract Registry 落地前充当临时闭集，D-10）
 
-登记纪律：唯一登记处为本表，直至 impl-08 Contract Registry 接管（P2）；同一时刻只有一路写本表。未入本表的类型名，实现不得使用；M5 任务级报告已按 G7-RULINGS §9.1 第 24/26 条删除，每 task 复用通用 `validation_report`。M4 五行由 `impl-00/12` 登记，其 `candidate_set` 内容结构为代码草案（P3），正式化随 impl-08 Contract Registry。
+登记纪律：唯一登记处为本表，直至 impl-08 Contract Registry 接管（P2）；同一时刻只有一路写本表。未入本表的类型名，实现不得使用；M5 任务级报告已按 G7-RULINGS §9.1 第 24/26 条删除，每 task 复用通用 `validation_report`。M4 五行由 `impl-00/12` 登记，其 `candidate_set` 内容结构为代码草案（P3），正式化随 impl-08 Contract Registry。M6 四行由 `impl-00/13` 登记，`reviewed_edition`/`rework_impact_report` 内容结构为代码草案（P3），正式化随 impl-08 Contract Registry；Stage Gate 报告不落盘（§9.5 第 46 条）。
 
 | 阶段 | artifact_type | 角色 | 内容 Schema | 状态 |
 |---|---|---|---|---|
@@ -345,7 +344,10 @@
 | M4 | `candidate_package` | 阶段输出索引 | 代码草案（P3） | 同上 |
 | M5 | `gate_results` | 主内容 | 代码草案 0.1.0-draft（P3） | 首纵切（§9 第 10 条） |
 | M5 | `validation_package` | 阶段输出索引 | 代码草案（P3） | 首纵切（§9 第 10 条） |
-| M6 | `review_queue` / `correction_request` / `rework_impact_report` / `reviewed_edition` / `reviewed_edition_package` | 队列 / 退回 / 失效报告 / 主内容 / 阶段输出 | rework_impact_report、reviewed_edition | 纵切后（D-14） |
+| M6 | `review_queue` | 队列（M6 待签发） | 代码草案 0.1.0-draft（P3） | M6 薄接入（act/13 登记；实现见 impl-06） |
+| M6 | `rework_impact_report` | 失效传播报告（§14.1） | `rework_impact_report` 代码草案（见 §3.6） | 同上 |
+| M6 | `reviewed_edition` | 主内容 | `reviewed_edition` 代码草案（见 §3.5） | 同上 |
+| M6 | `reviewed_edition_package` | 阶段输出索引 | 代码草案（P3） | 同上 |
 | M7 | `merge_proposal` / `alias_proposal` / `conflict_proposal` / `evidence_relation_proposal` / `canonical_snapshot` / `assembly_package` | 提案 / 主内容 / 阶段输出 | canonical_snapshot | 纵切后（§9 第 3 条） |
 | M8（首纵切） | `source_asset_pack` / `evidence_map_pack` / `release_manifest` / `publication_package` | 子包 / 主内容（release_manifest）/ 阶段输出 | 代码草案（P3）；ValidationReport 复用通用 `validation_report` | 首纵切（D4、§9 第 15 条） |
 | M8（纵切后） | `knowledge_data_pack` / `query_contract_pack` / `anchor_contract_pack` / `rule_index_pack` / `search_index_pack` / `graph_projection_pack` / `technique_profile_pack` | 子包 | 纵切后 | 纵切后（D-15） |

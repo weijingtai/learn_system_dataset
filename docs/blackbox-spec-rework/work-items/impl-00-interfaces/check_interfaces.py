@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""impl-00/12：INTERFACES.md §4 临时闭集登记检查器（IF01–IF24）。
+"""impl-00/13：INTERFACES.md §4 临时闭集登记检查器（IF01–IF29）。
 
 只用标准库。按行解析 `INTERFACES.md` 的 §4 表，逐项判定并输出
 `PASS IFnn <名>` / `FAIL IFnn <名> <原因>`，末行 `I00-IF SUMMARY pass=<n> fail=<n>`。
@@ -8,7 +8,10 @@
 
 IF01–IF18 为 impl-00/10 首纵切登记检查，编号与语义冻结（现有用例依赖）；
 IF19–IF23 为 impl-00/12 新增的 M4 五个类型（各在 §4 表出现恰一次）；
-IF24 禁止 §4 表残留旧 M4 名。
+IF24 禁止 §4 表残留旧 M4 名；
+IF25–IF28 为 impl-00/13 新增的 M6 四个类型（各在 §4 表出现恰一次）；
+IF29 禁止 §4 表把 `correction_request` 登记为独立 artifact_type（impl-06 D-10：
+CorrectionRequest 为 `human_event`，不是独立类型）。
 """
 from __future__ import annotations
 
@@ -36,8 +39,16 @@ M4_TYPES = (
     "candidate_set",
     "candidate_package",
 )
+# M6 薄接入类型（IF25–IF28；impl-00/13 登记，显式编号）
+M6_TYPES = (
+    "review_queue",
+    "reviewed_edition",
+    "reviewed_edition_package",
+    "rework_impact_report",
+)
 FORBIDDEN_TYPES = ("gate_report", "validator_report")   # IF18
 FORBIDDEN_M4_NAMES = ("candidate_batch", "model_run", "candidate_diff_report")   # IF24
+FORBIDDEN_M6_TYPES = ("correction_request",)   # IF29（impl-06 D-10）
 RULING_MARKERS = {
     "IF12": "not_compiled",
     "IF13": "corpus_only",
@@ -57,6 +68,7 @@ IF_NAMES = {
     "IF11": "required 类型行未标 DEFERRED/纵切后",
     "IF18": "§4 表不含 gate_report 与 validator_report",
     "IF24": "§4 表不含旧 M4 名 candidate_batch / model_run / candidate_diff_report",
+    "IF29": "§4 表不含 correction_request（D-10 归 human_event）",
 }
 # IF02–IF09：首纵切 required 类型
 for _i, _t in enumerate(REQUIRED_TYPES):
@@ -64,6 +76,9 @@ for _i, _t in enumerate(REQUIRED_TYPES):
 # IF19–IF23：M4 required 类型（显式编号，避免占用 IF10/IF11）
 for _i, _t in enumerate(M4_TYPES):
     IF_NAMES["IF%02d" % (_i + 19)] = "M4 required 类型 %s" % _t
+# IF25–IF28：M6 required 类型（显式编号）
+for _i, _t in enumerate(M6_TYPES):
+    IF_NAMES["IF%02d" % (_i + 25)] = "M6 required 类型 %s" % _t
 for _num, _marker in RULING_MARKERS.items():
     IF_NAMES[_num] = "标记 %s" % _marker
 
@@ -116,7 +131,7 @@ def _status_cell(rows, token: str):
 
 
 def run_checks(path: Path) -> list:
-    """执行 IF01–IF24，返回 [(编号, 状态, 原因)]，按编号升序。"""
+    """执行 IF01–IF29，返回 [(编号, 状态, 原因)]，按编号升序。"""
     try:
         text = Path(path).read_text(encoding="utf-8")
         rows = parse_table(text)
@@ -139,7 +154,7 @@ def run_checks(path: Path) -> list:
     dup = sorted(name for name, count in counts.items() if count > 1)
     add("IF10", not dup, "重复: %s" % ",".join(dup) if dup else "")
     bad_rows = []
-    for token in REQUIRED_TYPES + M4_TYPES:
+    for token in REQUIRED_TYPES + M4_TYPES + M6_TYPES:
         status = _status_cell(rows, token)
         if status is None:
             bad_rows.append("%s 缺行" % token)
@@ -157,6 +172,13 @@ def run_checks(path: Path) -> list:
     # IF24：§4 表不含旧 M4 名
     legacy = sorted({name for name in names if name in FORBIDDEN_M4_NAMES})
     add("IF24", not legacy, "出现 %s" % ",".join(legacy) if legacy else "")
+    # IF25–IF28：M6 required 类型（显式编号）
+    for i, token in enumerate(M6_TYPES):
+        count = counts.get(token, 0)
+        add("IF%02d" % (i + 25), count == 1, "%s 出现 %d 次" % (token, count))
+    # IF29：§4 表不得把 correction_request 登记为独立 artifact_type（D-10）
+    forbidden_m6 = sorted({name for name in names if name in FORBIDDEN_M6_TYPES})
+    add("IF29", not forbidden_m6, "出现 %s" % ",".join(forbidden_m6) if forbidden_m6 else "")
     out.sort(key=lambda item: item[0])
     return out
 

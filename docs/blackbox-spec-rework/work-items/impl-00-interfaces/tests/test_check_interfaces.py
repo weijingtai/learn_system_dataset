@@ -119,6 +119,36 @@ class CheckInterfacesTest(unittest.TestCase):
         res = statuses(ci.run_checks(self._copy(text)))
         self.assertEqual(res["IF24"], "FAIL")
 
+    def test_m6_required_types_present(self):
+        res = statuses(ci.run_checks(REPO_DOC))
+        for num in ("IF25", "IF26", "IF27", "IF28"):
+            self.assertEqual(res[num], "PASS")
+
+    def test_m6_type_missing_fails(self):
+        res = statuses(ci.run_checks(self._copy(self._drop_lines(self.text, "`review_queue`"))))
+        self.assertEqual(res["IF25"], "FAIL")
+
+    def test_m6_type_marked_deferred_fails(self):
+        text = self._mutate_status_cell(self.text, "`reviewed_edition`", "纵切后")
+        res = statuses(ci.run_checks(self._copy(text)))
+        self.assertEqual(res["IF11"], "FAIL")
+
+    def test_m6_duplicate_type_fails(self):
+        out = []
+        for line in self.text.splitlines():
+            out.append(line)
+            if line.lstrip().startswith("|") and "`rework_impact_report`" in line:
+                out.append(line)
+        res = statuses(ci.run_checks(self._copy("\n".join(out) + "\n")))
+        self.assertEqual(res["IF10"], "FAIL")
+
+    def test_correction_request_type_present_fails(self):
+        marker = "\n## 5."
+        row = "\n| M6 | `correction_request` | 退回 | — | 纵切后 |\n"
+        text = self.text.replace(marker, row + marker, 1)
+        res = statuses(ci.run_checks(self._copy(text)))
+        self.assertEqual(res["IF29"], "FAIL")
+
     def test_missing_file_exit_3(self):
         rc = ci.main(["--file", str(self.tmp / "nope.md")])
         self.assertEqual(rc, 3)
