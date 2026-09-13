@@ -45,11 +45,14 @@ contract: |
       concept_mentions：concept_ref(co_…|null) 按 §8.1；new_concept_candidates 无号
       返回 {"work_key", "technique_id", "source_id", "edition_part_artifact_id", "doc": 深拷贝,
             "pattern_ids": [concept 类升序], "candidate_keys": [升序], "hashes": {"<kind>:<key>": content_sha256(对象)}}
-    empty_snapshot_knowledge(technique_id) -> dict：{"technique_id", "id_allocation": {}, "retired_entity_ids": [], "editions": [], "concepts": [], "patterns": [], "assertions": [], "school_views": [], "conflict_groups": [], "relations": []}
+    empty_snapshot_knowledge(technique_id, id_range) -> dict：{"technique_id", "id_allocation": {}, "id_range": id_range, "allocated_pattern_ids": [], "retired_entity_ids": [], "editions": [], "concepts": [], "patterns": [], "assertions": [], "school_views": [], "conflict_groups": [], "relations": []}
     validate_snapshot_knowledge(knowledge) -> None（形状见 README §0.4）
       列表排序：editions 按 source_id；concepts/patterns/assertions/school_views/conflict_groups 按各自主键；relations 按 relation_key；retired_entity_ids 升序 → 否则 SchemaViolation(SCH_002)
       活对象号与 retired 交集非空 → DuplicateIdentifier(ID_002)
       id_allocation["pat_<technique>"] 存在时 < 活对象与 retired 中该命名空间最大号 → SchemaViolation(SCH_002)
+      id_range 必填且键形如 "pat_<technique>"，值为 [start, end] 两个非负整数且 start ≤ end → 否则 SchemaViolation(SCH_002)
+      allocated_pattern_ids 升序、互异、每个 ∈ 对应 id_range 区间；与活对象号或 retired 重叠 → DuplicateIdentifier(ID_002)/SchemaViolation(SCH_002)
+      id_allocation["pat_<technique>"]（存在时）必须 == max(活对象中该命名空间号 ∪ allocated_pattern_ids)；allocated_pattern_ids 非空时 id_allocation 必须存在（第 64 条）
       relations 端点（非 null）必须是活对象；conflict_groups 成员必须是 school_views 中的号 → MissingReference(REF_001)
       pattern 顶层不得出现 content_status 键；assertion.evidence 的 start_offset ≤ end_offset → SchemaViolation(SCH_002)
 tests:
@@ -82,8 +85,10 @@ tests:
     - test_snapshot_allocation_below_max_SCH_002
     - test_snapshot_dangling_relation_REF_001
     - test_snapshot_pattern_with_content_status_SCH_002
+    - test_snapshot_id_range_and_allocation_list_shape_SCH_002
+    - test_snapshot_allocated_id_outside_range_SCH_002
 verify:
-  - .venv/bin/python -m unittest discover -s pipeline/assembly/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 26
+  - .venv/bin/python -m unittest discover -s pipeline/assembly/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 28
   - grep -rE '^\s*(import|from) (requests|openai|anthropic|httpx)' pipeline/assembly | wc -l   # 0
   - TDD §3 回归
 commit:

@@ -16,7 +16,8 @@ contract: |
       genesis_snapshot            Snapshot 修订 knowledge 规范字节 == tests/data/genesis_expected_knowledge.json；再次运行同一输入字节相同；StepRun succeeded
       configuration_and_scope     ProcessingRun kind == release_run；edition_part_id == 传入 Part；configuration.stage == "m7"
       package_lineage             m7 StagePackage 过 stage_package.schema.json；lineage 输入集合 == frozen_inputs；output 恰 1 个 assembly_package
-      identity_and_allocation     新发 pat_ 号 > 候选既有号且互异；id_allocation == 最大号；retired_entity_ids 为空
+      identity_and_allocation     新发 pat_ 号（allocated_pattern_ids）∈ knowledge.id_range 区间且互异、不与保留 M4 号重复；
+                                  id_allocation == max(活对象号 ∪ 补发号)；id_range 与配置修订一致；retired_entity_ids 为空（第 64 条）
       provenance_and_fidelity     gate.evaluate_genesis 全部检查通过
       no_silent_fold_and_display  冲突组成员与 first_layer_display 与视图一致
       upstream_immutable          运行前后 m6 包与 reviewed_edition 的 status/sha256 不变
@@ -28,7 +29,7 @@ contract: |
       edition_collation           Alignment/VariantReading/Addition/Omission 未实现
       identity_delta              跨版本身份迁移未实现（§6.3、§16:732）
       rework_replacement          M6 返工替换未实现（D-14）
-      upstream_m6_real            真实 M6 Review Workbench 未实现；输入为合成 ReviewedEditionPackage
+      upstream_m6_real            「消费真实 M6 产出」的判定在 impl-06 实现并验收前恒 BLOCKED（第 66 条）；本切片输入为合成 ReviewedEditionPackage，不伪造
       run_all_20_5                §20.5 未接线（Q29 采纳 C）
     输出：每项一行 `PASS <名>` / `FAIL <名> <原因>` / `BLOCKED <名> <说明>`；末行 `SUMMARY pass=<n> fail=<n> blocked=<n>`
     退出码：3 仅限「.venv 不可用」或「jsonschema 不可导入」；准备或运行抛异常 → 打印 `FAIL m7_acceptance 宿主准备失败: <异常类名>: <消息>` 并退出 1；任一 FAIL → 1；无 FAIL 有 BLOCKED → 2；全部 PASS → 0
@@ -48,8 +49,10 @@ tests:
     - test_shell_returns_2（subprocess，末行 SUMMARY pass=10 fail=0 blocked=6）
     - test_shell_missing_env_exit_3（.venv 不可用模拟 → SUMMARY blocked=1，exit 3）
     - test_shell_never_trusts_copy_verify（副本目录假 verify.sh → 仍调用仓库内规范脚本，不受影响）
+    - test_upstream_m6_real_blocked_until_impl06_accepted（该项恒 BLOCKED，说明含「impl-06 实现并验收前」）
+    - test_synthetic_decisions_not_counted_expert_verified（合成决定的 synthetic_fixture: true 保留，不计 expert_verified，第 66 条）
 verify:
-  - .venv/bin/python -m unittest discover -s pipeline/assembly/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 82
+  - .venv/bin/python -m unittest discover -s pipeline/assembly/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 81
   - export LC_ALL=en_US.UTF-8; bash openspec/acceptance/m7-assembler.sh; echo exit=$?   # 10 PASS + 6 BLOCKED + SUMMARY pass=10 fail=0 blocked=6；exit=2
   - bash openspec/acceptance/run_all.sh | tail -1   # SUMMARY pass=2 fail=1 blocked=8（本切片不改 run_all.sh）
   - grep -c 'FIXTURE_RELEASE_DIR/verify.sh' openspec/acceptance/m7-assembler.sh   # 0

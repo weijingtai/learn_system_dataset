@@ -32,6 +32,9 @@ global_rules:
   - 只用标准库 + PyYAML + jsonschema；不新增依赖；不新增 ID 前缀；不调用模型 API；不做模糊文本相似度
   - 生产代码只读 Ledger 冻结修订；fixture_seed.py 与 acceptance.py 是唯二可读 tests/data 的非测试模块，且只经参数
   - 同阶段后续运行一律经 supersede_step_run 接替该阶段最近一个 succeeded 运行（经读接口查出，不写死号，第 58 条）
+  - 第 64 条：pattern 补发只从本 Run 配置修订登记的 id_range 确定性取号（跳过已占用值），保留 M4 已发 pat_，不新增前缀（P8）；号段与补发清单写入 Snapshot 修订（knowledge.id_range / knowledge.allocated_pattern_ids）
+  - 第 66 条：合成输入的人工决定须含 synthetic_fixture: true 且不计 expert_verified；「消费真实 M6 产出」验收项在 impl-06 实现并验收前判 BLOCKED
+  - 第 65 条：M4/M6 内容缺口（concepts[]/patterns[].concept_id/rules[]）登记为接口需求（README §0.7），不在 M7 内补造内容
   - 不改任何 m6 StagePackage / reviewed_edition 修订的状态；不读其他 ReleaseRun 的人工决定（§6.2:173、:175）
   - M7 不发 ent_ / rel_；不合成或升级 content_status（§8.2:440）；关系端点与 SchoolView 主体一律改写为正式号
   - 中文注释与 docstring；公开函数名、参数名、返回键、检查名、rule_id 与 ACT contract 逐字一致

@@ -21,11 +21,11 @@ bash openspec/acceptance/m7-assembler.sh >/dev/null 2>&1; echo $?            # G
 
 | ACT | Red（实现前） | Green（实现后） |
 |---|---|---|
-| G0-01 | `$TA` → ImportError（包不存在） | `$TA` OK，用例数 ≥ 26 |
-| G0-02 | 新增用例全 ERROR | `$TA` OK ≥ 42；两次运行字节相同 |
-| G0-03 | 新增用例全 ERROR | `$TA` OK ≥ 54；篡改矩阵 ≥ 10 例命中指定检查 |
-| G0-04 | 新增用例全 ERROR | `$TA` OK ≥ 72；`$TL` 与基线相同；Ledger 无写入的拒绝路径成立 |
-| G0-05 | `m7-assembler.sh` exit 127；新增用例全 ERROR | `$TA` OK ≥ 82；`m7-assembler.sh` → `SUMMARY pass=10 fail=0 blocked=6`、exit 2 |
+| G0-01 | `$TA` → ImportError（包不存在） | `$TA` OK，用例数 ≥ 28 |
+| G0-02 | 新增用例全 ERROR | `$TA` OK ≥ 46；两次运行字节相同；补发只从 `id_range` 取号 |
+| G0-03 | 新增用例全 ERROR | `$TA` OK ≥ 59；篡改矩阵 ≥ 11 例命中指定检查 |
+| G0-04 | 新增用例全 ERROR | `$TA` OK ≥ 71；`$TL` 与基线相同；Ledger 无写入的拒绝路径成立；合成决定的 `synthetic_fixture: true` 保留 |
+| G0-05 | `m7-assembler.sh` exit 127；新增用例全 ERROR | `$TA` OK ≥ 81；`m7-assembler.sh` → `SUMMARY pass=10 fail=0 blocked=6`、exit 2 |
 
 ### G0.2 主 Agent 验收附加判据（执行者不需跑，但不得让其失败）
 

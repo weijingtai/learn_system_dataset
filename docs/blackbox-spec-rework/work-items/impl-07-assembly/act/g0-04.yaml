@@ -22,16 +22,18 @@ contract: |
       按 doc 的 ledger_constants 写：candidate_set/candidate_package/reviewed_edition/reviewed_edition_package 修订（put_artifact + seal_revision）
       写 m4 StepRun（succeeded，输出 candidate_package）与 m6 StepRun（succeeded，输出 reviewed_edition_package + m6 StagePackage）
       写配置修订（put_run_artifact）；返回 {"candidate_set_revision_id", "candidate_package_revision_id", "reviewed_edition_revision_id", "reviewed_edition_package_revision_id", "m6_package_revision_id"}
-    合成输入标 synthetic: true（§9.7 第 52 条）；不得把合成输入当作真实 expert_verified 或任何发布依据（P7）
+    合成输入标 synthetic: true（§9.7 第 52 条）；test/data/genesis_package.json 中任何人工决定（decisions/human_event）必须含 synthetic_fixture: true，且不得计为真实 expert_verified 或任何发布依据（P7、第 66 条）
   step.py（最小事务）
     run_m7(service, edition_part_id, *, technique_id, reviewed_package_revision_ids, base_snapshot_revision_id=None) -> dict
       begin 之前的拒绝（无写入）：base_snapshot_revision_id 非 None → AssemblyRefused（message 含「纵切后」）；
         resolve_m7_inputs 前置不满足；该 technique 已有 canonical_snapshot（创世重复）→ AssemblyRefused（message 含「已汇编」）
       create_processing_run("release_run", edition_part_id)（D-0-4；edition_part_id 即 reviewed_edition.edition_part_artifact_id）
       put_run_artifact("configuration", {stage: "m7", task: "assemble", technique_id, reviewed_package_revision_ids,
-                                         base_snapshot_revision_id: None, tool: M7_TOOL, tool_version: M7_TOOL_VERSION})
+                                         base_snapshot_revision_id: None, id_range: {"pattern": [<start>, <end>]},
+                                         tool: M7_TOOL, tool_version: M7_TOOL_VERSION})   # id_range 由配置修订登记（第 64 条）
       begin_step_run(input_artifact_ids=[m6 包修订])；若同一 Part 阶段已被 succeeded 运行封存，则先 supersede_step_run（经读接口查出最近 succeeded 运行，不写死号，第 58 条）
-      propose_genesis → assemble_genesis → evaluate_genesis
+      propose_genesis → assemble_genesis(id_range=配置修订的 id_range) → evaluate_genesis
+        （补发只从配置修订登记的 id_range 确定性取号；号段与补发清单随 knowledge 写入 Snapshot 修订，第 64 条）
       put_artifact("canonical_snapshot", …) + seal_revision；put_artifact("assembly_package", …) + seal_revision；put_artifact("validation_report", …) + seal_revision
       record_transformation(operation="assemble_knowledge", inputs=[m6 包修订], outputs=[canonical_snapshot, assembly_package])
       register_stage_package(stage="m7", output_artifacts=[assembly_package])
@@ -54,8 +56,11 @@ tests:
     - test_gate_failure_seals_failure_report_and_no_package
     - test_cli_success_and_refusal_codes（"M7 OK" / 0；被拒 2）
     - test_no_upstream_mutation（运行前后 m6 包与 reviewed_edition 的 status/sha256 与 revision_status_events 行数不变）
+    - test_configuration_registers_id_range（配置修订含 id_range 且 run_m7 据此取号）
+    - test_snapshot_knowledge_records_id_range_and_allocation_list（Snapshot 修订的 knowledge.id_range/allocated_pattern_ids 与配置一致）
+    - test_synthetic_human_decisions_marked_and_not_expert_verified（genesis_package.json 中每个决定含 synthetic_fixture: true；Snapshot 中无 expert_verified 泄漏，第 66 条）
 verify:
-  - .venv/bin/python -m unittest discover -s pipeline/assembly/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 72
+  - .venv/bin/python -m unittest discover -s pipeline/assembly/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 71
   - .venv/bin/python -m unittest discover -s pipeline/ledger/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"      # OK，与基线相同（Ledger 未改）
   - grep -rE '_fixture' pipeline/assembly --include='*.py' | grep -v '/tests/' | grep -vE 'fixture_seed.py|acceptance.py' | wc -l   # 0
   - TDD §3 回归

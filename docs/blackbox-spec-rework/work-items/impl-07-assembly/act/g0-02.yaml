@@ -24,9 +24,13 @@ contract: |
             "resolved_subjects": {candidate_key 或 candidate 主体引用: pattern_id|null}}
       proposal 键序逐字：proposal_key, kind, rule_id, resolution, subject, targets, options, auto_choice, decision_type, basis_sha256, depends_on
         basis_sha256 = content_sha256({"target": null, "candidate": {name, aliases 升序, concept_id, recognition_rule_status}})
-    assemble_genesis(candidate_set, reviewed_edition, proposals, *, id_factory=None) -> dict
-      发号：R03e 候选按 (source_id, candidate_key) 升序分配 pat_<technique>_<6位>，起点 = max(候选 set 中既有合法 pat_ 号, 0) + 1；
-            id_factory 可注入（默认取 pipeline.ledger.ids）；写回 id_allocation（仅在新发号时出现该键）
+    assemble_genesis(candidate_set, reviewed_edition, proposals, *, id_range, id_factory=None) -> dict
+      id_range = {"pattern": [<start>, <end>]}，由调用方从本 Run 配置修订取得（第 64 条）
+      发号（第 64 条）：R03e 候选按 (source_id, candidate_key) 升序，从 id_range["pattern"][0] 起在 [start, end] 内确定性取号，
+            跳过已被保留 M4 号（candidate_set 中合法 pat_）占用的值，依次分配 pat_<technique>_<6位>；
+            区间不足 → AssemblyRefused(SCH_002，message 含「号段不足」)；不新增前缀（P8）；id_factory 可注入（默认取 pipeline.ledger.ids）
+      knowledge 写回：id_allocation {"pat_<technique>": max(活对象中该命名空间号 ∪ 补发号)}（仅新发号时出现）、
+            id_range 原样、allocated_pattern_ids = 本次补发号升序（号段与补发清单写入 Snapshot 修订，第 64 条）
       实体装配：
         editions 1 条 {source_id, work_key, reviewed_edition_package_revision_id, reviewed_edition_revision_id, stage_package_id, edition_part_artifact_ids, edition_complete}
         concepts 由已绑定 concept_mentions 按 concept_ref 聚合：name = 按 surface 升序首个，其余 surface 入 aliases（NFC 去重升序），provenance[{source_id, content_sha256, content_status}]
@@ -57,8 +61,13 @@ tests:
     - test_genesis_relations_empty_and_retired_empty
     - test_genesis_id_allocation_monotonic
     - test_genesis_result_self_validates
+    - test_genesis_allocates_from_config_id_range（补发号全部 ∈ id_range 且从 start 起连续取未被占用值）
+    - test_genesis_skips_ids_already_used_by_m4
+    - test_genesis_preserves_m4_id_outside_range
+    - test_genesis_id_range_exhausted_refused（区间不足 → 「号段不足」）
+    - test_genesis_knowledge_carries_id_range_and_allocation_list
 verify:
-  - .venv/bin/python -m unittest discover -s pipeline/assembly/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 42
+  - .venv/bin/python -m unittest discover -s pipeline/assembly/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 46
   - grep -nE 'difflib|SequenceMatcher|random|time\(\)' pipeline/assembly/genesis.py | wc -l   # 0
   - TDD §3 回归
 commit:

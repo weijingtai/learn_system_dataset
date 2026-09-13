@@ -50,7 +50,7 @@ M7 只经 Ledger 冻结修订读取（`§17:826-836`），解析上游时**只�
 | M4（在 M6 包冻结血缘内） | `reviewed_edition.candidate_package_revision_id` → `candidate_package.candidate_set_revision_id` | `candidate_package` / `candidate_set` | `technique_id`、`source_id`、`edition_part_artifact_id`、`assertions[]`、`patterns[]`、`school_views[]`、`concept_mentions[]`、`new_concept_candidates[]`、`counts` | m4 StepRun `succeeded`（P5）；必须出现在 m6 包的 `lineage.upstream_artifacts` |
 | 调用方 | `run_m7(...)` 参数 | — | `technique_id`、`reviewed_package_revision_ids`、`base_snapshot_revision_id=None` | 显式传入，不查「最新」；本切片 `base_snapshot_revision_id` 必须为 `None`（非 None → `AssemblyRefused`，消息含「纵切后」） |
 
-**为什么读 M4 `candidate_set`（D-0-2，主 Agent 决定）**：`impl-06` 定稿的 `reviewed_edition` 只承载审核结论（approved/rejected + `content_status`）、证据链与 SchoolView 摘要，**不含** Concept 名称、Pattern 名称/规则、Assertion 命题文本；这些内容实体在 M4 `candidate_set`。M7 经 m6 包的冻结血缘解析 `candidate_package` 属「消费 ReviewedEditionPackage 的冻结输入」，不改 impl-06 契约（P9 精神），也不让 M6 承担 M7 职责（第 61 条边界）。替代方案（要求 impl-06 在 `reviewed_edition` 内嵌内容）须改已定稿的上游契约，见 §0.6 R3。
+**为什么读 M4 `candidate_set`（D-0-2，主 Agent 决定）**：`impl-06` 定稿的 `reviewed_edition` 只承载审核结论（approved/rejected + `content_status`）、证据链与 SchoolView 摘要，**不含** Concept 名称、Pattern 名称/规则、Assertion 命题文本；这些内容实体在 M4 `candidate_set`。M7 经 m6 包的冻结血缘解析 `candidate_package` 属「消费 ReviewedEditionPackage 的冻结输入」，不改 impl-06 契约（P9 精神），也不让 M6 承担 M7 职责（第 61 条边界）。替代方案（要求 impl-06 在 `reviewed_edition` 内嵌内容）须改已定稿的上游契约，见 §0.7 接口需求（第 65 条）。
 
 ### 0.4 下游契约：M8 知识链前三段与 GraphProjectionPack 所需 Snapshot 字段
 
@@ -60,7 +60,9 @@ M8 冻结输入第 1 项为 CanonicalKnowledgeSnapshot Revision（`§16:661-662`
 { schema_version: "0.1.0-draft",
   knowledge: {
     technique_id,
-    id_allocation {"pat_<technique>": <int>} | {},      # 仅本切片新发号时出现
+    id_allocation {"pat_<technique>": <int>} | {},      # 新发号时的历史最高号
+    id_range {"pat_<technique>": [<start>, <end>]},     # 第 64 条：本 Run 配置修订登记的号段
+    allocated_pattern_ids [],                           # 第 64 条：本次补发清单（升序）
     retired_entity_ids [],                              # 创世恒空
     editions [{source_id, work_key, reviewed_edition_package_revision_id,
                reviewed_edition_revision_id, stage_package_id,
@@ -83,7 +85,7 @@ M8 冻结输入第 1 项为 CanonicalKnowledgeSnapshot Revision（`§16:661-662`
 
 | M8 消费项 | Snapshot 字段 | 说明 |
 |---|---|---|
-| `KnowledgeEntry.subject_entity_id` | `patterns[].pattern_id` / `concepts[].concept_id` | 本切片 Pattern 可无 `concept_id`（见 §0.6 R3） |
+| `KnowledgeEntry.subject_entity_id` | `patterns[].pattern_id` / `concepts[].concept_id` | 本切片 Pattern 可无 `concept_id`（见 §0.7 接口需求） |
 | `KnowledgeEntry.title` | `patterns[].name` / `concepts[].name` | |
 | `KnowledgeEntry.assertion_ids` / `school_view_ids` | `patterns[].assertion_ids` / `patterns[].school_view_ids` | |
 | `Assertion` | `assertions[]{assertion_id, proposition, subject_entity_id, source_span_ids, content_status}` | `proposition` 为本切片相对草稿 §5.2 新增的字段（草稿只存 `text_sha256`，不足以供给 M8 的 KnowledgeEntry/Assertion） |
@@ -98,7 +100,7 @@ M8 冻结输入第 1 项为 CanonicalKnowledgeSnapshot Revision（`§16:661-662`
 
 ### 0.5 主 Agent 决定（执行者不重议）
 
-裁决来源：`G7-RULINGS.md` §1 P1–P9、§5 impl-07、§9.12 第 61 条。**未单列的细节默认采纳原草稿推荐**；与已落地 impl-05/impl-06 契约冲突处以已落地契约为准。
+裁决来源：`G7-RULINGS.md` §1 P1–P9、§5 impl-07、§9.12 第 61 条、**§9.13 第 63–66 条（R1–R4 裁定）**。**未单列的细节默认采纳原草稿推荐**；与已落地 impl-05/impl-06 契约冲突处以已落地契约为准。
 
 - **D-0-1｜Q17 首切片里 Snapshot 从哪来 → 第 61 条定案**。Snapshot 归 M7，创世汇编薄切片提前先行；M8 不自带薄适配器、不直接消费 ReviewedEditionPackage。M6 删除 ACT 10；依赖 Snapshot 的验收项在 M7 落地前恒 BLOCKED。
 - **D-0-2｜M7 经 M6 冻结血缘读 M4 `candidate_set` 取内容实体**（见 §0.3）。零 impl-06 改动。
@@ -108,49 +110,30 @@ M8 冻结输入第 1 项为 CanonicalKnowledgeSnapshot Revision（`§16:661-662`
 - **D-0-6｜Q22 自动/人工边界 → 本切片只走自动分支**。空基底 → 只有 admit_new 与保留号（R02/R03e/R04/R05 + 冲突组原样保留），无人工提案、无 `awaiting_human`；完整规则表（R03b–R03g、R06 `unify`、R07–R10）`DEFERRED`。
 - **D-0-7｜Q32 Checkpoint 粒度 → 非人工 task 落盘**。本切片 task 为 `propose_r1`、`seal_snapshot` 两个 Checkpoint；同阶段后续运行经 `supersede_step_run` 续写（第 58 条）。
 - **D-0-8｜Q31 基底状态与并发 → 创世无基底**，不调用 `supersede_revision`；同一 Part 的第二个同阶段运行经 `supersede_step_run`（第 58 条）。
-- **D-0-9｜Q26 fixture → 本切片不自建共享 fixture**。M6 未实现且共享 fixture 属 impl-00 独占写权（P4），故创世验收宿主用包内非生产 `fixture_seed.py` + `tests/data/` 的合成 `reviewed_edition`（标 `synthetic: true`，§9.7 第 52 条口径），只写临时 Ledger；草稿 `mini_release01`（ACT 00–01）随完整波次 `DEFERRED`，见 §0.6 R4。
+- **D-0-9｜Q26 fixture → 本切片不自建共享 fixture**。M6 未实现且共享 fixture 属 impl-00 独占写权（P4），故创世验收宿主用包内非生产 `fixture_seed.py` + `tests/data/` 的合成 `reviewed_edition`（标 `synthetic: true`，§9.7 第 52 条口径），只写临时 Ledger；草稿 `mini_release01`（ACT 00–01）随完整波次 `DEFERRED`，见 §0.5 D-0-15。
 - **D-0-10｜Q25 人工决定 decision_type → 本切片无人工决定**，不产出 `human_event`；完整波的 `decision_type` 映射随人工回路 `DEFERRED`。
 - **D-0-11｜写范围零交集**。G0 只写 `pipeline/assembly/**` 与 `openspec/acceptance/m7-assembler.sh`；与 `pipeline/review/`、`pipeline/dataset_compiler/`、`pipeline/orchestrator/` 零交集；不写 `run_all.sh`、`pipeline/ledger/**`、`openspec/schemas/**`、fixture。
+- **D-0-12｜R1 Snapshot 粒度与身份 → 第 63 条（采纳 R1 推荐 A）**。每个 technique 一个 CanonicalKnowledgeSnapshot Artifact（`§6.2:165`、`§16:699`），后续 Release 以新修订续写；创世无基底 → 新建 `art_` + 首个 `rev_`（无 `prev_revision_id`）。
+- **D-0-13｜R2 Pattern 身份发号 → 第 64 条（采纳 R2 推荐 B，附确定性取号约束）**。保留 M4 已发 `pat_`；仅对 `pattern_id: null` 的候选补发；补发**只从配置修订登记的 `id_range` 确定性取号**（在号段内跳过已被保留号占用的值），不新增前缀（P8）；号段与补发清单写入 Snapshot 修订的 `knowledge.id_range` 与 `knowledge.allocated_pattern_ids`（并同步 `assembly_package`）。
+- **D-0-14｜R3 M4/M6 内容缺口 → 第 65 条（采纳 R3 推荐 A）**。创世薄切片缩水，知识链按 `pat_` 聚合；缺口登记为对 M4/M6 的接口需求（§0.7），不在 M7 内补造内容。
+- **D-0-15｜R4 创世验收宿主 → 第 66 条（采纳 R4 推荐 A，附条件）**。用包内合成宿主（`pipeline/assembly/tests/data/`），不改共享 fixture（P4）。附条件：合成输入中的人工决定须标 `synthetic_fixture: true`（同第 52 条）且不计 `expert_verified`（补具名用例断言）；「消费真实 M6 产出」验收项在 impl-06 实现并验收前判 BLOCKED。
 
-### 0.6 待主 Agent 裁决（创世薄切片）
+### 0.6 原待裁决 R1–R4 → 已由第 63–66 条裁定
 
-以下四条无法由 P1–P9 与第 58/61 条唯一推出，保留待裁；每条给选项、推荐与证据（文件:行号）。
+> 原 §0.6 的 R1–R4（Snapshot 粒度与身份、Pattern 身份发号、M4/M6 内容缺口、创世验收宿主）已由 `G7-RULINGS.md` §9.13 第 63–66 条裁定，要点逐字移入 §0.5 D-0-12～D-0-15；此处不再保留待裁内容。缺口对应的接口需求见 §0.7。
 
-#### R1｜Snapshot 的粒度与身份（原 Q19）
+### 0.7 接口需求（对 M4/M6；第 65 条）
 
-- 背景与证据：`§6.2:165` 只说「新 CanonicalKnowledgeSnapshot Revision」，`§8.1:257` 要求 `entity_id` 跨修订稳定；`§16:699` 建议「一个 Technique 一个 Release」；`§8.1:317` `pat_` 按技法命名空间。
-- 选项：
-  - A（推荐）：每个 technique 一个 Snapshot Artifact（`art_` 稳定），每次汇编写新 `rev_`，`prev_revision_id` 指向基底修订；创世无基底 → 新建 `art_` + 首个 `rev_`。
-  - B：每个 Work 一个 Snapshot Artifact。
-  - C：每次 Release 新建一个 Snapshot Artifact（每次换 `art_`）。
-- 推荐：A（`§6.2:165` 用词为「同一对象的新修订」；与 `§16:699` 一致；草稿 D-03 推荐 A）。
+以下为创世薄切片暴露、需由 M4/M6 负责方在完整波次补齐的接口需求。**本切片不在 M7 内补造内容**；登记入 `INTERFACES.md` §2.4/§2.6 卡片的「接口需求」（由 impl-00 后续登记 ACT 或 M4/M6 负责方执行，本包不写该文件）：
 
-#### R2｜Pattern 身份发号（原 Q20）
+1. **`candidate_set.concepts[]`**（M4）：当前只有 `concept_mentions[]`（已绑定 `concept_ref`）与无号 `new_concept_candidates[]`，无正式 Concept 对象（名称/别名/规范面）。需求：M4 产出 `concepts[{concept_id, name, aliases[], content_status}]`，使 Snapshot `concepts[].name/aliases` 有权威来源；在此之前 M7 由已绑定 `concept_mentions` 按 `concept_ref` 聚合（`name` 取 surface 升序首个，其余入 `aliases`）。
+2. **`candidate_set.patterns[].concept_id`**（M4）：当前无该绑定。需求：M4 给出候选 Pattern 的 `concept_id`（可为 null）。在此之前 Snapshot `patterns[].concept_id = null`，M8 `KnowledgeEntry.subject_entity_id` 按 `pat_` 聚合。
+3. **`candidate_set.patterns[].rules[]`**（M4）：当前 `recognition_rule_status = not_captured`，无 `{rule_key, ast_sha256}`。需求：M4 补规则 AST 与哈希。在此之前 Snapshot `patterns[].rules = []` 且 `recognition_rule_status = "not_captured"`（`§20.6:942`：`not_captured` 不得误判为不存在）。
+4. **`reviewed_edition` 内容内嵌与否**（M6，可选）：本切片经 m6 冻结血缘读 M4 `candidate_set`（D-0-2），M6 契约保持不变。若后续要求 `reviewed_edition` 自包含内容实体，须经另立契约变更 ACT，并同步 M7 上游解析（§0.3）。
 
-- 背景与证据：登记册 `openspec/id-prefix-registry.md:60` 写「M4 产出候选、M7 聚合后正式」，`§8.1:317` 同义；但 impl-05 已验收的 D-09（`impl-05-knowledge/README.md:102`）令 **M4 在 assemble 配置 `id_range` 内发 `pat_`（1–99）** 并写入 `candidate_set.patterns[].pattern_id`，与草稿 D-04「M4 只带 `candidate_key`、M7 发号」直接冲突。本切片空基底、单 Edition，无跨 Edition 换号场景，冲突尚未外显。
-- 选项：
-  - A：M7 为唯一发号者；M4 只带 `candidate_key`。需回改 impl-05 D-09 与 `candidate_set` 契约（动已验收包）。
-  - B（推荐）：薄切片**保留 M4 已发的 `pat_`**；仅对 `pattern_id` 为 null 的候选按 `(source_id, candidate_key)` 升序发号（> 该技法历史最高值）。跨 Edition 的正式聚合与换号策略留待完整波次，届时按登记册 `:60` 由 M7 统一发号。
-  - C：等 Contract Registry（L2'）落地后再定（阻塞本切片）。
-- 推荐：B（零改已验收包；空基底下 A/B 收敛于「保留 + 补发」；`§8.1:317` 的「M7 聚合后正式」以「M7 在 Snapshot 中确认并登记 `id_allocation`」实现）。
+## 0.8 待主 Agent 裁决
 
-#### R3｜M4/M6 内容供给缺口（Concept 名称/别名、`patterns[].concept_id`、`rules[]`）
-
-- 背景与证据：impl-05 已验收的 `candidate_set`（`INTERFACES.md:240-260` §3.2）**没有** `concepts[]` 段（只有 `concept_mentions[]` 与无号的 `new_concept_candidates[]`）；`patterns[]` **没有** `concept_id` 与 `rules[]`（`recognition_rule_status: not_captured`）。而草稿 §5.2 的 Snapshot 期望 `concepts[].name/aliases`、`patterns[].concept_id`、`rules[{rule_key, ast_sha256}]`。
-- 选项：
-  - A（推荐）：薄切片接受缩水——`concepts` 由已绑定的 `concept_mentions` 聚合（`concept_id = concept_ref`，`name` 取按 surface 升序首个，其余入 `aliases`），`patterns[].concept_id = null`，`rules = []` 且 `recognition_rule_status = "not_captured"`；无号 `new_concept_candidates` 计入 `assembly_package.report.excluded_unbound`，不进 Snapshot。缺口作为对 M4 的接口需求登记，随完整波次补齐。
-  - B：要求 M4/M6 先补 `concepts[]`、`patterns[].concept_id`、规则 AST 再实现 M7（阻塞本切片，需回改已验收 impl-05）。
-  - C：M7 自行按 surface 文本相似度合成 Concept 绑定（引入非确定匹配，违反 P1 与 `§15:653` 保留同名异义）。
-- 推荐：A（薄切片不阻塞 M8 知识链——`KnowledgeEntry.subject_entity_id` 允许为 `pat_`；`§20.6:942` 明确 `not_captured` 不得误判为不存在，本切片如实标 `not_captured`）。
-
-#### R4｜创世验收宿主是否另立 impl-00 独占 fixture ACT
-
-- 背景与证据：`pipeline/corpus/_fixture/` 属共享面独占写权（P4，`G7-RULINGS §1 P4`）；`§20:935` 要求统一验收宿主为 `mini_ed01`；但 M6 未实现（`impl-06-review/README.md` 状态 `READY_FOR_REVIEW`），无从产出真实 ReviewedEditionPackage。
-- 选项：
-  - A（推荐）：本切片用包内非生产 `fixture_seed.py` + `tests/data/` 合成输入（D-0-9），`m7-assembler.sh` 自建临时 Ledger；不自建共享 fixture。等 M6 落地后（下一波）以真实 M6 输出替换合成宿主，并按需由 impl-00 独占 ACT 建 `mini_release01`。
-  - B：现在就由 impl-00 独占 ACT 建 `pipeline/corpus/_fixture/mini_release01/`，本切片依赖它（增跨包前置与串行）。
-  - C：本切片不做验收脚本，只以单测验收（放弃 §19.0:911 判据）。
-- 推荐：A（零跨包前置；合成输入显式标注，不伪造人工决定，P7）。
+（无。R1–R4 已由 `G7-RULINGS.md` §9.13 第 63–66 条裁定，见 §0.5 D-0-12～D-0-15。）
 
 ## 1. 目标（完整增量汇编，DEFERRED）
 
@@ -273,7 +256,7 @@ bash openspec/acceptance/run_all.sh | tail -1
 
 ## 4. 待主 Agent 裁决（完整增量汇编的原始条目，DEFERRED）
 
-> **创世薄切片的决定见 §0.5，待裁决见 §0.6。** 以下 D-01～D-18 是完整增量汇编的原始草稿条目，保留备查；其多数已被 §0.5 的决定或 §0.6 的待裁决覆盖（Q17/Q19/Q20/Q26/Q27/Q29/Q22/Q25/Q31/Q32 见 §0.5 与 §0.6），未覆盖部分随完整波次再议。推荐不等于定案。
+> **创世薄切片的决定见 §0.5（含 R1–R4 的第 63–66 条裁定），接口需求见 §0.7；§0.8 无待裁决项。** 以下 D-01～D-18 是完整增量汇编的原始草稿条目，保留备查；其多数已被 §0.5 的决定覆盖（Q17/Q19/Q20/Q26/Q27/Q29/Q22/Q25/Q31/Q32 见 §0.5 D-0-1～D-0-15），未覆盖部分随完整波次再议。推荐不等于定案。
 
 ### D-01 首纵切里 M8 的 Snapshot 从哪来
 
