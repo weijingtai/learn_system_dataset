@@ -1,0 +1,81 @@
+# impl-05 · G1 实现 Prompt（ACT 00–08：M4 Knowledge Extraction 最薄接入——无模型候选提交、装配、类别裁决与审核事件契约）
+
+你是执行 Agent，运行在 tmux，无人实时看屏幕。所有回复、注释、docstring、提交信息使用中文。
+
+工作目录 `/Users/jingtaiwei/Git/Public/learn_system`，分支 `codex/docs/knowledge-compilation`。不切分支、不 stash、不 reset、不 clean、不 rebase、不 push、不 merge、不创建 worktree、不删除文件。
+
+先完整阅读（只读）：本目录 `README.md`（§1 目标、§4 主 Agent 决定、§5 已固化默认、§6 契约、§9 用户待办、§10 待裁决）、`ACT.yaml`、`BDD.md`、`TDD.md`、`act/00.yaml`–`act/08.yaml`、`docs/blackbox-spec-rework/G7-RULINGS.md`（§1 P1–P9、§3、§9 第 2/10/13/17/21 条、§9.2 第 27 条、§9.3 第 43 条）、`impl-02-corpus/act/03.yaml`（Ledger 事务模板）、`impl-04-dataset/ACCEPTANCE.md`（先例，四查口径）、`pipeline/corpus_compiler/step.py`（`run_m3` 事务与异常分层模板）、`pipeline/validation/inputs.py` 与 `pipeline/validation/step.py`（M5 上游解析与 fail-closed 先例）、`pipeline/ledger/service.py`（公开方法与 `put_artifact`/`put_run_artifact` 返回二元组）、`pipeline/ledger/ids.py`、`pipeline/ledger/states.py`、`docs/blackbox-spec-rework/work-items/impl-00-interfaces/INTERFACES.md`（§2.4/§3.2/§4）、`pipeline/corpus/_fixture/mini_ed01/`（`spans.yaml`、`manifest.yaml`、`pages/*.json`、`verify.sh`）。
+
+## 只允许写
+
+- `pipeline/knowledge_extraction/**`（新建，含 `adapters/` 与 `tests/`）
+- `openspec/acceptance/m4-stage-gate.sh`（ACT 07 新建）
+
+其余一律禁止写入：规格正文、`openspec/schemas/**`、`openspec/id-prefix-registry.md`、fixture 目录、`openspec/acceptance/run_all.sh`、`m3-coverage.sh`、`pipeline/ledger/**`、`pipeline/corpus_compiler/**`、`pipeline/validation/**`、`pipeline/dataset_compiler/**`、`pipeline/orchestrator/**`、`pipeline/contract_registry/**`、`pipeline/TASKS/`、`task-templates/`、`runner/`、`tools/`、`validators/`、`units/`、`registry/`、`schemas/`、`pattern_knowledge_workbench/`、`HANDOFF.md`、`PLAN.md`、`SUBAGENT_TODO.md`、`G7-PLAN.md`、`G7-RULINGS.md`、任何 `ACCEPTANCE.md`、其他 work-items。不得创建 `pipeline/tools/import_legacy_candidates.py`。不得改代码草案的函数名/返回键/检查名/artifact_type/task_id 去迁就实现。
+
+## 台账与人工决定纪律（硬性）
+
+- 你只写 `pipeline/knowledge_extraction/**` 与 `openspec/acceptance/m4-stage-gate.sh`；台账与验收记录由主 Agent 写。
+- 不得在任何文件或提交信息里写「ACCEPTED」「验收通过」「主 Agent 审查」之类的结论。
+- **P7：不得伪造人工签发**。`expert_verified` 只能由用户撰写的决定表产生；本包不建签发 StepRun，测试只用 fixture 已登记的人工事件（金标类别裁决）或明确标注的测试替身（合成 `review_decision` 仅用于 ACT 06 纯函数单测）。依赖真实签发的判定一律 BLOCKED，不得写成 PASS。
+
+## 测试纪律（硬性）
+
+- 每个 ACT 先写测试（用例名与 ACT `tests` 逐字）并运行取得 **Red 原文**，再实现；Red 原文与 Green 的 `Ran/OK` 行写进最终报告。
+- 不得修改测试断言去迁就实现；不得删改已有断言。
+- 只用标准库 + PyYAML + jsonschema；不新增依赖、不新增 ID 前缀、不调用模型 API、不 import `pipeline/validators|tools|runner`。
+- 测试只用 tempfile 目录；`candidate_set` 与提交件字节用 `canonical_json` 规范化；读 fixture `spans.yaml` 仅作只读输入。
+- 回归取行统一 `2>&1 | grep -E "^(Ran|OK|FAILED)"`（G7-RULINGS §9.2 第 27 条）。
+
+## 开工前提（任一不符，停手上报）
+
+```bash
+cd /Users/jingtaiwei/Git/Public/learn_system
+export LC_ALL=en_US.UTF-8
+git status --short pipeline/knowledge_extraction openspec/acceptance/m4-stage-gate.sh   # 空
+bash docs/blackbox-spec-rework/verify-T.sh | tail -1                                   # FAIL 合计: 0
+bash docs/blackbox-spec-rework/work-items/g3-r3/mutations.sh all | tail -1             # 与基线相同
+bash openspec/schemas/verify.sh >/dev/null; echo $?                                    # 0
+python3 docs/blackbox-spec-rework/work-items/impl-00-interfaces/check_interfaces.py; echo exit=$?   # 末行 I00-IF SUMMARY pass=18 fail=0；exit=0
+.venv/bin/python -m unittest discover -s pipeline/ledger/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"           # OK
+.venv/bin/python -m unittest discover -s pipeline/corpus_compiler/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"  # OK
+bash openspec/acceptance/m4-stage-gate.sh >/dev/null 2>&1; echo $?                     # K1–K3: 127（尚未创建）
+test ! -e pipeline/tools/import_legacy_candidates.py; echo $?                          # 0
+```
+
+另需确认：
+
+- **P2/N1**：本包新增 artifact_type（`candidate_submission`、`candidate_lane_set`、`dispute_queue`、`candidate_set`、`candidate_package`）已由该波登记 ACT 写入 `impl-00-interfaces/INTERFACES.md` §4 临时闭集；`check_interfaces.py` 末行 `I00-IF SUMMARY pass=18 fail=0` 且 exit 0。若 §4 仍只有旧命名（`candidate_batch`/`model_run`/`candidate_diff_report`）→ 停手上报（README §10 N1）。
+- **K4 前置（D-02/P4）**：`pipeline/corpus/_fixture/mini_ed01/m4/` 已由主 Agent 的独占 ACT 落地附录 A 四个文件、`expected/m4.stage_package.yaml` 存在，且 fixture `verify.sh` V5/V6 已扩展到 m4。缺失即停手上报，**不得自建金标、不得改 fixture、不得把 BLOCKED 写成 PASS**。
+- **K2 前置**：`impl-02`（M3 结构层）状态 `ACCEPTED`。
+
+## 逐步
+
+按 `ACT.yaml` 的 K1 → K2 → K3 → K4 → K5 顺序串行；**每组完成后停下待主 Agent 验收**，不得跨组连做。
+
+1. **K1（ACT 00 → 01 → 02）**：纯函数。ACT 00 建包骨架、`validate_submission`、任务管线 Adapter；ACT 01 `assemble.py`（证据定位、逐条准入、双路差异、裁决应用、闭集 ID）；ACT 02 独立候选 Gate（十二项，不 import assemble/submission）。每个 ACT 一个提交，`commit.add` / `commit.message` 逐字照 act 文件。
+2. **K1 全部 Green 且主 Agent 验收后进 K2（ACT 03 → 04）**：ACT 03 Registry Adapter + `resolve_m3_outputs`/`resolve_m4_inputs`（经 `result_json["output_artifact_ids"]` 定位，不依赖 `list_transformations` 返回输出）+ 每路 submit StepRun；ACT 04 `run_m4` + CLI。前置 impl-02 `ACCEPTED`。
+3. **K2 全部 Green 且验收后进 K3（ACT 05 → 06）**：ACT 05 类别裁决 `record_category_ruling`（每条即时 Checkpoint）与 `resume_m4`；ACT 06 审核决定纯函数（只测纯函数，测试替身，P7）。
+4. **K3 全部 Green 且验收后进 K4（ACT 07）**：`acceptance.py` 十六项（13 PASS + 3 BLOCKED，exit 2）与 `openspec/acceptance/m4-stage-gate.sh`；前置 fixture m4 金标独占 ACT 已落地。
+5. **K5（ACT 08，可选）**：仅当主 Agent 明确要求时做 legacy 准入纯函数；不接 run_all，不建 `import_legacy_candidates.py`。
+6. 每个 ACT 后运行该 ACT `verify` 全部与 `TDD.md` §3 回归；`git add` 只加该 ACT `commit.add` 列出的路径，一个提交。
+7. 每个 ACT 完成后在 `~/tmux-agents/runs/w4g.report.md` 追加一行「- [x] ACT <id>」，并附该 ACT 的 Red/Green 原文；每组结束停下等待主 Agent 验收。
+
+## 停手规则
+
+遇下列任一，停止、不自行决定，把原始输出与 `git status --short` 交主 Agent 裁定：
+
+- 基线任一门禁不符；`check_interfaces.py` 末行非 `I00-IF SUMMARY pass=18 fail=0` 或 exit ≠ 0，或 §4 未登记本包 M4 类型。
+- K4 前 fixture `m4/` 金标或 `verify.sh` V5/V6 扩展未落地。
+- impl-02 非 `ACCEPTED`（K2 起）。
+- 上游 `run_m3` 实际输出与 README §6.1 不符（字段名、artifact_type、`manifest.content_sha256`）。
+- 某个测试无法按 ACT `tests` 定义写出；contract 有两种理解；需要改 scope 外文件；需要改 `pipeline/ledger` 或 `openspec/schemas`。
+- 需要伪造人工签发或把 BLOCKED 写成 PASS。
+- 任一门禁变红；`m4-stage-gate.sh` 不再是 13 PASS + 3 BLOCKED、exit 2。
+
+## 最终报告（写 `~/tmux-agents/runs/w4g.report.md`）
+
+- 各 ACT 提交 hash 与 `git show --stat --oneline <hash>`；
+- 基线原文；各 ACT 的 Red 原文与 Green 的 `Ran/OK` 行；
+- 各 ACT `verify` 输出（命令 + 末行）；
+- `git status --short`；末行「等待主 Agent 独立验收」。

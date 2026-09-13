@@ -31,7 +31,7 @@ tests:
     - test_legacy_school_ref_not_promoted_to_school_ids
     - test_no_import_legacy_candidates_tool_created（pipeline/tools/import_legacy_candidates.py 不存在）
 verify:
-  - .venv/bin/python -m unittest discover -s pipeline/knowledge_extraction/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 123
+  - .venv/bin/python -m unittest discover -s pipeline/knowledge_extraction/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 134
   - export LC_ALL=en_US.UTF-8; bash openspec/acceptance/run_all.sh 20.7 | head -1                     # 仍以 "FAIL  20.7" 开头
   - test ! -e pipeline/tools/import_legacy_candidates.py; echo $?                                    # 0
   - TDD §3 回归

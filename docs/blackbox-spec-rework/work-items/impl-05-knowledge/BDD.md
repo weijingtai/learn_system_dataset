@@ -4,7 +4,7 @@
 
 ## 1. 提交件与任务管线 Adapter（ACT 00）
 
-- 1.1 Given 附录 A 的 A 路 assertion 提交件，When `validate_submission(doc, technique_id="qizheng")`，Then 通过，缺省字段补齐（conditions/exceptions/concept_refs/school_ids 为 `[]`，layer 为 `main` 仅在缺省时）。
+- 1.1 Given 附录 A 的 A 路 assertion 提交件，When `validate_submission(doc, technique_id="qizheng")`，Then 通过，缺省字段补齐（conditions/exceptions/concept_refs/school_ids 为 `[]`，layer 为 `general` 仅在缺省时）。
 - 1.2 Given 提交件的 assertion item 夹带 `name` 或 `surface` 等别类键，Then 整件拒收 SCH_002（类别混合，§12.2:572）；Given 缺 `proposition`，Then SCH_001。
 - 1.3 Given `category`、`lane`、`channel`、`support_type`、`relation`、`layer` 取闭集外值，Then SCH_002；Given `lane: c` 或 `channel: model_adapter` / `legacy_workbench`，Then `validate_submission` 通过形状校验，但 `run_m4_submit` 在 begin 前拒收（见 3.4）。
 - 1.4 Given item `status: cross_model_reviewed` 或 `expert_verified`，Then 整件拒收 SCH_002（状态越权，同 AST_002）。
@@ -57,6 +57,8 @@
 - 6.6 Given 恢复时按冻结输入重算的 lane 集字节与已封存 candidate_lane_set 不一致，Then failed_check `input_contract`。
 
 ## 7. 审核决定事件契约（ACT 06）
+
+本节全部为纯函数单测，输入为明确标注的合成事件（测试替身），不写 Ledger、不建签发 StepRun，不代表任何真实专家决定；真实签发由用户撰写决定表（P7 / README §9）。
 
 - 7.1 Given 合法参数，When `build_review_decision`，Then 通过 `validate_review_decision`；Given decision_type 不在八类、verdict 非法、entity_id 前缀与 entity_kind 不符、所见修订格式错、rationale 为空、stage 非 m6，Then 分别 SCH_002 / SCH_002 / ID_001 / ID_001 / SCH_001 / SCH_002。
 - 7.2 Given `school_ids` 为空的主张只有 `review_source_fidelity=accept`，Then `expert_verified`；Given `school_ids` 非空，Then 还需 `review_school_attribution=accept`，否则保持原状态。

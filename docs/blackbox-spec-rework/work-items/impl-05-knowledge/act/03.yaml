@@ -23,7 +23,10 @@ contract: |
       返回键：processing_run_id, technique_id, m3_step_run_id, corpus_stage_package_id, corpus_stage_package_revision_id, corpus_package_revision_id, spans_revision_id
       规则：
         候选 = list_checkpoints(ep, "m3") 中出现过的 step_run_id（去重保序）里，get_step_run.status == "succeeded"，
-              且 list_transformations 中存在 operation == "compile_corpus" 的记录，其输出里 artifact_type == "corpus_package" 恰 1 个、== "corpus_spans" 恰 1 个
+              且 list_transformations(step_run_id) 中存在 operation == "compile_corpus" 的记录
+              （注意 service.py:129-131 的 list_transformations 只返回 transformations 表行，不含输入/输出修订号）；
+              其输出取该 StepRun 的 result_json["output_artifact_ids"]，按 artifacts.artifact_type 只读 SELECT，恰 1 个 corpus_package、1 个 corpus_spans、1 个 coverage_report
+              （与已验收的 pipeline/validation/inputs.py resolve_m5_inputs 同法；不得依赖 list_transformations 返回输出）
         候选 0 个 → ExtractionRefused(code="REF_001", message 含「M3 未通过」)；多于 1 个 → ExtractionRefused(message 含「多个 M3 结果」)
         m3 StagePackage：该 StepRun 在 stage_packages 表中 stage == "m3" 的记录恰 1 条（列名以 pipeline/ledger/store.py 为准），其修订 sealed；
           内容 JSON payload.spans_revision_id == spans_revision_id，payload.gate_profile == "structural_only"，否则 ExtractionRefused(code="REF_001")
@@ -44,7 +47,8 @@ contract: |
       3 doc.channel ∉ ACCEPTED_CHANNELS 或 doc.lane == "c" → ExtractionRefused(code="SCH_002", message 含「首切片不收」)
       4 M4 已封存、同 category/lane 已有 succeeded 提交 → ExtractionRefused（复用 inputs 规则）
     写入：
-      5 config = put_run_artifact(processing_run_id, "configuration", canonical_json({"stage": "m4", "task": "submit", "category", "lane", "channel", "tool": M4_TOOL, "tool_version": M4_TOOL_VERSION}), producer_module=M4_TOOL, producer_version=M4_TOOL_VERSION)
+      5 config_id, config = put_run_artifact(processing_run_id, "configuration", canonical_json({"stage": "m4", "task": "submit", "category", "lane", "channel", "tool": M4_TOOL, "tool_version": M4_TOOL_VERSION}), producer_module=M4_TOOL, producer_version=M4_TOOL_VERSION)
+        （put_run_artifact 返回 (artifact_id, artifact_revision_id) 二元组；configuration_artifact_id 取 config）
       6 frozen = [corpus_stage_package_revision_id, spans_revision_id]；step = begin_step_run({"schema_version": "1.0.0", "processing_run_id", "step_run_id": ids.new_id("step_run_id"), "input_artifact_ids": frozen, "technique_profile_id": technique_id, "configuration_artifact_id": config})
       begin 之后任何异常 → _fail(step, "internal", "<异常类名>: <消息>")
       7 submission_rev = put_artifact(step, "candidate_submission", canonical_json(doc), producer_module=producer_module, producer_version=producer_version) → seal
@@ -75,9 +79,9 @@ tests:
     - test_resolve_m4_inputs_lists_three_gold_submissions
     - test_resolve_m4_inputs_multiple_profiles_refused
 verify:
-  - .venv/bin/python -m unittest discover -s pipeline/knowledge_extraction/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 72
-  - .venv/bin/python -m unittest discover -s pipeline/ledger/tests -t . 2>&1 | tail -1                 # 与基线相同
-  - .venv/bin/python -m unittest discover -s pipeline/corpus_compiler/tests -t . 2>&1 | tail -1        # 与基线相同
+  - .venv/bin/python -m unittest discover -s pipeline/knowledge_extraction/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 80
+  - .venv/bin/python -m unittest discover -s pipeline/ledger/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"                 # 与基线相同
+  - .venv/bin/python -m unittest discover -s pipeline/corpus_compiler/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"        # 与基线相同
   - TDD §3 回归
 commit:
   add: [pipeline/knowledge_extraction/adapters/registry.py, pipeline/knowledge_extraction/inputs.py, pipeline/knowledge_extraction/submit.py, pipeline/knowledge_extraction/tests/test_registry.py, pipeline/knowledge_extraction/tests/test_submit.py]

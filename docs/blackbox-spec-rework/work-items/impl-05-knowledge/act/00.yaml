@@ -18,7 +18,7 @@ contract: |
     ACCEPTED_CHANNELS = ("fixture_gold", "task_pipeline_manual")          # D-01
     PRODUCER_KINDS = ("fixture", "human", "external_agent", "model")
     RELATIONS = ("supports", "qualifies", "opposes", "corresponds", "equivalent")   # SCHEMA.md §4
-    LAYERS = ("main", "commentary", "editorial", "case")
+    LAYERS = ("general", "case", "editorial")   # §13.1 G4 通则/命例/注文·异文·校勘；与 INTERFACES §3.2 一致
     SUPPORT_TYPES = ("direct", "interpreted")
     M4_STATUS_CEILING = ("machine_extracted", "disputed", "needs_expert")
     ITEM_KEYS = {
@@ -39,7 +39,7 @@ contract: |
     S4 producer 为 dict，必填 kind ∈ PRODUCER_KINDS、name 非空字符串；可选 model_id, prompt_sha256, response_sha256（缺省补 None）
     S5 items 为 list；每个 item 为 dict；键 ⊆ required ∪ optional（多出键 → SCH_002，message 含「类别混合」）；缺 required → SCH_001
     S6 evidence 为 list（可为空，空证据由装配阶段按 SEM_001 逐条拒收）；每条 dict，必填 source_span_id（str）、support_type ∈ SUPPORT_TYPES；可选 span_char_start 与 span_char_end（非负 int，必须成对出现，否则 SCH_001）、quote（非空 str）；其他键 → SCH_002
-    S7 assertion：relation ∈ RELATIONS；layer 缺省补 "main" 且 ∈ LAYERS；conditions / exceptions / concept_refs / school_ids 缺省补 []，必须为 list
+    S7 assertion：relation ∈ RELATIONS；layer 缺省补 "general" 且 ∈ LAYERS；conditions / exceptions / concept_refs / school_ids 缺省补 []，必须为 list
     S8 status 缺省补 None；status ∉ {None, "machine_extracted"} → SCH_002（message 含「状态越权」）
     S9 pattern：assertion_propositions 为非空 list[str]；interpretation 缺省补 None
     S10 school_view：subject 为 {"kind": "assertion"|"pattern", "key": 非空 str}；changes_current_judgment 为 bool；conflict_key 缺省补 None
@@ -51,7 +51,7 @@ contract: |
       category == "assertion"：读 doc["assertions"]（缺失 → SchemaViolation SCH_001）；每条 a 生成 item：
         proposition = a["proposition"]；relation = a["relation"]；
         evidence = [{"source_span_id": e["source_span_id"], "support_type": e["support_type"]} 附带 e 中已有的 quote / span_char_start / span_char_end]
-        conditions、exceptions、school_ids 原样（缺省 []）；concept_refs = a.get("concept_ids", [])；layer = a.get("layer", "main")；status = a.get("status")
+        conditions、exceptions、school_ids 原样（缺省 []）；concept_refs = a.get("concept_ids", [])；layer = a.get("layer", "general")；status = a.get("status")
         a 中出现 assertion_id / proposition_id / canon_refs → 丢弃，并各向 adapter_notes 追加一行「丢弃 <键>（M4 重新分配或首切片不收）」（按键名排序、去重）
         doc.get("skipped_segments", []) → 顶层 skipped 原样
       category == "concept_mention"：条目来源依次为 doc["new_concept_candidates"]、doc["concept_mentions"]（二者都缺 → SCH_001）；
@@ -88,7 +88,7 @@ tests:
     - test_export_task_inputs_writes_four_files_deterministic（读 fixture spans.yaml；两次导出到两个临时目录字节相同；segments 43 条且 span_id 与 spans.yaml 顺序一致；非空目录拒绝）
     - test_canonical_json_sort_keys_and_unicode
 verify:
-  - .venv/bin/python -m unittest discover -s pipeline/knowledge_extraction/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 15
+  - .venv/bin/python -m unittest discover -s pipeline/knowledge_extraction/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 16
   - grep -rE '_fixture' pipeline/knowledge_extraction --include='*.py' | grep -v '/tests/' | wc -l      # 0
   - grep -rE '^\s*(import|from) (requests|openai|anthropic|httpx)' pipeline/knowledge_extraction | wc -l   # 0
   - grep -rE 'pipeline\.(validators|tools|runner)|from validators|from tools' pipeline/knowledge_extraction --include='*.py' | wc -l   # 0

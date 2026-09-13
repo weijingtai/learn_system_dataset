@@ -1,29 +1,29 @@
 # impl-05：M4 Knowledge Extraction（§12）最薄接入
 
-状态：`DRAFT`（起草 Agent 产出；§4 共 16 项待主 Agent 裁决，裁决后方可改 `READY`；本目录不含 PROMPT 与 ACCEPTANCE）
+状态：`READY_FOR_REVIEW`（W4-G 定稿 2026-09-13，依 `G7-RULINGS.md` §1 P1–P9、§3 impl-05、§9 第 2/10/13/17/21 条、§9.2 第 27 条、§9.3 第 43 条；未经实现；派发前置见 §7 与 `PROMPT-G1.md`）
 
 ## 1. 目标
 
-在 `pipeline/knowledge_extraction/` 落地规格 §12 的 M4 **最薄接入**（§22.3 阶段 1：M4 属「首纵切后、薄用」）：
+在 `pipeline/knowledge_extraction/` 落地规格 §12 的 M4 **最薄接入**（§22.3 阶段 1：M4 属「首纵切后、薄用」；G7-RULINGS §9.3 第 43 条将其排入下一波，用于让 §20.1/§20.4/§20.8/§20.9 由 BLOCKED 转判）：
 
-1. **不调用任何模型**。候选来自「现有任务管线形态」的产出——人或外部 Agent 按工位 5 格式写出的草稿（`run_task.py --model manual` 的上游），以及 fixture 金标；二者经 Adapter 规范化为「提交件」，每路（类别 × 路别）一个 m4 submit StepRun 登记为 Ledger 已封存修订。
+1. **不调用任何模型**（P6）。候选来自「现有任务管线形态」的产出——人或外部 Agent 按工位 5 格式写出的草稿（`run_task.py --model manual` 的上游），以及 fixture 金标；二者经 Adapter 规范化为「提交件」，每路（类别 × 路别）一个 m4 submit StepRun 登记为 Ledger 已封存修订。
 2. M4 assemble StepRun 只读 Ledger 冻结修订：M3 StagePackage、`corpus_spans`、`technique_profile`（Contract Registry 快照）与全部提交件；确定性完成证据定位（页块 offset + quote + quote 哈希）、状态上限、类别分离、双路差异检出、人工闭集 ID 分配，输出 `candidate_set` 与 m4 StagePackage。
 3. 双路不一致时进入 §5 的「M4 类别分歧」队列：`awaiting_human` → 类别裁决人工事件（每条即时 Checkpoint）→ `resume`。
 4. 以独立实现的候选 Gate 判定输出契约；以独立实现的 `acceptance.py` 重算 13 项判定。
-5. 冻结「专家审核决定」人工事件形态与内容成熟度推导纯函数（`review_events.py`），供 M6 签发复用；签发 StepRun 本身的归属待 D-07。
+5. 冻结「专家审核决定」人工事件形态与内容成熟度推导纯函数（`review_events.py`），供 M6 签发复用；**签发 StepRun 本身归属 M6（D-07），本包不建签发运行，也不伪造任何 `expert_verified`（P7）**。
 
 本批不做（报 BLOCKED 或推迟）：生产模型 A/B 与复核模型 C（§12.2:572）；SemanticSpan 输入（§12.2:561）；L1/L2/L3 自动扫描判层（§12.1）；`omen_carrying` / `condition_affordance` 等 Tag 字段（§16.3.2:801-815）；ApplicabilityRule 与条件 AST（§13 G6）；legacy 工作台候选导入进 run_all（§20.7，见 §5.3）；专家签发 StepRun（D-07）。
 
-完成判据（本批唯一的「做完」定义；数字以 §4 全部采纳「推荐」为前提）：
+完成判据（本批唯一的「做完」定义；数字按 §4 全部裁决固定）：
 
 ```bash
 export LC_ALL=en_US.UTF-8
-.venv/bin/python -m unittest discover -s pipeline/knowledge_extraction/tests -t . 2>&1 | tail -1   # OK（用例 ≥ 118）
+.venv/bin/python -m unittest discover -s pipeline/knowledge_extraction/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK（用例 ≥ 129，K4 止；K5 另加 5 条）
 bash openspec/acceptance/m4-stage-gate.sh; echo exit=$?
 # 期望：13 行 PASS + 3 行 BLOCKED（cross_model_extraction / semantic_span_input / term_layering_scan）
 #       末行 SUMMARY pass=13 fail=0 blocked=3；exit=2
-bash openspec/acceptance/run_all.sh | tail -1            # 与开工基线逐字相同（本批不改 run_all.sh；20.7 仍 FAIL）
-bash openspec/acceptance/m3-coverage.sh; echo exit=$?    # 与开工基线相同（本批不得改变 M3 结果）
+bash openspec/acceptance/run_all.sh | tail -1            # 与开工基线逐字相同（本批不改 run_all.sh；20.6 仍 BLOCKED、20.7 仍 FAIL）
+bash openspec/acceptance/m3-coverage.sh >/dev/null; echo $?   # 与开工基线相同（本批不得改变 M3 结果）
 test ! -e pipeline/tools/import_legacy_candidates.py; echo $?   # 0（D-12：本批不得创建）
 ```
 
@@ -42,232 +42,95 @@ test ! -e pipeline/tools/import_legacy_candidates.py; echo $?   # 0（D-12：本
 - §11:511-521、§11.1:525-528（evidence_level）
 - §12.1:534-557（三层判层；543 行「L1 零歧义、100% 准确」；550 行禁止裸绑字面；557 行 new_concept_candidates）
 - §12.2:559-574（候选类别；570 行 SchoolView 最小字段；572 行不同类别不得一次混合完成、A/B 独立、C 重读原文、分歧进人工队列；574 行全部留痕）
-- §13:580（M5 不修改 Candidate）、§13:590-592（G3、G4）
+- §13:580（M5 不修改 Candidate）、§13.1:590-592（G3、G4；G4 明确「命例入 Case 层、注文/异文/校勘入独立 editorial layer」——**本包 assertion.layer 闭集由此与 INTERFACES §3.2 对齐为 `general / case / editorial`**）
 - §14:618-627（M6 签发；M4 模式输出类别 ReviewDecision；Model Adapter 属 M4）
 - §16.1:674-678（消费级别准入）、§16.3.2:801-815
 - §17:836（事务序列）、§17.1:840-846（每 task 一个 Checkpoint；人工决定即时落盘）
 - §19:878（M4 差距行）、§19:880（M6 行：496 rules、original_text 非空 0）、§19.0:908（`m4-stage-gate.sh`）、§19.1:929-931（units 与工作台库冻结）
-- §20:935（BLOCKED 行名取 §19 第一列）、§20:937（20.1）、§20:943（20.7 准入阈值）
+- §20:935（BLOCKED 行名取 §19 第一列）、§20:937（20.1）、§20:943（20.7 准入阈值）、§20:944（20.8）、§20:945（20.9）
 - §22.1:966-969、§22.2:977-980（M4 候选沿用现有任务管线，少量人工签发；QizhengFactSet 匹配）、§22.3:991、§22.4:999
 
 其他：
 
 - `openspec/id-prefix-registry.md` §3.1–§3.4（:54 七政首批流派「正式登记随 M4 首次抽取时冻结」）
 - `openspec/legacy-storage-transition.md:26,28,52,54`（units 冻结、新 M4 从 CorpusPackage 生成；工作台库只能经独立 legacy_candidate 导入）
-- `openspec/acceptance/run_all.sh:45-46,242-270`（20.7 判定逻辑）
-- `openspec/schemas/stage_package.schema.json`、`artifact_ref.schema.json`（`artifact_kind: stage_package` 分支）、`step_request.schema.json`、`step_result.schema.json`
-- `pipeline/ledger/service.py:66`（RUN_ARTIFACT_TYPES 只含 configuration / technique_profile）、`:253-262`（running / awaiting_human 可写）、`:442-463`（put_artifact）、`:528`（put_run_artifact）、`:718`（register_stage_package）、`:777-790`（record_transformation 含 `model_ref`）、`:885`（await_human）、`:922-963`（record_human_event，decision_type 只收八类或 None）、`:965`（resume）、`:1364`（write_checkpoint）
-- `pipeline/ledger/states.py:57-66`（REVIEW_DECISION_TYPES）、`pipeline/ledger/ids.py:13-33`（19 个前缀家族；`new_id` 支持 school_view_id / conflict_group_id）
-- `pipeline/ledger/fixture_ingest.py:40-47`（灌入 m3 时不写 corpus_spans）
-- `pipeline/corpus_compiler/step.py:236-251,272-330,335`（run_m3 的 corpus_package、StagePackage payload.spans_revision_id、finish 输出）
-- 任务管线（只读调研，见 §5）：`pipeline/HANDBOOK.md:41-54,89-96,249-261,263-304`、`pipeline/schemas/core/SCHEMA.md:44-76`、`pipeline/runner/run_task.py:89-135,143-178`、`pipeline/runner/config.yaml`、`pipeline/validators/compare_drafts.py:65-160`、`pipeline/validators/validate_assertion_task.py:40-90`、`pipeline/tools/gen_assertion_task.py`、`pipeline/tools/merge_assertions.py`、`pipeline/TASKGEN_HANDOFF.md:147-157`、`pipeline/task-templates/stage5_assertions*/INSTRUCTIONS.md`、`pipeline/schemas/shared/canon/*.yaml`、`pipeline/registry/schools/`
+- `openspec/acceptance/run_all.sh:242-270`（20.7 判定逻辑）
+- `openspec/schemas/stage_package.schema.json`、`artifact_ref.schema.json`（`artifact_kind: stage_package` 分支）、`step_request.schema.json`、`step_result.schema.json`（`validation_report_ids` 允许空数组）
+- **Ledger（impl-01，已验收 `1f32177`；本包只读）**：
+  - `service.py:66`（`RUN_ARTIFACT_TYPES = ("configuration", "technique_profile")`）、`:129-131`（`list_transformations(step_run_id)` **只返回 `transformations` 表行，不含输入/输出修订号**——步骤 1 修正点 F1）、`:150`（`list_checkpoints(edition_part_id, stage)`）、`:405-410`（`begin_step_run`，stage 由配置内容 `"stage"` 推导）、`:442-457`（`put_artifact`，`rights_scope="internal"`，返回 `(artifact_id, revision_id)`）、`:528-597`（`put_run_artifact` 只收 configuration/technique_profile，写入即 sealed，**返回二元组**——修正点 F2）、`:599`（`seal_revision`）、`:718`（`register_stage_package`）、`:777-790`（`record_transformation` 含 `model_ref`、`human_event_revision_ids`）、`:885`（`await_human`）、`:922-963`（`record_human_event`，`decision_type` 只收八类或 None，**不消费 token**）、`:965`（`resume`）、`:1132-1185`（`finish_step_run`，只校验 StepResult；无 StagePackage 亦可）、`:1187`（`fail_step_run`）、`:1364-1377`（`write_checkpoint`）、`:1606`（`read_object`）
+  - `store.py:71-75`（`stage_packages(stage_package_id, artifact_id, stage)`）、`:126-166`（`transformations` / `transformation_inputs` / `transformation_outputs` / `human_events` 表）、`:552-576`（`list_transformations` 与 `list_transformation_inputs/outputs`）
+  - `states.py:57-66`（`REVIEW_DECISION_TYPES` 八类）、`ids.py:13-33`（19 个前缀家族；`new_id` 支持 `school_view_id` / `conflict_group_id`；`validate` / `kind_of`）、`errors.py`（`LedgerError` / `NotConsumable` / `SchemaViolation` / `InvalidIdentifier`）
+  - `fixture_ingest.py:40-47`（`STAGES=("m1","m2","m3")`、m3 阶段输出类型 `corpus_package`；**灌入 m3 时不写 `corpus_spans`**）
+- `pipeline/corpus_compiler/step.py:236-251,272-330,335`（`run_m3` 的 `corpus_package`、StagePackage `payload.spans_revision_id`、`manifest.content_sha256`、`output_artifact_ids`）
+- `pipeline/validation/inputs.py`（M5 当前 `scope: corpus_only`，经 `m3_step["result_json"]["output_artifact_ids"]` + `artifacts.artifact_type` 只读 SELECT 定位 M3 输出——本包 `resolve_m3_outputs` 与之一致）
+- `docs/blackbox-spec-rework/work-items/impl-04-dataset/README.md` §4 D1 与知识链 `not_compiled`、§7 的 `evidence_map_pack` 只有尾链四段
+- `docs/blackbox-spec-rework/work-items/impl-00-interfaces/INTERFACES.md` §2.4 M4 卡片、§3.1 `evidenceLink`、§3.2 `candidate_set.schema.json`、§4 临时闭集（M4 行仍为旧命名，见 §10 待裁决 N1）、§6 I-11；`check_interfaces.py`（`REQUIRED_TYPES` 未枚举 M4 类型）
+- 任务管线（只读调研，见 §5）：`pipeline/HANDBOOK.md:41-54,89-96,137,249-261,263-304`、`pipeline/schemas/core/SCHEMA.md:44-76`（`relation` 五值；**无 `layer` 字段**，M4 的 `layer` 取 §13.1 G4 语义）、`pipeline/runner/run_task.py:89-135,143-178`、`pipeline/runner/config.yaml`、`pipeline/validators/compare_drafts.py:65-160`、`pipeline/validators/validate_assertion_task.py:40-90`、`pipeline/tools/gen_assertion_task.py`、`pipeline/tools/merge_assertions.py`、`pipeline/TASKGEN_HANDOFF.md:147-157`、`pipeline/task-templates/stage5_assertions*/INSTRUCTIONS.md`、`pipeline/schemas/shared/canon/*.yaml`（6 文件，`closed_set_size` 合计 49）、`pipeline/registry/schools/`（只有 `_TEMPLATE.yaml`）
 - `knowledge_system/CROSS_TECHNIQUE_ONTOLOGY.md` §二–§三；`knowledge_system/METAPHYSICS_KNOWLEDGE_COMPILATION_WORKFLOW_v1.2.md` §3.2–§3.3
-- fixture `pipeline/corpus/_fixture/mini_ed01/`：`spans.yaml`（sha256 `ec6d77b90aa1408d040465babc28a81f59aadf6d6edd9ba8db66ff8ead0b44ef`）、`source/transcript_v1.md`（仅书名页与目录）、`README.md` §1（内容不作知识来源）
+- fixture `pipeline/corpus/_fixture/mini_ed01/`：`spans.yaml`（sha256 `ec6d77b90aa1408d040465babc28a81f59aadf6d6edd9ba8db66ff8ead0b44ef`；43 条，page_001 4 条、page_003 39 条）、`source/transcript_v1.md`（仅书名页与目录）、`verify.sh:333-400`（**V5/V6 只覆盖 m1–m3**，m4 金标需同步扩展——修正点 F5）、`README.md` §1（内容不作知识来源）
 - `pattern_knowledge_workbench/assets/ge_ju_database.sqlite`（sqlite 实测 `ge_ju_rules` 496 行、`original_text` 非空 0；`ge_ju_schools` 中 `guo_lao` 类型为 book）
 
 ## 3. 范围
 
-写：`pipeline/knowledge_extraction/**`（新建）、`openspec/acceptance/m4-stage-gate.sh`（ACT 07 新建，待 D-11）。
+写：`pipeline/knowledge_extraction/**`（新建）、`openspec/acceptance/m4-stage-gate.sh`（ACT 07 新建）。
 
-主 Agent 写（执行者不写）：附录 A 的 fixture 金标与 `expected/m4.stage_package.yaml`（待 D-02）。
+主 Agent 写（执行者不写，且属共享面独占 ACT，P4）：附录 A 的 fixture 金标 `pipeline/corpus/_fixture/mini_ed01/m4/` 与 `expected/m4.stage_package.yaml`，以及 fixture `verify.sh` V5/V6 的 m4 扩展（见 §10 待裁决 N2 与 §9 用户待办）。
 
 禁止：
 
-- 改 `openspec/acceptance/run_all.sh`、`m3-coverage.sh`、规格正文、`openspec/schemas/**`、`openspec/id-prefix-registry.md`、fixture 目录、`pipeline/ledger/**`、`pipeline/corpus_compiler/**`；
+- 改 `openspec/acceptance/run_all.sh`、`m3-coverage.sh`、规格正文、`openspec/schemas/**`、`openspec/id-prefix-registry.md`、fixture 目录、`pipeline/ledger/**`、`pipeline/corpus_compiler/**`、`pipeline/validation/**`、`pipeline/dataset_compiler/**`、`pipeline/orchestrator/**`、`pipeline/contract_registry/**`；
 - 改 `pipeline/TASKS/`、`task-templates/`、`runner/`、`tools/`、`validators/`、`units/`、`registry/`、`schemas/`、`pattern_knowledge_workbench/`；创建 `pipeline/tools/import_legacy_candidates.py`（D-12）；
-- 改 `PLAN.md`、`HANDOFF.md`、`SUBAGENT_TODO.md`、其他 work-items 目录；
+- 改 `PLAN.md`、`HANDOFF.md`、`SUBAGENT_TODO.md`、`G7-*.md`、其他 work-items 目录、任何 `ACCEPTANCE.md` 的 §5；
 - 新增依赖、新增 ID 前缀；调用模型 API，或 import `requests`/`openai`/`anthropic`/`httpx`；
-- 生产代码读 fixture 路径或工作目录「最新文件」（例外只有 Adapter 入口：`adapters/registry.py` 读 canon 目录、`adapters/task_pipeline.py` 读调用方传入的草稿与模板、`adapters/legacy_workbench.py` 以只读方式打开工作台库；它们的产物必须先登记进 Ledger，M4 核心只读 Ledger）；
+- 生产代码读 fixture 路径或工作目录「最新文件」（例外只有 Adapter 入口：`adapters/registry.py` 读 `--canon-dir`、`adapters/task_pipeline.py` 读调用方传入的草稿与模板、`adapters/legacy_workbench.py` 以只读方式打开工作台库；它们的产物必须先登记进 Ledger，M4 核心只读 Ledger）；
 - 生产代码 import `pipeline/validators`、`pipeline/tools`、`pipeline/runner` 下的脚本（只作规则参照，按本包契约重写）；
 - M4 产出任何对象的 `content_status` 高于 `needs_expert`（不得出现 `cross_model_reviewed`、`expert_verified`）；
-- 执行者写台账、写 `ACCEPTED`。
+- 执行者写台账、写 `ACCEPTED`、伪造人工签发（P7）。
 
-## 4. 待主 Agent 裁决
+## 4. 主 Agent 决定（执行者不重议）
 
-每条给出选项、推荐与理由；「推荐」不是定案。ACT 契约按全部采纳推荐起草，任一条改选会影响的 ACT 在 `ACT.yaml` 的 `pending_decisions` 中列出。
+本节取代原 §4 待裁决清单。裁决来源：`G7-RULINGS.md` §1 P1–P9、§3 impl-05、§9 第 2/10/13/17/21 条、§9.2 第 27 条、§9.3 第 43 条，与 `reviews/G7-DRAFTS-REVIEW-R2.md` §4 的 G7-Q01～Q16（impl-05 条目）。**未单列的细节默认采纳草稿推荐**。原 16 条 D-xx 与 R2 编号一一对应如下。
 
-### D-01 模型调用是否在首切片内
+- **D-01 / G7-Q01 首切片零模型调用 → A（P6）**。候选只经提交件 Adapter 登记，渠道闭集中只收 `fixture_gold`、`task_pipeline_manual`；`model_adapter` 渠道在 `run_m4_submit` begin 前拒收；验收 `cross_model_extraction` 恒 BLOCKED。Ledger `record_transformation` 已有 `model_ref` 参数（`service.py:787`），日后接入 Model Adapter 只新增渠道，不改 M4 Interface。
+- **D-02 / G7-Q02 fixture 候选金标 → A，且金标进 fixture 必须作为独立独占 ACT（P4）**。主 Agent 在 `pipeline/corpus/_fixture/mini_ed01/m4/` 增四个金标文件（assertion 两路、concept_mention 一路、类别裁决一份）与 `expected/m4.stage_package.yaml`，并同步扩展 fixture `verify.sh` V5/V6 到 m4；该写入是与 impl-05 实现分离的独占 ACT（见 §9 用户待办 / §10 N2 / ACT.yaml `preconditions`）。K4 以它落地为强制前置，缺失即停手。
+- **D-03 / G7-Q03 Span 层 → A**。薄接入消费 StructuralSpan；`candidate_set` 与 m4 包写 `span_layer: structural`；验收 `semantic_span_input` 恒 BLOCKED。
+- **D-04 / G7-Q04 提交件登记形态 → A**。每路（category × lane）一个 m4 submit StepRun：配置 `task: submit`，冻结输入仅 M3 包与 `corpus_spans`，输出 `candidate_submission`；assemble StepRun 再把全部提交件修订列为冻结输入。路间隔离由 Ledger 冻结输入集合证明。
+- **D-05 / G7-Q05 Contract Registry 冻结输入 → A**。Registry Adapter 读 canon 目录（`pipeline/schemas/shared/canon/`，6 文件，`closed_set_size` 合计 49）生成运行级 `technique_profile` 修订（含 canon 快照与文件哈希、`homographs: []`、`glossary: []`、`schools: []`）；流派闭集本批不冻结，任何 `school_id` 一律 REF_001 拒收。
+- **D-06 / G7-Q06 术语判层 → A（只校验不扫描）**。提交件自带的 `co_shared_*` / `co_qizheng_*` 引用必须存在于冻结 profile，字面 ∈ {surface, aliases} 且等于证据 quote；自动扫描报 BLOCKED `term_layering_scan`。起草实测（canon 全部字面对 43 条 Span 子串匹配 → 6 次命中且全为误命中：5×「辰」、1×「胎」）作为 §12.1 规格问题的证据留存于 README §10。
+- **D-07 / G7-Q07 签发归属 → A，且 P7 加裁**。签发 StepRun 归属 M6 薄接入；本包只冻结 `review_decision` 事件形态与 `derive_content_status` 纯函数（ACT 06）。**不得伪造人工签发**：测试只用 fixture 已登记的人工事件（类别裁决 `ruling_m4_d001.yaml`）或明确标注的测试替身（合成 `review_decision` 事件仅用于纯函数单测，不代表任何真实专家决定）；真实 `expert_verified` 需要用户撰写的决定表时，依赖它的判定一律 BLOCKED 而非 PASS（§9 用户待办）。
+- **D-08 / G7-Q08 expert_verified 齐备条件与 verdict 闭集 → A**。首切片最小集：`review_source_fidelity` 必需；候选 `school_ids` 非空或对象是 SchoolView 时 `review_school_attribution` 也必需；verdict 闭集 `accept / modify / reject / request_evidence / school_dispute`；推导优先级：必需类型有 `reject` → `deprecated`；有 `school_dispute` → `disputed`；有 `modify` 或 `request_evidence` → `needs_expert`；必需类型全 `accept` → `expert_verified`；否则保持原状态。所见修订与当前候选修订不同的决定不计入。**仅适用首切片 INTERNAL_DEMO；PUBLIC_RELEASE 前须由用户重定。**
+- **D-09 / G7-Q09 人工闭集 ID → A**。assemble 配置修订写 `id_range`（首切片 as / pr / pat 均为 1–99），同一 `candidate_set` 内查重（ID_002）；本批拒绝 M4 重跑，重跑保号推迟到重跑工作包。
+- **D-10 / G7-Q10 新 artifact_type 与内容 Schema → P2 + P3**。artifact_type **只提名**（清单见 §6.1.1），由该波登记 ACT 一次性写入 `INTERFACES.md` §4 临时闭集；本包不写该文件。内容结构以代码内草案契约表达，`schema_version: "0.1.0-draft"`；准入层对 `PUBLIC_RELEASE` 以 `draft_schema` 拒绝；首纵切不向 `openspec/schemas/` 新增文件。
+- **D-11 / G7-Q11 §19.0 判据脚本 → A**。新建 `openspec/acceptance/m4-stage-gate.sh`（13 PASS + 3 BLOCKED，exit 2）。BLOCKED 行名逐字取 §19 第一列：「M4 Knowledge Extraction」「M3 Corpus Compilation」「Contract Registry」。
+- **D-12 / G7-Q12 §20.7 legacy 候选 → A**。首切片不接 run_all，不在 `pipeline/tools/` 建 `import_legacy_candidates.py`；可选 ACT 08 在本包宿主内写 fail-closed 纯函数 `admit_legacy_rules`（实库 496 条全部以 SCH_001 拒收），只作准入规则的可执行说明。M4 薄接入**不能也不应**改变 20.7 的 FAIL。
+- **D-13 / G7-Q13 被拒候选不阻断 Gate → A**。被拒条目逐条写入 `rejected`（原因码取 §8.2 九码），**不阻断 Gate，只计数**，计数进 m4 包、由 M5 报告。提交件整体形状错误仍在 begin 之前拒绝。
+- **D-14 / G7-Q14 类别裁决 decision_type → A**。`decision_type=None`，事件内容写 `event_kind: category_ruling`。
+- **D-15 / G7-Q15 M3 产出定位 → A，且上游只认 succeeded 的 M3 包（P5）**。只认「`status == "succeeded"` 且 Transformation `operation == "compile_corpus"` 的输出恰含 1 个 `corpus_package`、1 个 `corpus_spans`」的 m3 StepRun；0 个或多于 1 个即拒绝。输出定位改用该 StepRun 的 `result_json.output_artifact_ids` + `artifacts.artifact_type` 只读 SELECT（与已验收的 impl-03 `resolve_m5_inputs` 同法，修正点 F1），**不得依赖 `list_transformations` 返回输出**（它只返回 `transformations` 表行）。测试脚手架 = `ingest(stages=("m1","m2"))` → `run_m3` → M4。
+- **D-16 / G7-Q16 任务包模板与术语表 → A**。`export_task_inputs` 只导出输入（segments/spans 取自 Ledger `corpus_spans`），INSTRUCTIONS 由调用方指定模板路径（默认通用 `stage5_assertions`），`task.yaml` 记录 `instruction_version` 与 `id_range`。
 
-- 依据：§12.2:572-574；§22.4:999（M4 不入首纵切，10 页候选由现有任务管线产出）；§2:40；§14:627（模型调用属于 M4 Model Adapter）；`pipeline/runner/config.yaml`（production/reviewer 走外网 API，需密钥）。
-- 选项：
-  - A：首切片不调用模型。候选只经提交件 Adapter 登记，渠道闭集中只收 `fixture_gold`、`task_pipeline_manual`（后者承接人或外部 Agent 按工位 5 格式写出的草稿，记录 producer 名）；`model_adapter` 渠道拒收；验收 `cross_model_extraction` 恒 BLOCKED。
-  - B：接入 Model Adapter，调 `config.yaml` 端点（结果不可重放、需密钥，违背本批「不调模型」纪律）。
-  - C：以 `run_task.py --model mock` 形态登记「mock 模型」渠道并写 `model_ref`（形式上有模型留痕，实为金标，容易被误读为已接模型）。
-- 推荐：A。确定性替代 = fixture 金标提交件注入（附录 A）。Ledger `record_transformation` 已有 `model_ref` 参数（service.py:787），日后接入 Model Adapter 只新增渠道，不改 M4 Interface（§20:946 第 10 条）。
+## 5. 已固化默认（执行者不重议）
 
-### D-02 fixture 候选金标的来源与内容
-
-- 依据：mini_ed01 只有书名页与目录（`source/transcript_v1.md`；fixture README §1 声明内容不作知识来源），**没有任何七政技法主张**；真实第 8 页才有赋文正文（`ocr/data_work/data/page_008.json` 84 行）；fixture 尚无 M4–M8 期望产物；§22.1:969。
-- 选项：
-  - A：主 Agent 在 fixture 增 `m4/` 目录（assertion 两路、concept_mention 一路、类别裁决一份）与 `expected/m4.stage_package.yaml`，由 `build_fixture.py` 可重放；内容为附录 A 的「书目题记探针」——从 page_001 题记逐字截取「三辰通載三十卷」「宋錢如璧撰」，`layer: editorial`，渠道 `fixture_gold`。注意 fixture `verify.sh` V5/V6 目前只覆盖 m1–m3，需同步扩展。
-  - B：金标只放 `pipeline/knowledge_extraction/tests/data/`，验收脚本 `--gold-dir` 指向它（不进统一验收宿主，削弱 §20:935 的「统一宿主」口径）。
-  - C：新建含 page_008 的第二 fixture，产出真实七政主张（改动大，且需先有 M3 对 page_008 的结构金标；若改 mini_ed01 本身会改变 impl-02 的 spans 金标）。
-- 推荐：首切片 A，C 列入纵切后。理由：A 不动 M3 金标、字节可重放、探针渠道可被 M5/M8 识别。**如实声明**：mini_ed01 无法支撑 Pattern、SchoolView、ApplicabilityRule 与 QizhengFactSet 匹配（§22.2:980），这些链路只能在 C 或真实前十页上验证。
-
-### D-03 M4 输入的 Span 层
-
-- 依据：§12.2:561「M4 将 SemanticSpan 分别提取为候选」；§11:513-521；impl-02 README §4 第 1 条（M3 只做结构层，`gate_profile: structural_only`、`semantic: not_evaluated`）。
-- 选项：
-  - A：薄接入消费 StructuralSpan；candidate_set 与 m4 包写 `span_layer: structural`；验收 `semantic_span_input` 恒 BLOCKED（行名「M3 Corpus Compilation」）。
-  - B：M4 整体等 M3 语义层落地后再做。
-  - C：M4 自行做语义合段（侵占 M3 职责，§11:519）。
-- 推荐：A。
-
-### D-04 候选提交件如何登记为 Ledger 冻结修订（Adapter 形态）
-
-- 依据：§7:207；§7.1:211（一阶段可有多个任务，每个任务一个 StepRun）；§12.2:572（A/B 初次不可见彼此）；`put_run_artifact` 只收 configuration / technique_profile（service.py:66）；`put_artifact` 必须挂在 running / awaiting_human 的 StepRun 上（service.py:253-262）。
-- 选项：
-  - A：每路（category × lane）一个 m4 submit StepRun：配置 `task: submit`，冻结输入仅 M3 包与 `corpus_spans`，输出 `candidate_submission`；assemble StepRun 再把全部提交件修订列为冻结输入。路间隔离由 Ledger 冻结输入集合证明。
-  - B：单个 assemble StepRun 以字节参数接收提交件并在内部封存（提交件成了本步输出而非冻结输入）。
-  - C：Ledger 新增运行级类型 `candidate_submission`（改 pipeline/ledger，出本批范围）。
-- 推荐：A。
-
-### D-05 Contract Registry 冻结输入（canon / homographs / 流派闭集）如何进入 Ledger
-
-- 依据：§5:128、§12.1:540,547；`pipeline/schemas/shared/canon/` 现有 6 个闭集文件；`schemas/shared/homographs/` 与 `schemas/techniques/qizheng/glossary_v0.yaml` **均不存在**（techniques 下只有 bazi、qimen；`pipeline/registry/schools/` 也只有 bazi、qimen）；`id-prefix-registry.md:54`；service.py:66。
-- 选项：
-  - A：Registry Adapter 读 canon 目录，生成运行级 `technique_profile` 修订（含 canon 快照及文件哈希、`homographs: []`、`glossary: []`、`schools: []`），列为 assemble 冻结输入；流派闭集本批不冻结，任何 `school_id` 一律 REF_001 拒收。
-  - B：同 A，但本批冻结 `sch_qizheng_001` 琴堂派、`sch_qizheng_002` 天官派（须用户确认登记）。
-  - C：主 Agent 在 Ledger 新增运行级类型 `contract_registry_snapshot`（改 L1）。
-- 推荐：A。不改 Ledger、不越权冻结流派；SchoolView 路径用单测合成 profile 覆盖。
-
-### D-06 「L1 确定性字典匹配 100% 准确」与七政文本实测冲突
-
-- 依据：§12.1:543；本起草实测：以 canon 全部字面对 mini_ed01 43 条 Span 做子串匹配，命中 6 次，**6 次全是误命中**——5 次是「三辰通載」的「辰」→`co_shared_branch_05`（三辰指日、月、星），1 次是「定胎元宮」的「胎」→`co_shared_changsheng_11`（胎元是七政宫位名，不是十二长生的「胎」）。
-- 选项：
-  - A：首切片「只校验不扫描」：提交件自带的 `co_shared_*` 引用必须存在于冻结 canon，字面 ∈ {surface, aliases}，且等于证据 quote；自动扫描报 BLOCKED `term_layering_scan`。
-  - B：自动扫描，但命中只记 `needs_context`、不直接绑定（与 §12.1:543「直接命中并绑定」冲突）。
-  - C：自动扫描 + 七政复合词停用表（需新登记冻结输入与维护流程）。
-- 推荐：A；并建议主 Agent 把上述实测登记为 §12.1 的规格问题（单字闭集在复合词里并不零歧义）。
-
-### D-07 「人工签发 expert_verified」归属 M4 还是 M6
-
-- 依据：§22.3:991（M4 行：「候选由现有任务管线产出并人工签发少量 expert_verified 条目」；M6 行：「工作台只做只读对照与签发」）、§22.2:977；§14:618-624（M6 做专家签发，M4 模式只出类别 ReviewDecision）；§5:122-123（M4 类别分歧与 M6 待签发是两个队列）；§5:103-110、§6.1:141-146（M4→M5→M6）；§2:40。
-- 选项：
-  - A：签发 StepRun 归属 M6 薄接入工作包（在 M5 之后）；本包只冻结 `review_decision` 事件形态与 `derive_content_status` 纯函数（ACT 06）。
-  - B：在 M4 assemble StepRun 内追加签发队列（签发早于 M5 校验，违背 §2:40 与阶段顺序）。
-  - C：在本包宿主内临时写一个 stage=m6 的签发 StepRun（宿主与阶段错位，M6 落地时迁出）。
-- 推荐：A；若本轮没有 M6 草案，退而取 C。
-
-### D-08 expert_verified 需要哪些审核决定齐备，verdict 闭集是什么
-
-- 依据：§8.2:337-364（禁止单一 expert_verified 覆盖全部含义，但没有定义「哪些决定齐备才能置 expert_verified」）；§14:618（接受、修改、驳回、补证、流派分歧、专家签发）；§16.1:678；§8.1:265。
-- 选项：
-  - A：首切片最小集：`review_source_fidelity` 必需；候选 `school_ids` 非空或对象是 SchoolView 时 `review_school_attribution` 也必需；verdict 闭集 `accept / modify / reject / request_evidence / school_dispute`；推导优先级：必需类型中有 `reject` → `deprecated`；有 `school_dispute` → `disputed`；有 `modify` 或 `request_evidence` → `needs_expert`；必需类型全部 `accept` → `expert_verified`；否则保持原状态。所见修订与当前候选修订不同的决定不计入（与 §14.1:640 内容变化需复核同口径）。
-  - B：八类全部 `accept` 或显式 `not_applicable` 才可 `expert_verified`。
-  - C：按消费级别设不同必需集合（INTERNAL_DEMO / DEV_SEARCH / PUBLIC_RELEASE）。
-- 推荐：A（仅适用首切片 INTERNAL_DEMO；PUBLIC_RELEASE 前须由用户重定）。
-
-### D-09 人工闭集 ID（as_ / pr_ / pat_）分配与重跑保号
-
-- 依据：§8.1:257,267；§8.1:277-279,317；HANDBOOK:89-96（派发者写 id_range，禁止自挑号）；id-prefix-registry §3.4（pat_ 由 Contract Registry 登记）；Ledger 没有号段登记。
-- 选项：
-  - A：assemble 配置修订写 `id_range`（首切片 as / pr / pat 均为 1–99），同一 candidate_set 内查重（ID_002）；本批拒绝 M4 重跑（与 M3 相同），重跑保号推迟到重跑工作包。
-  - B：Pattern 候选不分配 pat_（`pattern_id: null`，M7 聚合时分配），as_/pr_ 同 A。
-  - C：新建号段登记冻结输入（新 artifact_type 与登记流程）。
-- 推荐：A（首切片金标没有 Pattern，影响面小）。跨 Ledger 历史查重留给主 Agent 决定何时做。
-
-### D-10 新 artifact_type 与 CandidatePackage 机器 Schema
-
-- 依据：§8:232-251、§8.1:324-329；Ledger 只校验 artifact_type 形如 `^[a-z][a-z0-9_]*$`（service.py:458-463），没有登记表；`openspec/schemas/` 没有候选相关 Schema。
-- 本包拟新增 artifact_type：`candidate_submission`、`candidate_lane_set`、`dispute_queue`、`candidate_set`、`candidate_package`；复用 `configuration`、`technique_profile`、`human_event`、`validation_report`、`step_log`、`failure_report`。
-- 选项：
-  - A：首切片用内部结构版本 `schema_version: "0.1.0-draft"`，由 `gate.py` 与 `acceptance.py` 各自独立校验；与 M5/M6 草案对账后，再由主 Agent 登记 `openspec/schemas/candidate_set.schema.json`。
-  - B：本批先由主 Agent 新增 L0 Schema 并纳入 `openspec/schemas/verify.sh`。
-  - C：不设独立制品，全部塞进 StagePackage payload（payload 过大，M5 需逐条引用）。
-- 推荐：A；artifact_type 清单请主 Agent 与 M5/M6/M8 草案对账后冻结。
-
-### D-11 是否在本批新建 §19.0 判据脚本
-
-- 依据：§19.0:908；impl-02 先例（`m3-coverage.sh` 返回 2）。
-- 选项：A 新建 `openspec/acceptance/m4-stage-gate.sh`（13 PASS + 3 BLOCKED，exit 2）；B 不建脚本，只以单测验收；C 建脚本但把三项 BLOCKED 折成一行。
-- 推荐：A。BLOCKED 行名逐字取 §19 第一列：「M4 Knowledge Extraction」「M3 Corpus Compilation」「Contract Registry」。
-
-### D-12 §20.7 legacy 候选与 M4 的关系
-
-- 依据：§20:943；`run_all.sh:242-270`（先查 `original_text` 非空条数，为 0 即 FAIL；非 0 时只检查 `pipeline/tools/import_legacy_candidates.py` **是否存在**即 PASS）；sqlite 实测 496/0；`legacy-storage-transition.md:28,54`。
-- 选项：
-  - A：首切片不接 run_all，不在 `pipeline/tools/` 建该文件；可选 ACT 08 在本包宿主内写 fail-closed 纯函数 `admit_legacy_rules`（实库 496 条全部以 SCH_001 拒收），只作准入规则的可执行说明。
-  - B：本批在 `pipeline/tools/import_legacy_candidates.py` 实现导入（数据不变时 20.7 仍 FAIL；一旦数据出现非空 original_text，存在性判据会让一个未经验证的工具直接 PASS）。
-  - C：主 Agent 先把 20.7 判据改为「执行导入工具并核对准入/拒收计数」，再派 B。
-- 推荐：A，并建议主 Agent 评估 C（当前存在性判据偏弱）。M4 薄接入**不能也不应**改变 20.7 的 FAIL。
-
-### D-13 被拒候选是否阻断 M4 Gate
-
-- 依据：§6.1:149（失败为零）；§12.2:572（只明确未解决语义分歧不能过 Gate）；HANDBOOK:60-66（一级容错由生产者自修）。
-- 选项：A 被拒条目逐条写入 `rejected`（原因码取 §8.2:368-380 九码），不阻断 Gate，计数进 m4 包、由 M5 报告；B 任一条被拒即 StepRun failed；C 由配置设阈值。
-- 推荐：A（拒收是准入结果不是加工失败，与 §20.7「fail-closed 拒绝」同口径）。提交件整体形状错误仍在 begin 之前拒绝。
-
-### D-14 M4 类别裁决人工事件的 decision_type
-
-- 依据：`record_human_event(..., decision_type=None)` 只收 §8.2 八类或 None（service.py:922-930，states.py:57-66）；§14:623（M4 模式输出「类别 ReviewDecision」），八类中没有「类别」。
-- 选项：A `decision_type=None`，事件内容写 `event_kind: category_ruling`；B 映射成 `review_source_fidelity`（语义不符）；C 主 Agent 在 §8.2 增类型（L0 变更，需用户确认）。
-- 推荐：A。
-
-### D-15 M4 如何定位 M3 产出（与 impl-02 的接口）
-
-- 依据：`fixture_ingest.py:40-47`（灌入 m3 时只写 corpus_package / corpus_batch，没有 corpus_spans）；`corpus_compiler/step.py:236-251,272-330,335`。
-- 选项：
-  - A：只认「succeeded 且 Transformation `compile_corpus` 的输出恰含 1 个 `corpus_package`、1 个 `corpus_spans`」的 m3 StepRun；0 个或多于 1 个即拒绝；测试脚手架 = `ingest(stages=("m1","m2"))` → `run_m3` → M4。
-  - B：扩展 fixture_ingest 让 m3 也写 corpus_spans（改 pipeline/ledger，出范围）。
-  - C：允许读 fixture `spans.yaml`（违背只读冻结修订）。
-- 推荐：A；K2 起依赖 impl-02 `ACCEPTED`（含返工 ACT 05）。
-
-### D-16 七政任务包模板与术语表
-
-- 依据：`TASKGEN_HANDOFF.md:147-157`（stage4/5「通用版」实为奇门早期分叉）；`gen_assertion_task.py`（instruction_version 写死 `assertions_bazi_v0.1`，id_range 写死 `as_bazi`）；没有 qizheng glossary。
-- 选项：A 本包 `export_task_inputs` 只导出输入（segments/spans 取自 Ledger `corpus_spans`），INSTRUCTIONS 由调用方指定模板路径（默认通用 `stage5_assertions`），task.yaml 记录 `instruction_version` 与 `id_range`；B 主 Agent 先写 `stage5_assertions_qizheng` 模板再派；C 首切片不做导出，只做导入。
-- 推荐：A（导出只是便利，不进验收判据）。
-
-## 5. 调研结论：现有任务管线能给 M4 薄接入什么
-
-### 5.1 逐目录结论
-
-| 路径 | 现状 | 在 M4 薄接入中的用法 | 结论 |
-|---|---|---|---|
-| `pipeline/TASKS/` | bazi/qimen 工位 3–6 任务包；`output/` 下有 `draft_*`、`authoritative`、`merged_final`、`merge_review`、`review_compare` | 只作格式与流程参照。其 `source_span_id` 指向旧 corpus，不是 Ledger 中 M3 编译的 Span，直接登记会全部 REF_001 拒收 | 不作首切片数据源 |
-| `pipeline/task-templates/stage5_assertions(_bazi)` | 工位 5 INSTRUCTIONS | `export_task_inputs` 复制模板（D-16） | 可复用 |
-| `pipeline/runner/run_task.py` | 组 prompt；`production`/`reviewer` 走 API，`mock`、`manual` 归档；`output/<by>_<ts>/{response,prompt,run}.yaml` | `manual` 模式是渠道 `task_pipeline_manual` 的上游；`run.yaml` 的 model、model_id、prompt_sha256、response_sha256 映射到提交件 `producer` 与 Transformation `model_ref`；API 模式不入首切片 | 形态复用，不 import |
-| `pipeline/units/` | 139 单元、1331 条主张，冻结为历史快照（transition:26） | transition:52 明确「新 M4 从 CorpusPackage 生成」 | 排除 |
-| `pipeline/validators/` | `compare_drafts.py` 按证据 span 集合对齐双路；`validate_assertion_task.py` AST_002 状态越权；`validate.py` TXT_001/SEM_001/REF_001 | 规则参照，在 `assemble.py`/`gate.py` 中按本包契约重写 | 规则复用 |
-| `pipeline/tools/` | `gen_assertion_task.py` + `lib/taskgen.py` 生成任务包；`merge_assertions.py`「A 主干、B 查漏」 | 导出参照；合并策略不采用——M4 以人工类别裁决代替自动并入（§12.2:572「按证据比较，不采用多数票」） | 参照 |
-| `pipeline/registry/` | techniques / works / schools 登记 | schools 无七政；首切片不读（D-05） | 暂不用 |
-| `pipeline/HANDBOOK.md` | 工位 4/5 输出格式、三级容错、id_range | 提交件 item 字段沿用 SCHEMA.md §4（`concept_ids` 更名为 `concept_refs`；`assertion_id`/`proposition_id` 由 M4 重新分配） | 格式复用 |
-| `pipeline/TASKGEN_HANDOFF.md` | taskgen 平台化交接 | 七政模板缺失（D-16） | 参照 |
-
-### 5.2 Adapter 链路
-
-```text
-人 / 外部 Agent（未来：Model Adapter）
-  └ 按工位 5 格式写草稿（可经 run_task.py --model manual 归档）
-      └ adapters/task_pipeline.normalize_task_output → 提交件（单一类别）
-          └ submit.run_m4_submit → m4 submit StepRun（冻结 M3 包 + corpus_spans）→ candidate_submission（sealed）
-fixture 金标（D-02）───────────────────────────────┘
-canon 目录 → adapters/registry.register_technique_profile → technique_profile（运行级 sealed）
-
-step.run_m4（m4 assemble StepRun；冻结 M3 包、corpus_package、corpus_spans、technique_profile、全部提交件）
-  → 每路 candidate_lane_set（Checkpoint）→ dispute_queue（Checkpoint）
-  → [有分歧] await_human → record_category_ruling（每条一个 Checkpoint）→ resume_m4
-  → candidate_set（Checkpoint）→ gate.evaluate_candidates → candidate_package → m4 StagePackage → finish
-```
-
-### 5.3 §20.7 与 M4 的关系
-
-- 20.7 考的是「当前七政格局数据能否作为官方 Candidate 输入」，数据源是工作台 `ge_ju_database.sqlite`，不是 M3 语料。`run_all.sh:242-270` 先数 `original_text` 非空条数：现为 0/496，直接 FAIL，根本走不到工具存在性检查。
-- 因此 M4 薄接入无论做到什么程度，20.7 都保持 FAIL；这是规格明确要求的「不得因可作为输入的字面而判通过」（§20:943）。
-- 20.7 的准入规则（`original_text` 非空且来源引用可解析，否则 fail-closed）与本包对提交件的证据规则同口径：legacy 条目可以作为渠道 `legacy_workbench` 的提交件来源，但首切片拒收该渠道，只在可选 ACT 08 用纯函数固化准入规则。
-- 风险提示（D-12）：20.7 在数据非空后只查文件是否存在，判据偏弱。
+1. **消费级别与状态上限**：M4 产出 `content_status ∈ {machine_extracted, disputed, needs_expert}`；不得出现 `cross_model_reviewed` / `expert_verified`。
+2. **路别闭集**：`lane ∈ {a, b, c}`；首切片拒收 `c`（复核路预留）。渠道闭集 `{fixture_gold, task_pipeline_manual, model_adapter, legacy_workbench}`；首切片只收前两个。
+3. **规范化字节**：`canonical_json(obj) = json.dumps(obj, sort_keys=True, ensure_ascii=False, separators=(",", ":"), allow_nan=False).encode("utf-8")`；`sha256_hex(data)`。YAML 导出用 `yaml.safe_dump(obj, allow_unicode=True, sort_keys=False)`。
+4. **Checkpoint 粒度**（§17.1:843）：submit StepRun 1 个；assemble 每路 1 个 → `reconcile` → 每条裁决 1 个（task_id = dispute_id）→ `assemble`。
+5. **Gate 独立**：`gate.py` 不 import `assemble` / `submission`，页块自算；`acceptance.py` 不 import `assemble` / `gate` / `submission`，不读 `run_m4`/`resume_m4` 返回的 gate 报告。
+6. **异常分层**照搬 impl-02：begin 之前的解析、拒绝原样外抛；begin 之后分 `input_contract`/`candidate_gate`/`internal`（以及 assemble 的 `assemble`）失败封存。
+7. **测试宿主**：测试只用 `tempfile` 目录；读 fixture `spans.yaml` 仅作只读输入；生产代码非测试文件不出现 `_fixture`。
+8. **派发分组**：K1 = ACT 00–02（纯函数）；K2 = 03–04（Ledger，前置 impl-02 `ACCEPTED`）；K3 = 05–06；K4 = 07（前置 fixture 金标独占 ACT 落地）；K5 = 08（可选）。
 
 ## 6. 契约
 
 ### 6.1 上游输入契约
 
-**M3（impl-02）**
+**M3（impl-02，已验收）**
 
-- m3 StepRun `status == "succeeded"`；其 Transformation `operation == "compile_corpus"` 的输出恰含 1 个 `corpus_package`、1 个 `corpus_spans`（D-15）。
-- m3 StagePackage（`stage_packages` 表只读 SELECT 定位，列名以 `pipeline/ledger/store.py` 建表语句为准）内容 JSON：`payload.spans_revision_id` 等于上面的 corpus_spans 修订；`payload.gate_profile == "structural_only"`；`manifest.content_sha256 == sha256(corpus_spans 字节)`。
-- `corpus_spans` 字节为 YAML。顶层键：`work, source_id, edition_part_artifact_id, evidence_level, content_status, span_count, batch_count, spans`。Span 键：`span_id, batch_id, page, line_index, start_offset, end_offset, text, source_anchor`。offset 相对页块（同页 Span 文本以 `"\n"` 连接），`block[start:end] == text`。
+- m3 StepRun `status == "succeeded"`；`list_transformations(m3_step_run_id)` 中存在 `operation == "compile_corpus"` 的记录（`service.py:129-131` 只返回表行，故仅用于确认 operation）。
+- 该运行 `result_json["output_artifact_ids"]` 中按 `artifacts.artifact_type` 只读 SELECT 恰有 1 个 `corpus_package`、1 个 `corpus_spans`、1 个 `coverage_report`（与 `pipeline/validation/inputs.py` 的 `_M3_CONTENT_TYPES` 同口径）。
+- m3 StagePackage（经 `stage_packages` 表只读 SELECT 定位：`stage == "m3"` 恰 1 条，`store.py:71-75`）内容 JSON：`payload.spans_revision_id` 等于上面的 corpus_spans 修订；`payload.gate_profile == "structural_only"`；`manifest.content_sha256 == sha256(corpus_spans 字节)`。
+- `corpus_spans` 字节为 YAML。顶层键：`work, source_id, edition_part_artifact_id, evidence_level, content_status, span_count, batch_count, spans`。Span 键：`span_id, batch_id, page, line_index, start_offset, end_offset, text, source_anchor`。`start_offset/end_offset` 相对页块（同页 Span 文本以 `"\n"` 连接），偏移语义见 §6.3。
 - M4 继承 `evidence_level`（mini_ed01 为 `glyphbox_level`），不得提升。
+- `fixture_ingest` 灌入的 m3 包没有 `spans_revision_id`，必须拒绝。
 
 **Contract Registry（D-05，运行级 `technique_profile`，canonical JSON）**
 
@@ -275,21 +138,28 @@ step.run_m4（m4 assemble StepRun；冻结 M3 包、corpus_package、corpus_span
 schema_version: 0.1.0-draft
 technique_id: qizheng
 canon:
-  files: [{name: bagua.yaml, sha256: <hex>}, ...]          # 按文件名排序
-  concepts: [{concept_id: co_shared_stem_01, surface: 甲, aliases: [], domain: stem, rev: 1}, ...]   # 按 concept_id 排序
+  files: [{name: bagua.yaml, sha256: <hex>}, ...]          # 按文件名排序，6 个
+  concepts: [{concept_id: co_shared_stem_01, surface: 甲, aliases: [], domain: stem, rev: 1}, ...]   # 按 concept_id 排序，合计 49
 homographs: []     # 首切片为空（目录不存在）
 glossary: []       # 首切片为空（qizheng 术语表不存在）
 schools: []        # 首切片为空（流派闭集未冻结）
 ```
 
-**Ledger（impl-01，不改其行为）**：`put_run_artifact`、`begin_step_run`、`put_artifact`、`seal_revision`、`write_checkpoint`、`await_human`、`record_human_event`、`resume`、`record_transformation`、`register_stage_package`、`finish_step_run`、`fail_step_run`；读：`get_revision`、`get_step_run`、`list_step_run_events`、`list_transformations`、`list_checkpoints`、`read_object`；允许经 `reader.store.conn` 执行只读 SELECT（artifact_type、stage_packages、frozen_inputs、human_events、processing_runs）。
+**Ledger（impl-01，不改其行为）**：`put_run_artifact`、`begin_step_run`、`put_artifact`、`seal_revision`、`write_checkpoint`、`await_human`、`record_human_event`、`resume`、`record_transformation`、`register_stage_package`、`finish_step_run`、`fail_step_run`；读：`get_revision`、`get_step_run`、`list_step_runs`、`list_transformations`、`list_checkpoints`、`read_object`；允许经 `reader.store.conn` 只读 SELECT（`artifacts.artifact_type`、`stage_packages`、`frozen_inputs`、`human_events`、`processing_runs`；缺口清单以 impl-00 README §5.2 为唯一清单）。
+
+#### 6.1.1 artifact_type 提名（P2；本包只提名，登记由该波独占 ACT 写入 INTERFACES §4）
+
+- **新增（提名）**：`candidate_submission`、`candidate_lane_set`、`dispute_queue`、`candidate_set`、`candidate_package`。
+- **复用（已在闭集）**：`configuration`、`technique_profile`、`human_event`、`validation_report`、`step_log`、`failure_report`、`stage_package`。
+- `candidate_set` 的内容结构以代码内草案契约表达（§6.3），`schema_version: "0.1.0-draft"`（P3）；`PUBLIC_RELEASE` 以 `draft_schema` 拒绝。
+- 与 `INTERFACES.md` §4 M4 行现有旧命名（`candidate_batch` / `model_run` / `candidate_diff_report`）的对账见 §10 待裁决 N1。
 
 ### 6.2 提交件 `candidate_submission`（canonical JSON；一件一类，§12.2:572）
 
 ```yaml
 schema_version: 0.1.0-draft
 category: assertion          # 闭集 assertion / pattern / school_view / concept_mention
-lane: a                      # 闭集 a / b / c；首切片拒收 c（复核路预留）
+lane: a                      # 闭集 a / b / c；首切片拒收 c
 channel: fixture_gold        # 闭集 fixture_gold / task_pipeline_manual / model_adapter / legacy_workbench；首切片只收前两个
 technique_id: qizheng
 producer: {kind: fixture, name: mini_ed01, model_id: null, prompt_sha256: null, response_sha256: null}   # kind 闭集 fixture / human / external_agent / model
@@ -309,10 +179,14 @@ items: [...]
 | concept_mention | surface, evidence | concept_ref, status |
 
 - evidence 条目：必填 `source_span_id`、`support_type ∈ {direct, interpreted}`；可选 `span_char_start` 与 `span_char_end`（必须成对，相对 Span 文本）、`quote`。
-- `relation ∈ {supports, qualifies, opposes, corresponds, equivalent}`（SCHEMA.md §4）；`layer ∈ {main, commentary, editorial, case}`，缺省 `main`；`status ∈ {null, machine_extracted}`，其他值整件拒收（与 AST_002 同口径）。
+- `relation ∈ {supports, qualifies, opposes, corresponds, equivalent}`（SCHEMA.md §4）。
+- **`layer ∈ {general, case, editorial}`，缺省 `general`**（§13.1 G4「通则 / 命例 / 注文·异文·校勘」；与 INTERFACES §3.2 一致。**修正点 F3**：原草稿写作 `{main, commentary, editorial, case}` 且缺省 `main`，其中 `main/commentary` 是 M3 语料分段层字段（`HANDBOOK.md:137`）而非 M4 主张层，已按 §13.1 G4 改正）。
+- `status ∈ {null, machine_extracted}`，其他值整件拒收（与 AST_002 同口径）。
 - `subject = {kind: assertion|pattern, key: <proposition 或 pattern name>}`。
 
 ### 6.3 CandidatePackage 结构草案（三层）
+
+坐标语义：`candidate_set` 的证据 `start_offset/end_offset` 为**相对页块的绝对偏移**（与 `corpus_spans` 的 `start_offset/end_offset` 同一坐标系：`start_offset = span.start_offset + 局部起点`）；`quote` 与 `quote_sha256` 使 M5/M8 可独立复算。与 INTERFACES §3.1 `evidenceLink` 的 `char_start/char_end`（span 相对）命名与语义差异见 §10 待裁决 N3。
 
 **(1) `candidate_set`**：纯内容、canonical JSON、不含任何修订号；无 SchoolView 时字节确定。
 
@@ -329,7 +203,7 @@ assertions:
   proposition_id: pr_qizheng_000001
   proposition: 宋錢如璧撰
   relation: supports
-  evidence:                              # 按 (Span 序, start, end) 排序
+  evidence:                              # 按 (Span 序, start_offset, end_offset) 排序
   - {source_span_id: ss_sanche_ed01_p0001_s02, support_type: direct, start_offset: 8, end_offset: 12, quote: 錢如璧撰, quote_sha256: <hex>}
   - {source_span_id: ss_sanche_ed01_p0001_s04, support_type: direct, start_offset: 27, end_offset: 32, quote: 宋錢如璧撰, quote_sha256: <hex>}
   conditions: []
@@ -339,12 +213,12 @@ assertions:
   layer: editorial
   content_status: machine_extracted      # M4 上限：machine_extracted / disputed / needs_expert
   origin: {lane: a, item_index: 1}
-patterns:                                # 字段：pattern_id, name, assertion_ids, evidence, interpretation, interpretation_status(not_captured|captured), recognition_rule_status(not_captured), content_status, origin
-school_views:                            # 字段（§12.2:570）：school_view_id(sv_), school_id(sch_), subject_entity_id, claim_refs, conflict_group_id(cg_|null), changes_current_judgment, source_refs[{source_id, source_span_id}], evidence, content_status, origin
+patterns:                                # 键：pattern_id, name, assertion_ids, evidence, interpretation, interpretation_status(not_captured|captured), recognition_rule_status(not_captured), content_status, origin
+school_views:                            # 键（§12.2:570）：school_view_id(sv_), school_id(sch_), subject_entity_id, claim_refs, conflict_group_id(cg_|null), changes_current_judgment, source_refs[{source_id, source_span_id}], evidence, content_status, origin
 concept_mentions:                        # 已绑定：surface, concept_ref, evidence, content_status, origin
 new_concept_candidates:                  # 未绑定（§12.1:557，不占 concept_id）：surface, technique_id, evidence, content_status, origin
 rejected:                                # [{category, lane, item_index, disposition: refused|ruled_out, reason_code: 九码之一|null, detail}]
-disputes:                                # [{dispute_id: m4_d001, category, key: [[span_id, start, end], ...], choice: a|b|both|neither}]
+disputes:                                # [{dispute_id: m4_d001, category, key: [[span_id, start_offset, end_offset], ...], choice: a|b|both|neither}]
 counts: {assertions, patterns, school_views, concept_mentions, new_concept_candidates, rejected, disputes, human_decisions}
 ```
 
@@ -371,7 +245,7 @@ term_layering: verify_only
 
 - `stage: m4`；`stage_package_id = ids.new_id("stage_package_id", stage="m4")`。
 - `payload`：`candidate_set_revision_id, corpus_stage_package_revision_id, spans_revision_id, technique_profile_revision_id, gate_profile, span_layer, cross_model, term_layering, content_status_counts`。
-- `manifest.input_artifacts`：M3 包用 `artifact_kind: stage_package`（携带 `stage_package_id`，§8.1:298），其余冻结输入用 `artifact_kind: artifact`；`output_artifacts: [candidate_package]`；`counts` 同 candidate_set.counts；`content_sha256 = sha256(candidate_set 字节)`。
+- `manifest.input_artifacts`：M3 包用 `artifact_kind: stage_package`（携带 `stage_package_id`，§8.1:298），其余冻结输入用 `artifact_kind: artifact`；`output_artifacts: [candidate_package]`；`counts` 同 `candidate_set.counts`；`content_sha256 = sha256(candidate_set 字节)`。
 - `validation: {passed: true, report_artifacts: [validation_report]}`；`lineage.upstream_artifacts: [M3 包, corpus_spans, technique_profile]`；`lineage.transformations: [extract_candidates]`；`logs: [step_log]`；`failures: []`。
 
 ### 6.4 人工事件形态
@@ -393,7 +267,7 @@ seen: {dispute_queue_revision_id: rev_…}
 
 Ledger 路径：`put_artifact(step, "human_event", …)` → `seal_revision` → `record_human_event(step, token, rev, decision_type=None)`（D-14）→ 立即 `write_checkpoint`（§17.1:843）。全部裁决完成后 `resume_m4` 消费 token。
 
-**(b) 专家审核决定 `review_decision`（形态由本包 ACT 06 冻结；StepRun 归属待 D-07）**
+**(b) 专家审核决定 `review_decision`（形态由本包 ACT 06 冻结；StepRun 归属 M6，D-07；本包不建签发运行、不伪造签发，P7）**
 
 ```yaml
 schema_version: 0.1.0-draft
@@ -413,7 +287,7 @@ evidence_refs: [ss_sanche_ed01_p0001_s02]
 consumption_level: INTERNAL_DEMO
 ```
 
-Ledger 路径（签发 StepRun 内）：`await_human(step, [签发队列修订])` → 每条 `put_artifact("human_event")` → `seal` → `record_human_event(..., decision_type=<同值>)` → `write_checkpoint` → 全部完成后 `resume`。内容成熟度由 `derive_content_status` 按 D-08 推导，推导结果写进签发产物的新修订，不回写 candidate_set（已封存不可变）。
+内容成熟度由 `derive_content_status` 按 D-08 推导，推导结果写进签发产物的新修订，不回写 `candidate_set`（已封存不可变）。真实签发需要用户撰写决定表（§9）。
 
 ### 6.5 Checkpoint 任务划分（§17.1:843）
 
@@ -423,23 +297,32 @@ Ledger 路径（签发 StepRun 内）：`await_human(step, [签发队列修订])
 
 ### 6.6 对下游的输出契约
 
-**M5（impl-03）**
+**M5（impl-03，已验收；扩展只写接口需求，不改 impl-03）**
 
-- 入口：m4 StagePackage（`stage == "m4"`，stage_packages 表定位）→ `payload.candidate_set_revision_id`、`payload.spans_revision_id`。
-- 每个证据条目提供 `source_span_id, start_offset, end_offset, quote, quote_sha256, support_type`；M5 可对 `spans_revision_id` 独立复核 G3（引用、逐字、证据范围）。
-- M4 保证：content_status ≤ `needs_expert`；`span_layer: structural`；`cross_model: not_evaluated`；`source_channels` 可识别 `fixture_gold` 探针；被拒条目在 `rejected` 中逐条可数。
-- M5 不得修改 candidate_set（§13:580），只能产出 ValidationPackage 引用它。
+- 现状：M5 `scope: corpus_only`（G7-RULINGS §9 第 2 条），`resolve_m5_inputs` 只解析 m3 包及其血缘 17 个修订，不读 m4。
+- 扩展需求（下一波由 M5 负责方实现）：新增解析 m4 StagePackage（`stage == "m4"`，`payload.candidate_set_revision_id`、`payload.spans_revision_id`）；对 `candidate_set` 逐条复核 G3（`source_span_id` 存在于 `spans_revision_id` 所指 spans、`start_offset/end_offset` 落在该 Span 区间、`quote` 复算一致、`quote_sha256` 复算一致、`support_type` 取值合法），并核对 `content_status ≤ needs_expert`、`span_layer == "structural"`、`cross_model == "not_evaluated"`、`rejected` 逐条可数。M5 不得修改 `candidate_set`（§13:580），只能产出 `ValidationPackage` 引用它。
+- 消费约束（G7-RULINGS §9 第 21 条）：消费 m4/m5 包须同时满足所属 StepRun `succeeded`。
 
 **M6（D-07）**
 
-- 读 candidate_set + ValidationPackage + CorpusPackage；审核事件按 6.4(b)；`derive_content_status` 可 import `pipeline.knowledge_extraction.review_events`，或由 M6 按同一契约重写。
+- 读 `candidate_set` + `ValidationPackage` + `CorpusPackage`；审核事件按 §6.4(b)；`derive_content_status` 可 import `pipeline.knowledge_extraction.review_events`，或由 M6 按同一契约重写。
 
-**M8（impl-04）**
+**M8（impl-04，已验收；知识链前三段与 GraphProjectionPack 只写接口需求，不改 impl-04）**
 
-- 首切片 mini_ed01 上 M4 **没有** Pattern、SchoolView、ApplicabilityRule，也没有 `expert_verified` 条目（除非 M6 签发）；M8 草案不得假设从 M4 拿到可做 QizhengFactSet 匹配的规则（§22.2:980），PUBLIC_RELEASE 在首切片不可达（§16.1:678）。
-- `fixture_gold` 探针只能进入 INTERNAL_DEMO。
+- 首切片 M8 只闭合尾链四段（SourceSpan→SourceAnchor→OcrPage→SourceAsset），前三段标 `not_compiled`（impl-04 README §4 D1）。M4 落地后，M8 编译前三段需要的 M4 字段：
+  - KnowledgeEntry：`subject_entity_id`（`co_*` / `pat_*`）、`title`（取自 `proposition` / `surface`）、`assertion_ids[]`、`school_view_ids[]`、`content_status`。
+  - Assertion：`assertion_id`、`proposition`、`subject_entity_id`、`evidence[]`、`school_ids[]`、`content_status`。
+  - EvidenceLink：`assertion_id`、`source_span_id`、`start_offset`、`end_offset`、`quote_sha256`（坐标语义见 §6.3 与 §10 N3）。
+  - GraphProjectionPack：节点/边身份取自 M4 的 `as_` / `pr_` / `co_*` / `sv_` / `cg_` / `pat_` 与 `evidence` 关系；首切片 mini_ed01 上 M4 **没有** Pattern / SchoolView / ApplicabilityRule，也无 `expert_verified` 条目，故 GraphProjectionPack 仍不可编译（§20.9 维持 BLOCKED，§22.2:980 的 QizhengFactSet 匹配不可达）。
+- `fixture_gold` 探针只能进入 `INTERNAL_DEMO`。
 
 **M7**：首切片不消费。
+
+**§20.6 / §20.7 与本包的关系**
+
+- §20.6（Pattern 名称/规则/解释/出处可逐项补全、`not_captured` 不误判为不存在）：M4 产出 `patterns[].interpretation_status` / `recognition_rule_status = not_captured` 与 `content_status`，但 20.6 的判定要求 M8 编译出 KnowledgeEntry（`run_all.sh:257-262` 现为 `BLOCKED M8 Dataset Compilation`），故**本包不使 20.6 转判**；本包只保证不把 `not_captured` 误判为不存在（gate 检查 8、acceptance 的 `golden_match`）。
+- §20.7（legacy 准入阈值）：与本包无直接关系（数据源是工作台 `ge_ju_database.sqlite`，非 M3 语料）。M4 薄接入**不得也不应**改变 20.7 的 FAIL（当前 496/0，`run_all.sh:242-270`）。可选 ACT 08 只以纯函数固化准入规则。
+- 本包用于转判的是 §20.1/§20.4/§20.8/§20.9 的前置之一（G7-RULINGS §9.3 第 43 条：M4 最薄接入接入后由判据自动转判，需 M6/GraphProjectionPack 一并到位）。
 
 ### 6.7 配置修订内容
 
@@ -459,10 +342,10 @@ Ledger 路径（签发 StepRun 内）：`await_human(step, [签发队列修订])
 
 | 组 | ACT | 前置 |
 |---|---|---|
-| K1 | 00 提交件与任务管线 Adapter、01 纯函数装配、02 独立候选 Gate | 规格与 fixture spans.yaml（只读）；不依赖 impl-02 验收 |
-| K2 | 03 Registry Adapter + 输入解析 + submit StepRun、04 assemble StepRun + CLI | K1 ACCEPTED；impl-02 ACCEPTED；D-04/05/09/10/13/15 |
-| K3 | 05 类别裁决与恢复、06 审核决定事件契约 | K2 ACCEPTED；D-07/08/14 |
-| K4 | 07 验收脚本 | K3 ACCEPTED；D-02 金标已由主 Agent 落地；D-11 |
+| K1 | 00 提交件与任务管线 Adapter、01 纯函数装配、02 独立候选 Gate | 规格与 fixture `spans.yaml`（只读）；不依赖 impl-02 验收 |
+| K2 | 03 Registry Adapter + 输入解析 + submit StepRun、04 assemble StepRun + CLI | K1 `ACCEPTED`；impl-02 `ACCEPTED`；D-04/05/09/10/13/15 |
+| K3 | 05 类别裁决与恢复、06 审核决定事件契约 | K2 `ACCEPTED`；D-07/08/14 |
+| K4 | 07 验收脚本 | K3 `ACCEPTED`；**fixture m4 金标独占 ACT 已落地**（D-02/P4）；D-11 |
 | K5（可选） | 08 legacy 准入纯函数 | D-12 选 A 且主 Agent 决定要做 |
 
 ## 8. 目录（落地后）
@@ -473,12 +356,12 @@ pipeline/knowledge_extraction/
   errors.py              ExtractionRefused
   serialize.py           canonical_json / sha256_hex
   submission.py          validate_submission（纯函数）
-  assemble.py            page_blocks / locate_evidence / normalize_lane / reconcile_lanes / assemble_candidates（纯函数）
+  assemble.py            page_blocks / span_index / locate_evidence / normalize_lane / reconcile_lanes / assemble_candidates（纯函数）
   gate.py                evaluate_candidates（纯函数，不依赖 assemble / submission）
   inputs.py              resolve_m3_outputs / resolve_m4_inputs（只读）
   submit.py              run_m4_submit（m4 submit StepRun）
   step.py                run_m4 / record_category_ruling / resume_m4（m4 assemble StepRun）
-  review_events.py       build_review_decision / validate_review_decision / derive_content_status（纯函数）
+  review_events.py       build_review_decision / validate_review_decision / required_decision_types / derive_content_status（纯函数）
   acceptance.py          m4-stage-gate 十六项判定
   __main__.py            python -m pipeline.knowledge_extraction {profile|submit|assemble|rule|resume}
   adapters/
@@ -493,6 +376,50 @@ pipeline/knowledge_extraction/
     test_acceptance.py test_legacy_workbench.py
 openspec/acceptance/m4-stage-gate.sh
 ```
+
+## 9. 用户待办
+
+1. **真实专家签发决定表（P7 / D-07 / D-08）**：本包只冻结 `review_decision` 形态与 `derive_content_status` 纯函数，不产生任何真实签发。任何需要真实 `expert_verified` 的条目，其决定表必须由用户本人撰写；在用户提供之前，依赖它的判定一律 **BLOCKED**，不得以测试替身或合成事件充数、不得写 `expert_verified`。
+2. **fixture m4 金标独占 ACT（P4 / D-02）**：由主 Agent 落地 `pipeline/corpus/_fixture/mini_ed01/m4/` 四个金标、`expected/m4.stage_package.yaml`，并同步扩展 fixture `verify.sh` V5/V6 到 m4。该项属共享面独占 ACT，与 impl-05 实现分离；K4 以它落地为强制前置（见 §10 N2）。
+
+## 10. 待主 Agent 裁决
+
+以下问题无法由现有裁决与原则唯一推出，保留待裁。每条给选项、推荐与证据（文件:行号）。
+
+### N1｜M4 artifact_type 登记与 INTERFACES §2.4 / §3.2 旧结构的对账
+
+- 背景与证据：`INTERFACES.md` §4 M4 行仍列旧命名 `candidate_batch` / `model_run` / `candidate_diff_report` / `candidate_set` / `candidate_package`（状态「纵切后（D-11）」）；§2.4 M4 卡片的冻结输入/任务/输出/payload 与 §3.2 `candidate_set.schema.json`（含 `concepts[]`、`term_layers`、`extraction_mode`、`model_run_revision_ids[]`）均为 G7 薄接入**之前**的旧设计。本包实际使用 `candidate_submission` / `candidate_lane_set` / `dispute_queue` / `candidate_set` / `candidate_package`（**只提名**，P2）。`check_interfaces.py:REQUIRED_TYPES` 也未枚举任何 M4 类型。
+- 选项：
+  - A（推荐）：由该波登记 ACT（impl-00 侧）一次性把 §4 M4 行改写为本包提名清单、删除旧命名，并把 §2.4/§3.2 重写为 §6.3 的薄结构；同时把 M4 类型加入 `check_interfaces.py` 的 `REQUIRED_TYPES`，作为 impl-05 的开工前提（复刻 impl-04 的 `I00-IF SUMMARY` 前置）。
+  - B：impl-05 改用 §4 旧命名（`candidate_batch` 等），不提名新名（与 D-04「每路一个 submit StepRun、输出 `candidate_submission`」的裁决冲突，不推荐）。
+  - C：旧命名与新提名并存，先在 §4 增行、不删旧行（闭集出现两套同义名，违反 P2「单一闭集、同一时刻只有一路写」）。
+- 推荐：A。
+
+### N2｜K4 是否以 fixture m4 金标独占 ACT 为强制前置
+
+- 背景与证据：`pipeline/corpus/_fixture/mini_ed01/` 目前无 `m4/`、`expected/m4.stage_package.yaml`；`verify.sh:333-400` 的 V5/V6 只覆盖 m1–m3。Q02 裁决为 A 且「金标进 fixture 须作为独占 ACT（P4）」。
+- 选项：
+  - A（推荐）：K4（ACT 07）以 fixture m4 金标 + `verify.sh` 扩展到 m4 的独占 ACT 先落地为强制前置；缺失即停手上报，执行者不得自建金标或改 fixture。
+  - B：允许 ACT 07 以 `--gold-dir pipeline/knowledge_extraction/tests/data/appendix_a` 退避判定（削弱 §20:935「统一验收宿主」口径，不推荐）。
+  - C：本批不建 `m4-stage-gate.sh`，只以单测验收（放弃 §19.0:908 判据，不推荐）。
+- 推荐：A。
+
+### N3｜候选证据的坐标键名与语义（与 INTERFACES §3.1 evidenceLink / §6 I-11 不一致）
+
+- 背景与证据：本包 `candidate_set` 证据用 `start_offset` / `end_offset`，语义为**相对页块的绝对偏移**（`corpus_spans` 坐标系；附录 A 期望 `s02 [8,12]`、`s04 [27,32]` 皆页块绝对）。`INTERFACES.md` §3.1 `evidenceLink` 与 §6 I-11 定义为 `char_start` / `char_end`，语义为**相对所引 span `text`**；§3.10 `evidence_map_pack` 的 `evidence_link` 亦用 `char_start` / `char_end`，而 impl-04 已验收的 `evidence_map_pack` entry 又用 `start_offset` / `end_offset`（相对页块）。命名与语义在两处已互相矛盾。
+- 选项：
+  - A（推荐）：以 M3 `corpus_spans` 的页块绝对坐标为准，M4 统一用 `start_offset` / `end_offset`；由登记/契约 ACT 同步修改 INTERFACES §3.1、§6 I-11、§3.10，明确 `char_start/char_end` 为「相对 span 文本」的别名或删除之，并要求 M8 `evidence_link` 一并改写。
+  - B：M4 改用 span 相对 `char_start` / `char_end`（与 INTERFACES 现状一致），页块绝对偏移由 M5/M8 以 `span.start_offset + char_start` 复算；需 M8 `evidence_map_pack` 与 impl-04 验收口径同步调整。
+  - C：两个坐标系同时携带（`char_start/char_end` 相对 + `start_offset/end_offset` 绝对），冗余但无歧义；代价是候选体积与一致性检查翻倍。
+- 推荐：A（单一坐标源，M8 尾链与社区锚点都用页块坐标；`quote`/`quote_sha256` 已足以独立复核）。
+
+### N4｜`candidate_set` 的 `gate`/`validation` 结果是否落盘
+
+- 背景与证据：G7-RULINGS §9.5 第 46 条修订第 34 条：**Stage Gate 报告**首纵切不落盘，由 `evaluate_stage_gate` 返回并打印。本包 ACT 04 把候选 Gate 结果写成**本 StepRun 内**的 `validation_report` 修订（复用已登记类型），可由公开读接口取回，与编排层 Stage Gate 报告不是同一对象。
+- 选项：
+  - A（推荐）：保留落盘为同 StepRun 的 `validation_report`（属于模块自检，非编排 Stage Gate 报告；可经公开读接口取回，不违反第 46 条）。
+  - B：M4 候选 Gate 报告也不落盘，只由 `run_m4` 返回并打印（与 impl-04 的 `validation_report` 子包先例不一致，且 M5 无法从 Ledger 复核）。
+- 推荐：A。
 
 ## 附录 A：fixture 金标提案（D-02 选 A 时由主 Agent 落地；测试数据副本放 `tests/data/appendix_a/`）
 
@@ -530,7 +457,7 @@ items:
 
 期望结果（`expected/m4.stage_package.yaml` 的 counts 与 payload 依此计算）：
 
-- `assertions`：`as_qizheng_000001`「宋錢如璧撰」（证据 s02 [8,12]「錢如璧撰」、s04 [27,32]「宋錢如璧撰」）；`as_qizheng_000002`「三辰通載三十卷」（证据 s04 [20,27]）。排序键为 (首条证据 Span 序, 首条证据 start, proposition, relation)，s02 在 s04 之前，故「宋錢如璧撰」取 000001。
+- `assertions`：`as_qizheng_000001`「宋錢如璧撰」（证据 s02 [8,12]「錢如璧撰」、s04 [27,32]「宋錢如璧撰」）；`as_qizheng_000002`「三辰通載三十卷」（证据 s04 [20,27]）。排序键为 (首条证据 Span 序, 首条证据 start_offset, proposition, relation)，s02 在 s04 之前，故「宋錢如璧撰」取 000001。
 - `new_concept_candidates`：「身宮」s12 [68,70]；「官祿宮」s19 [119,122]。
 - `rejected`：1 条（assertion / b / item_index 2 / refused / TXT_001）。
 - `disputes`：1 条 `m4_d001`（key `[[ss_sanche_ed01_p0001_s02,8,12],[ss_sanche_ed01_p0001_s04,27,32]]`，choice a）。

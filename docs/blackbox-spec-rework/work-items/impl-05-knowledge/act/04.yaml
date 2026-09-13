@@ -17,7 +17,8 @@ contract: |
       1 inputs = resolve_m4_inputs(service, ep, technique_profile_revision_id=…)；submissions 为空 → ExtractionRefused(code="REF_001")
       2 required = 对出现的每个 category 取 required_lanes[category]；缺必需路 → ExtractionRefused(code="REF_001", message 含「缺必需路」)
     写入：
-      3 config = put_run_artifact(processing_run_id, "configuration", canonical_json({"stage": "m4", "task": "assemble", "tool": M4_TOOL, "tool_version": M4_TOOL_VERSION, "gate_profile": "thin_no_model", "id_range", "required_lanes", "term_layering": "verify_only"}), …)
+      3 config_id, config = put_run_artifact(processing_run_id, "configuration", canonical_json({"stage": "m4", "task": "assemble", "tool": M4_TOOL, "tool_version": M4_TOOL_VERSION, "gate_profile": "thin_no_model", "id_range", "required_lanes", "term_layering": "verify_only"}), …)
+        （put_run_artifact 返回 (artifact_id, artifact_revision_id) 二元组；后续 configuration_artifact_id / configuration_revision_id 取 config）
       4 frozen = [corpus_stage_package_revision_id, corpus_package_revision_id, spans_revision_id, technique_profile_revision_id] + 提交件修订（按 CATEGORIES 序、lane 序）
         step = begin_step_run(StepRequest，technique_profile_id = technique_id)
         begin 之后：未预期异常 → _fail(step, "internal", …)；下面列出的检查名 → _fail(step, <检查名>, …)
@@ -26,21 +27,21 @@ contract: |
         profile = json.loads(technique_profile)，profile.technique_id == technique_id；
         每件提交件 json.loads 后 validate_submission(…, technique_id) 通过，且 category/lane 与 inputs 键一致
       6 每路（按 frozen 中提交件顺序）：lane = assemble.normalize_lane(submission, spans_doc=…, profile=…)
-        lane_rev = put_artifact(step, "candidate_lane_set", canonical_json(lane)) → seal
+        _, lane_rev = put_artifact(step, "candidate_lane_set", canonical_json(lane)) → seal
         write_checkpoint(task_id "lane_<category>_<lane>"，completed_tasks 只含本 task，human_decisions=[]，pending_queue = 其后各 lane task + "reconcile" + "assemble"，next_pointer = 首个待办)
       7 rec = assemble.reconcile_lanes(lane_results, required_lanes=required)
-        queue_rev = put_artifact(step, "dispute_queue", canonical_json({"disputes": rec["disputes"]})) → seal
+        _, queue_rev = put_artifact(step, "dispute_queue", canonical_json({"disputes": rec["disputes"]})) → seal
         write_checkpoint(task_id "reconcile"，pending_queue = [{"task_id": d.dispute_id} …] + [{"task_id": "assemble"}])
       8 若 rec["disputes"] 非空：token = service.await_human(step, [queue_rev])
         返回 summary {status: "awaiting_human", processing_run_id, step_run_id, configuration_revision_id, frozen_input_revision_ids, dispute_queue_revision_id, dispute_ids, resume_token: token}
         （不产出 candidate_set 与 StagePackage；ACT 05 的 resume_m4 从第 9 步继续）
       9 _complete(service, step, ctx, rulings={}, human_event_revision_ids=[])（ACT 05 复用，签名逐字）：
         a result = assemble.assemble_candidates(spans_doc=…, profile=…, lane_results=…, required_lanes=…, rulings=…, id_range=…, id_factory=…)（ExtractionRefused → 检查名 assemble）
-        b set_rev = put_artifact(step, "candidate_set", result.candidate_bytes) → seal；write_checkpoint(task_id "assemble", human_decisions = human_event_revision_ids, pending_queue=[], next_pointer=None)
+        b _, set_rev = put_artifact(step, "candidate_set", result.candidate_bytes) → seal；write_checkpoint(task_id "assemble", human_decisions = human_event_revision_ids, pending_queue=[], next_pointer=None)
         c gate = gate.evaluate_candidates(spans_doc=…, profile=…, candidate_set=result.candidate_set, config=配置内容)
-        d validation_report = put "validation_report"（canonical_json gate）→ seal；log = put "step_log" → seal
+        d _, validation_report = put "validation_report"（canonical_json gate）→ seal；_, log = put "step_log" → seal
         e gate.structural == "failed" → _fail(step, "candidate_gate", ",".join(failed_checks))
-        f package_rev = put "candidate_package"（canonical_json：README §6.3(2) 的键逐字）→ seal
+        f _, package_rev = put "candidate_package"（canonical_json：README §6.3(2) 的键逐字）→ seal
         g transformation_id = record_transformation(step, operation="extract_candidates", tool=M4_TOOL, tool_version=M4_TOOL_VERSION, configuration_revision_id=config, input_revision_ids=frozen, output_revision_ids=[package_rev, set_rev], validation_report_revision_id=validation_report, human_event_revision_ids=human_event_revision_ids, model_ref=None)
         h StagePackage：stage_package_id = ids.new_id("stage_package_id", stage="m4")；package_revision_id = ids.new_id("artifact_revision_id")
           ref(rev) = artifact_kind "artifact" 的 ArtifactRef；m3 包使用 {"schema_version": "1.0.0", "artifact_kind": "stage_package", "stage_package_id": corpus_stage_package_id, "artifact_revision_id", "artifact_type": "stage_package"}
@@ -81,7 +82,7 @@ tests:
     - test_unexpected_exception_after_begin_is_internal
     - test_cli_exit_codes（subprocess：assemble 成功 0 且末行以 "M4 OK" 开头；无提交件 2 且以 "M4 REFUSED" 开头；金标两路 4 且以 "M4 AWAITING_HUMAN" 开头）
 verify:
-  - .venv/bin/python -m unittest discover -s pipeline/knowledge_extraction/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 86
+  - .venv/bin/python -m unittest discover -s pipeline/knowledge_extraction/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 94
   - export LC_ALL=en_US.UTF-8; bash openspec/acceptance/run_all.sh | tail -1                          # == BASELINE_RUN_ALL
   - TDD §3 回归
 commit:

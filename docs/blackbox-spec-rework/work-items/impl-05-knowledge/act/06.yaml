@@ -8,12 +8,13 @@ scope:
   write: [pipeline/knowledge_extraction/review_events.py, pipeline/knowledge_extraction/tests/test_review_events.py]
 tests_first:
   - 先写 tests/test_review_events.py（用例名逐字）并全红，再实现
+  - P7：本 ACT 只测纯函数；所有 review_decision 输入均为明确标注的合成测试替身（不写 Ledger、不建签发 StepRun），不代表任何真实专家决定；真实签发由用户撰写决定表（README §9）
 contract: |
   review_events.py（纯函数：不访问 Ledger、不读文件）
     VERDICTS = ("accept", "modify", "reject", "request_evidence", "school_dispute")      # D-08
     ENTITY_KINDS = {"assertion": "assertion_id", "pattern": "pattern_id", "school_view": "school_view_id"}   # 值为 pipeline.ledger.ids 家族名
     CONSUMPTION_LEVELS = ("INTERNAL_DEMO", "DEV_SEARCH", "PUBLIC_RELEASE")
-    REVIEW_STAGE = "m6"                                                                   # D-07 推荐 A
+    REVIEW_STAGE = "m6"                                                                   # D-07 裁决 A（签发归属 M6）
     build_review_decision(*, decision_type, verdict, entity_kind, entity_id, seen_artifact_revision_id, processing_run_id, step_run_id, actor_ref, rationale, evidence_refs=(), consumption_level="INTERNAL_DEMO") -> dict
       返回键逐字：schema_version(CANDIDATE_SCHEMA_VERSION), event_kind("review_decision"), stage(REVIEW_STAGE), decision_type, verdict,
                   target{entity_kind, entity_id, artifact_revision_id}, processing_run_id, step_run_id, actor_ref, rationale, evidence_refs(list), consumption_level
@@ -49,7 +50,7 @@ tests:
     - test_modify_or_request_evidence_gives_needs_expert
     - test_decision_on_other_revision_ignored
 verify:
-  - .venv/bin/python -m unittest discover -s pipeline/knowledge_extraction/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 107
+  - .venv/bin/python -m unittest discover -s pipeline/knowledge_extraction/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 118
   - grep -nE '^\s*(from|import) .*(service|store)|open\(' pipeline/knowledge_extraction/review_events.py | wc -l   # 0
   - TDD §3 回归
 commit:

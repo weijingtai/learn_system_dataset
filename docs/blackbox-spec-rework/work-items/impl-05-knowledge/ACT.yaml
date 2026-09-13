@@ -1,29 +1,19 @@
 package: blackbox-impl-05-knowledge
-title: M4 Knowledge Extraction 最薄接入（§12、§12.1、§12.2、§22.3）——无模型提交件登记、候选装配、类别裁决、审核事件契约
-status: DRAFT   # 起草 Agent 产出；README §4 的 D-01～D-16 裁决后由主 Agent 改 READY
+title: M4 Knowledge Extraction 最薄接入（§12、§12.1、§12.2、§19.0、§22.3）——无模型提交件登记、候选装配、类别裁决、审核事件契约
+status: READY_FOR_REVIEW   # W4-G 定稿 2026-09-13，依 G7-RULINGS §1 P1–P9、§3 impl-05、§9 第 2/10/13/17/21 条、§9.2 第 27 条、§9.3 第 43 条；未经实现；派发前置见 preconditions
 executor_groups:
   K1: [impl-05/00, impl-05/01, impl-05/02]   # 纯函数；一个执行 Agent 串行；不依赖 impl-02 验收
   K2: [impl-05/03, impl-05/04]               # Ledger 集成；K1 ACCEPTED 且 impl-02 ACCEPTED 后派发
   K3: [impl-05/05, impl-05/06]               # 人工事件；K2 ACCEPTED 后派发
-  K4: [impl-05/07]                           # 验收脚本；K3 ACCEPTED 且 D-02 金标已落地后派发
+  K4: [impl-05/07]                           # 验收脚本；K3 ACCEPTED 且 fixture m4 金标独占 ACT 已落地后派发
   K5: [impl-05/08]                           # 可选；D-12 选 A 且主 Agent 决定要做时派发
-pending_decisions:   # 改选任一裁决项会影响的 ACT
-  D-01: [impl-05/00, impl-05/03]
-  D-02: [impl-05/07]
-  D-03: [impl-05/01, impl-05/02, impl-05/07]
-  D-04: [impl-05/03, impl-05/04]
-  D-05: [impl-05/01, impl-05/03]
-  D-06: [impl-05/01, impl-05/02, impl-05/07]
-  D-07: [impl-05/06]
-  D-08: [impl-05/06]
-  D-09: [impl-05/01, impl-05/02, impl-05/04]
-  D-10: [impl-05/01, impl-05/02, impl-05/04]
-  D-11: [impl-05/07]
-  D-12: [impl-05/08]
-  D-13: [impl-05/01, impl-05/02]
-  D-14: [impl-05/05]
-  D-15: [impl-05/03]
-  D-16: [impl-05/00]
+preconditions:
+  - K2 起：impl-02（M3 结构层）状态 ACCEPTED，且 run_m3 输出契约与 README §6.1 一致
+  - 下游解析 m3 StagePackage 只接受所属 StepRun `succeeded` 的包（P5；impl-02 ACCEPTANCE §5.3）
+  - P2/待裁决 N1：本包新增 artifact_type（candidate_submission / candidate_lane_set / dispute_queue / candidate_set / candidate_package）须由该波登记 ACT 写入 impl-00-interfaces/INTERFACES.md §4 闭集；开工前提为 `python3 docs/blackbox-spec-rework/work-items/impl-00-interfaces/check_interfaces.py` 末行 `I00-IF SUMMARY pass=18 fail=0` 且 exit 0，且 §4 已含上述 M4 类型（未登记不得实现）
+  - K4 起：fixture m4 金标独占 ACT 已落地——`pipeline/corpus/_fixture/mini_ed01/m4/` 四个金标与 `expected/m4.stage_package.yaml` 存在，且 fixture `verify.sh` V5/V6 已扩展到 m4（P4/D-02；缺失即停手上报，执行者不得自建）
+  - P7：真实 `expert_verified` 签发决定表由用户撰写（README §9）；本包测试只用 fixture 已登记人工事件或明确标注的测试替身，不伪造签发
+  - 本包写范围与 impl-08（pipeline/orchestrator/、pipeline/contract_registry/）零交集；不写 openspec/acceptance/run_all.sh
 acts:
   - file: act/00.yaml
     id: impl-05/00
@@ -57,16 +47,17 @@ global_rules:
   - 只用标准库 + PyYAML + jsonschema；不新增依赖；不新增 ID 前缀（task_id、dispute_id 是任务标签，不是登记册 ID）；不调用模型 API
   - 生产代码只读 Ledger 冻结修订；Adapter 入口（adapters/）读外部文件后必须先登记进 Ledger 才能被 M4 核心消费；测试可读 fixture 作输入或金标
   - 生产代码不得 import pipeline/validators、pipeline/tools、pipeline/runner 下的脚本
-  - M4 产出的 content_status 只能是 machine_extracted / disputed / needs_expert
+  - M4 产出的 content_status 只能是 machine_extracted / disputed / needs_expert；不得出现 expert_verified / cross_model_reviewed（P7）
   - 中文注释与 docstring；公开函数名、参数名、返回键、检查名、task_id、artifact_type 与 ACT contract 逐字一致
-  - 每个 ACT 一个提交；不得 git add -A / git add .；执行者不写台账、不写 ACCEPTED
+  - 每个 ACT 一个提交；不得 git add -A / git add .；执行者不写台账、不写 ACCEPTED、不伪造人工签发
 gates:
   - bash docs/blackbox-spec-rework/verify-T.sh | tail -1                               # FAIL 合计: 0
   - bash docs/blackbox-spec-rework/work-items/g3-r3/mutations.sh all | tail -1         # 与基线相同
   - bash openspec/schemas/verify.sh >/dev/null; echo $?                                # 0
-  - .venv/bin/python -m unittest discover -s pipeline/ledger/tests -t .                # OK（与基线相同）
-  - .venv/bin/python -m unittest discover -s pipeline/corpus_compiler/tests -t .       # OK（与基线相同）
-  - .venv/bin/python -m unittest discover -s pipeline/knowledge_extraction/tests -t .  # OK（ACT 00 起）
+  - python3 docs/blackbox-spec-rework/work-items/impl-00-interfaces/check_interfaces.py  # 末行 I00-IF SUMMARY pass=18 fail=0；exit 0
+  - .venv/bin/python -m unittest discover -s pipeline/ledger/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"          # 与基线相同
+  - .venv/bin/python -m unittest discover -s pipeline/corpus_compiler/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)" # 与基线相同
+  - .venv/bin/python -m unittest discover -s pipeline/knowledge_extraction/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"  # OK（ACT 00 起，用例数达 TDD §1 阈值）
   - export LC_ALL=en_US.UTF-8; bash openspec/acceptance/run_all.sh | tail -1           # == TDD §0 BASELINE_RUN_ALL
   - test ! -e pipeline/tools/import_legacy_candidates.py; echo $?                      # 0
   - git diff --check

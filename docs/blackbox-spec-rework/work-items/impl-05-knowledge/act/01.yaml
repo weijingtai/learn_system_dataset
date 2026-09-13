@@ -20,7 +20,7 @@ contract: |
     成功返回 {"source_span_id", "support_type", "start_offset", "end_offset", "quote", "quote_sha256"}；失败抛 _ItemRejected(reason_code, detail)（模块私有异常）
     E1 source_span_id 不在 index → REF_001
     E2 有 span_char_start/end：0 ≤ s < e ≤ len(text)，否则 TXT_001；q = text[s:e]；若同时给 quote 且 quote != q → TXT_001
-    E3 只有 quote：text.count(quote) == 1 → s = text.index(quote)；== 0 → TXT_001（「quote 不在 Span 内」）；> 1 → TXT_001（「quote 在 Span 内不唯一」）
+    E3 只有 quote：text.count(quote) == 1 → s = text.index(quote)，e = s + len(quote)；== 0 → TXT_001（「quote 不在 Span 内」）；> 1 → TXT_001（「quote 在 Span 内不唯一」）
     E4 都没有：s = 0，e = len(text)
     start_offset = span.start_offset + s；end_offset = start_offset + (e - s)；quote_sha256 = sha256_hex(quote.encode("utf-8"))
   normalize_lane(submission, *, spans_doc, profile) -> dict
@@ -103,7 +103,7 @@ tests:
     - test_school_view_with_synthetic_profile（profile schools 含 sch_qizheng_001；注入计数 id_factory；同 conflict_key 共用 cg_）
     - test_deterministic_bytes_twice
 verify:
-  - .venv/bin/python -m unittest discover -s pipeline/knowledge_extraction/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 38
+  - .venv/bin/python -m unittest discover -s pipeline/knowledge_extraction/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 41
   - grep -nE '^\s*(import|from) .*(service|store|sqlite3)|open\(' pipeline/knowledge_extraction/assemble.py | wc -l   # 0
   - TDD §3 回归
 commit:

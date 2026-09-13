@@ -58,7 +58,7 @@ tests:
     - test_extra_top_key_fails_schema_shape
     - test_gate_does_not_import_assemble_or_submission（读 gate.py 源码，不含 "assemble" 与 "submission" 的 import 语句）
 verify:
-  - .venv/bin/python -m unittest discover -s pipeline/knowledge_extraction/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 59
+  - .venv/bin/python -m unittest discover -s pipeline/knowledge_extraction/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 65
   - grep -nE '^\s*(from|import) .*(assemble|submission)' pipeline/knowledge_extraction/gate.py | wc -l   # 0
   - TDD §3 回归
 commit:

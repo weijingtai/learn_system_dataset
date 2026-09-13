@@ -7,9 +7,10 @@ pending_decisions: [D-02, D-03, D-06, D-11]
 scope:
   write: [pipeline/knowledge_extraction/acceptance.py, pipeline/knowledge_extraction/tests/test_acceptance.py, openspec/acceptance/m4-stage-gate.sh]
 preconditions:
-  - pipeline/corpus/_fixture/mini_ed01/m4/ 已由主 Agent 落地附录 A 四个文件，expected/m4.stage_package.yaml 已存在；缺失即停手上报，执行者不得自建
+  - pipeline/corpus/_fixture/mini_ed01/m4/ 已由主 Agent 的独占 ACT 落地附录 A 四个文件，expected/m4.stage_package.yaml 已存在，且 fixture verify.sh 的 V5/V6 已扩展到 m4（P4/D-02）；任一缺失即停手上报，执行者不得自建金标或改 fixture
 tests_first:
   - 先写 tests/test_acceptance.py（用例名逐字）并全红，再实现 acceptance.py，最后新建 m4-stage-gate.sh
+  - P7：本 ACT 的验收路径只用 fixture 已登记的人工事件（金标类别裁决），不产生也不伪造 expert_verified；任何依赖真实专家签发的判定恒 BLOCKED，不得写成 PASS
 contract: |
   acceptance.py：python -m pipeline.knowledge_extraction.acceptance --fixture <dir> [--gold-dir <dir>] [--canon-dir <dir>] [--keep]
     --gold-dir 缺省 <fixture>/m4；--canon-dir 缺省 仓库根/pipeline/schemas/shared/canon（由本模块路径推出）
@@ -64,7 +65,7 @@ tests:
     - test_shell_exit_2_on_fixture（subprocess 运行 m4-stage-gate.sh，末行 SUMMARY pass=13 fail=0 blocked=3，exit 2）
     - test_shell_never_trusts_copy_verify（fixture 副本删一条 span，把副本 verify.sh 换成 `echo FIXTURE OK; exit 0` → exit 1，首行以 "FAIL fixture_host" 开头）
 verify:
-  - .venv/bin/python -m unittest discover -s pipeline/knowledge_extraction/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 118
+  - .venv/bin/python -m unittest discover -s pipeline/knowledge_extraction/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 129
   - export LC_ALL=en_US.UTF-8; bash openspec/acceptance/m4-stage-gate.sh; echo exit=$?               # 13 PASS + 3 BLOCKED + SUMMARY pass=13 fail=0 blocked=3；exit=2
   - grep -c 'FIXTURE_DIR/verify.sh' openspec/acceptance/m4-stage-gate.sh                              # 0
   - grep -nE '^\s*(from|import) .*(assemble|\.gate|submission)' pipeline/knowledge_extraction/acceptance.py | wc -l   # 0
