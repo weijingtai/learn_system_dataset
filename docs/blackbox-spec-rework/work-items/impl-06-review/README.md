@@ -1,230 +1,180 @@
-# impl-06：M6 Review & Curation 与 Review Console 最薄接入（§14、§14.1、§22.3）
+# impl-06：M6 Review & Curation 最薄接入（§14、§14.1、§16.3.2、§22.3）
 
-状态：`DRAFT`（起草 Agent 产出；§4 待裁决条目未经主 Agent 定案前不得派发，不写 PROMPT 与 ACCEPTANCE）
+状态：`READY_FOR_REVIEW`（W5-H 定稿 2026-09-13，依 `G7-RULINGS.md` §1 P1–P9、§4 impl-06、§9.3 第 34–43 条、§9.5 第 45–46 条、§9.6–§9.11 第 47–58 条；未经实现；派发前置见 §7 与 `PROMPT-H1.md`）。
 
 ## 1. 目标
 
-在 `pipeline/review/` 落地规格 §14 的 M6 **M6 模式**最薄实现，以及 §14.1 精确失效传播的首切片：
+在 `pipeline/review/` 落地规格 §14 的 M6 **最薄接入**与 §14.1 精确失效传播的首切片（`G7-RULINGS` §4：D-02 采纳 CLI、D-11 采纳 fixture 金标注入）：
 
-1. 从 Artifact Ledger 冻结读取 CorpusPackage（M3）、CandidatePackage（M4）、ValidationPackage（M5），确定性生成审核队列（Candidate × 必审 ReviewDecision 类型）；
-2. 经 §7.1 `await_human` → `record_human_event` → `resume` 接口，把每条人工决定写成不可变 `human_event` 修订，**每条决定被 Ledger 接受后即时写一个 StageCheckpoint**（§17.1）；
-3. 以独立实现的 M6 Review Gate 判定零未解决项，产出 `ReviewedEditionPackage` 与 m6 StagePackage，并登记带全部人工决定的 Transformation（§20.3）；
-4. 最薄 Review Console：命令行（推荐，见 D-02），只读对照原文/字框锚点/校验结果，并执行接受、修改、驳回、补证、流派归属与 CorrectionRequest；
-5. 精确失效传播：上游 Span 修正后按对象级血缘机器判定失效/继承/待复核，封存 `ReworkImpactReport`，复审只重放待复核项；
-6. （依 D-01）为 M8 提供 `CanonicalKnowledgeSnapshot` 首切片直通投影。
+1. 从 Artifact Ledger 冻结读取 M3 `corpus_package`/`corpus_spans`、M4 `candidate_package`/`candidate_set`、M5 `validation_package`/`gate_results`，确定性生成审核队列（候选对象 × 必审 ReviewDecision 类型）。
+2. 复用 impl-05 已冻结的 `pipeline.knowledge_extraction.review_events`（`build_review_decision`/`required_decision_types`/`derive_content_status`，§8.2 八类 × D-08 verdict 闭集），把每条人工决定写成不可变 `human_event` 修订，**每条决定被 Ledger 接受后即时写一个 StageCheckpoint**（§17.1:840-846）。
+3. 以独立实现的 M6 Review Gate 判定零未解决项，产出 `reviewed_edition`（主内容）、`reviewed_edition_package`（阶段输出）与 m6 StagePackage，并登记带全部人工决定的 Transformation（§20.3）。
+4. 最薄 Review Console：命令行 `python -m pipeline.review`（D-02 A），只读对照原文/字框锚点/校验结果，执行接受、修改、驳回、补证、流派分歧与 CorrectionRequest。
+5. 精确失效传播：按对象级引用血缘机器判定失效/继承/待复核，封存 `ReworkImpactReport`，复审只重放待复核项（§14.1:633-645）。
+6. （依 D-01，待裁）为 M8 提供 `CanonicalKnowledgeSnapshot` 首切片直通投影。
 
-M4/M5 尚未实现，本包以**非生产测试桩**（`pipeline/review/testing/`）把最小 Candidate/Validation 注入真实 Ledger 推进（D-11）。
+M4 已实现（impl-05 `ACCEPTED`，`pipeline/knowledge_extraction/**`），M5 已实现但 `scope: corpus_only`（`pipeline/validation/**`）；M5 尚未消费 M4 候选，candidate 级校验由 M6 自身独立完成。本包对**尚不存在**的部分——真实 `expert_verified` 签发（P7）、M4' 重跑与 M5' 候选校验——以非生产测试桩与合成金标推进（D-11），并在验收中如实 BLOCKED（第 52/53 条标注）。
 
-完成判据（本批唯一的「做完」定义，按 D-12 推荐方案书写，裁决后改写）：
+完成判据（本批唯一的「做完」定义）：
 
 ```bash
 export LC_ALL=en_US.UTF-8
-.venv/bin/python -m unittest discover -s pipeline/review/tests -t . 2>&1 | tail -1   # OK（用例数 ≥ 110）
+.venv/bin/python -m unittest discover -s pipeline/review/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK（用例 ≥ 116）
 bash openspec/acceptance/m6-data-fields.sh; echo exit=$?
 # 期望：12 行 PASS + BLOCKED legacy_workbench_seed + BLOCKED upstream_real
 #       末行 SUMMARY pass=12 fail=0 blocked=2；exit=2
-bash openspec/acceptance/run_all.sh | tail -1      # 仍为 SUMMARY pass=2 fail=1 blocked=8（本批不改 run_all.sh，D-17）
-bash openspec/acceptance/m3-coverage.sh | tail -1  # 仍为 SUMMARY pass=8 fail=0 blocked=1（不回退）
+bash openspec/acceptance/run_all.sh | tail -1      # 与开工基线逐字相同（本批不改 run_all.sh，D-17）
+bash openspec/acceptance/m3-coverage.sh | tail -1  # 与开工基线相同（不得回退）
 ```
 
-返回 2 而非 0 的原因：上游是测试桩（M4/M5 未实现），旧工作台数据体（§19 M6 行实测 `original_text` 非空 0/496）未迁入；§19.0「M6 数据体字段缺失」差距仍标记为未关闭。
+返回 2 而非 0 的原因：M5 仍是 `corpus_only`（candidate 级校验缺失）、旧工作台数据体（§19:880，`original_text` 非空 0/496）未迁入、真实人工签发由用户撰写（P7）。
 
 ## 2. 依据（只读来源，文件:行号）
 
-- 规格 `openspec/learn-system-blackbox-architecture.md`
-  - §5 Review Console 不是第九 Module、人工决定归属原 StepRun：130；PendingQueue 第 4 队列「M6 待签发」：119-124；`ReworkImpact`：126
-  - §6.1 EditionRun 链到 ReviewedEditionPackage：138-147；§6.2 Snapshot 由 ReleaseRun/M7 产出：153-175
-  - §7 冻结输入：181-207；§7.1 一个 StepRun 覆盖整条人工队列、`resume_token`、`record_human_event`/`resume`：209-226
-  - §8 包结构与不可变：232-243；§8.1 `entity_id`/`artifact_revision_id` 分离、ReviewDecision 双锚：257-267；UUIDv4/人工闭集前缀：288-322
-  - §8.2 内容成熟度 7 态：335-347；ReviewDecision 8 类：349-364；Artifact status 与迁移：384-404；StepRun 迁移：406-430；四轴正交：432-440
-  - §12.2 SchoolView 字段与 `review_school_attribution`：570；模型候选与人工决定留痕：572-574
-  - §13 M5 不修改 Candidate、Gate 通过条件：580、606
-  - §14 M6 输入、动作、Console 模式、SQLite 仅投影、CorrectionRequest、输出：614-631
-  - §14.1 精确失效传播全文：633-645
-  - §15 M7 产出 Snapshot Revision：651-653；§16 M8 冻结 Snapshot 输入：661-668；消费级别门槛：670-678；`canonical_hash`：725；SchoolViewPack：736；§16.3.2 M6 供给 `school_variance_display` 与「是否改变当前判断」：813-815
-  - §17 本地进程、ActorProvider、事务序列：826、830、836；§17.1 人工阶段每次决定即时 Checkpoint、恢复语义：840-846
-  - §18 LineageGraph 含审核决定、双向追溯：852-859
-  - §19 M6 行（首纵切后、旧数据体实测）：880；Local Orchestrator 缺失失效传播：884；§19.0 `m6-data-fields.sh`：910
-  - §20 第 2、3 条：938-939；§22.1 统一验收宿主：969；§22.2 纵切终点：973-984；§22.3 M6 薄用「只读对照与签发」：991；§22.4 失效传播先以 Ledger 事件记录：1000
-- `pipeline/ledger/service.py`（impl-01 已验收，只读调用）：`_NAME_RE`/`RUN_ARTIFACT_TYPES` 59-66；可写状态 `running|awaiting_human` 253-262；`_configuration_stage` 295；`create_processing_run` kind 闭集 319-327；`supersede_step_run` 412-440；`put_artifact` 442；`seal_revision` 599；`invalidate_revision` 664-676；`supersede_revision` 678-716；`register_stage_package` 718-774；`record_transformation`（`human_event_revision_ids` 只收 `human_event`）777-843；`await_human` 885-920；`record_human_event`（decision_type 限 8 类）922-963；`resume` 965-989；`suspend` 991；`fail_step_run` 1187；`_write_checkpoint_locked`（阶段被 succeeded 运行封存后只允许 supersedes 链续写）1242-1290；`_backfill_checkpoint_if_needed` 1400；`recover_from_checkpoint`（不迁移旧运行状态）1430-1482
-- `pipeline/ledger/store.py`：`human_events` 160-166；`stage_checkpoints.rework_impact_report_revision_id` 168-179
-- `pipeline/ledger/states.py`：`CONTENT_MATURITY` 46；`REVIEW_DECISION_TYPES` 57
-- `pipeline/ledger/acceptance.py`：20.3 `transformations_count == 3` 硬编码 311-315
-- `pipeline/ledger/fixture_ingest.py`：人工事件 + 每 task Checkpoint 写法 217-252
-- `pipeline/corpus_compiler/step.py`：`run_m3` 事务模板 35-66、失败封存 `_fail` 404；impl-02 `act/03.yaml` 第 13 步 StagePackage 形状
-- `pipeline/corpus/_fixture/mini_ed01/`：`spans.yaml`（43 条 Span，页 001/003）、`expected/m3.stage_package.yaml`；M4–M8 期望产物不存在
-- `openspec/id-prefix-registry.md` §3.1-§3.4（`as_`、`sv_`、`cg_`、`sch_`、`ss_`、`rev_`、`art_` 已登记）
-- `docs/blackbox-spec-rework/SUBAGENT_TODO.md`:599-600（现登记 impl-03=M5、impl-04=M8，编号见 D-18）
+### 2.1 规格 `openspec/learn-system-blackbox-architecture.md`
+
+- §5:103-110（M1→M8）、§5:119-124（第 4 队列「M6 待签发」）、§5:126（ReworkImpact）、§5:130（Review Console 不是第九 Module）
+- §6.1:138-149（ReviewedEditionPackage 在链上）、§6.2:153-175（Snapshot 由 ReleaseRun/M7 产出）
+- §7:181-207（StepRequest/StepResult、只读冻结修订）、§7.1:209-226（一阶段多任务、`awaiting_human`、`record_human_event`、`resume`）
+- §8:232-243（StagePackage 信封）、§8.1:257-267（`entity_id` 与 `artifact_revision_id` 双锚）、§8.1:288-322（UUIDv4/人工闭集前缀）
+- §8.2:335-347（内容成熟度 7 态）、§8.2:349-364（ReviewDecision 8 类）、§8.2:384-404（Artifact status）、§8.2:432-440（四轴正交）
+- §14:614-631（M6 输入、动作、Console 模式、CorrectionRequest、输出）
+- §14.1:633-645（精确失效传播全文；`:638` 失效对象、`:639-640` 继承/待复核、`:641-642` 计数与阈值、`:643` 禁止整队列批量失效）
+- §16:661-678（M8 冻结 Snapshot 输入、消费级别门槛）、§16:725（`canonical_hash`）、§16.3.2:813-815（M6 供给 `school_variance_display` 与「是否改变当前判断」）
+- §17:826-836（本地进程、ActorProvider、事务序列）、§17.1:840-846（人工阶段每次决定即时 Checkpoint）
+- §18:852-859（LineageGraph 含审核决定）
+- §19:880（M6 行）、§19:884（Local Orchestrator 缺失失效传播）、§19.0:910（`m6-data-fields.sh`）
+- §20:937（20.1）、§20:943（20.7）、§20:944（20.8）、§20:945（20.9）、§22.1:966-969（统一验收宿主）、§22.2:973-984、§22.3:991（M6 薄用「只读对照与签发」）、§22.4:1000（失效传播先以 Ledger 事件记录）
+
+### 2.2 已落地代码（只读；本包不得修改）
+
+- `pipeline/knowledge_extraction/__init__.py:16-27`：`M4_TOOL`、`CANDIDATE_SCHEMA_VERSION="0.1.0-draft"`、`CATEGORIES`、`M4_STATUS_CEILING`
+- `pipeline/knowledge_extraction/review_events.py:16`：`VERDICTS = (accept, modify, reject, request_evidence, school_dispute)`（D-08）；`:18-23` `ENTITY_KINDS`；`:24` `REVIEW_STAGE="m6"`；`:26-41` 事件顶层键（**校验拒绝多余键**）；`:43` `build_review_decision`；`:80` `validate_review_decision`；`:144` `required_decision_types`；`:152` `derive_content_status`
+- `pipeline/knowledge_extraction/inputs.py:58` `latest_succeeded_step_run`（同阶段后续运行经 supersede，第 32/58 条）；`:115` `resolve_m3_outputs`；`:186` `m4_is_sealed`；`:245` `resolve_m4_inputs`
+- `pipeline/knowledge_extraction/step.py:268-283`：`candidate_package` 内容（`candidate_set_revision_id`、`candidate_set_sha256`、`corpus_stage_package_revision_id`、`spans_revision_id`、`technique_profile_revision_id`、`gate_profile`、`span_layer`、`cross_model`、`term_layering`）；`:311-362` m4 StagePackage（`payload`、`manifest.counts`=candidate_set.counts、`content_sha256`=candidate_sha256）；`:373-390` `finish_step_run` 的 `output_artifact_ids=[stage_package, candidate_set, candidate_package]`；`:1-6` 同阶段后续运行经 `supersede_step_run`
+- `pipeline/validation/package.py:52` `assemble_gate_results`（`scope`、`gates{G1..G7}`、`passed_checks`、`failures`、`warnings`、`broken_relations`、`rework_tasks`、`not_evaluated`、`gate`、`counts`）；`:171` `assemble_validation_package`（`gate_results_revision_id`、`corpus_package_revision_id`、`corpus_spans_revision_id`、`candidate_package_revision_id: None`、`gate`）
+- `pipeline/validation/step.py:59` `run_m5(service, edition_part_id, *, target_consumption_level="INTERNAL_DEMO")`；`:251` `scope: corpus_only`；`:275` StagePackage `validation.passed` 如实反映 gate（第 21 条）
+- `pipeline/dataset_compiler/packs.py:35` M8 四 task；`:262` `knowledge_chain: "not_compiled"`；`:301-307` `knowledge_chain_not_compiled` 缺陷；`:71` `source_asset_pack`、`:144` `evidence_map_pack.entries`（`knowledge_chain` 前三段）
+- `pipeline/dataset_compiler/gate.py:392-404` `knowledge_chain` 检查（`not_compiled` → `not_evaluated`；声称 `compiled` → 失败）；`:434` `knowledge_chain: not_evaluated`
+- `pipeline/contract_registry/registry.yaml:44-133`：首纵切登记 m1/m2/m3/m5/m8 五个 Module，**无 m6 行**；`catalog.py` Module 描述符键（`module_id, stage, kind, binding, entry, version, consumes, produces, human_queue, supports_recovery, entry_kwargs, owns_processing_run`）、`module_for(stage)` 唯一
+- `pipeline/orchestrator/gate.py:14-23` 八项 Stage Gate 检查；`effective_step_runs`（第 45 条 carrier 判定）；`_read_package_content` 用 `yaml.safe_load`（第 57 条）
+- `pipeline/orchestrator/module.py`：`ModuleBinding`、`binding ∈ {step_request, legacy_self_driving, imported}`、`StepOutcome`（`awaiting_human` 须带非空 `pending_queue_artifact_ids`）
+- `pipeline/ledger/service.py`（impl-01 已验收，只读调用）：`put_artifact` 442-526（`artifact_type` 正则 `^[a-z][a-z0-9_]*$` 459；返回二元组）；`put_run_artifact` 528-597（只收 configuration/technique_profile，写入即 sealed）；`seal_revision` 599-638；`invalidate_revision` 664-676（**只作用于整条修订**）；`supersede_revision` 678-716（同 artifact、新修订 sealed、`prev` 指向旧）；`register_stage_package` 718-774；`record_transformation` 777-843（`human_event_revision_ids` 只收 `human_event`，822-829；输出必须属本 StepRun）；`await_human` 885-920；`record_human_event` 922-963（**不消费 token**）；`resume` 965-989；`create_processing_run` 319-345（kind ∈ edition_run/release_run）；`supersede_step_run` 412-440；`write_checkpoint` 1364-1398（`_write_checkpoint_locked` 1280-1285：阶段被 succeeded 运行封存后只允许 supersedes 链续写）；`_backfill_checkpoint_if_needed` 1400-1428；`recover_from_checkpoint` 1430-1482（**不迁移旧运行终态**）；`finish_step_run` 1132；`fail_step_run` 1187
+- `pipeline/ledger/states.py`：`CONTENT_MATURITY`、`REVIEW_DECISION_TYPES`（8 类）；`pipeline/ledger/store.py:160-179`：`human_events`、`stage_checkpoints.rework_impact_report_revision_id`
+- 参考先例：`docs/blackbox-spec-rework/work-items/impl-05-knowledge/`（已四查定稿样式、`PROMPT-G1.md`、`acceptance.py`/`m4-stage-gate.sh`）、`impl-04-dataset/`（知识链 `not_compiled`）
 
 ## 3. 范围
 
-写（全部新建）：`pipeline/review/**`（含 `testing/` 非生产子包与 `tests/`）、`openspec/acceptance/m6-data-fields.sh`（ACT 11，名称依 D-12）。
+写（全部新建）：`pipeline/review/**`（含非生产 `testing/` 与 `tests/`）、`openspec/acceptance/m6-data-fields.sh`（ACT 11）。
 
-禁止：改规格正文、`openspec/schemas/**`、`openspec/id-prefix-registry.md`、fixture 目录、`pipeline/ledger/**`、`pipeline/corpus_compiler/**`、`openspec/acceptance/run_all.sh`、`m3-coverage.sh`、`PLAN.md`、`HANDOFF.md`、`SUBAGENT_TODO.md`；新增依赖（仅标准库 + PyYAML + jsonschema）；新增 ID 前缀（队列项号 `<entity_id>#<decision_type>` 是任务标签，不是登记册 ID）；调用任何模型 API；生产代码读 fixture 路径、工作目录「最新文件」或 `testing/`（只读 Ledger 冻结修订；Console 仅在 `--amended-content-file`/`--from-file` 读操作者提供的人工输入）；改写 `pattern_knowledge_workbench/`（Flutter 工作台本批不动）。
+主 Agent/impl-00 写（执行者不写）：INTERFACES §4 登记本包新 artifact_type、fixture m6 金标独占 ACT（若 D-01=A 或加 fixture 金标）。
 
-前置：impl-02 `ACCEPTED`（ACT 04 起依赖真实 `run_m3`）；D-01～D-18 裁决完成。
+禁止：改规格正文、`openspec/schemas/**`、`openspec/id-prefix-registry.md`、fixture 目录、`pipeline/ledger/**`、`pipeline/corpus_compiler/**`、`pipeline/knowledge_extraction/**`、`pipeline/validation/**`、`pipeline/dataset_compiler/**`、`pipeline/orchestrator/**`、`pipeline/contract_registry/**`、`openspec/acceptance/run_all.sh`、`m3-coverage.sh`、`PLAN.md`、`HANDOFF.md`、`SUBAGENT_TODO.md`、`G7-*.md`、其他 work-items、任何 `ACCEPTANCE.md` 的 §5、`pattern_knowledge_workbench/`；新增依赖、新增 ID 前缀、调用模型 API；执行者写台账、写 `ACCEPTED`、伪造人工签发（P7）。
 
-## 4. 待主 Agent 裁决
+前置：impl-05 `ACCEPTED`（`pipeline/knowledge_extraction/**` 可用）；impl-03 `ACCEPTED`（M5）；D-01～D-18 裁决完成（D-01/D-08 见 §4.1）。
 
-每条给 2–3 个选项，「推荐」仅为起草者意见，不代表定案。
+## 4. 主 Agent 决定（执行者不重议）
 
-**D-01 CanonicalKnowledgeSnapshot 由谁产出。** 任务要求本包产出 M8 输入 Snapshot，但规格把 Snapshot 归 ReleaseRun/M7（§6.2:153-169，§15:651），首纵切链路又跳过 M7（§22.2:973-979，§22.3:991）。
-- A：本包 ACT 10 实现「M7 首切片直通投影」：独立 `release_run` + `stage=m7` StepRun，单 Edition、无既有 Snapshot、只投影已获批对象，不做合并/对勘；宿主暂放 `pipeline/review/snapshot.py`，M7 落地时迁出。
-- B：M6 StepRun 直接附带产出 Snapshot（stage m6），违反 §6.2 归属。
-- C：首切片 M8 直接读 ReviewedEditionPackage，不产 Snapshot，与 §16:662 冻结项不符。
-- 推荐 A：保留 §6.2 的运行与阶段归属，M8 输入契约从第一天就是 Snapshot；若主 Agent 把它派给 M7 草案，删除 ACT 10，验收第 12 项改 BLOCKED（前置缺失: M7 Incremental Assembly）。
+裁决来源：`G7-RULINGS` §1 P1–P9、§4 impl-06、§9.3 第 34–43 条、§9.5 第 45–46 条、§9.6–§9.11 第 47–58 条。**未单列的细节默认采纳原草稿推荐**；与已落地 impl-05 契约冲突处以 §4.2 的定稿为准。
 
-**D-02 Review Console 首切片形态。** §14:620 设想 Flutter 工作台演进，§17:826 要求其经本地客户端调 Ledger，§22.3:991 只要求「只读对照与签发」。
-- A：命令行 `python -m pipeline.review`（open/queue/show/decide/decide-batch/correct/close/recover/rework），原文与字框以文本形式显示，不渲染页图。
-- B：改造 `pattern_knowledge_workbench`（Flutter + Ledger 客户端）。
-- C：复用 OCR FastAPI + Vue 工具加 M6 页。
-- 推荐 A：零新依赖、可测试、与 §22.3「薄用」一致；B 依赖 Ledger 网络客户端与 Dart 侧契约，放到首纵切后。
+- **D-02 Console 形态 → A**。命令行 `python -m pipeline.review`（子命令 open/queue/show/decide/decide-batch/correct/close/recover/rework/rework-open），零新依赖，`§22.3:991` 只要求「只读对照与签发」。
+- **D-03 ReviewDecision 结构 → 复用 impl-05 已冻结契约**。不新造 verdict 闭集；`verdict ∈ {accept, modify, reject, request_evidence, school_dispute}`（`review_events.py:16`），事件顶层键逐字取 `review_events.py:26-41`（校验拒收多余键，故 `standing`/`carried_from_revision_id` **不得**写进 `human_event` 内容，只存 M6 运行内的 `reviewed_edition`/Checkpoint）。
+- **D-04 必审维度 → A 且复用 `review_events.required_decision_types`**。首切片默认 `assertion → review_source_fidelity`、`school_view → review_school_attribution`（SchoolView 或 `school_ids` 非空即要求），映射写进运行配置修订可审计；`expert_verified` 由 `derive_content_status` 推导（P7：仅合成测试替身可触发，验收如实 BLOCKED）。
+- **D-05 失效粒度 → 修订级失效 + 对象级逻辑登记（因 P9 修正原草稿）**。impl-05 已把候选放在**单条** `candidate_set` 修订内（`step.py:208-215`），不存在逐对象 `knowledge_candidate` 修订；因此 §14.1:638 的「把可达 Candidate 置 invalidated」以 **`ReworkImpactReport.invalidated[]` 逐对象登记**表达，`candidate_set` 修订的物理替换由 M4' 重跑（`supersede_revision`，同 artifact + prev 指针）完成；M6 不逐对象 `invalidate_revision` 整条 `candidate_set`（§14.1:643）。
+- **D-06 `carried_forward`/`needs_review` → A（不进 Ledger 状态表）**。作为 M6 内容（`reviewed_edition.decisions[].standing`、Checkpoint）字段，不进 §8.2 五状态；不改规格。
+- **D-07 规范化内容哈希与「被修正 Span」判定键 → A**。Span 变更键 = `text` + `source_anchor`（页、图像哈希、行号、行框、逐字框），**排除** `start_offset/end_offset/batch_id`；对象内容哈希 = 对象字段（剔除修订号/成熟度/模型运行引用）+ 解引用的引文文字，`json.dumps(sort_keys=True, ensure_ascii=False, separators=(",",":"))` 后 SHA-256。
+- **D-09 计数口径 → A（逐类明细；首切片校验条目为空）**。`invalidated_count` = 可达候选对象数 + 可达校验条目数；`carried_forward_count` = 不可达候选数 + 继承决定数；`needs_review_count` = 降级决定数；`valid_object_count` = 修正前有效候选对象数 + 校验条目数；阈值 `rework_round ≥ 3` 或 `ratio ≥ 0.30`；告警写入 `warnings`，复审须显式 `acknowledge_rework_warning=True` 并写成 `human_event`（`event_kind=rework_threshold_ack`）。**首切片 M5 `scope: corpus_only`**（`pipeline/validation/step.py:251`）**无 candidate 级校验条目**，`validation_entries=[]`，故 BDD 3.1 取 `invalidated_count=3`、`valid_object_count=4`；candidate 级校验条目随 M5 读 M4 的扩展到位（接口需求见 §5.1）。
+- **D-10 CorrectionRequest → A**。`artifact_type=human_event`、内容 `event_kind=correction_request`（经 `record_human_event`，`decision_type=None`），列出 `source_span_ids`、`target_stage="m2"`；不阻断后续决定与结审，结审包登记 `correction_request_revision_ids`。**不新增 `correction_request` artifact_type**（与 INTERFACES §4 M6 行现列的 `correction_request` 不同，见 §4.2 对账）。
+- **D-11 M4/M5 缺席时的注入 → A**。非生产子包 `pipeline/review/testing/` 以真实 Ledger 写路径注入 M4' 重跑、M5' 候选校验与合成决定；合成人工决定须显式标注 `synthetic_fixture: true`（第 52 条），M5/M6/消费级别判定不得计为真实 `expert_verified`（第 53 条）；验收以 `upstream_real` 行 BLOCKED 如实标注。
+- **D-12 验收脚本 → A**。实现 `m6-data-fields.sh`（12 项新 M6 数据体检查 + `legacy_workbench_seed` BLOCKED + `upstream_real` BLOCKED，本批 exit 2），沿用 impl-02/impl-05「脚本=§19.0 判据、本批返回 2」先例。
+- **D-13 新 artifact_type → 只提名，登记由该波独占 ACT 写 INTERFACES §4（P2）**。提名：`review_queue`、`reviewed_edition`、`reviewed_edition_package`、`rework_impact_report`（D-01=A 时另加 `canonical_knowledge_snapshot`）。复用：`human_event`、`configuration`、`validation_report`、`step_log`、`failure_report`、`stage_package`。**不提名** `correction_request`（D-10）。
+- **D-14 返工 StepRun 链 → A**。单线链 `首审 review（succeeded）← 失效传播 rework_propagation（succeeded，无 StagePackage）← 复审 review（succeeded，新 m6 包）`；上游旧修订须在失效传播 StepRun 冻结之后才可 `superseded`。`stage_progress` 对不产 StagePackage 的 succeeded 运行不判 M6 Gate 通过（`orchestrator/gate.py` carrier 判定，第 45 条）。
+- **D-15 `recover_from_checkpoint` 不迁移旧运行 → A（P9 修正原草稿）**。Ledger 不改；本包照用，旧运行保持 `awaiting_human`，测试断言现状（`service.py:1430-1482`）。
+- **D-16 `resume_token` 跨进程保管 → A + C**。`open`/`recover` 打印 token，后续显式 `--resume-token`；另提供 `decide-batch --from-file`（逐条落事件、逐条 Checkpoint）。
+- **D-17 run_all 与 20.3 → A**。本批不改 `run_all.sh` 与 `pipeline/ledger/acceptance.py`；在 `acceptance.py` 中对 M6 Transformation 复刻 20.3 八项；登记「20.3 计数硬编码需在全链落地时泛化」为后续项。
+- **D-18 契约对账 → A**。以 impl-05/impl-03 已落地契约为唯一来源；本包 §5 按实际代码逐字改写（见 §4.2）。
 
-**D-03 ReviewDecision 结构。** §8.2:351-364 只定义 8 个审核**维度**，§14:618 列出的「接受、修改、驳回、补证、流派分歧」动作没有闭集。
-- A：决定 = `decision_type`（8 类维度之一）+ `verdict` ∈ {`accept`,`amend`,`reject`,`request_evidence`}；`amend` 由 M6 封存 `reviewed_candidate` 新修订（`entity_id` 不变）；流派分歧通过 `review_school_attribution` 决定上的 `changes_current_judgment` 布尔字段表达（§16.3.2:815）；「专家签发」= 该对象全部必审维度的立场都是 accept/amend。
-- B：动作并入内容成熟度（accept→`expert_verified`、reject→`deprecated`），混淆 §8.2:432-440 四轴正交。
-- C：每种动作一个 human_event 子类，不设 verdict 字段。
-- 推荐 A；`verdict` 闭集需主 Agent 确认是否回写规格 §8.2。
+### 4.1 待主 Agent 裁决（单列，执行者不自行取舍）
 
-**D-04 必审维度集合与获批推导。** 规格未定义哪些 Candidate 类别必须经过哪些 ReviewDecision 类型才算获批（§8.2:351，§16.1:678 仅对 PUBLIC_RELEASE 要求 `expert_verified`）。
-- A：配置修订 `required_decision_types` 按类别映射，首切片默认 `assertion→[review_source_fidelity]`、`school_view→[review_school_attribution]`；全部必审维度通过 → 内容成熟度 `expert_verified`；任一 reject → `rejected` 列表且成熟度保持原值（不写 `deprecated`，它表示撤回已获批内容）。
-- B：每个对象 8 维全审。
-- C：由 TechniqueProfile 登记（Contract Registry 未实现，§19:885）。
-- 推荐 A：10 页内部验收包消费级别为 INTERNAL_DEMO（§22.1:968），映射写进配置修订可审计，将来移入 TechniqueProfile。
+**D-01｜CanonicalKnowledgeSnapshot 由谁产出。** 规格把 Snapshot 归 ReleaseRun/M7（§6.2:153-175、§15:651），首纵切跳过 M7；§22.3:991 M6 只要求「只读对照与签发」；用户决定（第 43 条）把「M4/M6 最薄接入与 GraphProjectionPack」排入下一波。
 
-**D-05 失效粒度与 Artifact status 落点。** §14.1:638 要求把可达的 Candidate、ValidationReport 条目、ReviewDecision 目标对象置为 `invalidated`（§8.2 状态），但 Artifact status 作用于整条修订（§8.2:384-404），而 §14.1:643 禁止整队列批量失效。
-- A：M4 每个 Candidate 独立落 `knowledge_candidate` 修订，失效时逐个 `invalidate_revision`；ValidationReport 条目只在 `ReworkImpactReport.invalidated` 逻辑登记（M5 重跑产出新包）；ReviewDecision 修订保持 `sealed`，其继承立场见 D-06。
-- B：候选与校验都只存包级大文件，失效仅记逻辑清单，旧包整体 `superseded`。
-- C：A 基础上要求 M5 也逐条目落 `validation_entry` 修订。
-- 推荐 A：只有逐对象修订才能让 §8.2 状态真正精确；C 对 M5 成本过高且 M5 必然重跑。此项构成对 M4 草案的硬接口要求。
+- A：本包 ACT 10 实现「M7 首切片直通投影」：独立 `release_run` + `stage=m7` StepRun，单 Edition、无既有 Snapshot、只投影已获批对象；宿主暂放 `pipeline/review/snapshot.py`，M7 落地时迁出。对 §20.1/§20.4/§20.8 无影响（它们由 M4/M6 决定），使 §20.9（GraphProjectionPack）具备 Snapshot 输入但仍需 M8 编译前三段。
+- B：M6 StepRun 直接附带产出 Snapshot（stage m6），违反 §6.2 运行与阶段归属。
+- C：首切片 M8 直接读 `reviewed_edition_package`，不产 Snapshot，与 §16:661-668 冻结输入不符。
+- **推荐 A**；若主 Agent 派给 M7 包，则删除 ACT 10，`acceptance.py` 第 12 项（`snapshot_projection`）恒 BLOCKED（前置缺失: M7 Incremental Assembly）。**影响 §20.1/§20.4/§20.8/§20.9 转判**：三者由 M4 候选 + M6 `expert_verified` 驱动，不依赖 Snapshot；§20.9 还需 M8 编译知识链前三段（本次仍 BLOCKED）。
 
-**D-06 `carried_forward` / `needs_review` 不属于任何 §8.2 闭集。** §14.1:639-640 称其为「状态标记」，但既不在 Artifact status 5 态，也不在内容成熟度 7 态。
-- A：作为 ReviewDecision 在 M6 内容中的「继承立场」字段 `standing` ∈ {`active`,`carried_forward`,`needs_review`}，不进 Ledger 状态表。
-- B：`needs_review` 映射到内容成熟度 `needs_expert`。
-- C：主 Agent 增补 §8.2 第五轴后再实现。
-- 推荐 A，并请主 Agent 决定是否把第五轴写回规格（C 的文档部分）。
+**D-08｜M6 调用 `invalidate_revision` 改写 M4 修订状态是否违反 §2:32「Module 不直接修改其他 Module 数据」。** 现状：候选全部在单条 `candidate_set` 修订内（`step.py:208-215`），`invalidate_revision` 只作用于整条修订（`service.py:664-676`）。
 
-**D-07 规范化内容哈希与「被修正 Span」判定键。** §14.1:640 未定义规范化规则与目标对象内容边界；§14.1:637 以 Span 为影响面，但 `corpus_spans` 是整份修订，前一行改长会让后续 Span 的 offset 平移。
-- A：Span 变更键 = `text` + `source_anchor`（页、图像哈希、行号、行框、逐字框），**排除** `start_offset/end_offset/batch_id`；对象内容哈希 = 对象字段（剔除修订号、成熟度、模型运行引用）+ 按证据链接**解引用的引文文字**，`json.dumps(sort_keys=True, ensure_ascii=False, separators=(",",":"))` 后 SHA-256；字框几何变化使对象「可达」但内容可能「等价」。
-- B：对象内容哈希只含对象字段，不解引用引文（OCR 改字永远判等价，违背 §14.1 意图）。
-- C：按 `decision_type` 选择字段集。
-- 推荐 A：宁可多降级为待复核，不漏判；排除 offset 防止无关 Span 被连带失效。
+- A：M6 经 Ledger 接口 `invalidate_revision(candidate_set_rev, reason)` 落状态——接口中介，非直接改库；但会把不可达对象一并置失效（触 §14.1:643）。
+- B：M6 **不**调用 `invalidate_revision` 改 M4 修订；只在 `ReworkImpactReport.invalidated[]` 逐对象登记逻辑失效，物理替换由 M4' 重跑（M4 拥有自己的修订，`supersede_revision`，`service.py:678-716`）完成。
+- C：由 Local Orchestrator 统一驱动失效（Orchestrator 首纵切外，§19:884）。
+- **推荐 B**：尊重 P9 与 §14.1:643，避免 M6 跨模块改他人状态；代价是失效以报告为唯一精确记录（可公开读回）。
 
-**D-08 血缘可达的数据来源与传播宿主。** §14.1:635 要求 LineageGraph（§18）机器判定，但 LineageGraph 与 Local Orchestrator 均未实现（§19:883-884，§22.4:1000）。
-- A：对象级引用图（`evidence_links.source_span_id`、`source_refs`、`subject_entity_id`、`claim_refs` 传递闭包）判定可达；纯函数放 `pipeline/review/propagation.py`，由 M6 返工 StepRun 调用并经 Ledger `invalidate_revision` 落状态，将来迁入 Orchestrator。
-- B：只用 Ledger Transformation 的修订级输入输出（粒度为整份包，等于批量失效，违反 §14.1:643）。
-- C：先实现 L1' LineageGraph 再做本项。
-- 推荐 A；需主 Agent 确认 M6 StepRun 调用 `invalidate_revision` 改写 M4 修订状态不违反 §2:32「Module 不直接修改其他 Module 数据」（经 Ledger 接口）。
+### 4.2 草稿与已落地代码的对账（定稿修正清单）
 
-**D-09 ReworkImpactReport 计数口径与阈值确认。** §14.1:641-642 未说明 N/M/K 以对象还是决定计、30% 的分母是什么；`BlockingReasons` 所在 Orchestrator 不存在。
-- A：`invalidated_count` = 可达 Candidate 数 + 可达校验条目数；`carried_forward_count` = 不可达 Candidate 数 + 继承的决定数；`needs_review_count` = 降级决定数；分母 `valid_object_count` = 修正前有效 Candidate 数 + 校验条目数；报告另附逐类明细。告警写入报告 `warnings`；复审 `open_rework_review` 在有告警时须显式 `acknowledge_rework_warning=True`，确认本身写成 `human_event`（`event_kind=rework_threshold_ack`）。
-- B：三个计数都只按决定计。
-- C：三个计数都只按对象计，决定另列。
-- 推荐 A：与 §14.1:641 并列「失效 N / 继承 M / 待复核 K」的字面最接近，逐类明细消除歧义。
-
-**D-10 CorrectionRequest 形态与闭环。** §14:629 要求 M6 发现 OCR 错误时创建 CorrectionRequest 退回 M2，但 M2 修正流程与该对象形态未定义，M2 首纵切外（§22.4:998）。
-- A：`artifact_type=human_event`、内容 `event_kind=correction_request`（经 `record_human_event`，`decision_type=None`），列出 `source_span_ids`；**不阻断**后续决定与结审，结审包登记 `correction_request_revision_ids`；上游修正到达后，返工链（ACT 08-09）按 §14.1 机器判定哪些决定待复核。
-- A'：同 A，但证据触及这些 Span 的未决项禁止决定、`close_review` 拒绝。缺点：未决项永远无法结审，而返工链要求首审已 succeeded，形成死锁。
-- B：独立 `artifact_type=correction_request`（`record_human_event` 只收 `human_event`，service.py:940-945，需改 Ledger）。
-- C：CorrectionRequest 直接让 M6 StepRun `failed`。
-- 推荐 A：不改 Ledger、无死锁，§20.3 人工决定记录自然覆盖该事件；「在错字上作出的决定」由 §14.1 内容哈希比较降级待复核，不靠人工挑选。
-
-**D-11 M4/M5 缺席时的输入注入。** 统一验收宿主只有 m1-m3 期望产物（§22.1:969）。
-- A：本包 `pipeline/review/testing/`（非生产子包，生产模块禁止 import）内置合成 Candidate/Validation/决定/修正数据，经真实 Ledger 写路径注入；验收以 `upstream_real` 行 BLOCKED 如实标注。
-- B：主 Agent 在 `mini_ed01` 增补 `expected/m4|m5|m6.stage_package.yaml` 与候选、校验、决定期望产物（需改 fixture 与 `verify.sh`）。
-- C：等 M4/M5 实现后再做 M6。
-- 推荐 A 立即推进、B 在 M4/M5 契约定稿后补；注意 fixture 前 3 页为书名页与目录，合成候选只验证结构与血缘，不含术理内容。
-
-**D-12 验收脚本名与 §19.0 对应。** §19.0:910 的 `m6-data-fields.sh` 登记的是旧工作台数据体差距（§19:880），与新 M6 流水线语义不完全一致。
-- A：实现 `m6-data-fields.sh`，12 项新 M6 数据体检查（决定双锚、审核留痕、状态、失效传播）+ `legacy_workbench_seed` BLOCKED（旧库准入仍由 run_all 20.7 FAIL 承担，本脚本不重复判 FAIL）+ `upstream_real` BLOCKED，本批 exit 2。
-- B：新建未登记的 `m6-review.sh`，由主 Agent 登记进 §19.0。
-- C：不出脚本，只靠单元测试。
-- 推荐 A：沿用 impl-02「脚本=§19.0 判据、本批返回 2」的先例。
-
-**D-13 新增 artifact_type 清单与上游类型名。** Ledger 不设 artifact_type 闭集（service.py:59-61），但 20.3 判据按类型识别（acceptance.py:365-400）。
-- 本包新增（推荐）：`review_queue`、`reviewed_candidate`、`reviewed_edition_package`、`rework_impact_report`、`canonical_knowledge_snapshot`（依 D-01）；沿用 `human_event`、`configuration`、`validation_report`、`step_log`、`failure_report`、`stage_package`。
-- 本包假设的上游类型（需与 M4/M5 草案对账）：`candidate_package`、`knowledge_candidate`、`validation_package`；M3 沿用 `corpus_package`、`corpus_spans`（impl-02）。
-- 选项：A 按上表；B 上游名由 M4/M5 草案先定、本包跟随；C Contract Registry 统一登记后再实现。推荐 A 并以 B 对账。
-
-**D-14 返工 StepRun 链与上游修订取代时机。** Checkpoint 写入要求：阶段被 succeeded 运行封存后只允许 supersedes 链上的新运行续写（service.py:1280-1285），链是单线；`begin_step_run` 要求冻结输入全部 `sealed`（service.py:405、§8.2:388-392）。
-- A：单线链 `首审 review（succeeded）← 失效传播 rework_propagation（succeeded，无 StagePackage）← 复审 review（succeeded，产出新 m6 包）`；上游旧 corpus/候选修订必须在失效传播 StepRun 冻结之后才可 `superseded`，否则无法冻结。
-- B：失效传播与复审合并为一个 StepRun，M4'/M5' 输出到达后追加输入（违反 §7:207 冻结输入）。
-- C：失效传播挂在 Orchestrator 伪 StepRun 上（Orchestrator 未实现）。
-- 推荐 A；同时请确认「rework_propagation 以 succeeded 结束但不产 StagePackage」不被 `stage_progress` 误读为 M6 Gate 通过（§7.1:211 允许一阶段多任务）。
-
-**D-15 Ledger `recover_from_checkpoint` 不迁移旧运行。** service.py:1459-1482 只建新 StepRun 并写 recovery 事件，旧运行若为 `awaiting_human` 会一直停留在非终态，`run_status` 聚合取末个非终态（service.py 只读聚合段）。
-- A：本包照用，旧运行保持 `awaiting_human`，测试断言现状。
-- B：impl-01 小返工：`recover_from_checkpoint` 对非终态旧运行同步置 `superseded`（§8.2:430 语义）。
-- C：本包改用 `supersede_step_run` 并自行补写 Checkpoint（重复 Ledger 的补写逻辑）。
-- 推荐 B；ACT 05 按 B 书写，若裁 A 则改测试断言。
-
-**D-16 `resume_token` 在 CLI 跨进程保管。** token 只在 `await_human` 返回一次、库里只存哈希（service.py:885-920），§7.1:220 明确它不是鉴权凭据。
-- A：`open`/`recover` 打印 token，后续 `decide`/`correct`/`close` 显式 `--resume-token` 传入；丢失时走 `recover`。
-- B：token 写 Ledger 根目录旁的本地会话文件（Ledger 之外的状态，违背「只经 Ledger」）。
-- C：只提供单进程 `decide-batch --from-file`。
-- 推荐 A + C 并存（批量文件仍逐条落事件、逐条 Checkpoint）。
-
-**D-17 run_all.sh 与 20.3 是否纳入 M6。** 20.3 判据在 m1-m3 灌入 Ledger 上运行且 `transformations_count == 3` 硬编码（acceptance.py:311-315）；§20 没有任何一条会因 M6 单独落地由 BLOCKED 变 PASS（20.1 缺 Orchestrator，20.4 缺 M8）。
-- A：本批不改 `run_all.sh` 与 `pipeline/ledger/acceptance.py`，在 m6 验收中对 M6 Transformation 复刻 20.3 八项。
-- B：本批扩展 20_3 纳入 M6（改 Ledger 验收与 run_all）。
-- C：等 Orchestrator 统一驱动全链后再扩展。
-- 推荐 A，并登记「20_3 计数硬编码需在全链落地时泛化」为后续项。
-
-**D-18 与并行草案的契约对账顺序。** 本包依赖 impl-05-knowledge（M4）、impl-03-validation（M5）的输出类型名与字段，并与 impl-07-assembly（M7）、impl-04-dataset（M8）争用 Snapshot 归属（D-01）；impl-00-interfaces 可能统一登记类型名。
-- A：以 impl-00-interfaces 为唯一类型与字段来源，本包 §5 在裁决后逐字改写。B：本包 §5.1 作为 M4/M5 的需求方约束，由上游草案跟随。C：主 Agent 逐对并行草案人工对账。
-- 推荐 A；D-05（逐对象 `knowledge_candidate` 修订）与 D-07（证据 offset 相对 Span 文字）是本包对 M4 的硬约束，对账时不得丢失。
-
-## 5. 接口契约（供与 M3/M4/M5/M7/M8 草案对账）
-
-### 5.1 上游输入契约（本包假设）
-
-| 来源 | 定位方式（只经 Ledger 读接口） | artifact_type | 本包读取的字段 |
+| # | 草稿假设 | 已落地事实（文件:行号） | 定稿处理 |
 |---|---|---|---|
-| M3 | `list_checkpoints(ep,"m3")` 最新项所属 StepRun 必须 `succeeded`；其 Transformation 输出恰 1 个 `corpus_package` | `corpus_package`（JSON，含 `spans_revision_id`）、`corpus_spans`（YAML，impl-02 act/01 R7/R8 键序） | Span：`span_id`、`page`、`text`、`source_anchor{page,image_sha256,line_id,bbox,chars}`；文档：`source_id`、`evidence_level` |
-| M4 | 同上，stage `m4`，输出恰 1 个 `candidate_package` | `candidate_package`（JSON）+ 每对象一个 `knowledge_candidate`（JSON，D-05） | 包：`schema_version`、`edition_part_id`、`technique_id`、`corpus_package_revision_id`、`candidates[{entity_id,kind,candidate_revision_id}]`；对象：`entity_id`、`kind`（首切片 `assertion`/`school_view`）、`content_status`、`content`、`evidence_links[{source_span_id,start_offset,end_offset,quote_sha256}]`（offset 相对 Span `text`）、`source_refs`、`subject_entity_id`、`claim_refs`、`school_ids`、`conflict_group_id`、`model_run_refs` |
-| M5 | 同上，stage `m5`，输出恰 1 个 `validation_package` | `validation_package`（JSON） | `candidate_package_revision_id`（必须等于 M6 冻结的候选包）、`validator_version`、`gate{passed,severe_error_count,failed_task_count,pending_rework_count}`（§13:606）、`entries[{entity_id,candidate_revision_id,check,result∈pass/warn/fail,code,message}]`、`broken_relations`、`rework_tasks` |
+| C1 | M4 每对象一个 `knowledge_candidate` 修订（D-05） | `step.py:208-215` 单条 `candidate_set` 修订；无 `knowledge_candidate` | 改为「修订级 + 对象级逻辑登记」（§4 D-05） |
+| C2 | 候选包索引含 `candidates[{entity_id, kind, candidate_revision_id}]` | `step.py:268-283` 索引只有 `candidate_set_revision_id` 等 13 键 | `resolve_m6_inputs` 从 `candidate_set.assertions[]`/`school_views[]` 取对象 |
+| C3 | M5 `gate{passed,severe_error_count,failed_task_count,pending_rework_count}` + `entries[{entity_id,…}]` | `validation/package.py:52-169` `gate_results` 用 `gates{G1..G7}`、`gate`、`counts`；`package.py:171-197` `validation_package` 绑 `candidate_package_revision_id: None` | Gate 的 `validation_intake` 改用 `validation_package.gate` 与 m5 StagePackage `validation.passed`；candidate 级校验由 M6 自算 |
+| C4 | M5 校验候选、绑定候选包 | `validation/step.py:59,251` `scope: corpus_only`；`package.py:190` `candidate_package_revision_id: None` | M6 不要求 candidate 绑定的 M5；`upstream_real` 行 BLOCKED |
+| C5 | 决定事件 `verdict ∈ {accept,amend,reject,request_evidence}`、`queue_item_id`/`seen_artifact_revision_id`/`standing` | `review_events.py:16,26-41,43`：verdict 5 值、事件顶层键固定、校验拒收多余键 | 复用 `review_events`；`standing` 移出事件内容 |
+| C6 | `changes_current_judgment` 由 M6 决定字段 | `assemble` 的 `school_views[].changes_current_judgment` 已在候选；`review_events` 无此键 | 从候选读取，写入 `reviewed_edition.school_views[]` |
+| C7 | 新 artifact_type 含 `correction_request`（INTERFACES §4 M6 行） | `service.py:822-829,940-945` `record_human_event` 只收 `human_event` | CorrectionRequest = `human_event`（D-10），不提名新类型 |
+| C8 | 主内容名为 `reviewed_edition_package` | `INTERFACES.md:169-171` M6 主内容 `reviewed_edition` + 阶段输出 `reviewed_edition_package` | 采用双修订（主内容 + 索引） |
+| C9 | 队列项 task_id `<entity_id>#<decision_type>` | `INTERFACES.md:167` `m6_review_<entity_id>_<decision_type>` | 队列项 id 用 `<entity_id>#<decision_type>`（任务标签，非登记册 ID）；Checkpoint `task_id` 用 `m6_review_<entity_id>_<decision_type>` |
+| C10 | Snapshot 类型 `canonical_knowledge_snapshot` 在本包 | `INTERFACES.md:289-291` M7 主内容 `canonical_snapshot` + `assembly_package` | 见 D-01（待裁）；若 A 则提名对应类型 |
+| C11 | 回归取行 `\| tail -1` | 第 27 条 | 统一 `2>&1 \| grep -E "^(Ran\|OK\|FAILED)"` |
+| C12 | 闭集前提写死 `pass=N` | 第 54 条 | 写 `check_interfaces.py` 末行 `fail=0` 且 exit 0，且所需类型 PASS 行存在 |
 
-每个上游 StepRun 均按 §17.1 每 task 写 Checkpoint；M6 拒绝条件：任一上游 StepRun 非 `succeeded`、修订非 `sealed`、M5 `gate.passed` 非真或三项计数非零、M5 绑定的候选包与冻结的候选包不一致。
+## 5. 接口契约
+
+### 5.1 上游输入契约（只经 Ledger 读接口）
+
+| 来源 | 定位方式 | artifact_type | M6 读取的字段 |
+|---|---|---|---|
+| M3 | m4 `candidate_package.corpus_stage_package_revision_id` / `spans_revision_id`；其 StepRun 须 `succeeded`（P5） | `corpus_package`（JSON）、`corpus_spans`（YAML） | Span：`span_id`、`page`、`line_index`、`start_offset`、`end_offset`、`text`、`source_anchor{page,image_sha256,line_id,bbox,chars}`；文档：`source_id`、`evidence_level`、`edition_part_artifact_id` |
+| M4 | `list_checkpoints(ep,"m4")` 最新项所属 StepRun `succeeded`；其输出恰 1 个 `candidate_package`（P5） | `candidate_package`（JSON）+ `candidate_set`（JSON） | 包：`candidate_set_revision_id`、`candidate_set_sha256`、`corpus_stage_package_revision_id`、`spans_revision_id`、`technique_profile_revision_id`、`gate_profile`、`span_layer`、`cross_model`、`term_layering`；`candidate_set`：`technique_id`、`source_id`、`edition_part_artifact_id`、`assertions[{assertion_id, proposition_id, proposition, relation, evidence[{source_span_id, support_type, start_offset, end_offset, quote, quote_sha256}], conditions, exceptions, concept_refs, school_ids, layer, content_status, origin}]`、`school_views[{school_view_id, school_id, subject_entity_id, claim_refs, conflict_group_id, changes_current_judgment, source_refs, evidence, content_status, origin}]`、`rejected[]`、`disputes[]`、`counts{}` |
+| M5 | `list_checkpoints(ep,"m5")` 最新项所属 StepRun `succeeded`；其输出恰 1 个 `validation_package`；m5 StagePackage `validation.passed == true`（第 21 条） | `validation_package`（JSON）+ `gate_results`（JSON） | 包：`gate_results_revision_id`、`corpus_package_revision_id`、`corpus_spans_revision_id`、`gate`、`scope`、`target_consumption_level`；`gate_results`：`gates{G1..G7}`、`passed_checks[]`、`failures[]`、`warnings[]`、`broken_relations[]`、`rework_tasks[]`、`not_evaluated[]`、`gate`、`counts{}` |
+
+M6 拒绝条件：任一上游 StepRun 非 `succeeded`、修订非 `sealed`、M5 StagePackage `validation.passed` 非真、M4 `candidate_package` 与 M3 `corpus_package` 血缘不符、m6 链已有 succeeded 的首审运行（返工走 `rework.py`）。同阶段后续运行经 `supersede_step_run` 接替（第 58 条）。
 
 ### 5.2 本包内部对象
 
-- **ReviewQueue 项**：`queue_item_id="<entity_id>#<decision_type>"`、`target_entity_id`、`kind`、`decision_type`、`seen_artifact_revision_id`（冻结的候选修订）。
-- **ReviewDecision（`human_event` 修订内容）**：`schema_version`、`event_kind="review_decision"`、`stage="m6"`、`step_run_id`、`queue_item_id`、`target_entity_id`、`seen_artifact_revision_id`、`decision_type`、`verdict`、`amended_revision_id`、`rationale`、`evidence_refs`、`changes_current_judgment`、`standing`、`carried_from_revision_id`、`trigger_correction_request_id`、`actor_ref`；决定身份 = 该修订的 `artifact_revision_id`，无新前缀。
-- **CorrectionRequest（`human_event`，D-10）**：`event_kind="correction_request"`、`source_span_ids`、`description`、`target_stage="m2"`。
-- **ReworkImpactReport（`rework_impact_report`）**：`schema_version`、`trigger_correction_request_id`、`rework_round`、`changed_span_ids`、`reachable_entity_ids`、`invalidated[]`、`carried_forward[]`、`needs_review[]`、`invalidated_count`、`carried_forward_count`、`needs_review_count`、`valid_object_count`、`invalidated_ratio`、`warnings`、`affected_queues`（§14.1:641 必含字段全覆盖）。
-- **StageCheckpoint（m6）**：首个 task `build_review_queue`；此后每条决定一个 Checkpoint，`completed_tasks` 累积（队列项号 → 最新决定修订），`human_decisions` 累积全部决定与人工事件修订，`pending_queue` 为未决项，返工时带 `rework_impact_report_revision_id`。
+- **ReviewQueue 项**：`queue_item_id="<entity_id>#<decision_type>"`、`target_entity_id`、`kind`、`decision_type`、`seen_artifact_revision_id`（=`candidate_target_revision_id`，首审为首审运行立场所依据的候选修订，返工为 M4' 新 `candidate_set` 修订）。
+- **ReviewDecision（`human_event` 内容）**：逐字复用 `review_events.build_review_decision`（`schema_version`、`event_kind="review_decision"`、`stage="m6"`、`decision_type`、`verdict`、`target{entity_kind,entity_id,artifact_revision_id}`、`processing_run_id`、`step_run_id`、`actor_ref`、`rationale`、`evidence_refs`、`consumption_level`）；决定身份 = 该修订的 `artifact_revision_id`，无新前缀。同一队列项的后续决定为该队列项重新写入的新事件（历史保留）。`synthetic_fixture: true` 仅出现在 fixture 合成事件中（第 52/53 条），**不得**写进 `review_decision` 顶层键（会被 `validate_review_decision` 拒收）——合成标记写在外层测试数据/README，不进入事件内容。
+- **CorrectionRequest（`human_event`，D-10）**：`{schema_version, event_kind:"correction_request", stage:"m6", step_run_id, source_span_ids[], description, target_stage:"m2", actor_ref}`。
+- **ReworkThresholdAck（`human_event`）**：`{schema_version, event_kind:"rework_threshold_ack", stage:"m6", step_run_id, rework_impact_report_revision_id, warnings[], actor_ref}`。
+- **ReworkImpactReport（`rework_impact_report`）**：`{schema_version, trigger_correction_request_revision_id, rework_round, changed_span_ids[], removed_span_ids[], reachable_entity_ids[], invalidated[{kind,entity_id,revision_id}], carried_forward[{kind,entity_id,revision_id,carried_from_revision_id}], needs_review[{decision_revision_id,target_entity_id,queue_item_id,reason}], invalidated_count, carried_forward_count, needs_review_count, valid_object_count, invalidated_ratio, warnings[], affected_queues[]}`（§14.1:641 必含字段全覆盖）。
+- **StageCheckpoint（m6）**：首个 task `build_review_queue`；此后每条决定/人工事件一个 Checkpoint，`completed_tasks` 累积（`task_id = m6_review_<entity_id>_<decision_type>` → 最新决定修订），`human_decisions` 累积全部人工事件修订，`pending_queue` 为未决项，返工时带 `rework_impact_report_revision_id`。
 
-### 5.3 下游输出契约
+### 5.3 下游输出契约（只写接口需求，不改其他包）
 
-- **`reviewed_edition_package`（JSON，m6 StagePackage 的唯一业务输出）**：`schema_version`、`edition_part_id`、`technique_id`、`review_step_run_id`、`inputs{corpus_package_revision_id,corpus_spans_revision_id,candidate_package_revision_id,validation_package_revision_id}`、`approved[{entity_id,kind,reviewed_revision_id,content_status:"expert_verified",decision_revision_ids}]`、`rejected[{entity_id,kind,seen_revision_id,content_status,decision_revision_ids}]`、`decisions[{decision_revision_id,queue_item_id,target_entity_id,seen_artifact_revision_id,current_target_revision_id,decision_type,verdict,standing,carried_from_revision_id,trigger_correction_request_id}]`、`evidence_links[{entity_id,source_span_id,corpus_spans_revision_id,start_offset,end_offset,quote_sha256}]`（仅获批对象）、`school_views[{school_view_id,school_id,subject_entity_id,conflict_group_id,changes_current_judgment}]`、`unresolved_count:0`、`correction_request_revision_ids`（本运行冻结与自有的 CorrectionRequest，D-10）、`rework_impact_report_revision_id`。
-- **m6 StagePackage**：形状同 impl-02 act/03 第 13 步；`payload{reviewed_edition_package_revision_id,approved_count,rejected_count,decision_count,unresolved_count}`；`manifest.counts{candidates,approved,rejected,decisions}`；`content_sha256`= 包字节哈希；`lineage.upstream_artifacts`=[corpus_package, candidate_package, validation_package]。
-- **`canonical_knowledge_snapshot`（依 D-01，stage m7，`release_run`）**：`schema_version`、`technique_id`、`snapshot_kind:"first_slice_passthrough"`、`based_on{reviewed_edition_package_revision_ids,previous_snapshot_revision_id:null}`、`entities[{entity_id,kind,artifact_revision_id,content_status}]`、`school_views`、`conflict_groups{cg_id:[sv_id]}`、`evidence_links`、`canonical_hash`（§16:725）。M8 草案应只读此对象，不回读 M6 内部修订。
+- **`reviewed_edition`（JSON，m6 主内容）**：`{schema_version, edition_part_artifact_id, candidate_set_revision_id, candidate_package_revision_id, validation_package_revision_id, approved[{entity_id, kind, artifact_revision_id, content_status:"expert_verified", decision_revision_ids}], rejected[{entity_id, kind, artifact_revision_id, content_status, decision_revision_ids}], decisions[{decision_revision_id, queue_item_id, target_entity_id, seen_artifact_revision_id, current_target_revision_id, decision_type, verdict, standing, carried_from_revision_id, trigger_correction_request_id}], evidence_links[{entity_id, source_span_id, corpus_spans_revision_id, start_offset, end_offset, quote_sha256}], school_views[{school_view_id, school_id, subject_entity_id, conflict_group_id, changes_current_judgment}], correction_request_revision_ids[], rework_impact_report_revision_id|null, unresolved_count:0}`。
 
-### 5.4 与并行草案 impl-00-interfaces 的差异（起草末期只读对照 `impl-00-interfaces/INTERFACES.md`，双方均为草案，交 D-18 裁决）
+  本节取代原 §5.2 草案；`reviewed_edition` 消费者为 M7 与 `CanonicalKnowledgeSnapshot` 投影。
+- **`reviewed_edition_package`（JSON，m6 阶段输出索引）**：`{schema_version, reviewed_edition_revision_id, decision_revision_ids[], decision_count, approved_count, rejected_count, unresolved_count:0, correction_request_revision_ids[], rework_impact_report_revision_id|null}`。
+- **m6 StagePackage**：形状同 impl-02/m4 先例；`payload{reviewed_edition_revision_id, decision_revision_ids, unresolved_count:0}`；`manifest.counts{approved, rejected, decisions, correction_requests}`；`content_sha256 = sha256(reviewed_edition 字节)`；`lineage.upstream_artifacts=[corpus_package, candidate_package, validation_package]`。
+- **M8（impl-04，已验收；只写接口需求）**：知识链前三段（KnowledgeEntry→Assertion→EvidenceLink）依赖 M4 `candidate_set`（`aggregate` 见 impl-05 README §6.6），M6 只供给 `content_status`（`expert_verified`）与 `school_variance_display`（§16.3.2:813-815，含 `changes_current_judgment`）；`GraphProjectionPack` 仍需 M8 编译前三段（本次 `knowledge_chain: not_compiled`，`packs.py:262`；`gate.py:392-404`）。
+- **Orchestrator 登记 m6 Module 所需接口**（由 `contract_registry` 包写入 `registry.yaml`，本包不写）：`{module_id:"m6.review_curation", stage:"m6", kind:"production", binding:"legacy_self_driving", entry:"pipeline.review.step:run_m6", version:"0.1.0", consumes:[{artifact_type:"candidate_package", from_stage:"m4"},{artifact_type:"validation_package", from_stage:"m5"},{artifact_type:"corpus_package", from_stage:"m3"}], produces:[{artifact_type:"reviewed_edition_package"}], human_queue:true, supports_recovery:true, entry_kwargs:{}, owns_processing_run:false}`。Stage Gate carrier 判定按 `orchestrator/gate.py`（第 45 条）：m6 有效运行中恰 1 个承载 m6 StagePackage；返工/恢复运行经 supersedes 链续写、不承载包时保留在有效集。
 
-| 项 | 本包草案 | impl-00 草案（INTERFACES.md 行号） | 起草者建议 |
+### 5.4 与 INTERFACES §4 M6 行的差异（交登记 ACT 对账）
+
+| 项 | 本包定稿 | INTERFACES §4/§2.6 现状 | 建议 |
 |---|---|---|---|
-| M4 候选存放 | 每对象 `knowledge_candidate` 修订 + `candidate_package` 索引（D-05） | 主内容 `candidate_set` 单修订 + `candidate_package`（131、328） | **保留本包要求**：单修订无法逐对象 `invalidated`（§14.1:638 与 :643 冲突）；可折中为 `candidate_set` 之外另落逐对象修订 |
-| M5 入参键 | `gate{passed,severe_error_count,failed_task_count,pending_rework_count}`、`entries[{entity_id,…}]` | 主内容 `gate_results`：`gate_passed`、`summary{critical_errors,failed_checks,…}`、`gates[].checks[].subject_ids`、`rework_tasks[]`（147、260-265） | 采用 impl-00 键名；M6 以 `gate_passed`、`summary.critical_errors`、`rework_tasks` 判入口，以 `checks[].subject_ids` 反查实体条目 |
-| verdict 闭集 | `accept/amend/reject/request_evidence` + `changes_current_judgment` 字段 | `accept/modify/reject/request_evidence/school_dispute`，`modified_revision_id`、`content_status_after`、`scope_consumption_level`（269） | 名称跟随 impl-00（`modify`/`modified_revision_id`）；`school_dispute` 与「是否改变当前判断」布尔的关系需 D-03 定案 |
-| 决定锚点 | 显式 `target_entity_id` + `seen_artifact_revision_id` | `target: entityRevisionAnchor`（269） | 语义等价，跟随 impl-00 结构，验收仍分别检查两部分（§8.1:265） |
-| M6 主内容 | `reviewed_edition_package` 即主内容 | 主内容 `reviewed_edition` + 阶段输出 `reviewed_edition_package`（163、273、330） | 跟随 impl-00，与 M3 `corpus_spans`/`corpus_package` 模式一致；ACT 06 改为先封存 `reviewed_edition` |
-| CorrectionRequest | `human_event`（`event_kind=correction_request`，D-10） | 独立 `correction_request`（163、330） | **保留本包**：`record_human_event` 只收 `human_event`（service.py:940-945），独立类型需改 Ledger 或脱离人工事件记录 |
-| ReworkImpactReport 键 | `trigger_correction_request_id`、`warnings[]`、逐类明细 | `trigger_correction_request_revision_id`、`threshold_exceeded: bool`、`edition_part_artifact_id`（277） | 键名跟随 impl-00，另保留 `warnings`、`valid_object_count`、`invalidated_ratio`（D-09 口径需要） |
-| 队列项 task_id | `<entity_id>#<decision_type>` | `m6_review_<entity_id>_<decision_type>`（161） | 跟随 impl-00 |
-| payload / counts / operation | `approved_count…`；operation `review_curate` | `stage_payload_m6{reviewed_edition_revision_id,decision_revision_ids,unresolved_count}`；counts 含 `correction_requests`；operation `review_candidates`（164-165） | 跟随 impl-00 |
-| Snapshot | `canonical_knowledge_snapshot`，本包 ACT 10 直通 | M7 主内容 `canonical_snapshot` + `assembly_package`，impl-00 D-03 推荐 M7 薄直通（176-179、281） | 见 D-01 更新：倾向交 M7 包 |
+| artifact_type | 提名 `review_queue`、`reviewed_edition`、`reviewed_edition_package`、`rework_impact_report`（+D-01=A 时 `canonical_knowledge_snapshot`） | M6 行含 `correction_request`，主内容 `reviewed_edition` + 阶段输出 `reviewed_edition_package`（:169） | 删 `correction_request` 类型（D-10 用 `human_event`）；其余按本包提名写入（P2，第 47 条模式） |
+| 队列 task_id | `<entity_id>#<decision_type>`（队列项 id）/ `m6_review_<entity_id>_<decision_type>`（Checkpoint task_id） | `m6_review_<entity_id>_<decision_type>`（:167） | 一致，登记 ACT 不必改 |
+| Snapshot | D-01 待裁 | `canonical_snapshot`（M7 主内容，:184） | 见 D-01 |
 
-名称类差异裁决后由主 Agent 在 ACT contract 中机械替换，不改变 ACT 划分与测试矩阵；结构类差异（第 1、6 行）影响 ACT 03/04/08，须先定案。
-
-## 6. 起草者建议的执行约束（裁决后改为「主 Agent 决定」）
+## 6. 执行约束（主 Agent 决定，执行者不重议）
 
 1. 纯函数优先：`model.py`、`propagation.py`、`gate.py`、`snapshot.project_snapshot` 不读文件、不访问 Ledger、不取时间、不用随机数。
-2. Gate 独立：`gate.py` 不 import `model`、`propagation`、`step`；`acceptance.py` 不信任 `close_review` 返回的 Gate 报告，自行重算。
-3. 写入原子性：`begin_step_run` 之前的拒绝不留任何 Ledger 写入；`record_decision`/`close_review` 的前置拒绝不消费 token、不写修订；`begin` 之后的异常一律失败封存（检查名 `internal`，沿用 impl-02 act/05 教训）。
-4. 每条人工决定：`put_artifact(human_event)` → `seal_revision` → `record_human_event` → `write_checkpoint`，四步不得合并多条决定；Checkpoint 写失败时恢复靠 `_backfill_checkpoint_if_needed` 补写，测试覆盖。
-5. 禁止由操作者挑选失效对象：失效传播函数签名中不存在任何「对象清单」参数。
-6. 退出码纪律同 impl-02：3 仅限宿主缺失；准备/运行异常为 FAIL 退出 1；验收脚本永远调用仓库内规范 `verify.sh`。
+2. Gate 独立：`gate.py` 不 import `model`/`propagation`/`step`/`rework`；`acceptance.py` 不信任 `close_review` 返回的 Gate 报告，自行重算。
+3. 写入原子性：`begin_step_run` 之前的拒绝不留任何 Ledger 写入；`record_decision`/`close_review` 的前置拒绝不消费 token、不写修订；`begin` 之后的异常一律失败封存（检查名 `internal`，沿用 impl-02 教训）。
+4. 每条人工决定：`put_artifact(human_event)` → `seal_revision` → `record_human_event` → `write_checkpoint`，四步不得合并多条决定；决定内容用 `review_events.build_review_decision`。
+5. 禁止由操作者挑选失效对象：失效传播函数签名中不存在任何「对象清单」参数（§14.1:643）。
+6. 同阶段后续运行一律 `supersede_step_run`（第 58 条）；恢复用 `recover_from_checkpoint`（第 15 条）。
+7. 退出码纪律同 impl-02/impl-05：3 仅限宿主缺失；准备/运行异常为 FAIL 退出 1；验收脚本永远调用仓库内规范 `verify.sh`。
 
 ## 7. 目录规划（落地后）
 
@@ -232,24 +182,34 @@ bash openspec/acceptance/m3-coverage.sh | tail -1  # 仍为 SUMMARY pass=8 fail=
 pipeline/review/
   __init__.py        M6_TOOL / M6_TOOL_VERSION
   errors.py          ReviewRefused
-  model.py           队列、决定事件、规范化内容哈希、决定折叠（纯函数）
-  gate.py            M6 Review Gate（纯函数，独立实现）
+  model.py           队列、规范化内容哈希、决定折叠与 outcome（纯函数；事件经 review_events）
+  gate.py            M6 Review Gate（纯函数、独立实现、九项检查）
   propagation.py     §14.1 精确失效传播（纯函数）
   inputs.py          resolve_m6_inputs（只读 Ledger）
-  step.py            open_review / record_decision / recover_review / close_review
+  step.py            open_review / record_decision / recover_review / close_review / run_m6
   rework.py          request_correction / run_rework_propagation / open_rework_review
   snapshot.py        project_snapshot / run_snapshot（依 D-01）
   console.py         CLI 子命令实现
   __main__.py        python -m pipeline.review
   acceptance.py      m6 验收判定
-  testing/           非生产：__init__.py upstream_stub.py data/{m4_candidates,m5_validation,m6_decisions,corrections,expected_review}.yaml
+  testing/           非生产：__init__.py upstream_stub.py data/*.yaml
   tests/             test_model test_gate test_propagation test_inputs test_step_open test_step_close
                      test_console test_rework test_rework_review test_snapshot test_acceptance
 openspec/acceptance/m6-data-fields.sh
 ```
 
-## 8. 派发分组（建议）
+## 8. 派发分组
 
-- K1（纯函数，无 Ledger）：ACT 01–03
-- K2（Ledger 集成与 Console）：ACT 04–07，前置 impl-02 `ACCEPTED`
-- K3（返工链、Snapshot、验收）：ACT 08–11，ACT 10 依 D-01
+- K1（纯函数，无 Ledger）：ACT 01–03。
+- K2（Ledger 集成与 Console）：ACT 04–07，前置 impl-05 `ACCEPTED`。
+- K3（返工链、Snapshot、验收）：ACT 08–11，ACT 10 依 D-01。
+
+## 9. 用户待办
+
+1. **真实专家签发决定表（P7 / D-03 / D-04）**：本包只冻结并复用 `review_events` 契约，不产生任何真实签发。任何需要真实 `expert_verified` 的条目，其决定表必须由用户本人撰写；在用户提供之前，依赖它的判定一律 **BLOCKED**，不得以测试替身或合成事件充数、不得写 `expert_verified`。
+2. **`CanonicalKnowledgeSnapshot` 归属（D-01）**：主 Agent 裁定后，决定 ACT 10 是否实施。
+3. **fixture m6 金标（若需）**：若为 M6 增加 fixture 金标，须作为 impl-00 目录下的独占 ACT（P4），与本包实现分离；本包不写 fixture。
+
+## 10. 待主 Agent 裁决
+
+见 §4.1（D-01、D-08）。其余条目已由原则与已落地契约唯一推出，写入 §4「主 Agent 决定」。

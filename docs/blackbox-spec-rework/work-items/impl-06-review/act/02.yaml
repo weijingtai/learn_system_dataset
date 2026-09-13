@@ -9,31 +9,32 @@ scope:
 tests_first:
   - 先写 tests/test_gate.py（用例名逐字），新增用例全 ERROR 后再实现
 contract: |
-  gate.py（纯函数；不得 import pipeline.review.model / propagation / step / rework；常量在本文件内独立重写）：
-    evaluate_review(*, candidates, validation_package, corpus_spans_doc, configuration, decision_events, reviewed_package) -> dict
-      参数：candidates = [候选对象 dict，含 candidate_revision_id]；validation_package = M5 包内容；corpus_spans_doc = corpus_spans YAML 解析结果；
-            configuration = M6 配置修订内容（含 required_decision_types）；decision_events = 本次立场所依据的全部 review_decision 事件（含继承）；reviewed_package = 待封存的 reviewed_edition_package 内容
+  gate.py（纯函数；不得 import pipeline.review.model / propagation / step / rework；8 类/5 verdict/3 standing 常量在本文件内独立重写，不从 review_events import 常量）：
+    evaluate_review(*, candidate_objects, required_decision_types, seen_revision_id, validation_package, corpus_spans_doc, decision_entries, reviewed_edition) -> dict
+      参数：candidate_objects = [{entity_id, kind}]；required_decision_types = {kind: [decision_type]}；validation_package = M5 包内容；
+            corpus_spans_doc = corpus_spans YAML 解析结果；decision_entries = [{decision_revision_id, queue_item_id, target_entity_id, kind, decision_type, verdict, standing, carried_from_revision_id, rationale}]；
+            reviewed_edition = 待封存的主内容
       返回：{"review": "passed"|"failed", "checks": {名: {"passed": bool, "detail": str}}}，checks 键序逐字如下
       九项检查（名称与顺序固定）：
-        validation_intake：validation_package.gate.passed is True 且 severe_error_count、failed_task_count、pending_rework_count 均为 0
-        queue_coverage：独立重算 {entity_id#decision_type} = candidates × configuration.required_decision_types[kind]；reviewed_package.decisions 中立场项号集合 == 该集合
-        decision_anchoring：每条 decision 的 target_entity_id ∈ candidates；standing == "active" 时 seen_artifact_revision_id == 该候选 candidate_revision_id；standing == "carried_forward" 时 carried_from_revision_id 非空；每条 decision_revision_id 形如 rev_<32hex>
-        decision_closed_sets：decision_type ∈ 本文件内独立列出的 8 类；verdict ∈ {accept, amend, reject, request_evidence}；standing ∈ {active, carried_forward, needs_review}；rationale 非空（从 decision_events 按 decision_revision_id 对应取）
-        zero_unresolved：reviewed_package.unresolved_count == 0；无 verdict == request_evidence 或 standing == needs_review 的立场；每个队列项恰有 1 条立场
-        outcome_consistency：独立推导 approved/rejected（全部必审维度 accept/amend → approved；任一 reject → rejected）与 reviewed_package 两列表集合相等；approved 项 content_status == "expert_verified"；approved ∪ rejected == 全部候选 entity_id
-        evidence_closure：每个 approved 且 kind == assertion 的对象在 reviewed_package.evidence_links 中 ≥ 1 条；每条 source_span_id 存在于 corpus_spans_doc；text[start:end] 的 UTF-8 sha256 == quote_sha256
-        school_divergence：每个 approved 的 school_view 在 reviewed_package.school_views 中出现，changes_current_judgment 为 bool，conflict_group_id 与候选一致
-        package_counts：reviewed_package 的 approved/rejected/decisions 长度与 manifest 口径一致（len(approved)+len(rejected) == len(candidates)；len(decisions) == 队列项数）
+        validation_intake：validation_package["gate"]["passed"] is True 且 validation_package["scope"] == "corpus_only"（M5 首切片只到 corpus 级；candidate 级由本 Gate 承担）
+        queue_coverage：独立重算 {entity_id#decision_type} = candidate_objects × required_decision_types[kind]；decision_entries 的 queue_item_id 集合 == 该集合
+        decision_anchoring：每条 decision 的 target_entity_id ∈ candidate_objects；standing == "active" 时其修订锚点 == seen_revision_id；standing == "carried_forward" 时 carried_from_revision_id 非空；每条 decision_revision_id 形如 rev_<32hex>
+        decision_closed_sets：decision_type ∈ 本文件独立列出的 8 类；verdict ∈ {accept, modify, reject, request_evidence, school_dispute}；standing ∈ {active, carried_forward, needs_review}；rationale 非空
+        zero_unresolved：reviewed_edition["unresolved_count"] == 0；无 verdict == "request_evidence" 或 standing == "needs_review" 的立场；每个队列项恰有 1 条立场
+        outcome_consistency：独立推导 approved/rejected（全部必审维度 accept/modify → approved；任一 reject → rejected）与 reviewed_edition 两列表集合相等；approved 项 content_status == "expert_verified"；approved ∪ rejected == 全部候选 entity_id
+        evidence_closure：每个 approved 且 kind == "assertion" 的对象在 reviewed_edition["evidence_links"] 中 ≥ 1 条；每条 source_span_id 存在于 corpus_spans_doc；text[start:end] 的 UTF-8 sha256 == quote_sha256
+        school_divergence：每个 approved 的 school_view 在 reviewed_edition["school_views"] 中出现，conflict_group_id 与候选一致
+        package_counts：len(approved) + len(rejected) == len(candidate_objects)；len(decision_entries) == 队列项数
       review == "passed" 当且仅当九项全过
 tests:
   test_gate.py: |
-    脚手架：内联构造 README BDD 首审金标（3 获批、1 驳回、4 决定）的全部参数；corpus_spans_doc 取 fixture spans.yaml 解析结果（测试允许读 fixture）
+    脚手架：内联构造 BDD 首审金标（3 获批、1 驳回、4 决定）的全部参数；corpus_spans_doc 取 fixture spans.yaml 解析结果（测试允许读 fixture）
     - test_golden_all_nine_pass
     - test_check_names_and_order_exact
     - test_validation_gate_not_passed_fails_validation_intake
-    - test_severe_error_nonzero_fails_validation_intake
+    - test_validation_scope_not_corpus_only_fails_validation_intake
     - test_missing_queue_item_fails_queue_coverage
-    - test_wrong_seen_revision_fails_decision_anchoring
+    - test_wrong_anchor_fails_decision_anchoring
     - test_carried_without_carried_from_fails_decision_anchoring
     - test_unknown_decision_type_fails_closed_sets
     - test_empty_rationale_fails_closed_sets
@@ -44,11 +45,11 @@ tests:
     - test_rejected_entity_dropped_fails_outcome
     - test_quote_hash_mismatch_fails_evidence_closure
     - test_unknown_span_fails_evidence_closure
-    - test_school_view_null_judgment_fails_school_divergence
+    - test_school_view_group_mismatch_fails_school_divergence
     - test_count_mismatch_fails_package_counts
     - test_gate_does_not_import_model_or_propagation（读源码 AST，import 名单不含 model/propagation/step/rework）
 verify:
-  - .venv/bin/python -m unittest discover -s pipeline/review/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 36
+  - .venv/bin/python -m unittest discover -s pipeline/review/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 36
   - grep -nE '^(from|import) .*(model|propagation|step|rework)' pipeline/review/gate.py | wc -l   # 0
   - TDD §3 回归
 commit:

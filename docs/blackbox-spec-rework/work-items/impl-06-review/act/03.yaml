@@ -16,19 +16,20 @@ contract: |
       以 span_id 对齐；对 SPAN_COMPARE_KEYS 取子字典做 json.dumps(sort_keys=True, ensure_ascii=False) 比较
       返回 {"changed": [排序], "removed": [排序], "added": [排序]}
     reachable_entities(candidates, affected_span_ids) -> list[str]
-      直接可达：候选 evidence_links[].source_span_id 或 source_refs 与 affected 有交集
+      直接可达：候选 evidence[].source_span_id 或 source_refs[].source_span_id 与 affected 有交集
       传递闭包：反复加入 subject_entity_id 或 claim_refs 命中已可达集合的候选，直至不动点
       返回 entity_id 排序列表
-    propagate(*, old_candidates, old_spans_doc, new_spans_doc, validation_entries, standing_decisions, rework_round_before, trigger_correction_request_id) -> dict
-      参数：old_candidates = 修正前冻结的候选对象（含 candidate_revision_id）；validation_entries = M5 条目（含 entity_id）；
-            standing_decisions = 修正前 reviewed_edition_package.decisions（每条含 decision_revision_id、queue_item_id、target_entity_id、seen_artifact_revision_id）
-      签名中不得出现任何由操作者挑选对象的参数（§14.1:643）
+    propagate(*, old_candidates, old_spans_doc, new_spans_doc, validation_entries, standing_decisions, rework_round_before, trigger_correction_request_revision_id) -> dict
+      参数：old_candidates = 修正前 candidate_set 的候选对象（[{entity_id, kind, source_object}]）；
+            validation_entries = 本 Gate 依据的校验条目（含 entity_id）；standing_decisions = 修正前 reviewed_edition.decisions；
+            trigger_correction_request_revision_id = CorrectionRequest 修订号
+      签名中不得出现任何由操作者挑选对象的参数（§14.1:643）；**本函数不写 Ledger、不调用 invalidate_revision**（D-08 推荐 B）
       步骤：
         1 spans = changed_span_ids(old, new)；affected = changed ∪ removed
         2 reachable = reachable_entities(old_candidates, affected)
-        3 invalidated = [{"kind": "candidate", "entity_id", "revision_id": candidate_revision_id} for 可达候选（按 entity_id 排序）]
+        3 invalidated = [{"kind": "candidate", "entity_id", "revision_id": <该项所属候选修订>} for 可达候选（按 entity_id 排序）]
                       + [{"kind": "validation_entry", "entity_id", "revision_id": None, "check": entry.check} for entity_id ∈ reachable 的条目（按 entity_id, check 排序）]
-        4 对不可达候选：carried_forward += {"kind": "candidate", "entity_id", "revision_id": candidate_revision_id, "carried_from_revision_id": candidate_revision_id}
+        4 对不可达候选：carried_forward += {"kind": "candidate", "entity_id", "revision_id": <候选修订>, "carried_from_revision_id": <候选修订>}
         5 对每条立场决定（按 queue_item_id 排序）：
              目标不可达 → carried_forward += {"kind": "decision", "entity_id": target, "revision_id": decision_revision_id, "carried_from_revision_id": seen_artifact_revision_id}
              目标可达且其任一证据/来源 Span ∈ removed → needs_review += {"decision_revision_id", "target_entity_id", "queue_item_id", "reason": "target_removed"}
@@ -36,7 +37,7 @@ contract: |
              否则 → needs_review（reason "content_changed"）
         6 valid_object_count = len(old_candidates) + len(validation_entries)；ratio = round(len(invalidated) / valid_object_count, 4)（分母 0 → 0.0）
         7 rework_round = rework_round_before + 1；warnings = ["rework_threshold_exceeded"] 当 rework_round >= 3 或 ratio >= 0.30，否则 []
-      返回键序逐字：schema_version("1.0.0"), trigger_correction_request_id, rework_round, changed_span_ids(spans.changed), removed_span_ids(spans.removed),
+      返回键序逐字：schema_version("1.0.0"), trigger_correction_request_revision_id, rework_round, changed_span_ids(spans.changed), removed_span_ids(spans.removed),
         reachable_entity_ids, invalidated, carried_forward, needs_review, invalidated_count, carried_forward_count, needs_review_count,
         valid_object_count, invalidated_ratio, warnings, affected_queues(needs_review 非空 → ["m6"] 否则 [])
 tests:
@@ -46,7 +47,7 @@ tests:
     - test_changed_spans_excludes_offset_shift（p0003_s06 文字加一字并平移其后 offset → changed 只含 s06）
     - test_changed_removed_added_sets
     - test_reachable_direct_and_transitive（S1 → [as_qizheng_000001, as_qizheng_000002, sv_…1]）
-    - test_s1_counts_exact（invalidated 6、carried_forward 3、needs_review 2、valid 8、ratio 0.75）
+    - test_s1_counts_exact（invalidated 3、carried_forward 3、needs_review 2、valid 4、ratio 0.75；首切片 validation_entries=[]）
     - test_s1_equal_content_reachable_decision_carried（as_qizheng_000002 reject → carried_forward）
     - test_s1_changed_content_decisions_need_review（as_…001、sv_…1 → reason content_changed）
     - test_unreachable_object_and_decision_carried_with_from_revision
@@ -55,10 +56,12 @@ tests:
     - test_threshold_below_ratio_no_warning（构造 ratio < 0.30、round 1 → warnings 为空）
     - test_report_key_order_exact
     - test_propagate_signature_has_no_operator_selection（inspect.signature 参数名集合逐字等于 contract）
+    - test_module_does_not_reference_invalidate_revision（源码不含 "invalidate_revision"）
     - test_deterministic_twice
 verify:
-  - .venv/bin/python -m unittest discover -s pipeline/review/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 50
+  - .venv/bin/python -m unittest discover -s pipeline/review/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 50
   - grep -nE 'datetime|time\.|random|uuid|open\(' pipeline/review/propagation.py | wc -l   # 0
+  - grep -c 'invalidate_revision' pipeline/review/propagation.py                            # 0（D-08 推荐 B）
   - TDD §3 回归
 commit:
   add: [pipeline/review/propagation.py, pipeline/review/tests/test_propagation.py]

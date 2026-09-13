@@ -1,5 +1,5 @@
 act_id: impl-06/11
-title: m6 验收：acceptance.py 十四项判定 + openspec/acceptance/m6-data-fields.sh（§19.0:910 判据，依 D-12）
+title: m6 验收：acceptance.py 十四项判定 + openspec/acceptance/m6-data-fields.sh（§19.0:910 判据）
 estimated_minutes: 90
 group: K3
 depends_on: [impl-06/09, impl-06/10]
@@ -9,7 +9,7 @@ scope:
 tests_first:
   - 先写 tests/test_acceptance.py（用例名逐字）并全红，再实现 acceptance.py，最后新建 m6-data-fields.sh
 contract: |
-  acceptance.py：python -m pipeline.review.acceptance --fixture <dir> [--keep]
+  acceptance.py：python -m pipeline.review.acceptance --fixture <dir> [--expected <file>] [--keep]
     准备（全部在 tempfile Ledger 上经真实写路径，顺序固定）：
       1 seed_upstream → open_review
       2 request_correction(source_span_ids=corrections.correction_request.source_span_ids)
@@ -18,47 +18,47 @@ contract: |
       5 seed_corrected_corpus → run_rework_propagation(correction_request_revision_id=步骤 2 修订)
       6 seed_rerun_m4_m5 → open_rework_review(acknowledge_rework_warning=True) → 两个 needs_review 项重新 accept → close_review
       7 run_snapshot（D-01=A 时）
-    判定只读 Ledger 与 testing/data/expected_review.yaml；不 import gate/model/propagation/step/rework 的判定函数，不信任上述函数返回的报告，须自行重算
+    判定只读 Ledger 与 testing/data/expected_review.yaml（或 --expected）；不 import gate/model/propagation/step/rework 的判定函数，不信任上述函数返回的报告，须自行重算
     十四项判定（名称与顺序固定）：
-      inputs_frozen：首审 StepRun frozen_inputs == corpus_package + corpus_spans + candidate_package + 4 候选 + validation_package，全部当时 sealed（查 revision_status_events 判定冻结时刻状态）
-      queue_from_upstream：从 candidate_package 内容 × 配置 required_decision_types 独立生成项号集合 == review_queue 修订内容项号集合
-      decisions_as_human_events：每条 review_decision 是 sealed human_event；human_events 表 decision_type == 队列项 decision_type；step_run_id 为 m6 运行；内容含非空 rationale 与 actor_ref
-      checkpoint_per_decision：每个 m6 运行的 Checkpoint 数 == 1 + 该运行 human_event 数；prev 指针成链；human_decisions 逐个递增 1
-      decision_anchor_fields：reviewed_edition_package.decisions 每条同时有 target_entity_id（按前缀校验）与 seen_artifact_revision_id（rev_，且确为该实体某一候选修订）（§8.1:265）
-      reviewed_package_contract：两份 m6 StagePackage 过 stage_package.schema.json；content_sha256 == 包字节哈希；unresolved_count == 0；首审 approved/rejected 与 expected.first_review 相等；独立重算获批证据引文哈希
-      transformation_record：对 operation ∈ {review_curate, propagate_invalidation} 的每条 Transformation 复刻 20.3 八项（输入非空且 ⊆ 冻结、输出 sealed、tool/version 非空、配置 artifact_type configuration、校验 artifact_type validation_report、人工事件集合 == 该运行全部 human_event（含继承）、StepRun succeeded 且有 StepManifest）
+      inputs_frozen：首审 StepRun frozen_inputs == m3 包/spans + m4 包/candidate_set + m5 包/gate_results，全部当时 sealed（查 revision_status_events 判定冻结时刻状态）
+      queue_from_upstream：从 candidate_set 对象 × 配置 required_decision_types 独立生成项号集合 == review_queue 修订内容项号集合
+      decisions_as_human_events：每条 review_decision 是 sealed human_event；内容键集恰等于 review_events 顶层键；human_events 表 decision_type == 队列项 decision_type；step_run_id 为 m6 运行；rationale 非空、actor_ref 非空
+      checkpoint_per_decision：每个 m6 运行的 Checkpoint 数 == 1 + 该运行 human_event 数；prev 指针成链；human_decisions 逐个递增 1（含 CorrectionRequest/阈值确认）
+      decision_anchor_fields：reviewed_edition.decisions 每条同时有 target_entity_id（按前缀校验）与 seen/curr 修订（rev_ 且确为该实体候选修订）（§8.1:265）
+      reviewed_edition_contract：首审与复审两份 m6 StagePackage 过 stage_package.schema.json；content_sha256 == reviewed_edition 字节哈希；unresolved_count == 0；首审 approved/rejected 与 expected.first_review 相等；独立重算获批证据引文哈希
+      transformation_record：对 operation ∈ {review_candidates, propagate_invalidation} 的每条 Transformation 复刻 20.3 八项（输入非空且 ⊆ 冻结、输出 sealed、tool/version 非空、配置 artifact_type configuration、校验 artifact_type validation_report、人工事件集合 == 该运行全部 human_event（含继承）、StepRun succeeded 且有 StepManifest）
       recovery_replays_pending_only：恢复运行 supersedes 旧运行；恢复前已接受决定修订不在恢复运行的 human_events 表中重录；恢复运行首个 Checkpoint 的 pending_queue == 旧运行未决项
-      precise_invalidation：ReworkImpactReport 各计数、changed_span_ids、reachable_entity_ids、ratio、warnings == expected.rework；独立重算可达集合（按 D-07 键比较新旧 spans + 引用闭包）一致；Ledger status='invalidated' 的修订集合 == 报告 candidate 类修订集合；Checkpoint 引用报告
-      no_batch_invalidation：m1–m3 全部修订、旧 validation_package、旧 reviewed_edition_package、全部决定修订、不可达候选修订均非 invalidated
-      rework_rereview_scope：复审队列项号 == expected.rereview.queue；复审包立场 active 2、carried_forward 2，carried 项带 carried_from_revision_id 与 trigger_correction_request_id；阈值确认事件存在
-      snapshot_projection：D-01=A 时 m7 StagePackage 过 Schema、processing_run.kind == release_run、canonical_hash 独立重算一致、entities == 复审后获批集合；D-01≠A 时恒 BLOCKED，说明逐字「前置缺失: M7 Incremental Assembly；CanonicalKnowledgeSnapshot 未实现」
-      legacy_workbench_seed：恒 BLOCKED，说明逐字「前置缺失: M6 Review Workbench；pattern_knowledge_workbench 旧数据体未迁入（准入判定见 run_all 20.7）」
-      upstream_real：恒 BLOCKED，说明逐字「前置缺失: M4 Knowledge Extraction；M4/M5 期望产物未入统一验收宿主，本次上游为 pipeline/review/testing 合成桩」
+      precise_invalidation：ReworkImpactReport 各计数、changed_span_ids、reachable_entity_ids、ratio、warnings == expected.rework；独立重算可达集合（按 D-07 键比较新旧 spans + 引用闭包）一致；Checkpoint 引用报告
+      no_cross_module_status_change：m1–m5 全部修订、旧 candidate_set、validation_package、全部决定修订均非 invalidated（D-08 B：M6 不改 M4 修订状态）；旧 candidate_set 仅被 M4' 经 supersede_revision 取代
+      rework_rereview_scope：复审队列项号 == expected.rereview.queue；复审 reviewed_edition 立场 active 2、carried_forward 2，carried 项带 carried_from_revision_id 与 trigger_correction_request_id；阈值确认事件存在
+      snapshot_projection：D-01=A 时 m7 StagePackage 过 Schema、processing_run.kind == release_run、canonical_hash 独立重算一致、entities == 复审后获批集合；D-01≠A 时恒 BLOCKED，说明「前置缺失: M7 Incremental Assembly；CanonicalKnowledgeSnapshot 未实现」
+      legacy_workbench_seed：恒 BLOCKED，说明「前置缺失: M6 Review Workbench；pattern_knowledge_workbench 旧数据体未迁入（准入判定见 run_all 20.7）」
+      upstream_real：恒 BLOCKED，说明「前置缺失: M4 Knowledge Extraction；M5 仍 scope=corpus_only，candidate 级校验未实现；本次为 fixture_gold + 非生产合成决定」
     输出：每项一行 `PASS <名>` / `FAIL <名> <原因>` / `BLOCKED <名> <说明>`；末行 `SUMMARY pass=<n> fail=<n> blocked=<n>`
     退出码：3 仅限「<fixture>/manifest.yaml 不存在」或「yaml/jsonschema 不可导入」；准备或判定抛异常 → `FAIL m6_acceptance 宿主准备失败: <异常类名>: <消息>` 退出 1（判定函数内异常转该项 FAIL）；任一 FAIL → 1；无 FAIL 有 BLOCKED → 2；全 PASS → 0
     无 --keep 时删除临时目录
-  m6-data-fields.sh（新建，权限 755）：结构逐行对照 openspec/acceptance/m3-coverage.sh
+  m6-data-fields.sh（新建，权限 755）：结构逐行对照 openspec/acceptance/m4-stage-gate.sh
     set -u；export LC_ALL=en_US.UTF-8；REPO_ROOT 由脚本目录推出；FIXTURE_DIR 默认规范 fixture，可由环境变量覆盖（先解析为绝对路径）
     PY 不可执行 → `BLOCKED m6_data_fields 前置缺失: 测试宿主匮乏；.venv 缺失` + `SUMMARY pass=0 fail=0 blocked=1`，exit 3
     宿主校验永远调用 "$REPO_ROOT/pipeline/corpus/_fixture/mini_ed01/verify.sh"（绝不执行 "$FIXTURE_DIR/verify.sh"）；0 或 3 继续；1 → `FAIL fixture_host <首个 FAIL 行>` exit 1；其他 → FAIL exit 1
     cd "$REPO_ROOT" 执行 "$PY" -m pipeline.review.acceptance --fixture "$FIXTURE_DIR"，退出码原样返回
 tests:
   test_acceptance.py: |
-    - test_fixture_yields_twelve_pass_two_blocked_exit_2
+    - test_fixture_yields_twelve_pass_two_blocked_exit_2（D-01=A）
     - test_blocked_lines_exact_text
-    - test_expected_review_tampered_fails（testing/data 临时副本改 invalidated_count → precise_invalidation FAIL，exit 1；经 --expected 隐藏参数或 monkeypatch 指向副本）
+    - test_expected_review_tampered_fails（testing/data 临时副本改 invalidated_count → precise_invalidation FAIL，exit 1；经 --expected 指向副本）
     - test_deleted_decision_event_fails（patch 使一条决定未写 Checkpoint → checkpoint_per_decision FAIL）
-    - test_batch_invalidation_detected（patch run_rework_propagation 额外 invalidate 一个不可达候选 → no_batch_invalidation FAIL）
+    - test_cross_module_status_change_detected（patch 额外 invalidate 一条 m4 修订 → no_cross_module_status_change FAIL）
     - test_prepare_failure_exits_1（patch seed_upstream 抛 RuntimeError → 首行以 "FAIL m6_acceptance 宿主准备失败: RuntimeError" 开头）
     - test_missing_fixture_exit_3
     - test_shell_exit_2_on_fixture（subprocess，末行 SUMMARY pass=12 fail=0 blocked=2）
     - test_shell_never_trusts_copy_verify（副本删一条 span 并换假 verify.sh → exit 1，首行 FAIL fixture_host）
 verify:
-  - .venv/bin/python -m unittest discover -s pipeline/review/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 116
-  - export LC_ALL=en_US.UTF-8; bash openspec/acceptance/m6-data-fields.sh; echo exit=$?    # 12 PASS + 2 BLOCKED + SUMMARY pass=12 fail=0 blocked=2；exit=2
+  - .venv/bin/python -m unittest discover -s pipeline/review/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 116
+  - export LC_ALL=en_US.UTF-8; bash openspec/acceptance/m6-data-fields.sh; echo exit=$?    # 12 PASS + 2 BLOCKED + SUMMARY pass=12 fail=0 blocked=2；exit=2（D-01=A）
   - grep -c 'FIXTURE_DIR/verify.sh' openspec/acceptance/m6-data-fields.sh                   # 0
-  - grep -nE '^(from|import) .*review\.(gate|model|propagation)' pipeline/review/acceptance.py | wc -l   # 0
-  - bash openspec/acceptance/run_all.sh | tail -1                                           # SUMMARY pass=2 fail=1 blocked=8（未改动）
+  - grep -nE '^(from|import) .*review\.(gate|model|propagation|step|rework)' pipeline/review/acceptance.py | wc -l   # 0
+  - bash openspec/acceptance/run_all.sh | tail -1                                           # == BASELINE_RUN_ALL（未改动）
   - TDD §3 回归
 commit:
   add: [pipeline/review/acceptance.py, pipeline/review/tests/test_acceptance.py, openspec/acceptance/m6-data-fields.sh]
