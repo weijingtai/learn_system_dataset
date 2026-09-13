@@ -154,6 +154,12 @@ Q49 按 P8 须用户确认前缀；Q52/Q53/Q55/Q57/Q62 推迟到 W5 定稿；Q50
 | 54 | impl-05 F2：开工前提硬编码 `check_interfaces.py pass=18`，与第 47 条 act/12 在 K2 前执行后 `pass=24` 互斥 | 所有工作包的「闭集登记完整性」前提与门禁一律写为「`check_interfaces.py` 末行 `fail=0` 且 exit 0，且所需类型对应的 PASS 行存在」，**不写死 pass 总数**；已验收包（impl-03/04）的历史提示词不回改，主 Agent 验收脚本只取 `fail=0` |
 | 55 | W4G W2：m4 裁决金标按第 52 条增加 `synthetic_fixture`/`actor_ref` 后不再逐字等于 impl-05 附录 A，impl-05 act/07 字节等同测试必失败 | 同步修改 impl-05 附录 A（及 act/00 `tests/data/appendix_a/*` 与 act/07 期望），使附录 A 裁决文档含两键并与 fixture 金标逐字相同；与第 53 条同批返工。impl-05 F4 需要登记的只读 SELECT（`human_events`、`processing_runs`）并入 impl-00 README §5.2 唯一缺口清单 |
 
+### 9.9 impl-08 实现 K2 回报
+
+| # | 条目 | 裁决 |
+|---|---|---|
+| 56 | w4o ACT 04 以「实现先行、临时移出模块」取得 Red 证据 | 按 impl-02 J3 先例接受并登记（K2 验收其余全绿）；属违反先红后绿纪律，自 K3 起必须先写测试、取得真实 Red 原文后再实现，再犯判返工。K1/K2 验收记录注明此项 |
+
 ## 10. 用户待办
 
 1. W4-J 前：撰写真实前十页人工终态决定表（P7，Q37）。
