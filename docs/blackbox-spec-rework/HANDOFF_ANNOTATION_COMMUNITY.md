@@ -27,6 +27,8 @@
 
 `/Users/jingtaiwei/Git/Public/xuan-migration` 是容器目录，不是 git 仓库，绝不在其根目录执行 git。
 
+**Windows 布局（2026-09-12 起并行有效，用户裁定，登记为 D-NC012-23）**：仓库改放 `D:\Programme`——`learn_system → D:\Programme\learn_system`；客户端 `reading-notes、repository-rest-adapter、social、notification、xuan-storage（含 .worktrees/nc016-guard-aad）、xuan-handbook、repository-contract-kernel → D:\Programme\xuan\`；服务端 `functions-py → D:\Programme\xuan-server\functions-py`、`xuan-server → D:\Programme\xuan-server\xuan-server`。Flutter 3.44.6 位于 `D:\apps\apps\flutter\bin`。所有仓检出后执行 `git config core.autocrlf false` 并重建工作区（哈希断言与 bash 脚本都依赖 LF）；venv 解释器在 Windows 是 `.venv/Scripts/python.exe`；守卫内 flutter/dart/npm 经 `shutil.which` 解析。`repository-rest-adapter` 依赖同源兄弟目录 `repository-contract-kernel`（Gitea `xuan/repository_contract_kernel.git`），必须克隆到同级目录。
+
 ## 3. 环境
 
 - Flutter `3.44.6`，位于 `/Users/jingtaiwei/flutter/bin`（命令一律带 `PATH=/Users/jingtaiwei/flutter/bin:$PATH`）。
@@ -47,7 +49,7 @@
 
 ## 5. NC-012a 验收收尾
 
-已于 2026-09-12 验收 `ACCEPTED`（`work-items/nc-012a/ACCEPTANCE.md` 文末验收记录 R1）。遗留两件非阻断事项：① `functions-py/tests/test_community_acl_sweep.py` 文档字符串两行未更新；② xuan-handbook 条目 `social.community-interactions` 的接入手册 `integration/social.community-interactions.md` 尚未编写（按 handbook PROTOCOL §4、§9 补写后才能标 `done`）。
+已于 2026-09-12 验收 `ACCEPTED`（`work-items/nc-012a/ACCEPTANCE.md` 文末验收记录 R1）。两件遗留事项已闭环（2026-09-12，zcode 复核）：① `functions-py/tests/test_community_acl_sweep.py` 文档字符串经核对已在主线提交 `8d22451` 中修正（Implemented/Unimplemented 两行已含 E4），无需再改；② xuan-handbook 条目 `social.community-interactions` 的接入手册已按 PROTOCOL §9 补写并推送（xuan-handbook `f88e70b`），条目已按 §5 判定 `done`。
 
 ## 6. 后续顺序建议
 
@@ -79,6 +81,7 @@
 - Firestore Emulator 事务锁语义是「写者等待读者」，并发测试用确定性 `Aborted` 注入（见 `community_discussion.md` §8.1），503 以同一 command_id 重试。
 - 命令行工具若有默认短超时，pytest/flutter/npm 一律显式设置不少于 600 秒或后台运行后轮询。
 - 原机器上的 `rtk` 会改写 `git diff/ls/grep` 输出，核对时用 `/usr/bin/git diff-tree`、`/bin/ls`、`/usr/bin/grep`；新机器若无 rtk 可忽略。
+- Windows 机器：检出后先把 `core.autocrlf` 关掉并重建工作区（否则 JSON 哈希断言、bash 守卫与工具脚本全部变红）；REST 契约测试的 `tool/validate_openapi` 在 Windows 经 bash 转发，`dart test` 需要 `PYTHON`（learn_system venv，含 jsonschema）与 `OPENAPI_VALIDATOR`（learn_system `.venv-openapi/Scripts/openapi-spec-validator.exe`）两个环境变量，守卫已内置注入。
 - xuan-handbook 中 reading-notes 尚无模块领域；已登记 `social.community-interactions`（状态 `landed`，claim 已删除，接入手册待补）。回填其余已交付的注解社区能力前，先请用户决定领域。
 
 ## 9. 接手提示词
