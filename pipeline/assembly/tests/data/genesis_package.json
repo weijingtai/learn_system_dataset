@@ -1,0 +1,212 @@
+{
+  "synthetic": true,
+  "ledger_constants": {
+    "technique_id": "qizheng",
+    "edition_part_artifact_id": "art_00000000000000000000000000000001",
+    "candidate_set_artifact_id": "art_00000000000000000000000000000010",
+    "candidate_set_revision_id": "rev_00000000000000000000000000000011",
+    "candidate_package_artifact_id": "art_00000000000000000000000000000012",
+    "candidate_package_revision_id": "rev_00000000000000000000000000000012",
+    "reviewed_edition_artifact_id": "art_00000000000000000000000000000013",
+    "reviewed_edition_revision_id": "rev_00000000000000000000000000000013",
+    "reviewed_edition_package_artifact_id": "art_00000000000000000000000000000014",
+    "reviewed_edition_package_revision_id": "rev_00000000000000000000000000000014",
+    "m6_stage_package_id": "pkg_m6_00000000000000000000000000000015",
+    "m6_package_revision_id": "rev_00000000000000000000000000000015",
+    "m4_step_run_id": "srun_00000000000000000000000000000004",
+    "m6_step_run_id": "srun_00000000000000000000000000000006",
+    "processing_run_id": "prun_00000000000000000000000000000001"
+  },
+  "candidate_set": {
+    "schema_version": "0.1.0-draft",
+    "synthetic": true,
+    "technique_id": "qizheng",
+    "source_id": "src_qizheng_ed01",
+    "edition_part_artifact_id": "art_00000000000000000000000000000001",
+    "evidence_level": "offset_level",
+    "span_layer": "structural",
+    "source_channels": {
+      "default": {
+        "main": "text"
+      }
+    },
+    "assertions": [
+      {
+        "assertion_id": "as_qizheng_000001",
+        "proposition_id": "pr_qizheng_000001",
+        "proposition": "命宫在子",
+        "relation": "supports",
+        "evidence": [
+          {
+            "source_span_id": "ss_qizheng_ed01_p0001_s01",
+            "start_offset": 10,
+            "end_offset": 20,
+            "quote": "命宫在子",
+            "quote_sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+          }
+        ],
+        "conditions": [],
+        "exceptions": [],
+        "concept_refs": [
+          "co_qizheng_000001"
+        ],
+        "school_ids": [
+          "sch_qizheng_001"
+        ],
+        "layer": "general",
+        "content_status": "machine_extracted",
+        "origin": {
+          "lane": "main",
+          "item_index": 0
+        }
+      }
+    ],
+    "patterns": [
+      {
+        "pattern_id": "pat_qizheng_000001",
+        "name": "子宫命格",
+        "assertion_ids": [
+          "as_qizheng_000001"
+        ],
+        "evidence": [],
+        "interpretation": "基本格局",
+        "interpretation_status": "captured",
+        "recognition_rule_status": "not_captured",
+        "content_status": "machine_extracted",
+        "origin": {
+          "lane": "main",
+          "item_index": 0
+        }
+      }
+    ],
+    "school_views": [
+      {
+        "school_view_id": "sv_00000000000000000000000000000001",
+        "school_id": "sch_qizheng_001",
+        "subject_entity_id": "as_qizheng_000001",
+        "claim_refs": [
+          "as_qizheng_000001"
+        ],
+        "conflict_group_id": "cg_00000000000000000000000000000001",
+        "changes_current_judgment": true,
+        "source_refs": [
+          {
+            "source_id": "src_qizheng_ed01",
+            "source_span_id": "ss_qizheng_ed01_p0001_s01"
+          }
+        ],
+        "evidence": [],
+        "content_status": "machine_extracted",
+        "origin": {
+          "lane": "main",
+          "item_index": 0
+        }
+      }
+    ],
+    "concept_mentions": [
+      {
+        "surface": "命宫",
+        "concept_ref": "co_qizheng_000001",
+        "evidence": [],
+        "content_status": "machine_extracted",
+        "origin": {
+          "lane": "main",
+          "item_index": 0
+        }
+      }
+    ],
+    "new_concept_candidates": [],
+    "rejected": [],
+    "disputes": [],
+    "counts": {
+      "assertions": 1,
+      "patterns": 1,
+      "school_views": 1,
+      "concept_mentions": 1,
+      "new_concept_candidates": 0,
+      "rejected": 0,
+      "disputes": 0
+    }
+  },
+  "reviewed_edition": {
+    "schema_version": "0.1.0-draft",
+    "synthetic": true,
+    "edition_part_artifact_id": "art_00000000000000000000000000000001",
+    "candidate_set_revision_id": "rev_00000000000000000000000000000011",
+    "candidate_package_revision_id": "rev_00000000000000000000000000000012",
+    "validation_package_revision_id": "rev_00000000000000000000000000000004",
+    "approved": [
+      {
+        "entity_id": "pat_qizheng_000001",
+        "kind": "pattern",
+        "artifact_revision_id": "rev_00000000000000000000000000000005",
+        "content_status": "expert_verified",
+        "decision_revision_ids": [
+          "rev_00000000000000000000000000000006"
+        ]
+      },
+      {
+        "entity_id": "as_qizheng_000001",
+        "kind": "assertion",
+        "artifact_revision_id": "rev_00000000000000000000000000000005",
+        "content_status": "expert_verified",
+        "decision_revision_ids": [
+          "rev_00000000000000000000000000000006"
+        ]
+      },
+      {
+        "entity_id": "sv_00000000000000000000000000000001",
+        "kind": "school_view",
+        "artifact_revision_id": "rev_00000000000000000000000000000005",
+        "content_status": "expert_verified",
+        "decision_revision_ids": [
+          "rev_00000000000000000000000000000006"
+        ]
+      }
+    ],
+    "rejected": [],
+    "decisions": [
+      {
+        "decision_revision_id": "rev_00000000000000000000000000000006",
+        "target_entity_id": "pat_qizheng_000001",
+        "choice": "approve",
+        "synthetic_fixture": true
+      }
+    ],
+    "evidence_links": [
+      {
+        "entity_id": "as_qizheng_000001",
+        "source_span_id": "ss_qizheng_ed01_p0001_s01",
+        "start_offset": 10,
+        "end_offset": 20,
+        "quote_sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+      }
+    ],
+    "school_views": [
+      {
+        "school_view_id": "sv_00000000000000000000000000000001",
+        "school_id": "sch_qizheng_001",
+        "subject_entity_id": "as_qizheng_000001",
+        "conflict_group_id": "cg_00000000000000000000000000000001",
+        "changes_current_judgment": true
+      }
+    ],
+    "correction_request_revision_ids": [],
+    "rework_impact_report_revision_id": null,
+    "unresolved_count": 0
+  },
+  "reviewed_edition_package": {
+    "schema_version": "0.1.0-draft",
+    "synthetic": true,
+    "reviewed_edition_revision_id": "rev_00000000000000000000000000000013",
+    "decision_revision_ids": [
+      "rev_00000000000000000000000000000006"
+    ],
+    "decision_count": 1,
+    "approved_count": 3,
+    "rejected_count": 0,
+    "unresolved_count": 0,
+    "correction_request_revision_ids": [],
+    "rework_impact_report_revision_id": null
+  }
+}
