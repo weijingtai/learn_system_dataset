@@ -4,7 +4,7 @@
 
 1. ACT 审查：未参与编写、且不同厂商的审查者按 wjt-react 四查（忠实性、覆盖性、可执行性、独立性）判定 READY；返工不超过 2 轮；记录于 `reviews/NC-013-REVIEW-R1.md`。
 2. 范围（`/usr/bin/git diff-tree -r --name-only` 或 `git diff-tree`，不用 `git diff`）：
-   - REST `cb686d0..HEAD`：恰 6 个文件（openapi.yaml、测试、3 示例、manifest）。
+   - REST `dc0792c..HEAD`：恰 6 个文件（openapi.yaml、测试、3 示例、manifest）。
    - SERVER `8d22451..HEAD`：恰 7 个文件（config.py、conftest.py、notification_dispatch.py、community_deliveries.py、test_community_deliveries.py、test_community_acl_sweep.py、main.py）；`notifications.py`、`test_registration.py`、`test_main_exports.py`、`community_helpers.py`、`xuan/community/` 既有文件零改动。
    - RULES `4b81d8d..HEAD`：恰 1 个文件。
 3. 重跑 TDD §1 全部命令：pytest `5 failed, 568 passed, 3 xfailed`（FAILED 恰为五个既有 ID）；rules `153 passed`；dart `+81`；`nc013_guard.sh --require-impl all` 退出 0。

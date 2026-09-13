@@ -6,6 +6,7 @@ GOAL: OpenAPI 补 R9 通知正文拉取、R10 业务通知补拉、W15/W16 按�
 DEPENDS_ON: []
 ESTIMATE_MINUTES: 45
 WORKLOAD: "openapi.yaml 约 110 行增量（4 个 schema、3 条新路径、4 个新方法、1 个新 query 参数、2 处错误行、1 处限流行）；4 个 dart 测试约 140 行；3 个示例 JSON 与 manifest 3 项"
+BASELINE_HEAD: dc0792c（3f34f0f = cb686d0 + AGENTS.md 文档提交；dc0792c = validator Windows bash 适配，见 D-NC013-16）
 SCOPE:
   READ:
     - D:/Programme/learn_system/openspec/annotation-community/contracts/community_deliveries.md（§6、§9、§10、§15）
@@ -40,8 +41,8 @@ VERIFICATION:
   - "cd D:/Programme/xuan/repository-rest-adapter && dart test（期望 +81: All tests passed!）"
   - "cd D:/Programme/xuan/repository-rest-adapter && bash tool/validate_openapi openapi/openapi.yaml（Windows 经 bash；macOS 直接 tool/validate_openapi；期望退出 0；OPENAPI_VALIDATOR=D:/Programme/learn_system/openspec/annotation-community/.venv-openapi/Scripts/openapi-spec-validator.exe）"
   - "cd D:/Programme/xuan/repository-rest-adapter && D:/Programme/learn_system/.venv/Scripts/python.exe tool/check_examples.py（期望退出 0；PYTHON 同 venv）"
-  - "git -C D:/Programme/xuan/repository-rest-adapter diff-tree -r --name-only cb686d0 HEAD（期望恰为 WRITE_NEW 的 6 个文件）"
+  - "git -C D:/Programme/xuan/repository-rest-adapter diff-tree -r --name-only dc0792c HEAD（期望恰为 WRITE_NEW 的 6 个文件）"
   - "cd D:/Programme/learn_system && bash docs/blackbox-spec-rework/reviews/nc013_guard.sh --require-impl rest（期望 0）"
 ON_FAIL: "停止并在 DELIVERY_REPORT_REST.md 追加「## 待裁决」；不改契约与既有测试。validate_openapi 报 ENV_BLOCKED、既有测试变红、check_examples 拒收契约示例，均为停止条件。"
-BASELINE_EXIT_CODES: "开工基线：cb686d0，dart test +77"
+BASELINE_EXIT_CODES: "开工基线：dc0792c，dart test +77（D-NC013-16）"
 COMMIT_MESSAGE: "feat(openapi): 通知正文拉取、补拉与按内容静音端点契约（NC-013-A）"

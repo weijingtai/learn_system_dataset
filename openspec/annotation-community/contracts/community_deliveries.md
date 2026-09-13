@@ -254,3 +254,4 @@ REST 结构测试（`test/community_openapi_contract_test.dart` 末尾追加，�
 | D-NC013-13 | 注册闸门既有红不修；FAILED 集合断言仍为五个既有 ID | test_registration 不在白名单；新增入口不改变其失败集合 |
 | D-NC013-14 | 时间戳 UTC ISO 字符串；拉黑键复用 playground `block_${a}_${b}` 惯例 | 社区域既有惯例；游标稳定性依赖字符串排序 |
 | D-NC013-15 | `community_notification_mutes` 文档 ID 前缀 `nmute_`（`nmute_<32 hex>`）为本任务新增的服务端内部对象前缀，已在 DESIGN §2.1 前缀表登记（2026-09-12 主 Agent） | DESIGN §2.1 前缀表原为 17 类闭集；静音集合无既有前缀可复用，内部对象不经 REST 暴露 ID，登记即闭环 |
+| D-NC013-16 | REST 开工基线认可 `3f34f0f`（= `cb686d0` + 2 个仅改 AGENTS.md 的文档合并提交）及其后继 `dc0792c`（validator Windows bash 适配，D-NC012-23 范围，主 Agent 提交推送）；act/01 的 diff-tree 核对基线相应为 `dc0792c` | 两文档提交为 NC-012a 验收期合入，不触及任何产物文件；executor 按停手协议上报基线不符，裁定通过（2026-09-13） |

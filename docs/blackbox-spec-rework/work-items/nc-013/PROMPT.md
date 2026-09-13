@@ -8,7 +8,7 @@
 
 你是 NC-013-A 执行者，只做 act/01。先读（按序）：`work-items/nc-013/README.md` → 契约 `contracts/community_deliveries.md` §6/§9/§10/§15 → `community_api.md` §2/§3.1/§4.1/§5.3/§6/§13 → `BDD.md` A01～A04 → `TDD.md` §2 → `act/01.yaml` 全文。
 
-开工前：`git -C <REST 仓> status --short` 必须为空、HEAD = `cb686d0`（分叉即停手）。命令默认超时一律放大到 ≥600 秒。
+开工前：`git -C <REST 仓> status --short` 必须为空、HEAD = `dc0792c`（分叉即停手；D-NC013-16）。命令默认超时一律放大到 ≥600 秒。
 
 先写测试再改实现（TESTS_FIRST 顺序），Red 原文进交付报告。只允许写 act/01.yaml `WRITE_NEW` 清单中的 6 个文件；其中既有测试文件只允许「末尾追加 4 个测试」与「两处既有断言同步（expectedCatalog 三行、seventeen ≥17）」，其他行禁改。
 

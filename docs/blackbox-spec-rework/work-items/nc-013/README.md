@@ -19,7 +19,7 @@ functions-py 新增 `xuan/community/notification_dispatch.py` 与 `xuan/handlers
 
 | 线 | HEAD 基线 | 既有基线 |
 |---|---|---|
-| REST | `cb686d0` | `dart test` +77 All tests passed!（Windows 需 `PYTHON`/`OPENAPI_VALIDATOR` 环境变量，守卫已内置） |
+| REST | `dc0792c`（D-NC013-16） | `dart test` +77 All tests passed!（Windows 需 `PYTHON`/`OPENAPI_VALIDATOR` 环境变量，守卫已内置） |
 | SERVER | `8d22451` | pytest `5 failed, 535 passed, 6 xfailed`，FAILED 恰为 `test_config::test_集合名与_ts_逐项一致` + `test_registration` 四项（既有缺口不修，D-NC013-13） |
 | RULES | `4b81d8d` | `npm test -- community_rules` `Tests: 129 passed` |
 
