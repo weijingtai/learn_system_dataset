@@ -75,7 +75,7 @@ global_rules:
 gates:
   - python3 docs/blackbox-spec-rework/work-items/impl-00-interfaces/check_interfaces.py; echo exit=$?   # exit=0，末行 I00-IF SUMMARY pass=<n> fail=0
   - .venv/bin/python -m unittest discover -s docs/blackbox-spec-rework/work-items/impl-00-interfaces/tests -t docs/blackbox-spec-rework/work-items/impl-00-interfaces 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK
-  - export LC_ALL=en_US.UTF-8; bash pipeline/corpus/_fixture/mini_ed01/verify.sh | tail -1   # ACT 05 后：FIXTURE OK（10 项）
+  - export LC_ALL=en_US.UTF-8; bash pipeline/corpus/_fixture/mini_ed01/verify.sh | tail -1   # ACT 05 后：FIXTURE OK（11 项）
   - bash openspec/schemas/verify.sh >/dev/null; echo $?                     # 0（未改 schemas）
   - export LC_ALL=en_US.UTF-8; bash openspec/acceptance/run_all.sh | tail -1   # SUMMARY pass=2 fail=1 blocked=8（未改 acceptance）
   - git status --short openspec/schemas pipeline/ledger   # 空（未写热点；fixture 仅 ACT 05 写）

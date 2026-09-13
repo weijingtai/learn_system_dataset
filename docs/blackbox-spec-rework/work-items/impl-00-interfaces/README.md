@@ -125,8 +125,8 @@ W4-G 定稿（2026-09-13）新增/裁剪两个前置 ACT，均 `READY_FOR_REVIEW
 
 | ACT | 标题 | 前置 | 写范围 | 关键判据 |
 |---|---|---|---|---|
-| `impl-00/12` | M4 artifact_type 闭集登记与 INTERFACES 对账（§2.4/§3.1/§3.2/§3.10/§4/§6 I-11） | `impl-00/10`（首纵切登记 `ea90ca8`） | `INTERFACES.md`、`check_interfaces.py`、`tests/`（仅本目录） | `check_interfaces.py` → `I00-IF SUMMARY pass=24 fail=0`；`unittest` ≥ 13 用例；§4 旧 M4 名与 `char_start` 清零 |
-| `impl-00/05` | mini_ed01 m4 金标与 `verify.sh` 扩展（仅 m4；独占，P4） | `impl-00/12` | `pipeline/corpus/_fixture/mini_ed01/m4/**`、`expected/m4.stage_package.yaml`、`verify.sh` | `verify.sh` → `FIXTURE OK`（10 项）；`shasum -c m4/SHA256SUMS` 绿；`build_expected_m4.py` 两次字节相同 |
+| `impl-00/12` | M4 artifact_type 闭集登记与 INTERFACES 对账（§2.4/§3.1/§3.2/§3.10/§4/§6 I-11） | `impl-00/10`（首纵切登记 `ea90ca8`） | `INTERFACES.md`、`check_interfaces.py`、`tests/`（仅本目录） | `check_interfaces.py` → `I00-IF SUMMARY pass=24 fail=0`；`unittest` ≥ 13 用例；§4 旧 M4 名与 `char_start` 清零（含 §3.10，§9.7 第 51 条） |
+| `impl-00/05` | mini_ed01 m4 金标与 `verify.sh` 扩展（仅 m4；独占，P4） | `impl-00/12` | `pipeline/corpus/_fixture/mini_ed01/m4/**`、`expected/m4.stage_package.yaml`、`verify.sh` | `verify.sh` → `FIXTURE OK`（11 项）；`shasum -c m4/SHA256SUMS` 绿；`build_expected_m4.py` 两次字节相同；人工事件金标含 `synthetic_fixture: true`（§9.7 第 52 条） |
 
 约束：`impl-00/12` 是 §4 的**单写者**（P2），执行并验收后 impl-05 K2 才可派发；`impl-00/05` 是 W4 内**唯一**写 `pipeline/corpus/_fixture/mini_ed01/` 的 ACT（P4），其金标**不得由 impl-05 实现方生成**（§9.6 第 48 条），也不得改 `tools/build_fixture.py`。`impl-00/06–09` 仍 `DEFERRED`。
 
