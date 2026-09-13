@@ -1,0 +1,14 @@
+schema_version: 0.1.0-draft
+category: concept_mention
+lane: a
+channel: fixture_gold
+technique_id: qizheng
+producer: {kind: fixture, name: mini_ed01, model_id: null, prompt_sha256: null, response_sha256: null}
+source_task: null
+items:
+- surface: 身宮
+  evidence:
+  - {source_span_id: ss_sanche_ed01_p0003_s12, support_type: direct, span_char_start: 1, span_char_end: 3}
+- surface: 官祿宮
+  evidence:
+  - {source_span_id: ss_sanche_ed01_p0003_s19, support_type: direct, span_char_start: 1, span_char_end: 4}
