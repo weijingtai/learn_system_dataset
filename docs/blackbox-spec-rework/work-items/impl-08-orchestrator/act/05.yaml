@@ -14,9 +14,9 @@ contract: |
     _descriptor_for_step(registry, step) -> dict：registry.module_for(step["stage"])；None → OrchestratorRefused
     record_human_event(port, registry, handle, step_run_id, resume_token, event_revision_id, *, decision_type=None, modules=None) -> str（新 Checkpoint 修订号）
       1 port.record_human_event(step_run_id, resume_token, event_revision_id, decision_type=decision_type)（token 不消费，§7.1 :220）
-      2 latest = port.latest_checkpoint(handle.edition_part_id, step.stage)；base = latest.content if latest 且 latest.step_run_id == step_run_id else 空内容
-        pending = base.pending_queue；binding.target 有可调用 resolve_pending → pending = target.resolve_pending(pending, event_revision_id)
-        checkpoint = port.write_checkpoint(step_run_id, edition_part_id=ep, stage=step.stage, completed_tasks=base.completed_tasks 或 [],
+      2 latest = port.latest_checkpoint(handle["edition_part_id"], step["stage"])；base = latest["content"] if latest 且 latest["step_run_id"] == step_run_id else 空内容
+        pending = base["pending_queue"]；binding.target 有可调用 resolve_pending → pending = target.resolve_pending(pending, event_revision_id)
+        checkpoint = port.write_checkpoint(step_run_id, edition_part_id=ep, stage=step["stage"], completed_tasks=base["completed_tasks"] 或 [],
                      human_decisions=_human_events(port, step_run_id), pending_queue=pending, next_pointer=pending[0] if pending else None)
         （§17.1 :843 每次人工决定被接受后即时落盘；Ledger 拒绝 → 原样抛出并停手上报）
     resume(port, registry, handle, step_run_id, resume_token, *, modules=None) -> dict StepResult
@@ -27,7 +27,7 @@ contract: |
     recover(port, registry, handle, step_run_id, reason, *, modules=None) -> dict {"status": target, "step_result": StepResult | None}
       target = port.recover(step_run_id, reason)
       target == "awaiting_human" → step_result None（原 token 继续有效，由 Ledger 保证）
-      target == "running" → latest = latest_checkpoint(ep, stage)；plan = {"completed_task_ids": [t.task_id for t in latest.content.completed_tasks if t.status == "succeeded"]} if latest 且 latest.step_run_id == step_run_id else None
+      target == "running" → latest = latest_checkpoint(ep, stage)；plan = {"completed_task_ids": [t["task_id"] for t in latest["content"]["completed_tasks"] if t["status"] == "succeeded"]} if latest 且 latest["step_run_id"] == step_run_id else None
         step_result = execute_step(port, binding, 原请求, StepContext(mode="recovered", …, human_event_revision_ids=…, recovery_plan=plan))
     reconcile_after_outage(port, handle, reason) -> list[str]
       对 run_status(prun)["step_runs"] 中 status == "running" 者逐一 port.suspend(srun, reason, "infrastructure")；终态与 awaiting_human/suspended 不动；返回被挂起的 step_run_id 列表（§17 :828：先读最后持久状态再对账，终态不得改写）
@@ -54,7 +54,7 @@ tests:
     - test_rerun_from_checkpoint_skips_completed_and_preserves_failed_history（旧 StepRun 仍 failed，失败修订 sealed；新 StepRun supersedes 旧；executed_tasks 中 t1 只出现一次；m4 gate passed）
     - test_rerun_refused_when_not_supports_recovery
 verify:
-  - .venv/bin/python -m unittest discover -s pipeline/orchestrator/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 54
+  - .venv/bin/python -m unittest discover -s pipeline/orchestrator/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 54
   - grep -nE 'deadline|timeout|time\.sleep' pipeline/orchestrator/human.py | wc -l             # 0
   - TDD §3 回归
 commit:

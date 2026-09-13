@@ -32,9 +32,9 @@ tests:
     - test_artifact_type_of_known_and_missing
     - test_sealed_stage_package_unique_none_many
 verify:
-  - .venv/bin/python -m unittest discover -s pipeline/ledger/tests -t . 2>&1 | tail -3     # OK
-  - .venv/bin/python -m unittest discover -s pipeline/validation/tests -t . 2>&1 | tail -3  # OK（回改后）
-  - .venv/bin/python -m unittest discover -s pipeline/dataset_compiler/tests -t . 2>&1 | tail -3   # OK（回改后）
+  - .venv/bin/python -m unittest discover -s pipeline/ledger/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"     # OK
+  - .venv/bin/python -m unittest discover -s pipeline/validation/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"  # OK（回改后）
+  - .venv/bin/python -m unittest discover -s pipeline/dataset_compiler/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK（回改后）
   - TDD §3 回归
 commit:
   add: [pipeline/ledger/service.py, pipeline/ledger/tests/test_read_api.py]

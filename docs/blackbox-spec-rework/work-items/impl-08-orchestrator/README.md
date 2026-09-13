@@ -1,8 +1,8 @@
 # impl-08：Local Orchestrator + Contract Registry（§5/§6.1/§7/§7.1/§17）首切片
 
-状态：`READY_FOR_REVIEW`（W4-I 定稿 2026-09-12，依 `G7-RULINGS.md` §1 原则 P1–P9 与 §6 impl-08 裁决；未经实现；派发前置见 §8）
+状态：`READY_FOR_REVIEW`（W4-I 定稿 2026-09-12；四查 R1 返工 2026-09-12，处置 F1–F9，见 `reviews/IMPL-08-REVIEW-R1.md` 与 `G7-RULINGS.md` §9.3 第 34–46 条；未经实现；派发前置见 §8）
 
-本包取代起草稿（`DRAFT`）。§4「主 Agent 决定」执行者不重议；§4.1「待主 Agent 裁决」未裁前不得据此实现。
+本包取代起草稿（`DRAFT`）。§4「主 Agent 决定」执行者不重议；§4.1 各条已由 `G7-RULINGS.md` §9.3 第 34–43 条裁定（第 45/46 条另修订 F1/F2），执行者按裁定实现。
 
 ## 1. 目标
 
@@ -39,8 +39,8 @@ bash openspec/acceptance/contract-registry.sh; echo exit=$?
 #   BLOCKED other_ports_adapters 前置缺失: Contract Registry；ocr/model/index 端口 Adapter 数不足 2（ocr=0, model=0, index=0）
 #   SUMMARY pass=3 fail=0 blocked=2
 # exit=2
-.venv/bin/python -m unittest discover -s pipeline/contract_registry/tests -t . 2>&1 | tail -3   # OK；用例数逐 ACT 阈值见 TDD §1
-.venv/bin/python -m unittest discover -s pipeline/orchestrator/tests -t . 2>&1 | tail -3        # OK；用例数逐 ACT 阈值见 TDD §1
+.venv/bin/python -m unittest discover -s pipeline/contract_registry/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK；用例数逐 ACT 阈值见 TDD §1
+.venv/bin/python -m unittest discover -s pipeline/orchestrator/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"        # OK；用例数逐 ACT 阈值见 TDD §1
 bash openspec/acceptance/run_all.sh 20.1 20.10
 # 期望：BLOCKED  20.1  前置缺失: M4 Knowledge Extraction；Local Orchestrator 首切片已串联 m1–m3、m5 Gate，m4/m6 未登记生产 Module
 #       BLOCKED  20.10  前置缺失: Contract Registry；m3.corpus_structural、m5.automatic_validation、m8.dataset_compilation 入口直接访问 Ledger 内部（…）
@@ -51,7 +51,7 @@ bash openspec/acceptance/run_all.sh | tail -1   # SUMMARY pass=2 fail=1 blocked=
 
 ## 2. 依据（只读来源，文件:行号）
 
-- 裁决 `docs/blackbox-spec-rework/G7-RULINGS.md`：§1 P1–P9；§6 impl-08；§9 第 13/25/26 条（Ledger 读缺口、错误码缺口）；§9.1 第 32 条（薄 M1 supersede）；§9.2 第 27 条（回归命令取行）。
+- 裁决 `docs/blackbox-spec-rework/G7-RULINGS.md`：§1 P1–P9；§6 impl-08；§9 第 13/25/26 条（Ledger 读缺口、错误码缺口）；§9.1 第 32 条（薄 M1 supersede）；§9.2 第 27 条（回归命令取行）；§9.3 第 34–46 条（impl-08 定稿与四查 R1：34/35/40/41/42/43 采纳，45/46 修订 F1/F2）。
 - `G7-PLAN.md`：W4-I 写范围与出口（§20.1/20.10 由 BLOCKED 转判；`run_all.sh` 改动集中给 I）；§1 并行规则。
 - 规格 `openspec/learn-system-blackbox-architecture.md`：§5 `:96–130`（Orchestrator 职责 `:116`、六项查询 `:117–127`、五个专用队列 `:119–124`、Registry 职责 `:128`）；§6.1 `:136–151`（阶段推进条件 `:149`）；§6.2 ReleaseRun `:153–175`；§7 `:177–207`（StepRequest `:187–193`、只读冻结输入 `:207`）；§7.1 `:209–226`；§8 `:228–246`；§17 `:817–836`（suspended 对账 `:828`、事务序列 `:836`）；§17.1 `:838–846`（人工决定即时落盘 `:843`、恢复语义 `:845`）；§19 拓扑 `:865–871`、主表 `:873–893`、§19.0 `:899–918`；§20 第 1/10 条 `:937,:946`；§21 `:949–956`；§22.1 `:964–969`、§22.3 `:986–992`、§22.4 `:995–1001`。
 - 已验收模块入口与返回键（只读）：
@@ -89,10 +89,10 @@ bash openspec/acceptance/run_all.sh | tail -1   # SUMMARY pass=2 fail=1 blocked=
 | D-1 | StepRequest 缺 stage 字段 | **A：维持 L0 现状**，由配置修订内容 `"stage"` 键推导（`service.py:295–310`）；Orchestrator 另要求配置含 `"module_id"`，写入前校验 `config.stage == 登记 stage` | P3「首纵切内 L0 四份不动」直接排除 B/C（改 `step_request.schema.json` 或 `verify.sh`/`mutations.sh`）；A 已闭合，无需 L0 变更 |
 | D-2 | Module 入口控制反转 | **A+C**：本包只用 `legacy_self_driving` 挂接 `run_m3`/`run_m5`/`run_m8`；为 impl-02/03/04 登记「迁移到 `step_request` 绑定」的后续 ACT（不属本包写范围） | P9「不改已验收模块行为」直接排除 B（改 `run_m3`）；`step.py:35` 自建配置与 StepRun，本包不得改 |
 | D-3 | StepRun 终态迁移归属 | **A**：Module 返回 `StepOutcome`，由 Orchestrator 转 L0 StepResult 并调用 `finish_step_run`/`fail_step_run`/`await_human` | 规格 §5:116「Local Orchestrator：执行阶段状态机」+ P9（新 Module 只需产出，状态迁移集中一处） |
-| D-4 | Stage Gate 报告是否落盘 | **本包取 B（写下游 StepRun 首个 artifact）但复用已登记类型**；是否新提名 `stage_gate_report` 见 §4.1 N-4 | P9 排除 C（改 `RUN_ARTIFACT_TYPES`，`service.py:66`）；P2 要求新类型先入 `INTERFACES.md` §4，本包不自命名未登记类型 |
+| D-4 | Stage Gate 报告是否落盘 | **按 G7-RULINGS 第 46 条（修订第 34 条）：首纵切不落盘**——由 `evaluate_stage_gate` 返回、CLI 打印 `ORCH GATE <stage> <gate>`、EditionRun 结果 JSON 携带（`gate_reports`），验收独立重算；落盘随 D-6 读缺口关闭后另立 `act/11`（DEFERRED） | 第 46 条；`put_artifact` 不落 StepRun 事件（`service.py:442–527`）且公开读方法闭集无「按 step_run_id 枚举修订」（`service.py:111–164`），落盘证据不可由公开面取回；P9 排除第 34 条 C 案 |
 | D-5 | StageManifest 与 StepManifest | **A**：首切片按「一个 EditionPart × Stage（含 supersedes 链）只有一条有效 StepRun」，`succeeded` 且 `result_json` 非空即视 StepManifest 已原子封存（`finish_step_run` 同事务，`service.py:1183`） | P9：Ledger 只有 `step_manifest`（`service.py:1082–1130`），run 级 `stage_manifest` 需改 Ledger，本批不做 |
 | D-10 | §19.0 缺 Orchestrator/Registry 判据行 | **A**：本包新建 `orchestrator-gate.sh` 与 `contract-registry.sh`；登记进 §19.0 由主 Agent 另立规格包 | 规格 §19.0:899–918 无此两行，但 §22.3:992 要求「各行 §19.0 判据 exit 0」；先例 impl-02 `m3-coverage.sh`、impl-03 `m5-evidence-gate.sh` |
-| D-11 | 新 artifact_type | **按 P2**：`INTERFACES.md` §4 是唯一登记处；本包**不新增** artifact_type，Gate 报告复用已登记的 `validation_report` | G7-RULINGS §6「D-11 按 P2」；P2「未入闭集的类型名，实现不得使用」 |
+| D-11 | 新 artifact_type | **按 P2**：`INTERFACES.md` §4 是唯一登记处；本包**不新增** artifact_type（第 46 条下首纵切亦不落盘 Gate 报告） | G7-RULINGS §6「D-11 按 P2」；P2「未入闭集的类型名，实现不得使用」 |
 | D-12 | 登记表载体 | **A**：仓库内声明式 `pipeline/contract_registry/registry.yaml`（Git 跟踪），格式由 `check_registry` 规则定义，不出 JSON Schema | P3（不向 `openspec/schemas/` 新增文件）排除 B；P9（不改 Ledger）排除 C |
 | D-13 | 进度事件 | **A**：以 StageCheckpoint 落盘与 `step_run_events` 为进度来源，不建新机制 | §17.1:843（每 task / 每次人工决定落盘）+ P9（Ledger 不新增 `progress` API） |
 | D-14 | Edition 级合取 Part 清单来源 | **A**：由调用方给出 Part 句柄清单，`edition_status` 做合取；首纵切单 Part | G7-RULINGS §9 第 4 条（首纵切单 Part，`edition_part_id` 取该 Part）+ P1 |
@@ -104,24 +104,15 @@ bash openspec/acceptance/run_all.sh | tail -1   # SUMMARY pass=2 fail=1 blocked=
 
 ## 4.1 待主 Agent 裁决
 
-未裁前不得据此实现；每条给选项、推荐与理由、证据。
+未裁前不得据此实现；每条给选项、推荐与理由、证据。**本节各条已由 `G7-RULINGS.md` §9.3 第 34–43 条裁定（推荐即裁定；第 43 条为用户决定），第 45/46 条另修订 F1/F2；执行者按裁定实现。**
 
-**N-1 §22.3 要求 §20.1 成立与 P1 冲突**（`openspec/...:991` 期望「§20 第 1、3、4、8、9 条成立」；P1「M4/M6/M7 首纵切内不接，判 BLOCKED」；`run_all.sh:937`）
+**N-1 §22.3 要求 §20.1 成立与 P1 冲突**（已裁：第 43 条，用户决定「维持关键路径」，20.1/20.9 如实 BLOCKED）
 - A：维持 BLOCKED，20.1 在 M4 登记并过真实链后自动转 PASS（推荐）。理由：P1 明令不伪造；20.1 的 BLOCKED 由登记表数据决定，M4 落地即转 PASS，不改脚本。
 - B：把 20.1 判据从「M1–M6 阶段 Gate」收窄为「首纵切声明阶段（m1/m2/m3/m5）Gate 完成」。理由：可判 PASS，但改写了 §20 第 1 条的 M1–M6 语义，需改规格正文。
 - C：本包实现 M4/M6 最薄桩模块以满足 M1–M6。理由：与 P1 冲突，且桩不得计入 `registered_modules_m1_m6`（D-11/§5.8），实则仍 BLOCKED。
 - 推荐 A。
 
-**D-4 Gate 报告落盘**（`service.py:66,253–262`；§5:128）
-- A：不落盘，每次查询重算。
-- B：Gate 通过后写入下游 StepRun 首个 artifact（推荐）。理由：零 Ledger 改动，留下「先过 Gate 才建下游 StepRun」的证据；上游 Gate 无处可写（m1）与最后一个阶段（m8）只能重算。
-- C：扩展 `RUN_ARTIFACT_TYPES` 以 run 级封存。理由：血缘最强，但改 impl-01（违反 P9）。
-- 推荐 B；若主 Agent 同意 B，请一并裁 N-4（类型名）。影响 ACT 04/07。
-
-**N-4 Gate 报告的 artifact_type 命名**（`INTERFACES.md` §4；P2）
-- A：复用已登记 `validation_report`，内容带 `{"kind": "stage_gate", "stage": ..., "gate": ...}` 判别（推荐）。理由：P2 下零登记负担，M5 已有复用先例（§9.1 第 24 条）。
-- B：新提名 `stage_gate_report` 入 `INTERFACES.md` §4，由某一波的登记 ACT 一次写入。理由：类型语义更清晰，但 W4-I 无权写 `INTERFACES.md` §4（P2 单写者），须先裁登记波次。
-- 推荐 A。影响 ACT 00/04/07。
+**D-4 / N-4（已裁，保留原选项供追溯）**：G7-RULINGS 第 46 条**修订第 34 条**——首纵切 Stage Gate 报告不落盘；第 35 条的类型问题（N-4）随之取消。落盘随 D-6 读缺口关闭后另立 `act/11.yaml`（`DEFERRED`）。实现见 §4 D-4 与 act/04/06/07。
 
 **D-6 Ledger 只读接口缺口**（`service.py:111–164`；`INTERFACES.md` §5.2 清单）
 - A：本包不改 Ledger；EditionRun 三元组由调用方提供并交叉校验；StagePackage 按 `get_revision()["schema_id"]=="stage_package"` 识别；`DirectLedgerAdapter` 自补 `read_object`（推荐）。
@@ -169,10 +160,10 @@ bash openspec/acceptance/run_all.sh | tail -1   # SUMMARY pass=2 fail=1 blocked=
 2. **三种绑定**：`step_request`（标准形态，Orchestrator 建 StepRun，Module 实现 `plan`+`execute`）；`legacy_self_driving`（先判上游 Gate，再调 `entry(service, edition_part_id, **entry_kwargs)`，事后从 Ledger 重建 StepResult 并校验 L0 Schema；要求 `port.unwrap()` 直连，`ledgerd` Adapter 下拒绝）；`imported`（不执行，只判 Gate）。
 3. **§17 事务序列映射**（`step_request`）：建 StepRun（`put_run_artifact(configuration)` + `begin_step_run`）→ 冻结输入（`begin_step_run` 完成）→ 验输入 Contract（Module）→ 执行/存原始输出与日志/哈希/验输出/记录 Transformation（Module）→ 封存 StepManifest 与终态（Orchestrator）。Module 抛异常或 `StepOutcome` 违约时，Orchestrator 封存 `failure_report` 并 `fail_step_run`。
 4. **advance 推导**：EditionRun 不另存状态，从 Ledger 事实推导。`advance(..., stages=FIRST_SLICE_EDITION_STAGES)` 依序处理：该 stage 有 running/awaiting_human/suspended → `waiting`；有 failed → `blocked`（须显式重跑）；有效运行全 succeeded 但 Gate 未过 → `blocked`；无登记 Module → `refused`（reason 含 §19 行名）；否则执行一步 → `executed`。除 `executed` 外一律零写入。`stages=EDITION_STAGES`（默认）为纵切后完整模式。
-5. **Stage Gate 八项**（`gate.py` 独立实现，名称与顺序固定）：`tasks_present`、`all_tasks_succeeded`、`stage_package_valid`、`output_contract`、`validation_passed`、`failures_zero`、`no_pending_work`、`upstream_lineage`。
+5. **Stage Gate 八项**（`gate.py` 独立实现，名称与顺序固定）：`tasks_present`、`all_tasks_succeeded`、`stage_package_valid`（第 45 条：承载 StagePackage 的有效运行恰 1 个且包合法，不承载包的接替运行不计入包判定但须 `succeeded`）、`output_contract`、`validation_passed`、`failures_zero`、`no_pending_work`、`upstream_lineage`。
 6. **人工恢复**：`record_human_event` 后立即写 Checkpoint；`resume` 消费 token 后以 `mode="resumed"` 再次 `execute`，只带最初冻结输入与已登记事件（`:220`）；`suspend` 来源 `operator`；`reconcile_after_outage` 把非终态 running 转 `suspended(infrastructure)`，终态不改写（`:828`）；`rerun_from_checkpoint` 走 Ledger `recover_from_checkpoint`，已完成任务不重做（`:845`）；全程无超时自动失败（`:222`）。
 7. **§20.10 与端口**：端口闭集 `ocr`/`model`/`index`/`storage`。`LedgerPort` 方法闭集以 `LedgerClient` 公开方法为准（`client.py:108–451`），存储端口两个 Adapter 为 `DirectLedgerAdapter` 与 `LedgerdClientAdapter`。替换判定三步：同一桩套件在两个 Adapter 上跑出去 ID、去时间的规范化结果相等；相邻 Module 的 `interface_fingerprint` 相同；Module 源码不越过端口。
-8. **桩隔离**：桩 `kind` 恒为 `stub`，只在测试与验收内以 `Registry.from_dict(..., allow_stub=True)` 构造；`registered_modules_m1_m6` 只认生产登记表的非桩 Module；生产表出现桩时 `check_registry` 报 `stub_in_production`。
+8. **桩隔离**：桩 `kind` 恒为 `stub`，只在测试与验收内以 `Registry.from_dict(..., allow_stub=True)` 构造；`registered_modules_m1_m6` 只认生产登记表的非桩 Module；生产表出现桩时 `check_registry` 报 `stub_in_production`。**桩产物的 artifact_type（如 `stub_output`、`review_queue_item`）只用于测试与验收场景，不入 `INTERFACES.md` §4 闭集、不得出现在生产登记表的产物中（F7）。**
 
 ## 6. 接口契约
 
@@ -203,7 +194,7 @@ bash openspec/acceptance/run_all.sh | tail -1   # SUMMARY pass=2 fail=1 blocked=
 ### 6.2 对下游的输出契约
 
 - `runner.execute_step(...)` 返回的 dict 逐字过 `step_result.schema.json`（§7 `execute(StepRequest) → StepResult`）。
-- 上游 Gate 证据修订内容为 `json.dumps(gate, sort_keys=True, ensure_ascii=False)`，其中 `gate = {"kind": "stage_gate", "stage", "edition_part_id", "processing_run_id", "gate": "passed"|"blocked", "checks": {名: {"ok", "detail"}}, "effective_step_run_ids"}`（N-4 A）。
+- **首纵切 Stage Gate 报告不落盘**（G7-RULINGS 第 46 条修订第 34 条）：`evaluate_stage_gate` 返回的 `gate` 经 `advance`/`run_release` 结果 JSON 的 `gate_reports` 携带，CLI 打印 `ORCH GATE <stage> <passed|blocked>`，验收独立重算；不写任何 Gate 证据修订（落盘见 `act/11.yaml`，DEFERRED）。
 - 六项查询返回结构见 `act/06.yaml`；PendingQueue 五键逐字取自 §5:120–124 且恒存在。
 - CLI 末行与退出码见 `act/06.yaml`；验收脚本行格式 `PASS <名>` / `FAIL <名> <原因>` / `BLOCKED <名> 前置缺失: <§19 行名>；<说明>`，末行 `SUMMARY`。
 
@@ -254,7 +245,7 @@ openspec/acceptance/run_all.sh（仅 ACT 09：一个 accept_check 函数 + 20.1/
 - K1 = ACT 00–01（Registry 目录与端口）；K2 = ACT 02–04（Module 接口、Gate、EditionRun/release 段）；K3 = ACT 05–06（人工恢复、六项查询与 CLI）；K4 = ACT 07–08（`orchestrator-gate.sh`、`contract-registry.sh`）、ACT 09（`run_all.sh`）。
 - 每组 `ACCEPTED` 后再派下一组。K1–K3 只用桩与假入口，不依赖 impl-02/03/04；K4 的 `real_chain_mini_ed01` 需 impl-02 `ACCEPTED`、impl-03 `ACCEPTED`、impl-04 `ACCEPTED`。
 - **ACT 09 前置**：impl-04 ACT 08 已验收（P4：`run_all.sh` 每波至多一个写者；W3 内为 impl-04 ACT 08，W4-I 为其后唯一写者）。开工前确认无并发改 `run_all.sh`。
-- `act/10.yaml`（Ledger 公开读方法）状态 `DEFERRED`，不在 `executor_groups` 内，见 §9 与 §4.1 D-6。
+- `act/10.yaml`（Ledger 公开读方法）与 `act/11.yaml`（Stage Gate 报告落盘）状态 `DEFERRED`，不在 `executor_groups` 内，见 §9 与 §4.1 D-6 / §4 D-4。
 
 ## 9. 纵切后 DEFERRED（保留文件内容，不入 `executor_groups`）
 
@@ -263,4 +254,5 @@ openspec/acceptance/run_all.sh（仅 ACT 09：一个 accept_check 函数 + 20.1/
 | M4/M6/M7 Module 登记 | `registry.yaml` 增 `m4`/`m6`/`m7` 条目（impl-05/06/07） | 对应波次 | P1：首纵切不接；`DEFERRED_STAGES` 声明其为已声明缺口 |
 | ReleaseRun 状态机 | §6.2 M7→M8 多 Part 汇编、`CanonicalKnowledgeSnapshot` | W5 及以后 | P1 + D-15：M8 首切片以 legacy 单步执行，非完整 ReleaseRun |
 | `act/10.yaml` Ledger 公开读方法 | `frozen_inputs`、`artifacts.artifact_type`、按 `step_run_id` 取 sealed `stage_package` | 主 Agent 裁定后（D-6 B） | P9：本批不改 `pipeline/ledger/**` |
+| `act/11.yaml` Stage Gate 报告落盘 | 下游 StepRun 首个 artifact（复用已登记类型）+ 并入 `validation_report_ids` | D-6 读缺口关闭后 | G7-RULINGS 第 46 条：首纵切不落盘，落盘另立 ACT |
 | M4/M6/M7 stub 登记表 | 桩 `kind=stub` 表仅存测试与验收场景 | 不需实现 | D-11 / §5.8：桩不得进生产登记表，`registered_modules_m1_m6` 不认桩 |

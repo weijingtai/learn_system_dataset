@@ -4,9 +4,9 @@
 
 ## 0. 转译审查（主 Agent 四查）
 
-- 忠实性：§1 目标逐条对应规格 §5:116–128（Orchestrator 职责与六项查询闭集）、§6.1:149（阶段推进条件）、§7/§7.1:181–226（统一 Interface、StepRun 生命周期、人工恢复）、§17/§17.1:836–846（事务序列、Checkpoint 粒度与恢复语义）；`run_m3`/`run_m5`/`run_m8`/`ingest`/`register_source_assets` 的签名与返回键逐条核对（README §2）；M4/M6/M7 与 ReleaseRun 显式标 DEFERRED（README §9），§20.1 的 BLOCKED 不被宣称关闭。
-- 覆盖性：BDD 1–9 每条对应 ACT `tests` 用例名与 TDD §1 Green 值；Gate 八项独立实现；验收不信任返回值（real_chain 独立重算）；退出码纪律沿用 impl-02/impl-03 先例；矩阵外篡改、桩隔离、legacy 在 ledgerd 下、`run_all.sh` 其余九条逐字不变。
-- 可执行性：每个 ACT 有函数签名、规则、检查名、用例名、CLI 与退出码、`commit`；时长 60/80/75/75/90/90/75/90/85/45 分钟（act/10 DEFERRED 不计）。
+- 忠实性：§1 目标逐条对应规格 §5:116–128（Orchestrator 职责与六项查询闭集）、§6.1:149（阶段推进条件）、§7/§7.1:181–226（统一 Interface、StepRun 生命周期、人工恢复）、§17/§17.1:836–846（事务序列、Checkpoint 粒度与恢复语义）；`run_m3`/`run_m5`/`run_m8`/`ingest`/`register_source_assets` 的签名与返回键逐条核对（README §2）；M4/M6/M7 与 ReleaseRun 显式标 DEFERRED（README §9），§20.1 的 BLOCKED 不被宣称关闭。四查 R1 返工：F1 `stage_package_valid` 按第 45 条改为「承载 StagePackage 的有效运行恰 1 个且包合法，不承载包的接替运行不计入包判定但须 succeeded」；F2 Gate 报告按第 46 条不落盘（`gate_reports` + CLI 打印，落盘见 `act/11.yaml` DEFERRED）。
+- 覆盖性：BDD 1–9 每条对应 ACT `tests` 用例名与 TDD §1 Green 值（F3 补齐 BDD 1.2「stage 超出 m1–m8」具名用例 `test_module_stage_out_of_closed_set_detected`）；Gate 八项独立实现；验收不信任返回值（real_chain 独立重算）；退出码纪律沿用 impl-02/impl-03 先例；矩阵外篡改、桩隔离、legacy 在 ledgerd 下、`run_all.sh` 其余九条逐字不变；F4 起 unittest 回归取行统一为 `2>&1 | grep -E "^(Ran|OK|FAILED)"`。
+- 可执行性：每个 ACT 有函数签名、规则、检查名、用例名、CLI 与退出码、`commit`；时长 60/80/75/75/90/90/75/90/85/45 分钟（`act/10`、`act/11` 为 DEFERRED，各 90/60 分钟，不计）。
 - 独立性：K1–K3 只用桩与假入口，不依赖 impl-02/03/04；K4 依赖 impl-02/03/04 均 ACCEPTED 与本机派生页图；写范围与 impl-03（`pipeline/validation/**`）、impl-04（`pipeline/dataset_compiler/**`、`m8-span-identity.sh`）不重叠；`run_all.sh` 仅 ACT 09 写，且须在 impl-04 ACT 08 验收后（P4）。
 
 ## 1. 范围核对

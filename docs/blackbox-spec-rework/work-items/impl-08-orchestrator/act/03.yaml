@@ -25,12 +25,14 @@ contract: |
       descriptor = registry.module_for(stage)（None 时 produces/consumes 视为空，并在 output_contract.detail 写「未登记 Module」但不据此判失败）
       tasks_present：effective 非空
       all_tasks_succeeded：全部 status == "succeeded" 且 result 非 None（StepManifest 由 finish_step_run 同事务封存，§4 第 5 条）；detail 列出非 succeeded 的 (srun, status)
-      stage_package_valid：每个 effective StepRun 的 result.output_artifact_ids 中 get_revision(rev)["schema_id"] == "stage_package" 者恰 1；
-        该修订 status == "sealed"；内容 JSON 过 openspec/schemas/stage_package.schema.json（Draft 2020-12，注册 artifact_ref.schema.json）；
-        内容 stage == stage；manifest.step_run_id == 该 StepRun；manifest.processing_run_id == handle.processing_run_id
-      output_contract：descriptor.produces 的 artifact_type 集合 ⊆ 各 StagePackage manifest.output_artifacts[].artifact_type 的并集；
-        且 output_artifacts 引用的每个 artifact_revision_id 须同时满足：经 get_revision 存在、status == "sealed"、step_run_id == 该 StepRun、并列于 result.output_artifact_ids
-        （端口读不到 artifacts.artifact_type，只能比对 StagePackage 自述类型；README §4 第 6 条）
+      stage_package_valid（G7-RULINGS 第 45 条）：effective 中「承载恰 1 个本 stage 的 StagePackage 修订」的运行（carrier）恰 1 个；每个 effective 运行承载的 stage_package 修订数 ≤ 1；
+        carrier 的该修订 status == "sealed"；内容 JSON 过 openspec/schemas/stage_package.schema.json（Draft 2020-12，注册 artifact_ref.schema.json）；
+        内容 stage == stage；manifest.step_run_id == carrier 的 step_run_id；manifest.processing_run_id == handle.processing_run_id；
+        不承载包的 effective 运行（如 m1_shim 接替运行）不计入包判定，但须 status == "succeeded" 且其 supersedes_step_run_id 链可回溯到 carrier；
+        carrier 数为 0 或 >1 → 失败，detail 列出各 carrier / 「无承载运行的 StepRun」
+      output_contract：descriptor.produces 的 artifact_type 集合 ⊆ carrier 的 StagePackage manifest.output_artifacts[].artifact_type 集合（无 carrier 时取各包并集）；
+        且 carrier 的 output_artifacts 引用的每个 artifact_revision_id 须同时满足：经 get_revision 存在、status == "sealed"、step_run_id == carrier、并列于 carrier 的 result.output_artifact_ids
+        （端口读不到 artifacts.artifact_type，只能比对 StagePackage 自述类型；README §6.1）
       validation_passed：各 StagePackage validation.passed is True
       failures_zero：各 StagePackage failures == [] 且各 result.failure_artifact_ids == []
       no_pending_work：latest_checkpoint(ep, stage) 为 None，或其 step_run_id ∈ effective 且 pending_queue == [] 且 next_pointer is None；
@@ -48,7 +50,7 @@ tests:
     - test_blocked_when_no_step_run（tasks_present）
     - test_blocked_when_failed（all_tasks_succeeded）
     - test_blocked_when_awaiting_human（all_tasks_succeeded 与 no_pending_work）
-    - test_blocked_when_stage_package_missing（stage_package_valid）
+    - test_blocked_when_stage_package_missing（无任何有效运行承载本 stage StagePackage → stage_package_valid；负例）
     - test_blocked_when_stage_package_wrong_stage（stage_package_valid）
     - test_blocked_when_validation_not_passed（validation_passed）
     - test_blocked_when_stage_package_has_failures（failures_zero）
@@ -61,7 +63,7 @@ tests:
     - test_gate_performs_no_writes（前后 artifact_revisions/step_runs/audit_log 行数相等；行数经测试内只读 sqlite3 连接统计）
     - test_gate_module_imports_are_independent（解析 gate.py AST：不含 runner/module/stubs/edition_run/corpus_compiler 导入）
 verify:
-  - .venv/bin/python -m unittest discover -s pipeline/orchestrator/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 30
+  - .venv/bin/python -m unittest discover -s pipeline/orchestrator/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 30
   - grep -nE '^\s*(from|import) .*(runner|module|stubs|edition_run|corpus_compiler)' pipeline/orchestrator/gate.py | wc -l   # 0
   - TDD §3 回归
 commit:

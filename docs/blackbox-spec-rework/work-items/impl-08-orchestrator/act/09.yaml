@@ -49,7 +49,7 @@ tests:
     - test_accept_check_fail_path（临时 PATH 替身不可行时改为：env FIXTURE_DIR 指向删了一条 span 的 fixture 副本 → `run_all.sh 20.1` 首行以 "FAIL  20.1" 开头）
     - test_accept_check_unparsable_blocked_goes_to_host_blocked（在临时目录构造假 python 模块 fake_acc，打印 "BLOCKED x 无前缀" 并 exit 2；以 bash -c 'source 片段' 方式单测 accept_check 函数——若 run_all.sh 无法被 source 而不执行主流程，改为只断言源码含「BLOCKED 行无法解析」分支并在报告中说明）
 verify:
-  - .venv/bin/python -m unittest discover -s pipeline/contract_registry/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 38
+  - .venv/bin/python -m unittest discover -s pipeline/contract_registry/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 38
   - export LC_ALL=en_US.UTF-8; bash openspec/acceptance/run_all.sh 20.1 20.10                        # 两行 BLOCKED，行名 M4 Knowledge Extraction / Contract Registry
   - bash openspec/acceptance/run_all.sh | tail -1                                                    # SUMMARY pass=2 fail=1 blocked=8
   - bash openspec/acceptance/run_all.sh 20.2 20.3 20.4 20.5 20.6 20.7 20.8 20.9 20.11 | diff - <基线文件>   # 无差异

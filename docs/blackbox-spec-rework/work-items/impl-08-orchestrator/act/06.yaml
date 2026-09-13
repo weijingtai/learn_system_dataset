@@ -33,7 +33,8 @@ contract: |
   __main__.py：python -m pipeline.orchestrator --root <ledger_root> [--registry <path>] <command> …
     命令：start --edition-part <art_> --technique <id>             → 末行 `ORCH STARTED <prun>` exit 0
           advance --run <prun> --edition-part <art_> --technique <id> → adopt_edition_run 后 advance：
-            executed → `ORCH EXECUTED <stage> <step_run_id> <step_result.status>` exit 0（awaiting_human 另起一行 `RESUME_TOKEN <token>` 于末行之前）
+            先按 stage 升序为 advance 返回的 gate_reports 每项打印一行 `ORCH GATE <stage> <passed|blocked>`（G7-RULINGS 第 46 条：Gate 报告不落盘，由 CLI 打印/EditionRun 结果 JSON 携带）
+            executed → 末行 `ORCH EXECUTED <stage> <step_run_id> <step_result.status>` exit 0（awaiting_human 另起一行 `RESUME_TOKEN <token>` 于末行之前）
             waiting → `ORCH WAITING <stage> <step_run_id>` exit 0；complete → `ORCH COMPLETE` exit 0
             blocked → `ORCH BLOCKED <stage> <reason>` exit 1；refused（含 OrchestratorRefused）→ `ORCH REFUSED <stage 或 -> <reason>` exit 2
           status --run --edition-part --technique → stdout 一个 JSON 对象，键 = QUERY_NAMES 前四项（ReworkImpact 需修订参数，不在 status 中），末行 `ORCH STATUS OK` exit 0
@@ -62,8 +63,9 @@ tests:
     - test_cli_status_json_has_four_query_keys
     - test_cli_suspend_unknown_step_run_error_exit_1
     - test_cli_writer_locked_exit_3（测试持有 LedgerService 写锁时运行 CLI）
+    - test_cli_advance_prints_gate_lines（advance 的 stdout 含 `ORCH GATE <stage> <passed|blocked>` 行，且不产生 Gate 证据修订）
 verify:
-  - .venv/bin/python -m unittest discover -s pipeline/orchestrator/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 64
+  - .venv/bin/python -m unittest discover -s pipeline/orchestrator/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 66
   - TDD §3 回归
 commit:
   add: [pipeline/orchestrator/queries.py, pipeline/orchestrator/__main__.py, pipeline/orchestrator/tests/test_queries.py, pipeline/orchestrator/tests/test_cli.py]

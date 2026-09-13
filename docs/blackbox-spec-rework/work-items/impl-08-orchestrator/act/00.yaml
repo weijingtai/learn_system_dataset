@@ -78,6 +78,7 @@ tests:
     - test_schema_version_not_1_0_0_detected
     - test_stage_rows_verbatim_section_19（改 "M6 Review Workbench" 一字 → stage_rows_mismatch）
     - test_human_queues_verbatim_section_5
+    - test_module_stage_out_of_closed_set_detected（module.stage = "m9" → stage_invalid；BDD 1.2「stage 超出 m1–m8」具名用例）
     - test_duplicate_module_id_detected
     - test_imported_with_entry_forbidden
     - test_consumes_from_later_stage_detected
@@ -88,7 +89,7 @@ tests:
     - test_fingerprint_ignores_version_but_not_produces
     - test_cli_ok_and_invalid_exit_codes（subprocess：仓库表 → 0 且末行 `REGISTRY OK modules=5 ports=4`；临时损坏表 → 1 且末行以 `REGISTRY INVALID` 开头）
 verify:
-  - .venv/bin/python -m unittest discover -s pipeline/contract_registry/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 15
+  - .venv/bin/python -m unittest discover -s pipeline/contract_registry/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 16
   - .venv/bin/python -m pipeline.contract_registry check | tail -1                                   # REGISTRY OK modules=5 ports=4
   - grep -c 'kind: stub' pipeline/contract_registry/registry.yaml                                    # 0
   - TDD §3 回归

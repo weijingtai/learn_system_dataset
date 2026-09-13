@@ -63,7 +63,7 @@ tests:
     - test_normalize_outcome_strips_ids_and_times（两次在不同临时 Ledger 上建相同形状运行 → 结果相等；不含任何 prun_/srun_/rev_ 字符串）
     - test_suite_receives_port_guard（suite 内访问 port.store → AttributeError → nonconformant）
 verify:
-  - .venv/bin/python -m unittest discover -s pipeline/contract_registry/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 24
+  - .venv/bin/python -m unittest discover -s pipeline/contract_registry/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 25
   - grep -nE '\.objects\b|\.store\b' pipeline/contract_registry/*.py | grep -v 'ports.py'           # 空
   - grep -rn 'pipeline.orchestrator' pipeline/contract_registry/conformance.py pipeline/contract_registry/ports.py | wc -l   # 0
   - TDD §3 回归

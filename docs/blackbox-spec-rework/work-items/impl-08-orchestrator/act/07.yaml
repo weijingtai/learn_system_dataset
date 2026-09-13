@@ -18,8 +18,8 @@ contract: |
         failed_task（m3 桩 fail_on_task）/ awaiting_human（m2 桩 human_queue）/ validation_failed（m3 桩 validation_passed=False）/
         stage_package_invalid（m3 桩 stage_package_mode="wrong_stage"）/ missing_consumed_input（m4 桩 plan 故意返回不含上游产出的输入，构造为 m4 执行后 gate upstream_lineage 失败）
         每例：run_until 至注入 stage 后，再 advance 一次 → action ∈ {"blocked", "waiting"}；下游 stage 无 StepRun；该次 advance 前后 artifact_revisions/step_runs/audit_log 行数相等（只读 sqlite3 连接统计）
-      gate_chain_stub_m1_m6（桩登记表）：run_until("m6") → 末次 advance 为 complete；m2–m6 各 StepRun 的首个 artifact 为 stage_gate_report 且内容 gate == "passed"、stage == 上游；
-        各 StepRun 冻结输入 ⊇ 上游 StagePackage 修订；以上全部由本判定从 Ledger 直接读取重算，不调用 gate.evaluate_stage_gate
+      gate_chain_stub_m1_m6（桩登记表）：run_until("m6") 逐次 advance 的返回项 → 末次为 complete；每次 executed 的 gate_reports 中上游 stage 的 gate == "passed" 且 stage == 上游；
+        各 StepRun 冻结输入 ⊇ 上游 StagePackage 修订；**Gate 报告不落盘**（第 46 条：本判定只用 advance 返回值与 Ledger 读接口，不查任何 Gate 证据修订）；冻结输入与 StagePackage 由本判定从 Ledger 直接读取重算，不调用 gate.evaluate_stage_gate
       edition_conjunction（桩登记表）：两个 Part（两个 start_edition_run），A 跑完、B 停在 m3 失败 → edition_status.complete False；B 经 rerun_from_checkpoint 完成后 → True
       recovery_via_orchestrator（桩登记表）：m4 桩 t2 失败 → rerun_from_checkpoint("m4") → 旧 StepRun failed 且失败修订 sealed；新 StepRun supersedes 旧；t1 执行一次；advance 继续至 complete
       real_chain_mini_ed01（生产登记表 + fixture；首纵切链 m1/m2 → m3 → m5 → m8）：
@@ -27,7 +27,7 @@ contract: |
           → DirectLedgerAdapter(root) → adopt_edition_run(processing_run_id=summary.processing_run_id, edition_part_id=summary.edition_part_id, technique_id=summary.technique_id)
         EditionRun 段：run_until(port, registry, handle, "m5", stages=FIRST_SLICE_EDITION_STAGES) → m1/m2 Gate passed（imported）、m3 executed succeeded（legacy）、m5 executed succeeded（legacy）
         release 段：run_release(port, registry, edition_part_id=..., technique_id=...) → action executed、stage m8、step_result.status succeeded、processing_run_id 为 run_m8 自建 release_run
-        独立重算（不调用 gate.evaluate_stage_gate、不信任 step_result）：m1/m2/m3/m5 各恰 1 个有效 StepRun 且 succeeded；
+        独立重算（不调用 gate.evaluate_stage_gate、不信任 step_result）：m2/m3/m5 各恰 1 个有效 StepRun 且 succeeded；m1 有 2 个有效运行（fixture 运行与接替它的 m1_shim 运行，均 succeeded；其中承载 StagePackage 的恰 1 个，符合第 45 条）；
           m3 冻结输入含 m1/m2 产出、m5 冻结输入含 m3 产出、m8 冻结输入含 m1/m2/m3 产出；
           m3/m5/m8 的 StagePackage 各恰 1、过 Schema、stage 正确、validation.passed True、failures []；
           m3 StagePackage manifest.content_sha256 == fixture expected/m3.stage_package.yaml 的 content_sha256；
@@ -36,7 +36,8 @@ contract: |
       registered_modules_m1_m6（生产登记表）：对 EDITION_STAGES 依序取 module_for；首个 None 的 stage s →
         BLOCKED 行 `BLOCKED registered_modules_m1_m6 前置缺失: <registry.stage_rows[s]>；Local Orchestrator 首切片已串联 <FIRST_SLICE_EDITION_STAGES 以「、」连接，但写「m1–m3、m5」> Gate，<其余未登记 stage 以「/」连接> 未登记生产 Module`
         （当前逐字：`前置缺失: M4 Knowledge Extraction；Local Orchestrator 首切片已串联 m1–m3、m5 Gate，m4/m6 未登记生产 Module`）；
-        全部登记 → PASS（届时 real_chain_mini_ed01 须扩展至 m6，不在本 ACT）
+        全部登记 → PASS `PASS registered_modules_m1_m6 首纵切链已登记 <n> 个 Stage（<stage>:<binding> 逐项，逗号连接）`
+        （第 37 条：逐项披露绑定来源；当前若全登记将形如 `m1:imported, m2:imported, m3:legacy_self_driving, m5:legacy_self_driving, m8:legacy_self_driving`）
         桩（kind stub）永不计入；--registry 指向含桩的表时 check_registry 报 stub_in_production → 本项 FAIL
     退出码：3 仅限「<fixture>/manifest.yaml 不存在」或「yaml/jsonschema 不可导入」；准备或判定抛异常 → 该项 `FAIL <名> 宿主准备失败: <类名>: <消息>`；
             任一 FAIL → 1；无 FAIL 有 BLOCKED → 2；全 PASS → 0；无 --keep 时删除临时目录
@@ -58,7 +59,7 @@ tests:
     - test_shell_exit_2_on_fixture（subprocess：末行 SUMMARY pass=5 fail=0 blocked=1，exit 2）
     - test_shell_never_trusts_copy_verify（fixture 副本删一条 span 并把副本 verify.sh 换成 `echo FIXTURE OK; exit 0` → exit 1，首行以 "FAIL fixture_host" 开头）
 verify:
-  - .venv/bin/python -m unittest discover -s pipeline/orchestrator/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 74
+  - .venv/bin/python -m unittest discover -s pipeline/orchestrator/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 74
   - export LC_ALL=en_US.UTF-8; bash openspec/acceptance/orchestrator-gate.sh; echo exit=$?     # 5 PASS + BLOCKED registered_modules_m1_m6 + SUMMARY pass=5 fail=0 blocked=1；exit=2
   - grep -c 'FIXTURE_DIR/verify.sh' openspec/acceptance/orchestrator-gate.sh                    # 0
   - bash openspec/acceptance/run_all.sh | tail -1                                                # SUMMARY pass=2 fail=1 blocked=8（本 ACT 未改 run_all.sh）

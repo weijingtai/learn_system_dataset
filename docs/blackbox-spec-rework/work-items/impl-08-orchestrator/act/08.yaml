@@ -37,7 +37,8 @@ contract: |
         hits 非空 → 记入 dirty[module_id]
       dirty 非空 → BLOCKED `前置缺失: Contract Registry；<module_id> 入口直接访问 Ledger 内部（<path:line>, …，最多列 5 处，超出写「等共 <n> 处」）`（多个模块以「；」再连接）
       全部干净 → PASS
-      实测命中（2026-09-12 工作树）：m3 → corpus_compiler/step.py:431,446,534、inputs.py:101,103,122；m5 → validation/step.py:29,37、inputs.py:28,41,52,67,158、context.py:20,37；m8 → dataset_compiler/step.py:57,73,94,238、inputs.py:22,45,73,199、shim/m1_shim_source_assets.py:44,260（tests/ 目录不计入）
+      命中清单由运行时 grep 生成（对每个 Module 包目录 `grep -nE '\.store\b|\.objects\b'` 递归、排除任意层级 tests/；纯注释/docstring 行亦计入，与 D-9 判据的宽松口径一致），**不写死行号**；
+      BLOCKED 行按模块列出，每模块最多列 5 处，超出写「等共 <n> 处」（n 为运行时计数）；verify 以模式匹配断言 BLOCKED 行（见 verify 段），不比对具体行号
     other_ports_adapters：对 ("ocr", "model", "index") 统计 entry 非 null 的 adapter 数 n_ocr/n_model/n_index
       任一 < 2 → BLOCKED `前置缺失: Contract Registry；ocr/model/index 端口 Adapter 数不足 2（ocr=<n>, model=<n>, index=<n>）`
       全部 ≥ 2 → BLOCKED `前置缺失: Contract Registry；ocr/model/index 端口未登记一致性套件`（本包不存在这三类套件，永不 PASS）
@@ -59,9 +60,12 @@ tests:
     - test_missing_dependency_exit_3（patch 依赖探测函数返回缺失 → exit 3）
     - test_shell_exit_2（subprocess contract-registry.sh：末行 SUMMARY pass=3 fail=0 blocked=2，exit 2）
 verify:
-  - .venv/bin/python -m unittest discover -s pipeline/contract_registry/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 34
-  - .venv/bin/python -m unittest discover -s pipeline/orchestrator/tests -t . 2>&1 | tail -3        # OK（≥ 72，未回退）
+  - .venv/bin/python -m unittest discover -s pipeline/contract_registry/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 34
+  - .venv/bin/python -m unittest discover -s pipeline/orchestrator/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"        # OK（≥ 72，未回退）
   - export LC_ALL=en_US.UTF-8; bash openspec/acceptance/contract-registry.sh; echo exit=$?           # 3 PASS + 2 BLOCKED + SUMMARY pass=3 fail=0 blocked=2；exit=2
+  - export LC_ALL=en_US.UTF-8; bash openspec/acceptance/contract-registry.sh | grep -E '^BLOCKED modules_port_clean 前置缺失: Contract Registry；m3\.corpus_structural .*pipeline/corpus_compiler/step\.py:[0-9]+' | wc -l   # 1
+  - export LC_ALL=en_US.UTF-8; bash openspec/acceptance/contract-registry.sh | grep -c 'm5\.automatic_validation .*pipeline/validation/[a-z]*\.py:[0-9]*'   # 1（BLOCKED 行以「；」连接各模块，行内模式匹配，不比对具体行号）
+  - export LC_ALL=en_US.UTF-8; bash openspec/acceptance/contract-registry.sh | grep -c 'm8\.dataset_compilation .*pipeline/dataset_compiler/[a-z]*\.py:[0-9]*'   # 1
   - grep -nE '^\s*(from|import) pipeline\.orchestrator' pipeline/contract_registry/catalog.py pipeline/contract_registry/ports.py pipeline/contract_registry/conformance.py | wc -l   # 0
   - bash openspec/acceptance/run_all.sh | tail -1                                                    # SUMMARY pass=2 fail=1 blocked=8（本 ACT 未改 run_all.sh）
   - TDD §3 回归

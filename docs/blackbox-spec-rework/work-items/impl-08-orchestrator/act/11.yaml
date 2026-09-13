@@ -1,0 +1,34 @@
+act_id: impl-08/11
+title: "[DEFERRED] Stage Gate 报告落盘（下游 StepRun 首个 artifact + 并入 validation_report_ids）"
+estimated_minutes: 60
+group: null
+status: DEFERRED
+depends_on: [impl-08/10]
+preconditions:
+  - 主 Agent 就 D-6（Ledger 读缺口）作出裁决并指定归属波次；act/10 的公开读方法（含按 step_run_id 取 sealed stage_package）已落地
+  - 首纵切 Stage Gate 报告不落盘（G7-RULINGS 第 46 条修订第 34 条）；本 ACT 未获独立派发前不得执行
+scope:
+  write: [pipeline/orchestrator/edition_run.py, pipeline/orchestrator/tests/test_edition_run.py]
+rationale: |
+  G7-RULINGS 第 46 条：首纵切 Stage Gate 报告不落盘（由 evaluate_stage_gate 返回、CLI 打印、EditionRun 结果 JSON 携带，
+  验收独立重算）；落盘随 D-6 读缺口关闭后另立 ACT。落盘形态取第 34 条的 B 案（下游 StepRun 首个 artifact），
+  但复用已登记 artifact_type（第 35 条 A：`validation_report`，内容 `kind=stage_gate`），不新增类型（P2）。
+contract: |
+  edition_run.py（不改首纵切的返回契约，只在落盘能力可得后追加写入）：
+    advance(...) 的 step_request 分支在 begin_step_run 之后，若 registry 条目声明 `persist_gate_report: true`（新增可选描述符键）：
+      gate_upstream = gate_reports[s_prev]（stages 中 stage 的前一项）
+      以 port.put_artifact(step_run_id, "validation_report", json.dumps({"kind": "stage_gate", **gate_upstream}, sort_keys=True, ensure_ascii=False).encode(),
+        producer_module=ORCH_TOOL, producer_version=ORCH_TOOL_VERSION) 写入并 seal，得 revision_id
+      把 revision_id 并入最终 StepResult 的 validation_report_ids（首位）；finish_step_run 校验该修订 sealed 且 step_run_id 归属本 StepRun（service.py:1155–1162）
+    生产 registry.yaml 默认不含 `persist_gate_report`（首纵切不落盘）；启用由主 Agent 在 D-6 关闭后单独裁定
+tests:
+  test_edition_run.py: |
+    - test_persist_gate_report_writes_and_links_validation_report（persist_gate_report=true：下游 StepRun 首个 artifact 内容 kind=="stage_gate" 且 gate=="passed"、stage==上游；revision_id 在 result_json.validation_report_ids 首位）
+    - test_persist_gate_report_absent_by_default（生产登记表不落盘：无 Gate 证据修订）
+verify:
+  - .venv/bin/python -m unittest discover -s pipeline/orchestrator/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK
+  - TDD §3 回归
+commit:
+  add: [pipeline/orchestrator/edition_run.py, pipeline/orchestrator/tests/test_edition_run.py]
+  message: "feat(orchestrator): optionally persist stage gate report as downstream validation_report artifact (G7-RULINGS 46, post D-6)"
+on_fail: 停止并报告；不得在未裁定的情况下改生产 registry.yaml 或新增 artifact_type

@@ -24,7 +24,7 @@
 - 每个 ACT 先写测试（用例名与 ACT `tests` 逐字）并运行取得 **Red 原文**，再实现；Red 原文与 Green 的 `Ran/OK` 行写进最终报告。
 - 不得修改测试断言去迁就实现；不得删改已有断言。
 - 只用标准库 + PyYAML + jsonschema；不新增依赖、不新增 ID 前缀（`module_id`/`port_id`/`adapter_id` 是登记表标签）、不调用模型 API（P6）。
-- 测试只用 tempfile 目录；不写 `var/` 与 fixture；新增 artifact_type 一律先经 `INTERFACES.md` §4 登记（本包不新增，Gate 证据复用 `validation_report`）。
+- 测试只用 tempfile 目录；不写 `var/` 与 fixture；新增 artifact_type 一律先经 `INTERFACES.md` §4 登记（本包不新增；首纵切 Stage Gate 报告**不落盘**，G7-RULINGS 第 46 条修订第 34 条：由 `evaluate_stage_gate` 返回、CLI 打印、EditionRun 结果 JSON 携带，验收独立重算；落盘见 `act/11.yaml`，DEFERRED）。
 
 ## 开工前提（任一不符，停手上报）
 
@@ -36,10 +36,10 @@ bash docs/blackbox-spec-rework/verify-T.sh | tail -1                            
 bash docs/blackbox-spec-rework/work-items/g3-r3/mutations.sh all | tail -1             # 109/109
 bash openspec/schemas/verify.sh >/dev/null; echo $?                                    # 0
 python3 docs/blackbox-spec-rework/work-items/g4-r3/check_d16.py                        # D16 OK
-.venv/bin/python -m unittest discover -s pipeline/ledger/tests -t . 2>&1 | tail -1     # OK
-.venv/bin/python -m unittest discover -s pipeline/corpus_compiler/tests -t . 2>&1 | tail -1   # OK
-.venv/bin/python -m unittest discover -s pipeline/validation/tests -t . 2>&1 | tail -1 # OK
-.venv/bin/python -m unittest discover -s pipeline/dataset_compiler/tests -t . 2>&1 | tail -1  # OK
+.venv/bin/python -m unittest discover -s pipeline/ledger/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"     # OK
+.venv/bin/python -m unittest discover -s pipeline/corpus_compiler/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK
+.venv/bin/python -m unittest discover -s pipeline/validation/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)" # OK
+.venv/bin/python -m unittest discover -s pipeline/dataset_compiler/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"  # OK
 bash openspec/acceptance/run_all.sh | tail -1                                          # SUMMARY pass=2 fail=1 blocked=8
 ls openspec/acceptance/                                                               # run_all.sh m3-coverage.sh m5-evidence-gate.sh m8-span-identity.sh
 ```

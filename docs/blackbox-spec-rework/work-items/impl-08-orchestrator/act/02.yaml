@@ -34,7 +34,7 @@ contract: |
       legacy_self_driving → target 必须可调用；
       entry 解析：module_path, attr = entry.split(":")；importlib.import_module(module_path)；getattr；失败 → OrchestratorRefused（message 含 entry）
       本文件不得出现任何加工 Module 的包名字面量
-  stubs.py（kind 恒为 "stub"；只供测试与验收场景）：
+  stubs.py（kind 恒为 "stub"；只供测试与验收场景；**桩产物的 artifact_type（如 `stub_output`、`review_queue_item`）只用于测试与验收，不入 INTERFACES.md §4 闭集、不得出现在生产登记表的产物中**，F7）：
     class StubModule：
       __init__(stage, *, module_id=None, tasks=("t1", "t2"), fail_on_task=None, raise_on_task=None, human_queue=False,
                validation_passed=True, stage_package_mode="valid", produces=("stub_output",), consumes_from=None, supports_recovery=True)
@@ -83,7 +83,7 @@ tests:
     - test_stub_skips_recovery_completed_tasks
     - test_orchestrator_sources_do_not_name_processing_modules（pipeline/orchestrator 非 tests 的 .py 不含 "corpus_compiler"）
 verify:
-  - .venv/bin/python -m unittest discover -s pipeline/orchestrator/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 15
+  - .venv/bin/python -m unittest discover -s pipeline/orchestrator/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 15
   - grep -rnE '\.store\b|\.objects\b' pipeline/orchestrator --include='*.py' | grep -v '/tests/' | wc -l   # 0
   - TDD §3 回归
 commit:

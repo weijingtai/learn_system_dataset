@@ -5,7 +5,7 @@
 ## 1. 登记表目录（ACT 00）
 
 - 1.1 Given 仓库 `registry.yaml`，When 执行 `check_registry(load_registry())`，Then 问题清单为空。四份 L0 Schema 的 sha256 与文件一致；八个 stage 行名逐字等于规格 §19 第一列；五个专用队列名逐字等于 §5。
-- 1.2 Given 分别出现以下篡改：Schema sha256 被改、Schema 路径不存在、`schema_version` 不是 "1.0.0"、stage 超出 m1–m8、行名少一字、`module_id` 重复、`binding: imported` 却带 `entry`、`consumes.from_stage` 不早于本 stage、生产表出现 `kind: stub`、端口不在 {ocr, model, index, storage}、`entry_kwargs` 非 dict、`owns_processing_run` 非 bool，Then 每种篡改都返回对应问题码。
+- 1.2 Given 分别出现以下篡改：Schema sha256 被改、Schema 路径不存在、`schema_version` 不是 "1.0.0"、stage 超出 m1–m8（`test_module_stage_out_of_closed_set_detected`）、行名少一字、`module_id` 重复、`binding: imported` 却带 `entry`、`consumes.from_stage` 不早于本 stage、生产表出现 `kind: stub`、端口不在 {ocr, model, index, storage}、`entry_kwargs` 非 dict、`owns_processing_run` 非 bool，Then 每种篡改都返回对应问题码。
 - 1.3 Given 同一 stage 登记两个非桩 Module，When 调用 `module_for(stage)`，Then 抛出 `RegistryInvalid`；Given 该 stage 未登记（m4），Then 返回 `None`；Given m5，Then 返回 `m5.automatic_validation`。
 - 1.4 Given 两份描述只在 `version` 上不同，Then 两者的 `interface_fingerprint` 相同；Given `produces` 不同，Then 指纹不同。
 - 1.5 Given 生产登记表，Then `m3`/`m5`/`m8` 三条 `legacy_self_driving` 条目分别带 `entry_kwargs`（m5 `target_consumption_level`、m8 `consumption_level` 与 `owns_processing_run: true`）。
@@ -27,14 +27,14 @@
 ## 4. Stage Gate（ACT 03）
 
 - 4.1 Given 桩 m1 成功，Then m1 Gate 八项全过，结果为 `passed`。
-- 4.2 分别 Given 以下情形：无 StepRun、StepRun 为 failed、awaiting_human、StagePackage 缺失、StagePackage 的 stage 写错、`validation.passed=false`、`failures` 非空、输出缺少登记的 produces 类型、最新 Checkpoint 仍有待办、m2 冻结输入不含 m1 产出。Then 每种情形都让指定检查失败，Gate 为 `blocked`。
+- 4.2 分别 Given 以下情形：无 StepRun、StepRun 为 failed、awaiting_human、无任何有效运行承载本 stage 的 StagePackage、StagePackage 的 stage 写错、`validation.passed=false`、`failures` 非空、输出缺少登记的 produces 类型、最新 Checkpoint 仍有待办、m2 冻结输入不含 m1 产出。Then 每种情形都让指定检查失败，Gate 为 `blocked`。
 - 4.3 Given failed 的旧 StepRun 已被 succeeded 的新 StepRun 取代，Then 有效 StepRun 只剩新运行，Gate 为 `passed`。
 - 4.4 Given 模拟 m1_shim：fixture m1 运行被一个新 m1 运行 supersede，且新运行不承载 StagePackage，Then 旧 m1 运行仍是有效运行、m1 Gate 仍 `passed`；Given m2 的冻结输入引用被接替的 succeeded m1 运行产出，Then `upstream_lineage` ok，引用 failed 运行则失败。
 - 4.5 Gate 不 import `runner`、`module`、`stubs`、`edition_run`，也不 import 任何加工 Module。
 
 ## 5. EditionRun 串联与 release 段（ACT 04）
 
-- 5.1 Given 桩 m1–m6 的登记表与 `stages=EDITION_STAGES`，When 执行 `run_until("m6")`，Then 六个阶段依次 `executed`、最终 `complete`。m2–m6 每个 StepRun 的首个 artifact 是上游 Gate 证据（`validation_report`，内容 `kind="stage_gate"` 且 `gate="passed"`，N-4 A），冻结输入包含上游产出。
+- 5.1 Given 桩 m1–m6 的登记表与 `stages=EDITION_STAGES`，When 执行 `run_until("m6")`，Then 六个阶段依次 `executed`、最终 `complete`。**首纵切 Stage Gate 报告不落盘**（G7-RULINGS 第 46 条）：每次 executed 的 `gate_reports` 含上游 stage 的 gate 且 `gate="passed"`、`stage=上游`，CLI 打印 `ORCH GATE <stage> <passed|blocked>`；StepResult 的 `validation_report_ids` 只含 Module 自产报告；冻结输入包含上游产出。
 - 5.2 Given m3 桩失败，When `advance`，Then m3 为 `executed` 且 StepResult 为 failed；再次 `advance` 返回 `blocked`。整个过程中 m4 没有 StepRun；`blocked` 前后 `artifact_revisions`、`step_runs`、`audit_log` 行数不变。
 - 5.3 Given m2 桩返回 awaiting_human，Then StepResult 过 Schema，并带 `resume_token` 与待办；再次 `advance` 返回 `waiting`，且零写入。
 - 5.4 Given m4 未登记且 `stages=EDITION_STAGES`，Then m4 返回 `refused`，原因含 `M4 Knowledge Extraction`；Given m2 为 `imported` 且无任务，Then 返回 `refused`。
@@ -72,7 +72,7 @@
 
 ## 9. 20.10 验收（ACT 08）与 run_all（ACT 09）
 
-- 9.1 Given 仓库现状，When 运行 `contract-registry.sh`，Then 3 项 PASS、2 项 BLOCKED，exit 2；`modules_port_clean` 的说明列出 m3/m5/m8 与 `pipeline/corpus_compiler/`、`pipeline/validation/`、`pipeline/dataset_compiler/` 的行号。
+- 9.1 Given 仓库现状，When 运行 `contract-registry.sh`，Then 3 项 PASS、2 项 BLOCKED，exit 2；`modules_port_clean` 的说明由运行时 grep 生成，按模块列出 m3/m5/m8 的命中（`pipeline/corpus_compiler/`、`pipeline/validation/`、`pipeline/dataset_compiler/` 的 文件:行号，每模块最多 5 处），verify 以模式匹配断言而不比对具体行号。
 - 9.2 Given `registry.yaml` 中 Schema 哈希被改（副本），Then `registry_consistent` 为 FAIL，exit 1；Given 打补丁让 ledgerd 套件结果与直连不同，Then `storage_port_substitutable` 为 FAIL。
 - 9.3 Given `pipeline/orchestrator` 非测试源码中出现 `.store.conn`，Then 为 FAIL，而不是 BLOCKED。
 - 9.4 `run_all.sh 20.1 20.10` 输出两行 BLOCKED，行名分别取自 acceptance 的首个 BLOCKED 行；`run_all.sh` 全量 SUMMARY 仍为 pass=2 fail=1 blocked=8；其余九条输出逐字不变。

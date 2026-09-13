@@ -23,10 +23,10 @@ bash docs/blackbox-spec-rework/verify-T.sh | tail -1                     # FAIL 
 bash docs/blackbox-spec-rework/work-items/g3-r3/mutations.sh all | tail -1   # 109/109
 bash openspec/schemas/verify.sh >/dev/null; echo $?                      # 0
 python3 docs/blackbox-spec-rework/work-items/g4-r3/check_d16.py          # D16 OK
-$TL 2>&1 | tail -1                                                       # OK
-$TC 2>&1 | tail -1                                                       # OK
-$TV 2>&1 | tail -1                                                       # OK
-$TD 2>&1 | tail -1                                                       # OK
+$TL 2>&1 | grep -E "^(Ran|OK|FAILED)"                                                       # OK
+$TC 2>&1 | grep -E "^(Ran|OK|FAILED)"                                                       # OK
+$TV 2>&1 | grep -E "^(Ran|OK|FAILED)"                                                       # OK
+$TD 2>&1 | grep -E "^(Ran|OK|FAILED)"                                                       # OK
 bash openspec/acceptance/run_all.sh | tail -1                            # SUMMARY pass=2 fail=1 blocked=8
 bash openspec/acceptance/run_all.sh 20.1 20.10                           # BLOCKED 20.1 …Local Orchestrator…M4–M6 Gate 未实现；BLOCKED 20.10 …Contract Registry…无第二 Adapter 可做替换验证
 # 仅 K4 追加：
@@ -41,18 +41,18 @@ K4 开工基线中若 impl-02/impl-03/impl-04 任一不是 `ACCEPTED`，停手�
 
 | ACT | Red（实现前） | Green（实现后） |
 |---|---|---|
-| 00 | `$TR` → ImportError | `$TR` OK，用例 ≥ 15；`python -m pipeline.contract_registry check` 末行 `REGISTRY OK modules=5 ports=4` |
+| 00 | `$TR` → ImportError | `$TR` OK，用例 ≥ 16；`python -m pipeline.contract_registry check` 末行 `REGISTRY OK modules=5 ports=4` |
 | 01 | 新增用例全部 ERROR | `$TR` OK，用例 ≥ 25；ledgerd 冒烟用例通过 |
 | 02 | `$TO` → ImportError | `$TO` OK，用例 ≥ 15 |
 | 03 | 新增用例全部 ERROR | `$TO` OK，用例 ≥ 30 |
 | 04 | 新增用例全部 ERROR | `$TO` OK，用例 ≥ 46；`run_all.sh` 不变 |
 | 05 | 新增用例全部 ERROR | `$TO` OK，用例 ≥ 55 |
-| 06 | 新增用例全部 ERROR | `$TO` OK，用例 ≥ 65；CLI 退出码用例通过 |
+| 06 | 新增用例全部 ERROR | `$TO` OK，用例 ≥ 66；CLI 退出码与 `ORCH GATE` 行用例通过 |
 | 07 | `orchestrator-gate.sh` 不存在（exit 127）；新增用例全部 ERROR | `$TO` OK，用例 ≥ 74；`orchestrator-gate.sh` → `SUMMARY pass=5 fail=0 blocked=1`，exit 2 |
 | 08 | `contract-registry.sh` 不存在（exit 127）；新增用例全部 ERROR | `$TR` OK，用例 ≥ 34；`contract-registry.sh` → `SUMMARY pass=3 fail=0 blocked=2`，exit 2；`run_all.sh` 未改 |
 | 09 | `run_all.sh 20.10` 仍输出硬编码「无第二 Adapter 可做替换验证」；`test_run_all.py` 用例失败 | `$TR` OK，用例 ≥ 38；`run_all.sh` 仍为 pass=2 fail=1 blocked=8，20.1/20.10 说明为计算值；其余九条输出与基线逐字相同 |
 
-（用例数阈值按 §1 具名用例累计，不得凑数；`act/10.yaml` 为 `DEFERRED`，不设阈值。）
+（用例数阈值按 §1 具名用例累计，不得凑数；`act/10.yaml`、`act/11.yaml` 为 `DEFERRED`，不设阈值。）
 
 ## 2. 主 Agent 验收附加判据（执行者不需跑，但不得让其失败）
 
@@ -62,6 +62,9 @@ K4 开工基线中若 impl-02/impl-03/impl-04 任一不是 `ACCEPTED`，停手�
 grep -rnE 'corpus_compiler|validation\.step|dataset_compiler|pipeline\.ledger\.fixture_ingest' pipeline/orchestrator pipeline/contract_registry --include='*.py' | grep -v '/tests/' | grep -vE 'acceptance\.py|registry\.yaml|suites\.py'   # 空
 grep -nE '^\s*(from|import) .*(runner|module|stubs|edition_run)' pipeline/orchestrator/gate.py   # 空
 grep -rnE '\.store\b|\.objects\b' pipeline/orchestrator --include='*.py' | grep -v '/tests/'      # 空
+# F1（第 45 条）stage_package_valid：有效运行中「承载 StagePackage 的运行」恰 1 个且包合法；不承载包的接替运行（m1_shim）不计入包判定但须 succeeded；m1 Gate 在 m1_shim 接替后仍 passed
+# F2（第 46 条）首纵切 Gate 报告不落盘：pipeline/orchestrator 非 tests 源码不含 'stage_gate_report'；advance/run_release 返回含 gate_reports；CLI 打印 ORCH GATE 行；下游 StepRun 无 Gate 证据修订
+grep -rn 'stage_gate_report' pipeline/orchestrator --include='*.py' | grep -v '/tests/'          # 空
 # 桩隔离：registry.yaml 无 "kind: stub"；registered_modules_m1_m6 不因注入桩登记表而 PASS
 # 零写入：advance 返回 waiting/blocked/refused/complete 时，artifact_revisions、step_runs、audit_log 行数不变
 # StepResult：runner.execute_step 的全部返回值过 step_result.schema.json（含 awaiting_human 与 failed）；run_legacy 重建的 StepResult 亦过
@@ -80,12 +83,12 @@ bash docs/blackbox-spec-rework/verify-T.sh | tail -1
 bash docs/blackbox-spec-rework/work-items/g3-r3/mutations.sh all | tail -1
 bash openspec/schemas/verify.sh >/dev/null; echo $?
 python3 docs/blackbox-spec-rework/work-items/g4-r3/check_d16.py
-$TL 2>&1 | tail -1
-$TR 2>&1 | tail -1          # ACT 00 起
-$TO 2>&1 | tail -1          # ACT 02 起
-$TC 2>&1 | tail -1          # K4
-$TV 2>&1 | tail -1          # K4
-$TD 2>&1 | tail -1          # K4
+$TL 2>&1 | grep -E "^(Ran|OK|FAILED)"
+$TR 2>&1 | grep -E "^(Ran|OK|FAILED)"          # ACT 00 起
+$TO 2>&1 | grep -E "^(Ran|OK|FAILED)"          # ACT 02 起
+$TC 2>&1 | grep -E "^(Ran|OK|FAILED)"          # K4
+$TV 2>&1 | grep -E "^(Ran|OK|FAILED)"          # K4
+$TD 2>&1 | grep -E "^(Ran|OK|FAILED)"          # K4
 bash openspec/acceptance/run_all.sh | tail -1
 git diff --check
 git status --short | grep -v '^??' | grep -vE 'pipeline/orchestrator|pipeline/contract_registry|openspec/acceptance/(orchestrator-gate|contract-registry|run_all)\.sh'   # 空（并行 Agent 的文件除外，须逐一核对归属）

@@ -42,13 +42,19 @@ acts:
     status: DEFERRED
     writes: ["pipeline/ledger/service.py", "pipeline/ledger/tests/test_read_api.py"]
     note: "D-6 B：Ledger 公开读方法；本批不改 pipeline/ledger/**（P9），待主 Agent 裁定归属波次后启用"
+  - file: act/11.yaml
+    id: impl-08/11
+    status: DEFERRED
+    writes: ["pipeline/orchestrator/edition_run.py", "pipeline/orchestrator/tests/test_edition_run.py"]
+    note: "G7-RULINGS 第 46 条：Stage Gate 报告落盘随 D-6 读缺口关闭后另立；首纵切不落盘"
 global_rules:
   - 每个 ACT 先写测试（用例名与 ACT tests 逐字；Red 原文入报告）再实现；unittest；测试只用 tempfile 目录，不写 var/ 与 fixture
   - 只用标准库 + PyYAML + jsonschema；不新增依赖、不新增 ID 前缀（module_id/port_id/adapter_id 是登记表标签）、不调用模型 API（P6）
   - 不得改 pipeline/ledger/**（P9）、pipeline/corpus_compiler/**、pipeline/validation/**、pipeline/dataset_compiler/**、openspec/schemas/**、规格、fixture、其他 work-items、台账；发现需要改动时停手上报
   - Orchestrator 与 Registry 非测试源码不 import 任何加工 Module 包；Module 只经 registry entry + importlib 或 modules= 注入解析
   - Orchestrator 只经 LedgerPort 闭集方法访问 Ledger（不得出现 .store / .objects）；legacy 绑定经 port.unwrap() 取直连服务是唯一例外，且只在 module.py/runner.py 中
-  - 新增 artifact_type 一律先经 INTERFACES.md §4 登记（P2）；本包不新增，Gate 证据复用 validation_report（D-11、N-4 A）
+  - 新增 artifact_type 一律先经 INTERFACES.md §4 登记（P2）；本包不新增；首纵切 Stage Gate 报告**不落盘**（G7-RULINGS 第 46 条修订第 34 条：由 evaluate_stage_gate 返回、CLI 打印、EditionRun 结果 JSON 携带，验收独立重算），落盘见 act/11（DEFERRED）
+  - 桩产物的 artifact_type（如 stub_output/review_queue_item）只用于测试与验收场景，不入 INTERFACES.md §4 闭集、不得出现在生产登记表的产物中（F7）
   - 中文注释与 docstring；公开函数名、参数名、返回键、检查名、CLI 末行与 ACT contract 逐字一致
   - 每个 ACT 一个提交；不得 git add -A / git add .；执行者不得写 ACCEPTED 或台账
 gates:
@@ -56,9 +62,9 @@ gates:
   - bash docs/blackbox-spec-rework/work-items/g3-r3/mutations.sh all | tail -1    # 109/109
   - bash openspec/schemas/verify.sh >/dev/null; echo $?                           # 0
   - python3 docs/blackbox-spec-rework/work-items/g4-r3/check_d16.py               # D16 OK
-  - .venv/bin/python -m unittest discover -s pipeline/ledger/tests -t .           # OK
-  - .venv/bin/python -m unittest discover -s pipeline/contract_registry/tests -t .   # OK（ACT 00 起）
-  - .venv/bin/python -m unittest discover -s pipeline/orchestrator/tests -t .     # OK（ACT 02 起）
+  - .venv/bin/python -m unittest discover -s pipeline/ledger/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"           # OK
+  - .venv/bin/python -m unittest discover -s pipeline/contract_registry/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK（ACT 00 起）
+  - .venv/bin/python -m unittest discover -s pipeline/orchestrator/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"     # OK（ACT 02 起）
   - export LC_ALL=en_US.UTF-8; bash openspec/acceptance/run_all.sh | tail -1      # SUMMARY pass=2 fail=1 blocked=8
   - git diff --check
 on_fail: 停止并报告；contract 有两种理解、测试无法按定义写出、Ledger 行为与 contract 假设不符（例如 awaiting_human 下不能写 Checkpoint）、需要改 scope 外文件 → 一律停手上报
