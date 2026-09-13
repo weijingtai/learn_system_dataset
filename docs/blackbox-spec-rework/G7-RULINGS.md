@@ -130,6 +130,15 @@ Q49 按 P8 须用户确认前缀；Q52/Q53/Q55/Q57/Q62 推迟到 W5 定稿；Q50
 | 45 | F1 `stage_package_valid`「每个有效 StepRun 恰 1 包」与第 40 条（不承载包的接替运行不移除被接替者）矛盾，m1 Gate 必 blocked | 包判定改为：该阶段有效运行中**承载 StagePackage 的运行恰 1 个且包合法**；不承载包的接替运行（如 m1_shim）不计入包判定，但须 `succeeded` 且在 lineage 可达 |
 | 46 | F2 Gate 报告「落为下游 StepRun 首个 artifact」不可由公开读接口取回，运行级类型又受 `service.py:66` 限制，改 Ledger 违反 P9 | **修订第 34 条**：首纵切 Stage Gate 报告不落盘，由 `evaluate_stage_gate` 返回、CLI 打印、EditionRun 结果 JSON 携带，验收独立重算；落盘随 D-6 读缺口关闭后另立 ACT（`DEFERRED`） |
 
+### 9.6 impl-05 定稿（`8cedae2`）待裁决
+
+| # | 条目 | 裁决 |
+|---|---|---|
+| 47 | N1 M4 artifact_type 登记与 INTERFACES §2.4/§3.2/§4 旧命名对账 | 采纳 A：新增 impl-00 登记 ACT（act/12，单写者，P2），改写 §4 M4 行与 §2.4/§3.1/§3.2，并把 M4 类型加入 `check_interfaces.py` 必查清单；须在 impl-05 K2 前执行并验收 |
+| 48 | N2 K4 是否以 fixture m4 金标为强制前置 | 采纳 A：强制前置，缺失即停手；金标不得由实现方自产，恢复 impl-00 act/05 并裁剪为「仅 m4 金标 + verify.sh 对应扩展」的独占 ACT（P4），与 act/12 同批起草、四查后执行 |
+| 49 | N3 候选证据坐标（页块绝对 `start_offset/end_offset` vs INTERFACES I-11 span 相对 `char_start/char_end`） | 采纳 A：以页块绝对坐标为准，与 M3 span 偏移、M5 严格 offset 校验同一坐标系；INTERFACES §3.1/I-11 随 act/12 同步改写 |
+| 50 | N4 M4 候选 Gate 结果是否落盘 | 采纳 A：作为 M4 自身 StepRun 的 `validation_report` 落盘并列入 `validation_report_ids`（可公开读回）；与编排层 Stage Gate 报告（第 46 条不落盘）无关 |
+
 ## 10. 用户待办
 
 1. W4-J 前：撰写真实前十页人工终态决定表（P7，Q37）。
