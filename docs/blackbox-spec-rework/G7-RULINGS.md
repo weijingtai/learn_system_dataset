@@ -165,6 +165,7 @@ Q49 按 P8 须用户确认前缀；Q52/Q53/Q55/Q57/Q62 推迟到 W5 定稿；Q50
 | # | 条目 | 裁决 |
 |---|---|---|
 | 57 | `orchestrator/gate.py` `_read_package_content` 以 `json.loads` 读包内容，而 `fixture_ingest` 写入的 m1/m2 StagePackage 为 YAML 字节（`fixture_ingest.py:370`），真实链在 m1 被 Gate 阻断；修正需改 ACT 03 已验收文件 | 授权最小修正：仅该函数改为 `yaml.safe_load`（JSON 为其子集），结果非映射仍判不可读；新增具名用例（YAML 字节包可读、非映射拒绝），先红后绿，单独提交 `fix(orchestrator)`，由 K4 验收复核 gate 全量用例。不改 `fixture_ingest`（P9）、不为 imported 阶段设特例（避免 Gate 双口径）；属读取格式兼容，不构成复用被判模块实现 |
+| 59 | impl-08 ACT 07 `acceptance.py` 须调用 `dataset_compiler.shim.m1_shim_source_assets` 登记薄 M1 页图，而 ACT 02 已验收单测 `test_orchestrator_sources_do_not_name_processing_modules` 禁止 orchestrator 非 tests 源码出现 `dataset_compiler` 等字样（严于 ACT 02 契约与 TDD.md:62） | 采纳豁免方案：该单测仅豁免 `acceptance.py`、`suites.py`（与 TDD.md:62 主 Agent 验收 grep 一致），其余生产模块仍禁三者；豁免名单为常量，新增具名用例断言豁免集合恰为这两个文件，防止悄然扩大；单独最小提交 `test(orchestrator)` |
 
 ### 9.11 impl-05 K2 停手（阶段封存守卫）
 
