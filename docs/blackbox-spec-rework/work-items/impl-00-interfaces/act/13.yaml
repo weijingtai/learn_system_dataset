@@ -1,0 +1,76 @@
+act_id: impl-00/13
+status: READY_FOR_REVIEW   # W5-H 起草 2026-09-13，依 G7-RULINGS §9.12 第 61–62 条与 §4 impl-06、§9.11 第 58 条；单写者（P2）；未经执行
+title: M6 artifact_type 闭集登记与 INTERFACES §2.6/§3.4/§3.5/§3.6/§4/§3.15 对账
+estimated_minutes: 60
+group: W5H
+depends_on: [impl-00/12]   # M4 登记（act/12）已在其上追加；本 ACT 追加 M6 行
+decisions_required: []     # 已由 G7-RULINGS §9.12 第 61–62 条与 §4 impl-06 裁定；执行者不重议
+scope:
+  write: [docs/blackbox-spec-rework/work-items/impl-00-interfaces/INTERFACES.md, docs/blackbox-spec-rework/work-items/impl-00-interfaces/check_interfaces.py, docs/blackbox-spec-rework/work-items/impl-00-interfaces/tests/__init__.py, docs/blackbox-spec-rework/work-items/impl-00-interfaces/tests/test_check_interfaces.py]
+tests_first:
+  - 先改 check_interfaces.py 与 tests/test_check_interfaces.py（新增 M6 检查 IF25–IF29 与 5 个具名用例），运行 `python3 .../check_interfaces.py` 应因 §4 尚未登记 M6 类型而 FAIL IF25–IF28、`unittest` 新增用例 Red（Red 原文入报告）；再改 INTERFACES.md 转 Green
+  - 本 ACT 是 impl-06 K1 的前置之一（P2；第 47 条模式）：执行并验收后方可派发 impl-06 实现
+contract: |
+  只改 INTERFACES.md 与本 ACT 的 check_interfaces.py / tests。不得改任何代码、Schema、fixture、ledger、acceptance；只写 impl-00-interfaces/ 目录内文件。
+  A. §4 表 M6 行（`INTERFACES.md:348`）整行替换为四行，名称逐字取 impl-06 定稿实际使用的类型名（P2）：
+    | M6 | `review_queue` | 队列（M6 待签发） | 代码草案 0.1.0-draft（P3） | M6 薄接入（act/13 登记；实现见 impl-06） |
+    | M6 | `rework_impact_report` | 失效传播报告（§14.1） | `rework_impact_report` 代码草案（见 §3.6） | 同上 |
+    | M6 | `reviewed_edition` | 主内容 | `reviewed_edition` 代码草案（见 §3.5） | 同上 |
+    | M6 | `reviewed_edition_package` | 阶段输出索引 | 代码草案（P3） | 同上 |
+    **删除** 旧 M6 行中的 `correction_request` 类型（G7-RULINGS §9.12 第 62 条 / impl-06 D-10：CorrectionRequest 为 `human_event`（内容 `event_kind=correction_request`，`decision_type=None`），不是独立 artifact_type；`record_human_event` 只收 `human_event`，`service.py:940-945`）；§4 表内不得再出现 `correction_request`（IF29 检查）
+  B. §4 表头登记纪律行（`INTERFACES.md:329`）追加：M6 四行由 act/13 登记，`reviewed_edition`/`rework_impact_report` 内容结构为代码草案（P3），正式化随 impl-08 Contract Registry；Stage Gate 报告不落盘（§9.5 第 46 条）
+  C. §2.6 M6 卡片（`INTERFACES.md:161-175`）按 impl-06 定稿重写为「M6 Review & Curation（薄接入；act/13 登记类型）」：
+    - 运行归属：EditionRun，`stage=m6`
+    - 冻结输入：m3 `corpus_package`/`corpus_spans` + m4 `candidate_package`/`candidate_set` + m5 `validation_package`/`gate_results`（各恰 1；上游 StepRun `succeeded`，M5 另须 `validation.passed == true`，第 21 条）
+    - 任务与 Checkpoint：首 task `build_review_queue`；此后每条人工决定/人工事件 1 个 Checkpoint（task_id `m6_review_<entity_id>_<decision_type>`）（§17.1:840-846）
+    - 输出 artifact_type：人工 `human_event`（`event_kind=review_decision`，内容逐字由 `pipeline.knowledge_extraction.review_events.build_review_decision` 产出；另有 `correction_request`、`rework_threshold_ack` 事件）；队列 `review_queue`；失效报告 `rework_impact_report`；主内容 `reviewed_edition`；阶段输出 `reviewed_edition_package`；另有 `validation_report`、`step_log`、`failure_report`
+    - payload：`{reviewed_edition_revision_id, decision_revision_ids, unresolved_count: 0}`
+    - counts：`{approved, rejected, decisions, correction_requests}`；content_sha256 = sha256(reviewed_edition 字节)；operation `review_candidates`
+    - Gate：独立 M6 Review Gate 九项检查（名称见 impl-06 act/02）；结果作为 M6 自身 StepRun 的 `validation_report` 落盘
+    - 人工队列：队列 4「M6 待签发」
+    - 失效传播：CorrectionRequest → M2 返工 → §14.1 精确失效；`rework_round ≥ 3` 或单轮失效 ≥ 30% 登记 `rework_threshold_exceeded`；M6 **不**改 M4 修订状态（第 62 条：M4' 以 `supersede_revision` 替换旧 `candidate_set`）
+    - Snapshot：不在 M6；`CanonicalKnowledgeSnapshot` 归 M7（第 61 条）
+  D. §3.4 `review_decision`（`INTERFACES.md:277-279`）按 `pipeline/knowledge_extraction/review_events.py` 改写：顶层键恰为 `{schema_version, event_kind("review_decision"), stage("m6"), decision_type(8 类), verdict(accept|modify|reject|request_evidence|school_dispute), target{entity_kind(assertion|pattern|school_view), entity_id, artifact_revision_id}, processing_run_id, step_run_id, actor_ref, rationale(minLength 1), evidence_refs[], consumption_level}`；校验拒收多余键；`verdict=school_dispute` 只能配 `review_school_attribution`
+  E. §3.5 `reviewed_edition`（`INTERFACES.md:281-283`）整节替换为 impl-06 README §5.3 的结构：`{schema_version, edition_part_artifact_id, candidate_set_revision_id, candidate_package_revision_id, validation_package_revision_id, approved[{entity_id, kind, artifact_revision_id, content_status, decision_revision_ids}], rejected[{entity_id, kind, artifact_revision_id, content_status, decision_revision_ids}], decisions[{decision_revision_id, queue_item_id, target_entity_id, seen_artifact_revision_id, current_target_revision_id, decision_type, verdict, standing, carried_from_revision_id, trigger_correction_request_id}], evidence_links[{entity_id, source_span_id, corpus_spans_revision_id, start_offset, end_offset, quote_sha256}], school_views[{school_view_id, school_id, subject_entity_id, conflict_group_id, changes_current_judgment}], correction_request_revision_ids[], rework_impact_report_revision_id|null, unresolved_count: const 0}`；`standing ∈ {active, carried_forward, needs_review}`（D-06，不进 Ledger 状态表）
+  F. §3.6 `rework_impact_report`（`INTERFACES.md:285-287`）按 §14.1 与 impl-06 §5.2 改写：`{schema_version, trigger_correction_request_revision_id, rework_round ≥1, changed_span_ids[], removed_span_ids[], reachable_entity_ids[], invalidated[{kind, entity_id, revision_id}], carried_forward[{kind, entity_id, revision_id, carried_from_revision_id}], needs_review[{decision_revision_id, target_entity_id, queue_item_id, reason}], invalidated_count, carried_forward_count, needs_review_count, valid_object_count, invalidated_ratio, warnings[], affected_queues[queueName]}`
+  G. §3.15 「不在本包范围」（`INTERFACES.md:323`）：从「由 M4/M6/M7 包各自起草」清单中删去 `correction_request`（D-10 归 human_event）与 `review_queue`（已在本 ACT §4 登记）；保留 `term_layer_report`、四类 Proposal
+  H. §4 表状态列：M6 四行状态取「M6 薄接入（act/13 登记；实现见 impl-06）」，**不得**写 `DEFERRED`/`纵切后`（IF11 检查，并把 M6_TYPES 纳入该检查循环）；其余纵切后类型（M7、M8 纵切后行等）保持「纵切后」
+  I. 不得改动 m1–m3 的【实际】事实、M4 五行（act/12 登记）与 M5/M8 首纵切行
+  J. check_interfaces.py 检查清单（**IF01–IF24 编号与语义不得改变**；现有 13 个用例引用 IF02/IF10/IF11/IF13/IF18/IF19–IF24）：
+    IF25 required `review_queue` 在 §4 表出现恰 1 次；IF26 `reviewed_edition`；IF27 `reviewed_edition_package`；IF28 `rework_impact_report`
+    IF29 §4 表 artifact_type 列不含 `correction_request`（D-10；不得作为独立类型登记）
+    实现要求：把 M6 类型放入独立的 `M6_TYPES`（显式编号 IF25–IF28），禁止用单一 enumerate 生成编号；新增 `FORBIDDEN_M6_TYPES = ("correction_request",)` 走 IF29；`IF11` 的类型集合改为 `REQUIRED_TYPES + M4_TYPES + M6_TYPES`；docstring 由「IF01–IF24」改为「IF01–IF29」
+    绿色时期望（第 54 条）：末行 `fail=0` 且 exit 0，IF25–IF28 四个 PASS 行存在；不写死 pass 总数
+tests:
+  test_check_interfaces.py: |
+    - test_if01_passes_on_repo_copy（现有，保持）
+    - test_required_type_missing_fails（现有，断言 IF02）
+    - test_duplicate_type_fails（现有，断言 IF10）
+    - test_required_type_marked_deferred_fails（现有，断言 IF11）
+    - test_ruling_marker_missing_fails（现有，断言 IF13）
+    - test_forbidden_type_present_fails（现有，断言 IF18）
+    - test_missing_file_exit_3（现有，保持）
+    - test_summary_line_format（现有；Green 后断言末行 `fail=0` 且 rc=0，不断言 pass 总数，第 54 条）
+    - test_m4_required_types_present（现有，act/12）
+    - test_m4_type_missing_fails（现有，act/12）
+    - test_m4_type_marked_deferred_fails（现有，act/12）
+    - test_m4_duplicate_type_fails（现有，act/12）
+    - test_legacy_m4_name_present_fails（现有，act/12）
+    - test_m6_required_types_present（仓库副本 IF25–IF28 全 PASS）
+    - test_m6_type_missing_fails（副本删 `review_queue` 行 → FAIL IF25）
+    - test_m6_type_marked_deferred_fails（副本把 `reviewed_edition` 状态列改 `纵切后` → FAIL IF11）
+    - test_m6_duplicate_type_fails（副本复制 `rework_impact_report` 行 → FAIL IF10）
+    - test_correction_request_type_present_fails（副本在 §4 表插入 `correction_request` 行 → FAIL IF29）
+verify:
+  - python3 docs/blackbox-spec-rework/work-items/impl-00-interfaces/check_interfaces.py; echo exit=$?   # 末行 fail=0 且 exit=0；IF25–IF28 四个 PASS 行存在（第 54 条，不写死 pass 总数）
+  - .venv/bin/python -m unittest discover -s docs/blackbox-spec-rework/work-items/impl-00-interfaces/tests -t docs/blackbox-spec-rework/work-items/impl-00-interfaces 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例 ≥ 18
+  - grep -c '^| M6 ' docs/blackbox-spec-rework/work-items/impl-00-interfaces/INTERFACES.md   # ≥ 4
+  - grep -c '^| M6 .*correction_request' docs/blackbox-spec-rework/work-items/impl-00-interfaces/INTERFACES.md   # 0（grep 无匹配 exit 1 属预期；D-10）
+  - grep -c 'review_queue' docs/blackbox-spec-rework/work-items/impl-00-interfaces/INTERFACES.md   # ≥ 1
+  - git status --short openspec/schemas pipeline/corpus/_fixture pipeline/ledger   # 空
+  - bash openspec/schemas/verify.sh >/dev/null; echo $?                            # 0
+  - git diff --check
+commit:
+  add: [docs/blackbox-spec-rework/work-items/impl-00-interfaces/INTERFACES.md, docs/blackbox-spec-rework/work-items/impl-00-interfaces/check_interfaces.py, docs/blackbox-spec-rework/work-items/impl-00-interfaces/tests]
+  message: "docs(impl-00): register M6 artifact_type closed set and align INTERFACES to impl-06 thin review"
+on_fail: 停止并报告；IF01–IF24 编号或语义被改动、现有 13 用例断言被改、需要写 scope 外文件、需要改 schemas/fixture/ledger 才能通过 → 停手上报

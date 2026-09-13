@@ -1,10 +1,11 @@
 package: blackbox-impl-00-interfaces
 title: 跨模块接口契约：INTERFACES §4 临时闭集登记与首纵切裁决对齐（按 G7 裁决裁剪）
-status: READY_FOR_REVIEW   # W2-C1 定稿 2026-09-12，依 G7-RULINGS §9；W4-G 2026-09-13 追加 act/12 与 act/05（W4 独占组）
+status: READY_FOR_REVIEW   # W2-C1 定稿 2026-09-12，依 G7-RULINGS §9；W4-G 2026-09-13 追加 act/12 与 act/05；W5-H 2026-09-13 追加 act/13（W5 独占组）
 risk: low      # 首纵切只改 INTERFACES.md 与本目录；openspec/schemas、fixture、ledger 一字不动
 executor_groups:
   K1: [impl-00/10]                                  # 首纵切唯一 ACT（已执行 ea90ca8）
   W4G: [impl-00/12, impl-00/05]                     # W4 独占组：act/12 先于 act/05；P2 登记 + P4 fixture 独占；均 READY_FOR_REVIEW，不属首纵切
+  W5H: [impl-00/13]                                 # W5 独占组：M6 artifact_type 闭集登记（§9.12 第 61–62 条）；impl-06 K1 前置；READY_FOR_REVIEW，不属首纵切
 deferred_groups:   # 原分组保留，全部 DEFERRED，纵切后另立波次（见 README §5）
   K1: [impl-00/00, impl-00/01, impl-00/02, impl-00/03, impl-00/04]
   K2: [impl-00/06, impl-00/07, impl-00/08]
@@ -13,6 +14,7 @@ decisions_required:   # 全部裁决已由主 Agent 写入 README §4 / G7-RULIN
   impl-00/10: []
   impl-00/12: []      # G7-RULINGS §9.6 第 47/49 条
   impl-00/05: []      # G7-RULINGS §9.6 第 48 条
+  impl-00/13: []      # G7-RULINGS §9.12 第 61–62 条与 §4 impl-06
 acts:
   - file: act/00.yaml
     id: impl-00/00
@@ -62,8 +64,12 @@ acts:
     id: impl-00/12
     status: READY_FOR_REVIEW   # W4-G 新建；M4 闭集登记与 INTERFACES 对账（§9.6 第 47/49 条）
     writes: ["docs/blackbox-spec-rework/work-items/impl-00-interfaces/INTERFACES.md", "docs/blackbox-spec-rework/work-items/impl-00-interfaces/check_interfaces.py", "docs/blackbox-spec-rework/work-items/impl-00-interfaces/tests/__init__.py", "docs/blackbox-spec-rework/work-items/impl-00-interfaces/tests/test_check_interfaces.py"]
+  - file: act/13.yaml
+    id: impl-00/13
+    status: READY_FOR_REVIEW   # W5-H 新建；M6 闭集登记与 INTERFACES 对账（§9.12 第 61–62 条）
+    writes: ["docs/blackbox-spec-rework/work-items/impl-00-interfaces/INTERFACES.md", "docs/blackbox-spec-rework/work-items/impl-00-interfaces/check_interfaces.py", "docs/blackbox-spec-rework/work-items/impl-00-interfaces/tests/__init__.py", "docs/blackbox-spec-rework/work-items/impl-00-interfaces/tests/test_check_interfaces.py"]
 global_rules:
-  - 首纵切只允许写 ACT 10 的 scope.write；ACT 12（M4 闭集登记）与 ACT 05（m4 金标）为 W4 独占 ACT，不在首纵切执行，各自执行时只写其 scope.write
+  - 首纵切只允许写 ACT 10 的 scope.write；ACT 12（M4 闭集登记）与 ACT 05（m4 金标）为 W4 独占 ACT、ACT 13（M6 闭集登记）为 W5 独占 ACT，均不在首纵切执行，各自执行时只写其 scope.write
   - openspec/schemas、pipeline/ledger、pipeline/corpus_compiler、pipeline/validation、pipeline/dataset_compiler、openspec/acceptance 一律一字不动；ACT 05 是 W4 内唯一写 pipeline/corpus/_fixture/mini_ed01/ 的 ACT（P4）
   - 每个 ACT 先取得 Red 再实现；Red 原文与 Green 输出写报告
   - 只用标准库（check_interfaces.py 不 import yaml/jsonschema）；不新增依赖、不新增 ID 前缀、不调用模型 API（P6/P8）
