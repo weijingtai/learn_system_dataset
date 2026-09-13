@@ -26,13 +26,14 @@ contract: |
       proposal 键序逐字：proposal_key, kind, rule_id, resolution, subject, targets, options, auto_choice, decision_type, basis_sha256, depends_on
         basis_sha256 = content_sha256({"target": null, "candidate": {name: nfc_key(name), recognition_rule_status}})（候选 pattern 无 aliases/concept_id，不引用不存在字段）
     assemble_genesis(candidate_set, reviewed_edition, proposals, *, id_range, id_factory=None) -> dict
-      id_range = {"pattern": [<start>, <end>]}，由调用方从本 Run 配置修订取得（第 64 条）
+      id_range = {"pattern": [<start>, <end>]}，由调用方从本 Run 配置修订取得（第 64 条；输入形状与 impl-05 M4 配置同，第 70 条）
+        输入校验：缺 "pattern" 键、值非两个非负整数、start > end → AssemblyRefused(SCH_002)
       发号（第 64 条）：仅防御分支（pattern_id 为 null 且带 candidate_key）的候选按 (source_id, candidate_key) 升序，
             从 id_range["pattern"][0] 起在 [start, end] 内确定性取号，跳过已被保留 M4 号（candidate_set 中合法 pat_）占用的值，
             依次分配 pat_<technique>_<6位>；区间不足 → AssemblyRefused(SCH_002，message 含「号段不足」)；
             不新增前缀（P8）；id_factory 可注入（默认取 pipeline.ledger.ids）
       knowledge 写回：id_allocation {"pat_<technique>": max(活对象中该命名空间号 ∪ 补发号)}（仅新发号时出现）、
-            id_range 原样、allocated_pattern_ids = 本次补发号升序（号段与补发清单写入 Snapshot 修订，第 64 条）
+            id_range 按命名空间改键写入 {"pat_<technique>": [start, end]}（= {"pat_" + technique_id: list(id_range["pattern"])}，与 id_allocation 同命名空间键，满足 model.validate_snapshot_knowledge，第 70 条）、allocated_pattern_ids = 本次补发号升序（号段与补发清单写入 Snapshot 修订，第 64 条）
       实体装配（关联解析按已验收 candidate_set 真实形状，F1）：
         editions 1 条 {source_id, work_key, reviewed_edition_package_revision_id, reviewed_edition_revision_id, stage_package_id, edition_part_artifact_ids, edition_complete}
         concepts 由已绑定 concept_mentions 按 concept_ref 聚合：name = 按 surface 升序首个，其余 surface 入 aliases（NFC 去重升序），provenance[{source_id, content_sha256, content_status}]

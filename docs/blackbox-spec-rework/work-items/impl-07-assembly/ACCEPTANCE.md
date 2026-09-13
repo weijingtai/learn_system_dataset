@@ -50,3 +50,16 @@
 ## 5. 验收记录
 
 §5 验收记录由主 Agent 填写。
+
+### 5.1 G0-01（2026-09-13，主 Agent 独立验收，`git archive c79b36a` 干净树）
+
+执行者：tmux 中的 agy（Gemini 3.8 Flash High），会话 `w5g0`；工作包 R2 READY `e2c8d79`，S3 修订 `3d97bb2`。
+
+- 范围：`c79b36a` 恰为 `pipeline/assembly/` 下 7 文件（`__init__`、`errors`、`canonical`、`model`、`tests/__init__`、`tests/test_canonical`、`tests/test_model`），无越界。
+- Red（执行方原文）：两个测试模块 `ModuleNotFoundError`，`FAILED (errors=2)`。
+- 复验：`pipeline/assembly/tests` `Ran 30 tests` OK（阈值 ≥ 30）；具名用例 30 个与 act/g0-01 `tests` 逐字一致；`test_model.py` 断言错误码 36 处；`pipeline/ledger/tests` 74 OK、`pipeline/knowledge_extraction/tests` 133 OK；`check_interfaces.py` `pass=29 fail=0`；`schemas/verify.sh` 0；`verify-T.sh` `FAIL 合计: 0`；`run_all.sh` `pass=2 fail=1 blocked=8`。
+- 静态：`canonical.py`/`model.py`/`errors.py`/`__init__.py` 副作用与网络调用 0、引用 `_fixture` 0、裸 except 0；纯函数模块不触 Ledger、不开文件。
+- 矩阵外（`g0_01_e2e.py`）：`reviewed_edition` 带 impl-06 §5.3 超集键（第 69 条 carried 字段、`candidate_set_revision_id`、`validation_package_revision_id`、`approved[].decision_revision_ids` 等，取合法 ID）→ PASS；`reviewed_edition_package` 超集键 → PASS；缺 `evidence_links[].quote_sha256`、缺 `school_views[].changes_current_judgment`、缺 `candidate_package_revision_id` → 均 `SCH_001`；校验不改输入；**真实 m4 金标 `candidate_set.yaml` 校验 PASS**；`make_key` 全 kind 不命中 Ledger 前缀、确定且区分主体；`canonical_json` 键序无关、UTF-8 不转义、带尾换行；`nfc_key` 组合/分解等价。
+- 发现：`empty_snapshot_knowledge(..., {"pattern": [...]})` 被 `validate_snapshot_knowledge` 拒（要求 `pat_<technique>` 键）。实现忠实于 act/g0-01:59；根因为工作包 g0-02 输入层与存储层键形未定义转换 → 第 70 条裁定（两层分立，g0-02 写回时改键），G0-01 不返工。
+
+G0-01 `ACCEPTED`。

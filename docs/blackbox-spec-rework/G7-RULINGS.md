@@ -203,6 +203,12 @@ Q49 按 P8 须用户确认前缀；Q52/Q53/Q55/Q57/Q62 推迟到 W5 定稿；Q50
 |---|---|---|
 | 69 | 复审中 carried 条目锚点语义未定义（act/02 `fold_decisions`/`decision_anchoring` 要求 entry seen == 当前修订，act/09 carried 条目源自首审旧修订） | carried 条目 `seen_revision_id` **保持首审审核者实际所见的旧修订**（不改写为新修订，避免伪造所见，P7 精神），另携 `carried_to_revision_id`（= 复审队列项当前修订）与 `carried_from`（= 原决定事件修订）。Gate `decision_anchoring` 条件式：active ⇒ `seen_revision_id == 当前修订`；carried ⇒ `carried_to_revision_id == 当前修订`、`carried_from` 指向存在的决定事件且其 seen 与条目 seen 相同、且该对象在旧/新修订的规范化内容哈希相等（§14.1 carried_forward 前提）。`fold_decisions` 对 carried 条目不以 seen 不等报 REF_001；`model.decision_entry` 增 carried 构造模式并有具名用例 |
 
+### 9.16 impl-07 G0-01 验收发现（`c79b36a`）
+
+| # | 条目 | 裁决 |
+|---|---|---|
+| 70 | `id_range` 键形在工作包内两处不一：act/g0-01、g0-03、README §0.4 为 `{"pat_<technique>": [start, end]}`（G0-01 已按此实现并测试），act/g0-02、g0-04、BDD G0.2 为 `{"pattern": [start, end]}`，且 g0-02 写「id_range 原样」写回 knowledge，二者直连时 `validate_snapshot_knowledge` 必拒 | 分两层，不是冲突：**输入层**（`assemble_genesis`/`run_m7` 的 `id_range` 参数、本 Run 配置修订）一律 `{"pattern": [start, end]}`，与已验收 impl-05 M4 配置同形（`assemble.py` 读 `id_range["pattern"]`）；**Snapshot 存储层**（`knowledge.id_range`）一律 `{"pat_<technique>": [start, end]}`，与 `id_allocation` 同命名空间键（真实号形 `pat_<technique>_<6位>`，`ids.py:23`）。g0-02 写回时改键 `{"pat_" + technique_id: list(id_range["pattern"])}`，输入缺 `pattern` 或形状非法 → `AssemblyRefused(SCH_002)`。G0-01 不返工；已同步 act/g0-02.yaml 与 BDD G0.2 文字 |
+
 ## 10. 用户待办
 
 1. W4-J 前：撰写真实前十页人工终态决定表（P7，Q37）。
