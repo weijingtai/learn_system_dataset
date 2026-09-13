@@ -84,3 +84,16 @@ act/12 `ACCEPTED`。act/05（m4 金标）执行中。
 - 下游不受影响：`m3-coverage.sh`、`m5-evidence-gate.sh`、`m8-span-identity.sh` 均 exit 2；`run_all.sh` `pass=2 fail=1 blocked=8`；`schemas/verify.sh` 0；`check_interfaces.py` 24 PASS。
 
 act/05 `ACCEPTED`。W4G 组完成。
+
+### 5.4 act/13 M6 闭集登记（2026-09-13，主 Agent 独立验收，`git archive 573c3fb` 干净树）
+
+执行者：tmux 中的 cmd（DeepSeek V4.1 Flash），会话 `w5x`。起草 `950349b`/`af17496`，审查 R1 → R2 READY `6f2d41e`；依据 impl-06 定稿与裁定 61、67–69。
+
+- 范围：`573c3fb` 恰为 `INTERFACES.md`、`check_interfaces.py`、`tests/test_check_interfaces.py` 3 文件；`openspec/schemas`、`pipeline/corpus/_fixture`、`pipeline/ledger` 变更 0。
+- Red（执行方原文）：检查器 `I00-IF SUMMARY pass=27 fail=2`（IF29 出现 `correction_request` 等），unittest 18 例中 `test_summary_line_format` 失败。
+- 复验：`check_interfaces.py` 末行 `I00-IF SUMMARY pass=29 fail=0`、exit 0，IF25–IF29 五个 PASS 行齐（第 54 条只认 `fail=0`）；unittest `Ran 18 tests` OK；§4 `| M6 ` 行 4 条（`review_queue`、`reviewed_edition`、`reviewed_edition_package`、`rework_impact_report`），M6 行含 `correction_request` 0 处（D-10 归 `human_event`）。
+- 旧检查未削弱：被删行只有模块/函数 docstring 的「IF01–IF24」字样与 `for token in REQUIRED_TYPES + M4_TYPES:`，后者替换为 `REQUIRED_TYPES + M4_TYPES + M6_TYPES`（扩大覆盖）；测试文件无删行。
+- 矩阵外篡改（副本）：T1 删 M6 `review_queue` 行 → `FAIL IF11`、`FAIL IF25`、exit 1；T2 复制 M6 行改名 `correction_request` → `FAIL IF29`、exit 1；T3 删 M4 `candidate_set` 行 → `FAIL IF11`、`FAIL IF22`、exit 1（旧检查仍有效）。
+- 下游不受影响：`schemas/verify.sh` 0；`verify-T.sh` `FAIL 合计: 0`；fixture `verify.sh` 0；`run_all.sh` `pass=2 fail=1 blocked=8`。
+
+act/13 `ACCEPTED`。impl-06 实现的闭集前提已满足。
