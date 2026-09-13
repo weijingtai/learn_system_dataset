@@ -316,3 +316,30 @@ L0 闭合码全集：`invalid_argument, not_found, unauthenticated, permission_d
 
 ### 12.5 决定
 本节决定编号 D-NC012-03、04、05、06、07、12，登记于 community_interactions.md §15。
+
+## 13. NC-013 补丁（2026-09-12，通知投递、正文拉取与补拉；逐项落地见 [community_deliveries.md](community_deliveries.md)）
+
+### 13.1 新增读端点（§2 端点目录追加，D-NC013-09）
+- R9 `GET /notifications/pull?notifier_delivery_id=<原始不透明值>` → 200 `NotificationBody`；映射缺失、非本人、设备不匹配、目标内容不可读四类失败一律 404 共用 `NotFoundContent` 体（无可区分字段，R-20）；`notifier_delivery_id` 缺失 → 400 `invalid_argument.notifier_delivery_id`。
+- R10 `GET /notifications?cursor&limit` → 200 `NotificationPage{items: NotificationEntry[], next_cursor}`：仅登录收件人；读时按 `(recipient, target, kind)` 滑窗 10 分钟聚合（`reply`/`mention` 不聚合）；排序 `(first_created_at, latest_notification_id)` 降序（ID 按 UTF-8 字节序）；游标 = base64url 去 padding(`"<first_created_at>|<latest_notification_id>"`)，非法 → 400 `invalid_argument.cursor`；limit 同 §6；**补拉不产生任何 ACK**。
+
+### 13.2 非命令写（§2 端点目录注明「非命令」，D-NC013-09）
+- W15 `PUT /notifications/mutes/{content_id}` → 200 `NotificationMuteState{content_id, muted: true}`；W16 `DELETE /notifications/mutes/{content_id}` → 200 `{content_id, muted: false}`。幂等直写；无 `Idempotency-Key`、不进命令账本、不写行为事件；`content_id` 非 `note_` → 400 `invalid_argument.content_id`；操作枚举闭集 17 个不变。
+
+### 13.3 新 Schema（§5.3 追加；全部 `additionalProperties: false`，可空用 3.1 类型数组）
+- `NotificationBody{notification_id ($ref community_common notificationRecordId), kind (comment|reply|mention|like), target {kind: content|comment, id, thread_id?}, body_markdown, actor_id, created_at}`。
+- `NotificationEntry{kind, target, latest_notification_id, event_count (integer ≥ 1), first_created_at, last_created_at}`；`NotificationPage{items: NotificationEntry[] ≤ 100, next_cursor: string|null}`。
+- `NotificationMuteState{content_id, muted (bool)}`。
+
+### 13.4 错误目录增补（§4.1）
+- 400 行增加：`invalid_argument.notifier_delivery_id`（R9 query 缺失）、`invalid_argument.content_id`（W15/W16 路径）。
+- 404 行增加：R9 的四类失败统一 `not_found.content`（共用体；映射缺失/非本人/设备不匹配/内容失权不可区分——防存在性 oracle）。
+
+### 13.5 限流（§6 表追加）
+- `notifications.mute set/unset`：30/分钟。R9/R10 并入「全部读端点合计 600」。
+
+### 13.6 示例（test/fixtures/openapi/examples/）
+- 新增 `notification_body_comment.json`、`notification_page_merged.json`、`notification_mute_set.json`，`manifest.json` 17 → 20 项；NC-012a 的 seventeen 测试改为 `greaterThanOrEqualTo(17)`（D-NC013-10）。
+
+### 13.7 决定
+本节决定编号 D-NC013-01～14，登记于 community_deliveries.md §15。ACK（`/receipts`）属 notifier 3.0.3 契约，本契约**只引用不复制**，不新增任何 ACK 端点；投递语义为 at-least-once（DESIGN §6.1），不构成端到端 exactly-once。

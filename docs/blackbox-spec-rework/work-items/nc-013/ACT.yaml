@@ -1,0 +1,22 @@
+TASK_ID: NC-013
+STATUS: PREPARING
+GOAL: outbox 事件消费 → ntf_ 确定性记录 create-if-absent → SM-7 投递（站内/FCM 无正文唤醒、退避 1/2/4/8s 上限 5 次）→ R9 正文拉取、R10 读时聚合补拉、W15/W16 按内容静音；REST §13；RULES 三集合；E6 转真
+CONTRACTS:
+  - openspec/annotation-community/contracts/community_deliveries.md（§1～§15 全文）
+  - openspec/annotation-community/contracts/community_api.md（§2、§3、§4、§5、§6、§13）
+  - openspec/annotation-community/contracts/state-machines.md（SM-7）
+DISPATCH_PRECONDITION: 四查 READY；四仓基线复核通过（README Dependencies/Baseline 表）；Emulator 可达
+SPLIT:
+  - act/01.yaml → NC-013-A（REST：OpenAPI §13、4 测试、3 示例）
+  - act/02.yaml → NC-013-B（SERVER：集合键 + 消费/投递纯函数 + 前 19 测试）
+  - act/03.yaml → NC-013-C（SERVER：端点 handler + 注册 + 后 11 测试 + E6 转真）
+  - act/04.yaml → NC-013-D（RULES：3 集合 × 8 用例）
+ORDER: REST ∥ SERVER(act/02 → act/03 同仓串行) ∥ RULES；跨线无先后；每 act 一个提交，执行者不推送
+ESTIMATE_MINUTES_TOTAL: 185
+DEFERRED:
+  - NotifierDeliveryBinding 生产写入通道（trusted_ingress/trusted_delivery_callback）：等上游扩展，缺证阻断（契约 §7、D-NC013-08）
+  - 设备归属校验：等上游设备注册表（G3）
+  - 偏好过滤数据源：社区无系统提醒事件源（G5，预留函数）
+  - 通知列表展示端聚合渲染与 dedup_retention_ms：NC-014（E-DEDUP）
+  - 宿主聚合/静音粒度核实：NC-001（E-WIRING）
+  - 已读状态：不在服务端存储（D-NC013-11）

@@ -106,7 +106,7 @@ if "rest" in req:
     miss = [n for n in REST_TESTS if n not in t]; ok &= not miss; det.append(f"tests_missing={miss}")
     try:
         man = json.loads(read(REST / "test/fixtures/openapi/examples/manifest.json")); names = [m.get("file") for m in man]
-        ok &= len(man) == 17 and all(f in names for f in ("reaction_response_like.json", "bookmark_response_active.json",
+        ok &= len(man) >= 17 and all(f in names for f in ("reaction_response_like.json", "bookmark_response_active.json",
                                                          "share_link_page_with_revoked.json", "reaction_state_value_love.json"))
         det.append(f"manifest={len(man)}")
     except Exception as e:
@@ -117,7 +117,7 @@ if "rest" in req:
         rest_env["OPENAPI_VALIDATOR"] = str(root / "openspec/annotation-community/.venv-openapi/Scripts/openapi-spec-validator.exe")
     rc, out = run([EXE("dart"), "test"], REST, rest_env)
     m = re.search(r"\+(\d+): All tests passed!", out); ok &= rc == 0 and m is not None and int(m.group(1)) >= 77; det.append(f"dart_test={rc}/{m.group(1) if m else '无'}")
-    check(ok, "K05 REST 产物：openapi 增量、4 个测试、manifest 17 项、dart test ≥77", "; ".join(det))
+    check(ok, "K05 REST 产物：openapi 增量、4 个测试、manifest ≥17 项（NC-013 D-NC013-10）、dart test ≥77", "; ".join(det))
 else:
     print("SKIP  K05 REST 产物（验收时 --require-impl rest，必须 PASS）")
 

@@ -1,0 +1,50 @@
+TASK_ID: NC-013-B
+PARENT: NC-013
+STATUS: READY
+REPO: xuan-server/functions-py（Windows `D:/Programme/xuan-server/functions-py`；macOS `/Users/jingtaiwei/Git/Public/xuan-server/functions-py`）
+GOAL: COLLECTIONS 三键 + `xuan/community/notification_dispatch.py`（事件消费、收件人矩阵、ntf_ create-if-absent、SM-7 投递、退避推导、FCM 无正文唤醒）+ 前 19 个测试 + conftest 清理键
+DEPENDS_ON: []
+ESTIMATE_MINUTES: 55
+WORKLOAD: "notification_dispatch.py 约 320 行；config.py +3 行；conftest.py +3 行；19 个测试约 520 行"
+SCOPE:
+  READ:
+    - D:/Programme/learn_system/openspec/annotation-community/contracts/community_deliveries.md（§1～§5、§9、§12、§15）
+    - D:/Programme/learn_system/docs/blackbox-spec-rework/work-items/nc-013/BDD.md（S01～S19）、TDD.md（§3）
+    - D:/Programme/xuan-server/functions-py/xuan/community_hash.py（encode，§7.2 E 编码）
+    - D:/Programme/xuan-server/functions-py/xuan/community/ids.py（server_event_id 先例）
+    - D:/Programme/xuan-server/functions-py/xuan/community/interaction_service.py（reaction_id_for/thread_id_for 同构；resolve_target）
+    - D:/Programme/xuan-server/functions-py/xuan/community/access.py（resolve_access）
+    - D:/Programme/xuan-server/functions-py/xuan/community/discussion_service.py（thread_id_for；filter_mentions）
+    - D:/Programme/xuan-server/functions-py/xuan/push.py（send_push_notification/_send_multicast）
+    - D:/Programme/xuan-server/functions-py/xuan/config.py（COLLECTIONS）
+    - D:/Programme/xuan-server/functions-py/tests/community_helpers.py（seed_access/seed_thread/seed_comment/call 签名，只读）
+    - D:/Programme/xuan-server/functions-py/tests/test_notifications.py（monkeypatch _send_multicast 范式；薄壳源码断言）
+    - D:/Programme/xuan-server/functions-py/tests/test_community_comments.py（Aborted 注入范式 :1550-1640）
+    - D:/Programme/xuan-server/functions-py/tests/conftest.py（clean_collections :25-61）
+  WRITE_NEW:
+    - D:/Programme/xuan-server/functions-py/xuan/config.py（只在 COLLECTIONS 追加 community_notifications/community_notifier_delivery_bindings/community_notification_mutes 三键）
+    - D:/Programme/xuan-server/functions-py/xuan/community/notification_dispatch.py（新建）
+    - D:/Programme/xuan-server/functions-py/tests/test_community_deliveries.py（新建，只含 TDD §3 的 19 个测试）
+    - D:/Programme/xuan-server/functions-py/tests/conftest.py（只在 names 列表追加三个集合名）
+  FORBIDDEN:
+    - 上表以外任何文件；xuan/handlers/notifications.py；tests/test_registration.py；tests/test_main_exports.py；tests/community_helpers.py；xuan/community/ 既有文件（只读）；openspec/schemas/；main.py（act/03 才动）；新依赖；skip；新增 xfail；永真断言；测试内计算 ntf_ 参考值（必须抄契约 §9 字面量）；git push
+DEPENDENCY_ALLOWLIST: [沿用 requirements.txt 锁定版本；不新增任何包]
+RULES:
+  - "全部写操作在事务内；ntf_ 用 tx.create() create-if-absent，AlreadyExists 视为成功（D-NC013-04）"
+  - "收件人判定与重叠合并逐字按契约 §3.3；过滤与状态机逐字按 §4/§5"
+  - "时间戳 UTC ISO 字符串（D-NC013-14）；禁用 SERVER_TIMESTAMP"
+  - "注释与 docstring 不得出现 exactly-once 声称（D-NC013-01 红线）"
+TESTS_FIRST:
+  - "先写 19 个测试，运行 VERIFICATION 第 1 条，保存 `from xuan.community import notification_dispatch` 的 ImportError 原文作为 Red"
+STEPS:
+  - "config.py 三键 + conftest 三名"
+  - "实现 notification_dispatch.py 直至 VERIFICATION 全部符合期望"
+  - "git add 并提交（单提交）"
+  - "提交后运行 learn_system 守卫 --require-impl server，退出码写入报告（act/03 未完成前守卫 server 线预期红，只记录不视为失败）"
+VERIFICATION:
+  - "cd D:/Programme/xuan-server/functions-py && PYTHONDONTWRITEBYTECODE=1 FIRESTORE_EMULATOR_HOST=192.168.0.165:8080 FIREBASE_AUTH_EMULATOR_HOST=192.168.0.165:9099 .venv/Scripts/python.exe -m pytest tests/test_community_deliveries.py -q -p no:cacheprovider（期望 19 passed）"
+  - "同上全量 -q -rf：5 failed, 554 passed, 6 xfailed（= 535 + 19；E6 三例仍未转真）"
+  - "git -C D:/Programme/xuan-server/functions-py diff-tree -r --name-only 8d22451 HEAD（期望恰为 WRITE_NEW 的 4 个文件）"
+ON_FAIL: "停止并在 DELIVERY_REPORT_SERVER.md 追加「## 待裁决」+ 输出 NC-013-B 停手待裁决。参考值对不上、Emulator 不可达、既有 5 失败之外新增失败、需改白名单外文件，均为停止条件。"
+BASELINE_EXIT_CODES: "开工基线：8d22451，pytest 5/535/6"
+COMMIT_MESSAGE: "feat(community): outbox 消费、ntf_ 确定性通知记录与投递状态机（NC-013-B）"

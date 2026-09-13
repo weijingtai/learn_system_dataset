@@ -699,7 +699,7 @@
 
 ### 通知
 
-- [ ] NC-013：事务事件、投递、通知正文与补拉端点（状态：`BACKLOG`）
+- [ ] NC-013：事务事件、投递、通知正文与补拉端点（状态：`READY`（2026-09-12 R2：四查 R1 REWORK 7 项返工落实、R2 复核 READY，见 `reviews/NC-013-REVIEW-R1.md`；守卫 nc013_guard.sh 规格跑 0；待派发）；Windows 接手机适配 D-NC012-23）
 - [ ] NC-014：Notification 宿主适配、去重与导航（状态：`BACKLOG`）
 
 ### 私人同步、备份与删除

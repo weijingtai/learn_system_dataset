@@ -1,0 +1,34 @@
+TASK_ID: NC-013-D
+PARENT: NC-013
+STATUS: READY
+REPO: xuan-server/xuan-server（Windows `D:/Programme/xuan-server/xuan-server`；macOS `/Users/jingtaiwei/Git/Public/xuan-migration/xuan-server`）
+GOAL: 三个新集合（community_notifications、community_notifier_delivery_bindings、community_notification_mutes）各 8 条默认拒绝规则用例，129 → 153
+DEPENDS_ON: []
+ESTIMATE_MINUTES: 30
+WORKLOAD: "community_rules.test.ts +24 用例约 120 行（照 community_reactions 现有 8 用例逐字仿写）"
+SCOPE:
+  READ:
+    - D:/Programme/learn_system/openspec/annotation-community/contracts/community_deliveries.md（§2.2、§8、§15）
+    - D:/Programme/xuan-server/xuan-server/server/functions/test/community_rules.test.ts（community_reactions 八用例形态）
+    - D:/Programme/xuan-server/xuan-server/firestore.rules（顶层默认拒绝，只读）
+  WRITE_NEW:
+    - D:/Programme/xuan-server/xuan-server/server/functions/test/community_rules.test.ts（只在测试清单数组与 describe 区追加三个集合）
+  FORBIDDEN:
+    - 上表以外任何文件；firestore.rules（不新增 match，D-NC013-09 规则语义=默认拒绝覆盖）；既有用例；git push
+DEPENDENCY_ALLOWLIST: [沿用 package-lock（node_modules 已 npm ci）]
+RULES:
+  - "三集合不新增任何 match；用例证明 authenticated/unauthenticated × read/write 全拒绝"
+  - "集合名字面量加入既有清单数组（community_reactions 等同级）"
+TESTS_FIRST:
+  - "先追加 24 用例，运行 VERIFICATION 第 1 条，保存输出原文作为 Red（若默认拒绝已使 24 例通过，则 Red 为清单数组缺失集合名的原断言输出）"
+STEPS:
+  - "按 community_reactions 模式追加三集合用例"
+  - "git add 并提交"
+  - "提交后运行 learn_system 守卫 --require-impl rules，退出码写入报告"
+VERIFICATION:
+  - "cd D:/Programme/xuan-server/xuan-server/server/functions && FIRESTORE_EMULATOR_HOST=192.168.0.165:8080 FIREBASE_AUTH_EMULATOR_HOST=192.168.0.165:9099 npm test -- community_rules（期望 Tests: 153 passed, 153 total）"
+  - "git -C D:/Programme/xuan-server/xuan-server diff-tree -r --name-only 4b81d8d HEAD（期望恰 1 个文件）"
+  - "cd D:/Programme/learn_system && bash docs/blackbox-spec-rework/reviews/nc013_guard.sh --require-impl rules（期望 0）"
+ON_FAIL: "停止并在 DELIVERY_REPORT_RULES.md 追加「## 待裁决」+ 输出 NC-013-D 停手待裁决。harness 报集合不存在且不能归因于用例写法、既有 129 例变红，均为停止条件。"
+BASELINE_EXIT_CODES: "开工基线：4b81d8d，rules 129 passed"
+COMMIT_MESSAGE: "test(rules): 通知三集合默认拒绝用例（NC-013-D）"

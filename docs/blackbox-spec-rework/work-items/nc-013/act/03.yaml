@@ -1,0 +1,47 @@
+TASK_ID: NC-013-C
+PARENT: NC-013
+STATUS: READY
+REPO: xuan-server/functions-py（Windows `D:/Programme/xuan-server/functions-py`；macOS `/Users/jingtaiwei/Git/Public/xuan-server/functions-py`）
+GOAL: `xuan/handlers/community_deliveries.py`（R9/R10/W15/W16 + 触发薄壳 + 调度薄壳）+ main.py 注册 + 后 11 个测试 + ACL 扫描 E6 三例转真
+DEPENDS_ON: [NC-013-B]
+ESTIMATE_MINUTES: 55
+WORKLOAD: "community_deliveries.py 约 260 行；main.py +3 行；11 个测试约 300 行；sweep E6 约 20 行改动"
+SCOPE:
+  READ:
+    - D:/Programme/learn_system/openspec/annotation-community/contracts/community_deliveries.md（§4、§6、§7、§9、§12、§15）
+    - D:/Programme/learn_system/docs/blackbox-spec-rework/work-items/nc-013/BDD.md（S20～S32）、TDD.md（§4）
+    - D:/Programme/xuan-server/functions-py/xuan/handlers/community_interactions.py（路由与认证范式；_parse_if_match 参照）
+    - D:/Programme/xuan-server/functions-py/xuan/handlers/community_contents.py（_make_response；E6 现挂点）
+    - D:/Programme/xuan-server/functions-py/xuan/handlers/notifications.py（触发薄壳范式 :151-160）
+    - D:/Programme/xuan-server/functions-py/xuan/community/errors.py（SHARED_NOT_FOUND_CONTENT_BODY；problem()）
+    - D:/Programme/xuan-server/functions-py/xuan/community/interaction_service.py（list_my_share_links cursor 范式 :657-699）
+    - D:/Programme/xuan-server/functions-py/main.py（community 注册区 :70-78）
+    - D:/Programme/xuan-server/functions-py/tests/test_community_acl_sweep.py（E6 三条 param :49-52；分支 :175-192；docstring :5-6）
+  WRITE_NEW:
+    - D:/Programme/xuan-server/functions-py/xuan/handlers/community_deliveries.py（新建）
+    - D:/Programme/xuan-server/functions-py/main.py（只追加 import 与三个入口注册）
+    - D:/Programme/xuan-server/functions-py/tests/test_community_deliveries.py（只追加 TDD §4 的 11 个测试）
+    - D:/Programme/xuan-server/functions-py/tests/test_community_acl_sweep.py（只改 E6 三条 param 删 xfail、E6 分支改调 community_deliveries_py 并 seed 通知与绑定、docstring Implemented/Unimplemented 两行）
+  FORBIDDEN:
+    - 上表以外任何文件；xuan/handlers/notifications.py；tests/test_registration.py；tests/test_main_exports.py；tests/community_helpers.py；xuan/community/ 既有文件（notification_dispatch.py 本 act 只读复用，改动回到 act/02 范围即停手上报）；新依赖；skip；新增 xfail（E6 删除除外）；永真断言；git push
+DEPENDENCY_ALLOWLIST: [沿用 requirements.txt 锁定版本]
+RULES:
+  - "R9 四类失败共用 404 共用体逐字节（$ref SHARED_NOT_FOUND_CONTENT_BODY），防存在性 oracle（D-NC013-09）"
+  - "notifier_delivery_id 逐字不透明处理：禁前缀/截断/重算/解码（D-NC013-08）"
+  - "触发薄壳 ≤12 行只做转发；调度薄壳同（先例 test_notifications.py 源码断言）"
+  - "游标 base64url `\"{first_created_at}|{latest_notification_id}\"`，排序 (first_created_at, latest_notification_id) 降序、ID 按 UTF-8 字节序"
+TESTS_FIRST:
+  - "先追加 11 个测试与 E6 三例标记删除，运行 VERIFICATION 第 1 条，保存 ImportError/404 不符原文作为 Red"
+STEPS:
+  - "实现 community_deliveries.py + main.py 注册，直至 VERIFICATION 全部符合期望"
+  - "E6 转真（契约 §6.4 三步 seed+断言）"
+  - "git add 并提交"
+  - "提交后运行 learn_system 守卫 --require-impl server，退出码写入报告"
+VERIFICATION:
+  - "cd D:/Programme/xuan-server/functions-py && PYTHONDONTWRITEBYTECODE=1 FIRESTORE_EMULATOR_HOST=192.168.0.165:8080 FIREBASE_AUTH_EMULATOR_HOST=192.168.0.165:9099 .venv/Scripts/python.exe -m pytest tests -q -rf -p no:cacheprovider（期望 5 failed, 568 passed, 3 xfailed；FAILED 恰为五个既有 ID）"
+  - "git -C D:/Programme/xuan-server/functions-py diff-tree -r --name-only 8d22451 HEAD（期望恰 7 个文件：config.py、conftest.py、notification_dispatch.py、community_deliveries.py、test_community_deliveries.py、test_community_acl_sweep.py、main.py）"
+  - "git -C D:/Programme/xuan-server/functions-py diff-tree -r --name-only 8d22451 HEAD -- xuan/handlers/notifications.py tests/test_registration.py tests/test_main_exports.py tests/community_helpers.py（期望空）"
+  - "cd D:/Programme/learn_system && bash docs/blackbox-spec-rework/reviews/nc013_guard.sh --require-impl server（期望 0）"
+ON_FAIL: "停止并在 DELIVERY_REPORT_SERVER.md 追加「## 待裁决」+ 输出 NC-013-C 停手待裁决。E6 转真后 sweep 其他 15 例变红、共用体逐字节对不上、main.py 注册影响 test_main_exports，均为停止条件。"
+BASELINE_EXIT_CODES: "开工基线：act/02 提交哈希（执行者回填），pytest 5/554/6"
+COMMIT_MESSAGE: "feat(community): 通知正文拉取、补拉、静音端点与 ACL E6 转真（NC-013-C）"

@@ -77,6 +77,7 @@ UGC 使用不透明稳定 ID，生成器沿用既有 UUID 能力；不占用上�
 | ShareLink | `shr_` | `shr_<32 hex>` |
 | BackupManifest | `bkm_` | `bkm_<32 hex>` |
 | NotificationRecord（仅业务记录） | `ntf_` | `ntf_<32 hex>`；绝不是 notifier deliveryId |
+| NotificationMute（服务端内部对象，NC-013 D-NC013-15） | `nmute_` | `nmute_<32 hex>` |
 | BehaviorEvent | `bev_` | `bev_<32 hex>` |
 | 行为假名（actor_pseudonym） | `psn_` | `psn_<32 hex>`，随机生成 |
 
