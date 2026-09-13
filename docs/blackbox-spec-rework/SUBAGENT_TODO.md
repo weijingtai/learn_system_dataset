@@ -691,10 +691,10 @@
   - [x] wjt-react 四查（agy）：R1 返工 4 项（游标写法、K11 可测性、ownerScope 来源、待发送跟踪集合），R2 READY（`reviews/NC-011-REVIEW-R1.md`）
   - [ ] 三线派发；主 Agent 按 ACCEPTANCE.md 验收
 - [ ] NC-012：赞踩/收藏/分享/@/关系与举报（2026-09-12 拆分，D-NC012-01）
-  - [ ] NC-012a：赞踩、收藏、分享、举报与 mention 文本校验（状态：`DRAFT_FOR_REVIEW`；契约 `openspec/annotation-community/contracts/community_interactions.md`，`community_api.md` §12 补丁；六件套 `work-items/nc-012a/`，守卫 `reviews/nc012a_guard.sh`；三线：REST act/01 ｜ SERVER act/02→03 ｜ CLIENT act/04→05→06）
+  - [x] NC-012a：赞踩、收藏、分享、举报与 mention 文本校验（状态：`ACCEPTED`，2026-09-12 R1：守卫 `--require-impl all` 0，盲测 ①～⑦ 通过；REST `cb686d0`、SERVER `db52847`→`8d22451`、RULES `4b81d8d`、CLIENT `e1655a4`→`107ec90`，已推送 Gitea；契约 `openspec/annotation-community/contracts/community_interactions.md`，`community_api.md` §12 补丁；六件套 `work-items/nc-012a/`，守卫 `reviews/nc012a_guard.sh`；三线：REST act/01 ｜ SERVER act/02→03 ｜ CLIENT act/04→05→06）
     - [x] 契约统一 reading-notes 两个同名 `MentionRef`（D-NC012-13，NC-011 验收遗留）
     - [x] wjt-react 四查（tmux + agy，会话 nc012r）：R1 READY、返工 0 项（`reviews/NC-012a-REVIEW-R1.md`）；主 Agent 采纳建议 1～3 写死 resource_ids 字典、refreshPending 防重入、I10 重试间隔
-    - [ ] 三线派发（tmux + agy：nc012a-rest ｜ nc012a-srv ｜ nc012a-cli）；主 Agent 按 ACCEPTANCE.md 验收
+    - [x] 三线派发（tmux + agy：nc012a-rest ｜ nc012a-srv ｜ nc012a-cli）；REST 停手一次裁定 D-NC012-22；主 Agent 按 ACCEPTANCE.md 验收 R1 ACCEPTED
   - [ ] NC-012b：宿主社交注入、mention 候选与编辑器接线、三类依赖关系数据的无效 mention（状态：`BLOCKED`，等 NC-001-02）
 
 ### 通知

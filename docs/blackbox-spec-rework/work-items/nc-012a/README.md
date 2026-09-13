@@ -1,6 +1,6 @@
 # NC-012a：赞踩、收藏、分享、举报与 mention 文本校验
 
-状态：`READY`（2026-09-12：agy 四查 R1 READY、返工 0 项，见 `reviews/NC-012a-REVIEW-R1.md`；主 Agent 采纳建议 1～3 写死三处实现细节）。派发前置：NC-003、NC-009、NC-010、NC-011、NC-016a 均 `ACCEPTED`（已满足）。task_id：`NC-012a`。NC-012b（宿主社交注入、mention 候选与编辑器接线、三类依赖关系数据的无效 mention）`BLOCKED`，等 NC-001-02（D-NC012-01）。权威需求来源：TASKS NC-012；契约 `contracts/community_interactions.md`（本任务专属）与 `community_api.md` §12。
+状态：`ACCEPTED`（2026-09-12 R1，见 [ACCEPTANCE](ACCEPTANCE.md) 验收记录；REST `cb686d0`、SERVER `db52847`→`8d22451`、RULES `4b81d8d`、CLIENT `e1655a4`→`107ec90`。此前 `READY`（2026-09-12：agy 四查 R1 READY、返工 0 项，见 `reviews/NC-012a-REVIEW-R1.md`；主 Agent 采纳建议 1～3 写死三处实现细节）。派发前置：NC-003、NC-009、NC-010、NC-011、NC-016a 均 `ACCEPTED`（已满足）。task_id：`NC-012a`。NC-012b（宿主社交注入、mention 候选与编辑器接线、三类依赖关系数据的无效 mention）`BLOCKED`，等 NC-001-02（D-NC012-01）。权威需求来源：TASKS NC-012；契约 `contracts/community_interactions.md`（本任务专属）与 `community_api.md` §12。
 
 ## Goal
 
