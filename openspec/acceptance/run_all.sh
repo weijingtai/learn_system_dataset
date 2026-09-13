@@ -40,6 +40,28 @@ ledger_check() {   # $1 条目号 $2 检查名(20_2|20_3) $3 说明
     *) block_line "$1" "测试宿主匮乏" "pipeline.ledger 不可用（退出码 $rc）" ;;
   esac
 }
+# 20.4 / 20.8 的 M8 判定：在临时 Ledger 上运行 M8 判定，返回三态字符串。
+#   OK      判定无 FAIL 有 BLOCKED 或全 PASS（acceptance 退出 0 或 2）
+#   FAIL    任一条目 FAIL（退出 1）
+#   MISSING 宿主缺失（退出 3：缺 fixture、缺页图、缺 .venv/依赖）
+M8_VERDICT_REASON=""
+m8_verdict() {   # $1 fixture_dir $2 check(span_identity|publication)
+  M8_VERDICT_REASON=""
+  if [ ! -x "$PY" ]; then
+    printf 'MISSING'
+    return 0
+  fi
+  local out rc
+  out="$(cd "$REPO_ROOT" && "$PY" -m pipeline.dataset_compiler.acceptance --fixture "$1" --check "$2" 2>&1)"
+  rc=$?
+  case "$rc" in
+    0|2) printf 'OK' ;;
+    1) M8_VERDICT_REASON="$(printf '%s\n' "$out" | grep -m1 '^FAIL ' | sed 's/^FAIL //')"
+       printf 'FAIL' ;;
+    *) printf 'MISSING' ;;
+  esac
+  return 0
+}
 PY="$REPO_ROOT/.venv/bin/python"
 export FIXTURE_DIR
 DB="pattern_knowledge_workbench/assets/ge_ju_database.sqlite"
@@ -223,10 +245,10 @@ run_item() {
         block_line "$n" "测试宿主匮乏" ".venv 缺失"
         return 0
       fi
-      case "$(probe_status "$n")" in
-        OK) block_line "$n" "M8 Dataset Compilation" "PublicationPackage 反向追溯未实现" ;;
-        FAIL) fail_line "$n" "字框锚点哈希与 manifest 资产不一致" "$(probe_reason "$n")" ;;
-        *) block_line "$n" "测试宿主匮乏" "判据探针无输出" ;;
+      case "$(m8_verdict "$FIXTURE_DIR" span_identity)" in
+        OK) block_line "$n" "M4 Knowledge Extraction" "已判定: m8-span-identity 7 PASS + mentions_mapping BLOCKED；候选/驳回项/正式知识未产出（§20:940）" ;;
+        FAIL) fail_line "$n" "M8 判定未通过" "$M8_VERDICT_REASON" ;;
+        MISSING) block_line "$n" "测试宿主匮乏" "缺 fixture 或本机页图" ;;
       esac
       ;;
     20.5)
@@ -270,7 +292,24 @@ run_item() {
       pass_line "$n" "官方 Candidate 准入可用（original_text 非空 ${eligible}/${total}，导入工具存在）"
       ;;
     20.8)
-      block_line "$n" "M8 Dataset Compilation" "SourceAssetPack 未实现"
+      fx
+      if [ "$FX_STATUS" = "MISSING" ]; then
+        block_line "$n" "M3 Corpus Compilation" "fixture 缺失"
+        return 0
+      fi
+      if [ "$FX_STATUS" = "FAIL" ]; then
+        fail_line "$n" "统一验收宿主校验未通过" "$FX_REASON"
+        return 0
+      fi
+      if [ ! -x "$PY" ]; then
+        block_line "$n" "测试宿主匮乏" ".venv 缺失"
+        return 0
+      fi
+      case "$(m8_verdict "$FIXTURE_DIR" publication)" in
+        OK) block_line "$n" "M4 Knowledge Extraction" "已判定: publication 8 PASS + knowledge_chain BLOCKED；缺结构化知识（§20:944）" ;;
+        FAIL) fail_line "$n" "M8 判定未通过" "$M8_VERDICT_REASON" ;;
+        MISSING) block_line "$n" "测试宿主匮乏" "缺 fixture 或本机页图" ;;
+      esac
       ;;
     20.9)
       block_line "$n" "M8 Dataset Compilation" "GraphProjectionPack 未实现"
