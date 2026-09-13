@@ -1,0 +1,726 @@
+"""M8 验收：span_identity 与 publication 两组判定（§19.0 判据）。
+
+独立实现：只读 Ledger 与 ``--fixture`` 金标，自行重算；**不 import** ``packs`` /
+``gate``，也不读取 ``run_m8`` 返回的 gate 报告。宿主经 ``--fixture`` 与
+``FIXTURE_ASSET_ROOT`` 读取（D2）。
+
+用法::
+
+    python -m pipeline.dataset_compiler.acceptance --fixture <dir> [--check span_identity|publication] [--keep]
+
+退出码：0 全 PASS；1 任一 FAIL 或准备/运行抛异常；2 无 FAIL 有 BLOCKED；3 宿主缺失。
+"""
+
+import argparse
+import contextlib
+import hashlib
+import json
+import os
+import re
+import shutil
+import sys
+import tempfile
+from pathlib import Path
+
+import yaml
+
+from pipeline.corpus_compiler.step import run_m3
+from pipeline.dataset_compiler.shim.m1_shim_source_assets import register_source_assets
+from pipeline.dataset_compiler.step import run_m8
+from pipeline.ledger import fixture_ingest
+from pipeline.ledger.service import LedgerService
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+DEFAULT_FIXTURE = REPO_ROOT / "pipeline" / "corpus" / "_fixture" / "mini_ed01"
+DEFAULT_ASSET_ROOT = REPO_ROOT / "ocr" / "data_work" / "sanche_pages"
+
+MENTIONS_BLOCKED = (
+    "前置缺失: M4 Knowledge Extraction；concept→span mentions 映射未产出；"
+    "SearchIndexPack 未产出（D14-C）"
+)
+KNOWLEDGE_CHAIN_BLOCKED = (
+    "前置缺失: KnowledgeEntry→Assertion→EvidenceLink；knowledge_chain=not_compiled"
+)
+
+_SUBPACK_TYPES = (
+    "source_asset_pack",
+    "evidence_map_pack",
+    "release_manifest",
+    "publication_package",
+)
+_SPAN_TAIL_RE = re.compile(r"_p([0-9]{4})_s([0-9]{2})$")
+
+
+# ------------------------------------------------------------------ 基础读取
+def _sha256_hex(data):
+    return hashlib.sha256(data).hexdigest()
+
+
+def _canonical_bytes(obj):
+    return json.dumps(
+        obj, sort_keys=True, ensure_ascii=False, separators=(",", ":")
+    ).encode("utf-8")
+
+
+def _read_revision_bytes(service, revision_id):
+    revision = service.get_revision(revision_id)
+    return service.objects.get(revision["sha256"])
+
+
+def _read_revision_json(service, revision_id):
+    """读取修订内容对象：优先 JSON，回退 YAML（corpus_spans 为 YAML）。"""
+    raw = _read_revision_bytes(service, revision_id).decode("utf-8")
+    try:
+        return json.loads(raw)
+    except ValueError:
+        return yaml.safe_load(raw)
+
+
+# ------------------------------------------------------------------ 准备
+def _prepare_ledger(service, fixture_dir, asset_root):
+    """ingest(m1,m2) → run_m3 → register_source_assets，返回 edition_part_id。"""
+    summary = fixture_ingest.ingest(fixture_dir, service, stages=("m1", "m2"))
+    edition_part_id = summary["edition_part_id"]
+    run_m3(service, edition_part_id)
+    register_source_assets(service, edition_part_id, asset_root)
+    return edition_part_id
+
+
+def _find_m8_package(service, edition_part_id):
+    """返回 (m8_step_run_id, package_revision_id, package)；缺失部分为 None。"""
+    step_run_id = None
+    for checkpoint in service.list_checkpoints(edition_part_id, "m8"):
+        step_run_id = checkpoint["content"]["step_run_id"]
+    if step_run_id is None:
+        return None, None, None
+    rows = service.store.conn.execute(
+        "SELECT r.artifact_revision_id FROM artifact_revisions r "
+        "JOIN artifacts a ON a.artifact_id = r.artifact_id "
+        "WHERE a.artifact_type='stage_package' AND r.step_run_id=? AND r.status='sealed'",
+        (step_run_id,),
+    ).fetchall()
+    if not rows:
+        return step_run_id, None, None
+    package = _read_revision_json(service, rows[0][0])
+    return step_run_id, rows[0][0], package
+
+
+def _discover_inputs(service, edition_part_id, package):
+    """从 m8 包 input_artifacts 与 m1 Checkpoint 反查 spans/页/页图修订。"""
+    spans_revision_id = None
+    manifest_revision_id = None
+    page_revision_ids = {}
+    for reference in package["manifest"]["input_artifacts"]:
+        artifact_type = reference["artifact_type"]
+        revision_id = reference["artifact_revision_id"]
+        if artifact_type == "corpus_spans":
+            spans_revision_id = revision_id
+        elif artifact_type == "source_manifest":
+            manifest_revision_id = revision_id
+        elif artifact_type == "ocr_page":
+            page_revision_ids[_read_revision_json(service, revision_id)["page"]] = revision_id
+    asset_revision_ids = {}
+    for checkpoint in service.list_checkpoints(edition_part_id, "m1"):
+        step_run = service.get_step_run(checkpoint["content"]["step_run_id"])
+        if step_run is None or step_run["status"] != "succeeded":
+            continue
+        for task in checkpoint["content"].get("completed_tasks", []):
+            if task["task_id"].startswith("source_asset_") and task["status"] == "succeeded":
+                asset_revision_ids[task["task_id"][len("source_asset_"):]] = task[
+                    "artifact_revision_id"
+                ]
+    return spans_revision_id, manifest_revision_id, page_revision_ids, asset_revision_ids
+
+
+def _build_context(service, edition_part_id, fixture_dir, asset_root):
+    step_run_id, package_revision_id, package = _find_m8_package(service, edition_part_id)
+    manifest = yaml.safe_load((Path(fixture_dir) / "manifest.yaml").read_bytes())
+    spans_golden = yaml.safe_load((Path(fixture_dir) / "spans.yaml").read_bytes())
+    return {
+        "service": service,
+        "edition_part_id": edition_part_id,
+        "fixture_dir": Path(fixture_dir),
+        "asset_root": Path(asset_root),
+        "manifest": manifest,
+        "spans_golden": spans_golden,
+        "m3_gate_profile": _m3_gate_profile(service, edition_part_id),
+        "m8_step_run_id": step_run_id,
+        "package_revision_id": package_revision_id,
+        "package": package,
+    }
+
+
+def _m3_gate_profile(service, edition_part_id):
+    """从 m3 StagePackage 的 payload 读 gate_profile。"""
+    step_run_id = None
+    for checkpoint in service.list_checkpoints(edition_part_id, "m3"):
+        step_run = service.get_step_run(checkpoint["content"]["step_run_id"])
+        if step_run is not None and step_run["status"] == "succeeded":
+            step_run_id = checkpoint["content"]["step_run_id"]
+    if step_run_id is None:
+        return None
+    rows = service.store.conn.execute(
+        "SELECT r.artifact_revision_id FROM artifact_revisions r "
+        "JOIN artifacts a ON a.artifact_id = r.artifact_id "
+        "WHERE a.artifact_type='stage_package' AND r.step_run_id=? AND r.status='sealed'",
+        (step_run_id,),
+    ).fetchall()
+    if not rows:
+        return None
+    package = _read_revision_json(service, rows[0][0])
+    return (package.get("payload") or {}).get("gate_profile")
+
+
+def _load_span_context(context):
+    """载入 entries / spans_doc / page_docs / 资产修订等；无包返回 None。"""
+    service = context["service"]
+    package = context["package"]
+    if package is None:
+        return None
+    publication = _read_revision_json(
+        service, package["payload"]["publication_package_revision_id"]
+    )
+    evidence = _read_revision_json(service, publication["packs"]["evidence_map_pack"])
+    spans_revision_id, _manifest, page_revision_ids, asset_revision_ids = _discover_inputs(
+        service, context["edition_part_id"], package
+    )
+    spans_doc = _read_revision_json(service, spans_revision_id)
+    page_docs = {
+        page: _read_revision_json(service, revision_id)
+        for page, revision_id in page_revision_ids.items()
+    }
+    return {
+        "publication": publication,
+        "evidence": evidence,
+        "spans_doc": spans_doc,
+        "page_docs": page_docs,
+        "asset_revision_ids": asset_revision_ids,
+        "page_revision_ids": page_revision_ids,
+    }
+
+
+def _load_span_context_or_none(context):
+    """载入失败返回 (None, 详情)，供判定函数把异常转该项 FAIL。"""
+    try:
+        return _load_span_context(context), None
+    except Exception as exc:  # noqa: BLE001
+        return None, "%s: %s" % (type(exc).__name__, exc)
+
+
+# ------------------------------------------------------------------ 判定：span_identity
+def _check_span_key_unique(loaded, golden):
+    entries = loaded["evidence"]["entries"]
+    spans_doc = loaded["spans_doc"]
+    keys = set(entries.keys())
+    corpus_ids = {span["span_id"] for span in spans_doc["spans"]}
+    golden_ids = {span["span_id"] for span in golden["spans"]}
+    if keys != corpus_ids:
+        return False, "entries 键 != corpus_spans span_id 集合"
+    if keys != golden_ids:
+        return False, "entries 键 != fixture spans.yaml 金标 span_id 集合"
+    if not (len(entries) == spans_doc["span_count"] == 43):
+        return False, "计数不一致: entries=%d span_count=%s" % (
+            len(entries),
+            spans_doc["span_count"],
+        )
+    return True, "pack_keys=%d" % len(keys)
+
+
+def _check_legacy_collision(loaded):
+    entries = loaded["evidence"]["entries"]
+    source_id = loaded["spans_doc"]["source_id"]
+    groups = {}
+    for span_id in entries:
+        sequence = int(span_id.rsplit("_s", 1)[1])
+        groups.setdefault((source_id, sequence), []).append(span_id)
+    legacy_keys = len(groups)
+    collision_groups = sum(1 for members in groups.values() if len(members) > 1)
+    pack_keys = len(entries)
+    detail = "legacy_keys=%d collision_groups=%d pack_keys=%d" % (
+        legacy_keys,
+        collision_groups,
+        pack_keys,
+    )
+    if (legacy_keys, collision_groups, pack_keys) != (39, 4, 43):
+        return False, detail
+    return True, detail
+
+
+def _check_span_page_binding(loaded):
+    entries = loaded["evidence"]["entries"]
+    by_id = {span["span_id"]: span for span in loaded["spans_doc"]["spans"]}
+    page_order = loaded["page_order"]
+    for span_id, entry in entries.items():
+        match = _SPAN_TAIL_RE.search(span_id)
+        if match is None:
+            return False, "span_id 无法解析: %s" % span_id
+        if int(match.group(1)) != int(entry["page"][5:]):
+            return False, "页号段与 entry.page 不符: %s" % span_id
+        if int(match.group(2)) != entry["line_index"] + 1:
+            return False, "行序段与 line_index+1 不符: %s" % span_id
+        if entry["page"] != by_id[span_id]["page"]:
+            return False, "entry.page 与 spans_doc 不符: %s" % span_id
+        if entry["page"] not in page_order:
+            return False, "entry.page 不在清单页序: %s" % entry["page"]
+    return True, "页号/行序绑定一致"
+
+
+def _check_anchor_to_page_image(service, loaded, manifest, asset_root):
+    entries = loaded["evidence"]["entries"]
+    manifest_assets = {item["page"]: item for item in manifest["source_assets"]}
+    for span_id, entry in entries.items():
+        page = entry["page"]
+        if page not in loaded["asset_revision_ids"]:
+            return False, "页图未登记: %s" % page
+        image_sha = _sha256_hex(
+            _read_revision_bytes(service, loaded["asset_revision_ids"][page])
+        )
+        if entry["image_sha256"] != manifest_assets[page]["sha256"]:
+            return False, "entry.image_sha256 与清单不符: %s" % span_id
+        if image_sha != manifest_assets[page]["sha256"]:
+            return False, "页图对象字节哈希与清单不符: %s" % page
+    return True, "锚点图像哈希 == 清单 == 页图对象字节"
+
+
+def _check_glyph_closure(loaded):
+    entries = loaded["evidence"]["entries"]
+    glyph_count = 0
+    line_bbox_count = 0
+    for span_id, entry in entries.items():
+        doc = loaded["page_docs"][entry["page"]]
+        line_id = entry["line_id"]
+        recomputed = [
+            {"char_index": index, "glyph_id": char["id"], "char": char["char"], "box": char["box"]}
+            for index, char in enumerate(doc["chars"])
+            if char["parent"] == line_id
+        ]
+        if entry["glyphs"] != recomputed:
+            return False, "glyphs 与页 JSON 重算不符: %s" % span_id
+        joined = "".join(glyph["char"] for glyph in recomputed)
+        equal = joined == entry["text"]
+        if entry["glyph_text_equal"] != equal:
+            return False, "glyph_text_equal 与重算不符: %s" % span_id
+        expected_level = "glyph" if equal else "line_bbox"
+        if entry["highlight_level"] != expected_level:
+            return False, "highlight_level 与重算不符: %s" % span_id
+        if equal:
+            glyph_count += 1
+        else:
+            line_bbox_count += 1
+    if not (glyph_count == 41 and line_bbox_count == 2):
+        return False, "glyph/line_bbox 计数不符: %d/%d" % (glyph_count, line_bbox_count)
+    return True, "glyph=%d line_bbox=%d" % (glyph_count, line_bbox_count)
+
+
+def _check_reverse_index(loaded, manifest):
+    page_order = manifest["edition_part"]["pages"]
+    page_index = loaded["evidence"]["page_index"]
+    by_page = {}
+    for span in loaded["spans_doc"]["spans"]:
+        by_page.setdefault(span["page"], []).append(span["span_id"])
+    if list(page_index.keys()) != page_order:
+        return False, "page_index 键顺序与清单页序不符"
+    for page in page_order:
+        if page_index[page] != by_page.get(page, []):
+            return False, "page_index[%s] 与 spans_doc 顺序不符" % page
+    if page_index.get("page_002") != []:
+        return False, "排除页 page_002 反向索引非空"
+    if loaded["evidence"]["excluded_pages"] != {"page_002": "known_unrecognizable"}:
+        return False, "excluded_pages 与金标不符"
+    return True, "page_001=4 page_002=0 page_003=39"
+
+
+# ------------------------------------------------------------------ 判定：publication
+def _check_text_offsets(loaded):
+    entries = loaded["evidence"]["entries"]
+    by_id = {span["span_id"]: span for span in loaded["spans_doc"]["spans"]}
+    content_status = loaded["spans_doc"]["content_status"]
+    for span_id, entry in entries.items():
+        span = by_id[span_id]
+        if (
+            entry["start_offset"] != span["start_offset"]
+            or entry["end_offset"] != span["end_offset"]
+            or entry["line_index"] != span["line_index"]
+            or entry["text"] != span["text"]
+        ):
+            return False, "offset/text 与 spans_doc 不符: %s" % span_id
+        if entry["quote_sha256"] != _sha256_hex(entry["text"].encode("utf-8")):
+            return False, "quote_sha256 与 text 不符: %s" % span_id
+        if entry["content_status"] != content_status:
+            return False, "content_status 与 spans_doc 不符: %s" % span_id
+    return True, "offset/quote/content_status 一致"
+
+
+def _check_coordinate_frame(loaded, manifest):
+    entries = loaded["evidence"]["entries"]
+    manifest_assets = {item["page"]: item for item in manifest["source_assets"]}
+    for span_id, entry in entries.items():
+        doc = loaded["page_docs"][entry["page"]]
+        frame = entry["frame"]
+        if frame != {"width": doc["width"], "height": doc["height"]}:
+            return False, "frame 与页 JSON 不符: %s" % span_id
+        if (frame["width"], frame["height"]) != (
+            manifest_assets[entry["page"]]["width"],
+            manifest_assets[entry["page"]]["height"],
+        ):
+            return False, "frame 与清单不符: %s" % span_id
+        for box in [entry["bbox"]] + [glyph["box"] for glyph in entry["glyphs"]]:
+            if (
+                box["x"] < 0
+                or box["y"] < 0
+                or box["x"] + box["w"] > frame["width"]
+                or box["y"] + box["h"] > frame["height"]
+            ):
+                return False, "框越界: %s" % span_id
+    return True, "frame 与页 JSON/清单同源，框均在框内"
+
+
+def _check_release_manifest_hashes(service, loaded):
+    evidence = loaded["evidence"]
+    publication = loaded["publication"]
+    release_manifest = _read_revision_json(
+        service, loaded["release_manifest_revision_id"]
+    )
+    pack_bytes = {
+        "evidence_map_pack": _read_revision_bytes(
+            service, publication["packs"]["evidence_map_pack"]
+        ),
+        "source_asset_pack": _read_revision_bytes(
+            service, publication["packs"]["source_asset_pack"]
+        ),
+    }
+    pack_dicts = {
+        "evidence_map_pack": evidence,
+        "source_asset_pack": _read_revision_json(
+            service, publication["packs"]["source_asset_pack"]
+        ),
+    }
+    by_type = {item["pack_type"]: item for item in release_manifest["packs"]}
+    if set(by_type) != set(pack_bytes):
+        return False, "packs 的 pack_type 集合不符"
+    for pack_type, data in pack_bytes.items():
+        if by_type[pack_type]["sha256"] != _sha256_hex(data):
+            return False, "%s sha256 不符" % pack_type
+        if by_type[pack_type]["size"] != len(data):
+            return False, "%s size 不符" % pack_type
+        if json.loads(data.decode("utf-8")) != pack_dicts[pack_type]:
+            return False, "%s 字节内容不符" % pack_type
+    expected = _sha256_hex(
+        _canonical_bytes(
+            [[pack_type, by_type[pack_type]["sha256"]] for pack_type in sorted(by_type)]
+        )
+    )
+    if release_manifest["canonical_hash"] != expected:
+        return False, "canonical_hash 不符"
+    return True, "子包哈希与 canonical_hash 均可重算"
+
+
+def _check_input_reconciliation(service, context, loaded):
+    release_manifest = _read_revision_json(
+        service, loaded["release_manifest_revision_id"]
+    )
+    frozen = {
+        (
+            reference["artifact_revision_id"],
+            reference["artifact_type"],
+            _sha256_hex(_read_revision_bytes(service, reference["artifact_revision_id"])),
+        )
+        for reference in context["package"]["manifest"]["input_artifacts"]
+    }
+    given = {
+        (item["artifact_revision_id"], item["artifact_type"], item["sha256"])
+        for item in release_manifest["input_reconciliation"]
+    }
+    if frozen != given:
+        return False, "input_reconciliation 与冻结输入不一致"
+    return True, "input_reconciliation 与冻结输入一致"
+
+
+def _check_consumption_level(service, loaded):
+    release_manifest = _read_revision_json(
+        service, loaded["release_manifest_revision_id"]
+    )
+    content_status = loaded["spans_doc"]["content_status"]
+    expected_release = "release" if content_status == "expert_verified" else "dev"
+    if release_manifest["consumption_level"] != "INTERNAL_DEMO":
+        return False, "consumption_level 非 INTERNAL_DEMO"
+    if release_manifest["isolation"] != "internal_only":
+        return False, "isolation 非 internal_only"
+    if release_manifest["authoritative"] is not False:
+        return False, "authoritative 非 False"
+    if release_manifest["completeness_claim"] != "partial":
+        return False, "completeness_claim 非 partial"
+    if release_manifest["source_release"] != expected_release:
+        return False, "source_release 推导不符"
+    return True, "INTERNAL_DEMO/internal_only/partial/dev"
+
+
+def _check_watermark_disclosure(service, loaded):
+    release_manifest = _read_revision_json(
+        service, loaded["release_manifest_revision_id"]
+    )
+    entries = loaded["evidence"]["entries"]
+    content_status = loaded["spans_doc"]["content_status"]
+    if content_status.startswith("machine_"):
+        for span_id, entry in entries.items():
+            if entry["watermark"] is not True:
+                return False, "entry.watermark 未置真: %s" % span_id
+        if release_manifest["watermark"]["required"] is not True:
+            return False, "watermark.required 未置真"
+        if not release_manifest["watermark"]["text"]:
+            return False, "watermark.text 为空"
+    required = set()
+    if loaded["evidence"]["excluded_pages"]:
+        required.add("excluded_page")
+    if any(entry["highlight_level"] == "line_bbox" for entry in entries.values()):
+        required.add("glyph_text_mismatch")
+    if loaded["evidence"]["knowledge_chain"] != "compiled":
+        required.add("knowledge_chain_not_compiled")
+    if content_status.startswith("machine_"):
+        required.add("machine_content")
+    rights_status = loaded["manifest"]["rights_status"]
+    if isinstance(rights_status, str) and "unconfirmed" in rights_status:
+        required.add("rights_unconfirmed")
+    if loaded["m3_gate_profile"] == "structural_only":
+        required.add("semantic_not_evaluated")
+    given = {item["code"] for item in release_manifest["known_defects"]}
+    missing = required - given
+    if missing:
+        return False, "known_defects 缺少: %s" % ",".join(sorted(missing))
+    return True, "水印与已知缺陷披露完整"
+
+
+def _check_fail_closed_levels(context):
+    """在另起的两份临时 Ledger 上证明 DEV_SEARCH / PUBLIC_RELEASE 准入失败且无子包。"""
+    outcomes = []
+    for level in ("DEV_SEARCH", "PUBLIC_RELEASE"):
+        tmp = tempfile.mkdtemp(prefix="m8-acceptance-fc-")
+        service = LedgerService(Path(tmp) / "ledger")
+        try:
+            edition_part_id = _prepare_ledger(
+                service, context["fixture_dir"], context["asset_root"]
+            )
+            result = run_m8(service, edition_part_id, consumption_level=level)
+            counts = {
+                artifact_type: service.store.conn.execute(
+                    "SELECT COUNT(*) FROM artifacts WHERE artifact_type=?",
+                    (artifact_type,),
+                ).fetchone()[0]
+                for artifact_type in _SUBPACK_TYPES
+            }
+            ok = (
+                result.get("status") == "failed"
+                and result.get("failed_check") == "admission"
+                and all(count == 0 for count in counts.values())
+            )
+        finally:
+            service.close()
+            shutil.rmtree(tmp, True)
+        outcomes.append((level, ok))
+    if not all(ok for _level, ok in outcomes):
+        return False, "fail-closed 未达成: %s" % outcomes
+    return True, "DEV_SEARCH/PUBLIC_RELEASE 均 admission 失败且无子包修订"
+
+
+# ------------------------------------------------------------------ 组装结果
+def _evaluate_span_identity(context):
+    service = context["service"]
+    results = []
+    step_run_id = context["m8_step_run_id"]
+    step_run = service.get_step_run(step_run_id) if step_run_id else None
+    results.append(
+        (
+            "run_succeeded",
+            "PASS" if (step_run and step_run["status"] == "succeeded") else "FAIL",
+            "m8 StepRun=%s" % (step_run["status"] if step_run else None),
+        )
+    )
+    loaded, load_error = _load_span_context_or_none(context)
+    if loaded is None:
+        detail = load_error or "m8 StagePackage 缺失"
+        for name in (
+            "span_key_unique",
+            "legacy_collision_exposed",
+            "span_page_binding",
+            "anchor_to_page_image",
+            "glyph_closure",
+            "reverse_index",
+        ):
+            results.append((name, "FAIL", detail))
+        results.append(("mentions_mapping", "BLOCKED", MENTIONS_BLOCKED))
+        return results
+
+    loaded["page_order"] = context["manifest"]["edition_part"]["pages"]
+    checks = [
+        ("span_key_unique", lambda: _check_span_key_unique(loaded, context["spans_golden"])),
+        ("legacy_collision_exposed", lambda: _check_legacy_collision(loaded)),
+        ("span_page_binding", lambda: _check_span_page_binding(loaded)),
+        (
+            "anchor_to_page_image",
+            lambda: _check_anchor_to_page_image(
+                service, loaded, context["manifest"], context["asset_root"]
+            ),
+        ),
+        ("glyph_closure", lambda: _check_glyph_closure(loaded)),
+        ("reverse_index", lambda: _check_reverse_index(loaded, context["manifest"])),
+    ]
+    for name, func in checks:
+        results.append(_safe(name, func))
+    results.append(("mentions_mapping", "BLOCKED", MENTIONS_BLOCKED))
+    return results
+
+
+def _evaluate_publication(context):
+    service = context["service"]
+    results = []
+    step_run_id = context["m8_step_run_id"]
+    step_run = service.get_step_run(step_run_id) if step_run_id else None
+    results.append(
+        (
+            "run_succeeded",
+            "PASS" if (step_run and step_run["status"] == "succeeded") else "FAIL",
+            "m8 StepRun=%s" % (step_run["status"] if step_run else None),
+        )
+    )
+    loaded, load_error = _load_span_context_or_none(context)
+    if loaded is None:
+        detail = load_error or "m8 StagePackage 缺失"
+        for name in (
+            "evidence_chain_closure",
+            "coordinate_frame",
+            "release_manifest_hashes",
+            "input_reconciliation",
+            "consumption_level",
+            "watermark_disclosure",
+        ):
+            results.append((name, "FAIL", detail))
+        results.append(("fail_closed_levels", "FAIL", detail))
+        results.append(("knowledge_chain", "BLOCKED", KNOWLEDGE_CHAIN_BLOCKED))
+        return results
+
+    loaded["page_order"] = context["manifest"]["edition_part"]["pages"]
+    loaded["release_manifest_revision_id"] = context["package"]["payload"][
+        "release_manifest_revision_id"
+    ]
+    loaded["manifest"] = context["manifest"]
+    loaded["m3_gate_profile"] = context["m3_gate_profile"]
+
+    def evidence_chain_closure():
+        for name, func in (
+            ("span_identity", lambda: _check_span_key_unique(loaded, context["spans_golden"])),
+            ("span_page_binding", lambda: _check_span_page_binding(loaded)),
+            ("text_offsets", lambda: _check_text_offsets(loaded)),
+            ("glyph_anchor_closure", lambda: _check_glyph_closure(loaded)),
+        ):
+            ok, detail = func()
+            if not ok:
+                return False, "%s: %s" % (name, detail)
+        return True, "链 1–5 闭合"
+
+    checks = [
+        ("evidence_chain_closure", evidence_chain_closure),
+        ("coordinate_frame", lambda: _check_coordinate_frame(loaded, context["manifest"])),
+        ("release_manifest_hashes", lambda: _check_release_manifest_hashes(service, loaded)),
+        ("input_reconciliation", lambda: _check_input_reconciliation(service, context, loaded)),
+        ("consumption_level", lambda: _check_consumption_level(service, loaded)),
+        ("watermark_disclosure", lambda: _check_watermark_disclosure(service, loaded)),
+        ("fail_closed_levels", lambda: _check_fail_closed_levels(context)),
+    ]
+    for name, func in checks:
+        results.append(_safe(name, func))
+    results.append(("knowledge_chain", "BLOCKED", KNOWLEDGE_CHAIN_BLOCKED))
+    return results
+
+
+def _safe(name, func):
+    try:
+        ok, detail = func()
+    except Exception as exc:  # noqa: BLE001 - 判定内异常转该项 FAIL
+        return (name, "FAIL", "%s: %s" % (type(exc).__name__, exc))
+    return (name, "PASS" if ok else "FAIL", detail)
+
+
+# ------------------------------------------------------------------ 入口
+def main(argv=None):
+    """CLI 入口。"""
+    parser = argparse.ArgumentParser(
+        prog="pipeline.dataset_compiler.acceptance",
+        description="M8 验收：span_identity / publication（§19.0）",
+    )
+    parser.add_argument("--fixture", default=str(DEFAULT_FIXTURE), help="fixture 根目录")
+    parser.add_argument(
+        "--check",
+        choices=("span_identity", "publication"),
+        default="span_identity",
+    )
+    parser.add_argument("--keep", action="store_true", help="保留临时 Ledger")
+    args = parser.parse_args(argv)
+
+    try:
+        import jsonschema  # noqa: F401
+    except ImportError:
+        print("BLOCKED m8_acceptance 前置缺失: 测试宿主匮乏；yaml/jsonschema 不可导入")
+        print("SUMMARY pass=0 fail=0 blocked=1")
+        return 3
+
+    fixture_dir = Path(args.fixture).resolve()
+    if not (fixture_dir / "manifest.yaml").is_file():
+        print("BLOCKED m8_acceptance 宿主缺失: 缺 fixture manifest.yaml")
+        print("SUMMARY pass=0 fail=0 blocked=1")
+        return 3
+
+    asset_root = Path(
+        os.environ.get("FIXTURE_ASSET_ROOT") or str(DEFAULT_ASSET_ROOT)
+    ).resolve()
+    missing = [
+        str(asset_root / ("page_%03d.png" % number))
+        for number in (1, 2, 3)
+        if not (asset_root / ("page_%03d.png" % number)).is_file()
+    ]
+    if missing:
+        print("BLOCKED m8_acceptance BLOCKED_SOURCE_ASSET_MISSING %s" % " ".join(missing))
+        print("SUMMARY pass=0 fail=0 blocked=1")
+        return 3
+
+    tmp = tempfile.mkdtemp(prefix="m8-acceptance-")
+    service = LedgerService(Path(tmp) / "ledger")
+    try:
+        try:
+            edition_part_id = _prepare_ledger(service, fixture_dir, asset_root)
+            run_m8(service, edition_part_id, consumption_level="INTERNAL_DEMO")
+            context = _build_context(service, edition_part_id, fixture_dir, asset_root)
+        except Exception as exc:  # noqa: BLE001 - 准备/运行异常 → exit 1
+            print("FAIL m8_acceptance 宿主准备失败: %s: %s" % (type(exc).__name__, exc))
+            print("SUMMARY pass=0 fail=1 blocked=0")
+            return 1
+
+        results = (
+            _evaluate_publication(context)
+            if args.check == "publication"
+            else _evaluate_span_identity(context)
+        )
+        passed = failed = blocked = 0
+        for name, status, detail in results:
+            if status == "PASS":
+                passed += 1
+                print("PASS %s %s" % (name, detail) if detail else "PASS %s" % name)
+            elif status == "FAIL":
+                failed += 1
+                print("FAIL %s %s" % (name, detail))
+            else:
+                blocked += 1
+                print("BLOCKED %s %s" % (name, detail))
+        print("SUMMARY pass=%d fail=%d blocked=%d" % (passed, failed, blocked))
+        if failed:
+            return 1
+        if blocked:
+            return 2
+        return 0
+    finally:
+        service.close()
+        if not args.keep:
+            shutil.rmtree(tmp, True)
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
