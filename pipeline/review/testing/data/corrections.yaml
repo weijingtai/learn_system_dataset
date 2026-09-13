@@ -1,0 +1,12 @@
+# 合成数据，仅验证结构与血缘；fixture 前 3 页为书名页与目录；合成人工决定 synthetic_fixture: true，不计为真实 expert_verified
+synthetic_fixture: true
+correction_request:
+  source_span_ids:
+    - ss_sanche_ed01_p0003_s08
+  description: 修正七政旺宮星度之宮為官，並微調貴格之圗字框
+span_patches:
+  - span_id: ss_sanche_ed01_p0003_s08
+    char_index: 3
+    char: 官
+  - span_id: ss_sanche_ed01_p0003_s05
+    bbox_dx: 1.0

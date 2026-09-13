@@ -1,0 +1,89 @@
+# 合成数据，仅验证结构与血缘；fixture 前 3 页为书名页与目录；合成人工决定 synthetic_fixture: true，不计为真实 expert_verified
+synthetic_fixture: true
+assertions:
+  - assertion_id: as_qizheng_000001
+    proposition_id: pr_qizheng_000001
+    proposition: 七政卷第一
+    content_status: machine_extracted
+    layer: editorial
+    relation: supports
+    evidence:
+      - source_span_id: ss_sanche_ed01_p0003_s04
+        start_offset: 16
+        end_offset: 19
+        quote: 卷第一
+        quote_sha256: d6e612dcecd32ce6a50cabc7ac8ff6bad837b50c2f7d970ec70469a81c560850
+        support_type: direct
+      - source_span_id: ss_sanche_ed01_p0003_s08
+        start_offset: 42
+        end_offset: 48
+        quote: 七政旺宮星度
+        quote_sha256: 21cb8c0bf4392c4db78ac57046d866e4cb74a9a480ce2f78b7c3ecba060dae59
+        support_type: direct
+    school_ids: []
+    concept_refs: []
+    conditions: []
+    exceptions: []
+    origin:
+      lane: a
+      item_index: 0
+  - assertion_id: as_qizheng_000002
+    proposition_id: pr_qizheng_000002
+    proposition: 三辰貴格
+    content_status: machine_extracted
+    layer: editorial
+    relation: supports
+    evidence:
+      - source_span_id: ss_sanche_ed01_p0003_s03
+        start_offset: 13
+        end_offset: 15
+        quote: 三辰
+        quote_sha256: b7b7eb940360724c8630fdc113538c60d0feadb8cf7892ef4b2fe8f57e73d6b3
+        support_type: direct
+      - source_span_id: ss_sanche_ed01_p0003_s05
+        start_offset: 20
+        end_offset: 24
+        quote: 貴格之圗
+        quote_sha256: a8f5f3c22a1c06bddb505b89ecee821172c2a067ac854ff3e5d0d10f17837954
+        support_type: direct
+    school_ids: []
+    concept_refs: []
+    conditions: []
+    exceptions: []
+    origin:
+      lane: a
+      item_index: 1
+  - assertion_id: as_qizheng_000003
+    proposition_id: pr_qizheng_000003
+    proposition: 錢如璧撰
+    content_status: machine_extracted
+    layer: editorial
+    relation: supports
+    evidence:
+      - source_span_id: ss_sanche_ed01_p0001_s02
+        start_offset: 5
+        end_offset: 12
+        quote: （宋）錢如璧撰
+        quote_sha256: 14c0fa7ff2af39c7b3fecf8a3fc4b6570e1fa31acb5a9b4eea306cfba36ab934
+        support_type: direct
+    school_ids: []
+    concept_refs: []
+    conditions: []
+    exceptions: []
+    origin:
+      lane: a
+      item_index: 2
+school_views:
+  - school_view_id: sv_00000000000000000000000000000001
+    school_id: sch_qizheng_001
+    school: qizheng_classical
+    conflict_group_id: cg_00000000000000000000000000000001
+    subject_entity_id: as_qizheng_000001
+    content_status: machine_extracted
+    text: 七政旺宮星度
+    source_refs:
+      - source_id: src_sanche_ed01
+        source_span_id: ss_sanche_ed01_p0003_s08
+    origin:
+      lane: a
+      item_index: 3

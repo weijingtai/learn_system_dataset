@@ -1,0 +1,20 @@
+# 合成数据，仅验证结构与血缘；fixture 前 3 页为书名页与目录；合成人工决定 synthetic_fixture: true，不计为真实 expert_verified
+synthetic_fixture: true
+decisions:
+  - queue_item_id: as_qizheng_000001#review_source_fidelity
+    verdict: accept
+    rationale: 来源忠实度符合原文
+  - queue_item_id: as_qizheng_000002#review_source_fidelity
+    verdict: reject
+    rationale: 证据切片不充分，驳回
+  - queue_item_id: as_qizheng_000003#review_source_fidelity
+    verdict: modify
+    rationale: 修正文字为全本表述
+    modified_content:
+      text: （宋）錢如璧撰
+  - queue_item_id: sv_00000000000000000000000000000001#review_source_fidelity
+    verdict: accept
+    rationale: 流派观点来源忠实
+  - queue_item_id: sv_00000000000000000000000000000001#review_school_attribution
+    verdict: accept
+    rationale: 归属七政经典流派无争议

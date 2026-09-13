@@ -1,0 +1,34 @@
+# 合成数据，仅验证结构与血缘；fixture 前 3 页为书名页与目录；合成人工决定 synthetic_fixture: true，不计为真实 expert_verified
+synthetic_fixture: true
+first_review:
+  approved:
+    - as_qizheng_000001
+    - as_qizheng_000003
+    - sv_00000000000000000000000000000001
+  rejected:
+    - as_qizheng_000002
+  decisions: 5
+  checkpoints: 6
+rework:
+  changed_span_ids:
+    - ss_sanche_ed01_p0003_s05
+    - ss_sanche_ed01_p0003_s08
+  reachable_entity_ids:
+    - as_qizheng_000001
+    - as_qizheng_000002
+    - sv_00000000000000000000000000000001
+  invalidated_count: 3
+  carried_forward_count: 3
+  needs_review_count: 3
+  valid_object_count: 4
+  invalidated_ratio: 0.75
+  warnings:
+    - rework_threshold_exceeded
+  rework_round: 1
+rereview:
+  queue:
+    - as_qizheng_000001#review_source_fidelity
+    - sv_00000000000000000000000000000001#review_source_fidelity
+    - sv_00000000000000000000000000000001#review_school_attribution
+  active: 3
+  carried_forward: 2

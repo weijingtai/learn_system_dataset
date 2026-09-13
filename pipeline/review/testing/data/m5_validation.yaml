@@ -1,0 +1,4 @@
+# 合成数据，仅验证结构与血缘；fixture 前 3 页为书名页与目录；合成人工决定 synthetic_fixture: true，不计为真实 expert_verified
+# M5 首切片 scope=corpus_only，无 candidate 级校验条目，故校验条目期望为空列表
+synthetic_fixture: true
+validation_entries: []
