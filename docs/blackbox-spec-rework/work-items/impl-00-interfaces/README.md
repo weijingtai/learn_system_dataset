@@ -48,7 +48,7 @@ git diff --check                                                                
 
 ## 3. 范围
 
-**本定稿轮（W2-C1）**只写本目录：`README.md`、`INTERFACES.md`、`FIXTURE-PLAN.md`、`BDD.md`、`TDD.md`、`ACT.yaml`、`act/00–10.yaml`、`PROMPT-C1.md`、`ACCEPTANCE.md`。
+**本定稿轮（W2-C1，W4-G 追加 act/12）**只写本目录：`README.md`、`INTERFACES.md`、`FIXTURE-PLAN.md`、`BDD.md`、`TDD.md`、`ACT.yaml`、`act/00–12.yaml`、`PROMPT-C1.md`、`ACCEPTANCE.md`。
 
 **首纵切 ACT（`impl-00/10`）执行时写**（`scope.write` 精确边界）：
 
@@ -94,7 +94,7 @@ git diff --check                                                                
 | `impl-00/02` | `gate_results`/`review_decision`/`reviewed_edition`/`rework_impact_report` Schema | 同上 | P3；§9 第 5 条不采纳 |
 | `impl-00/03` | `canonical_snapshot`/`release_manifest`/`knowledge_data_pack`/`evidence_map_pack` Schema | 同上 | P3 |
 | `impl-00/04` | `source_asset_pack`/`anchor_contract_pack`/`query_contract_pack` + `stage_payload_m4..m8` Schema | 同上 | P3；§9 第 5 条明确「首纵切不新增 `openspec/schemas/` 文件」 |
-| `impl-00/05` | m4（candidate_set+包）/ m5（gate_results+包）金标 | 纵切后（M4/M5 实现同期或其后） | §9「impl-00 的首纵切裁剪」；impl-03/impl-04 verify 未引用 `expected/` 金标 |
+| `impl-00/05` | **已移出 DEFERRED**：裁剪为「仅 m4 金标 + `verify.sh` 扩展」的 W4 独占 ACT（见 §5.3） | W4-G（`impl-00/12` 之后） | G7-RULINGS §9.6 第 48 条（P4）；原 m5 部分删除 |
 | `impl-00/06` | m6（5 决定+reviewed_edition+包）/ m7（canonical_snapshot+包）金标 | 纵切后 | M6/M7 不在首纵切 |
 | `impl-00/07` | m8 七子包 + release_manifest + m8 包 + `expected/SHA256SUMS` | 纵切后 | impl-04 不消费 `expected/` 金标 |
 | `impl-00/08` | `verify.sh` 由 8 扩到 12 项 + 20 例篡改矩阵 + fixture README | 纵切后（金标落地后） | 依赖 act/05–07 金标 |
@@ -106,10 +106,11 @@ git diff --check                                                                
 - **FIXTURE-PLAN.md、TDD.md、BDD.md** 中被推迟的部分移入各自的「纵切后」小节，不删除；首纵切相关小节保留并与 `impl-00/10` 对齐。
 - **`openspec/schemas/` 与 fixture 在首纵切内一字不动**：M5/M8 新类型只登记到 `INTERFACES.md` §4，内容结构以代码草案表达（P3）。
 
-### 5.1 §4 闭集首纵切新增项（`impl-00/10` 登记内容）
+### 5.1 §4 闭集新增项（`impl-00/10` 与 `impl-00/12` 登记内容）
 
 - **M8**（`G7-RULINGS.md` §2 D4，impl-04 README §4 D4）：`source_asset_page`、`source_asset_register`、`source_asset_pack`、`evidence_map_pack`、`release_manifest`、`publication_package`。
 - **M5**（§9 第 10 条）：`gate_results`、`validation_package`。
+- **M4**（G7-RULINGS §9.6 第 47 条，由 `impl-00/12` 登记）：`candidate_submission`、`candidate_lane_set`、`dispute_queue`、`candidate_set`、`candidate_package`；同一 ACT 删除旧命名 `candidate_batch`、`model_run`、`candidate_diff_report`，并按第 49 条把候选证据坐标统一为页块绝对 `start_offset/end_offset`。
 - 复用（不新增，但首纵切内首次以闭集形式确认）：`configuration`、`validation_report`、`step_log`、`failure_report`、`stage_package`、`source_manifest`、`ocr_page`、`ocr_page_set`、`human_event`、`corpus_batch`、`corpus_spans`、`coverage_report`、`corpus_package`。
 
 ### 5.2 缺口与已裁项（G7-RULINGS §9.1 第 24/25/26 条）
@@ -117,6 +118,17 @@ git diff --check                                                                
 1. **已裁（§9.1 第 24 条）**：`validator_report` **不入** §4 闭集；impl-03 定稿（`1a189ae`）已改为复用通用 `validation_report`；首纵切 M5 新类型只有 `gate_results`、`validation_package`；§4 表残留的 `gate_report` 由 `impl-00/10` 删除。
 2. **已裁（§9.1 第 25 条，按第 13 条）**——Ledger 只读查询缺口清单（本清单为唯一登记处，供 impl-08 补读接口）：impl-03 `act/04.yaml:16` 需 `frozen_inputs`、`artifacts.artifact_type`、`stage_packages` 三类元数据；impl-04 `act/04.yaml:14` 需按 `step_run_id` 取 sealed StagePackage。`LedgerReadMixin`（service.py 111–164）无对应公开方法，首纵切允许只读 SELECT；impl-08 以公开读方法补齐后回改调用方。
 3. **已裁（§9.1 第 26 条，按第 17 条）**——错误码缺口：impl-03 的 `count_mismatch`、`unproofread_glyphs`、`replay_tool_mismatch` 在现有 9 码中无对应，填 `code: null`，缺口并入本清单；错误码闭集扩充随 impl-08 Contract Registry。
+
+### 5.3 W4 独占 ACT（G7-RULINGS §9.6 第 47–49 条；已自 DEFERRED 移入 `W4G` 执行组）
+
+W4-G 定稿（2026-09-13）新增/裁剪两个前置 ACT，均 `READY_FOR_REVIEW`、不属首纵切，执行顺序 **act/12 先于 act/05**：
+
+| ACT | 标题 | 前置 | 写范围 | 关键判据 |
+|---|---|---|---|---|
+| `impl-00/12` | M4 artifact_type 闭集登记与 INTERFACES 对账（§2.4/§3.1/§3.2/§3.10/§4/§6 I-11） | `impl-00/10`（首纵切登记 `ea90ca8`） | `INTERFACES.md`、`check_interfaces.py`、`tests/`（仅本目录） | `check_interfaces.py` → `I00-IF SUMMARY pass=24 fail=0`；`unittest` ≥ 13 用例；§4 旧 M4 名与 `char_start` 清零 |
+| `impl-00/05` | mini_ed01 m4 金标与 `verify.sh` 扩展（仅 m4；独占，P4） | `impl-00/12` | `pipeline/corpus/_fixture/mini_ed01/m4/**`、`expected/m4.stage_package.yaml`、`verify.sh` | `verify.sh` → `FIXTURE OK`（10 项）；`shasum -c m4/SHA256SUMS` 绿；`build_expected_m4.py` 两次字节相同 |
+
+约束：`impl-00/12` 是 §4 的**单写者**（P2），执行并验收后 impl-05 K2 才可派发；`impl-00/05` 是 W4 内**唯一**写 `pipeline/corpus/_fixture/mini_ed01/` 的 ACT（P4），其金标**不得由 impl-05 实现方生成**（§9.6 第 48 条），也不得改 `tools/build_fixture.py`。`impl-00/06–09` 仍 `DEFERRED`。
 
 ## 6. 与其他并行草案的接口假设（摘要；逐项见 `INTERFACES.md` §6）
 
@@ -137,14 +149,18 @@ docs/blackbox-spec-rework/work-items/impl-00-interfaces/
   README.md  INTERFACES.md  FIXTURE-PLAN.md  BDD.md  TDD.md  ACT.yaml
   PROMPT-C1.md            （W2-C1 新建：执行 impl-00/10 的派发提示词）
   ACCEPTANCE.md           （W2-C1 新建：§0–§4 清单；§5 验收记录由主 Agent 填写）
-  act/00.yaml … act/09.yaml    （保留原文件，ACT.yaml 标 DEFERRED）
+  act/00.yaml … act/09.yaml    （保留原文件，ACT.yaml 标 DEFERRED；act/05 已裁剪见下）
   act/10.yaml                  （首纵切保留 ACT）
-  check_interfaces.py          （impl-00/10 新建：§4 闭集登记检查器）
-  tests/test_check_interfaces.py（impl-00/10 新建）
+  act/12.yaml                  （W4-G 新建：M4 闭集登记与 INTERFACES 对账，READY_FOR_REVIEW）
+  check_interfaces.py          （impl-00/10 新建；impl-00/12 扩到 IF01–IF24）
+  tests/test_check_interfaces.py（impl-00/10 新建；impl-00/12 补 M4 用例）
+
+W4-G 独占 ACT（`impl-00/12` 先于 `impl-00/05`，不属首纵切；见 §5.3）：
+  pipeline/corpus/_fixture/mini_ed01/m4/**  + expected/m4.stage_package.yaml + verify.sh（act/05，P4）
 
 纵切后（§5）才落地，首纵切内不存在：
   openspec/schemas/*.schema.json + examples/     （act/01–04）
-  pipeline/corpus/_fixture/mini_ed01/expected/m4..m8 + SHA256SUMS（act/05–07）
+  pipeline/corpus/_fixture/mini_ed01/expected/m6..m8 + SHA256SUMS（act/06–07）
   pipeline/corpus/_fixture/mini_ed01/verify.sh（12 项）+ fixture_mutations.sh（act/08）
   pipeline/ledger/fixture_ingest.py（GOLDEN_STAGES）+ test_ingest.py（act/09）
 ```

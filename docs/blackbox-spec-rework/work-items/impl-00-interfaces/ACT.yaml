@@ -1,15 +1,18 @@
 package: blackbox-impl-00-interfaces
 title: 跨模块接口契约：INTERFACES §4 临时闭集登记与首纵切裁决对齐（按 G7 裁决裁剪）
-status: READY_FOR_REVIEW   # W2-C1 定稿 2026-09-12，依 G7-RULINGS §9；仅 impl-00/10 可派
+status: READY_FOR_REVIEW   # W2-C1 定稿 2026-09-12，依 G7-RULINGS §9；W4-G 2026-09-13 追加 act/12 与 act/05（W4 独占组）
 risk: low      # 首纵切只改 INTERFACES.md 与本目录；openspec/schemas、fixture、ledger 一字不动
 executor_groups:
-  K1: [impl-00/10]                                  # 首纵切唯一 ACT
+  K1: [impl-00/10]                                  # 首纵切唯一 ACT（已执行 ea90ca8）
+  W4G: [impl-00/12, impl-00/05]                     # W4 独占组：act/12 先于 act/05；P2 登记 + P4 fixture 独占；均 READY_FOR_REVIEW，不属首纵切
 deferred_groups:   # 原分组保留，全部 DEFERRED，纵切后另立波次（见 README §5）
   K1: [impl-00/00, impl-00/01, impl-00/02, impl-00/03, impl-00/04]
-  K2: [impl-00/05, impl-00/06, impl-00/07, impl-00/08]
+  K2: [impl-00/06, impl-00/07, impl-00/08]
   K3: [impl-00/09]
-decisions_required:   # 全部裁决已由主 Agent 写入 README §4（执行者不重议）；本 ACT 无新增待裁决
+decisions_required:   # 全部裁决已由主 Agent 写入 README §4 / G7-RULINGS §9.6；执行者不重议
   impl-00/10: []
+  impl-00/12: []      # G7-RULINGS §9.6 第 47/49 条
+  impl-00/05: []      # G7-RULINGS §9.6 第 48 条
 acts:
   - file: act/00.yaml
     id: impl-00/00
@@ -33,8 +36,8 @@ acts:
     writes: ["openspec/schemas/source_asset_pack.schema.json", "openspec/schemas/anchor_contract_pack.schema.json", "openspec/schemas/query_contract_pack.schema.json", "openspec/schemas/stage_payload_m4.schema.json", "openspec/schemas/stage_payload_m5.schema.json", "openspec/schemas/stage_payload_m6.schema.json", "openspec/schemas/stage_payload_m7.schema.json", "openspec/schemas/stage_payload_m8.schema.json", "openspec/schemas/examples/{source_asset_pack,anchor_contract_pack,query_contract_pack,stage_payload_m4,stage_payload_m5,stage_payload_m6,stage_payload_m7,stage_payload_m8}.*.yaml", "openspec/schemas/verify.sh"]
   - file: act/05.yaml
     id: impl-00/05
-    status: DEFERRED
-    writes: ["pipeline/corpus/_fixture/mini_ed01/tools/build_fixture.py", "pipeline/corpus/_fixture/mini_ed01/expected/m4.candidate_set.yaml", "pipeline/corpus/_fixture/mini_ed01/expected/m4.stage_package.yaml", "pipeline/corpus/_fixture/mini_ed01/expected/m5.gate_results.yaml", "pipeline/corpus/_fixture/mini_ed01/expected/m5.stage_package.yaml"]
+    status: READY_FOR_REVIEW   # W4-G 自 DEFERRED 移入 W4G；裁剪为仅 m4 金标 + verify.sh 扩展（§9.6 第 48 条）
+    writes: ["pipeline/corpus/_fixture/mini_ed01/m4/submission_assertion_a.yaml", "pipeline/corpus/_fixture/mini_ed01/m4/submission_assertion_b.yaml", "pipeline/corpus/_fixture/mini_ed01/m4/submission_concept_mention_a.yaml", "pipeline/corpus/_fixture/mini_ed01/m4/ruling_m4_d001.yaml", "pipeline/corpus/_fixture/mini_ed01/m4/candidate_set.yaml", "pipeline/corpus/_fixture/mini_ed01/m4/build_expected_m4.py", "pipeline/corpus/_fixture/mini_ed01/m4/SHA256SUMS", "pipeline/corpus/_fixture/mini_ed01/m4/README.md", "pipeline/corpus/_fixture/mini_ed01/expected/m4.stage_package.yaml", "pipeline/corpus/_fixture/mini_ed01/verify.sh"]
   - file: act/06.yaml
     id: impl-00/06
     status: DEFERRED
@@ -55,19 +58,26 @@ acts:
     id: impl-00/10
     status: READY
     writes: ["docs/blackbox-spec-rework/work-items/impl-00-interfaces/INTERFACES.md", "docs/blackbox-spec-rework/work-items/impl-00-interfaces/check_interfaces.py", "docs/blackbox-spec-rework/work-items/impl-00-interfaces/tests/__init__.py", "docs/blackbox-spec-rework/work-items/impl-00-interfaces/tests/test_check_interfaces.py"]
+  - file: act/12.yaml
+    id: impl-00/12
+    status: READY_FOR_REVIEW   # W4-G 新建；M4 闭集登记与 INTERFACES 对账（§9.6 第 47/49 条）
+    writes: ["docs/blackbox-spec-rework/work-items/impl-00-interfaces/INTERFACES.md", "docs/blackbox-spec-rework/work-items/impl-00-interfaces/check_interfaces.py", "docs/blackbox-spec-rework/work-items/impl-00-interfaces/tests/__init__.py", "docs/blackbox-spec-rework/work-items/impl-00-interfaces/tests/test_check_interfaces.py"]
 global_rules:
-  - 首纵切只允许写 ACT 10 的 scope.write；openspec/schemas、pipeline/corpus/_fixture、pipeline/ledger、pipeline/corpus_compiler、pipeline/validation、pipeline/dataset_compiler、openspec/acceptance 一律一字不动
+  - 首纵切只允许写 ACT 10 的 scope.write；ACT 12（M4 闭集登记）与 ACT 05（m4 金标）为 W4 独占 ACT，不在首纵切执行，各自执行时只写其 scope.write
+  - openspec/schemas、pipeline/ledger、pipeline/corpus_compiler、pipeline/validation、pipeline/dataset_compiler、openspec/acceptance 一律一字不动；ACT 05 是 W4 内唯一写 pipeline/corpus/_fixture/mini_ed01/ 的 ACT（P4）
   - 每个 ACT 先取得 Red 再实现；Red 原文与 Green 输出写报告
   - 只用标准库（check_interfaces.py 不 import yaml/jsonschema）；不新增依赖、不新增 ID 前缀、不调用模型 API（P6/P8）
-  - INTERFACES.md 的 §4 闭集名称逐字取 README §5.1；不得使用未入闭集的类型名（P2）
+  - INTERFACES.md 的 §4 闭集名称逐字取 README §5.1 与 impl-05 定稿；不得使用未入闭集的类型名（P2）
+  - ACT 05 的金标不得由 impl-05 实现方生成（不得 import pipeline.knowledge_extraction，§9.6 第 48 条）
   - 中文注释与 docstring；公开函数名、检查名、常量名与 ACT contract 逐字一致
   - 每个 ACT 一个提交；只 add scope.write 中的路径；不得 git add -A / git add .；不得写台账或 ACCEPTED
-  - DEFERRED 的 ACT（00–09）在本波不执行；其 act 文件保留原样，仅由 ACT.yaml 标 status: DEFERRED
+  - DEFERRED 的 ACT（00–04、06–09）在本波不执行；其 act 文件保留原样，仅由 ACT.yaml 标 status: DEFERRED
 gates:
   - python3 docs/blackbox-spec-rework/work-items/impl-00-interfaces/check_interfaces.py; echo exit=$?   # exit=0，末行 I00-IF SUMMARY pass=<n> fail=0
-  - .venv/bin/python -m unittest discover -s docs/blackbox-spec-rework/work-items/impl-00-interfaces/tests -t docs/blackbox-spec-rework/work-items/impl-00-interfaces 2>&1 | tail -3   # OK
+  - .venv/bin/python -m unittest discover -s docs/blackbox-spec-rework/work-items/impl-00-interfaces/tests -t docs/blackbox-spec-rework/work-items/impl-00-interfaces 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK
+  - export LC_ALL=en_US.UTF-8; bash pipeline/corpus/_fixture/mini_ed01/verify.sh | tail -1   # ACT 05 后：FIXTURE OK（10 项）
   - bash openspec/schemas/verify.sh >/dev/null; echo $?                     # 0（未改 schemas）
   - export LC_ALL=en_US.UTF-8; bash openspec/acceptance/run_all.sh | tail -1   # SUMMARY pass=2 fail=1 blocked=8（未改 acceptance）
-  - git status --short openspec/schemas pipeline/corpus/_fixture pipeline/ledger   # 空（未写热点）
+  - git status --short openspec/schemas pipeline/ledger   # 空（未写热点；fixture 仅 ACT 05 写）
   - git diff --check
-on_fail: 停止并报告；§4 闭集名称与 README §5.1 不一致、impl-03/impl-04 引用到未登记类型、需要写 scope 外文件、需要改 schemas/fixture/ledger 才能通过 → 一律停手上报
+on_fail: 停止并报告；§4 闭集名称与 README §5.1/impl-05 不一致、impl-05 引用到未登记类型、需要写 scope 外文件、需要改 schemas/ledger 才能通过、ACT 05 金标需 impl-05 代码 → 一律停手上报

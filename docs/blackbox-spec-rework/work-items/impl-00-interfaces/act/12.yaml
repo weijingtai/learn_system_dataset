@@ -1,0 +1,74 @@
+act_id: impl-00/12
+status: READY_FOR_REVIEW   # W4-G 起草 2026-09-13，依 G7-RULINGS §9.6 第 47/49 条与 impl-05 定稿（8cedae2）；单写者（P2）；未经执行
+title: M4 artifact_type 闭集登记与 INTERFACES 对账（§2.4 / §3.1 / §3.2 / §3.10 / §4 / §6 I-11）
+estimated_minutes: 60
+group: W4G
+depends_on: [impl-00/10]   # 首纵切登记（ea90ca8）已执行；本 ACT 在其上追加 M4 行
+decisions_required: []     # 已由 G7-RULINGS §9.6 第 47/49 条裁定；执行者不重议
+scope:
+  write: [docs/blackbox-spec-rework/work-items/impl-00-interfaces/INTERFACES.md, docs/blackbox-spec-rework/work-items/impl-00-interfaces/check_interfaces.py, docs/blackbox-spec-rework/work-items/impl-00-interfaces/tests/__init__.py, docs/blackbox-spec-rework/work-items/impl-00-interfaces/tests/test_check_interfaces.py]
+tests_first:
+  - 先改 check_interfaces.py 与 tests/test_check_interfaces.py（新增 M4 检查 IF19–IF23、旧名禁忌 IF24，以及 5 个具名用例），运行 `python3 .../check_interfaces.py` 应因 §4 无 M4 类型而 FAIL IF19–IF23、`unittest` 新增用例 Red（Red 原文入报告）；再改 INTERFACES.md 转 Green
+  - 本 ACT 是 impl-05 K2 的前置（G7-RULINGS §9.6 第 47 条）：执行并验收后方可派发 impl-05 K2
+contract: |
+  只改 INTERFACES.md 与本 ACT 的 check_interfaces.py / tests。不得改任何代码、Schema、fixture、ledger、acceptance；只写 impl-00-interfaces/ 目录内文件。
+  A. §4 表 M4 行（`INTERFACES.md:339`）整行替换为五行，名称逐字取 impl-05 定稿（8cedae2）实际使用的类型名（P2）：
+    | M4 | `candidate_submission` | 任务级（每路 category×lane 的提交件） | 代码草案 0.1.0-draft（P3） | M4 薄接入（act/12 登记；实现见 impl-05） |
+    | M4 | `candidate_lane_set` | 任务级（每路规范化结果） | 代码草案（P3） | 同上 |
+    | M4 | `dispute_queue` | 队列（M4 类别分歧） | 代码草案（P3） | 同上 |
+    | M4 | `candidate_set` | 主内容 | `candidate_set` 代码草案（见 §3.2） | 同上 |
+    | M4 | `candidate_package` | 阶段输出索引 | 代码草案（P3） | 同上 |
+    删除旧命名 `candidate_batch` / `model_run` / `candidate_diff_report`（§4 表内不得再出现；IF24 检查）
+  B. §4 表头登记纪律行（`INTERFACES.md:327`）追加：M4 五行由 act/12 登记，`candidate_set` 内容结构为代码草案（P3），正式化随 impl-08 Contract Registry
+  C. §2.4 M4 卡片（`INTERFACES.md:129-143`）按 impl-05 定稿重写为「M4 薄接入（下一波，act/12 登记类型）」：
+    - 冻结输入：m3 StagePackage + `corpus_spans` + `technique_profile`（Contract Registry 快照；首切片 canon 6 文件、homographs/glossary/schools 为空）+ 全部 `candidate_submission` 修订
+    - 任务与 Checkpoint：每路（category×lane）一个 submit StepRun（task `submit_<category>_<lane>`，1 Checkpoint）；assemble StepRun 每路 `lane_<category>_<lane>` → `reconcile` → 每条裁决 1 个 → `assemble`
+    - 输出 artifact_type：任务级 `candidate_submission` / `candidate_lane_set` / `dispute_queue`；人工 `human_event`（内容 `event_kind: category_ruling`，`decision_type=None`）；主内容 `candidate_set`；阶段输出 `candidate_package`；另有 `validation_report`、`step_log`、`failure_report`
+    - payload：`{candidate_set_revision_id, corpus_stage_package_revision_id, spans_revision_id, technique_profile_revision_id, gate_profile:"thin_no_model", span_layer:"structural", cross_model:"not_evaluated", term_layering:"verify_only", content_status_counts}`
+    - counts：`{assertions, patterns, school_views, concept_mentions, new_concept_candidates, rejected, disputes, human_decisions}`；content_sha256 = sha256(candidate_set 字节)；operation `extract_candidates`
+    - Gate：候选 Gate 十二项检查（名称见 impl-05 act/02）；结果作为 M4 自身 StepRun 的 `validation_report` 落盘并列入 `validation_report_ids`（G7-RULINGS §9.6 第 50 条）
+    - 人工队列：队列 3「M4 类别分歧」；content_status 上限 `needs_expert`，`expert_verified` 由 M6 签发（P7）
+    - 下游消费键：M5 —— evidence 五键 + `content_status`、`span_layer`；M6/M8 —— 见 impl-05 README §6.6
+  D. §3.1 `evidenceLink`（`INTERFACES.md:236`）按 §9.6 第 49 条改写：`{source_span_id, support_type: direct|interpreted, start_offset ≥0, end_offset ≥1, quote (minLength 1), quote_sha256}`；语义为**相对页块的绝对偏移**（与 `corpus_spans` 的 `start_offset/end_offset` 同一坐标系；`start_offset = span.start_offset + 局部起点`），保留 `quote` 供独立复算
+  E. §3.2 `candidate_set.schema.json`（`INTERFACES.md:240-258`）整节替换为 impl-05 薄结构（顶层键序逐字）：
+    `schema_version`(const "0.1.0-draft"), `technique_id`, `source_id`, `edition_part_artifact_id`, `evidence_level`, `span_layer`("structural"), `source_channels`({category:{lane:channel}}), `assertions[]`, `patterns[]`, `school_views[]`, `concept_mentions[]`, `new_concept_candidates[]`, `rejected[]`, `disputes[]`, `counts{assertions,patterns,school_views,concept_mentions,new_concept_candidates,rejected,disputes,human_decisions}`
+    - assertion 键：`assertion_id, proposition_id, proposition, relation(supports|qualifies|opposes|corresponds|equivalent), evidence[evidenceLink] minItems 1, conditions[], exceptions[], concept_refs[], school_ids[], layer(general|case|editorial), content_status(machine_extracted|disputed|needs_expert), origin{lane,item_index}`
+    - 删除旧键 `corpus_package_revision_id` / `extraction_mode` / `term_layers` / `concepts[]` / `applicability_rules` / `cases` / `editorial_notes` / `uncertainties[]` / `model_run_revision_ids[]`（impl-05 首切片不产出；`new_concept_candidates` 取代 L3）；修订号与索引不入 candidate_set（在 `candidate_package`，见 impl-05 README §6.3(2)）
+  F. §3.10 `evidence_map_pack`（`INTERFACES.md:301`）的 `evidence_link` 键 `char_start, char_end` → `start_offset, end_offset`（同 D 坐标口径，§9.6 第 49 条）
+  G. §6 【I-11】（`INTERFACES.md:404`）改写为：quote hash = sha256(quote 的 UTF-8 字节)；evidence 的 `start_offset/end_offset` 为**相对页块的绝对偏移**（与 M3 `corpus_spans` 同一坐标系），`quote` 逐字等于该区间文本；跨包（M5/M8）一致（§9.6 第 49 条）
+  H. §4 表状态列：M4 五行状态取「M4 薄接入（act/12 登记；实现见 impl-05）」，**不得**写 `DEFERRED`/`纵切后`（IF11 检查）；其余纵切后类型（M6/M7、M8 纵切后行等）保持「纵切后」
+  I. 不得改动 m1–m3 的【实际】事实与 M5/M8 首纵切行
+  J. check_interfaces.py 检查清单（**IF01–IF18 编号与语义不得改变**；现有 8 个用例引用 IF02/IF10/IF11/IF13/IF18）：
+    IF19 required `candidate_submission` 在 §4 表出现恰 1 次；IF20 `candidate_lane_set`；IF21 `dispute_queue`；IF22 `candidate_set`；IF23 `candidate_package`
+    IF24 §4 表不含旧 M4 名 `candidate_batch` / `model_run` / `candidate_diff_report`
+    实现要求：把现有 `REQUIRED_TYPES`（IF02–IF09）与新增 `M4_TYPES`（IF19–IF23，显式编号）分开，禁止用单一 enumerate 生成编号（否则 M4 类型会占用 IF10/IF11 编号）；新增 `FORBIDDEN_M4_NAMES` 走 IF24；docstring 由「IF01–IF18」改为「IF01–IF24」
+    绿色时期望：`I00-IF SUMMARY pass=24 fail=0`、exit 0
+tests:
+  test_check_interfaces.py: |
+    - test_if01_passes_on_repo_copy（现有，保持）
+    - test_required_type_missing_fails（现有，断言 IF02）
+    - test_duplicate_type_fails（现有，断言 IF10）
+    - test_required_type_marked_deferred_fails（现有，断言 IF11）
+    - test_ruling_marker_missing_fails（现有，断言 IF13）
+    - test_forbidden_type_present_fails（现有，断言 IF18）
+    - test_missing_file_exit_3（现有，保持）
+    - test_summary_line_format（现有；Green 后断言末行 pass=24、fail=0、rc=0）
+    - test_m4_required_types_present（仓库副本 IF19–IF23 全 PASS）
+    - test_m4_type_missing_fails（副本删 `candidate_submission` 行 → FAIL IF19）
+    - test_m4_type_marked_deferred_fails（副本把 `candidate_lane_set` 状态列改 `纵切后` → FAIL IF11）
+    - test_m4_duplicate_type_fails（副本复制 `dispute_queue` 行 → FAIL IF10）
+    - test_legacy_m4_name_present_fails（副本在 §4 表插入 `candidate_batch` 行 → FAIL IF24）
+verify:
+  - python3 docs/blackbox-spec-rework/work-items/impl-00-interfaces/check_interfaces.py; echo exit=$?   # 末行 I00-IF SUMMARY pass=24 fail=0；exit=0
+  - .venv/bin/python -m unittest discover -s docs/blackbox-spec-rework/work-items/impl-00-interfaces/tests -t docs/blackbox-spec-rework/work-items/impl-00-interfaces 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例 ≥ 13
+  - grep -c '^| M4 ' docs/blackbox-spec-rework/work-items/impl-00-interfaces/INTERFACES.md   # ≥ 5
+  - grep -c 'candidate_submission' docs/blackbox-spec-rework/work-items/impl-00-interfaces/INTERFACES.md   # ≥ 1
+  - grep -c 'char_start' docs/blackbox-spec-rework/work-items/impl-00-interfaces/INTERFACES.md   # 0（grep 无匹配 exit 1 属预期；§3.1/§3.10/§6 已按 §9.6 第 49 条改写）
+  - grep -cE 'candidate_batch|model_run|candidate_diff_report' docs/blackbox-spec-rework/work-items/impl-00-interfaces/INTERFACES.md   # 0（同上）
+  - git status --short openspec/schemas pipeline/corpus/_fixture pipeline/ledger   # 空
+  - bash openspec/schemas/verify.sh >/dev/null; echo $?                            # 0
+  - git diff --check
+commit:
+  add: [docs/blackbox-spec-rework/work-items/impl-00-interfaces/INTERFACES.md, docs/blackbox-spec-rework/work-items/impl-00-interfaces/check_interfaces.py, docs/blackbox-spec-rework/work-items/impl-00-interfaces/tests]
+  message: "docs(impl-00): register M4 artifact_type closed set and align INTERFACES to impl-05 thin intake"
+on_fail: 停止并报告；IF01–IF18 编号或语义被改动、现有 8 用例断言被改、需要写 scope 外文件、需要改 schemas/fixture/ledger 才能通过 → 停手上报
