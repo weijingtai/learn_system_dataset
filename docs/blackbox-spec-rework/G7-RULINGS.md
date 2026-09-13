@@ -190,6 +190,13 @@ Q49 按 P8 须用户确认前缀；Q52/Q53/Q55/Q57/Q62 推迟到 W5 定稿；Q50
 | 65 | R3 M4/M6 内容缺口（`concepts[]`、`patterns[].concept_id`、`rules[]`） | 采纳：创世薄切片缩水，知识链按 `pat_` 聚合；缺口登记为对 M4/M6 的接口需求（写入 impl-07 README 与 INTERFACES 相应卡片的「接口需求」），不在 M7 内补造内容 |
 | 66 | R4 创世验收宿主 | 采纳：用包内合成宿主（`pipeline/assembly/tests/data/`），不改共享 fixture（P4）。附条件：合成输入中的人工决定须标 `synthetic_fixture: true`（同第 52 条）且不计 `expert_verified`；「消费真实 M6 产出」验收项在 impl-06 实现并验收前判 BLOCKED |
 
+### 9.14 impl-06 四查 R1（`9c1d971`）语义裁定
+
+| # | 条目 | 裁决 |
+|---|---|---|
+| 67 | F1 M6 审核队列：act/05 以 `required_decision_types` 合并得 5 项（school_view 恒含 source_fidelity），与 README D-04 默认映射及 BDD/expected 的 4 项矛盾 | 以已验收 impl-05 `review_events.required_decision_types` 为唯一来源（P9，签发所需决定类型由 M4 契约定义）；M6 不另立映射；BDD、期望产物、队列与失效计数一律按推导结果（school_view 含 source_fidelity）重算，README D-04 改写为「由 required_decision_types 推导」 |
+| 68 | F2 modify 决定锚点语义（事件锚 = seen 还是 modified） | 人工决定事件锚点一律为 `seen_revision_id`（审核者所见修订，§14.1 精确失效依据）；`modify` 决定另携 `modified_revision_id`（修改产出的新修订），该键纳入 decision_entries 键集并由 Gate `decision_anchoring` 校验存在性；BDD 1.3/5.5、act/01/02/05 统一 |
+
 ## 10. 用户待办
 
 1. W4-J 前：撰写真实前十页人工终态决定表（P7，Q37）。
