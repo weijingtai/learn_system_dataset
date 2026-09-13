@@ -22,7 +22,7 @@
 ```bash
 export LC_ALL=en_US.UTF-8
 W=docs/blackbox-spec-rework/work-items/impl-00-interfaces
-python3 $W/check_interfaces.py; echo exit=$?                                    # exit=0，末行 I00-IF SUMMARY pass=N fail=0
+python3 $W/check_interfaces.py; echo exit=$?                                    # 末行 fail=0 且 exit=0；所需类型 PASS 行存在（第 54 条，不写死 pass 总数）
 python3 -m unittest discover -s $W/tests -t $W 2>&1 | tail -3                    # OK
 git status --short | grep -vE "^(\?\?| M) docs/blackbox-spec-rework/work-items/impl-00-interfaces/"   # 空（只写本目录）
 git diff --check                                                                 # 无输出
@@ -116,7 +116,7 @@ git diff --check                                                                
 ### 5.2 缺口与已裁项（G7-RULINGS §9.1 第 24/25/26 条）
 
 1. **已裁（§9.1 第 24 条）**：`validator_report` **不入** §4 闭集；impl-03 定稿（`1a189ae`）已改为复用通用 `validation_report`；首纵切 M5 新类型只有 `gate_results`、`validation_package`；§4 表残留的 `gate_report` 由 `impl-00/10` 删除。
-2. **已裁（§9.1 第 25 条，按第 13 条）**——Ledger 只读查询缺口清单（本清单为唯一登记处，供 impl-08 补读接口）：impl-03 `act/04.yaml:16` 需 `frozen_inputs`、`artifacts.artifact_type`、`stage_packages` 三类元数据；impl-04 `act/04.yaml:14` 需按 `step_run_id` 取 sealed StagePackage。`LedgerReadMixin`（service.py 111–164）无对应公开方法，首纵切允许只读 SELECT；impl-08 以公开读方法补齐后回改调用方。
+2. **已裁（§9.1 第 25 条，按第 13 条）**——Ledger 只读查询缺口清单（本清单为唯一登记处，供 impl-08 补读接口）：impl-03 `act/04.yaml:16` 需 `frozen_inputs`、`artifacts.artifact_type`、`stage_packages` 三类元数据；impl-04 `act/04.yaml:14` 需按 `step_run_id` 取 sealed StagePackage；**impl-05 `act/03.yaml`（`processing_runs` 取 `technique_id`）与 `act/05.yaml`（`human_events` 查已登记裁决）另需 `processing_runs`、`human_events` 两类，经 G7-RULINGS §9.8 第 55 条并入本清单**。`LedgerReadMixin`（service.py 111–164）无对应公开方法，首纵切允许只读 SELECT；impl-08 以公开读方法补齐后回改调用方。
 3. **已裁（§9.1 第 26 条，按第 17 条）**——错误码缺口：impl-03 的 `count_mismatch`、`unproofread_glyphs`、`replay_tool_mismatch` 在现有 9 码中无对应，填 `code: null`，缺口并入本清单；错误码闭集扩充随 impl-08 Contract Registry。
 
 ### 5.3 W4 独占 ACT（G7-RULINGS §9.6 第 47–49 条；已自 DEFERRED 移入 `W4G` 执行组）
@@ -125,7 +125,7 @@ W4-G 定稿（2026-09-13）新增/裁剪两个前置 ACT，均 `READY_FOR_REVIEW
 
 | ACT | 标题 | 前置 | 写范围 | 关键判据 |
 |---|---|---|---|---|
-| `impl-00/12` | M4 artifact_type 闭集登记与 INTERFACES 对账（§2.4/§3.1/§3.2/§3.10/§4/§6 I-11） | `impl-00/10`（首纵切登记 `ea90ca8`） | `INTERFACES.md`、`check_interfaces.py`、`tests/`（仅本目录） | `check_interfaces.py` → `I00-IF SUMMARY pass=24 fail=0`；`unittest` ≥ 13 用例；§4 旧 M4 名与 `char_start` 清零（含 §3.10，§9.7 第 51 条） |
+| `impl-00/12` | M4 artifact_type 闭集登记与 INTERFACES 对账（§2.4/§3.1/§3.2/§3.10/§4/§6 I-11） | `impl-00/10`（首纵切登记 `ea90ca8`） | `INTERFACES.md`、`check_interfaces.py`、`tests/`（仅本目录） | `check_interfaces.py` → 末行 `fail=0` 且 exit 0，IF19–IF23 五个 PASS 行存在（第 54 条，不写死总数）；`unittest` ≥ 13 用例；§4 旧 M4 名与 `char_start` 清零（含 §3.10，§9.7 第 51 条） |
 | `impl-00/05` | mini_ed01 m4 金标与 `verify.sh` 扩展（仅 m4；独占，P4） | `impl-00/12` | `pipeline/corpus/_fixture/mini_ed01/m4/**`、`expected/m4.stage_package.yaml`、`verify.sh` | `verify.sh` → `FIXTURE OK`（11 项）；`shasum -c m4/SHA256SUMS` 绿；`build_expected_m4.py` 两次字节相同；人工事件金标含 `synthetic_fixture: true`（§9.7 第 52 条） |
 
 约束：`impl-00/12` 是 §4 的**单写者**（P2），执行并验收后 impl-05 K2 才可派发；`impl-00/05` 是 W4 内**唯一**写 `pipeline/corpus/_fixture/mini_ed01/` 的 ACT（P4），其金标**不得由 impl-05 实现方生成**（§9.6 第 48 条），也不得改 `tools/build_fixture.py`。`impl-00/06–09` 仍 `DEFERRED`。

@@ -73,7 +73,7 @@ global_rules:
   - 每个 ACT 一个提交；只 add scope.write 中的路径；不得 git add -A / git add .；不得写台账或 ACCEPTED
   - DEFERRED 的 ACT（00–04、06–09）在本波不执行；其 act 文件保留原样，仅由 ACT.yaml 标 status: DEFERRED
 gates:
-  - python3 docs/blackbox-spec-rework/work-items/impl-00-interfaces/check_interfaces.py; echo exit=$?   # exit=0，末行 I00-IF SUMMARY pass=<n> fail=0
+  - python3 docs/blackbox-spec-rework/work-items/impl-00-interfaces/check_interfaces.py; echo exit=$?   # 末行 fail=0 且 exit=0；所需类型 PASS 行存在（第 54 条，不写死 pass 总数）
   - .venv/bin/python -m unittest discover -s docs/blackbox-spec-rework/work-items/impl-00-interfaces/tests -t docs/blackbox-spec-rework/work-items/impl-00-interfaces 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK
   - export LC_ALL=en_US.UTF-8; bash pipeline/corpus/_fixture/mini_ed01/verify.sh | tail -1   # ACT 05 后：FIXTURE OK（11 项）
   - bash openspec/schemas/verify.sh >/dev/null; echo $?                     # 0（未改 schemas）

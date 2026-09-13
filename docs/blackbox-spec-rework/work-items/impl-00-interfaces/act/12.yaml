@@ -21,7 +21,7 @@ contract: |
     删除旧命名 `candidate_batch` / `model_run` / `candidate_diff_report`（§4 表内不得再出现；IF24 检查）
   B. §4 表头登记纪律行（`INTERFACES.md:327`）追加：M4 五行由 act/12 登记，`candidate_set` 内容结构为代码草案（P3），正式化随 impl-08 Contract Registry
   C. §2.4 M4 卡片（`INTERFACES.md:129-143`）按 impl-05 定稿重写为「M4 薄接入（下一波，act/12 登记类型）」：
-    - 冻结输入：m3 StagePackage + `corpus_spans` + `technique_profile`（Contract Registry 快照；首切片 canon 6 文件、homographs/glossary/schools 为空）+ 全部 `candidate_submission` 修订
+    - 冻结输入：m3 StagePackage + `corpus_package` + `corpus_spans` + `technique_profile`（Contract Registry 快照；首切片 canon 6 文件、homographs/glossary/schools 为空）+ 全部 `candidate_submission` 修订（W7：与 impl-05 act/04 frozen 7 项一致）
     - 任务与 Checkpoint：每路（category×lane）一个 submit StepRun（task `submit_<category>_<lane>`，1 Checkpoint）；assemble StepRun 每路 `lane_<category>_<lane>` → `reconcile` → 每条裁决 1 个 → `assemble`
     - 输出 artifact_type：任务级 `candidate_submission` / `candidate_lane_set` / `dispute_queue`；人工 `human_event`（内容 `event_kind: category_ruling`，`decision_type=None`）；主内容 `candidate_set`；阶段输出 `candidate_package`；另有 `validation_report`、`step_log`、`failure_report`
     - payload：`{candidate_set_revision_id, corpus_stage_package_revision_id, spans_revision_id, technique_profile_revision_id, gate_profile:"thin_no_model", span_layer:"structural", cross_model:"not_evaluated", term_layering:"verify_only", content_status_counts}`
@@ -42,7 +42,8 @@ contract: |
     IF19 required `candidate_submission` 在 §4 表出现恰 1 次；IF20 `candidate_lane_set`；IF21 `dispute_queue`；IF22 `candidate_set`；IF23 `candidate_package`
     IF24 §4 表不含旧 M4 名 `candidate_batch` / `model_run` / `candidate_diff_report`
     实现要求：把现有 `REQUIRED_TYPES`（IF02–IF09）与新增 `M4_TYPES`（IF19–IF23，显式编号）分开，禁止用单一 enumerate 生成编号（否则 M4 类型会占用 IF10/IF11 编号）；新增 `FORBIDDEN_M4_NAMES` 走 IF24；docstring 由「IF01–IF18」改为「IF01–IF24」
-    绿色时期望：`I00-IF SUMMARY pass=24 fail=0`、exit 0
+    绿色时期望（第 54 条）：末行 `fail=0` 且 exit 0，IF19–IF23 五个 PASS 行存在；不写死 pass 总数
+  K. §3.15 「不在本包范围」（`INTERFACES.md:321`）按 W3 清理旧 M4 名残留：删除句中的 `model_run`（M4 模型留痕类型随 D-01/P6 退出提名；§3.2 的 `model_run_revision_ids` 已在 E 条删除），改写为「…；四类 Proposal、`term_layer_report`、`correction_request`、`review_queue`（由 M4/M6/M7 包各自起草，回填到本表 §4）」；保证全文件 `grep -cE 'candidate_batch|model_run|candidate_diff_report'` = 0 可达
 tests:
   test_check_interfaces.py: |
     - test_if01_passes_on_repo_copy（现有，保持）
@@ -52,14 +53,14 @@ tests:
     - test_ruling_marker_missing_fails（现有，断言 IF13）
     - test_forbidden_type_present_fails（现有，断言 IF18）
     - test_missing_file_exit_3（现有，保持）
-    - test_summary_line_format（现有；Green 后断言末行 pass=24、fail=0、rc=0）
+    - test_summary_line_format（现有；Green 后断言末行 `fail=0` 且 rc=0，不断言 pass 总数，第 54 条）
     - test_m4_required_types_present（仓库副本 IF19–IF23 全 PASS）
     - test_m4_type_missing_fails（副本删 `candidate_submission` 行 → FAIL IF19）
     - test_m4_type_marked_deferred_fails（副本把 `candidate_lane_set` 状态列改 `纵切后` → FAIL IF11）
     - test_m4_duplicate_type_fails（副本复制 `dispute_queue` 行 → FAIL IF10）
     - test_legacy_m4_name_present_fails（副本在 §4 表插入 `candidate_batch` 行 → FAIL IF24）
 verify:
-  - python3 docs/blackbox-spec-rework/work-items/impl-00-interfaces/check_interfaces.py; echo exit=$?   # 末行 I00-IF SUMMARY pass=24 fail=0；exit=0
+  - python3 docs/blackbox-spec-rework/work-items/impl-00-interfaces/check_interfaces.py; echo exit=$?   # 末行 fail=0 且 exit=0；IF19–IF23 五个 PASS 行存在（第 54 条，不写死 pass 总数）
   - .venv/bin/python -m unittest discover -s docs/blackbox-spec-rework/work-items/impl-00-interfaces/tests -t docs/blackbox-spec-rework/work-items/impl-00-interfaces 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例 ≥ 13
   - grep -c '^| M4 ' docs/blackbox-spec-rework/work-items/impl-00-interfaces/INTERFACES.md   # ≥ 5
   - grep -c 'candidate_submission' docs/blackbox-spec-rework/work-items/impl-00-interfaces/INTERFACES.md   # ≥ 1

@@ -36,7 +36,7 @@
 
 `impl-00/10` 执行后（见其 `verify`，`git archive` 干净树）：
 
-- `python3 .../check_interfaces.py` → exit 0，末行 `I00-IF SUMMARY pass=18 fail=0`；`unittest` 8 用例 OK。
+- `python3 .../check_interfaces.py` → exit 0，末行 `fail=0` 且所需类型 PASS 行存在（第 54 条，不写死 pass 总数）；`unittest` 8 用例 OK。
 - `bash openspec/schemas/verify.sh` → 0（未改 schemas）；`run_all.sh` → `SUMMARY pass=2 fail=1 blocked=8`（未改 acceptance）。
 - `git status --short openspec/schemas pipeline/corpus/_fixture pipeline/ledger` 为空；只 add `commit.add` 路径；无 `__pycache__`；`git diff --check` 通过。
 
