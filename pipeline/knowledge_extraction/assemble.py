@@ -70,9 +70,9 @@ def locate_evidence(evidence, index):
         quote = evidence["quote"]
         count = text.count(quote)
         if count == 0:
-            raise _ItemRejected("TXT_001", "quote 不在 Span 内: %s" % quote)
+            raise _ItemRejected("TXT_001", "quote 不在 Span 内")
         if count > 1:
-            raise _ItemRejected("TXT_001", "quote 在 Span 内不唯一: %s" % quote)
+            raise _ItemRejected("TXT_001", "quote 在 Span 内不唯一")
         start = text.index(quote)
         end = start + len(quote)
     else:

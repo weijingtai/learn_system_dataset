@@ -1,6 +1,1 @@
-schema_version: 0.1.0-draft
-dispute_id: m4_d001
-choice: a
-rationale: B 路 relation=qualifies 与题记直述不符
-synthetic_fixture: true
-actor_ref: fixture:mini_ed01
+{schema_version: 0.1.0-draft, dispute_id: m4_d001, choice: a, rationale: B 路 relation=qualifies 与题记直述不符, synthetic_fixture: true, actor_ref: fixture:mini_ed01}
