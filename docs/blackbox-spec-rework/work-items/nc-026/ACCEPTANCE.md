@@ -6,9 +6,9 @@
 2. 范围（`git diff-tree -r --name-only`，不用 `git diff`）：
    - REST `b60bfbd..HEAD`：恰 5 个文件（openapi.yaml、契约测试、2 示例、manifest）。
    - SERVER `992088e..HEAD`：恰 10 个文件（schemas 副本、test_community_validation.py、command_service.py、pseudonyms.py、behavior_events.py、analytics_events.py、config.py、main.py、conftest.py、test_behavior_events.py）；`content_service.py`、`discussion_service.py`、`interaction_service.py`、`access.py`、`errors.py`、`ids.py`、`community_hash.py`、`push.py`、`identity.py`、`tests/test_community_interactions.py`、`tests/test_community_comments.py`、`tests/test_registration.py`、`tests/test_main_exports.py`、`tests/community_helpers.py` 零改动。
-   - CLIENT `107ec90..HEAD`：恰 2 个文件。
+   - CLIENT `19afe37..HEAD`：恰 2 个文件（`19afe37` 为 NC-014 落地后基线，D-NC026-26）。
    - RULES `a354463..HEAD`：恰 1 个文件；`server/firestore.rules` 零改动。
-3. 重跑 TDD §1 全部命令：pytest `5 failed, 594 passed, 3 xfailed`（FAILED 恰为五个既有 ID）；rules `157 passed`；dart `+85`；flutter `analyze` 0 与 `+314`；`nc026_guard.sh --require-impl all` 退出 0。
+3. 重跑 TDD §1 全部命令：pytest `5 failed, 594 passed, 3 xfailed`（FAILED 恰为五个既有 ID）；rules `157 passed`；dart `+85`；flutter `analyze` 0 与 `+332`；`nc026_guard.sh --require-impl all` 退出 0。
 4. 主 Agent 盲测（临时文件不入库，结束删除并以四仓 `git status --short` 为空证明；清单 = 契约 §14 八项）：① 真跑 publish 并把事件文档做真 Schema 校验；② 三组 `bev_` 与 `note_ref` 独立进程复算；③ 重复批 `accepted=2, duplicates=1`；④ 501 → 413、错 `event_type` → 400、非法 attributes → 400 且 JSON Pointer 正确；⑤ 两独立项目假名不同且 ≠ 哈希推导值；⑥ 10001 条丢 1 且下一条带 `dropped_before: 1`、重启后 `pendingCount` 不变；⑦ 上报原始字节不含 note_id/标题/正文/附件名；⑧ 作弊扫描。
 5. 作弊扫描：无 `skip`、无新增 `xfail`、无永真断言；`SCHEMA_SHA`、3 组 `bev_`、`note_ref` 为字面量；`tx.create()` 真实 create-if-absent（并发/重试用真实事务）；`_send_multicast` 不涉及；无真实外部网络；`exactly-once` 在三仓新增文件中零命中；`server/firestore.rules` 与 `COMMUNITY_COLLECTIONS` 清单数组未被触碰。
 6. 注销子项：确认**未派发**且契约 §13 已登记 DEFERRED 与其解锁条件（NC-001 第⑩项）。

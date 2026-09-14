@@ -42,11 +42,11 @@
 
 你是 NC-026-D 执行者，只做 act/04。先读（按序）：`work-items/nc-026/README.md` → 契约 `community_behavior.md` §5/§6/§9.3 → `BDD.md` C01～C18 → `TDD.md` §5 → `act/04.yaml` 全文。
 
-开工前：`git -C <CLIENT 仓> status --short` 为空、HEAD = `107ec90`。
+开工前：`git -C <CLIENT 仓> status --short` 为空、HEAD = `19afe37`（NC-014 落地后基线，D-NC026-26）。
 
 只允许新建 `lib/src/analytics/private_note_metrics.dart` 与 `test/analytics/private_note_metrics_test.dart`；`note_database.dart`、`note_repository.dart`、`pubspec.yaml` 禁改（不新增依赖，不新建 Drift 表）。`note_ref` 与 `char_count` 的期望值抄契约 §9.3 与 `"a𠀀b"` → 3 字面量，禁止在测试内现算。
 
-先写测试跑 Red（18 passed 目标，基线 +296），再核对 `flutter analyze` 0 与 `flutter test` `+314`。
+先写测试跑 Red（18 passed 目标，基线 +314），再核对 `flutter analyze` 0 与 `flutter test` `+332`。
 
 停止条件：参考值对不上；既有 +296 变红；需要改白名单外文件。处置：`DELIVERY_REPORT_CLIENT.md`「## 待裁决」+ 输出 `NC-026-D 停手待裁决`。
 

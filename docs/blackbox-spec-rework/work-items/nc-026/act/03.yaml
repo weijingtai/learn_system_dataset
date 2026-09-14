@@ -2,10 +2,10 @@ TASK_ID: NC-026-C
 PARENT: NC-026
 STATUS: READY
 REPO: xuan-server/functions-py（Windows `D:/Programme/xuan-server/functions-py`；macOS `/Users/jingtaiwei/Git/Public/xuan-server/functions-py`）
-GOAL: `xuan/community/pseudonyms.py`、`xuan/community/behavior_events.py`、`xuan/handlers/analytics_events.py` + main.py 注册 + config/conftest 追加 + 后 16 测试
+GOAL: `xuan/handlers/analytics_events.py` + main.py 注册 + config/conftest 追加 + 后 16 测试（`pseudonyms.py`/`behavior_events.py` 两个纯层按 D-NC026-24/25 已在 act/02 落地，本 act 只消费）
 DEPENDS_ON: [NC-026-B]
 ESTIMATE_MINUTES: 60
-WORKLOAD: "pseudonyms.py 约 90 行；behavior_events.py 约 220 行；analytics_events.py 约 170 行；main.py +3 行；config.py +1 行；conftest.py +1 行；16 个测试约 460 行"
+WORKLOAD: "analytics_events.py 约 170 行；main.py +3 行；config.py +1 行；conftest.py +1 行；16 个测试约 460 行"
 BASELINE_HEAD: NC-026-B 的提交哈希（执行者回填）
 SCOPE:
   READ:
@@ -19,8 +19,6 @@ SCOPE:
     - D:/Programme/xuan-server/functions-py/tests/community_helpers.py（token_for/call/seed_access 签名，只读）
     - D:/Programme/xuan-server/functions-py/tests/conftest.py（clean_collections 的 names 列表）、tests/test_community_commands.py（Emulator 直查范式）
   WRITE_NEW:
-    - D:/Programme/xuan-server/functions-py/xuan/community/pseudonyms.py（新建）
-    - D:/Programme/xuan-server/functions-py/xuan/community/behavior_events.py（新建）
     - D:/Programme/xuan-server/functions-py/xuan/handlers/analytics_events.py（新建）
     - D:/Programme/xuan-server/functions-py/xuan/config.py（只在 COLLECTIONS 追加 community_analytics_rejections 一键）
     - D:/Programme/xuan-server/functions-py/main.py（只追加 import 与 analytics_events_py 导出）
@@ -46,7 +44,7 @@ STEPS:
 VERIFICATION:
   - "cd D:/Programme/xuan-server/functions-py && PYTHONDONTWRITEBYTECODE=1 FIRESTORE_EMULATOR_HOST=192.168.0.165:8080 FIREBASE_AUTH_EMULATOR_HOST=192.168.0.165:9099 .venv/Scripts/python.exe -m pytest tests/test_behavior_events.py -q -p no:cacheprovider（期望 26 passed）"
   - "同上全量 -q -rf：5 failed, 594 passed, 3 xfailed；FAILED 恰为五个既有 ID"
-  - "git -C D:/Programme/xuan-server/functions-py diff-tree -r --name-only 992088e HEAD（期望恰 8 个文件：schemas/community_behavior_event.schema.json、test_community_validation.py、command_service.py、pseudonyms.py、behavior_events.py、analytics_events.py、config.py、main.py、conftest.py、test_behavior_events.py）"
+  - "git -C D:/Programme/xuan-server/functions-py diff-tree -r --name-only 992088e HEAD（期望恰 10 个文件：schemas/community_behavior_event.schema.json、test_community_validation.py、command_service.py、pseudonyms.py、behavior_events.py、analytics_events.py、config.py、main.py、conftest.py、test_behavior_events.py。本 act 与 act/02 由主 Agent 在同一会话实现、合并为单提交，故范围证据取此完整 10 文件区间；D-NC026-27）"
   - "git -C D:/Programme/xuan-server/functions-py diff-tree -r --name-only 992088e HEAD -- xuan/community/content_service.py xuan/community/discussion_service.py xuan/community/interaction_service.py xuan/community/access.py xuan/community/errors.py xuan/community/ids.py xuan/community_hash.py tests/test_community_interactions.py tests/test_community_comments.py tests/test_registration.py tests/test_main_exports.py tests/community_helpers.py（期望空）"
   - "cd D:/Programme/learn_system && bash docs/blackbox-spec-rework/reviews/nc026_guard.sh --require-impl server（期望 0）"
 ON_FAIL: "停止并在 DELIVERY_REPORT_SERVER.md 追加「## 待裁决」+ 输出 NC-026-C 停手待裁决。参考值对不上、Emulator 不可达、既有 5 失败之外新增失败、main.py 注册影响 test_main_exports、需改白名单外文件，均为停止条件。"

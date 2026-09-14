@@ -6,7 +6,7 @@ GOAL: 新增 `lib/src/analytics/private_note_metrics.dart`（上报端口、注�
 DEPENDS_ON: []
 ESTIMATE_MINUTES: 55
 WORKLOAD: "private_note_metrics.dart 约 320 行；test/analytics/private_note_metrics_test.dart 约 480 行"
-BASELINE_HEAD: 107ec90
+BASELINE_HEAD: 19afe37
 SCOPE:
   READ:
     - D:/Programme/learn_system/openspec/annotation-community/contracts/community_behavior.md（§5.1、§5.2、§6、§9.3）
@@ -36,10 +36,10 @@ STEPS:
   - "提交后运行 learn_system 守卫 --require-impl client，退出码写入报告"
 VERIFICATION:
   - "cd D:/Programme/xuan/reading-notes && D:/apps/apps/flutter/bin/flutter test test/analytics/private_note_metrics_test.dart（期望 18 passed）"
-  - "cd D:/Programme/xuan/reading-notes && D:/apps/apps/flutter/bin/flutter test（期望 +314: All tests passed!）"
+  - "cd D:/Programme/xuan/reading-notes && D:/apps/apps/flutter/bin/flutter test（期望 +332: All tests passed!）"
   - "cd D:/Programme/xuan/reading-notes && D:/apps/apps/flutter/bin/flutter analyze（期望 No issues found!）"
-  - "git -C D:/Programme/xuan/reading-notes diff-tree -r --name-only 107ec90 HEAD（期望恰为 WRITE_NEW 的 2 个文件）"
+  - "git -C D:/Programme/xuan/reading-notes diff-tree -r --name-only 19afe37 HEAD（期望恰为 WRITE_NEW 的 2 个文件）"
   - "cd D:/Programme/learn_system && bash docs/blackbox-spec-rework/reviews/nc026_guard.sh --require-impl client（期望 0）"
-ON_FAIL: "停止并在 DELIVERY_REPORT_CLIENT.md 追加「## 待裁决」+ 输出 NC-026-D 停手待裁决。参考值对不上、既有 +296 变红、需要改白名单外文件，均为停止条件。"
-BASELINE_EXIT_CODES: "开工基线：107ec90，flutter test +296、analyze 0"
+ON_FAIL: "停止并在 DELIVERY_REPORT_CLIENT.md 追加「## 待裁决」+ 输出 NC-026-D 停手待裁决。参考值对不上、既有 +314 变红、需要改白名单外文件，均为停止条件。"
+BASELINE_EXIT_CODES: "开工基线：19afe37，flutter test +314、analyze 0"
 COMMIT_MESSAGE: "feat(analytics): 私人笔记元数据上报队列与假名缓存（NC-026-D）"

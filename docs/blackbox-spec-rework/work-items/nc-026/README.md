@@ -1,6 +1,6 @@
 # NC-026：行为事件数据源、假名化与私人笔记元数据上报
 
-状态：`PREPARING`（六件套与守卫就绪，待 wjt-react 四查后转 `READY`）。task_id：`NC-026`。各仓 HEAD：SERVER（functions-py master）`992088e`、CLIENT（reading-notes main）`107ec90`、REST（repository-rest-adapter main）`b60bfbd`、RULES（xuan-server main）`a354463`。派发前置：NC-002、NC-003、NC-005、NC-009 均 `ACCEPTED`。
+状态：`PREPARING`（六件套与守卫就绪，待 wjt-react 四查后转 `READY`）。task_id：`NC-026`。各仓 HEAD：SERVER（functions-py master）`992088e`、CLIENT（reading-notes main）`19afe37`（NC-014 落地后基线，D-NC026-26）、REST（repository-rest-adapter main）`b60bfbd`、RULES（xuan-server main）`a354463`。派发前置：NC-002、NC-003、NC-005、NC-009 均 `ACCEPTED`。
 
 权威需求来源：`TASKS.md` NC-026（§201-208）；专属契约 `openspec/annotation-community/contracts/community_behavior.md`（§1～§15）；API 补丁 `community_api.md` §14。**执行者不做设计：字段全集、事件目录、假名规则、上报端点、错误码、参考值、测试名、文案全部来自契约。**
 
@@ -23,7 +23,7 @@
 |---|---|---|
 | REST | `b60bfbd` | `dart test` `+81: All tests passed!`（Windows 需 `PYTHON`/`OPENAPI_VALIDATOR`，守卫已内置） |
 | SERVER | `992088e` | pytest `5 failed, 568 passed, 3 xfailed`，FAILED 恰为五个既有 ID（既有缺口不修，D-NC013-13 口径） |
-| CLIENT | `107ec90` | `flutter analyze` No issues found!；`flutter test` `+296` |
+| CLIENT | `19afe37` | `flutter analyze` No issues found!；`flutter test` `+314` |
 | RULES | `a354463` | `npm test -- community_rules` `Tests: 153 passed, 153 total` |
 
 共享守卫：`bash docs/blackbox-spec-rework/reviews/nc026_guard.sh --require-impl rest|server|client|rules|all`（在 learn_system 根执行）。

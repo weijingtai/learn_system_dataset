@@ -120,7 +120,7 @@ files = ["README.md", "BDD.md", "TDD.md", "ACT.yaml", "PROMPT.md", "ACCEPTANCE.m
 hits = [f"{f}:{m.group(0)}" for f in files for m in vague.finditer(read(PACK / f))] + [f"contract:{m.group(0)}" for m in vague.finditer(c)]
 ok03 = (ids == exp_ids and all(30 <= e <= 60 for e in est) and deps == ["[]", "[]", "[NC-026-B]", "[]", "[]"]
         and all("ON_FAIL" in a and "WORKLOAD" in a for a in acts) and not hits
-        and all(x in tdd for x in ("+85", "5 failed, 594 passed, 3 xfailed", "157 passed", "157 total", "+314"))
+        and all(x in tdd for x in ("+85", "5 failed, 594 passed, 3 xfailed", "157 passed", "157 total", "+332"))
         and all(n in tdd for n in SERVER_TESTS + REST_TESTS + CLIENT_TESTS)
         and "DISPATCH_PRECONDITION" in read(PACK / "ACT.yaml") and "DEFERRED" in read(PACK / "ACT.yaml"))
 check(ok03, "K03 六件套：BDD A01～A04/S01～S26/C01～C18/R01～R03、ACT 30–60 分钟、四线依赖链、ON_FAIL/WORKLOAD、无模糊词、计数与测试名",
@@ -213,16 +213,16 @@ if "client" in req:
     miss = [n for n in CLIENT_TESTS if n not in t]; ok &= not miss; det.append(f"tests_missing={miss[:3]}")
     ok &= "exactly-once" not in read(f) and "exactly-once" not in t; det.append("exactly_once=False")
     ok &= NOTE_REF in t; det.append(f"note_ref_literal={NOTE_REF in t}")
-    prot = git(CLI, "diff-tree", "-r", "--name-only", "107ec90", "HEAD", "--",
+    prot = git(CLI, "diff-tree", "-r", "--name-only", "19afe37", "HEAD", "--",
                "lib/src/persistence/note_database.dart", "lib/src/persistence/note_repository.dart", "lib/src/editor", "pubspec.yaml")
     ok &= prot == ""; det.append(f"protected_empty={prot == ''}")
     env = {"PATH": FL + os.pathsep + os.environ["PATH"]}
     rc, out = run([EXE("flutter"), "analyze"], CLI, env, timeout=1800)
     ok &= rc == 0 and "No issues found!" in out; det.append(f"analyze={rc}")
     rc2, out2 = run([EXE("flutter"), "test"], CLI, env, timeout=3600)
-    m = re.search(r"\+(\d+): All tests passed!", out2); ok &= rc2 == 0 and m is not None and int(m.group(1)) >= 314
+    m = re.search(r"\+(\d+): All tests passed!", out2); ok &= rc2 == 0 and m is not None and int(m.group(1)) >= 332
     det.append(f"flutter_test={rc2}/{m.group(1) if m else '无'}")
-    check(ok, "K08 CLIENT 产物：18 个测试名、note_ref 字面量、保护文件零改动、analyze 0、flutter test ≥314", "; ".join(det))
+    check(ok, "K08 CLIENT 产物：18 个测试名、note_ref 字面量、保护文件零改动、analyze 0、flutter test ≥332", "; ".join(det))
 else:
     print("SKIP  K08 CLIENT 产物（验收时 --require-impl client，必须 PASS）")
 

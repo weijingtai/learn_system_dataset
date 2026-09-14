@@ -9,7 +9,7 @@
 | 项 | 实值 |
 |---|---|
 | SERVER（canonical，写入目标） | `D:/Programme/xuan-server/functions-py`（git 根即此目录，`master`，HEAD `992088e`） |
-| CLIENT（写入目标） | `D:/Programme/xuan/reading-notes`（`main`，HEAD `107ec90`） |
+| CLIENT（写入目标） | `D:/Programme/xuan/reading-notes`（`main`，HEAD `19afe37`＝NC-014 落地后基线，D-NC026-26） |
 | REST（写入目标） | `D:/Programme/xuan/repository-rest-adapter`（`main`，HEAD `b60bfbd`） |
 | RULES（新增测试文件） | `D:/Programme/xuan-server/xuan-server`（`main`，HEAD `a354463`）；规则文件在 `server/firestore.rules`（**不在仓根**），规则测试在 `server/functions/test/` |
 | Emulator | Firestore `192.168.0.165:8080`、Auth `192.168.0.165:9099`（2026-09-13 实测可达） |
@@ -247,11 +247,11 @@ describe('BehaviorEvent is append-only (NC-026)', () => {
 | 1 | functions-py | `.venv/Scripts/python.exe -m pytest tests -q -rf -p no:cacheprovider`（带 Emulator 变量） | `5 failed, 568 passed, 3 xfailed`；FAILED 恰为下面五个 |
 | 2 | xuan-server/server/functions | `npm test -- community_rules`（带 Emulator 变量） | `Tests: 157 passed, 157 total` |
 | 3 | repository-rest-adapter | `dart test`（`PYTHON`/`OPENAPI_VALIDATOR` 已注入） | `+85: All tests passed!` |
-| 4 | reading-notes | `flutter analyze`；`flutter test` | `No issues found!`；`+314: All tests passed!` |
+| 4 | reading-notes | `flutter analyze`；`flutter test` | `No issues found!`；`+332: All tests passed!` |
 
 既有失败（**不得修复、不得新增**）：`tests/test_config.py::test_集合名与_ts_逐项一致`、`tests/test_registration.py::test_全部_callable_已在入口注册`、`tests/test_registration.py::test_三个_trigger_已注册`、`tests/test_registration.py::test_与_入口总数对齐`、`tests/test_registration.py::test_没有多余的未声明导出`。
 
-计数推导：SERVER `568 + 26 = 594` passed？**否**——pytest 既有 568 已含 NC-009/011/012a/013 的测试；本任务新增 26 个用例后按 ACT 分两步观察（act/02 后 `5 failed, 578 passed, 3 xfailed`＝568+10；act/03 后 `5 failed, 594 passed, 3 xfailed`＝568+26，3 xfailed 全部来自 E6 已转真的既有测试，本任务不新增 xfail）。REST `81 + 4 = 85`。CLIENT `296 + 18 = 314`。RULES `153 + 4 = 157`。
+计数推导：SERVER `568 + 26 = 594` passed？**否**——pytest 既有 568 已含 NC-009/011/012a/013 的测试；本任务新增 26 个用例后按 ACT 分两步观察（act/02 后 `5 failed, 578 passed, 3 xfailed`＝568+10；act/03 后 `5 failed, 594 passed, 3 xfailed`＝568+26，3 xfailed 全部来自 E6 已转真的既有测试，本任务不新增 xfail）。REST `81 + 4 = 85`。CLIENT `314 + 18 = 332`（起草时基线 `+296`，NC-014 落地后升至 `+314`，见 D-NC026-26）。RULES `153 + 4 = 157`。
 
 ### 8.2 REST（act/01）—— `test/community_openapi_contract_test.dart` 末尾追加，名称逐字
 
@@ -484,3 +484,7 @@ SCHEMA_SHA = f3467224ddafa5ff3ac2a43011521a5cc0b8acf6293244d632fa291c97451e42
 | D-NC026-21 | 不修改 `openspec/schemas/verify_community.sh` 的 `exempt_pointers` | 顶层 `properties.attributes` 仍是联合入口语义，封闭性由其下 `$defs` 承载；改动 NC-002 已验收脚本无必要 |
 | D-NC026-22 | REST 示例清单 20 → 22 项；NC-013 的 twenty 断言改 `greaterThanOrEqualTo(20)` | 沿用 D-NC013-10 的「不锁死清单条数」口径 |
 | D-NC026-23 | `REST/openapi/openapi.yaml` 串行链 NC-026 取 NC-021 之后的下一棒；`SERVER/xuan/config.py`、`SERVER/main.py` 的串行链（PLANS §1.2）同步追加 NC-026 槽位 | NC-021 处于 `BLOCKED`，不阻断；`main.py` 注册影响面已核实为安全（`tests/test_main_exports.py` 只断言 9 个既有 callable 存在与 3 个废弃导入不存在） |
+| D-NC026-24 | 假名派生纯层单列 `SERVER/xuan/community/pseudonyms.py`，随 act/02 落地 | `command_service.py` 补事件字段需引用其常量（`PSN_PREFIX`/`SERVER_PLATFORM`）与复用 `ensure_pseudonym`，若纯层延到 act/03 会让 act/02 的补字段改动无宿主 |
+| D-NC026-25 | 行为事件纯层与 Schema 校验单列 `SERVER/xuan/community/behavior_events.py`，随 act/02 落地 | 与 D-NC026-24 同因：act/02 的 Schema 封闭化与示例校验需要纯层先行，act/03 的端点只做 HTTP/权限/事务编排 |
+| D-NC026-26 | CLIENT 基线因 NC-014 落地由 `+296` 升至 `+314`；契约、六件套与守卫的 CLIENT 基线、保护路径 diff 基准与期望计数同步更新（`107ec90` → `19afe37`，`+314` → `+332`） | NC-026 起草早于 NC-014 落地；`nc026_guard.sh` K08 的 `pubspec.yaml` 保护断言若仍以 `107ec90` 为基准会被 NC-014 的合法 pubspec 改动误判（与 nc014_guard.sh K06 同类修严） |
+| D-NC026-27 | SERVER 线 act/02 与 act/03 由主 Agent 在同一会话实现、合并为**单提交**；范围证据取 `992088e..HEAD` 恰 10 文件；`pseudonyms.py`/`behavior_events.py` 两个纯层归 act/02（见 D-NC026-24/25） | ACCEPTANCE §2 的 SERVER 范围本定义为「`992088e..HEAD` 恰 10 文件」的区间口径、而非按 act 切分提交；act/03 测试文件头部共用导入（`analytics_events_py`）使部分暂存切分无收益、徒增回归面 |

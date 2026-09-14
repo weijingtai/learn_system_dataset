@@ -2,7 +2,7 @@ TASK_ID: NC-026-B
 PARENT: NC-026
 STATUS: READY
 REPO: xuan-server/functions-py（Windows `D:/Programme/xuan-server/functions-py`；macOS `/Users/jingtaiwei/Git/Public/xuan-server/functions-py`）
-GOAL: 逐字节复制冻结的 BehaviorEvent Schema 并同步 SHA 字面量；命令事务事件文档补齐六个外层字段；新增 `tests/test_behavior_events.py` 前 10 测试
+GOAL: 逐字节复制冻结的 BehaviorEvent Schema 并同步 SHA 字面量；新建 `xuan/community/pseudonyms.py`、`xuan/community/behavior_events.py` 两个纯层（D-NC026-24/25：本 act 的 10 个测试需要它们）；命令事务事件文档补齐六个外层字段；新增 `tests/test_behavior_events.py` 前 10 测试（含其头部常量与 act/03 共用导入）
 DEPENDS_ON: []
 ESTIMATE_MINUTES: 55
 WORKLOAD: "Schema 副本 1 文件（约 210 行，逐字节复制）；command_service.py 约 12 行改动（仅 Step 3.3 一处）；test_community_validation.py 1 行字面量；tests/test_behavior_events.py 约 420 行（前 10 测试 + 常量）"
@@ -21,6 +21,8 @@ SCOPE:
     - D:/Programme/xuan-server/functions-py/tests/test_community_validation.py（只改 community_behavior_event.schema.json 一项的 SHA 字面量）
     - D:/Programme/xuan-server/functions-py/xuan/community/command_service.py（只在事务内事件写入一处补 received_at/object_type/object_id/note_ref/platform/app_version；object_type/object_id 映射按契约 §3.1；其余行零改动）
     - D:/Programme/xuan-server/functions-py/tests/test_behavior_events.py（新建，只含 TDD §3 的 10 个测试）
+    - D:/Programme/xuan-server/functions-py/xuan/community/pseudonyms.py（新建，纯层：`PSN_PREFIX`/`SERVER_PLATFORM`/`ensure_pseudonym`/`validate_pseudonym`）
+    - D:/Programme/xuan-server/functions-py/xuan/community/behavior_events.py（新建，纯层：attributes 允许集校验、事件信封构造与 Schema 校验）
   FORBIDDEN:
     - 上表以外任何文件；xuan/community/content_service.py、discussion_service.py、interaction_service.py、access.py、errors.py、ids.py、community_hash.py；tests/test_community_interactions.py；tests/test_community_comments.py；tests/test_registration.py；tests/test_main_exports.py；tests/community_helpers.py；main.py（act/03 才动）；新依赖；skip；新增 xfail；永真断言；测试内现算 Schema SHA 或 bev_ 参考值（必须用契约 §9 字面量常量）；git push
 DEPENDENCY_ALLOWLIST: [沿用 requirements.txt 锁定版本；不新增任何包]
@@ -40,7 +42,7 @@ STEPS:
 VERIFICATION:
   - "cd D:/Programme/xuan-server/functions-py && PYTHONDONTWRITEBYTECODE=1 FIRESTORE_EMULATOR_HOST=192.168.0.165:8080 FIREBASE_AUTH_EMULATOR_HOST=192.168.0.165:9099 .venv/Scripts/python.exe -m pytest tests/test_behavior_events.py tests/test_community_validation.py -q -p no:cacheprovider（期望 10 + 既有 validation 全绿）"
   - "同上全量 -q -rf：5 failed, 578 passed, 3 xfailed（= 568 + 10）"
-  - "git -C D:/Programme/xuan-server/functions-py diff-tree -r --name-only 992088e HEAD（期望恰为 WRITE_NEW 的 4 个文件）"
+  - "git -C D:/Programme/xuan-server/functions-py diff-tree -r --name-only 992088e HEAD（本 act 与 act/03 由主 Agent 在同一会话实现、合并为单提交，故此处范围证据取 `992088e..HEAD` 恰 10 文件；D-NC026-27）"
 ON_FAIL: "停止并在 DELIVERY_REPORT_SERVER.md 追加「## 待裁决」+ 输出 NC-026-B 停手待裁决。Schema SHA 对不上、既有 5 失败之外新增失败、需改白名单外文件，均为停止条件。"
 BASELINE_EXIT_CODES: "开工基线：992088e，pytest 5/568/3"
 COMMIT_MESSAGE: "feat(community): 冻结行为事件 Schema 并补齐服务端事件外层字段（NC-026-B）"

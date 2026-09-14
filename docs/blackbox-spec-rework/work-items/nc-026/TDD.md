@@ -9,10 +9,10 @@
 | 1 | functions-py | `.venv/Scripts/python.exe -m pytest tests -q -rf -p no:cacheprovider`（带 Emulator 变量） | `5 failed, 594 passed, 3 xfailed`；FAILED 恰为五个既有 ID |
 | 2 | xuan-server/server/functions | `npm test -- community_rules`（带 Emulator 变量） | `Tests: 157 passed, 157 total` |
 | 3 | repository-rest-adapter | `dart test`（`PYTHON`/`OPENAPI_VALIDATOR` 已注入） | `+85: All tests passed!` |
-| 4 | reading-notes | `flutter analyze`；`flutter test` | `No issues found!`；`+314: All tests passed!` |
+| 4 | reading-notes | `flutter analyze`；`flutter test` | `No issues found!`；`+332: All tests passed!` |
 | 5 | learn_system | `bash docs/blackbox-spec-rework/reviews/nc026_guard.sh --require-impl all` | 退出 0 |
 
-计数推导：SERVER act/02 后 `5 failed, 578 passed, 3 xfailed`（568+10）；act/03 后 `5 failed, 594 passed, 3 xfailed`（568+26）。REST `81+4=85`。CLIENT `296+18=314`。RULES `153+4=157`。
+计数推导：SERVER act/02 后 `5 failed, 578 passed, 3 xfailed`（568+10）；act/03 后 `5 failed, 594 passed, 3 xfailed`（568+26）。REST `81+4=85`。CLIENT `314+18=332`（NC-026 起草时基线为 296，NC-014 落地后基线升至 314，D-NC026-26）。RULES `153+4=157`。
 
 既有失败（不得修复、不得新增）：`tests/test_config.py::test_集合名与_ts_逐项一致`、`tests/test_registration.py::test_全部_callable_已在入口注册`、`tests/test_registration.py::test_三个_trigger_已注册`、`tests/test_registration.py::test_与_入口总数对齐`、`tests/test_registration.py::test_没有多余的未声明导出`。
 
@@ -112,7 +112,7 @@ Red：`flutter test test/analytics/private_note_metrics_test.dart` 的「文件�
 
 ## 7. 守卫
 
-`bash docs/blackbox-spec-rework/reviews/nc026_guard.sh --require-impl all` 退出 0。K05 REST（manifest 22、dart ≥85）；K06 SERVER（26 测试名、无作弊、`bev_` 与 `note_ref` 字面量、保护路径零改动、pytest `5/594/3` 且 FAILED 集合不变、三新文件 `exactly-once` 零命中）；K07 CLIENT（18 测试名、analyze 0、`+314`）；K08 RULES（4 新用例、`157 passed`）。
+`bash docs/blackbox-spec-rework/reviews/nc026_guard.sh --require-impl all` 退出 0。K06 REST（manifest 22、dart ≥85）；K07 SERVER（26 测试名、无作弊、`bev_` 与 `note_ref` 字面量、保护路径零改动、pytest `5/594/3` 且 FAILED 集合不变、三新文件 `exactly-once` 零命中）；K08 CLIENT（18 测试名、analyze 0、`+332`）；K09 RULES（4 新用例、`157 passed`）。
 
 ## 8. Windows 适配（D-NC026-21）
 
