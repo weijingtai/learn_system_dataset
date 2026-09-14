@@ -63,6 +63,7 @@ tests:
     - test_unknown_item_zero_writes
     - test_recover_after_checkpoint_write_crash（patch write_checkpoint 在第 2 条决定后抛异常 → recover_review → 补写 Checkpoint；新运行 human_decisions 含 2 条旧决定；replayed_pending 3 项；旧决定修订未重录）
     - test_recover_old_run_still_awaiting_human（依 D-15 A）
+    - test_recover_then_close_folds_inherited_decisions（第 75 条：恢复运行结审须折叠冻结输入中的继承决定，Transformation 含冻结 + 本运行人工事件）
 verify:
   - .venv/bin/python -m unittest discover -s pipeline/review/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 86
   - grep -rn 'testing\|_fixture' pipeline/review/step.py | wc -l                          # 0
