@@ -114,10 +114,15 @@ def decision_entry(*, decision_revision_id: str, queue_item: dict, event: dict =
         if carried_content_hash is None:
             raise ValueError("carried_content_hash is required")
             
-        if modified_revision_id is not None:
-            raise ValueError("modified_revision_id must be None for carried")
-            
         verdict = event["verdict"]
+        # 第 74 条：carried modify 必须保留首审封存的 reviewed_candidate 修订
+        if verdict == "modify":
+            if modified_revision_id is None:
+                raise ReviewRefused("carried modify requires modified_revision_id", code="SCH_001")
+            validate("artifact_revision_id", modified_revision_id)
+        elif modified_revision_id is not None:
+            raise ReviewRefused("only modify allows modified_revision_id", code="SCH_001")
+        
         rationale = event["rationale"]
         
     elif standing == "needs_review":

@@ -165,6 +165,21 @@ class TestReviewModel(unittest.TestCase):
         with self.assertRaises(Exception):
             model.decision_entry(decision_revision_id="rev_22222222222222222222222222222222", queue_item=q_item, event=ev, standing="carried_forward", carried_to_revision_id=self.seen_revision)
 
+    def test_decision_entry_carried_modify_keeps_modified_revision(self):
+        old_seen = "rev_00000000000000000000000000000000"
+        old_decision = "rev_12345678901234561234567890123456"
+        q_item = {"queue_item_id": "as_qizheng_000003#review_source_fidelity", "target_entity_id": "as_qizheng_000003", "kind": "assertion", "decision_type": "review_source_fidelity", "seen_artifact_revision_id": self.seen_revision}
+        ev = model.decision_event(queue_item=q_item, seen_artifact_revision_id=old_seen, processing_run_id="prun_11111111111111111111111111111111", step_run_id="srun_11111111111111111111111111111111", verdict="modify", rationale="首审修正", actor_ref="user_1")
+
+        entry = model.decision_entry(decision_revision_id=old_decision, queue_item=q_item, event=ev, standing="carried_forward", carried_from_revision_id=old_decision, carried_to_revision_id=self.seen_revision, carried_content_hash="hash_1", modified_revision_id="rev_44444444444444444444444444444444")
+        self.assertEqual(entry["standing"], "carried_forward")
+        self.assertEqual(entry["seen_revision_id"], old_seen)
+        self.assertEqual(entry["verdict"], "modify")
+        self.assertEqual(entry["modified_revision_id"], "rev_44444444444444444444444444444444")
+
+        with self.assertRaises(ReviewRefused):
+            model.decision_entry(decision_revision_id=old_decision, queue_item=q_item, event=ev, standing="carried_forward", carried_from_revision_id=old_decision, carried_to_revision_id=self.seen_revision, carried_content_hash="hash_1")
+
     def test_decision_empty_rationale_rejected(self):
         q_item = {"queue_item_id": "as_qizheng_000001#review_source_fidelity", "target_entity_id": "as_qizheng_000001", "kind": "assertion", "decision_type": "review_source_fidelity", "seen_artifact_revision_id": self.seen_revision}
         with self.assertRaises(SchemaViolation):

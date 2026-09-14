@@ -157,6 +157,31 @@ class TestReviewGate(unittest.TestCase):
         res = gate.evaluate_review(candidate_objects=self.candidates, seen_revision_id=self.seen_rev, validation_package=self.validation_package, corpus_spans_doc=self.spans, decision_entries=entries, prior_decision_events=pe, reviewed_edition=self.reviewed_ed)
         self.assertFalse(res["checks"]["decision_anchoring"]["passed"])
 
+    def _carried_modify_entry(self, modified_revision_id):
+        entry = dict(self.de1)
+        entry["standing"] = "carried_forward"
+        entry["verdict"] = "modify"
+        entry["seen_revision_id"] = "rev_old1111111111111111111111111111"
+        entry["carried_to_revision_id"] = self.seen_rev
+        entry["carried_from_revision_id"] = "rev_old_decision111111111111111111"
+        entry["carried_content_hash"] = "hash1"
+        entry["modified_revision_id"] = modified_revision_id
+        return entry
+
+    def test_carried_modify_with_matching_modified_revision_passes_decision_anchoring(self):
+        entries = list(self.entries)
+        entries[0] = self._carried_modify_entry("rev_44444444444444444444444444444444")
+        prior = [{"decision_revision_id": "rev_old_decision111111111111111111", "seen_revision_id": "rev_old1111111111111111111111111111", "modified_revision_id": "rev_44444444444444444444444444444444"}]
+        res = gate.evaluate_review(candidate_objects=self.candidates, seen_revision_id=self.seen_rev, validation_package=self.validation_package, corpus_spans_doc=self.spans, decision_entries=entries, prior_decision_events=prior, reviewed_edition=self.reviewed_ed)
+        self.assertTrue(res["checks"]["decision_anchoring"]["passed"])
+
+    def test_carried_modify_modified_revision_mismatch_fails_decision_anchoring(self):
+        entries = list(self.entries)
+        entries[0] = self._carried_modify_entry("rev_55555555555555555555555555555555")
+        prior = [{"decision_revision_id": "rev_old_decision111111111111111111", "seen_revision_id": "rev_old1111111111111111111111111111", "modified_revision_id": "rev_44444444444444444444444444444444"}]
+        res = gate.evaluate_review(candidate_objects=self.candidates, seen_revision_id=self.seen_rev, validation_package=self.validation_package, corpus_spans_doc=self.spans, decision_entries=entries, prior_decision_events=prior, reviewed_edition=self.reviewed_ed)
+        self.assertFalse(res["checks"]["decision_anchoring"]["passed"])
+
     def test_unknown_decision_type_fails_closed_sets(self):
         entries = list(self.entries)
         entries[0] = dict(entries[0])

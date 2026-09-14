@@ -96,7 +96,8 @@ def evaluate_review(*, candidate_objects: list[dict], seen_revision_id: str, val
             if e.get("carried_content_hash") != candidate_by_id[e["target_entity_id"]].get("content_hash"):
                 anchoring_ok = False
                 break
-            if mod_rev is not None:
+            # 第 74 条：carried modify 保留首审封存的 modified_revision_id
+            if mod_rev != prior_by_decision_rev[cf_rev].get("modified_revision_id"):
                 anchoring_ok = False
                 break
                 
