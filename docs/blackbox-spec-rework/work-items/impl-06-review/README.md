@@ -19,7 +19,7 @@ M4 已实现（impl-05 `ACCEPTED`，`pipeline/knowledge_extraction/**`），M5 �
 
 ```bash
 export LC_ALL=en_US.UTF-8
-.venv/bin/python -m unittest discover -s pipeline/review/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK（用例 ≥ 138）
+.venv/bin/python -m unittest discover -s pipeline/review/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK（用例 ≥ 140）
 bash openspec/acceptance/m6-data-fields.sh; echo exit=$?
 # 期望：11 行 PASS + BLOCKED snapshot_projection（第 61 条）+ BLOCKED legacy_workbench_seed + BLOCKED upstream_real
 #       末行 SUMMARY pass=11 fail=0 blocked=3；exit=2
@@ -147,7 +147,7 @@ M6 拒绝条件：任一上游 StepRun 非 `succeeded`、修订非 `sealed`、M5
 
 ### 5.3 下游输出契约（只写接口需求，不改其他包）
 
-- **`reviewed_edition`（JSON，m6 主内容）**：`{schema_version, edition_part_artifact_id, candidate_set_revision_id, candidate_package_revision_id, validation_package_revision_id, approved[{entity_id, kind, artifact_revision_id, content_status:"expert_verified", decision_revision_ids}], rejected[{entity_id, kind, artifact_revision_id, content_status, decision_revision_ids}], decisions[{decision_revision_id, queue_item_id, target_entity_id, seen_artifact_revision_id, current_target_revision_id, modified_revision_id, decision_type, verdict, standing, carried_from_revision_id, carried_to_revision_id, trigger_correction_request_id}], evidence_links[{entity_id, source_span_id, corpus_spans_revision_id, start_offset, end_offset, quote_sha256}], school_views[{school_view_id, school_id, subject_entity_id, conflict_group_id, changes_current_judgment}], correction_request_revision_ids[], rework_impact_report_revision_id|null, unresolved_count:0}`。
+- **`reviewed_edition`（JSON，m6 主内容）**：`{schema_version, edition_part_artifact_id, candidate_set_revision_id, candidate_package_revision_id, validation_package_revision_id, approved[{entity_id, kind, artifact_revision_id, content_status:"expert_verified", decision_revision_ids}], rejected[{entity_id, kind, artifact_revision_id, content_status, decision_revision_ids}], decisions[{decision_revision_id, queue_item_id, target_entity_id, seen_artifact_revision_id, current_target_revision_id, modified_revision_id, decision_type, verdict, standing, carried_from_revision_id, carried_to_revision_id, trigger_correction_request_id}], evidence_links[{entity_id, source_span_id, corpus_spans_revision_id, start_offset, end_offset, quote_sha256}], school_views[{school_view_id, entity_id(= school_view_id，第 72 条), school_id, subject_entity_id, conflict_group_id, changes_current_judgment}], correction_request_revision_ids[], rework_impact_report_revision_id|null, unresolved_count:0}`。
 
   本节取代原 §5.2 草案；`reviewed_edition` 消费者为 M7（`CanonicalKnowledgeSnapshot` 由 M7 创世汇编薄切片产出，第 61 条）。
 - **`reviewed_edition_package`（JSON，m6 阶段输出索引）**：`{schema_version, reviewed_edition_revision_id, decision_revision_ids[], decision_count, approved_count, rejected_count, unresolved_count:0, correction_request_revision_ids[], rework_impact_report_revision_id|null}`。

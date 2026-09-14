@@ -47,7 +47,7 @@ tests:
     - test_rereview_edition_references_report_and_trigger
     - test_rereview_transformation_includes_carried_and_ack_events
 verify:
-  - .venv/bin/python -m unittest discover -s pipeline/review/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 129
+  - .venv/bin/python -m unittest discover -s pipeline/review/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 131（第 72 条 06a +2）
   - TDD §3 回归
 commit:
   add: [pipeline/review/rework.py, pipeline/review/step.py, pipeline/review/testing/upstream_stub.py, pipeline/review/tests/test_rework_review.py, pipeline/review/console.py]

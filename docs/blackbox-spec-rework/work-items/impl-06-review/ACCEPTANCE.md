@@ -19,7 +19,7 @@
   - 第 68 条（F2）：事件锚点恒为 `seen_revision_id`；`modify` 另携 `modified_revision_id`（纳入 `decision_entries` 键集，Gate `decision_anchoring` 校验）。
   - 第 69 条（N1）：carried 条目 `seen_revision_id` 保持首审旧修订，另携 `carried_to_revision_id`/`carried_from_revision_id`/`carried_content_hash`；Gate `decision_anchoring` 条件式；`fold_decisions` 对 carried 不以 seen 不等报 REF_001。
 - **覆盖性**：BDD 各条都能在某个 `act/*.yaml` 的 `tests` 用例名或 `verify` 命令上找到落点；K1–K3 串行前置与 `depends_on` 一致；`README.md` §1 完成判据覆盖单测（≥138）、`m6-data-fields.sh`、`run_all.sh` 基线、`m3-coverage.sh` 基线四项。
-- **可执行性**：每个 ACT 有 `scope.write`、先红后绿的具名用例名、contract（函数签名/规则/检查名/退出码）、精确 `verify`、`commit.add`/`message`；用例数阈值等于具名用例实际累计（23/48/63/71/86/98/107/119/129/138，F4）；ACT 时长 ≤ 110 分钟；回归取行用 `2>&1 | grep -E "^(Ran|OK|FAILED)"`。ACT 10 已 WITHDRAWN（第 61 条），不计入阈值累计。
+- **可执行性**：每个 ACT 有 `scope.write`、先红后绿的具名用例名、contract（函数签名/规则/检查名/退出码）、精确 `verify`、`commit.add`/`message`；用例数阈值等于具名用例实际累计（23/48/63/71/86/98/107/109(06a，第 72 条)/121/131/140，F4）；ACT 时长 ≤ 110 分钟；回归取行用 `2>&1 | grep -E "^(Ran|OK|FAILED)"`。ACT 10 已 WITHDRAWN（第 61 条），不计入阈值累计。
 - **独立性**：`gate.py` 不 import `model`/`propagation`/`step`/`rework`；`acceptance.py` 不 import `gate`/`model`/`propagation`/`step`/`rework`，不读 `close_review` 返回的 gate 报告；`propagation.py` 与 `rework.py` 不调用 `invalidate_revision`。
 - **写范围**：仅 `pipeline/review/**` 与 `openspec/acceptance/m6-data-fields.sh`；与 impl-08 零交集；不写 `run_all.sh`、fixture、已验收模块。
 
@@ -67,3 +67,15 @@
 - 门禁：`check_interfaces` `pass=29 fail=0`；`schemas/verify.sh` 0；`verify-T.sh` `FAIL 合计: 0`；`mutations.sh` `109/109 rejected`；`run_all.sh` `pass=2 fail=1 blocked=8`。
 
 K1 `ACCEPTED`。K2 已放行。
+
+### 5.2 K2（2026-09-13，主 Agent 独立验收，`git archive 5f32628` 干净树）
+
+执行者：agy 会话 `w5h1`（Gemini 3.8 Flash Medium）。
+
+- 范围：ACT 04 `811b137`（`inputs.py`、`testing/` 桩与合成数据、`tests/test_inputs.py`）、ACT 05 `27bcbf7`（`step.py`、`tests/test_step_open.py`）、ACT 06 `9c28d96`（`step.py`、`tests/test_step_close.py`）、ACT 07 `5f32628`（`console.py`、`__main__.py`、`tests/test_console.py`），全部在 `pipeline/review/` 内；共享面改动 0。
+- Red（执行方原文）：各 ACT `FAILED (errors=1)`；Green 递增至 `Ran 107` OK。
+- 复验：`pipeline/review/tests` `Ran 107` OK（阈值 107）；具名用例 107 个与 act/01–07 逐字一致；ledger 74、corpus_compiler 68、knowledge_extraction 133、validation 87 OK；Gate 独立性、propagation 不写 Ledger 保持；各源文件副作用/网络、`_fixture`、裸 except 0；生产代码不 import `testing/`；`testing/data` 五个合成文件均标 `synthetic_fixture: true`（P7）；`check_interfaces` `fail=0`；`mutations` 109/109；`run_all` `pass=2 fail=1 blocked=8`。
+- 矩阵外端到端（复用 `test_step_close` setUp，真实 M3/M4/M5 桩驱动）：开审前 Ledger 81 条修订状态在关审后全部不变（第 62 条成立）；未决项直接关审 → `ReviewRefused(REF_001)`；关审成功，approved `as_…001/as_…003/sv_…1`、rejected `as_…002`、`unresolved_count 0`，与合成金标一致。**但**真实 `reviewed_edition` 经 M7 `validate_reviewed_edition` → `SCH_001`，缺 5 个 §5.3 顶层键；`reviewed_edition_package` 键为 `{schema_version, reviewed_edition_revision_id, edition_part_id, counts}`，与 §5.3 索引不符。
+- 结论：K2 功能与事务正确，但下游契约键不符 → 裁定 72，返工提交 06a（先于 K3）。
+
+K2 `REWORK`（06a）。

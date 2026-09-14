@@ -25,7 +25,7 @@ contract: |
     合成输入标 synthetic: true（§9.7 第 52 条）；test/data/genesis_package.json 中任何人工决定（decisions/human_event）必须含 synthetic_fixture: true，且不得计为真实 expert_verified 或任何发布依据（P7、第 66 条）
     合成 candidate_set 段必须为 impl-05 已验收真实形状（F1，键同 assemble.py:637-651）：assertion 无 subject/school_view_ids、用 school_ids；pattern 恒有合法 pat_、无 candidate_key；断言↔Pattern 关联经 patterns[].assertion_ids；school_view.subject_entity_id 解析到 assertion_id 或 pattern_id
   step.py（最小事务）
-    run_m7(service, edition_part_id, *, technique_id, reviewed_package_revision_ids, base_snapshot_revision_id=None) -> dict
+    run_m7(service, edition_part_id, *, technique_id, reviewed_package_revision_ids, base_snapshot_revision_id=None, id_range=None) -> dict（第 73 条：id_range 缺省取模块常量 DEFAULT_ID_RANGE，与 impl-05 run_m4 同式，登记进配置修订）
       begin 之前的拒绝（无写入）：base_snapshot_revision_id 非 None → AssemblyRefused（message 含「纵切后」）；
         resolve_m7_inputs 前置不满足；该 technique 已有 canonical_snapshot（创世重复）→ AssemblyRefused（message 含「已汇编」）
       create_processing_run("release_run", edition_part_id)（D-0-4；edition_part_id 即 reviewed_edition.edition_part_artifact_id）

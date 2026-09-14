@@ -75,3 +75,26 @@ G0-01 `ACCEPTED`。
 - 备注：Red 顺序（测试先于实现）无法由 git 独立证明（测试与实现同提交，第 56 条既有局限）；G0-02 实现在裁定 71 前已写出，裁定后仅补 G0-01a，未见事后删改断言。
 
 G0-01a、G0-02 `ACCEPTED`。
+
+### 5.3 G0-03（2026-09-13，主 Agent 独立验收，`git archive bcdfdc1` 干净树）
+
+执行者：agy 会话 `w5g0`（Gemini 3.8 Flash Medium）。
+
+- 范围：`bcdfdc1` 恰为 `gate.py`、`tests/test_gate.py`；具名用例 13 个与 act/g0-03 逐字一致，其中篡改矩阵 11 例（阈值 ≥ 11）。Red（执行方原文）`FAILED (errors=1)`，Green `Ran 66` OK。
+- 独立性：`gate.py` 只 import `canonical`、`model`、`pipeline.ledger.ids` 与标准库（契约允许集内），import `genesis`/`step` 0 处；无副作用、无 `_fixture`、无裸 except。十项检查名与顺序：`schema_and_ids`、`identity_preserved`、`allocation_monotonic`、`provenance_complete`、`view_objects_unaltered`、`no_silent_fold`、`first_layer_display`、`maturity_not_synthesized`、`decisions_consistent`、`genesis_only`。
+- 复验：`pipeline/assembly/tests` `Ran 66` OK（阈值 ≥ 66）；ledger 74、knowledge_extraction 133 OK；`check_interfaces` `fail=0`；`schemas/verify.sh` 0；`verify-T.sh` `FAIL 合计: 0`；`run_all.sh` `pass=2 fail=1 blocked=8`。
+- 矩阵外篡改（以 G0-02 合法输出为基底）：T0 合法输出全过且 Gate 不改输入；T1 补发号撞保留的 M4 `pat_` 号 → `allocation_monotonic` 失败（第 71 条落点）；T2 断言命题改一字 → `view_objects_unaltered` 失败；T3 伪造 `content_status` → `maturity_not_synthesized` 失败；T4 静默丢弃已批准断言 → `provenance_complete` 失败；T5 创世却带 retired → `schema_and_ids`、`identity_preserved` 失败。
+
+G0-03 `ACCEPTED`。
+
+### 5.4 G0-04（2026-09-13，主 Agent 独立验收，`git archive bc47036` 干净树）
+
+执行者：agy 会话 `w5g0`（Gemini 3.8 Flash Medium）。
+
+- 范围：`bc47036` 恰为 `inputs.py`、`step.py`、`fixture_seed.py`、`__main__.py`、`tests/data/genesis_package.json`、`tests/test_genesis_ledger.py`；具名用例 13 个与 act/g0-04 逐字一致。Red（执行方原文）`FAILED (errors=1)`，Green `Ran 79` OK。
+- 复验：`pipeline/assembly/tests` `Ran 79` OK（阈值 ≥ 79）；ledger 74、knowledge_extraction 133 OK；各源文件副作用/网络、`_fixture`、裸 except 均 0；生产代码（inputs/step/__main__/genesis/gate/model/canonical）不引用 `tests/data` 或 `fixture_seed`；`inputs.py`/`step.py` 含 `succeeded` 判定 6/10 处（P5）；合成宿主标 `synthetic: true` ×4、`synthetic_fixture: true` ×1；`check_interfaces` `fail=0`；`schemas/verify.sh` 0；`verify-T.sh` `FAIL 合计: 0`；`run_all.sh` `pass=2 fail=1 blocked=8`。
+- 矩阵外（复用测试类 setUp 的临时 Ledger）：`base_snapshot_revision_id` 非 None → `AssemblyRefused`（含「纵切后」）且 Ledger 全表行数 57→57；不存在的上游 m6 包 → `AssemblyRefused(REF_001)` 且零写入；首次 `run_m7` 成功（返回 `snapshot_revision_id`、`assembly_package_revision_id`、`validation_report_revision_id`、`gate` 等），同 technique 再次创世 → 拒绝「已汇编」，与 act/g0-04:30 一致。
+- 裁定 73：`run_m7` 增 `id_range=None`（缺省常量，登记进配置修订），与已验收 `run_m4` 同式，采纳不返工。
+- 跨模块发现（记入 impl-06 K2）：真实 M6 输出不满足 §0.3 所需键 → 裁定 72，impl-06 返工 06a；在其验收前 `upstream_m6_real` 维持 BLOCKED。
+
+G0-04 `ACCEPTED`。

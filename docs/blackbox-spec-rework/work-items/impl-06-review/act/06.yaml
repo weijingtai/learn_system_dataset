@@ -16,12 +16,13 @@ contract: |
       前置（零写入、不消费 token）：StepRun awaiting_human；读队列与决定并 fold；model.outcome(...).unresolved 非空 → ReviewRefused（message 含「未解决项 <n>」）
         CorrectionRequest 不阻断结审（D-10 A），只登记进包
       1 service.resume(step_run_id, resume_token)；此后任何异常 → _fail（检查名 review_gate / internal）
-      2 构造 reviewed_edition（键序逐字，README §5.3）：
+      2 构造 reviewed_edition（键序逐字，README §5.3；第 72 条补全顶层键）：
+          顶层键序：schema_version("0.1.0-draft"), edition_part_artifact_id, candidate_set_revision_id, candidate_package_revision_id, validation_package_revision_id（均取 resolve_m6_inputs 冻结输入）, approved, rejected, decisions, evidence_links, school_views, correction_request_revision_ids, rework_impact_report_revision_id, unresolved_count
           approved：对 outcome.approved 按候选顺序 {entity_id, kind, artifact_revision_id(modify 取最后 reviewed_candidate 修订，否则候选修订), content_status:"expert_verified", decision_revision_ids}
           rejected：{entity_id, kind, artifact_revision_id(候选修订), content_status(候选原值), decision_revision_ids}
           decisions：每个队列项的立场 {decision_revision_id, queue_item_id, target_entity_id, seen_artifact_revision_id(= entry.seen_revision_id，carried 时为首审旧修订), current_target_revision_id(取 entry.modified_revision_id 或 entry.carried_to_revision_id，无则 seen), modified_revision_id(第 68 条；= entry.modified_revision_id), decision_type, verdict, standing, carried_from_revision_id, carried_to_revision_id(第 69 条), trigger_correction_request_id}
           evidence_links：获批对象（modify 取修订后内容）的 evidence 复算 quote_sha256 + corpus_spans_revision_id
-          school_views：获批 school_view {school_view_id, school_id, subject_entity_id, conflict_group_id, changes_current_judgment(取候选 source_object)}
+          school_views：获批 school_view {school_view_id, entity_id(= school_view_id，M6 Gate 索引用，第 72 条登记), school_id, subject_entity_id, conflict_group_id, changes_current_judgment(取候选 source_object)}
           correction_request_revision_ids：冻结输入与本运行中 event_kind == "correction_request" 的 human_event 修订（按记录顺序）
           rework_impact_report_revision_id: None（返工运行由 ACT 09 填写）
           unresolved_count: 0
@@ -30,7 +31,7 @@ contract: |
         log = put "step_log"（每步一行 UTF-8，不含时间戳）→ seal
         gate.review == "failed" → _fail("review_gate", 失败检查名以逗号连接)
       4 edition_rev = put "reviewed_edition"（canonical_json）→ seal
-        package_rev = put "reviewed_edition_package"（canonical_json，README §5.3 索引）→ seal
+        package_rev = put "reviewed_edition_package"（canonical_json，README §5.3 索引；第 72 条键序逐字：schema_version("0.1.0-draft"), reviewed_edition_revision_id, decision_revision_ids, decision_count, approved_count, rejected_count, unresolved_count(0), correction_request_revision_ids, rework_impact_report_revision_id(null)；不得另加 edition_part_id/counts）→ seal
       5 transformation_id = record_transformation(step, operation="review_candidates", tool=M6_TOOL, tool_version=M6_TOOL_VERSION, configuration_revision_id=config,
           input_revision_ids=frozen + 本运行 review_queue + 本运行 reviewed_candidate 修订, output_revision_ids=[edition_rev, package_rev],
           validation_report_revision_id=validation_report, human_event_revision_ids=冻结与本运行全部 human_event 修订（决定、CorrectionRequest、阈值确认）)
