@@ -700,7 +700,7 @@
 ### 通知
 
 - [x] NC-013：事务事件、投递、通知正文与补拉端点（状态：`ACCEPTED`，2026-09-13 R1：守卫 `nc013_guard.sh --require-impl all` 退出 0（K01～K07 全 PASS），盲测①～⑦全过（scratchpad/nc013/blind-results.md），作弊扫描干净；REST `dc0792c`→`b60bfbd`（已推送）、SERVER `8d22451`→`5800a23`（`783fb0d`/`731ebfb`/`5800a23`）、RULES `4b81d8d`→`a354463`；契约 `openspec/annotation-community/contracts/community_deliveries.md`（含 API §13 补丁、D-NC013-01～16）、六件套 `work-items/nc-013/`、守卫 `reviews/nc013_guard.sh`、四查 `reviews/NC-013-REVIEW-R1.md`；四查 R1 REWORK 7 项返工落实、R2 复核 READY；遗留：桥接映射上游扩展（D-NC013-08 阻断）、设备校验（G3）、偏好源（G5）、handbook 回写待领域裁定；Windows 接手机适配 D-NC012-23）
-- [ ] NC-014：Notification 宿主适配、去重与导航（状态：`PREPARING`，2026-09-13 规格草案：契约 `openspec/annotation-community/contracts/community_notification_host.md`（D-NC014-01～10，§10.1 待裁决：comment 类 target 缺 content_id）、六件套 `work-items/nc-014/`（PACKAGE act/01 → CLIENT act/02 串行）、守卫 `reviews/nc014_guard.sh`，待主 Agent 审查后转 `READY`）
+- [ ] NC-014：Notification 宿主适配、去重与导航（状态：`READY`，2026-09-13：契约 `openspec/annotation-community/contracts/community_notification_host.md`（`FROZEN_FOR_NC-014`，**D-NC014-01～11**；comment 类 target 缺 content_id 已裁定 D-NC014-11＝本期不路由）、六件套 `work-items/nc-014/`（PACKAGE act/01 → CLIENT act/02 串行）、守卫 `reviews/nc014_guard.sh`、四查 `reviews/NC-014-REVIEW-R1.md`（R1 REWORK 7 项已落实），待派发）
 
 ### 私人同步、备份与删除
 

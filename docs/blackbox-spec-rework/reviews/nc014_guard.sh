@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # NC-014 守卫：K01 回归（v1.6 守卫、verify.sh、nc013_guard.sh 规格模式）；K02 契约字面量
-# （八端口、dedup_retention_ms、26 测试名、D-NC014-01～10、十节计数、红线词形零命中）；
+# （八端口、dedup_retention_ms、26 测试名、D-NC014-01～11、十节计数、红线词形零命中）；
 # K03 六件套结构与模糊词零命中；K04 SUBAGENT_TODO 登记；K05 PACKAGE 产物；K06 CLIENT 产物。
 # --require-impl package|client|all（可逗号组合）时核对对应仓库产物并运行测试；基线期 K05/K06 SKIP。
 # 路径布局与 Windows 适配沿用 nc013_guard.sh（D-NC012-23）。
@@ -94,12 +94,12 @@ need = PORTS + PKG_TESTS + CLIENT_TESTS + ["dedup_retention_ms", "timing.dedup_r
        "NotificationBody", "NotificationEntry", "NotificationPage", "NotificationMuteState",
        "/v1/community/notifications/pull", "/v1/community/notifications/mutes/", "notifier_delivery_id",
        "latest_notification_id", "event_count", "空串哨兵", "满窗即裁", "该内容已不可访问",
-       "不构成端到端恰好一次", "INTEGRATION_BASELINE"] + [f"D-NC014-{i:02d}" for i in range(1, 11)]
+       "不构成端到端恰好一次", "INTEGRATION_BASELINE"] + [f"D-NC014-{i:02d}" for i in range(1, 12)]
 missing = [n for n in need if n not in c]
 ok02 = (not missing and all(f"## {i}. " in c for i in range(1, 11))
         and "exactly-once" not in c
         and not re.search(r"适当|优雅|合理|必要时|酌情|尽量|大致|视情况", c))
-check(ok02, "K02 契约：八端口/adapter 类名、dedup_retention_ms、26 测试名、路径/Schema、D-NC014-01～10、十节、红线词形与模糊词零命中",
+check(ok02, "K02 契约：八端口/adapter 类名、dedup_retention_ms、26 测试名、路径/Schema、D-NC014-01～11、十节、红线词形与模糊词零命中",
       f"missing={missing[:5]}")
 
 bdd = read(PACK / "BDD.md"); tdd = read(PACK / "TDD.md"); readme = read(PACK / "README.md")

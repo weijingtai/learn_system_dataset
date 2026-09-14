@@ -1,8 +1,8 @@
 # NC-014：Notification 宿主适配、去重与导航
 
-状态：`PREPARING`（六件套与守卫草案就绪，待主 Agent 审查契约后转 `READY`）。task_id：`NC-014`。各仓 HEAD：PACKAGE（notification master）`518670b`、CLIENT（reading-notes main）`107ec90`、REST（repository-rest-adapter main）`b60bfbd`（只读）、SERVER（functions-py master）`992088e`（只读）。派发前置：NC-010、NC-013 均 `ACCEPTED`。
+状态：`READY`（2026-09-13 四查 `reviews/NC-014-REVIEW-R1.md` R1 REWORK 7 项落实后转 READY；实现交付后追加验收记录 R1）。task_id：`NC-014`。各仓 HEAD：PACKAGE（notification master）`518670b`、CLIENT（reading-notes main）`107ec90`、REST（repository-rest-adapter main）`b60bfbd`（只读）、SERVER（functions-py master）`992088e`（只读）。派发前置：NC-010、NC-013 均 `ACCEPTED`。
 
-权威需求来源：`TASKS.md` NC-014（§226-234，范围权威）；专属契约 `openspec/annotation-community/contracts/community_notification_host.md`；API 引用 `community_api.md` §13；上游引用 `community_deliveries.md` §6/§7/§15。**执行者不做设计：端口 adapter 类名、Drift 表列、D.6 行为语义、双帧分派表、测试名、文案、决定 D-NC014-01～10 全部来自契约。**
+权威需求来源：`TASKS.md` NC-014（§226-234，范围权威）；专属契约 `openspec/annotation-community/contracts/community_notification_host.md`；API 引用 `community_api.md` §13；上游引用 `community_deliveries.md` §6/§7/§15。**执行者不做设计：端口 adapter 类名、Drift 表列、D.6 行为语义、双帧分派表、测试名、文案、决定 D-NC014-01～11 全部来自契约。**
 
 ## Goal
 
@@ -28,7 +28,7 @@ notification 包闭合 D.6（`timing.dedup_retention_ms` 可空解析 + `DedupRe
 
 - 契约参考值对不上：notification 默认分支未含 act/01 提交；social `NotificationCenterPage`/`SocialNotificationItem` 导出或构造签名与契约 §6.2 不符；L2 无 `timing.dedup_retention_ms` 键且装配停手路径被阻断。
 - 既有测试变红（notification 194、reading-notes 296 之外新增任何失败）或 analyze 非 `No issues found!`。
-- 需要修改白名单外文件、或契约存在歧义（含 §10.1 待裁决 1 的 comment 类导航行为被要求扩大）。
+- 需要修改白名单外文件、或契约存在歧义（comment 类 target 导航已由 D-NC014-11 裁定为本期不路由，被要求扩大即停手）。
 - Gitea（192.168.0.165:3000）不可达导致 pub get 失败。
 - 处置：在本线交付报告追加「## 待裁决」小节说明原始输出，并单独输出一行 `NC-014-<A|B> 停手待裁决`；不改契约与既有测试，等主 Agent 裁定（裁定以 `D-NC014-<编号>` 登记于契约 §10 并同步六件套与守卫）。
 

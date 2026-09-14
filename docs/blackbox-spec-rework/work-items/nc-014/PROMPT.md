@@ -28,7 +28,7 @@
 
 开工前：`git -C D:/Programme/xuan/reading-notes status --short` 必须为空、HEAD = `107ec90`；notification 默认分支已含 act/01 提交（`git -C D:/Programme/xuan/notification log --oneline -1` 对照交付报告），否则停手。
 
-铁律：宿主只做端口 adapter、装配与导航，去重/ACK/退避/帧解码全在包内（不得复刻）；R10 条目 `deliveryId` 空串哨兵、不进 AckPipeline、无来源 ACK（D-NC014-03）；C06 必须是失败 fake 分支（TASKS:232 逐字：永远返回 `DeliveryPersisted()` 的 fake 不算通过）；占位页统一文案「该内容已不可访问」+ 返回按钮且无原因字段；comment 类条目点击暂不路由（契约 §10.1 待裁决 1，不得自行扩大）；不装配遗留页、不加 firebase_messaging；只允许写 act/02.yaml `WRITE_NEW` 的 6 个文件，`lib/src/community/` 零改动。
+铁律：宿主只做端口 adapter、装配与导航，去重/ACK/退避/帧解码全在包内（不得复刻）；R10 条目 `deliveryId` 空串哨兵、不进 AckPipeline、无来源 ACK（D-NC014-03）；C06 必须是失败 fake 分支（TASKS:232 逐字：永远返回 `DeliveryPersisted()` 的 fake 不算通过）；占位页统一文案「该内容已不可访问」+ 返回按钮且无原因字段；comment 类条目点击暂不路由（D-NC014-11 冻结裁定，不得自行扩大）；不装配遗留页、不加 firebase_messaging；只允许写 act/02.yaml `WRITE_NEW` 的 6 个文件，`lib/src/community/` 零改动。
 
 先写依赖与测试再实现（TESTS_FIRST 顺序），Red 原文进交付报告。
 

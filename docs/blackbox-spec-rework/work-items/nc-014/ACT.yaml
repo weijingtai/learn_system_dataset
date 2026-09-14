@@ -1,5 +1,5 @@
 TASK_ID: NC-014
-STATUS: PREPARING
+STATUS: READY
 GOAL: notification 包 D.6（timing.dedup_retention_ms 可空解析 + DedupRetention 满窗即裁）→ reading-notes 八端口适配（DriftDeliveryLog 持久去重+业务 upsert 同事务、SseRealtimeChannel、NotifierReceiptTransport、NotifierConnectionTokenSource、NotifierRemoteConfigSource、LocalPushConfigCache、CommunityBackfillSource→R10 空串哨兵、CommunityMessageBodyFetcher→R9 降级）→ 双帧唤醒分派 → 业务通知列表（social NotificationCenterPage 复用、event_count 聚合、W15/W16 静音）→ 导航（content 类→讨论区顶部、失权→统一占位页、账号切换 scope 分库）；落盘失败不 ACK 有失败 fake 分支证据；R10 补拉无传输 ID 无来源 ACK
 CONTRACTS:
   - openspec/annotation-community/contracts/community_notification_host.md（§1～§10 全文）
@@ -12,7 +12,7 @@ SPLIT:
 ORDER: act/01 → act/02 严格串行（CLIENT pubspec git 依赖解析要求 notification 默认分支已含 act/01 提交）；每 act 一个独立提交，执行者不推送
 ESTIMATE_MINUTES_TOTAL: 95
 DEFERRED:
-  - comment 类 target 楼层定位与 content_id 缺口：契约 §10.1 待裁决 1（D-NC014-05）
+  - comment 类 target 导航与楼层定位：D-NC014-11（本期 comment 类条目不路由）与 D-NC014-05（楼层定位 DEFERRED）
   - FCM 真机链路与 PushTokenRegistry/token 获取：NC-024（D-NC014-07）
   - R9 生产绑定写入：上游扩展缺证阻断（D-NC013-08/G2）；验收用受控 fake 传输（D-NC014-04）
   - E-WIRING 聚合/静音粒度核实记录：NC-001（D-NC014-06）

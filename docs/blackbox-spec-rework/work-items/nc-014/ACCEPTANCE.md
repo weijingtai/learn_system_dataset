@@ -1,8 +1,8 @@
 # NC-014 验收（主 Agent 独立执行，不采信执行方自述）
 
-当前状态：`PREPARING`（契约草案待主 Agent 审查，通过后转 `READY`；实现交付后本文件追加「验收记录 R1」）。
+当前状态：`READY`（四查 `reviews/NC-014-REVIEW-R1.md` R1 REWORK 7 项已落实；实现交付后本文件追加「验收记录 R1」）。
 
-1. ACT 审查：未参与编写、且不同厂商的审查者按 wjt-react 四查（忠实性、覆盖性、可执行性、独立性）判定 READY；返工不超过 2 轮；记录于 `reviews/NC-014-REVIEW-R1.md`。审查前置：契约 `community_notification_host.md` 的 D-NC014-01～08 冻结裁定逐字核对，草案增补 D-NC014-09/10 与 §10.1 待裁决 1（comment 类 target 缺 content_id）须先裁定。
+1. ACT 审查：未参与编写、且不同厂商的审查者按 wjt-react 四查（忠实性、覆盖性、可执行性、独立性）判定 READY；返工不超过 2 轮；记录于 `reviews/NC-014-REVIEW-R1.md`。审查前置（**已满足**）：契约 `community_notification_host.md` 的 D-NC014-01～11 冻结裁定逐字核对；§10.1 的 comment 类 target 缺 content_id 已裁定为 D-NC014-11（本期不路由）。
 2. 范围（`git diff-tree -r --name-only`，不用 `git diff`）：
    - notification `518670b..HEAD`：恰 6 个文件（push_config.dart、dedup_store.dart、barrel、from-server-coder.md、integration-guide.md、dedup_retention_test.dart）；`pubspec.yaml` 与既有 194 测试零改动。
    - reading-notes `107ec90..HEAD`：恰 6 个文件（pubspec.yaml、pubspec.lock、adapters、adapters.g.dart、router、测试）；`lib/src/community/` 零改动；无 `firebase_messaging`。
