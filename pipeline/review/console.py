@@ -486,6 +486,42 @@ def cmd_rework(args):
         service.close()
 
 
+def cmd_rework_open(args):
+    try:
+        service = LedgerService(args.root)
+    except WriterLocked as e:
+        print(f"M6 REFUSED WriterLocked: {str(e)}")
+        return 3
+    except Exception as e:
+        print(f"M6 REFUSED {type(e).__name__}: {str(e)}")
+        return 2
+
+    try:
+        res = rework.open_rework_review(
+            service,
+            args.edition_part,
+            rework_impact_report_revision_id=args.report,
+            acknowledge_rework_warning=bool(args.ack_rework_warning),
+        )
+        print(
+            f"M6 AWAITING {res['step_run_id']} token={res['resume_token']} "
+            f"pending={len(res['queue'])} "
+            f"carried={len(res['carried_decision_revision_ids'])}"
+        )
+        return 0
+    except REFUSED_EXCEPTIONS as e:
+        print(f"M6 REFUSED {type(e).__name__}: {str(e)}")
+        return 2
+    except WriterLocked as e:
+        print(f"M6 REFUSED WriterLocked: {str(e)}")
+        return 3
+    except Exception as e:
+        print(f"M6 REFUSED {type(e).__name__}: {str(e)}")
+        return 2
+    finally:
+        service.close()
+
+
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(
         prog="python -m pipeline.review",
@@ -546,6 +582,14 @@ def main(argv=None) -> int:
     p_rework.add_argument("--correction-request", required=True, help="CorrectionRequest 修订")
     p_rework.add_argument("--new-corpus-package", required=True, help="修正后 corpus_package 修订")
 
+    # rework-open
+    p_rework_open = subparsers.add_parser("rework-open", help="打开复审（只重放待复核项）")
+    p_rework_open.add_argument("--edition-part", required=True, help="分卷 ID")
+    p_rework_open.add_argument("--report", required=True, help="ReworkImpactReport 修订")
+    p_rework_open.add_argument(
+        "--ack-rework-warning", action="store_true", help="确认返工阈值告警"
+    )
+
     try:
         args = parser.parse_args(argv)
     except SystemExit as exc:
@@ -561,6 +605,7 @@ def main(argv=None) -> int:
         "recover": cmd_recover,
         "correct": cmd_correct,
         "rework": cmd_rework,
+        "rework-open": cmd_rework_open,
     }
     handler = handlers.get(args.subcommand)
     if handler is None:

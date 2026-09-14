@@ -9,7 +9,12 @@ from pipeline.ledger import ids
 from pipeline.ledger.errors import MissingReference, SchemaViolation
 from pipeline.review import M6_TOOL, M6_TOOL_VERSION, gate, model
 from pipeline.review.errors import ReviewRefused
-from pipeline.review.inputs import _read_doc, latest_succeeded_step_run, resolve_m6_inputs
+from pipeline.review.inputs import (
+    _artifact_types,
+    _read_doc,
+    latest_succeeded_step_run,
+    resolve_m6_inputs,
+)
 
 
 def _read_bytes(reader, sha256):
@@ -39,6 +44,173 @@ def _fail(service, step_run_id, check, detail):
         "failure_revision_id": failure_rev,
         "reason": detail,
     }
+
+
+def _review_mode(service, step):
+    """读运行配置中的审核模式：首审 ``first``（缺省），复审 ``rework``。"""
+    request = json.loads(step["request_json"] or "{}")
+    config_doc = _read_doc(service, request.get("configuration_artifact_id")) or {}
+    return config_doc.get("mode") or "first"
+
+
+def _frozen_by_type(service, step):
+    """返回本运行冻结输入的 ``{artifact_type: 修订号}``（同名取首个）。"""
+    request = json.loads(step["request_json"] or "{}")
+    frozen = list(request.get("input_artifact_ids") or [])
+    types = _artifact_types(service, frozen)
+    by_type = {}
+    for rev in frozen:
+        by_type.setdefault(types.get(rev), rev)
+    return by_type
+
+
+def _spans_dict_of(spans_doc):
+    """把 ``corpus_spans`` 文档规范化为 ``{span_id: span}``。"""
+    raw = (spans_doc or {}).get("spans")
+    if isinstance(raw, list):
+        return {
+            s["span_id"]: s for s in raw if isinstance(s, dict) and "span_id" in s
+        }
+    if isinstance(raw, dict):
+        return raw
+    return {}
+
+
+def _normalized_candidate_object(source_object, spans_dict):
+    """把证据 offset 规范化到 span 文本坐标（与 Gate ``content_hash`` 口径一致）。"""
+    obj = copy.deepcopy(source_object)
+    for ev in obj.get("evidence", []):
+        if "start" in ev and "end" in ev:
+            continue
+        span = spans_dict.get(ev.get("source_span_id"), {})
+        text_len = len(span.get("text", ""))
+        span_start = span.get("start_offset", 0)
+        s_off = ev.get("start_offset", 0)
+        e_off = ev.get("end_offset", s_off)
+        if 0 <= s_off < e_off <= text_len:
+            start, end = s_off, e_off
+        elif (
+            span_start > 0
+            and 0 <= (s_off - span_start) < (e_off - span_start) <= text_len
+        ):
+            start, end = s_off - span_start, e_off - span_start
+        else:
+            start, end = 0, text_len
+        ev["start"], ev["end"] = start, end
+    return obj
+
+
+def _prior_reviewed_edition(service, step):
+    """沿 supersedes 链回溯，取首审 succeeded 运行的 ``reviewed_edition`` 内容（第 74 条）。"""
+    seen = set()
+    current = step
+    while current is not None and current["step_run_id"] not in seen:
+        seen.add(current["step_run_id"])
+        outputs = list(
+            json.loads(current["result_json"] or "{}").get("output_artifact_ids") or []
+        )
+        types = _artifact_types(service, outputs)
+        editions = [r for r in outputs if types.get(r) == "reviewed_edition"]
+        if len(editions) == 1:
+            return _read_doc(service, editions[0]) or {}
+        previous_id = current.get("supersedes_step_run_id")
+        current = service.get_step_run(previous_id) if previous_id else None
+    return {}
+
+
+def _rework_context(service, step_run_id, queue):
+    """复审上下文（第 69/74 条）：报告、carried 队列项、完整队列、新候选集与 spans。"""
+    row = service.store.conn.execute(
+        "SELECT rework_impact_report_revision_id FROM stage_checkpoints "
+        "WHERE step_run_id=? AND rework_impact_report_revision_id IS NOT NULL "
+        "ORDER BY rowid DESC LIMIT 1",
+        (step_run_id,),
+    ).fetchone()
+    if row is None:
+        raise ReviewRefused("复审运行未引用 ReworkImpactReport", code="REF_001")
+    report_revision_id = row[0]
+    report = _read_doc(service, report_revision_id) or {}
+
+    step = service.get_step_run(step_run_id)
+    by_type = _frozen_by_type(service, step)
+    cand_set_rev = by_type.get("candidate_set")
+    cand_set = _read_doc(service, cand_set_rev) or {}
+    spans_dict = _spans_dict_of(_read_doc(service, by_type.get("corpus_spans")))
+
+    prior_edition = _prior_reviewed_edition(service, step)
+    prior_modified_by_decision = {
+        d["decision_revision_id"]: d.get("modified_revision_id")
+        for d in prior_edition.get("decisions", []) or []
+    }
+
+    carried_items = []
+    carried_revs = []
+    for c in report.get("carried_forward", []) or []:
+        if c.get("kind") != "decision":
+            continue
+        carried_revs.append(c["revision_id"])
+        ev = _read_doc(service, c["revision_id"]) or {}
+        target = ev.get("target") or {}
+        carried_items.append(
+            {
+                "queue_item_id": model.queue_item_id(
+                    target["entity_id"], ev["decision_type"]
+                ),
+                "target_entity_id": target["entity_id"],
+                "kind": target["entity_kind"],
+                "decision_type": ev["decision_type"],
+                "seen_artifact_revision_id": cand_set_rev,
+            }
+        )
+    full_queue = sorted(carried_items + list(queue), key=lambda it: it["queue_item_id"])
+    return {
+        "report": report,
+        "report_revision_id": report_revision_id,
+        "carried_items": carried_items,
+        "carried_decision_revision_ids": carried_revs,
+        "full_queue": full_queue,
+        "candidate_set": cand_set,
+        "candidate_set_revision_id": cand_set_rev,
+        "spans_dict": spans_dict,
+        "prior_modified_by_decision": prior_modified_by_decision,
+    }
+
+
+def _carried_decision_entries(
+    service, full_queue, report, cand_set, spans_dict, prior_modified_by_decision
+):
+    """按第 69/74 条构造 carried 决定条目（``seen_revision_id`` 保持首审旧修订；
+    ``modify`` 的 ``modified_revision_id`` 取首审 ``reviewed_edition.decisions`` 的值）。"""
+    objects = {a["assertion_id"]: a for a in cand_set.get("assertions", []) or []}
+    objects.update(
+        {v["school_view_id"]: v for v in cand_set.get("school_views", []) or []}
+    )
+    entries = []
+    for c in report.get("carried_forward", []) or []:
+        if c.get("kind") != "decision":
+            continue
+        rev = c["revision_id"]
+        ev = _read_doc(service, rev) or {}
+        target = ev.get("target") or {}
+        qid = model.queue_item_id(target["entity_id"], ev["decision_type"])
+        qitem = next(it for it in full_queue if it["queue_item_id"] == qid)
+        ch = model.content_hash(
+            {"source_object": _normalized_candidate_object(objects.get(target["entity_id"], {}), spans_dict)},
+            spans_dict,
+        )
+        entries.append(
+            model.decision_entry(
+                decision_revision_id=rev,
+                queue_item=qitem,
+                event=ev,
+                standing="carried_forward",
+                carried_to_revision_id=qitem["seen_artifact_revision_id"],
+                carried_from_revision_id=rev,
+                carried_content_hash=ch,
+                modified_revision_id=prior_modified_by_decision.get(rev),
+            )
+        )
+    return entries
 
 
 def open_review(service, edition_part_id: str, *, required_decision_types=None) -> dict:
@@ -361,6 +533,19 @@ def record_decision(
 
     folded = model.fold_decisions(queue, entries)
 
+    mode = _review_mode(service, step)
+    if mode == "rework":
+        rework_ctx = _rework_context(service, step_run_id, queue)
+        entries = _carried_decision_entries(
+            service,
+            rework_ctx["full_queue"],
+            rework_ctx["report"],
+            rework_ctx["candidate_set"],
+            rework_ctx["spans_dict"],
+            rework_ctx["prior_modified_by_decision"],
+        ) + entries
+        folded = model.fold_decisions(rework_ctx["full_queue"], entries)
+
     completed_tasks = [
         {
             "task_id": "build_review_queue",
@@ -389,12 +574,27 @@ def record_decision(
     ]
     next_pointer = {"task_id": pending[0]} if pending else None
 
+    if mode == "rework":
+        cur_all = [
+            r[0]
+            for r in service.store.conn.execute(
+                "SELECT event_revision_id FROM human_events WHERE step_run_id=? "
+                "ORDER BY rowid ASC",
+                (step_run_id,),
+            ).fetchall()
+        ]
+        checkpoint_human_decisions = (
+            list(rework_ctx["carried_decision_revision_ids"]) + cur_all
+        )
+    else:
+        checkpoint_human_decisions = all_decision_revs
+
     checkpoint_revision_id = service.write_checkpoint(
         step_run_id,
         edition_part_id=edition_part_id,
         stage="m6",
         completed_tasks=completed_tasks,
-        human_decisions=all_decision_revs,
+        human_decisions=checkpoint_human_decisions,
         pending_queue=[{"task_id": qid} for qid in pending],
         next_pointer=next_pointer,
     )
@@ -794,8 +994,31 @@ def close_review(service, step_run_id: str, resume_token: str) -> dict:
         )
         entries.append(entry)
 
-    folded = model.fold_decisions(queue, entries)
-    outcome = model.outcome(queue, folded)
+    mode = _review_mode(service, step)
+    rework_ctx = None
+    if mode == "rework":
+        rework_ctx = _rework_context(service, step_run_id, queue)
+        entries = _carried_decision_entries(
+            service,
+            rework_ctx["full_queue"],
+            rework_ctx["report"],
+            rework_ctx["candidate_set"],
+            rework_ctx["spans_dict"],
+            rework_ctx["prior_modified_by_decision"],
+        ) + entries
+        decision_queue = rework_ctx["full_queue"]
+    else:
+        decision_queue = list(queue)
+
+    if mode == "rework":
+        trigger_rev = rework_ctx["report"].get(
+            "trigger_correction_request_revision_id"
+        )
+        if trigger_rev and trigger_rev not in correction_revs:
+            correction_revs.append(trigger_rev)
+
+    folded = model.fold_decisions(decision_queue, entries)
+    outcome = model.outcome(decision_queue, folded)
     if outcome["unresolved"]:
         raise ReviewRefused(f"未解决项 {len(outcome['unresolved'])}: {outcome['unresolved']}", code="REF_001")
 
@@ -804,11 +1027,20 @@ def close_review(service, step_run_id: str, resume_token: str) -> dict:
 
     try:
         # 2. 构造 reviewed_edition
+        # 复审 carried modify 的产出修订取首审封存的 reviewed_candidate（第 74 条）
+        effective_modified = dict(mod_by_eid)
+        if mode == "rework":
+            for ent in folded.values():
+                if ent and ent.get("modified_revision_id"):
+                    effective_modified.setdefault(
+                        ent["target_entity_id"], ent["modified_revision_id"]
+                    )
+
         approved = []
         for c in cand_objects:
             eid = c["entity_id"]
             if eid in outcome["approved"]:
-                art_rev = mod_by_eid.get(eid, cand_set_rev)
+                art_rev = effective_modified.get(eid, cand_set_rev)
                 d_revs = [
                     folded[qid]["decision_revision_id"]
                     for qid, ent in folded.items()
@@ -840,9 +1072,14 @@ def close_review(service, step_run_id: str, resume_token: str) -> dict:
                 })
 
         decisions = []
-        for q_item in queue:
+        for q_item in decision_queue:
             qid = q_item["queue_item_id"]
             ent = folded[qid]
+            trigger_id = None
+            if mode == "rework" and ent["standing"] == "carried_forward":
+                trigger_id = rework_ctx["report"].get(
+                    "trigger_correction_request_revision_id"
+                )
             decisions.append({
                 "decision_revision_id": ent["decision_revision_id"],
                 "queue_item_id": qid,
@@ -855,7 +1092,7 @@ def close_review(service, step_run_id: str, resume_token: str) -> dict:
                 "standing": ent["standing"],
                 "carried_from_revision_id": ent.get("carried_from_revision_id"),
                 "carried_to_revision_id": ent.get("carried_to_revision_id"),
-                "trigger_correction_request_id": None,
+                "trigger_correction_request_id": trigger_id,
             })
 
         evidence_links = []
@@ -863,8 +1100,8 @@ def close_review(service, step_run_id: str, resume_token: str) -> dict:
             eid = app["entity_id"]
             c = cand_by_id[eid]
             src_obj = c["source_object"]
-            if eid in mod_by_eid:
-                mod_doc = _read_doc(service, mod_by_eid[eid])
+            if eid in effective_modified:
+                mod_doc = _read_doc(service, effective_modified[eid])
                 if mod_doc:
                     src_obj = mod_doc
             for ev in src_obj.get("evidence", []):
@@ -926,7 +1163,9 @@ def close_review(service, step_run_id: str, resume_token: str) -> dict:
             "evidence_links": evidence_links,
             "school_views": school_views,
             "correction_request_revision_ids": correction_revs,
-            "rework_impact_report_revision_id": None,
+            "rework_impact_report_revision_id": (
+                rework_ctx["report_revision_id"] if mode == "rework" else None
+            ),
             "unresolved_count": 0,
         }
 
@@ -959,13 +1198,26 @@ def close_review(service, step_run_id: str, resume_token: str) -> dict:
             **reviewed_edition,
             "rejected": [x["entity_id"] if isinstance(x, dict) else x for x in reviewed_edition.get("rejected", [])],
         }
+        prior_decision_events = []
+        if mode == "rework":
+            prior_modified = rework_ctx["prior_modified_by_decision"]
+            for rev in frozen:
+                if types_map.get(rev) != "human_event":
+                    continue
+                doc = _read_doc(service, rev)
+                if doc and doc.get("event_kind") == "review_decision":
+                    prior_decision_events.append({
+                        "decision_revision_id": rev,
+                        "seen_revision_id": doc["target"]["artifact_revision_id"],
+                        "modified_revision_id": prior_modified.get(rev),
+                    })
         gate_report = gate.evaluate_review(
             candidate_objects=cand_for_gate,
             seen_revision_id=cand_set_rev,
             validation_package=val_pkg_doc,
             corpus_spans_doc={"spans": spans_dict},
             decision_entries=list(folded.values()),
-            prior_decision_events=(),
+            prior_decision_events=tuple(prior_decision_events),
             reviewed_edition=reviewed_edition_for_gate,
         )
 
@@ -1022,7 +1274,7 @@ def close_review(service, step_run_id: str, resume_token: str) -> dict:
             "rejected_count": len(reviewed_edition["rejected"]),
             "unresolved_count": 0,
             "correction_request_revision_ids": reviewed_edition["correction_request_revision_ids"],
-            "rework_impact_report_revision_id": None,
+            "rework_impact_report_revision_id": reviewed_edition["rework_impact_report_revision_id"],
         }
         package_bytes = json.dumps(
             package_doc, ensure_ascii=False, separators=(",", ":")
@@ -1038,6 +1290,10 @@ def close_review(service, step_run_id: str, resume_token: str) -> dict:
 
         # 5. record_transformation
         all_human_event_revs = [r[0] for r in cur_events]
+        if mode == "rework":
+            all_human_event_revs = (
+                list(rework_ctx["carried_decision_revision_ids"]) + all_human_event_revs
+            )
         trans_input_revs = frozen + [queue_rev] + list(mod_by_eid.values())
         transformation_id = service.record_transformation(
             step_run_id,
