@@ -54,7 +54,7 @@ tests:
     - test_shell_exit_2_on_fixture（subprocess，末行 SUMMARY pass=11 fail=0 blocked=3）
     - test_shell_never_trusts_copy_verify（副本删一条 span 并换假 verify.sh → exit 1，首行 FAIL fixture_host）
 verify:
-  - .venv/bin/python -m unittest discover -s pipeline/review/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 140（第 72 条 06a +2）
+  - .venv/bin/python -m unittest discover -s pipeline/review/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 144（第 72、74 条）
   - export LC_ALL=en_US.UTF-8; bash openspec/acceptance/m6-data-fields.sh; echo exit=$?    # 11 PASS + 3 BLOCKED + SUMMARY pass=11 fail=0 blocked=3；exit=2
   - grep -c 'FIXTURE_DIR/verify.sh' openspec/acceptance/m6-data-fields.sh                   # 0
   - grep -nE '^(from|import) .*review\.(gate|model|propagation|step|rework)' pipeline/review/acceptance.py | wc -l   # 0

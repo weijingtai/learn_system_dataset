@@ -19,7 +19,7 @@ M4 已实现（impl-05 `ACCEPTED`，`pipeline/knowledge_extraction/**`），M5 �
 
 ```bash
 export LC_ALL=en_US.UTF-8
-.venv/bin/python -m unittest discover -s pipeline/review/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK（用例 ≥ 140）
+.venv/bin/python -m unittest discover -s pipeline/review/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK（用例 ≥ 144）
 bash openspec/acceptance/m6-data-fields.sh; echo exit=$?
 # 期望：11 行 PASS + BLOCKED snapshot_projection（第 61 条）+ BLOCKED legacy_workbench_seed + BLOCKED upstream_real
 #       末行 SUMMARY pass=11 fail=0 blocked=3；exit=2

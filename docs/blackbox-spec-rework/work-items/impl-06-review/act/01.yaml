@@ -32,7 +32,7 @@ contract: |
     event_bytes(event) -> bytes：json.dumps(event, sort_keys=True, ensure_ascii=False).encode("utf-8")
     decision_entry(*, decision_revision_id, queue_item, event=None, standing="active", carried_from_revision_id=None, carried_to_revision_id=None, carried_content_hash=None, modified_revision_id=None) -> dict
       active（standing == "active"，event 必填）：event["event_kind"]=="review_decision"；event["target"]["entity_id"] == queue_item["target_entity_id"]；event["target"]["artifact_revision_id"] == queue_item["seen_artifact_revision_id"]（事件锚恒 seen，第 68 条）；verdict=="modify" ⇔ modified_revision_id 非空且 validate("artifact_revision_id")（否则 ReviewRefused SCH_001 / InvalidIdentifier ID_001）；carried_from_revision_id/carried_to_revision_id/carried_content_hash 必须为 None；seen_revision_id = event target 修订
-      carried（standing == "carried_forward"，event 必填为该决定的**首审原始事件**，第 69 条）：seen_revision_id = event["target"]["artifact_revision_id"]（首审审核者实际所见的**旧**修订，**不得改写为复审新修订**）；carried_to_revision_id == queue_item["seen_artifact_revision_id"]（复审队列项当前修订）且 validate("artifact_revision_id")；carried_from_revision_id == decision_revision_id（原决定事件修订）且 validate("artifact_revision_id")；carried_content_hash 非空（该对象旧修订的 content_hash）；modified_revision_id 必须为 None
+      carried（standing == "carried_forward"，event 必填为该决定的**首审原始事件**，第 69 条）：seen_revision_id = event["target"]["artifact_revision_id"]（首审审核者实际所见的**旧**修订，**不得改写为复审新修订**）；carried_to_revision_id == queue_item["seen_artifact_revision_id"]（复审队列项当前修订）且 validate("artifact_revision_id")；carried_from_revision_id == decision_revision_id（原决定事件修订）且 validate("artifact_revision_id")；carried_content_hash 非空（该对象旧修订的 content_hash）；verdict == "modify" ⇔ modified_revision_id 非空且 validate("artifact_revision_id")（= 首审决定的 modified_revision_id，保留人工修订，第 74 条；非 modify 必须为 None）
       needs_review（standing == "needs_review"）：仅由 propagation/复审对照产出，流经 fold/outcome，不写 Ledger；seen_revision_id = queue_item["seen_artifact_revision_id"]，carried_* 为 None
       键序逐字：decision_revision_id, queue_item_id, target_entity_id, kind, decision_type, verdict, standing, seen_revision_id, modified_revision_id, carried_from_revision_id, carried_to_revision_id, carried_content_hash, rationale
     normalize_content(candidate, spans_by_id) -> bytes
@@ -68,6 +68,7 @@ tests:
     - test_decision_entry_active_forbids_carried_fields
     - test_decision_entry_carried_keeps_old_seen_and_carried_to（第 69 条：seen = 首审旧修订；carried_to = 复审队列项 seen）
     - test_decision_entry_carried_requires_carried_from_and_content_hash
+    - test_decision_entry_carried_modify_keeps_modified_revision（第 74 条：carried × modify 必须携首审 modified_revision_id，缺失 → SCH_001）
     - test_decision_empty_rationale_rejected
     - test_decision_school_dispute_requires_school_attribution
     - test_decision_invalid_verdict_rejected
