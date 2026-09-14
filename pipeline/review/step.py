@@ -213,6 +213,65 @@ def _carried_decision_entries(
     return entries
 
 
+def _frozen_human_event_revisions(service, step):
+    """本运行冻结输入中的 ``human_event`` 修订（按冻结顺序）。"""
+    request = json.loads(step["request_json"] or "{}")
+    frozen = list(request.get("input_artifact_ids") or [])
+    types = _artifact_types(service, frozen)
+    return [rev for rev in frozen if types.get(rev) == "human_event"]
+
+
+def _inherited_decision_revisions(service, step):
+    """冻结输入中的 ``review_decision`` 修订（继承决定，按冻结顺序）。"""
+    revisions = []
+    for revision_id in _frozen_human_event_revisions(service, step):
+        doc = _read_doc(service, revision_id)
+        if doc and doc.get("event_kind") == "review_decision":
+            revisions.append(revision_id)
+    return revisions
+
+
+def _active_decision_entries(
+    service, revision_ids, queue, modified_by_entity, modified_by_decision
+):
+    """把一组决定事件构造为 ``active`` 条目；继承决定沿用其事件 seen（第 75 条）。"""
+    entries = []
+    for d_rev in revision_ids:
+        ev_doc = _read_doc(service, d_rev)
+        if not ev_doc or ev_doc.get("event_kind") != "review_decision":
+            continue
+        ev_qid = model.queue_item_id(
+            ev_doc["target"]["entity_id"], ev_doc["decision_type"]
+        )
+        ev_qitem = next((it for it in queue if it["queue_item_id"] == ev_qid), None)
+        if not ev_qitem:
+            continue
+        mod_rev = None
+        if ev_doc.get("verdict") == "modify":
+            mod_rev = modified_by_entity.get(
+                ev_qitem["target_entity_id"]
+            ) or modified_by_decision.get(d_rev)
+        entries.append(
+            model.decision_entry(
+                decision_revision_id=d_rev,
+                queue_item=ev_qitem,
+                event=ev_doc,
+                standing="active",
+                modified_revision_id=mod_rev,
+            )
+        )
+    return entries
+
+
+def _prior_modified_by_decision(service, step):
+    """首审 ``reviewed_edition.decisions``：决定修订 → ``modified_revision_id``（第 74 条口径）。"""
+    edition = _prior_reviewed_edition(service, step)
+    return {
+        d["decision_revision_id"]: d.get("modified_revision_id")
+        for d in edition.get("decisions", []) or []
+    }
+
+
 def open_review(service, edition_part_id: str, *, required_decision_types=None) -> dict:
     inputs = resolve_m6_inputs(service, edition_part_id)
     processing_run_id = inputs["processing_run_id"]
@@ -508,9 +567,21 @@ def record_decision(
             if m_eid:
                 mod_by_eid[m_eid] = m_row[0]
 
-    # 重建 decision_entry
+    # 重建 decision_entry（第 75 条：冻结输入里的继承决定与本运行决定一并 fold）
+    mode = _review_mode(service, step)
+    entry_revs = []
+    prior_modified = {}
+    if mode != "rework":
+        prior_modified = _prior_modified_by_decision(service, step)
+        for rev in _inherited_decision_revisions(service, step):
+            if rev not in entry_revs:
+                entry_revs.append(rev)
+    for rev in all_decision_revs:
+        if rev not in entry_revs:
+            entry_revs.append(rev)
+
     entries = []
-    for d_rev in all_decision_revs:
+    for d_rev in entry_revs:
         ev_doc = _read_doc(service, d_rev)
         if not ev_doc or ev_doc.get("event_kind") != "review_decision":
             continue
@@ -521,7 +592,10 @@ def record_decision(
         # 查找是否有 modified_candidate
         mod_rev = None
         if ev_doc.get("verdict") == "modify":
-            mod_rev = modified_revision_id if d_rev == event_rev else mod_by_eid.get(ev_qitem["target_entity_id"])
+            if d_rev == event_rev:
+                mod_rev = modified_revision_id
+            else:
+                mod_rev = mod_by_eid.get(ev_qitem["target_entity_id"]) or prior_modified.get(d_rev)
         entry = model.decision_entry(
             decision_revision_id=d_rev,
             queue_item=ev_qitem,
@@ -533,7 +607,6 @@ def record_decision(
 
     folded = model.fold_decisions(queue, entries)
 
-    mode = _review_mode(service, step)
     if mode == "rework":
         rework_ctx = _rework_context(service, step_run_id, queue)
         entries = _carried_decision_entries(
@@ -975,8 +1048,21 @@ def close_review(service, step_run_id: str, resume_token: str) -> dict:
             if c_doc and c_doc.get("event_kind") == "correction_request" and r[0] not in correction_revs:
                 correction_revs.append(r[0])
 
+    # 重建 decision_entry（第 75 条：冻结输入里的继承决定与本运行决定一并 fold）
+    mode = _review_mode(service, step)
+    entry_revs = []
+    prior_modified = {}
+    if mode != "rework":
+        prior_modified = _prior_modified_by_decision(service, step)
+        for rev in _inherited_decision_revisions(service, step):
+            if rev not in entry_revs:
+                entry_revs.append(rev)
+    for rev in decision_revs:
+        if rev not in entry_revs:
+            entry_revs.append(rev)
+
     entries = []
-    for d_rev in decision_revs:
+    for d_rev in entry_revs:
         ev_doc = _read_doc(service, d_rev)
         if not ev_doc or ev_doc.get("event_kind") != "review_decision":
             continue
@@ -984,7 +1070,9 @@ def close_review(service, step_run_id: str, resume_token: str) -> dict:
         ev_qitem = next((it for it in queue if it["queue_item_id"] == ev_qid), None)
         if not ev_qitem:
             continue
-        mod_rev = mod_by_eid.get(ev_qitem["target_entity_id"]) if ev_doc.get("verdict") == "modify" else None
+        mod_rev = None
+        if ev_doc.get("verdict") == "modify":
+            mod_rev = mod_by_eid.get(ev_qitem["target_entity_id"]) or prior_modified.get(d_rev)
         entry = model.decision_entry(
             decision_revision_id=d_rev,
             queue_item=ev_qitem,
@@ -994,7 +1082,6 @@ def close_review(service, step_run_id: str, resume_token: str) -> dict:
         )
         entries.append(entry)
 
-    mode = _review_mode(service, step)
     rework_ctx = None
     if mode == "rework":
         rework_ctx = _rework_context(service, step_run_id, queue)
@@ -1294,7 +1381,16 @@ def close_review(service, step_run_id: str, resume_token: str) -> dict:
             all_human_event_revs = (
                 list(rework_ctx["carried_decision_revision_ids"]) + all_human_event_revs
             )
-        trans_input_revs = frozen + [queue_rev] + list(mod_by_eid.values())
+        else:
+            # 第 75 条 / act/06:37：冻结 + 本运行全部人工事件
+            inherited_human_events = _frozen_human_event_revisions(service, step)
+            all_human_event_revs = [
+                rev
+                for rev in dict.fromkeys(inherited_human_events + all_human_event_revs)
+            ]
+        trans_input_revs = list(
+            dict.fromkeys(frozen + [queue_rev] + list(mod_by_eid.values()))
+        )
         transformation_id = service.record_transformation(
             step_run_id,
             operation="review_candidates",

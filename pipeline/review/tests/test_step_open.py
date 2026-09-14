@@ -9,7 +9,7 @@ from pipeline.ledger.errors import InvalidIdentifier, MissingReference
 from pipeline.ledger.service import LedgerService
 import pipeline.review.inputs
 from pipeline.review.errors import ReviewRefused
-from pipeline.review.step import open_review, record_decision, recover_review
+from pipeline.review.step import close_review, open_review, record_decision, recover_review
 from pipeline.review.testing.upstream_stub import seed_upstream, load_data
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -274,6 +274,69 @@ class TestStepOpen(unittest.TestCase):
         self.assertEqual(rec_res["supersedes_step_run_id"], step_run_id)
         self.assertEqual(len(rec_res["carried_decision_revision_ids"]), 2)
         self.assertEqual(len(rec_res["replayed_pending"]), 3)
+
+    def test_recover_then_close_folds_inherited_decisions(self):
+        open_res = open_review(self.service, self.edition_part_id)
+        step_run_id = open_res["step_run_id"]
+        token = open_res["resume_token"]
+        decisions = load_data("m6_decisions")["decisions"]
+        conn = self.service.store.conn
+
+        def _record(run_id, run_token, decision):
+            return record_decision(
+                self.service,
+                run_id,
+                run_token,
+                queue_item_id=decision["queue_item_id"],
+                verdict=decision["verdict"],
+                rationale=decision["rationale"],
+                modified_content=decision.get("modified_content"),
+            )
+
+        first = _record(step_run_id, token, decisions[0])
+
+        def crash_wc(*args, **kwargs):
+            raise RuntimeError("simulated crash during write_checkpoint")
+
+        with mock.patch.object(self.service, "write_checkpoint", side_effect=crash_wc):
+            with self.assertRaises(RuntimeError):
+                _record(step_run_id, token, decisions[1])
+
+        rows = conn.execute(
+            "SELECT event_revision_id FROM human_events WHERE step_run_id=? ORDER BY rowid",
+            (step_run_id,),
+        ).fetchall()
+        self.assertEqual(len(rows), 2)
+        inherited_revs = [first["decision_revision_id"]]
+        inherited_revs.append(
+            next(r[0] for r in rows if r[0] != first["decision_revision_id"])
+        )
+
+        rec_res = recover_review(self.service, self.edition_part_id, reason="crash_recovery")
+        recovery_step_run_id = rec_res["step_run_id"]
+        recovery_token = rec_res["resume_token"]
+        own_revs = []
+        for decision in decisions[2:]:
+            rec = _record(recovery_step_run_id, recovery_token, decision)
+            own_revs.append(rec["decision_revision_id"])
+
+        close_res = close_review(self.service, recovery_step_run_id, recovery_token)
+        self.assertEqual(close_res["status"], "succeeded")
+
+        ed_row = self.service.get_revision(close_res["reviewed_edition_revision_id"])
+        edition = json.loads(self.service.objects.get(ed_row["sha256"]).decode("utf-8"))
+        self.assertEqual(edition["unresolved_count"], 0)
+        decision_revs = {row["decision_revision_id"] for row in edition["decisions"]}
+        for revision_id in inherited_revs + own_revs:
+            self.assertIn(revision_id, decision_revs)
+
+        event_rows = conn.execute(
+            "SELECT event_revision_id FROM transformation_human_events WHERE transformation_id=?",
+            (close_res["transformation_id"],),
+        ).fetchall()
+        recorded = {row[0] for row in event_rows}
+        for revision_id in inherited_revs + own_revs:
+            self.assertIn(revision_id, recorded)
 
     def test_recover_old_run_still_awaiting_human(self):
         open_res = open_review(self.service, self.edition_part_id)
