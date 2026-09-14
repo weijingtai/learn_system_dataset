@@ -4,6 +4,8 @@
 # K03 六件套结构与模糊词零命中；K04 SUBAGENT_TODO 登记；K05 PACKAGE 产物；K06 CLIENT 产物。
 # --require-impl package|client|all（可逗号组合）时核对对应仓库产物并运行测试；基线期 K05/K06 SKIP。
 # 路径布局与 Windows 适配沿用 nc013_guard.sh（D-NC012-23）。
+# 产物文件集断言只统计主题含 "NC-014" 的提交（nc_changed_files），以免同分支上其他 agent
+# 的提交污染断言；断言仍为精确等于白名单。
 set -uo pipefail
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"; ROOT="$(cd "$DIR/../../.." && pwd)"
 MODE="${1:-}"; LINES="${2:-all}"
@@ -78,6 +80,15 @@ def run(cmd, cwd, extra=None, timeout=1800):
     r = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, env=env, timeout=timeout)
     return r.returncode, r.stdout + r.stderr
 def git(repo, *args): return subprocess.run(["git", "-C", str(repo), *args], capture_output=True, text=True).stdout.strip()
+def nc_changed_files(repo, base, marker="NC-014", paths=()):
+    """base..HEAD 中主题含 marker 的提交所改动文件的并集（可按 pathspec 过滤）。
+    只统计本工作包自己的提交，避免同一分支上其他 agent 的提交污染文件集断言；
+    断言仍为「精确等于白名单」，不构成任何放宽。"""
+    shas = [s for s in git(repo, "log", "--format=%H", f"{base}..HEAD", f"--grep={marker}").splitlines() if s]
+    files = set()
+    for sha in shas:
+        files |= set(git(repo, "diff-tree", "-r", "--name-only", "--no-commit-id", sha, "--", *paths).splitlines())
+    return files
 def dart_src_literal_hits(repo):
     hits = []
     lib = repo / "lib"
@@ -140,7 +151,7 @@ if "package" in req:
     lit = dart_src_literal_hits(NOTIF); ok &= not lit; det.append(f"lib_literal_hits={lit}")
     cheats = [w for w in ("skip:", "skipTest", "assert(true)") if w in t]; ok &= not cheats; det.append(f"cheats={cheats}")
     ok &= "exactly-once" not in t and not vague.search(t); det.append("redline_vague_clean")
-    changed = set(git(NOTIF, "diff-tree", "-r", "--name-only", "518670b", "HEAD").splitlines())
+    changed = nc_changed_files(NOTIF, "518670b")
     ok &= changed == PKG_FILES; det.append(f"files={sorted(changed) if changed != PKG_FILES else 'exact_6'}")
     envf = {"PATH": FL + os.pathsep + os.environ["PATH"]}
     rc, out = run([EXE("flutter"), "test"], NOTIF, envf, timeout=2400)
@@ -170,10 +181,10 @@ if "client" in req:
     ok &= not legacy; det.append(f"legacy_or_fcm={legacy}")
     cheats = [w for w in ("skip:", "skipTest", "assert(true)") if w in t]; ok &= not cheats; det.append(f"cheats={cheats}")
     ok &= "exactly-once" not in t and "exactly-once" not in src and not vague.search(t) and not vague.search(src)
-    changed = set(git(CLIENT, "diff-tree", "-r", "--name-only", "107ec90", "HEAD").splitlines())
+    changed = nc_changed_files(CLIENT, "107ec90")
     ok &= changed == CLIENT_FILES; det.append(f"files={sorted(changed) if changed != CLIENT_FILES else 'exact_6'}")
-    prot = git(CLIENT, "diff-tree", "-r", "--name-only", "107ec90", "HEAD", "--", "lib/src/community")
-    ok &= prot == ""; det.append(f"community_untouched={prot == ''}")
+    prot = nc_changed_files(CLIENT, "107ec90", paths=("lib/src/community",))
+    ok &= not prot; det.append(f"community_untouched={not prot}")
     envf = {"PATH": FL + os.pathsep + os.environ["PATH"]}
     rc, out = run([EXE("flutter"), "analyze"], CLIENT, envf, timeout=1800)
     ok &= rc == 0 and "No issues found!" in out; det.append(f"analyze={rc}/{'clean' if 'No issues found!' in out else 'dirty'}")
