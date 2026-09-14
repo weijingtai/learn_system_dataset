@@ -1,20 +1,16 @@
 # HANDOFF
 
-## G7 W5 进行中：impl-00 act/13 ACCEPTED；impl-06 R3 复审；impl-07 G0 实现（Dataset 会话；黑箱线最新状态）
+## G7 W5：impl-06 M6 与 impl-07 M7 创世薄切片均 ACCEPTED（Dataset 会话；黑箱线最新状态）
 
-补记六（2026-09-13）：
-- 已验收：impl-01 Ledger、impl-02 M3 结构层、impl-03 M5、impl-04 M8、impl-05 M4 最薄接入、impl-08 Orchestrator+Contract Registry、impl-00 act/10/12/05/**13**（`573c3fb`，ACCEPTANCE §5.4）。`run_all.sh` 仍 `pass=2 fail=1 blocked=8`。裁决书 `G7-RULINGS.md` 至第 69 条；计划 `G7-PLAN.md`。
-- 执行器按用户 2026-09-13 指令切回 **tmux + agy**（`--agent agy`，从已信任的 `/Users/jingtaiwei/Git/Public` 启动；tmux 须在沙箱外拉起）。在跑：
-  - `w5r6`（已关）：impl-06 R3 `READY` `4390b6c`；主 Agent 复核阈值与 carried 条件式属实。
-  - **模型（用户 2026-09-13 纠正）**：agy 一律 `gemini-3.8-flash-medium`，不用 Pro、不用 High（token 有限）。两个会话均已 kill 后以 `--conversation=<原 id> --model gemini-3.8-flash-medium` 续接。
-  - `w5h1`（conv `f5a701ee…`）：impl-06 实现，K1→K2→K3 **分组停下**，回报 `w5h1.report.md`。K1 `ACCEPTED`（`4a5e86f`，§5.1）；K2 功能正确但真实输出键不符 §5.3（主 Agent 端到端经 M7 校验发现）→ 裁定 72 → 返工 06a `3753034` `ACCEPTED`（§5.2/§5.3）；**K3（ACT 08→09→11，阈值 121/131/140）已放行但未开工**：放行消息送达后 agy 报「Individual quota reached … Resets in 2h25m」（2026-09-13），工作树干净、无新提交；用户决定改用 **tmux + `cmd --yolo` DeepSeek V4.1 Flash**：agy 会话 `w5h1` 已关，K3 由新会话 `w5h3`（提示词 `~/tmux-agents/runs/prompts/w5h3.txt`，回报 `w5h3.report.md`，监控 `--agent cmd`）从头做，K3 完成后停下待验收。验收脚本 `accept_m6.sh <base> <head> "<act 编号>"`。注意：Medium 模型曾只写回报标题不附证据，Red 由主 Agent 在修正前树上叠加新测试独立复现。
-  - `w5g0`（已关）：impl-07 创世薄切片 **G0 全部 `ACCEPTED`**（G0-01 `c79b36a`、G0-01a `8f9917f`、G0-02 `749fc04`、G0-03 `bcdfdc1`、G0-04 `bc47036`、G0-05 `a4a399f`；ACCEPTANCE §5.1–§5.5；裁定 70、71、73）。`m7-assembler.sh` 10 PASS + 6 BLOCKED exit 2。验收脚本 `accept_g0.sh <commit> [e2e.py]`。
-  - 放行用 `tmux-agent.sh send --session <名> --text "…"`；发送前若屏幕有「How's the CLI experience」调查框，先 `tmux send-keys -t <名> 0` 关掉。
-  - 下一步：K3 验收（ACT 11 `m6-data-fields.sh` 期望 11 PASS + 3 BLOCKED exit 2）→ impl-06 全部 ACCEPTED 后复核 M7 `upstream_m6_real` 是否可转判（需新 ACT，不改已验收 acceptance）→ 起草 impl-04 跟进（知识链前三段 + GraphProjectionPack）。
-  - `w5h`/`w5l`/`w5x`（cmd）已完成：`c740603`、`3d97bb2`、`573c3fb`。遗留：impl-07 `BDD.md §2.3`/`act/02.yaml`（DEFERRED 完整波次）仍写 SCH_001，完整波次定稿时统一为 SCH_002。
-- 监控：`tmux-watch.sh --session <名> --agent agy --interval 60 --idle-need 3 --stall 1800 --max 7200`（放后台，沙箱外）。
-- 验收脚本：旧 scratchpad 已被清空，`accept_m4.sh` 等不存在；现有 `accept_act13.sh`（干净树 + 篡改 + 门禁模板）。G0 验收需另写 `accept_m7.sh`：干净树、`pipeline/assembly` 单测、`genesis`/`gate` 独立性 grep、纯函数副作用 grep、`m7-assembler.sh` 10 PASS + 6 BLOCKED exit 2、`run_all` 不变。
-- 下一步顺序：w5g0 每个 ACT 验收放行；w5r6 READY → impl-06 实现；之后起草 impl-04 跟进（知识链前三段 + GraphProjectionPack，依赖 M6 正式知识与 M7 Snapshot）；impl-09、impl-10 等用户待办。
+补记七（2026-09-13）：
+- 已验收：impl-01 Ledger、impl-02 M3 结构层、impl-03 M5、impl-04 M8 首切片、impl-05 M4 最薄接入、impl-08 Orchestrator+Contract Registry、impl-00 act/10/12/05/13、**impl-06 M6 最薄接入（K1、K2+06a、K3+09a/09b；ACCEPTANCE §5.1–§5.4）**、**impl-07 M7 创世薄切片 G0（§5.1–§5.5）**。`run_all.sh` 仍 `pass=2 fail=1 blocked=8`；`m6-data-fields.sh` 11 PASS + 3 BLOCKED；`m7-assembler.sh` 10 PASS + 6 BLOCKED。裁决书 `G7-RULINGS.md` 至第 75 条（70–75 为本轮：id_range 两层、补发号可为活对象、reviewed_edition/package 键按 §5.3、run_m7 id_range 缺省、carried × modify 保留首审修订、恢复后结审折叠继承决定）。
+- 执行器：agy 一律 `gemini-3.8-flash-medium`（用户要求不用 Pro/High）；其额度耗尽后用户选择改用 tmux + `cmd --yolo` DeepSeek V4.1 Flash。当前**无在跑会话**（w5g0、w5h1、w5h3 均已关）。
+- 主 Agent 端到端经验：真实 M6 输出须交 M7 `model.validate_reviewed_edition`/`validate_reviewed_package` 校验（曾据此发现裁定 72）；执行方回报可能只写标题，Red 可在修正前树上叠加新测试独立复现；cmd 屏幕底部永远有输入框，判断工作中看「esc to interrupt」。
+- 验收脚本（本会话 scratchpad，可能被清空）：`accept_m6.sh <base> <head> "<act 编号>"`、`accept_g0.sh <commit> [e2e.py]`、`accept_act13.sh <commit>`。
+- 下一步（待派发，建议串行、单路执行器）：
+  1. M7 `upstream_m6_real` 与 M6 `snapshot_projection` 转判：新 ACT 以真实 M6 `close_review` 产出驱动 `run_m7`（不改已验收 acceptance 判定逻辑，只接线并更新 BLOCKED 文案）；
+  2. 起草 impl-04 跟进（M8 知识链前三段 + GraphProjectionPack，依赖 M6 正式知识与 M7 Snapshot），四查后实现；
+  3. 小清理：`acceptance.py:405`（M7 no_model_calls 静默跳过不可解析文件）、`model.py` 尾随空白、M6 acceptance 未比对 `first_review.decisions/checkpoints`。
 - 用户待办：真实前十页人工终态决定表（impl-09）；`expert_verified` 签发决定表（M4/M6 真实签发）；SemanticSpan ID 前缀确认（impl-10）。
 
 ## （上一节）G7 W4 收尾：impl-08 与 impl-05 均 ACCEPTED

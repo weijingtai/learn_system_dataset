@@ -90,3 +90,17 @@ K2 `REWORK`（06a）。
 - 跨模块端到端（真实 M3/M4/M5 桩 → M6 `close_review`）：`reviewed_edition` 顶层键序与 §5.3 逐字相同（`schema_version "0.1.0-draft"`、`edition_part_artifact_id art_…e1`、三个上游修订号取自冻结输入）；`reviewed_edition_package` 键序与 §5.3 逐字相同（`decision_count 5`、`approved_count 3`、`rejected_count 1`、`unresolved_count 0`、`decision_revision_ids` 5 条）；二者分别通过 M7 `model.validate_reviewed_edition` 与 `validate_reviewed_package`。
 
 06a `ACCEPTED`，K2 连同 06a 视为 `ACCEPTED`。K3 已放行。
+
+### 5.4 K3（2026-09-13，主 Agent 独立验收，`git archive caf599e`/`4e0cf93`/`b5be811` 干净树）
+
+执行者：K3 放行后 agy 额度耗尽（「Individual quota reached」，零产出），按用户决定改由 tmux + `cmd --yolo` DeepSeek V4.1 Flash，会话 `w5h3`。执行中两次停手上报 → 裁定 74（carried × modify）、75（恢复后结审折叠继承决定）。
+
+- 范围：ACT 08 `caf599e`（`rework.py`、`tests/test_rework.py` 等）；09a `cb6ea8e`（`model.py`、`gate.py`、`tests/test_model.py`、`tests/test_gate.py`）；ACT 09 `4e0cf93`（`console.py`、`rework.py`、`step.py`、`testing/upstream_stub.py`、`tests/test_rework_review.py`）；09b `feb99df`（`step.py`、`tests/test_step_open.py`）；ACT 11 `b5be811`（`acceptance.py`、`tests/test_acceptance.py`、`openspec/acceptance/m6-data-fields.sh` 100755）。全部在授权范围内；测试文件删除行仅 09b 的 1 行 import 扩写（加 `close_review`），无既有断言删改；`run_all.sh` 与共享面改动 0。
+- Red（执行方原文）：ACT 08 `FAILED (errors=1)`；09a `Ran 3 … FAILED (failures=1, errors=1)`；ACT 09 `FAILED (errors=1)`（另记裁定前 `failures=1, errors=4` 阻断原文）；09b `FAILED (errors=1)`；ACT 11 见回报。Green 依次 121、124、135、136、145 OK。
+- 复验：`pipeline/review/tests` 依次 `Ran 121`（caf599e）、`Ran 135`（4e0cf93）、`Ran 145`（b5be811）OK，阈值 121/135/145 达标；具名用例 143 个与 act/01–09、11 逐字一致，另 2 个为第 72 条授权；ledger 74、corpus_compiler 68、knowledge_extraction 133、validation 87 OK；Gate 独立性、propagation 不写 Ledger、各源文件副作用/网络/`_fixture`/裸 except 0；`acceptance.py` 不 import `gate/model/propagation/step/rework`、不读 `close_review` 的 gate 报告；`m6-data-fields.sh` 调仓库内规范 `mini_ed01/verify.sh`；`check_interfaces` `fail=0`；`schemas/verify.sh` 0；`verify-T.sh` `FAIL 合计: 0`；`mutations` 109/109；`m6-data-fields.sh` `SUMMARY pass=11 fail=0 blocked=3`、exit 2（BLOCKED：`snapshot_projection`、`legacy_workbench_seed`、`upstream_real`）；`run_all` `pass=2 fail=1 blocked=8`。
+- 裁定 74 端到端（`4e0cf93` 干净树，复用 `TestReworkReview`）：复审中首审 modify 的 `as_qizheng_000003` 为 carried，`modified_revision_id` 与 `current_target_revision_id` 等于首审人工修订，复审 approved 指向该修订且其 `artifact_type == reviewed_candidate`（人工修订未丢失）；复审 `reviewed_edition`/package 通过 M7 两个校验（第 72 条在返工模式下未回退），`rework_impact_report_revision_id` 已填；standings 3 active + 2 carried。复审过程中旧 M4 `candidate_set` 修订由测试桩驱动的 M4' 以 `supersede_revision` 置 superseded（第 62 条口径：M6 生产代码不含 `supersede_revision`/`invalidate_revision`）。
+- ACT 08 说明：act/08 要求 `rework.request_correction` 带 span 存在性前置，K2 已验收的实现落在 `step.py` 且无该检查；执行方以 `rework.request_correction` 薄封装先校验再委托 `step.request_correction`，真实人工路径 `console.py:425` 走封装——采纳，不另立裁定。
+- 矩阵外篡改（`b5be811` 副本，改合成金标 `expected_review.yaml`）：T1 改 `first_review.decisions 5→6` → 仍全过（acceptance 不比对该计数，见观察）；T2 改 `rereview.carried_forward 2→3` → `FAIL rework_rereview_scope`、exit 1；T3 从 `first_review.approved` 删 `as_qizheng_000003` → `FAIL reviewed_edition_contract`、exit 1。
+- 观察（建议，不阻断）：金标 `first_review.decisions`/`checkpoints` 未被 acceptance 直接比对（`checkpoint_per_decision` 另按 Ledger 独立重算）；`cb6ea8e` 在 `model.py` 留 1 处尾随空白；`snapshot_projection` 的 BLOCKED 文案「前置缺失: M7 创世汇编」在 impl-07 G0 已验收后已过时，`upstream_real` 文案仍写「M4 Knowledge Extraction」前置缺失，均宜在转判 ACT 中更新。
+
+K3 `ACCEPTED`。**impl-06 M6 最薄接入（K1、K2+06a、K3+09a/09b）全部 `ACCEPTED`**。
