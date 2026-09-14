@@ -127,7 +127,10 @@ check(ok03, "K03 六件套：BDD A01～A04/S01～S26/C01～C18/R01～R03、ACT 3
       f"ids={len(ids)} est={est} deps={deps} vague={hits}")
 
 todo = read(root / "docs/blackbox-spec-rework/SUBAGENT_TODO.md")
-check("NC-026" in todo and "PREPARING" in todo and "community_behavior.md" in todo, "K04 SUBAGENT_TODO 已登记 NC-026 为 PREPARING 且含契约文件名")
+nc026_row = next((ln for ln in todo.splitlines() if "NC-026：" in ln), "")
+check(bool(nc026_row) and ("`PREPARING`" in nc026_row or "`ACCEPTED`" in nc026_row) and "community_behavior.md" in nc026_row,
+      "K04 SUBAGENT_TODO 已登记 NC-026（PREPARING 或 ACCEPTED）且含契约文件名",
+      f"row={'found' if nc026_row else 'missing'}")
 
 # K05 规格侧：冻结 Schema 与行为事件示例（Windows 经 check-jsonschema.exe + file:///D:/ base-uri，D-NC026-21）
 det = []; ok = True

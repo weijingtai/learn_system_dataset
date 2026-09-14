@@ -3,13 +3,14 @@
 本文件由主 Agent 会话（DeepSeek，2026-09-13）出具，用途：把「注解社区（NC）还有多少没完成、卡在哪」一次说清，供用户决策。
 权威状态仍以 `docs/blackbox-spec-rework/SUBAGENT_TODO.md` 各 NC 行为准；本文只做汇总与阻塞归因，不改状态。
 
-> **2026-09-13 更新（晚）**：NC-014 已由本会话实现并独立验收 **ACCEPTED**（notification `b62cd27`、reading-notes `19afe37`；守卫 `nc014_guard.sh --require-impl all` 退出 0、盲测 B1～B10 全过；记录见 `work-items/nc-014/ACCEPTANCE.md` R1）。下文计数已随之更新。
+> **2026-09-13 更新（晚）**：NC-014 已由本会话实现并独立验收 **ACCEPTED**（notification `b62cd27`、reading-notes `19afe37`；守卫 `nc014_guard.sh --require-impl all` 退出 0、盲测 B1～B10 全过；记录见 `work-items/nc-014/ACCEPTANCE.md` R1）。
+>
+> **2026-09-13 更新（深夜）**：**NC-026 已 ACCEPTED**（REST `c1afba3` +85、SERVER `dd04f27` pytest 5/594/3、CLIENT `613f6ba` +332、RULES `f74b9a5` 157；守卫 `nc026_guard.sh --require-impl all` K01～K09 全 PASS、盲测①～⑧全过；记录见 `work-items/nc-026/ACCEPTANCE.md` R1）。下文计数已随之更新：**叶子任务共 30 个，已完成 17、未完成 13**。
 
 ## 0. 摘要
 
-- 叶子任务总数 **30**：**已 ACCEPTED 16 个**，**未完成 14 个**。
-- 未完成的 14 个里，**现在就能动手的只有 2 个**：
-  - `NC-026`（行为事件与假名化）——规格就绪，**待四查**；
+- 叶子任务总数 **30**：**已 ACCEPTED 17 个**，**未完成 13 个**。
+- 未完成的 13 个里，**现在就能动手的只有 1 个**：
   - `NC-020a`（消费端书籍契约核对清单）——纯文档，无前置，可随时插队。
 - **其余 12 个全部被阻塞**，且阻塞可归为三类：**A 需用户决策/用户自有工作（6 个）**、**B 等上游书籍交付（5 个）**、**C 依赖链（1 个）**。
 
@@ -56,12 +57,12 @@
 
 **解除条件**：上游书籍政策/Schema/样例交付 → NC-020b 冻结 → 其后的 021/022/023 依次展开 → 最终 NC-024 总验收。
 
-## 3. 无阻塞、可立即动手（2 个；NC-014 已关单）
+## 3. 无阻塞、可立即动手（1 个；NC-014、NC-026 均已关单）
 
 | 任务 | 状态 | 说明 |
 |---|---|---|
 | ~~NC-014~~ | **ACCEPTED**（2026-09-13） | 已关单：notification `b62cd27` + reading-notes `19afe37`；契约 `FROZEN_FOR_NC-014`（D-NC014-01～17）、守卫 `--require-impl all` 退出 0、盲测 B1～B10 全过；记录见 `work-items/nc-014/ACCEPTANCE.md` R1 |
-| NC-026 | **PREPARING（待四查）** | 契约 `community_behavior.md`、API §14 补丁、收紧后的 `community_behavior_event.schema.json`（SHA `f3467224…`）+ 23 示例、六件套、守卫 `nc026_guard.sh`；注销子项 DEFERRED（D-NC026-13）；待裁决 P1～P4 / W1～W2 |
+| ~~NC-026~~ | **ACCEPTED**（2026-09-13） | 已关单：REST `c1afba3`、SERVER `dd04f27`、CLIENT `613f6ba`、RULES `f74b9a5`；守卫 `nc026_guard.sh --require-impl all` K01～K09 全 PASS、盲测①～⑧全过；注销子项 DEFERRED（D-NC026-13）；四查独立性按 D-NC026-28 由用户授权替代 |
 | NC-020a | BACKLOG | 纯文档，无前置，可随时插队 |
 
 ## 4. 阻塞台账总表
@@ -87,7 +88,7 @@
 
 1. **新 Account 后端/前端何时可供联调 + Firebase 去留口径**——解开 A 类 5 个（NC-001-02/012b/016b/025/008）。
 2. **NC-018 解锁口径**（能否按 NC-016a 交付范围解锁）——解开 NC-018/019。
-3. **NC-026 的待裁决 P1～P4 / W1～W2**（是否填 `image_count`/`reaction.set` 两处 attributes、上报开关 UI 与隐私政策归属、`GET /v1/analytics/pseudonym` 新增补口、DESIGN §11.2 `event_id` 措辞歧义；W1 handbook autocrlf、W2 `verify_community.sh` Windows 适配）。
+3. ~~**NC-026 的待裁决 P1～P4 / W1～W2**~~ **已结**：P1/P2 不采纳、P3/P4 采纳（D-NC026-29～32）；W1/W2 作为已知缺口保留（不动 NC-002 脚本与 handbook 的 autocrlf，避免影响并行会话）。
 4. **注解社区能力 handbook 领域整体裁定**（现有 `social.*` 暂挂 social）。
 
 ## 6. 证据（TODO 原文行号，learn_system `SUBAGENT_TODO.md`）

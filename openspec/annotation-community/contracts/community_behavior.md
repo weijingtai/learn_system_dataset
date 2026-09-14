@@ -439,12 +439,13 @@ SCHEMA_SHA = f3467224ddafa5ff3ac2a43011521a5cc0b8acf6293244d632fa291c97451e42
 | 项 | 处置 |
 |---|---|
 | 注销（宿主注销 / 本人彻底删除账号）：删 `PseudonymMapping`、本系统业务数据去标识化、事件保留 | **DEFERRED（D-NC026-13）**。事件来源取自 NC-001 第⑩项，`SUBAGENT_TODO.md` NC-001 总项仍为 `PREPARING`、第⑩项证据缺失；缺证时不派发该子项。注销子项解锁条件：NC-001 第⑩项登记完成（来源、送达语义、测试方式）。 |
-| `content.publish.image_count` 与 `reaction.set.{value, previous_value}` 的 producer 填充 | **待裁决 P1（D-NC026-08）**：需改 NC-009/NC-012a 已验收文件，且 `tests/test_community_interactions.py:149` 断言 `attributes == {}`。本任务只冻结 Schema 允许集，不填充。 |
-| 私人笔记上报的默认开启/关闭开关（PRD 要求「默认上报」并写入隐私政策） | **待裁决 P2**：本任务只保证默认开启的上报链路与字段白名单；设置项 UI 与隐私政策文本归属未定。 |
+| `content.publish.image_count` 与 `reaction.set.{value, previous_value}` 的 producer 填充 | **已裁定不采纳（D-NC026-08 / D-NC026-29）**：需改 NC-009/NC-012a 已验收文件，且 `tests/test_community_interactions.py:149` 断言 `attributes == {}`；成本与回归面不成比例。本任务只冻结 Schema 允许集（这些键**合法但非必填**），不填充，登记为后续扩展候选。 |
+| 私人笔记上报的默认开启/关闭开关（PRD 要求「默认上报」并写入隐私政策） | **已裁定不采纳（D-NC026-30）**：属 PRD 产品决策与宿主 UI 范围，本任务只保证默认开启的上报链路与字段白名单；开关 UI 与隐私政策文本归属留给宿主后续任务。 |
 | 设备归属校验、宿主平台枚举实值 | 由宿主注入，本任务取闭集常量；宿主实值核实归 NC-001（E-WIRING）。 |
 | `verify_community.sh` 在 Windows 不可运行（`.venv/bin`、`file:///d/...` base-uri） | **已知缺口**：本任务不动 NC-002 的脚本（D-NC026-21），守卫改用 `.venv/Scripts/check-jsonschema.exe` + `file:///D:/...` 直接校验（§14 K04）。 |
-| 假名交付通道（R11）是 DESIGN 未定义的新增端点 | 登记 D-NC026-07，供四查复核。 |
-| `event_id` 前缀歧义（DESIGN §11.2 措辞） | 登记 D-NC026-06。 |
+| 假名交付通道（R11）是 DESIGN 未定义的新增端点 | **已裁定采纳（D-NC026-07 / D-NC026-31）**：客户端无法自行生成合规假名（不得由账号 ID 推导），必须由服务端交付；已落 `GET /v1/analytics/pseudonym` 与四个测试名。 |
+| `event_id` 前缀歧义（DESIGN §11.2 措辞） | **已裁定（D-NC026-06 / D-NC026-32）**：统一 `bev_` + UUIDv4 hex，服务端与客户端同构。 |
+| 四查独立性（作者即主 Agent，无第三方审查者） | **已裁定豁免（D-NC026-28）**：由用户显式授权替代；`reviews/NC-026-REVIEW-R1.md` 降级为作者自查 + 冲突利益披露，如实标注独立性不满足。 |
 
 ## 14. 主 Agent 盲测清单（验收用，临时文件不入库，结束删除并以四仓 `git status --short` 为空证明）
 
@@ -488,3 +489,8 @@ SCHEMA_SHA = f3467224ddafa5ff3ac2a43011521a5cc0b8acf6293244d632fa291c97451e42
 | D-NC026-25 | 行为事件纯层与 Schema 校验单列 `SERVER/xuan/community/behavior_events.py`，随 act/02 落地 | 与 D-NC026-24 同因：act/02 的 Schema 封闭化与示例校验需要纯层先行，act/03 的端点只做 HTTP/权限/事务编排 |
 | D-NC026-26 | CLIENT 基线因 NC-014 落地由 `+296` 升至 `+314`；契约、六件套与守卫的 CLIENT 基线、保护路径 diff 基准与期望计数同步更新（`107ec90` → `19afe37`，`+314` → `+332`） | NC-026 起草早于 NC-014 落地；`nc026_guard.sh` K08 的 `pubspec.yaml` 保护断言若仍以 `107ec90` 为基准会被 NC-014 的合法 pubspec 改动误判（与 nc014_guard.sh K06 同类修严） |
 | D-NC026-27 | SERVER 线 act/02 与 act/03 由主 Agent 在同一会话实现、合并为**单提交**；范围证据取 `992088e..HEAD` 恰 10 文件；`pseudonyms.py`/`behavior_events.py` 两个纯层归 act/02（见 D-NC026-24/25） | ACCEPTANCE §2 的 SERVER 范围本定义为「`992088e..HEAD` 恰 10 文件」的区间口径、而非按 act 切分提交；act/03 测试文件头部共用导入（`analytics_events_py`）使部分暂存切分无收益、徒增回归面 |
+| D-NC026-28 | 四查独立性**豁免**：NC-026 无「未参与编写且异厂商」的第三方审查者，`reviews/NC-026-REVIEW-R1.md` 降级为作者自查 + 冲突利益披露 | 用户显式授权同一会话全权接任主 Agent 并端到端完成 NC-026；契约与 `HANDOFF` §7.2 要求无法在单会话下同时满足，如实登记而非假装合规 |
+| D-NC026-29 | P1 不采纳：不填充 `image_count`/`reaction.set.{value,previous_value}` | 见 §13；需改 NC-009/NC-012a 已验收文件与 `tests/test_community_interactions.py:149` 的 `attributes == {}` 断言 |
+| D-NC026-30 | P2 不采纳：上报开关 UI 与隐私政策文本不归本任务 | 属 PRD 产品决策与宿主 UI 范围；本任务只落数据链路与字段白名单 |
+| D-NC026-31 | P3 采纳：保留 `GET /v1/analytics/pseudonym` | 客户端不得由账号 ID 推导假名，服务端交付是唯一合规路径（D-NC026-07 的复核结论） |
+| D-NC026-32 | P4 解读维持：`event_id` 统一 `bev_` + UUIDv4 hex | DESIGN §11.2 措辞未区分两模式；统一为 `bev_` 前缀与既有 `ids.server_event_id` 同构，避免双格式分支 |

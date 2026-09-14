@@ -6,8 +6,8 @@
 
 | 状态 | 任务 |
 |---|---|
-| ACCEPTED | NC-002、NC-003、NC-004、NC-005、NC-006、NC-007、NC-009、NC-010、NC-011、NC-012a、**NC-013**、**NC-014**、NC-015、NC-016a、NC-017；NC-001 的子项 NC-001-01（NC-013：守卫 all 为 0、盲测①～⑦全过，记录见 `work-items/nc-013/ACCEPTANCE.md` R1；四仓已推送）；NC-014（守卫 all 为 0、盲测 B1～B10 全过，记录见 `work-items/nc-014/ACCEPTANCE.md` R1；notification `b62cd27` + reading-notes `19afe37` 已推送） |
-| PREPARING（待四查） | NC-026（行为事件与假名化：规格已就绪，契约 `contracts/community_behavior.md` + `community_api.md` §14 + 收紧后的 `community_behavior_event.schema.json`，六件套与 `reviews/nc026_guard.sh` 齐备，停在 READY 待四查） |
+| ACCEPTED | NC-002、NC-003、NC-004、NC-005、NC-006、NC-007、NC-009、NC-010、NC-011、NC-012a、**NC-013**、**NC-014**、NC-015、NC-016a、NC-017；NC-001 的子项 NC-001-01（NC-013：守卫 all 为 0、盲测①～⑦全过，记录见 `work-items/nc-013/ACCEPTANCE.md` R1；四仓已推送）；NC-014（守卫 all 为 0、盲测 B1～B10 全过，记录见 `work-items/nc-014/ACCEPTANCE.md` R1；notification `b62cd27` + reading-notes `19afe37` 已推送）；**NC-026**（守卫 `--require-impl all` K01～K09 全 PASS、盲测①～⑧全过，记录见 `work-items/nc-026/ACCEPTANCE.md` R1；REST `c1afba3` + SERVER `dd04f27` + CLIENT `613f6ba` + RULES `f74b9a5` 已推送；四查独立性按 D-NC026-28 由用户授权替代） |
+| PREPARING（待四查） | （空。NC-026 已于 2026-09-13 由主 Agent 实现并验收 ACCEPTED） |
 | BLOCKED | NC-001-02（设备/后端/Emulator 联调取证；**用户正自行编写与 Firebase 解耦的新 Account 后端/前端，本组挂起待其落定**）；NC-012b、NC-016b（等 NC-001-02，同步挂起）；NC-025、NC-008（等 NC-001-02 与 Firebase 去留，同步挂起）；NC-020b、NC-021、NC-022、NC-023（等上游书籍交付）；NC-024（等全部） |
 | BACKLOG | NC-026 之外的：NC-018（等用户裁定能否按 NC-016a 交付范围解锁）、NC-019、NC-020a（纯文档，随时可插队） |
 
@@ -59,7 +59,7 @@
 ## 6. 后续顺序建议（2026-09-13 更新；NC-013 已关单）
 
 1. **NC-014**（Notification 宿主适配、去重与导航）：规格起草中（契约 `contracts/community_notification_host.md`，主 Agent 已冻结 D-NC014-01～08：回跳复用 social 普通通知中心、行为层归包/adapter 归宿主、R10 补拉旁路 ACK、R9 生产降级、楼层定位先到讨论区顶部、聚合/静音 UI 本期交付、真机归 NC-024、双帧形状分派）。草案完成后走四查→派发（notification 包线 ∥ reading-notes 客户端线）。
-2. **NC-026**（行为事件与假名化）：并行进行——用户另行冷启动的 AI 会话任规格作者（主 Agent 已下发 Prompt），停在 READY 后由主 Agent 接管四查、派发与验收；「注销」子项 DEFERRED（等 NC-001 第⑩项证据）。
+2. ~~**NC-026**（行为事件与假名化）~~：**已完成（ACCEPTED）**。用户授权同一会话全权接任主 Agent，规格 + 四线实现 + 验收同会话完成；「注销」子项 DEFERRED（等 NC-001 第⑩项证据，D-NC026-13）。
 3. **NC-020a**（消费端书籍契约核对清单）：无前置，纯文档，可随时插队（主 Agent 可按需下发冷启动 Prompt）。
 4. **NC-018 / NC-019**：开工前请用户裁定能否按 NC-016a 交付范围解锁 NC-018；注意与 NC-014 同仓（reading-notes）；NC-014 已关单，该仓已空出。
 5. **挂起组**（等用户新写的解耦 Account 后端/前端落定后重启）：NC-001-02、NC-012b、NC-016b、NC-025、NC-008。
@@ -92,7 +92,7 @@
 
 ## 9. 接手提示词
 
-> **2026-09-13 增量事实（优先于下文提示词中过时的细节）**：NC-013 已 ACCEPTED（通知投递、正文拉取与补拉端点已上线四仓主干）；NC-014 已 ACCEPTED（notification 包 D.6 去重保留窗口 `b62cd27`、reading-notes 宿主八端口适配/Drift 三表/双帧分派/回跳导航 `19afe37`，均已在主干；契约 `FROZEN_FOR_NC-014` 含 D-NC014-01～17）；NC-026 规格由用户另行冷启动的并行 AI 会话按主 Agent 下发的 Prompt 撰写（停在 READY 待主 Agent 四查）；Firebase 组（NC-001-02/012b/016b/025/008）因用户自研解耦 Account 后端而**挂起**；基线数字以 §4 新表为准（learn_system 守卫改为 `nc013_guard.sh`）；本机路径与 Windows 适配见 §2/§8。接手后以 §1/§4/§6 为准执行，下文提示词中与上述冲突的细节以增量事实为准。
+> **2026-09-13 增量事实（优先于下文提示词中过时的细节）**：NC-013 已 ACCEPTED（通知投递、正文拉取与补拉端点已上线四仓主干）；NC-014 已 ACCEPTED（notification 包 D.6 去重保留窗口 `b62cd27`、reading-notes 宿主八端口适配/Drift 三表/双帧分派/回跳导航 `19afe37`，均已在主干；契约 `FROZEN_FOR_NC-014` 含 D-NC014-01～17）；**NC-026 已 ACCEPTED**（2026-09-13：REST `c1afba3` +85、SERVER `dd04f27` pytest 5/594/3、CLIENT `613f6ba` +332、RULES `f74b9a5` 157；守卫 `nc026_guard.sh --require-impl all` K01～K09 全 PASS、盲测①～⑧全过；四查独立性按 D-NC026-28 由用户授权替代，评审见 `reviews/NC-026-REVIEW-R1.md`）；Firebase 组（NC-001-02/012b/016b/025/008）因用户自研解耦 Account 后端而**挂起**；基线数字以 §4 新表为准（learn_system 守卫改为 `nc013_guard.sh`）；本机路径与 Windows 适配见 §2/§8。接手后以 §1/§4/§6 为准执行，下文提示词中与上述冲突的细节以增量事实为准。
 
 ---
 
