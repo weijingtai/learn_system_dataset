@@ -79,3 +79,14 @@ K1 `ACCEPTED`。K2 已放行。
 - 结论：K2 功能与事务正确，但下游契约键不符 → 裁定 72，返工提交 06a（先于 K3）。
 
 K2 `REWORK`（06a）。
+
+### 5.3 返工 06a（2026-09-13，主 Agent 独立验收，`git archive 3753034` 干净树）
+
+执行者：agy 会话 `w5h1`（Gemini 3.8 Flash Medium），依裁定 72。
+
+- 范围：`3753034` 恰为 `pipeline/review/step.py`、`pipeline/review/tests/test_step_close.py`；测试文件无删除行（改动断言清单：无）；`console.py` 未改。
+- 报告：执行方只写了「06a 完成」标题，未附 Red/Green 原文。主 Agent 独立复现 Red：在 `5f32628`（修正前）树上叠加 `3753034` 的测试文件，只跑两个新增具名用例 → 两例 `FAIL`（`Lists differ`：旧 `reviewed_edition` 顶层键起于 `approved`；旧包键为 `counts`/`edition_part_id`/…），`FAILED (failures=2)`，证明新用例确实检验修正点。
+- 复验：`pipeline/review/tests` `Ran 109` OK（阈值 109）；具名用例 = act/01–07 的 107 个 + 第 72 条授权新增 `test_reviewed_edition_top_level_keys_match_contract`、`test_reviewed_edition_package_keys_match_contract`；ledger 74、corpus_compiler 68、knowledge_extraction 133、validation 87 OK；Gate 独立性、propagation 不写 Ledger、副作用/网络/`_fixture`/裸 except 均 0；共享面改动 0；`check_interfaces` `fail=0`；`schemas/verify.sh` 0；`verify-T.sh` `FAIL 合计: 0`；`mutations` 109/109；`run_all` `pass=2 fail=1 blocked=8`。
+- 跨模块端到端（真实 M3/M4/M5 桩 → M6 `close_review`）：`reviewed_edition` 顶层键序与 §5.3 逐字相同（`schema_version "0.1.0-draft"`、`edition_part_artifact_id art_…e1`、三个上游修订号取自冻结输入）；`reviewed_edition_package` 键序与 §5.3 逐字相同（`decision_count 5`、`approved_count 3`、`rejected_count 1`、`unresolved_count 0`、`decision_revision_ids` 5 条）；二者分别通过 M7 `model.validate_reviewed_edition` 与 `validate_reviewed_package`。
+
+06a `ACCEPTED`，K2 连同 06a 视为 `ACCEPTED`。K3 已放行。
