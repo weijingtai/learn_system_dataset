@@ -215,6 +215,62 @@ class TestStepClose(unittest.TestCase):
             fail_rev = self.service.get_revision(res["failure_revision_id"])
             self.assertEqual(fail_rev["status"], "sealed")
 
+    def test_reviewed_edition_top_level_keys_match_contract(self):
+        step_run_id, token, _ = self._open_and_record_all()
+        res = close_review(self.service, step_run_id, token)
+        ed_row = self.service.get_revision(res["reviewed_edition_revision_id"])
+        ed_doc = json.loads(self.service.objects.get(ed_row["sha256"]).decode("utf-8"))
+        expected_keys = [
+            "schema_version",
+            "edition_part_artifact_id",
+            "candidate_set_revision_id",
+            "candidate_package_revision_id",
+            "validation_package_revision_id",
+            "approved",
+            "rejected",
+            "decisions",
+            "evidence_links",
+            "school_views",
+            "correction_request_revision_ids",
+            "rework_impact_report_revision_id",
+            "unresolved_count",
+        ]
+        self.assertEqual(list(ed_doc.keys()), expected_keys)
+        self.assertEqual(ed_doc["schema_version"], "0.1.0-draft")
+        self.assertEqual(ed_doc["edition_part_artifact_id"], self.edition_part_id)
+        self.assertEqual(ed_doc["candidate_set_revision_id"], self.seed_result["candidate_set_revision_id"])
+        self.assertEqual(ed_doc["candidate_package_revision_id"], self.seed_result["candidate_package_revision_id"])
+        self.assertEqual(ed_doc["validation_package_revision_id"], self.seed_result["validation_package_revision_id"])
+        self.assertEqual(ed_doc["unresolved_count"], 0)
+        self.assertIsNone(ed_doc["rework_impact_report_revision_id"])
+
+    def test_reviewed_edition_package_keys_match_contract(self):
+        step_run_id, token, _ = self._open_and_record_all()
+        res = close_review(self.service, step_run_id, token)
+        pkg_row = self.service.get_revision(res["reviewed_edition_package_revision_id"])
+        pkg_doc = json.loads(self.service.objects.get(pkg_row["sha256"]).decode("utf-8"))
+        expected_keys = [
+            "schema_version",
+            "reviewed_edition_revision_id",
+            "decision_revision_ids",
+            "decision_count",
+            "approved_count",
+            "rejected_count",
+            "unresolved_count",
+            "correction_request_revision_ids",
+            "rework_impact_report_revision_id",
+        ]
+        self.assertEqual(list(pkg_doc.keys()), expected_keys)
+        self.assertEqual(pkg_doc["schema_version"], "0.1.0-draft")
+        self.assertEqual(pkg_doc["reviewed_edition_revision_id"], res["reviewed_edition_revision_id"])
+        self.assertEqual(pkg_doc["decision_count"], 5)
+        self.assertEqual(pkg_doc["approved_count"], 3)
+        self.assertEqual(pkg_doc["rejected_count"], 1)
+        self.assertEqual(pkg_doc["unresolved_count"], 0)
+        self.assertIsNone(pkg_doc["rework_impact_report_revision_id"])
+        self.assertNotIn("edition_part_id", pkg_doc)
+        self.assertNotIn("counts", pkg_doc)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -894,6 +894,8 @@ def close_review(service, step_run_id: str, resume_token: str) -> dict:
                         "source_span_id": span_id,
                         "start": start,
                         "end": end,
+                        "start_offset": start,
+                        "end_offset": end,
                         "quote_sha256": q_hash,
                         "corpus_spans_revision_id": spans_rev,
                     })
@@ -913,6 +915,11 @@ def close_review(service, step_run_id: str, resume_token: str) -> dict:
                 })
 
         reviewed_edition = {
+            "schema_version": "0.1.0-draft",
+            "edition_part_artifact_id": edition_part_id,
+            "candidate_set_revision_id": cand_set_rev,
+            "candidate_package_revision_id": candidate_package_rev,
+            "validation_package_revision_id": validation_package_rev,
             "approved": approved,
             "rejected": rejected,
             "decisions": decisions,
@@ -994,7 +1001,9 @@ def close_review(service, step_run_id: str, resume_token: str) -> dict:
             return _fail(service, step_run_id, "review_gate", failed_names)
 
         # 4. put reviewed_edition and reviewed_edition_package
-        reviewed_edition_bytes = canonical_json(reviewed_edition)
+        reviewed_edition_bytes = json.dumps(
+            reviewed_edition, ensure_ascii=False, separators=(",", ":")
+        ).encode("utf-8")
         _, edition_rev = service.put_artifact(
             step_run_id,
             "reviewed_edition",
@@ -1005,19 +1014,23 @@ def close_review(service, step_run_id: str, resume_token: str) -> dict:
         service.seal_revision(edition_rev)
 
         package_doc = {
-            "schema_version": "1.0.0",
+            "schema_version": "0.1.0-draft",
             "reviewed_edition_revision_id": edition_rev,
-            "edition_part_id": edition_part_id,
-            "counts": {
-                "approved": len(reviewed_edition["approved"]),
-                "rejected": len(reviewed_edition["rejected"]),
-                "decisions": len(reviewed_edition["decisions"]),
-            },
+            "decision_revision_ids": [d["decision_revision_id"] for d in reviewed_edition["decisions"]],
+            "decision_count": len(reviewed_edition["decisions"]),
+            "approved_count": len(reviewed_edition["approved"]),
+            "rejected_count": len(reviewed_edition["rejected"]),
+            "unresolved_count": 0,
+            "correction_request_revision_ids": reviewed_edition["correction_request_revision_ids"],
+            "rework_impact_report_revision_id": None,
         }
+        package_bytes = json.dumps(
+            package_doc, ensure_ascii=False, separators=(",", ":")
+        ).encode("utf-8")
         _, package_rev = service.put_artifact(
             step_run_id,
             "reviewed_edition_package",
-            canonical_json(package_doc),
+            package_bytes,
             producer_module=M6_TOOL,
             producer_version=M6_TOOL_VERSION,
         )
