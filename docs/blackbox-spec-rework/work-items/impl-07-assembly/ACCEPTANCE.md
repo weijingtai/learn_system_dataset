@@ -98,3 +98,15 @@ G0-03 `ACCEPTED`。
 - 跨模块发现（记入 impl-06 K2）：真实 M6 输出不满足 §0.3 所需键 → 裁定 72，impl-06 返工 06a；在其验收前 `upstream_m6_real` 维持 BLOCKED。
 
 G0-04 `ACCEPTED`。
+
+### 5.5 G0-05 与 G0 总结（2026-09-13，主 Agent 独立验收，`git archive a4a399f` 干净树）
+
+执行者：agy 会话 `w5g0`（Gemini 3.8 Flash Medium）。
+
+- 范围：`a4a399f` 恰为 `acceptance.py`、`tests/data/genesis_expected_knowledge.json`、`tests/test_acceptance.py`、`openspec/acceptance/m7-assembler.sh`（模式 100755）；具名用例 10 个与 act/g0-05 逐字一致；`run_all.sh` 未改。Red（执行方原文）`FAILED (failures=2, errors=8)`，Green `Ran 89` OK。
+- 复验：`pipeline/assembly/tests` `Ran 89` OK（阈值 ≥ 89）；ledger 74、knowledge_extraction 133 OK；`m7-assembler.sh` → 10 PASS（`genesis_snapshot`、`configuration_and_scope`、`package_lineage`、`identity_and_allocation`、`provenance_and_fidelity`、`no_silent_fold_and_display`、`upstream_immutable`、`checkpoints`、`closed_set_types`、`no_model_calls`）+ 6 BLOCKED（`incremental_multi_edition`、`edition_collation`、`identity_delta`、`rework_replacement`、`upstream_m6_real`、`run_all_20_5`，与 §2 清单逐字一致），`SUMMARY pass=10 fail=0 blocked=6`、exit 2；`check_interfaces` `fail=0`；`schemas/verify.sh` 0；`verify-T.sh` `FAIL 合计: 0`；`run_all.sh` `pass=2 fail=1 blocked=8`。
+- 独立性：`acceptance.py` 不直接 import `genesis`（契约允许 `canonical`/`model`/`gate`，经 `run_m7` 产出后只读 Ledger 自行重算）；宿主校验由 `m7-assembler.sh` 调用仓库内规范 `pipeline/corpus/_fixture/mini_ed01/verify.sh`（D-18）；`upstream_m6_real` 明示「impl-06 实现并验收前恒 BLOCKED」，未伪造 PASS。
+- 矩阵外篡改：副本中 `genesis_expected_knowledge.json` 的 `assertions[0].proposition` 改一字 → `FAIL genesis_snapshot`、`SUMMARY pass=9 fail=1 blocked=6`、exit 1。
+- 观察（建议，不阻断）：`acceptance.py:405` 在 `no_model_calls` 的 AST 扫描中对解析失败的文件 `except Exception: continue`，会静默跳过不可解析文件，下一波宜改为计 FAIL；金标 JSON 为与 Snapshot 规范字节逐字比对而不带合成标记，其合成属性由 `tests/data/genesis_package.json` 的 `synthetic` 标记承载；金标由执行方据实现产出落盘，同错同过风险由独立 Gate 与主 Agent 矩阵外篡改（§5.3、本节）兜底。
+
+G0-05 `ACCEPTED`。**impl-07 创世薄切片 G0（G0-01、G0-01a、G0-02～G0-05）全部 `ACCEPTED`**；完整增量汇编（§1–§8）仍 `DEFERRED`。真实 M6 上游接入待 impl-06 返工 06a 验收后另行复核 `upstream_m6_real`。
