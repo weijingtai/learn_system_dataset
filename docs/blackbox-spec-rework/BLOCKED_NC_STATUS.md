@@ -3,11 +3,12 @@
 本文件由主 Agent 会话（DeepSeek，2026-09-13）出具，用途：把「注解社区（NC）还有多少没完成、卡在哪」一次说清，供用户决策。
 权威状态仍以 `docs/blackbox-spec-rework/SUBAGENT_TODO.md` 各 NC 行为准；本文只做汇总与阻塞归因，不改状态。
 
+> **2026-09-13 更新（晚）**：NC-014 已由本会话实现并独立验收 **ACCEPTED**（notification `b62cd27`、reading-notes `19afe37`；守卫 `nc014_guard.sh --require-impl all` 退出 0、盲测 B1～B10 全过；记录见 `work-items/nc-014/ACCEPTANCE.md` R1）。下文计数已随之更新。
+
 ## 0. 摘要
 
-- 叶子任务总数 **30**：**已 ACCEPTED 15 个**，**未完成 15 个**。
-- 未完成的 15 个里，**现在就能动手的只有 3 个**：
-  - `NC-014`（Notification 宿主适配）——**READY**，契约已冻结、六件套与守卫就绪；
+- 叶子任务总数 **30**：**已 ACCEPTED 16 个**，**未完成 14 个**。
+- 未完成的 14 个里，**现在就能动手的只有 2 个**：
   - `NC-026`（行为事件与假名化）——规格就绪，**待四查**；
   - `NC-020a`（消费端书籍契约核对清单）——纯文档，无前置，可随时插队。
 - **其余 12 个全部被阻塞**，且阻塞可归为三类：**A 需用户决策/用户自有工作（6 个）**、**B 等上游书籍交付（5 个）**、**C 依赖链（1 个）**。
@@ -55,11 +56,11 @@
 
 **解除条件**：上游书籍政策/Schema/样例交付 → NC-020b 冻结 → 其后的 021/022/023 依次展开 → 最终 NC-024 总验收。
 
-## 3. 无阻塞、可立即动手（3 个）
+## 3. 无阻塞、可立即动手（2 个；NC-014 已关单）
 
 | 任务 | 状态 | 说明 |
 |---|---|---|
-| NC-014 | **READY** | 契约 `FROZEN_FOR_NC-014`（D-NC014-01～11）、六件套、守卫 `nc014_guard.sh`（K01～K04 规格模式 0 失败）、四查 `NC-014-REVIEW-R1.md`（R1 REWORK 7 项已落实）；两线串行 PACKAGE act/01 → CLIENT act/02 |
+| ~~NC-014~~ | **ACCEPTED**（2026-09-13） | 已关单：notification `b62cd27` + reading-notes `19afe37`；契约 `FROZEN_FOR_NC-014`（D-NC014-01～17）、守卫 `--require-impl all` 退出 0、盲测 B1～B10 全过；记录见 `work-items/nc-014/ACCEPTANCE.md` R1 |
 | NC-026 | **PREPARING（待四查）** | 契约 `community_behavior.md`、API §14 补丁、收紧后的 `community_behavior_event.schema.json`（SHA `f3467224…`）+ 23 示例、六件套、守卫 `nc026_guard.sh`；注销子项 DEFERRED（D-NC026-13）；待裁决 P1～P4 / W1～W2 |
 | NC-020a | BACKLOG | 纯文档，无前置，可随时插队 |
 
