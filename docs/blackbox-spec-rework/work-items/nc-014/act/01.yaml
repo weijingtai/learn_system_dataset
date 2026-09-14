@@ -1,0 +1,48 @@
+TASK_ID: NC-014-A
+PARENT: NC-014
+STATUS: READY
+REPO: xuan/notification（Windows `D:/Programme/xuan/notification`；macOS 按 D-NC012-23 同布局 `/Users/jingtaiwei/Git/Public/xuan-migration/notification`）
+GOAL: D.6 闭合——`PushTiming` 可空解析 `timing.dedup_retention_ms`（缺 null 无兜底、非正 FormatException）+ `DedupRetention` 行为层（满窗即裁、cutoffOf）+ barrel 导出 + docs 三处状态行同步；8 个新测试；194 既有测试零变红
+DEPENDS_ON: []
+ESTIMATE_MINUTES: 40
+WORKLOAD: "push_config.dart 约 +30 行、dedup_store.dart 约 +60 行、barrel +1 行、from-server-coder.md/integration-guide.md 状态行约 10 行、8 个测试约 260 行"
+BASELINE_HEAD: 518670b
+SCOPE:
+  READ:
+    - D:/Programme/learn_system/openspec/annotation-community/contracts/community_notification_host.md（§1、§2.1、§4.1、§7.1、§10）
+    - D:/Programme/learn_system/docs/blackbox-spec-rework/work-items/nc-014/BDD.md（P01～P08）、TDD.md（§2）
+    - D:/Programme/xuan/notification/docs/from-server-coder.md（§S6.1/§6 与 D.6 状态行 :249-274、:290、:300-303）
+    - D:/Programme/xuan/notification/lib/src/config/push_config.dart（PushTiming._allowedKeys 与 _parse/_requirePositiveInt）
+    - D:/Programme/xuan/notification/lib/src/receive/dedup_store.dart（dedupKeyOf/DedupStore/InMemoryDedupStore 既有成员）
+    - D:/Programme/xuan/notification/test/config/no_hardcoded_values_test.dart 与 test/config/a4_factory_lock_test.dart（源码扫描先例）
+  WRITE_NEW:
+    - D:/Programme/xuan/notification/lib/src/config/push_config.dart（只追加：_allowedKeys 一键、dedupRetention 字段与可空解析、非正校验）
+    - D:/Programme/xuan/notification/lib/src/receive/dedup_store.dart（只追加：DedupRetention）
+    - D:/Programme/xuan/notification/lib/notification.dart（只追加：DedupRetention 导出）
+    - D:/Programme/xuan/notification/docs/from-server-coder.md（只改 D.6 三处状态行 :269-274、:290、:300-303，⬜→✅ 并注明实现入口）
+    - D:/Programme/xuan/notification/docs/integration-guide.md（只改 §4 去重口径段）
+    - D:/Programme/xuan/notification/test/receive/dedup_retention_test.dart（新建，只含 TDD §2 的 8 个测试）
+  FORBIDDEN:
+    - 上表以外任何文件；pubspec.yaml；既有 194 个测试的任何一行（test/ 下其他文件只读）；把 604800000 或 Duration(days: 7) 写进 lib/（P04 扫描）；在包内实现宿主业务（业务通知列表、notification_id upsert、R9/R10/W15/W16 调用、FCM 插件）；新依赖；skip；永真断言；测试内现算参考值；红线词形；git push；learn_system 写入（交付报告除外）
+DEPENDENCY_ALLOWLIST: [不新增任何依赖；沿用包内 flutter/yaml/fake_async 锁定版本]
+RULES:
+  - "键缺失 → dedupRetention 为 null、无兜底值（D-NC014-10）；键存在非正整数 → FormatException（与 _requirePositiveInt 惯例一致）"
+  - "isExpired 满窗即裁（now − seenAt ≥ window 含等于）；cutoffOf(now) = now − window（契约 §4.1）"
+  - "dedupKeyOf/DedupStore/InMemoryDedupStore 既有成员签名零改动；D.6 裁剪是行为层，不改 DedupStore 端口"
+  - "docs 只同步 D.6 状态，禁改其他行；注释不得出现红线词形（守卫机械扫描）"
+TESTS_FIRST:
+  - "先写 8 个测试，运行 VERIFICATION 第 2 条，保存编译错原文（dedupRetention/DedupRetention 未定义）作为 Red"
+STEPS:
+  - "push_config.dart 键与可空解析 + dedup_store.dart DedupRetention + barrel 导出，直至 VERIFICATION 全部符合期望"
+  - "同步 from-server-coder.md D.6 三处状态行与 integration-guide.md §4 去重口径段"
+  - "git add 并提交（单提交）"
+  - "提交后运行 learn_system 守卫 --require-impl package，退出码写入报告"
+VERIFICATION:
+  - "cd D:/Programme/xuan/notification && flutter test test/receive/dedup_retention_test.dart（期望 +8: All tests passed!）"
+  - "cd D:/Programme/xuan/notification && flutter test（期望 +202: All tests passed!；194 既有 + 8 新增，既有零变红）"
+  - "git -C D:/Programme/xuan/notification diff-tree -r --name-only 518670b HEAD（期望恰为 WRITE_NEW 的 6 个文件）"
+  - "git -C D:/Programme/xuan/notification grep -n 604800000 -- lib/（期望空输出）"
+  - "cd D:/Programme/learn_system && bash docs/blackbox-spec-rework/reviews/nc014_guard.sh --require-impl package（期望 0）"
+ON_FAIL: "停止并在 DELIVERY_REPORT_PACKAGE.md 追加「## 待裁决」+ 输出 NC-014-A 停手待裁决。既有 194 之外新增失败、P04 扫描命中 lib/ 字面量、D.6 语义与 from-server-coder §S6.1/§6 冲突、需改白名单外文件，均为停止条件。"
+BASELINE_EXIT_CODES: "开工基线：518670b，flutter test +194: All tests passed!"
+COMMIT_MESSAGE: "feat(receive): D.6 去重保留窗口解析与裁剪（NC-014-A）\n\nCo-Authored-By: GLM-5.3-Flash <noreply@z.ai>"
