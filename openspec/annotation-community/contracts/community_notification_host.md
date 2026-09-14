@@ -97,7 +97,7 @@
 ### 5.2 导航路由（`NotificationTargetRouter`；D-NC014-01/05）
 
 - 表现层挂靠：`CommunityNotificationListPage` 复用 social `NotificationCenterPage` 作业务表现层，`onNotificationTapped` 交 `NotificationTargetRouter`；导航路由归宿主；**不装配** notification 包遗留 `PlaygroundNotificationPage`（D-NC014-01）。
-- `target.kind == content`：经注入的可读性判定（装配时接宿主既有内容读取路径）后 `ContentDetailPage(contentId: target.id)`（`lib/src/community/content_detail_page.dart:15-33` 现有构造），即本期「内容详情讨论区顶部」（D-NC014-05；按 `comment_id` 深链定位楼层 DEFERRED，上游扩展候选见 D-NC014-11）。
+- `target.kind == content`：经注入的 `canReadContent(target.id)` 判定后交注入的 `buildContentDetail(target.id)` 落地（装配时接宿主既有 `CommunityApi` + `ContentDetailPage(contentId:, api:)`，D-NC014-14）—— 即本期「内容详情讨论区顶部」（D-NC014-05；按 `comment_id` 深链定位楼层 DEFERRED，上游扩展候选见 D-NC014-11）。
 - 目标不可读（收回/删除/隐藏/拉黑，四类）：`CommunityUnreadableTargetPage`，统一文案「该内容已不可访问」+ 返回按钮，**四种失效原因页面文案完全一致、构造与渲染不含可区分原因的字段**（TASKS:233；PRD §6.2 决策）。可读性判定失败（网络/异常）与四类失效同口径落占位页，不区分原因。
 - 判据 C15（content 类点击）与 C16（四类失效占位页）。`target.kind == comment` 的导航本期不路由（content_id 缺口，D-NC014-11），C15/C16 不涉及 comment 类条目的导航断言。
 
@@ -109,7 +109,7 @@
 
 ### 6.1 业务表（宿主业务数据，包不负责；D-NC014-02）
 
-`community_business_notifications` 列（冻结）：`notification_id`（PK，`ntf_<32 hex>`）、`owner_scope`、`kind`（comment|reply|mention|like）、`target_kind`（content|comment）、`target_id`、`thread_id`（可空）、`event_count`（integer ≥1）、`first_created_at`、`last_created_at`、`is_read`（bool，默认 false）、`body_markdown`（可空）、`actor_id`（可空）、`updated_at`。upsert 唯一键 `notification_id`：跨设备/用途重投不增加业务条目（DESIGN §6.1）；`event_count` 以最近一次 R10/community 帧值为准覆盖。同库另建 `community_notification_dedup`（§4.1）与 `community_notification_meta`（key PK、value、updated_at；存 R10 cursor 与 `push_config_cache`）。
+`community_business_notifications` 列（D-NC014-13 冻结）：`notification_id`（PK，`ntf_<32 hex>`）、`owner_scope`、`kind`（comment|reply|mention|like，**可空**）、`target_kind`（content|comment，**可空**）、`target_id`（**可空**）、`thread_id`（可空）、`event_count`（integer ≥1）、`first_created_at`（**可空**）、`last_created_at`（**可空**）、`is_read`（bool，默认 false）、`body_markdown`（可空）、`actor_id`（可空）、`updated_at`。仅 `notification_id`/`owner_scope`/`event_count`/`updated_at` 为非空；`type:community` 帧只写部分行（D-NC014-13），其余列由 R10/R9 按 `notification_id` upsert 回填。首造元数据（`DESIGN §6.1`）。upsert 唯一键 `notification_id`：跨设备/用途重投不增加业务条目（DESIGN §6.1）；`event_count` 以最近一次 R10/community 帧值为准覆盖。同库另建 `community_notification_dedup`（§4.1）与 `community_notification_meta`（key PK、value、updated_at；存 R10 cursor 与 `push_config_cache`）。
 
 ### 6.2 列表映射（social `NotificationCenterPage` 复用）
 
@@ -206,10 +206,16 @@ C06 即 TASKS:232 的「落盘失败不 ACK」失败分支判据：fake 按注�
 | D-NC014-10 | `dedup_retention_ms` 可空解析：键进 `PushTiming._allowedKeys`，`dedupRetention` 可空（缺→`null`、无兜底），宿主装配遇 `null` 停手上报 | 改必填将打破既有 `push_config_resolver_test` fixture（194 全绿约束）；符合包内「无兜底值」惯例（`test/config/push_config_test.dart`） |
 | D-NC014-11 | comment 类 target 导航：本期维持降级（仅 content 类导航，comment 类条目展示不路由）；`target.content_id` 的 3.1 契约扩展登记为上游候选（并入下一个写 `openapi.yaml` 的串行棒评估） | `target` 仅 kind/id/thread_id 且 thread_id 为 SHA256 不可逆，内容详情页无法构造；重开已关单 NC-013 面成本不成比例（§10.1 裁定 1） |
 | D-NC014-12 | CLIENT 白名单 +1 文件：`analysis_options.yaml` 追加 `secure_pubspec_urls: ignore` | 契约 §2.2 强制的两个 git 依赖是局域网 `http://`，启用该 lint 后 `flutter analyze` 必报 2 条 info，直接冲突 act/02 的「`No issues found!`」判定与 K06；项目既有 `repository-rest-adapter`/`xuan-shell` 等仓同惯例（§10.1 裁定 4） |
+| D-NC014-13 | **业务表部分行**：`community_business_notifications` 的 `kind`/`target_kind`/`target_id`/`first_created_at`/`last_created_at` 五列改为**可空**；`type:community` 帧路径只写部分行（`notification_id`+`event_count`+`updated_at`+`is_read=false`），其余列由 R10 补拉/R9 正文按 `notification_id` upsert 回填 | §6.1 原冻结列为 NOT NULL，但 D-NC014-08/§5.1 规定该帧只带 `notification_id`+`event_count`，而 BDD C02 又要求由此写出恰 1 行业务表 —— 原契约自相矛盾、无法实现。⛔ **不放宽 D-NC014-08 的闭集两键**（帧是唤醒信号，业务行是从 R10 物化出的读模型；R10 为权威来源，符合「服务端 R10 是唯一评论/通知读入口」的项目方向）|
+| D-NC014-14 | **导航注入点**：`NotificationTargetRouter` 构造注入 `bool Function(String contentId) canReadContent` 与 `Widget Function(String contentId) buildContentDetail`；装配时接宿主既有 `CommunityApi` + `ContentDetailPage(contentId:, api:)` | 实测 `content_detail_page.dart:15-33` 的 `api` 为必填，§5.2 的 `ContentDetailPage(contentId: target.id)` 缺参、router 无 `api` 来源。注入式既保住「宿主既有内容读取路径」复用方向，又让 C15 可测（断言回调收到 `target.id`），且不把 `CommunityApi` 耦合进通知层 |
+| D-NC014-15 | **时间列格式**：宿主新增表所有时间列（业务表 `first_created_at`/`last_created_at`/`updated_at`、去重表 `first_seen_at`、meta `updated_at`）一律 **UTC ISO8601 字符串**；排序按字符串序（UTC ISO8601 同序） | 与宿主既有惯例一致（`community_commands.created_at`、`content_access_cache.fetched_at` 同为 UTC ISO8601 文本列）；不引入 DateTime↔epoch 双口径，C14 排序断言可复算 |
+| D-NC014-16 | **REST 基址注入**：R9/R10 两个 adapter 的基址由构造注入宿主既有 `CommunityEndpoint`（`../community/ports.dart`），不新造基址概念；notifier 三端点（`/receipts`、`/auth/rt/connection-token`、`/v1/client-config`）用 L2 `PushEndpoints`/`BootstrapConfig.configUri` | G-NC014-6：REST 服务与 notifier 不是同一基址，原契约未给来源；复用宿主既有端口避免第二份端点配置（项目方向：配置单一来源）|
+| D-NC014-17 | **SSE adapter 口径**：`sse_connect` URI 上追加 `channels` 查询（逗号拼接）；SSE 事件的 `event:` 字段作通道名，缺省时**仅当订阅通道恰一个**才回退该名，否则产出 `RealtimeUndecodable`；`data:` 逐条经 `FrameDecoder.decode(channel, payload)`，⛔ 坏帧丢弃不终止流 | G-NC014-7：`FrameDecoder` 需通道名而 `connect` 只给通道列表。上游 SSE 真帧格式（多通道是否复用一条流、`event:` 是否携带通道名）**未取证**，本期按上述口径实现并登记为上游确认项（真机链路归 NC-024，D-NC014-07）|
 
 ### 10.1 裁定记录（主 Agent 审查裁定，2026-09-13）
 
 1. **comment 类 target 缺 `content_id`** → **D-NC014-11**：本期维持降级（仅 content 类导航，comment 类条目展示不路由）；「3.1 契约扩展 `target.content_id`」登记为上游契约扩展候选（候选评估：服务端组装 NotificationEntry 时可经 `community_comments` 反查 content_id，属可实现的后续小改），候选并入下一个写 openapi.yaml 的串行棒（NC-026 §14 或后续）评估，本期不动已关单的 NC-013 面。裁定理由：改动需重开 NC-013 契约/实现/示例/验收，成本与本期价值不成比例；宿主本地映射（候选②）覆盖不全被否。
 2. **D-NC014-09/10**：主 Agent 审查通过、正式冻结（编号不变）。09 的 social 依赖链风险与 10 的可空解析交四查覆盖复核。
 3. **D-NC014-01 门禁状态**：维持按 NC-001 预备记录冻结执行；NC-001 走完门禁后如推翻，导航路由按新裁定返工（仅 router 一处，隔离成本可控）。
-4. **D-NC014-12（主 Agent 执行期裁定，2026-09-13）**：实测确认 §2.2 的两个 `http://` git 依赖会使 `flutter analyze` 输出 2 条 `secure_pubspec_urls` info，与 act/02 VERIFICATION 的「`No issues found!`」及守卫 K06 直接冲突。裁定：按项目既有惯例（`repository-rest-adapter`、`xuan-shell`、`xuan-four-zhu-card`、`repository-interface-account` 均在 `analysis_options.yaml` 里 ignore 该 lint）在 `reading-notes/analysis_options.yaml` 追加 `secure_pubspec_urls: ignore`，CLIENT 白名单相应 +1 文件。⛔ 不放松守卫（保持 analyze 真干净）。
+5. **D-NC014-13～17（主 Agent 执行期裁定，2026-09-13）**：act/02 实现期取证发现 §6.1 与 D-NC014-08/C02 的 NOT NULL 矛盾（D-NC014-13）、§5.2 的 `ContentDetailPage` 缺 `api` 参数（D-NC014-14）、时间列格式未冻结（D-NC014-15）、REST 基址来源未定义（D-NC014-16）、SSE 通道名配对未定义（D-NC014-17）。裁定口径见 §10 表；裁定原则为「不改服务端已冻结的帧/端点形状、以 R10 为业务读模型权威来源、宿主只做薄适配并复用既有组件与惯例」。D-NC014-17 的上游 SSE 真帧格式登记为待确认项，不阻塞本期接口级实现。
+6. **D-NC014-12（主 Agent 执行期裁定，2026-09-13）**：实测确认 §2.2 的两个 `http://` git 依赖会使 `flutter analyze` 输出 2 条 `secure_pubspec_urls` info，与 act/02 VERIFICATION 的「`No issues found!`」及守卫 K06 直接冲突。裁定：按项目既有惯例（`repository-rest-adapter`、`xuan-shell`、`xuan-four-zhu-card`、`repository-interface-account` 均在 `analysis_options.yaml` 里 ignore 该 lint）在 `reading-notes/analysis_options.yaml` 追加 `secure_pubspec_urls: ignore`，CLIENT 白名单相应 +1 文件。⛔ 不放松守卫（保持 analyze 真干净）。
