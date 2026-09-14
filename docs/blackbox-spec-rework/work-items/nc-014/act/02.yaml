@@ -19,6 +19,7 @@ SCOPE:
     - D:/Programme/xuan/repository-rest-adapter/openapi/openapi.yaml（NotificationBody/NotificationEntry/NotificationPage/NotificationMuteState :3777-3904，只读）
   WRITE_NEW:
     - D:/Programme/xuan/reading-notes/pubspec.yaml（只追加 notification 与 social 两个 git 依赖）
+    - D:/Programme/xuan/reading-notes/analysis_options.yaml（只追加 analyzer.errors.secure_pubspec_urls: ignore，D-NC014-12）
     - D:/Programme/xuan/reading-notes/pubspec.lock（flutter pub get 自动更新）
     - D:/Programme/xuan/reading-notes/lib/src/notifications/community_notification_adapters.dart（新建：NotifierRemoteConfigSource/LocalPushConfigCache/DriftDeliveryLog/SseRealtimeChannel/NotifierReceiptTransport/NotifierConnectionTokenSource/CommunityBackfillSource/CommunityMessageBodyFetcher、CommunityNotificationWiring、CommunityNotificationDatabase 三表、CommunityNotificationMuteApi）
     - D:/Programme/xuan/reading-notes/lib/src/notifications/community_notification_adapters.g.dart（build_runner 生成）

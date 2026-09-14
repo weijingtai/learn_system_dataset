@@ -60,7 +60,8 @@ PORTS = ["RemoteConfigSource", "PushConfigCache", "DeliveryLog", "RealtimeChanne
          "BodyFetchWakeHandler", "ReceivePipeline", "AckPipeline", "ConnectionManager", "FrameDecoder"]
 PKG_FILES = {"lib/src/config/push_config.dart", "lib/src/receive/dedup_store.dart", "lib/notification.dart",
              "docs/from-server-coder.md", "docs/integration-guide.md", "test/receive/dedup_retention_test.dart"}
-CLIENT_FILES = {"pubspec.yaml", "pubspec.lock", "lib/src/notifications/community_notification_adapters.dart",
+CLIENT_FILES = {"pubspec.yaml", "pubspec.lock", "analysis_options.yaml",
+                "lib/src/notifications/community_notification_adapters.dart",
                 "lib/src/notifications/community_notification_adapters.g.dart",
                 "lib/src/notifications/notification_target_router.dart",
                 "test/notifications/community_notifications_test.dart"}

@@ -11,7 +11,7 @@ notification 包闭合 D.6（`timing.dedup_retention_ms` 可空解析 + `DedupRe
 ## Scope
 
 - PACKAGE（act/01）：`lib/src/config/push_config.dart`（`_allowedKeys` + `dedupRetention` 只追加）、`lib/src/receive/dedup_store.dart`（`DedupRetention` 只追加）、`lib/notification.dart`（barrel 只追加）、`docs/from-server-coder.md`（仅 D.6 三处状态行）、`docs/integration-guide.md`（仅 §4 去重口径段）、`test/receive/dedup_retention_test.dart`（新增 8 测试）。
-- CLIENT（act/02）：`pubspec.yaml`（追加 notification 与 social 两个 git 依赖）、`pubspec.lock`（pub get 自动）、`lib/src/notifications/community_notification_adapters.dart`（新增：8 adapter + Wiring + 三表 + MuteApi）、`lib/src/notifications/community_notification_adapters.g.dart`（生成）、`lib/src/notifications/notification_target_router.dart`（新增：Router + 占位页 + 列表页）、`test/notifications/community_notifications_test.dart`（新增 18 测试）。
+- CLIENT（act/02）：`pubspec.yaml`（追加 notification 与 social 两个 git 依赖）、`analysis_options.yaml`（追加 `secure_pubspec_urls: ignore`，D-NC014-12）、`pubspec.lock`（pub get 自动）、`lib/src/notifications/community_notification_adapters.dart`（新增：8 adapter + Wiring + 三表 + MuteApi）、`lib/src/notifications/community_notification_adapters.g.dart`（生成）、`lib/src/notifications/notification_target_router.dart`（新增：Router + 占位页 + 列表页）、`test/notifications/community_notifications_test.dart`（新增 18 测试）。
 - 禁止：上表以外任何文件（含 `lib/src/community/` 既有文件、notification 包既有测试与 pubspec、social 仓、REST/SERVER/NOTIFIER 全部）；装配遗留页（`notification_page.dart`/`notification_viewmodel.dart`/`playground_state_widgets.dart`）；`firebase_messaging` 等新插件依赖；在宿主复刻去重/ACK/退避/帧解码；`lib/` 出现 `604800000` 或 `Duration(days: 7)` 字面量；`skip`；永真断言；测试内现算参考值；红线词形；`git push`；删除文件。
 
 ## Dependencies / Baseline
