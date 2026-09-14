@@ -16,7 +16,7 @@ from pipeline.ledger.errors import (
     WriterLocked,
 )
 from pipeline.ledger.service import LedgerReader, LedgerService
-from pipeline.review import model, step
+from pipeline.review import model, rework, step
 from pipeline.review.errors import ReviewRefused
 from pipeline.review.inputs import _read_doc
 
@@ -411,6 +411,81 @@ def cmd_recover(args):
         service.close()
 
 
+def cmd_correct(args):
+    try:
+        service = LedgerService(args.root)
+    except WriterLocked as e:
+        print(f"M6 REFUSED WriterLocked: {str(e)}")
+        return 3
+    except Exception as e:
+        print(f"M6 REFUSED {type(e).__name__}: {str(e)}")
+        return 2
+
+    try:
+        res = rework.request_correction(
+            service,
+            args.step_run,
+            args.resume_token,
+            source_span_ids=list(args.span or ()),
+            description=args.description,
+        )
+        print(f"M6 CORRECTION {res['correction_request_revision_id']}")
+        return 0
+    except REFUSED_EXCEPTIONS as e:
+        print(f"M6 REFUSED {type(e).__name__}: {str(e)}")
+        return 2
+    except WriterLocked as e:
+        print(f"M6 REFUSED WriterLocked: {str(e)}")
+        return 3
+    except Exception as e:
+        print(f"M6 REFUSED {type(e).__name__}: {str(e)}")
+        return 2
+    finally:
+        service.close()
+
+
+def cmd_rework(args):
+    try:
+        service = LedgerService(args.root)
+    except WriterLocked as e:
+        print(f"M6 REFUSED WriterLocked: {str(e)}")
+        return 3
+    except Exception as e:
+        print(f"M6 REFUSED {type(e).__name__}: {str(e)}")
+        return 2
+
+    try:
+        res = rework.run_rework_propagation(
+            service,
+            args.edition_part,
+            correction_request_revision_id=args.correction_request,
+            new_corpus_package_revision_id=args.new_corpus_package,
+        )
+        if res.get("status") == "succeeded":
+            warnings = ",".join(res["warnings"]) if res["warnings"] else "-"
+            counts = res["counts"]
+            print(
+                f"M6 REWORK {res['step_run_id']} "
+                f"invalidated={counts['invalidated']} "
+                f"carried_forward={counts['carried_forward']} "
+                f"needs_review={counts['needs_review']} warnings={warnings}"
+            )
+            return 0
+        print(f"M6 FAILED {res['step_run_id']} {res.get('failed_check', 'unknown')}")
+        return 1
+    except REFUSED_EXCEPTIONS as e:
+        print(f"M6 REFUSED {type(e).__name__}: {str(e)}")
+        return 2
+    except WriterLocked as e:
+        print(f"M6 REFUSED WriterLocked: {str(e)}")
+        return 3
+    except Exception as e:
+        print(f"M6 REFUSED {type(e).__name__}: {str(e)}")
+        return 2
+    finally:
+        service.close()
+
+
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(
         prog="python -m pipeline.review",
@@ -458,6 +533,19 @@ def main(argv=None) -> int:
     p_recover.add_argument("--edition-part", required=True, help="分卷 ID")
     p_recover.add_argument("--reason", required=True, help="恢复原因")
 
+    # correct
+    p_correct = subparsers.add_parser("correct", help="提交 CorrectionRequest")
+    p_correct.add_argument("--step-run", required=True, help="StepRun ID")
+    p_correct.add_argument("--resume-token", required=True, help="Resume Token")
+    p_correct.add_argument("--span", action="append", help="待修正 span_id（可重复）")
+    p_correct.add_argument("--description", required=True, help="修正说明")
+
+    # rework
+    p_rework = subparsers.add_parser("rework", help="执行精确失效传播")
+    p_rework.add_argument("--edition-part", required=True, help="分卷 ID")
+    p_rework.add_argument("--correction-request", required=True, help="CorrectionRequest 修订")
+    p_rework.add_argument("--new-corpus-package", required=True, help="修正后 corpus_package 修订")
+
     try:
         args = parser.parse_args(argv)
     except SystemExit as exc:
@@ -471,6 +559,8 @@ def main(argv=None) -> int:
         "decide-batch": cmd_decide_batch,
         "close": cmd_close,
         "recover": cmd_recover,
+        "correct": cmd_correct,
+        "rework": cmd_rework,
     }
     handler = handlers.get(args.subcommand)
     if handler is None:
