@@ -149,6 +149,55 @@ class CheckInterfacesTest(unittest.TestCase):
         res = statuses(ci.run_checks(self._copy(text)))
         self.assertEqual(res["IF29"], "FAIL")
 
+    def test_m2_et_required_types_present(self):
+        res = statuses(ci.run_checks(REPO_DOC))
+        for num in ("IF30", "IF31", "IF32", "IF33"):
+            self.assertEqual(res[num], "PASS")
+
+    def test_m2_et_type_missing_fails(self):
+        res = statuses(
+            ci.run_checks(self._copy(self._drop_lines(self.text, "`raw_text`")))
+        )
+        self.assertEqual(res["IF30"], "FAIL")
+
+    def test_m2_et_type_marked_deferred_fails(self):
+        text = self._mutate_status_cell(self.text, "`cleaned_text_revision`", "纵切后")
+        res = statuses(ci.run_checks(self._copy(text)))
+        self.assertEqual(res["IF11"], "FAIL")
+
+    def test_m2_et_duplicate_type_fails(self):
+        out = []
+        for line in self.text.splitlines():
+            out.append(line)
+            if line.lstrip().startswith("|") and "`sanitization_report`" in line:
+                out.append(line)
+        res = statuses(ci.run_checks(self._copy("\n".join(out) + "\n")))
+        self.assertEqual(res["IF10"], "FAIL")
+
+    def test_sanitization_report_keyset_missing_fails(self):
+        # 删去 finding_id 说明行
+        text = self.text.replace("finding_id", "NO_FINDING_ID")
+        res = statuses(ci.run_checks(self._copy(text)))
+        self.assertEqual(res["IF34"], "FAIL")
+
+    def test_ss_offset_form_missing_fails(self):
+        # 删去偏移形态说明
+        text = self.text.replace("o<NNNNNNN>", "NO_OFFSET")
+        res = statuses(ci.run_checks(self._copy(text)))
+        self.assertEqual(res["IF35"], "FAIL")
+
+    def test_sem_prefix_missing_fails(self):
+        # 副本的 registry 缺 sem_
+        registry_path = W.parent.parent / "openspec" / "id-prefix-registry.md"
+        if registry_path.is_file():
+            registry_text = registry_path.read_text(encoding="utf-8")
+            modified_registry = registry_text.replace("sem_", "NO_SEM_")
+            # 写入临时文件
+            tmp_registry = self.tmp / "id-prefix-registry.md"
+            tmp_registry.write_text(modified_registry, encoding="utf-8")
+            res = statuses(ci.run_checks(REPO_DOC, tmp_registry))
+            self.assertEqual(res["IF36"], "FAIL")
+
     def test_missing_file_exit_3(self):
         rc = ci.main(["--file", str(self.tmp / "nope.md")])
         self.assertEqual(rc, 3)

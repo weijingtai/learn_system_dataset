@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""impl-00/13：INTERFACES.md §4 临时闭集登记检查器（IF01–IF29）。
+"""impl-00/14：INTERFACES.md §4 临时闭集登记检查器（IF01–IF36）。
 
 只用标准库。按行解析 `INTERFACES.md` 的 §4 表，逐项判定并输出
 `PASS IFnn <名>` / `FAIL IFnn <名> <原因>`，末行 `I00-IF SUMMARY pass=<n> fail=<n>`。
@@ -11,7 +11,11 @@ IF19–IF23 为 impl-00/12 新增的 M4 五个类型（各在 §4 表出现恰�
 IF24 禁止 §4 表残留旧 M4 名；
 IF25–IF28 为 impl-00/13 新增的 M6 四个类型（各在 §4 表出现恰一次）；
 IF29 禁止 §4 表把 `correction_request` 登记为独立 artifact_type（impl-06 D-10：
-CorrectionRequest 为 `human_event`，不是独立类型）。
+CorrectionRequest 为 `human_event`，不是独立类型）；
+IF30–IF33 为 impl-00/14 新增的 M2 电子文本四个类型（各在 §4 表出现恰一次）；
+IF34 检查 `sanitization_report` 行含最小键集说明；
+IF35 检查 `ss_` 行含偏移形态说明；
+IF36 检查 `sem_` 前缀在登记册出现。
 """
 from __future__ import annotations
 
@@ -46,6 +50,13 @@ M6_TYPES = (
     "reviewed_edition_package",
     "rework_impact_report",
 )
+# M2 电子文本类型（IF30–IF33；impl-00/14 登记，显式编号）
+M2_ET_TYPES = (
+    "raw_text",
+    "cleaned_text_revision",
+    "deterministic_patch_set",
+    "sanitization_report",
+)
 FORBIDDEN_TYPES = ("gate_report", "validator_report")   # IF18
 FORBIDDEN_M4_NAMES = ("candidate_batch", "model_run", "candidate_diff_report")   # IF24
 FORBIDDEN_M6_TYPES = ("correction_request",)   # IF29（impl-06 D-10）
@@ -69,6 +80,9 @@ IF_NAMES = {
     "IF18": "§4 表不含 gate_report 与 validator_report",
     "IF24": "§4 表不含旧 M4 名 candidate_batch / model_run / candidate_diff_report",
     "IF29": "§4 表不含 correction_request（D-10 归 human_event）",
+    "IF34": "sanitization_report 行含最小键集说明",
+    "IF35": "ss_ 行含偏移形态说明",
+    "IF36": "sem_ 前缀在登记册出现",
 }
 # IF02–IF09：首纵切 required 类型
 for _i, _t in enumerate(REQUIRED_TYPES):
@@ -79,6 +93,9 @@ for _i, _t in enumerate(M4_TYPES):
 # IF25–IF28：M6 required 类型（显式编号）
 for _i, _t in enumerate(M6_TYPES):
     IF_NAMES["IF%02d" % (_i + 25)] = "M6 required 类型 %s" % _t
+# IF30–IF33：M2 电子文本 required 类型（显式编号）
+for _i, _t in enumerate(M2_ET_TYPES):
+    IF_NAMES["IF%02d" % (_i + 30)] = "M2 电子文本类型 %s" % _t
 for _num, _marker in RULING_MARKERS.items():
     IF_NAMES[_num] = "标记 %s" % _marker
 
@@ -130,8 +147,8 @@ def _status_cell(rows, token: str):
     return None
 
 
-def run_checks(path: Path) -> list:
-    """执行 IF01–IF29，返回 [(编号, 状态, 原因)]，按编号升序。"""
+def run_checks(path: Path, registry_path: Path | None = None) -> list:
+    """执行 IF01–IF36，返回 [(编号, 状态, 原因)]，按编号升序。"""
     try:
         text = Path(path).read_text(encoding="utf-8")
         rows = parse_table(text)
@@ -154,7 +171,7 @@ def run_checks(path: Path) -> list:
     dup = sorted(name for name, count in counts.items() if count > 1)
     add("IF10", not dup, "重复: %s" % ",".join(dup) if dup else "")
     bad_rows = []
-    for token in REQUIRED_TYPES + M4_TYPES + M6_TYPES:
+    for token in REQUIRED_TYPES + M4_TYPES + M6_TYPES + M2_ET_TYPES:
         status = _status_cell(rows, token)
         if status is None:
             bad_rows.append("%s 缺行" % token)
@@ -179,6 +196,19 @@ def run_checks(path: Path) -> list:
     # IF29：§4 表不得把 correction_request 登记为独立 artifact_type（D-10）
     forbidden_m6 = sorted({name for name in names if name in FORBIDDEN_M6_TYPES})
     add("IF29", not forbidden_m6, "出现 %s" % ",".join(forbidden_m6) if forbidden_m6 else "")
+    # IF30–IF33：M2 电子文本 required 类型（显式编号）
+    for i, token in enumerate(M2_ET_TYPES):
+        count = counts.get(token, 0)
+        add("IF%02d" % (i + 30), count == 1, "%s 出现 %d 次" % (token, count))
+    # IF34：sanitization_report 行含最小键集说明（finding_id 出现）
+    add("IF34", "finding_id" in text, "" if "finding_id" in text else "缺 finding_id")
+    # IF35：ss_ 行含偏移形态说明（o<NNNNNNN> 出现）
+    add("IF35", "o<NNNNNNN>" in text, "" if "o<NNNNNNN>" in text else "缺 o<NNNNNNN>")
+    # IF36：sem_ 前缀在登记册出现
+    if registry_path is None:
+        registry_path = Path(__file__).resolve().parent.parent.parent.parent.parent / "openspec" / "id-prefix-registry.md"
+    registry_text = registry_path.read_text(encoding="utf-8") if registry_path.is_file() else ""
+    add("IF36", "sem_" in registry_text, "" if "sem_" in registry_text else "缺 sem_")
     out.sort(key=lambda item: item[0])
     return out
 

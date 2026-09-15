@@ -24,7 +24,7 @@
 | 前缀 | 对象 | 格式 | 含义 | 示例 | 生产者 |
 |---|---|---|---|---|---|
 | `src_` | 来源 Source | `src_<work>_ed<NN>` | 某作品的某一底本版次 | `src_qtbj_ed01` | M1 |
-| `ss_` | 原文片段 SourceSpan | `ss_<work>_ed<NN>_p<NNNN>_s<NN>` | 底本中一段可定位原文（页码 + 句序） | `ss_qtbj_ed01_p0012_s03` | M3 |
+| `ss_` | 原文片段 SourceSpan | `ss_<work>_ed<NN>_p<NNNN>_s<NN>`（页码形态）；`ss_<work>_ed<NN>_o<NNNNNNN>`（偏移形态，7 位零填充） | 底本中一段可定位原文（页码 + 句序）；偏移形态用于跨页连续定位 | `ss_qtbj_ed01_p0012_s03`；`ss_qtbj_ed01_o0000123` | M3 |
 | `ku_` | 知识单元 KnowledgeUnit | `ku_<technique>_<6位数字>` | 某技法下一个知识单元（旧管线的工作粒度） | `ku_qimen_000002` | M4（旧管线） |
 | `as_` | 主张 Assertion | `as_<technique>_<6位数字>` | 某技法下一条可验证的知识主张 | `as_bazi_000046` | M4 |
 | `pr_` | 命题 Proposition | `pr_<technique>_<6位数字>` | 主张拆出的原子命题 | `pr_bazi_000101` | M4 |
@@ -87,6 +87,14 @@
 | `psn_` | 行为假名 actor_pseudonym | `psn_<32hex>` | 一账号一假名，密码学随机，不可由账号 ID 推导 | UUIDv4 | SERVER | DESIGN §11.3 |
 
 冲突检查：以上 17 个前缀在黑箱规格与 `openspec/schemas/` 中 `git grep -c` 均为 0；与 §3.1～§3.4 的 `src_ ss_ ku_ as_ pr_ co_shared_ co_ hg_ art_ rev_ rel_ prun_ srun_ pkg_ sch_ sv_ cg_ pat_ ent_` 无重名。附件 ID（`attachment_id`）与举报（Report）不设业务前缀（community-models §6 D-NC002-01、D-NC002-03）。
+
+### 3.6 M2 电子文本原文片段语义锚（用户 2026-09-15 确认）
+
+| 前缀 | 对象 | 格式 | 含义 | 生产者 |
+|---|---|---|---|---|
+| `sem_` | SemanticSpan 语义锚 | `sem_<work>_ed<NN>_p<NNNN>_s<NN>`（页码形态）；`sem_<work>_ed<NN>_o<NNNNNNN>`（偏移形态，7 位零填充） | 底本中一段可定位原文的语义锚；用于清洗后文字修订的精确定位；页码形态与 `ss_` 页码形态对齐，偏移形态与 `ss_` 偏移形态对齐 | M2 |
+
+`sem_` 与 `ss_` 的区别：`ss_` 是原文片段（SourceSpan）的稳定身份，`sem_` 是清洗后文字修订的语义锚（SemanticSpan），两者共享相同的格式体系但语义不同。`sem_` 前缀在 §3.1 的 `ss_` 行后登记，不在 §3.1 内混用。
 
 ## 4. 使用规则
 

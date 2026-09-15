@@ -325,7 +325,7 @@
 
 ## 4. artifact_type 总表（在 Contract Registry 落地前充当临时闭集，D-10）
 
-登记纪律：唯一登记处为本表，直至 impl-08 Contract Registry 接管（P2）；同一时刻只有一路写本表。未入本表的类型名，实现不得使用；M5 任务级报告已按 G7-RULINGS §9.1 第 24/26 条删除，每 task 复用通用 `validation_report`。M4 五行由 `impl-00/12` 登记，其 `candidate_set` 内容结构为代码草案（P3），正式化随 impl-08 Contract Registry。M6 四行由 `impl-00/13` 登记，`reviewed_edition`/`rework_impact_report` 内容结构为代码草案（P3），正式化随 impl-08 Contract Registry；Stage Gate 报告不落盘（§9.5 第 46 条）。
+登记纪律：唯一登记处为本表，直至 impl-08 Contract Registry 接管（P2）；同一时刻只有一路写本表。未入本表的类型名，实现不得使用；M5 任务级报告已按 G7-RULINGS §9.1 第 24/26 条删除，每 task 复用通用 `validation_report`。M4 五行由 `impl-00/12` 登记，其 `candidate_set` 内容结构为代码草案（P3），正式化随 impl-08 Contract Registry。M6 四行由 `impl-00/13` 登记，`reviewed_edition`/`rework_impact_report` 内容结构为代码草案（P3），正式化随 impl-08 Contract Registry；Stage Gate 报告不落盘（§9.5 第 46 条）。M2 电子文本四行由 `impl-00/14` 登记，`sanitization_report` 内容结构为代码草案（P3），正式化随 impl-08 Contract Registry。`ss_` 偏移形态 `o<NNNNNNN>`（7 位零填充）用于跨页连续定位，页码形态与偏移形态共存（registry §3.1）。
 
 | 阶段 | artifact_type | 角色 | 内容 Schema | 状态 |
 |---|---|---|---|---|
@@ -336,6 +336,10 @@
 | M1 | `source_manifest` | 任务级 + 阶段输出 | — | 【实际】 |
 | 薄 M1 | `source_asset_page` / `source_asset_register` | 派生页图字节（rights_scope=internal）/ 页图登记 | 代码草案（P3） | 首纵切（impl-04 shim，D2；impl-09 M1 落地后替换） |
 | M2 | `ocr_page` / `ocr_page_set` | 任务级 / 阶段输出 | — | 【实际】 |
+| M2 | `raw_text` | 任务级（未经清洗的原始文字） | 代码草案（P3） | M2 电子文本薄接入（act/14 登记；实现见 impl-00 后续） |
+| M2 | `cleaned_text_revision` | 任务级（清洗后文字修订） | 代码草案（P3） | 同上 |
+| M2 | `deterministic_patch_set` | 任务级（确定性修补集） | 代码草案（P3） | 同上 |
+| M2 | `sanitization_report` | 任务级（清洗报告） | `sanitization_report` 代码草案（见 §3.7）；键集：`{finding_id, kind, raw_start, raw_end, raw_excerpt, context, action, patch_id, basis, terminal_state}`；`kind` ∈ `{hook_variant, fallback_variant, orthographic_variant, truncated_source, numeral_mismatch}`；`terminal_state` ∈ `{patch_applied, superseded, deferred, terminal}` | 同上 |
 | M3 | `corpus_batch` / `corpus_spans` / `coverage_report` / `corpus_package` | 任务级 / 主内容 / 报告 / 阶段输出 | — | 【实际】 |
 | M4 | `candidate_submission` | 任务级（每路 category×lane 的提交件） | 代码草案 0.1.0-draft（P3） | M4 薄接入（act/12 登记；实现见 impl-05） |
 | M4 | `candidate_lane_set` | 任务级（每路规范化结果） | 代码草案（P3） | 同上 |
