@@ -11,6 +11,7 @@
   1. M7 `upstream_m6_real` 与 M6 `snapshot_projection` 转判：新 ACT 以真实 M6 `close_review` 产出驱动 `run_m7`（不改已验收 acceptance 判定逻辑，只接线并更新 BLOCKED 文案）；
   2. 起草 impl-04 跟进（M8 知识链前三段 + GraphProjectionPack，依赖 M6 正式知识与 M7 Snapshot），四查后实现；
   3. 小清理：`acceptance.py:405`（M7 no_model_calls 静默跳过不可解析文件）、`model.py` 尾随空白、M6 acceptance 未比对 `first_review.decisions/checkpoints`。
+- **文本源优先路线（2026-09-15 用户提出）**：第一版以殆知阁电子文本走 M1→M8（`offset_level`，内部版），第二版做 OCR 与证据升级；调研结论、清洗必做清单、第二版必做清单与待决定项**统一登记在 `docs/blackbox-spec-rework/G7-PLAN.md` §4**。
 - 用户待办：真实前十页人工终态决定表（impl-09）；`expert_verified` 签发决定表（M4/M6 真实签发）；SemanticSpan ID 前缀确认（impl-10）。
 
 ## （上一节）G7 W4 收尾：impl-08 与 impl-05 均 ACCEPTED

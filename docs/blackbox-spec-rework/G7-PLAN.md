@@ -1,6 +1,6 @@
 # G7 黑箱剩余工作分波计划（Dataset 会话）
 
-更新时间：2026-09-12
+更新时间：2026-09-15
 执行方式：tmux + `cmd --yolo`，模型 `deepseek/deepseek-v4.1-flash`（用户 2026-09-12 指令；W1 期间用 agy，额度不稳后切换，监控用 `tmux-watch.sh --agent cmd`），**同时最多 2～3 路**；主 Agent 只写裁决、只读报告文件与待裁决表，验收用脚本在 `git archive` 干净树上跑。裁决见 `G7-RULINGS.md`。
 
 ## 0. 现状
@@ -37,3 +37,72 @@
 1. 写一份提示词文件（`~/tmux-agents/runs/prompts/<会话>.txt`），启动 agy，挂监控。
 2. 被唤醒：读报告文件 → 需要裁决的只读待裁决段 → 回复或验收。
 3. 验收：`git archive` 干净树 + 预写脚本，输出只取 `tail`/SUMMARY 行；结论写 ACCEPTANCE，台账随验收一并提交。
+
+## 4. 文本源优先路线（殆知阁 TXT）与第二版必做清单
+
+登记时间：2026-09-15（用户提出；**唯一登记处**，第二版 OCR 与文本清洗事项一律记在本节，不另开清单）。决定项 §4.6 待用户确认前不派发实现。
+
+### 4.1 背景与调研结论
+
+- 来源：殆知阁 `https://daizhige.org/`，数据仓库 `https://github.com/daizhige-org/daizhigev20`（默认分支 `data`，约 7.7GB，2026-09-12 更新）。收录范围几乎覆盖所需书目，但为电子文本，非扫描 PDF。
+- 许可：仓库根目录**无 LICENSE**，README 无使用/再发布/商用条款 → 权利状态不明。
+- 样本《乾元秘旨》（`易藏/术数/乾元秘旨.md`，[清]舒继英，外链 `ctp:wb457118`）：
+  - 形态：原 txt 已转为 Markdown，文件头 YAML（title 简/繁、author、category、lastmod、github_repo_url、daizhige_url、additional_info、external_links），正文 158 行、17,735 字符。
+  - 结构：**无页码**、无 Markdown 标题；节标题是独立短行（如「月」「五星四余」）；段落以全角空格缩进。
+  - 质量：替换字符 `?` 4 处（如「无远弗?」）；私用区（PUA）字符 39 个（依赖仓库 `FONTS.md` 所述字体）；Markdown 转义残留（`\-`、`\[`）；以连字符拼出的文本化图表（「元星天道立极之图」等）；形近误字（「次日岁星天」应为「次曰」一类）；繁简混杂。
+- 规格依据：§3/§9 允许 TXT/EPUB 作为 SourceAsset、电子转录本为独立 Edition；§10 M2 覆盖电子文本清洗；§11.1 `offset_level` 只可用于 `INTERNAL_DEMO`、`DEV_SEARCH`，`PUBLIC_RELEASE` 必须 `glyphbox_level`（TARGET:140「纯文本引用只能算开发级证据」）。
+
+### 4.2 两期路线
+
+- **第一版（文本源优先）**：以殆知阁电子文本为 Edition，走 M1→M8 全链，证据级别 `offset_level`，发布级别 `INTERNAL_DEMO` / `DEV_SEARCH`，不做实图 OCR。
+- **第二版（证据升级）**：同书扫描本做 OCR，M7 版本对勘把电子文本与扫描本逐字对齐，证据升级到 `glyphbox_level` 后才可 `PUBLIC_RELEASE`。
+
+### 4.3 第一版：各阶段到 100% 要做的事
+
+| 阶段 | 要做的事 |
+|---|---|
+| M1 | 新增电子文本入库：登记 Work/Edition（电子转录本）/SourceAsset（md/txt 原文件 SHA-256、仓库提交号、原始 URL、YAML 元数据原样保存）、来源说明与权利准入决定（`rights_status` 如实登记，见 §4.6 D2）。 |
+| M2 | 电子文本清洗（清单见 §4.4），产出 `RawText`、`CleanedTextRevision`、`DeterministicPatchSet`、`SanitizationReport`（§10:478），不得静默删除；清洗结果经人工确认后 M2 Gate 放行。 |
+| M3 | 支持 `offset_level` 片段：无页码文本按「节 + 段 + 字符偏移」定位（ID 格式见 §4.6 D3）；补语义层（SemanticSpan，前缀待确认）；新增电子文本验收宿主（不改已验收 `mini_ed01`）。 |
+| M4 | 核对 `offset_level` 输入可用；真实 `expert_verified` 签发（用户签发表）。 |
+| M5 | G3 按 offset + quote hash 核对；补候选级校验（现为 `scope=corpus_only`）。 |
+| M6 | 接 M7（真实输出驱动 `run_m7`，`upstream_m6_real`/`snapshot_projection` 转判）；真实签发；旧审核工作台数据迁入。 |
+| M7 | 消费真实 M6 输出；第一版单一电子文本 Edition 汇编。 |
+| M8 | 知识链前三段 + GraphProjectionPack；按 `INTERNAL_DEMO` 出包。 |
+| 全局 | `run_all.sh` 11 项全部 PASS；各阶段验收脚本无 BLOCKED（依赖用户待办的项除外须如实标注）。 |
+
+### 4.4 电子文本清洗必做清单（M2，第一版即做，逐项进 SanitizationReport）
+
+1. 编码：统一 UTF-8，识别并记录原编码与 BOM。
+2. 乱码与替换字符：`?`、`□`、`U+FFFD` 等逐处登记位置与上下文，不得猜字替换；可对照 CTP 或其他底本补字，补字作为 patch 记录来源。
+3. 私用区（PUA）字符：依 `FONTS.md` 所述字体建立映射表（PUA → 标准 Unicode / IDS 描述），无法映射的保留原码并登记。
+4. 控制字符、零宽字符、异常空白（全角空格缩进按版式规则保留或规范化并记录）。
+5. 转换残留：Markdown 转义（`\-`、`\[`）、HTML/脚本、YAML 头与正文分离（元数据入 M1，不进正文）。
+6. 水印、广告、站点说明、非文献内容（页脚、维护者声明、链接）。
+7. 页眉页脚与重复标题行。
+8. 重复章节 / 重复段落（全文去重比对，登记位置，不静默删除）。
+9. 缺失章节（对照目录、CTP 外链或其他底本核对完整性，缺失登记为已知缺口）。
+10. 异常字段与结构：节标题识别（独立短行）、正文/注文/夹注格式、文本化图表（以连字符拼出的图，登记为图表区块，不进语义切片或单独标注）。
+11. 繁简混杂与异体字：记录原貌，不强制转换；规范化只进派生层并可逆。
+12. 形近误字（如「日/曰」）：只登记疑点，改字须有底本依据并走 patch，不得由模型直接改。
+13. 与扫描本/其他版本的差异不在第一版改正，留第二版对勘（§4.5）。
+
+### 4.5 第二版必做清单（不得遗漏）
+
+1. 扫描本获取与 M1 登记（原始扫描、拆页、图像哈希）。
+2. OCR：版本化 `OCRProfile`，代表页校准、人工验收并冻结 Revision；保留 OCR 原始 JSON、字框、置信度、校订 Revision、质量报告与审计日志（§10）。
+3. 异常页三终态（`manually_transcribed` / `known_unrecognizable` / `deferred`）与 M2 Gate 放行规则；**前十页人工终态决定表**（用户待办）。
+4. 扫描本同样执行 §4.4 中适用的清洗与异常检查（乱码、重复/缺失、异常字段等）。
+5. M7 版本对勘：电子文本 ↔ 扫描本逐字对齐（Alignment / VariantReading / Addition / Omission），异文进审核。
+6. 证据升级：片段从 `offset_level` 升到 `glyphbox_level`（页、图像哈希、字框四点坐标），M8 片段身份延续。
+7. M7 多 Edition 增量汇编、身份迁移、返工替换。
+8. 公开发布：权利确认与 `ReleasePolicy`，`PUBLIC_RELEASE` 验收。
+9. 旧 OCR 校对工具（FastAPI + Vue）与旧工作台数据迁入。
+
+### 4.6 待用户决定
+
+- D1：第一版发布级别——按规格只做 `INTERNAL_DEMO` / `DEV_SEARCH`（推荐），或修改规格允许电子文本公开发布（不推荐，违背 TARGET:140）。
+- D2：殆知阁无许可证——第一版 `rights_status` 登记为「未明确授权，仅内部使用」；公开发布前需另行确认授权或换可授权底本。
+- D3：无页码文本的片段 ID 格式（现为 `ss_<source>_p<页>_s<序>`），属 ID 格式变更（P8）。
+- D4：PUA 字处理口径（映射表来源与无法映射时的呈现方式）。
+- D5（原有）：SemanticSpan ID 前缀；`expert_verified` 签发决定表。
