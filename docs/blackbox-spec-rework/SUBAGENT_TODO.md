@@ -640,7 +640,7 @@
   - [x] 六件套（act/01 样例、act/02 检查器）与守卫
   - [x] wjt-react 四查 + 十二攻击/故障场景审查：R1 返工 5 项（notifier TTL 冲突、会话公钥绑定、signed_fields、AAD 原因码、证书哈希定义）+ R2 返工 1 项（证书哈希公式复算），均落实（`reviews/NC-015-REVIEW-R1.md`）
   - [x] 执行（2 个提交）；主 Agent 验收 R1 ACCEPTED（V0～V8 原始输出、盲测 BT0～BT7 全 PASS、八场景攻击审查；修正契约 §5 第 95 行 TTL 文案）；解锁 NC-016
-- [ ] NC-020a：消费端书籍契约核对清单（状态：`BACKLOG`）
+- [x] NC-020a：消费端书籍契约核对清单（状态：`ACCEPTED`；骨架 `BOOK_CONTRACT_ACCEPTANCE.md` 28 项、校验脚本 `check_book_contract.py` 退出 0、六件套 `work-items/nc-020a/`；D-07/D-08 依赖已登记）
 - [ ] NC-025：生产 BlobGateway（公共 + 私有）（状态：`BACKLOG`；R1 新增，NC-008/017 的硬前置）
 - [x] NC-026：行为事件数据源、假名化与私人笔记元数据上报（状态：`ACCEPTED`；v1.5 新增；专属契约 `openspec/annotation-community/contracts/community_behavior.md`，API 补丁 `community_api.md` §14，六件套 `work-items/nc-026/`，守卫 `reviews/nc026_guard.sh`；spec 侧冻结 `openspec/schemas/community_behavior_event.schema.json`（attributes 收紧，SHA `f3467224…`）与 23 个行为事件示例；**注销子项 DEFERRED**（NC-001 第⑩项证据缺失，D-NC026-13）；P1～P4 已裁定（D-NC026-29～32）；2026-09-13 主 Agent 同会话实现四线并验收：REST `c1afba3`（+85）、SERVER `dd04f27`（pytest 5/594/3）、CLIENT `613f6ba`（+332）、RULES `f74b9a5`（157）；守卫 `--require-impl all` K01～K09 全 PASS；四查独立性按 D-NC026-28 由用户授权替代，评审见 `reviews/NC-026-REVIEW-R1.md`；验收记录见 `work-items/nc-026/ACCEPTANCE.md`）
 

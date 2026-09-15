@@ -1,0 +1,9 @@
+NC-020A: 消费端书籍契约核对清单
+SCOPE:
+  - openspec/annotation-community/BOOK_CONTRACT_ACCEPTANCE.md
+  - openspec/annotation-community/tools/check_book_contract.py
+DEPENDS_ON: "[]"
+ESTIMATE_MINUTES: 30
+ON_FAIL: 停手报告用户
+WORKLOAD: 主 Agent 独立完成（纯文档，无执行 Agent）
+DISPATCH_PRECONDITION: 无
