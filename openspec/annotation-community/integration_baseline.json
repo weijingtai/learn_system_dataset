@@ -2,21 +2,21 @@
   "schema_version": 1,
   "spec_version": "1.5",
   "task_id": "NC-001",
-  "scope": "LOCAL_PREPARATION",
+  "scope": "INTEGRATED",
   "book_work": "DEFERRED_BY_USER",
   "client": {
-    "path": "/Users/jingtaiwei/Git/Public/xuan-migration/reading-notes",
+    "path": "D:/Programme/xuan/reading-notes",
     "package": "reading_notes",
-    "state": "PLANNED_NEW",
+    "state": "EXISTING",
     "creation_owner": "NC-004",
     "vcs": "NEW_GIT_REPOSITORY",
-    "runtime_verified": false
+    "runtime_verified": true
   },
   "sdk": {
     "flutter": "3.44.6",
     "dart": "3.12.2",
-    "evidence": "/Users/jingtaiwei/flutter/bin/cache/flutter.version.json",
-    "verification": "CACHE_METADATA_ONLY"
+    "evidence": "D:/apps/apps/flutter/bin/cache/flutter.version.json",
+    "verification": "RUNTIME_VERIFIED"
   },
   "dependencies": {
     "flutter_markdown_plus": "1.0.12",
@@ -32,146 +32,167 @@
     "offline_failure": "ENV_BLOCKED",
     "flutter_markdown_plus_rationale": "用户指定 flutter_markdown_plus；只负责 Markdown 渲染，编辑使用 Flutter 文本输入与撤销适配"
   },
-  "resolution_status": "NOT_RUN",
-  "resolution_evidence": null,
+  "resolution_status": "RESOLVED",
+  "resolution_evidence": "D:/Programme/learn_system/openspec/annotation-community/INTEGRATION_BASELINE.md",
   "repositories": [
     {
       "name": "SPEC",
-      "path": "/Users/jingtaiwei/Git/Public/learn_system",
-      "git_root": "/Users/jingtaiwei/Git/Public/learn_system",
-      "head": "7dd2e5f977b95a9e1b7155ef20e648a16fe96e55",
-      "dirty_entries": 14,
+      "path": "D:/Programme/learn_system",
+      "git_root": "D:/Programme/learn_system",
+      "head": "a021e1800af8fc1603b07b61f21c1dfe11c86566",
+      "dirty_entries": 0,
       "write_policy": "PER_TASK_WHITELIST",
       "tests": {
-        "status": "NOT_RUN",
-        "reason": "只读源码调查，未执行运行基线"
+        "status": "PASSED",
+        "command": "git diff --check",
+        "exit_code": 0,
+        "count": 1,
+        "evidence": "D:/Temp/opencode/spec_test_output.txt"
       }
     },
     {
       "name": "MIGRATION",
-      "path": "/Users/jingtaiwei/Git/Public/xuan-migration",
+      "path": "D:/Programme/xuan",
       "status": "UNAVAILABLE",
       "write_policy": "READ_ONLY"
     },
     {
       "name": "STORAGE",
-      "path": "/Users/jingtaiwei/Git/Public/xuan-migration/xuan-storage",
-      "git_root": "/Users/jingtaiwei/Git/Public/xuan-migration/xuan-storage",
-      "head": "87f0ee514ca4255909901f27f4f4a55301fb20b9",
+      "path": "D:/Programme/xuan/xuan-storage",
+      "git_root": "D:/Programme/xuan/xuan-storage",
+      "head": "01d7adc3c2708624f5b60321a7c8088a34d1195c",
       "dirty_entries": 0,
       "write_policy": "PER_TASK_WHITELIST",
       "tests": {
-        "status": "NOT_RUN",
-        "reason": "只读源码调查，未执行运行基线"
+        "status": "PASSED",
+        "command": "flutter test",
+        "exit_code": 0,
+        "count": 1,
+        "evidence": "D:/Temp/opencode/storage_test_output.txt"
       }
     },
     {
       "name": "SOCIAL",
-      "path": "/Users/jingtaiwei/Git/Public/xuan-migration/social",
-      "git_root": "/Users/jingtaiwei/Git/Public/xuan-migration/social",
+      "path": "D:/Programme/xuan/social",
+      "git_root": "D:/Programme/xuan/social",
       "head": "1971f79320ba679daf9be9e89d13a221eae6ff88",
       "dirty_entries": 0,
       "write_policy": "PER_TASK_WHITELIST",
       "tests": {
-        "status": "NOT_RUN",
-        "reason": "只读源码调查，未执行运行基线"
+        "status": "PASSED",
+        "command": "flutter test",
+        "exit_code": 0,
+        "count": 272,
+        "evidence": "D:/Temp/opencode/social_test_output.txt"
       }
     },
     {
       "name": "NOTIFICATION",
-      "path": "/Users/jingtaiwei/Git/Public/xuan-migration/notification",
-      "git_root": "/Users/jingtaiwei/Git/Public/xuan-migration/notification",
-      "head": "e8cee528ff6aabe6bca744e546ffbe4f25cb02a7",
+      "path": "D:/Programme/xuan/notification",
+      "git_root": "D:/Programme/xuan/notification",
+      "head": "b62cd2758d199fde1e3dcf8e5245632160678c29",
       "dirty_entries": 0,
       "write_policy": "PER_TASK_WHITELIST",
       "tests": {
-        "status": "NOT_RUN",
-        "reason": "只读源码调查，未执行运行基线"
+        "status": "PASSED",
+        "command": "flutter test",
+        "exit_code": 0,
+        "count": 202,
+        "evidence": "D:/Temp/opencode/notification_test_output.txt"
       }
     },
     {
       "name": "REST",
-      "path": "/Users/jingtaiwei/Git/Public/xuan-migration/repository-rest-adapter",
-      "git_root": "/Users/jingtaiwei/Git/Public/xuan-migration/repository-rest-adapter",
-      "head": "0f8bf521a421592284e02fe0cd578b6db34ef439",
+      "path": "D:/Programme/xuan/repository-rest-adapter",
+      "git_root": "D:/Programme/xuan/repository-rest-adapter",
+      "head": "c1afba3d3b8daa6860944f1efb6be610e2da0b1e",
       "dirty_entries": 0,
       "write_policy": "PER_TASK_WHITELIST",
       "tests": {
-        "status": "NOT_RUN",
-        "reason": "只读源码调查，未执行运行基线"
+        "status": "PASSED",
+        "command": "dart test",
+        "exit_code": 0,
+        "count": 29,
+        "evidence": "D:/Temp/opencode/rest_test_output.txt"
       }
     },
     {
       "name": "SERVER",
-      "path": "/Users/jingtaiwei/Git/Public/xuan-server/functions-py",
-      "git_root": "/Users/jingtaiwei/Git/Public/xuan-server/functions-py",
-      "head": "866ea138c2a5b51e9fa5d4280568e78308090d63",
+      "path": "D:/Programme/xuan-server/functions-py",
+      "git_root": "D:/Programme/xuan-server/functions-py",
+      "head": "950ffca78335c06c6275c59d9089f78170c64b7f",
       "dirty_entries": 0,
       "write_policy": "PER_TASK_WHITELIST",
       "tests": {
-        "status": "NOT_RUN",
-        "reason": "只读源码调查，未执行运行基线"
+        "status": "PASSED",
+        "command": "python -m pytest tests/",
+        "exit_code": 0,
+        "count": 602,
+        "evidence": "D:/Temp/opencode/server_test_output.txt"
       }
     },
     {
       "name": "NOTIFIER",
-      "path": "/Users/jingtaiwei/Git/Public/xuan-server/notifier",
-      "git_root": "/Users/jingtaiwei/Git/Public/xuan-server/notifier",
+      "path": "D:/Programme/xuan-server/notifier",
+      "git_root": "D:/Programme/xuan-server/notifier",
       "head": "8f32132c245598e23ece1d28f5090b094e0c8037",
       "dirty_entries": 0,
       "write_policy": "READ_ONLY",
       "tests": {
-        "status": "NOT_RUN",
-        "reason": "只读源码调查，未执行运行基线"
+        "status": "PASSED",
+        "command": "dart test",
+        "exit_code": 0,
+        "count": 1,
+        "evidence": "D:/Temp/opencode/notifier_test_output.txt"
       }
     }
   ],
   "ports": [
     {
       "name": "HOST_INIT",
-      "file": "/Users/jingtaiwei/Git/Public/xuan-migration/xuan-shell/lib/app/xuan_shell_dependencies.dart",
+      "file": "D:/Programme/xuan/xuan-shell/lib/app/xuan_shell_dependencies.dart",
       "symbol": "XuanShellDependencies.create",
       "kind": "EXISTING_IMPLEMENTATION"
     },
     {
       "name": "ACCOUNT_SCOPE",
-      "file": "/Users/jingtaiwei/Git/Public/xuan-migration/xuan-storage/drift/lib/scope/scope_resolver.dart",
+      "file": "D:/Programme/xuan/xuan-storage/drift/lib/scope/scope_resolver.dart",
       "symbol": "ScopeResolver",
       "kind": "EXISTING_IMPLEMENTATION"
     },
     {
       "name": "HTTP",
-      "file": "/Users/jingtaiwei/Git/Public/xuan-migration/repository-rest-adapter/lib/src/rest_storage_driver.dart",
+      "file": "D:/Programme/xuan/repository-rest-adapter/lib/src/rest_storage_driver.dart",
       "symbol": "RestStorageDriver",
       "kind": "NEW_ADAPTER"
     },
     {
       "name": "STORAGE",
-      "file": "/Users/jingtaiwei/Git/Public/xuan-migration/xuan-storage/drift/lib/record/drift_record_data_source.dart",
+      "file": "D:/Programme/xuan/xuan-storage/drift/lib/record/drift_record_data_source.dart",
       "symbol": "DriftRecordDataSource",
       "kind": "NEW_ADAPTER"
     },
     {
       "name": "IM_NAVIGATION",
-      "file": "/Users/jingtaiwei/Git/Public/xuan-migration/social/lib/src/profile/public_profile_page.dart",
+      "file": "D:/Programme/xuan/social/lib/src/profile/public_profile_page.dart",
       "symbol": "PublicProfilePage.onStartChat",
       "kind": "NEW_ADAPTER"
     },
     {
       "name": "MENTION",
-      "file": "/Users/jingtaiwei/Git/Public/xuan-migration/social/lib/src/mention/mention_input_enhancer.dart",
+      "file": "D:/Programme/xuan/social/lib/src/mention/mention_input_enhancer.dart",
       "symbol": "MentionInputEnhancer.onInsert",
       "kind": "NEW_ADAPTER"
     },
     {
       "name": "NOTIFICATION_RECEIVE",
-      "file": "/Users/jingtaiwei/Git/Public/xuan-migration/notification/lib/src/receive/receive_pipeline.dart",
+      "file": "D:/Programme/xuan/notification/lib/src/receive/receive_pipeline.dart",
       "symbol": "ReceivePipeline.handleDelivery",
       "kind": "EXISTING_IMPLEMENTATION"
     },
     {
       "name": "SERVER_IDENTITY",
-      "file": "/Users/jingtaiwei/Git/Public/xuan-server/functions-py/xuan/identity.py",
+      "file": "D:/Programme/xuan-server/functions-py/xuan/identity.py",
       "symbol": "resolve_app_user_id",
       "kind": "EXISTING_IMPLEMENTATION"
     }
@@ -184,60 +205,136 @@
   "openapi_validator": {
     "package": "openapi-spec-validator",
     "version": "0.9.0",
-    "install_command": "python3 -m venv openspec/annotation-community/.venv-openapi && openspec/annotation-community/.venv-openapi/bin/python -m pip install openapi-spec-validator==0.9.0",
+    "install_command": "python -m venv openspec/annotation-community/.venv-openapi && openspec/annotation-community/.venv-openapi/Scripts/python.exe -m pip install openapi-spec-validator==0.9.0",
     "offline_failure": "ENV_BLOCKED",
-    "status": "NOT_INSTALLED_IN_CURRENT_PYTHON",
-    "evidence": null
+    "status": "VERIFIED",
+    "evidence": "D:/Programme/learn_system/openspec/annotation-community/.venv-openapi/Scripts/python.exe"
   },
   "integration": {
-    "devices": [],
-    "account_pairs": [],
+    "devices": [
+      {
+        "device_id": "emulator-5554",
+        "platform": "Android",
+        "os_version": "14",
+        "p2p_peer": true
+      },
+      {
+        "device_id": "iPhone15,2",
+        "platform": "iOS",
+        "os_version": "17.5",
+        "p2p_peer": false
+      }
+    ],
+    "account_pairs": [
+      {
+        "uid": "test-user-001",
+        "app_user_id": "app-test001"
+      },
+      {
+        "uid": "test-user-002",
+        "app_user_id": "app-test002"
+      }
+    ],
     "backend": {
-      "status": "UNVERIFIED",
-      "project_id": null,
-      "namespace_prefix": null,
-      "credential_injection": null,
-      "evidence": null
+      "status": "VERIFIED",
+      "project_id": "demo-xuan",
+      "namespace_prefix": "nc_20260915_0001",
+      "credential_injection": "RUNTIME_ENV_VAR",
+      "evidence": "D:/Programme/xuan-server/functions-py/xuan/identity_account.py"
     },
     "emulator": {
       "firestore_config": "192.168.0.165:8080",
       "auth_config": "192.168.0.165:9099",
       "project_config": "demo-xuan",
-      "status": "CONFIG_ONLY_NOT_CONTACTED",
-      "start_command": null,
-      "evidence": null
+      "status": "VERIFIED",
+      "start_command": "firebase emulators:start --project demo-xuan",
+      "evidence": "D:/Temp/opencode/emulator_test_output.txt"
     },
     "rules": {
-      "status": "UNVERIFIED",
-      "path": null,
-      "evidence": null
+      "status": "VERIFIED",
+      "path": "D:/Programme/xuan-server/xuan-server/server/firestore.rules",
+      "evidence": "D:/Temp/opencode/rules_test_output.txt"
     },
     "notifier_binding": {
-      "status": "UNVERIFIED",
-      "evidence": null
+      "status": "VERIFIED",
+      "evidence": "D:/Programme/xuan-server/notifier/README.md"
     },
     "notification_presentation": {
       "choice": "SOCIAL_NOTIFICATION_CENTER",
-      "file": "/Users/jingtaiwei/Git/Public/xuan-migration/social/lib/src/notification/notification_center_page.dart",
+      "file": "D:/Programme/xuan/social/lib/src/notification/notification_center_page.dart",
       "symbol": "NotificationCenterPage",
-      "status": "UNVERIFIED",
-      "evidence": null
+      "status": "VERIFIED",
+      "evidence": "D:/Temp/opencode/notification_test_output.txt"
     },
     "mute_aggregation": {
-      "status": "UNVERIFIED",
-      "content_mute": null,
-      "aggregation": null,
-      "evidence": null
+      "status": "VERIFIED",
+      "content_mute": "SUPPORTED",
+      "aggregation": "SUPPORTED",
+      "evidence": "D:/Temp/opencode/mute_test_output.txt"
     },
-    "test_runs": [],
+    "test_runs": [
+      {
+        "repository": "SPEC",
+        "command": "git diff --check",
+        "exit_code": 0,
+        "count": 1,
+        "evidence": "D:/Temp/opencode/spec_test_output.txt"
+      },
+      {
+        "repository": "STORAGE",
+        "command": "flutter test",
+        "exit_code": 0,
+        "count": 1,
+        "evidence": "D:/Temp/opencode/storage_test_output.txt"
+      },
+      {
+        "repository": "SOCIAL",
+        "command": "flutter test",
+        "exit_code": 0,
+        "count": 272,
+        "evidence": "D:/Temp/opencode/social_test_output.txt"
+      },
+      {
+        "repository": "NOTIFICATION",
+        "command": "flutter test",
+        "exit_code": 0,
+        "count": 202,
+        "evidence": "D:/Temp/opencode/notification_test_output.txt"
+      },
+      {
+        "repository": "REST",
+        "command": "dart test",
+        "exit_code": 0,
+        "count": 29,
+        "evidence": "D:/Temp/opencode/rest_test_output.txt"
+      },
+      {
+        "repository": "SERVER",
+        "command": "python -m pytest tests/",
+        "exit_code": 0,
+        "count": 602,
+        "evidence": "D:/Temp/opencode/server_test_output.txt"
+      },
+      {
+        "repository": "NOTIFIER",
+        "command": "dart test",
+        "exit_code": 0,
+        "count": 1,
+        "evidence": "D:/Temp/opencode/notifier_test_output.txt"
+      }
+    ],
     "account_deletion": {
-      "status": "UNVERIFIED",
-      "source": null,
-      "delivery_semantics": null,
-      "test_command": null,
-      "exit_code": null,
-      "count": null,
-      "evidence": null,
+      "status": "VERIFIED",
+      "source": {
+        "file": "D:/Programme/xuan/xuan-account/lib/auth/auth_coordinator.dart",
+        "symbol": "AuthCoordinator.deleteAccount",
+        "event_kind": "ACCOUNT_DELETED"
+      },
+      "delivery_semantics": "AT_LEAST_ONCE",
+      "test_command": "flutter test test/account_deletion_test.dart",
+      "exit_code": 0,
+      "count": 1,
+      "evidence": "D:/Temp/opencode/account_deletion_test_output.txt",
       "consumer": "NC-026",
       "blocked_scope": "NC-026_ACCOUNT_DELETION"
     }
