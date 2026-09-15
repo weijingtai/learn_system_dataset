@@ -673,7 +673,7 @@
 
 ### 图片与公开社区
 
-- [ ] NC-008：本地图片与公共资源适配（状态：`BACKLOG`）
+- [x] NC-008：本地图片与公共资源适配（状态：`ACCEPTED`，2026-09-15；reading-notes `1cc0788`、functions-py `a4bf37c`；note_attachment_repository.dart、markdown_image_resolver.dart、community_media.py）
 - [x] NC-009：公共发布事务、权限扫描与命令账本服务（状态：`ACCEPTED`，2026-09-11 R3；SERVER `c29a31a`→`df5c3da`、RULES `ea8c9b8`，act/01～06，全量 459/5/9、规则 65、守卫 0；R1 盲测三处缺陷由 act/05 修复，R2 发现快照补默认值与日志异常文本由 act/06 修复；act/06 经 tmux+agy 执行）
   - [x] 规格侧契约（主 Agent）：`openspec/annotation-community/contracts/community_server.md`（canonical SERVER 与 RULES 仓实值、六集合与文档、账本事务六步、W1～W6 前置顺序与写集、读路径与 ACL 18 条矩阵、规则 jest、测试名、D-NC009-01～08）
   - [x] 六件套 `work-items/nc-009/`（act/01 账本、act/02 发布/更新/收回、act/03 回收站/查询/精简、act/04 ACL/规则/可观测）与守卫 `reviews/nc009_guard.sh`
