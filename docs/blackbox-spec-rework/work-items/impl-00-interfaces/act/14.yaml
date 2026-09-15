@@ -1,0 +1,87 @@
+act_id: impl-00/14
+status: READY_FOR_REVIEW
+title: M2 电子文本产物闭集登记、片段 ID 偏移形态与 sem_ 前缀登记
+estimated_minutes: 60
+group: W7
+depends_on: [impl-00/13]
+decisions_required: []
+scope:
+  write: [docs/blackbox-spec-rework/work-items/impl-00-interfaces/INTERFACES.md, docs/blackbox-spec-rework/work-items/impl-00-interfaces/check_interfaces.py, docs/blackbox-spec-rework/work-items/impl-00-interfaces/tests/__init__.py, docs/blackbox-spec-rework/work-items/impl-00-interfaces/tests/test_check_interfaces.py, openspec/id-prefix-registry.md]
+tests_first:
+  - 先改 check_interfaces.py 与 tests/test_check_interfaces.py（新增 M2 检查 IF30–IF34 与具名用例）。**Red 取证（实跑）**：现行 INTERFACES.md 的 §4 缺 M2 四类产物行，故 Red 为 `FAIL IF30 required 类型 raw_text 出现 0 次` 等四行 + `FAIL IF34 登记册缺 sem_ 前缀`，末行 `I00-IF SUMMARY pass=29 fail=6`；`unittest` 新增用例 Red（Red 原文入报告）。再改 INTERFACES.md 与 id-prefix-registry.md 转 Green（实测 `I00-IF SUMMARY pass=35 fail=0`、IF30–IF34 六 PASS 行 + IF29 旧检查仍 PASS）
+  - 本 ACT 是 W7 步骤 7.1 的前置之一：执行并验收后方可派发 impl-09 M1+M2 电子文本实现
+contract: |
+  只改 INTERFACES.md、openspec/id-prefix-registry.md 与本 ACT 的 check_interfaces.py / tests。不得改任何代码、Schema、fixture、ledger、acceptance；只写 impl-00-interfaces/ 目录内文件与 openspec/id-prefix-registry.md。
+  A. §4 表 M2 行（`INTERFACES.md:338`）整行替换为六行，名称逐字取规格 §10:478 原文转 snake_case（P2）：
+    | M2 | `raw_text` | 任务级（原始文本冻结） | 代码草案 0.1.0-draft（P3） | 电子文本路线 W7-7.2 实现 |
+    | M2 | `cleaned_text_revision` | 主内容（清洗修订） | 代码草案 0.1.0-draft（P3） | 同上 |
+    | M2 | `deterministic_patch_set` | 映射（原始↔清洗双向映射） | 代码草案 0.1.0-draft（P3） | 同上 |
+    | M2 | `sanitization_report` | 报告（清洗发现记录） | 代码草案 0.1.0-draft（P3） | 同上 |
+    **保留** 旧 M2 行 `ocr_page` / `ocr_page_set`（OCR 路线产物，首纵切内不变）
+  B. §4 表头登记纪律行（`INTERFACES.md:328`）追加：M2 四行由 act/14 登记，`sanitization_report` 内容结构为代码草案（P3），正式化随 impl-08 Contract Registry
+  C. §2.2 M2 卡片（`INTERFACES.md:97-110`）按 G7-RULINGS 第 81 条补电子文本产物说明：
+    - 新增输出 artifact_type：`raw_text`（原始文本冻结）、`cleaned_text_revision`（清洗修订）、`deterministic_patch_set`（双向映射）、`sanitization_report`（发现记录）
+    - `sanitization_report` 发现条目最小键集：`{finding_id, kind, raw_start, raw_end, raw_excerpt, context, action(kept/patched/flagged), patch_id, basis, terminal_state}`
+    - `kind` 闭集：`replacement_char, private_use_area, escape_residue, watermark, header_footer, duplicate, missing, textualized_diagram, variant_mixed, suspected_error, control_char, encoding_issue`（第 81 条原文）
+    - `terminal_state` 闭集：`processed, known_unresolvable, deferred`（沿用 OCR 异常页口径，第 81 条）
+    - 证据链：片段 → 清洗文本偏移 → patch 映射 → 原始文本偏移 → SourceAsset SHA-256
+    - 旧 M2 OCR 行保持不变
+  D. `openspec/id-prefix-registry.md` §3.1 `ss_` 行格式列补偏移形态（第 78 条）：
+    - 原文：`ss_<work>_ed<NN>_p<NNNN>_s<NN>`（页码 + 句序）
+    - 补充：无页码来源格式 `ss_<work>_ed<NN>_o<NNNNNNN>`（`o` 后为片段起点在冻结 RawText 中的字符偏移，7 位零填充）
+  E. `openspec/id-prefix-registry.md` 新增 §3.6 SemanticSpan 前缀（第 80 条，用户 2026-09-15 确认）：
+    | 前缀 | 对象 | 格式 | 含义 | 家族 | 生产者 |
+    |---|---|---|---|---|---|
+    | `sem_` | SemanticSpan 语义片段 | 页码来源：`sem_<work>_ed<NN>_p<NNNN>_s<NNN>`；偏移来源：`sem_<work>_ed<NN>_o<NNNNNNN>` | 语义切分后的可定位原文片段 | 人工闭集 | M3 语义层 |
+    编号规则：页码来源页号取起始页，序号 3 位、页内从 001 顺序编号；偏移来源偏移 7 位零填充
+  F. check_interfaces.py 检查清单（**IF01–IF29 编号与语义不得改变**；现有 18 个用例引用 IF02/IF10/IF11/IF13/IF18/IF19–IF29）：
+    IF30 required `raw_text` 在 §4 表出现恰 1 次；IF31 `cleaned_text_revision`；IF32 `deterministic_patch_set`；IF33 `sanitization_report`
+    IF34 `sanitization_report` 行含最小键集说明（`finding_id` 出现）
+    IF35 `ss_` 行含偏移形态说明（`o<NNNNNNN>` 出现）
+    IF36 `sem_` 前缀在登记册出现（`sem_` 在 id-prefix-registry.md 出现）
+    实现要求：把 M2 类型放入独立的 `M2_ET_TYPES`（显式编号 IF30–IF33），禁止用单一 enumerate 生成编号；IF34 检查 INTERFACES.md 全文含 `finding_id`；IF35 检查 id-prefix-registry.md 含 `o<NNNNNNN>`；IF36 检查 id-prefix-registry.md 含 `sem_`；`IF11` 的类型集合改为 `REQUIRED_TYPES + M4_TYPES + M6_TYPES + M2_ET_TYPES`；docstring 由「IF01–IF29」改为「IF01–IF36」
+    绿色时期望（第 54 条）：末行 `fail=0` 且 exit 0，IF30–IF36 七个 PASS 行存在；不写死 pass 总数
+tests:
+  test_check_interfaces.py: |
+    - test_if01_passes_on_repo_copy（现有，保持）
+    - test_required_type_missing_fails（现有，断言 IF02）
+    - test_duplicate_type_fails（现有，断言 IF10）
+    - test_required_type_marked_deferred_fails（现有，断言 IF11）
+    - test_ruling_marker_missing_fails（现有，断言 IF13）
+    - test_forbidden_type_present_fails（现有，断言 IF18）
+    - test_missing_file_exit_3（现有，保持）
+    - test_summary_line_format（现有；Green 后断言末行 `fail=0` 且 rc=0，不断言 pass 总数，第 54 条）
+    - test_m4_required_types_present（现有，act/12）
+    - test_m4_type_missing_fails（现有，act/12）
+    - test_m4_type_marked_deferred_fails（现有，act/12）
+    - test_m4_duplicate_type_fails（现有，act/12）
+    - test_legacy_m4_name_present_fails（现有，act/12）
+    - test_m6_required_types_present（现有，act/13）
+    - test_m6_type_missing_fails（现有，act/13）
+    - test_m6_type_marked_deferred_fails（现有，act/13）
+    - test_m6_duplicate_type_fails（现有，act/13）
+    - test_correction_request_type_present_fails（现有，act/13）
+    - test_m2_et_required_types_present（仓库副本 IF30–IF33 全 PASS）
+    - test_m2_et_type_missing_fails（副本删 `raw_text` 行 → FAIL IF30）
+    - test_m2_et_type_marked_deferred_fails（副本把 `cleaned_text_revision` 状态列改 `纵切后` → FAIL IF11）
+    - test_m2_et_duplicate_type_fails（副本复制 `sanitization_report` 行 → FAIL IF10）
+    - test_sanitization_report_keyset_missing_fails（副本把 `sanitization_report` 行的最小键集说明删去 → FAIL IF34）
+    - test_ss_offset_form_missing_fails（副本把 id-prefix-registry.md 的 `o<NNNNNNN>` 删去 → FAIL IF35）
+    - test_sem_prefix_missing_fails（副本把 id-prefix-registry.md 的 `sem_` 删去 → FAIL IF36）
+verify:
+  - python3 docs/blackbox-spec-rework/work-items/impl-00-interfaces/check_interfaces.py; echo exit=$?   # 末行 fail=0 且 exit=0；IF30–IF36 七个 PASS 行存在（第 54 条，不写死 pass 总数）
+  - .venv/bin/python -m unittest discover -s docs/blackbox-spec-rework/work-items/impl-00-interfaces/tests -t docs/blackbox-spec-rework/work-items/impl-00-interfaces 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例 ≥ 24
+  - grep -c '^| M2 ' docs/blackbox-spec-rework/work-items/impl-00-interfaces/INTERFACES.md   # ≥ 6（旧 2 + 新 4）
+  - grep -c 'raw_text' docs/blackbox-spec-rework/work-items/impl-00-interfaces/INTERFACES.md   # ≥ 1
+  - grep -c 'cleaned_text_revision' docs/blackbox-spec-rework/work-items/impl-00-interfaces/INTERFACES.md   # ≥ 1
+  - grep -c 'deterministic_patch_set' docs/blackbox-spec-rework/work-items/impl-00-interfaces/INTERFACES.md   # ≥ 1
+  - grep -c 'sanitization_report' docs/blackbox-spec-rework/work-items/impl-00-interfaces/INTERFACES.md   # ≥ 1
+  - grep -c 'sem_' openspec/id-prefix-registry.md   # ≥ 1
+  - grep -c 'o<NNNNNNN>' openspec/id-prefix-registry.md   # ≥ 1
+  - git status --short openspec/schemas pipeline/corpus/_fixture pipeline/ledger   # 空
+  - bash openspec/schemas/verify.sh >/dev/null; echo $?                            # 0
+  - git diff --check
+commit:
+  add: [docs/blackbox-spec-rework/work-items/impl-00-interfaces/INTERFACES.md, docs/blackbox-spec-rework/work-items/impl-00-interfaces/check_interfaces.py, docs/blackbox-spec-rework/work-items/impl-00-interfaces/tests, openspec/id-prefix-registry.md]
+  message: "docs(impl-00): register M2 electronic-text artifact types, offset span ID form and sem_ prefix (act/14)"
+on_fail: 停止并报告；IF01–IF29 编号或语义被改动、现有 18 用例断言被改、需要写 scope 外文件、需要改 schemas/fixture/ledger 才能通过 → 停手上报
