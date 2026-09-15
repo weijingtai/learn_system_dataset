@@ -1,0 +1,45 @@
+act_id: impl-06/12
+title: M6 验收 snapshot_projection 转判——真实 M6 产出驱动 M7 产出 Snapshot，独立核对投影；acceptance 比对 first_review 计数
+estimated_minutes: 90
+group: K3
+depends_on: [impl-06/11]
+scope:
+  write: [pipeline/review/acceptance.py, pipeline/review/tests/test_acceptance.py, pipeline/review/model.py, openspec/acceptance/m6-data-fields.sh]
+tests_first:
+  - 先写 tests/test_acceptance.py（用例名逐字）并全红，再实现 acceptance.py 对应逻辑，最后更新 m6-data-fields.sh
+contract: |
+  acceptance.py：新增 COMPUTED_CHECKS（`snapshot_projection`、`first_review_counts`），snapshot_projection 从 BLOCKED 移入 COMPUTED_CHECKS
+    snapshot_projection 判定：
+      在临时 Ledger 上用 pipeline.review.testing.upstream_stub.seed_upstream 驱动真实 M3/M4/M5
+      经 pipeline.review.step 的 open_review → record_decision → close_review 产出真实 m6 StagePackage
+      以 pipeline.assembly.step.run_m7 消费该 m6 StagePackage 得到 CanonicalKnowledgeSnapshot 修订
+      独立核对（不复用 run_m7 返回的 gate/report）：
+        1. Snapshot 修订中 approved 对象的 artifact_revision_id 与 reviewed_edition.decisions 中 approved 的一致
+        2. Snapshot 修订中 evidence_links 的 source_span_id 与 reviewed_edition.evidence_links 一致
+        3. Snapshot 修订中 content_status 在 approved 对象上投影为 expert_verified
+        4. Snapshot 修订中 rejected 对象的 content_status 不是 expert_verified
+      人工决定仍为合成测试替身，保持 synthetic_fixture: true，不计真实 expert_verified（第 83 条）
+    first_review_counts 判定：
+      比对金标 expected.first_review.decisions 计数与实际 m6 运行的 Checkpoint 中 human_decisions 计数
+      若 expected.first_review 有 decisions 列表，则 decisions 列表长度 == human_decisions 数
+    legacy_workbench_seed：更新 BLOCKED 说明文案，去掉已过时的「前置缺失: M4 Knowledge Extraction」字样，如实写当前真正缺的前置：「前置缺失: M6 Review Workbench；pattern_knowledge_workbench 旧数据体未迁入（准入判定见 run_all 20.7）」
+    upstream_real：更新 BLOCKED 说明文案，去掉已过时的「前置缺失: M4 Knowledge Extraction；M5 仍 scope=corpus_only，candidate 级校验未实现」字样，如实写当前真正缺的前置：「前置缺失: 真实 expert_verified 签发决定表由用户撰写（第 80 条签发决定表）；旧工作台数据迁入；M5 候选级校验未实现」
+  m6-data-fields.sh：期望 SUMMARY pass=12 fail=0 blocked=2、exit 2（BLOCKED 从 3 降至 2）
+  pipeline/review/model.py：清理尾随空白（行尾空格/制表符）
+tests:
+  test_acceptance.py: |
+    - test_snapshot_projection_passes_and_approved_match（真实 M6 产出经 M7 后 Snapshot approved 与 reviewed_edition 一致）
+    - test_snapshot_projection_evidence_links_consistent（Snapshot evidence_links.source_span_id 与 reviewed_edition 一致）
+    - test_snapshot_projection_content_status_expert_verified（Snapshot approved 对象 content_status 为 expert_verified）
+    - test_snapshot_projection_rejected_not_expert_verified（Snapshot rejected 对象 content_status 不是 expert_verified）
+    - test_first_review_counts_match（expected.first_review.decisions 长度 == human_decisions 计数）
+    - test_shell_summary_pass_12_fail_0_blocked_2（subprocess，末行 SUMMARY pass=12 fail=0 blocked=2）
+verify:
+  - .venv/bin/python -m unittest discover -s pipeline/review/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 148（145 + 3 新增具名用例）
+  - export LC_ALL=en_US.UTF-8; bash openspec/acceptance/m6-data-fields.sh; echo exit=$?    # 12 PASS + 2 BLOCKED + SUMMARY pass=12 fail=0 blocked=2；exit=2
+  - bash openspec/acceptance/run_all.sh | tail -1   # SUMMARY pass=2 fail=1 blocked=8（本切片不改 run_all.sh）
+  - git diff --check
+commit:
+  add: [pipeline/review/acceptance.py, pipeline/review/tests/test_acceptance.py, pipeline/review/model.py, openspec/acceptance/m6-data-fields.sh]
+  message: "feat(m6): snapshot_projection real M6 upstream wiring + first_review_counts check + trailing whitespace cleanup per spec §83"
+on_fail: 停止并报告；upstream_stub 驱动路径异常、Ledger 公开方法行为与 contract 不符、需改 scope 外文件 → 一律停手上报

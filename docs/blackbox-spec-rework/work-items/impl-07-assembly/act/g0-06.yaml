@@ -1,0 +1,39 @@
+act_id: impl-07/G0-06
+title: M7 验收增加「真实 M6 上游」路径——upstream_m6_real 转判 PASS + no_model_calls 修复静默跳过
+estimated_minutes: 90
+group: G0
+depends_on: [impl-07/G0-05]
+scope:
+  write: [pipeline/assembly/acceptance.py, pipeline/assembly/tests/test_acceptance.py, openspec/acceptance/m7-assembler.sh]
+tests_first:
+  - 先写 tests/test_acceptance.py（用例名逐字）并全红，再实现 acceptance.py 对应逻辑，最后更新 m7-assembler.sh
+contract: |
+  acceptance.py：新增第 11 项 COMPUTED_CHECKS（`upstream_m6_real`），从 BLOCKED_CHECKS 移除
+    upstream_m6_real 判定：
+      在临时 Ledger 上用 pipeline.review.testing.upstream_stub.seed_upstream 驱动真实 M3/M4/M5
+      经 pipeline.review.step 的 open_review → record_decision → close_review 产出真实 m6 StagePackage
+      以 run_m7 消费该 m6 StagePackage 得到 CanonicalKnowledgeSnapshot
+      独立核对（不复用 run_m7 返回的 gate/report）：
+        1. Snapshot 修订的 knowledge 字段非空且包含 patterns/assertions
+        2. Snapshot 修订经 validate_reviewed_edition 验证无报错
+        3. m6 StagePackage 在运行前后 status/sha256 不变（upstream_immutable 同理）
+      人工决定仍为合成测试替身，保持 synthetic_fixture: true，不计真实 expert_verified（第 83 条）
+    no_model_calls 修复：解析失败的文件不得 except Exception: continue 静默跳过，改为计入 FAIL（附具名用例 `test_no_model_calls_counts_parse_failures`）
+  m7-assembler.sh：期望 SUMMARY pass=11 fail=0 blocked=5、exit 2（BLOCKED 从 6 降至 5）
+tests:
+  test_acceptance.py: |
+    - test_upstream_m6_real_passes_and_snapshot_has_patterns（真实 M6 产出经 M7 后 Snapshot 含 patterns/assertions）
+    - test_upstream_m6_real_independent_of_run_m7_gate（不以 run_m7 返回的 gate/report 作为判定依据）
+    - test_upstream_m6_real_m6_package_immutable（运行前后 m6 StagePackage 的 status/sha256 不变）
+    - test_no_model_calls_counts_parse_failures（注入语法错误 .py → check_no_model_calls 返回含该文件名的错误列表）
+    - test_upstream_m6_real_synthetic_fixture_true（人工决定含 synthetic_fixture: true，不计 expert_verified）
+    - test_shell_summary_pass_11_fail_0_blocked_5（subprocess，末行 SUMMARY pass=11 fail=0 blocked=5）
+verify:
+  - .venv/bin/python -m unittest discover -s pipeline/assembly/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 92（89 + 3 新增具名用例）
+  - export LC_ALL=en_US.UTF-8; bash openspec/acceptance/m7-assembler.sh; echo exit=$?   # 11 PASS + 5 BLOCKED + SUMMARY pass=11 fail=0 blocked=5；exit=2
+  - bash openspec/acceptance/run_all.sh | tail -1   # SUMMARY pass=2 fail=1 blocked=8（本切片不改 run_all.sh）
+  - git diff --check
+commit:
+  add: [pipeline/assembly/acceptance.py, pipeline/assembly/tests/test_acceptance.py, openspec/acceptance/m7-assembler.sh]
+  message: "feat(m7): real M6 upstream wiring in acceptance (upstream_m6_real PASS, no_model_calls parse-failure fix) per spec §83"
+on_fail: 停止并报告；upstream_stub 驱动路径异常、Ledger 公开方法行为与 contract 不符、需改 scope 外文件 → 一律停手上报

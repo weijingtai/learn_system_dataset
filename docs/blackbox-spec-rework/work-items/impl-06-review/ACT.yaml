@@ -4,7 +4,7 @@ status: READY_FOR_REVIEW   # W5-H 定稿 2026-09-13，依 G7-RULINGS §1 P1–P9
 executor_groups:
   K1: [impl-06/01, impl-06/02, impl-06/03]             # 纯函数，无 Ledger；一个执行 Agent 串行
   K2: [impl-06/04, impl-06/05, impl-06/06, impl-06/07] # 前置 impl-05/impl-03 ACCEPTED 且 K1 ACCEPTED
-  K3: [impl-06/08, impl-06/09, impl-06/11]             # 前置 K2 ACCEPTED；impl-06/10 已 WITHDRAWN（第 61 条）
+  K3: [impl-06/08, impl-06/09, impl-06/11, impl-06/12]   # 前置 K2 ACCEPTED；impl-06/10 已 WITHDRAWN（第 61 条）
 preconditions:
   - K2 起：impl-05（M4）、impl-03（M5）状态 ACCEPTED，且 run_m4/run_m5 输出契约与 README §5.1 一致
   - 下游解析上游 StagePackage 只接受所属 StepRun `succeeded` 的包（P5）；M5 包另须 StagePackage `validation.passed == true`（第 21 条）
@@ -48,6 +48,9 @@ acts:
   - file: act/11.yaml
     id: impl-06/11
     writes: ["pipeline/review/acceptance.py", "pipeline/review/tests/test_acceptance.py", "openspec/acceptance/m6-data-fields.sh"]
+  - file: act/12.yaml
+    id: impl-06/12
+    writes: ["pipeline/review/acceptance.py", "pipeline/review/tests/test_acceptance.py", "pipeline/review/model.py", "openspec/acceptance/m6-data-fields.sh"]
 global_rules:
   - 每个 ACT 先写测试（Red 原文入报告）再实现；unittest；测试只用 tempfile 目录，不写 var/ 与 fixture
   - 只用标准库 + PyYAML + jsonschema；不新增依赖、不新增 ID 前缀（队列项号 <entity_id>#<decision_type> 是任务标签）、不调用模型 API

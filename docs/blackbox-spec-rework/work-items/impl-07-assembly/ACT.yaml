@@ -2,7 +2,7 @@ package: blackbox-impl-07-assembly
 title: 首切片：M7 创世汇编（W5-L0）——空基底 + 单个 ReviewedEditionPackage → CanonicalKnowledgeSnapshot 修订（§6.2、§15）
 status: READY_FOR_REVIEW（创世薄切片）   # W5-L0 定稿 2026-09-13，依 G7-RULINGS §1 P1–P9、§5 impl-07、§9.12 第 61 条；未经实现；派发前置见 preconditions
 executor_groups:
-  G0: [impl-07/G0-01, impl-07/G0-02, impl-07/G0-03, impl-07/G0-04, impl-07/G0-05]   # 串行；每个 ACT ACCEPTED 后派下一个
+  G0: [impl-07/G0-01, impl-07/G0-02, impl-07/G0-03, impl-07/G0-04, impl-07/G0-05, impl-07/G0-06]   # 串行；每个 ACT ACCEPTED 后派下一个
 preconditions:
   - impl-01 Artifact Ledger 状态 ACCEPTED（已满足）；G0 只经 Ledger 公开方法与只读查询读写（§17:836）
   - P2/impl-00 闭集：本切片不新增 artifact_type 名（使用 INTERFACES.md §4 M7 行已登记的 canonical_snapshot、assembly_package）。开工前提为 `python3 docs/blackbox-spec-rework/work-items/impl-00-interfaces/check_interfaces.py` 末行 `fail=0` 且 exit 0（第 54 条，不写死 pass 总数）。建议（不阻塞实现）由该波 impl-00 登记 ACT 把 §4 M7 行状态由「纵切后」更新为「创世薄切片（W5-L0）」并登记内容草案
@@ -27,6 +27,9 @@ acts:
   - file: act/g0-05.yaml
     id: impl-07/G0-05
     writes: ["pipeline/assembly/acceptance.py", "pipeline/assembly/tests/data/genesis_expected_knowledge.json", "pipeline/assembly/tests/test_acceptance.py", "openspec/acceptance/m7-assembler.sh"]
+  - file: act/g0-06.yaml
+    id: impl-07/G0-06
+    writes: ["pipeline/assembly/acceptance.py", "pipeline/assembly/tests/test_acceptance.py", "openspec/acceptance/m7-assembler.sh"]
 global_rules:
   - 每个 ACT 先写具名测试（Red 原文入报告）再实现；unittest；测试只用 tempfile 目录，不写 var/ 与任何 fixture
   - 只用标准库 + PyYAML + jsonschema；不新增依赖；不新增 ID 前缀；不调用模型 API；不做模糊文本相似度
@@ -48,7 +51,7 @@ gates:
   - bash openspec/acceptance/m3-coverage.sh | tail -1                             # == 开工基线（本切片不改 M3）
   - .venv/bin/python -m unittest discover -s pipeline/ledger/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"      # OK，与基线相同
   - .venv/bin/python -m unittest discover -s pipeline/assembly/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"    # OK（G0-01 起）
-  - export LC_ALL=en_US.UTF-8; bash openspec/acceptance/m7-assembler.sh; echo exit=$?                          # G0-05 起：SUMMARY pass=10 fail=0 blocked=6；exit=2
+  - export LC_ALL=en_US.UTF-8; bash openspec/acceptance/m7-assembler.sh; echo exit=$?                          # G0-06 起：SUMMARY pass=11 fail=0 blocked=5；exit=2
   - export LC_ALL=en_US.UTF-8; bash openspec/acceptance/run_all.sh | tail -1      # SUMMARY pass=2 fail=1 blocked=8（本切片不改 run_all.sh）
   - git diff --check
 deferred_groups:
