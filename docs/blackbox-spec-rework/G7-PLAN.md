@@ -125,7 +125,7 @@
 
 ### 5.1 执行器与纪律
 
-- 执行器：tmux 手动托管 `opencode --auto -m opencode-go/deepseek-v4.1-flash`（**只用 DeepSeek V4.1 Flash**，禁用 `deepseek-v4-flash`；遇限流先报告用户，不自行降级）。`tmux-agent.sh` 暂不支持 opencode，启动与投递按 `~/tmux-agents/README.md` §2 手动括号粘贴；续接用 `-s <会话ID>`，不用 `-c`。
+- 执行器：tmux 手动托管 opencode。首选 `opencode-go/deepseek-v4.1-flash`（**只用 V4.1 Flash**，禁用 `deepseek-v4-flash`，遇限流先报告用户、不自行降级）；但 2026-09-15 实测该模型报「requires explicit opt in（最新版仅中国区托管）」，需用户在 opencode.ai 工作区开通，故本轮按用户决定改用 `opencode/mimo-v2.5-free`（免费档，每 24 小时重置），开通后再切回 V4.1 Flash。`tmux-agent.sh` 暂不支持 opencode，启动与投递按 `~/tmux-agents/README.md` §2 手动括号粘贴；续接用 `-s <会话ID>`，不用 `-c`。
 - 同时最多 2 路；监控用主 Agent 的 `oc-watch.sh`（回报文件停手标记 / 屏幕停滞 / 限流字样 / 会话消失 / 超时即退出唤醒）。
 - 每步：起草六件套 → 审查（异厂商或主 Agent 自审小 ACT）→ 分组实现并停下 → 主 Agent 在 `git archive` 干净树独立验收（含矩阵外端到端与篡改）。
 - 回报必须写全证据（hash、Red、Green、verify 原文），只写标题视为未完成；遇契约冲突停手写「## 待裁决」。
