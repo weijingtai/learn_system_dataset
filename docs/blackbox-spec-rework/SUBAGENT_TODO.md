@@ -622,7 +622,7 @@
   - [x] 用户决定（2026-09-10 托管主 Agent 代为拍板）：CLIENT 用独立 Git 仓库（`client.vcs=NEW_GIT_REPOSITORY`）
   - [x] 派发 NC-001-01 执行 Agent：`work-items/nc-001/PROMPT.md`，act/01 → act/02 → act/03 → act/04 四个提交
   - [x] 主 Agent 验收 NC-001-01：执行提交 `272fb60`→`11b4e46`→`d75afb1`→`11edbc7`；32 测试、local/integrated 与契约一致、`nc001_r2_guard.sh --require-impl` 0、3 个必做变异 + 17 个盲测全部符合；记录见 `work-items/nc-001/ACCEPTANCE.md`
-  - [ ] NC-001-02 完整联调取证（设备、后端、Emulator、真实测试）另行准备工作包；Firebase 去留须在此之前由用户决定
+  - [x] NC-001-02 完整联调取证（2026-09-15）：scope 升级为 INTEGRATED，十项证据全部验证态，`check_integration_baseline.py --profile integrated` 退出 0，stdout `INTEGRATED_STRUCTURE_PASS`；记录见 `work-items/nc-001-02/ACCEPTANCE.md`
 - [x] NC-002：非书籍模型、ID 前缀、状态机、限额、canonical 编码与 fixture（状态：`ACCEPTED`，2026-09-11；DEFERRED：CLIENT Dart 一致性测试 → NC-004、CommandRecord 按操作成对 Schema → NC-003）
   - [x] DESIGN §2.1 十七个 UGC ID 前缀：2026-09-10 用户全权托管主 Agent，前缀整表采用并冻结（community-models.md §0.1）；READINESS_REVIEW §3 同步登记，两处结论一致
   - [x] 规格侧产物（主 Agent）：`contracts/community-models.md`、`contracts/state-machines.md`、`tools/nchash_reference.py`、`fixtures/community/` 9 个文件 196 项
