@@ -12,7 +12,8 @@
   2. 起草 impl-04 跟进（M8 知识链前三段 + GraphProjectionPack，依赖 M6 正式知识与 M7 Snapshot），四查后实现；
   3. 小清理：`acceptance.py:405`（M7 no_model_calls 静默跳过不可解析文件）、`model.py` 尾随空白、M6 acceptance 未比对 `first_review.decisions/checkpoints`。
 - **文本源优先路线（2026-09-15 用户提出）**：第一版以殆知阁电子文本走 M1→M8（`offset_level`，内部版），第二版做 OCR 与证据升级；调研结论、清洗必做清单、第二版必做清单与待决定项**统一登记在 `docs/blackbox-spec-rework/G7-PLAN.md` §4**。
-- 用户待办：真实前十页人工终态决定表（impl-09）；`expert_verified` 签发决定表（M4/M6 真实签发）；SemanticSpan ID 前缀确认（impl-10）。
+- 用户决定（2026-09-15，G7-RULINGS 第 76–82 条）：第一版内部版 `offset_level`；书源不限殆知阁；无页码文本片段 ID `ss_<work>_ed<NN>_o<NNNNNNN>`；生僻字保留原码位并记字体；SemanticSpan 前缀 `sem_`；电子文本清洗发现与 OCR 同等可追踪（上游 M1/M2/M3 待实现）；markitdown 仅作可选格式适配器。
+- 用户待办：按第 80 条填写 `expert_verified` 签发决定表（主 Agent 先出模板）；前十页人工终态决定表移至第二版 OCR。
 
 ## （上一节）G7 W4 收尾：impl-08 与 impl-05 均 ACCEPTED
 

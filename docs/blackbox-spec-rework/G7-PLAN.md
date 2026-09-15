@@ -99,10 +99,24 @@
 8. 公开发布：权利确认与 `ReleasePolicy`，`PUBLIC_RELEASE` 验收。
 9. 旧 OCR 校对工具（FastAPI + Vue）与旧工作台数据迁入。
 
-### 4.6 待用户决定
+### 4.6 用户决定（2026-09-15 已定，G7-RULINGS 第 76–80 条）
 
-- D1：第一版发布级别——按规格只做 `INTERNAL_DEMO` / `DEV_SEARCH`（推荐），或修改规格允许电子文本公开发布（不推荐，违背 TARGET:140）。
-- D2：殆知阁无许可证——第一版 `rights_status` 登记为「未明确授权，仅内部使用」；公开发布前需另行确认授权或换可授权底本。
-- D3：无页码文本的片段 ID 格式（现为 `ss_<source>_p<页>_s<序>`），属 ID 格式变更（P8）。
-- D4：生僻字/PUA 处理口径（以 GlyphWiki/Jigmo 为映射依据是否可接受；无法映射时的呈现方式；发布物是否附带字体说明）。
-- D5（原有）：SemanticSpan ID 前缀；`expert_verified` 签发决定表。
+- D1（第 76 条）：第一版只做 `INTERNAL_DEMO` / `DEV_SEARCH`，`offset_level`。
+- D2（第 77 条）：殆知阁声明免费下载、未附许可证，如实登记并附我方校准记录；书源不限殆知阁，M1 电子文本入库按来源无关设计。
+- D3（第 78 条）：无页码文本以字符偏移定位；片段 ID `ss_<work>_ed<NN>_o<NNNNNNN>`（原始文本起点偏移，7 位）。
+- D4（第 79 条）：无法映射的字保留原码位，记录可显示该字的字体与 GlyphWiki 字形名，发布物附字体说明。
+- D5（第 80 条）：SemanticSpan 前缀 `sem_`（页码/偏移两种形态）；`expert_verified` 由用户填写主 Agent 生成的签发决定表模板，经 M6 console 导入，Agent 不代填；前十页人工终态决定表移至第二版。
+
+### 4.7 电子文本问题的可追踪模型（第 81 条）
+
+- 与 OCR 同等可追踪：§4.4 每一项清洗发现都是 `SanitizationReport` 中一条带原始文本偏移的记录（`finding_id, kind, raw_start, raw_end, raw_excerpt, context, action, patch_id, basis, terminal_state`），终态沿用 OCR 异常页口径，`deferred` 阻断 M2 Gate。
+- 证据链：片段 → 清洗文本偏移 → `DeterministicPatchSet` 映射 → 原始文本偏移 → SourceAsset SHA-256。
+- 以《乾元秘旨》为例应产生的记录：`?` 替换字符 4 条、私用区字符 39 条、Markdown 转义残留若干条、文本化图表区块若干条、疑似形近误字（「次日/次曰」等）、繁简混杂——每条都有偏移、上下文、处理动作与依据。
+- 现状兼容性：规格支持；M5（`g3_evidence.py`）、M7（`assembly/model.py`）、M8（`dataset_compiler/levels.py`）已接受 `offset_level`；**缺口在上游**——INTERFACES §4 未登记四类清洗产物，M1 无电子文本入库，M2 无文本清洗实现，M3 只生成字框锚点，无电子文本验收宿主。
+- 补齐顺序：impl-00 闭集登记（四类产物 + 片段 ID 新形态 + `sem_` 前缀）→ M1 电子文本入库 → M2 文本清洗 → M3 偏移锚点与语义层 → 电子文本验收宿主（取《乾元秘旨》片段，不改 `mini_ed01`）。
+
+### 4.8 markitdown 评估（第 82 条）
+
+- 不进证据链（无位置映射、非高保真、图片 OCR 走大模型违反 P6）。
+- 可选用途：后续 EPUB/DOCX/HTML 等电子格式的格式适配器，输出冻结为 `RawText` 并登记工具与版本；殆知阁 md/txt 不需要。
+- 引入依赖须另立 ACT 并经用户同意，禁用全部 LLM/云服务选项。
