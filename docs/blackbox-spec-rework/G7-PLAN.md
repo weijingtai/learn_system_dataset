@@ -120,3 +120,25 @@
 - 不进证据链（无位置映射、非高保真、图片 OCR 走大模型违反 P6）。
 - 可选用途：后续 EPUB/DOCX/HTML 等电子格式的格式适配器，输出冻结为 `RawText` 并登记工具与版本；殆知阁 md/txt 不需要。
 - 引入依赖须另立 ACT 并经用户同意，禁用全部 LLM/云服务选项。
+
+## 5. W7 执行链路（tmux + OpenCode，2026-09-15 用户指令）
+
+### 5.1 执行器与纪律
+
+- 执行器：tmux 手动托管 `opencode --auto -m opencode-go/deepseek-v4.1-flash`（**只用 DeepSeek V4.1 Flash**，禁用 `deepseek-v4-flash`；遇限流先报告用户，不自行降级）。`tmux-agent.sh` 暂不支持 opencode，启动与投递按 `~/tmux-agents/README.md` §2 手动括号粘贴；续接用 `-s <会话ID>`，不用 `-c`。
+- 同时最多 2 路；监控用主 Agent 的 `oc-watch.sh`（回报文件停手标记 / 屏幕停滞 / 限流字样 / 会话消失 / 超时即退出唤醒）。
+- 每步：起草六件套 → 审查（异厂商或主 Agent 自审小 ACT）→ 分组实现并停下 → 主 Agent 在 `git archive` 干净树独立验收（含矩阵外端到端与篡改）。
+- 回报必须写全证据（hash、Red、Green、verify 原文），只写标题视为未完成；遇契约冲突停手写「## 待裁决」。
+
+### 5.2 步骤
+
+| 步 | 内容 | 前置 | 出口 |
+|---|---|---|---|
+| 7.0 | M6→M7 真实上游接线：`run_m7` 消费真实 M6 `close_review` 产出，M7 `upstream_m6_real`、M6 `snapshot_projection` 转判；更新过时 BLOCKED 文案；顺带小清理（M7 `acceptance.py` no_model_calls 静默跳过、`model.py` 尾随空白、M6 acceptance 比对 `first_review.decisions/checkpoints`） | impl-06、impl-07 G0 已 ACCEPTED | `m7-assembler.sh` BLOCKED 6→5、`m6-data-fields.sh` BLOCKED 3→2，其余不变 |
+| 7.1 | impl-00 新 ACT：INTERFACES §4 登记电子文本四类产物（`raw_text`、`cleaned_text_revision`、`deterministic_patch_set`、`sanitization_report`，命名以规格 §10 为准）；登记片段 ID 偏移形态（第 78 条）与 `sem_` 前缀（第 80 条）；`check_interfaces.py` 新增对应检查 | 第 76–82 条 | `check_interfaces.py` 末行 `fail=0` |
+| 7.2 | impl-09 改范围为「M1+M2 电子文本」：来源无关入库（第 77 条）+ 文本清洗（§4.4 清单，第 81 条可追踪模型，四类产物）+ 电子文本验收宿主（《乾元秘旨》片段，不改 `mini_ed01`） | 7.1 | 新增 M1/M2 验收脚本 exit 0/2 如实；清洗发现逐条带偏移可追溯 |
+| 7.3 | impl-10 M3：偏移锚点（第 78 条）+ 语义层（`sem_`，第 80 条） | 7.2 | `m3-coverage.sh` 在电子文本宿主上 exit 0 |
+| 7.4 | 签发决定表模板（第 80 条，主 Agent 生成）→ 用户填写 → M4/M6 真实签发导入 | 7.3 | 用户完成填写；真实签发判定转判 |
+| 7.5 | impl-04 跟进：M8 知识链前三段 + GraphProjectionPack，按 `INTERNAL_DEMO` 出包 | 7.0、7.3 | M8 BLOCKED 转判；`run_all.sh` 相应项转判 |
+
+顺序：7.0 与 7.1 并行 → 7.2 → 7.3 → 7.4 与 7.5。第二版（OCR、对勘、证据升级、公开发布）见 §4.5，不在 W7。
