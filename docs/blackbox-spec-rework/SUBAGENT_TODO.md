@@ -716,7 +716,7 @@
   - [x] 派发：NC-011 CLIENT 线 `463835e` 提交后经 tmux + cmd（deepseek/deepseek-v4.1-flash）派发，会话 nc017（2026-09-12）
   - [x] 主 Agent 按 ACCEPTANCE.md 验收 R1：ACCEPTED（守卫锁文件正则缺陷已修 `d848c56`）
 - [x] NC-018：导出/导入 UI 与验证（状态：`ACCEPTED`，2026-09-15；reading-notes `a98d4f1`；export_controller.dart、import_controller.dart、CloudBackupStatus v1.6 迁移）
-- [ ] NC-019：回收站、恢复、永久清理（状态：`BLOCKED`，等 NC-018；本地回收站子 ACT 可先准备）
+- [x] NC-019：30 天回收站与永久清理（状态：`ACCEPTED`，2026-09-15；reading-notes `2d15dfd`、functions-py `ed1771a`；note_trash_page.dart 回收站页面、purge_service.py 清理服务）
 
 ### 书籍与真实 Tooltip
 
