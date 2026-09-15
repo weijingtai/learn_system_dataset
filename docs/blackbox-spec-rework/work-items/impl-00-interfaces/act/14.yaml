@@ -8,7 +8,7 @@ decisions_required: []
 scope:
   write: [docs/blackbox-spec-rework/work-items/impl-00-interfaces/INTERFACES.md, docs/blackbox-spec-rework/work-items/impl-00-interfaces/check_interfaces.py, docs/blackbox-spec-rework/work-items/impl-00-interfaces/tests/__init__.py, docs/blackbox-spec-rework/work-items/impl-00-interfaces/tests/test_check_interfaces.py, openspec/id-prefix-registry.md]
 tests_first:
-  - 先改 check_interfaces.py 与 tests/test_check_interfaces.py（新增 M2 检查 IF30–IF34 与具名用例）。**Red 取证（实跑）**：现行 INTERFACES.md 的 §4 缺 M2 四类产物行，故 Red 为 `FAIL IF30 required 类型 raw_text 出现 0 次` 等四行 + `FAIL IF34 登记册缺 sem_ 前缀`，末行 `I00-IF SUMMARY pass=29 fail=6`；`unittest` 新增用例 Red（Red 原文入报告）。再改 INTERFACES.md 与 id-prefix-registry.md 转 Green（实测 `I00-IF SUMMARY pass=35 fail=0`、IF30–IF34 六 PASS 行 + IF29 旧检查仍 PASS）
+  - 先改 check_interfaces.py 与 tests/test_check_interfaces.py（新增 M2 检查 IF30–IF36 与 7 个具名用例）。**Red 取证（实跑）**：现行 INTERFACES.md 的 §4 缺 M2 四类产物行、id-prefix-registry.md 缺 `sem_` 与偏移形态，故 Red 为 `FAIL IF30 required 类型 raw_text 出现 0 次` 等四行 + `FAIL IF34 键集缺` + `FAIL IF35 偏移形态缺` + `FAIL IF36 sem_ 缺`，末行 `I00-IF SUMMARY pass=29 fail=7`；`unittest` 新增 7 个用例 Red（Red 原文入报告）。再改 INTERFACES.md 与 id-prefix-registry.md 转 Green（实测 `I00-IF SUMMARY pass=36 fail=0`、IF30–IF36 七个 PASS 行 + IF29 旧检查仍 PASS）
   - 本 ACT 是 W7 步骤 7.1 的前置之一：执行并验收后方可派发 impl-09 M1+M2 电子文本实现
 contract: |
   只改 INTERFACES.md、openspec/id-prefix-registry.md 与本 ACT 的 check_interfaces.py / tests。不得改任何代码、Schema、fixture、ledger、acceptance；只写 impl-00-interfaces/ 目录内文件与 openspec/id-prefix-registry.md。
@@ -70,7 +70,7 @@ tests:
     - test_sem_prefix_missing_fails（副本把 id-prefix-registry.md 的 `sem_` 删去 → FAIL IF36）
 verify:
   - python3 docs/blackbox-spec-rework/work-items/impl-00-interfaces/check_interfaces.py; echo exit=$?   # 末行 fail=0 且 exit=0；IF30–IF36 七个 PASS 行存在（第 54 条，不写死 pass 总数）
-  - .venv/bin/python -m unittest discover -s docs/blackbox-spec-rework/work-items/impl-00-interfaces/tests -t docs/blackbox-spec-rework/work-items/impl-00-interfaces 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例 ≥ 24
+  - .venv/bin/python -m unittest discover -s docs/blackbox-spec-rework/work-items/impl-00-interfaces/tests -t docs/blackbox-spec-rework/work-items/impl-00-interfaces 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例 ≥ 25
   - grep -c '^| M2 ' docs/blackbox-spec-rework/work-items/impl-00-interfaces/INTERFACES.md   # ≥ 6（旧 2 + 新 4）
   - grep -c 'raw_text' docs/blackbox-spec-rework/work-items/impl-00-interfaces/INTERFACES.md   # ≥ 1
   - grep -c 'cleaned_text_revision' docs/blackbox-spec-rework/work-items/impl-00-interfaces/INTERFACES.md   # ≥ 1
