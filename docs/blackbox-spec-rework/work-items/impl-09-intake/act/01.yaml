@@ -1,115 +1,44 @@
 act_id: impl-09/01
-title: M1 在 Ledger 上真实登记：run_m1 事务序列（页图进 Object Store + source_manifest + m1 StagePackage）与 CLI
-estimated_minutes: 90
-group: K1
+title: M1 事务：Ledger 写路径（source_manifest + raw_text 冻结）
+estimated_minutes: 75
+group: J2
 depends_on: [impl-09/00]
 scope:
-  write: [pipeline/source_intake/step.py, pipeline/source_intake/__main__.py, pipeline/source_intake/tests/test_step.py]
+  write: [pipeline/intake/step.py, pipeline/intake/__main__.py, pipeline/intake/tests/test_step.py]
 tests_first:
-  - 先写 tests/test_step.py（用例名逐字），新增用例全部 ERROR 后再实现
+  - 先写 tests/test_step.py（用例名与下文逐字），因 import 失败全红，记录 Red；再实现
 contract: |
-  step.py：run_m1(service, submission, asset_dir) -> dict
-    参数：service 为 LedgerService；submission 为未校验的 dict（YAML 解析结果）；asset_dir 为页图目录
-    约定：ref(rev) = {"schema_version": "1.0.0", "artifact_kind": "artifact", "artifact_id": 修订所属 artifact_id, "artifact_revision_id": rev, "artifact_type": 该 artifact_type}（同 impl-02 act/03.yaml:52）
-
-    第 0 步（零写入；异常原样抛出）
-      sub = load_submission(submission)；ep = sub["edition_part"]["artifact_id"]；pages = sub["edition_part"]["pages"]
-      assets = read_assets(asset_dir, pages)（SourceAssetMissing 原样抛出）
-      unlisted = unlisted_assets(asset_dir, pages)
-      service.list_checkpoints(ep, "m1") 非空时：
-        其中任一 step_run 为 succeeded → IntakeRefused，message 含「M1 已封存」
-        否则 → IntakeRefused，message 含「已有未完成 M1 运行，本包不支持续跑」（D-09-12）
-
-    第 1 步：prun = service.create_processing_run("edition_run", ep, sub["technique_id"])
-
-    第 2 步：配置修订
-      config_revision_id = service.put_run_artifact(prun, "configuration", data, producer_module=M1_TOOL, producer_version=M1_TOOL_VERSION)[1]
-      data = json.dumps({"stage": "m1", "tool": M1_TOOL, "tool_version": M1_TOOL_VERSION, "submission": sub, "asset_snapshot": [{"page", "sha256", "size", "width", "height"} 按页序], "unlisted_assets": unlisted}, sort_keys=True, ensure_ascii=False).encode("utf-8")
-
-    第 3 步：step = service.begin_step_run(StepRequest)
-      StepRequest = {"schema_version": "1.0.0", "processing_run_id": prun, "step_run_id": ids.new_id("step_run_id"), "input_artifact_ids": [], "technique_profile_id": sub["technique_id"], "configuration_artifact_id": config_revision_id}
-
-    begin 之后：显式检查名的失败走 _fail(step, 检查名, detail)；任何未预期异常走 _fail(step, "internal", "<异常类名>: <消息>")
-
-    第 4 步（检查名 asset_register）：逐页（页序）
-      (aid, rev) = put_artifact(step, "source_asset", a["data"], producer_module=M1_TOOL, producer_version=M1_TOOL_VERSION, configuration_revision_id=config_revision_id, rights_scope="internal") → seal_revision(rev)
-      service.get_revision(rev)["sha256"] 必须 == a["sha256"]，否则 HashMismatch(SRC_003)
-      write_checkpoint(step, edition_part_id=ep, stage="m1",
-        completed_tasks=[{"task_id": ASSET_TASK_PREFIX + page, "artifact_revision_id": rev, "status": "succeeded", "terminal_state": None}],
-        human_decisions=[],
-        pending_queue=[{"task_id": 其后各页的 asset_ 任务} …] + [{"task_id": MANIFEST_TASK_ID}],
-        next_pointer=pending_queue[0])
-
-    第 5 步（检查名 manifest）
-      mbytes = manifest_bytes(sub, assets)；manifest_rev = put "source_manifest"(mbytes) → seal
-      write_checkpoint(… completed_tasks=[{"task_id": MANIFEST_TASK_ID, "artifact_revision_id": manifest_rev, "status": "succeeded", "terminal_state": None}], human_decisions=[], pending_queue=[], next_pointer=None)
-
-    第 6 步（检查名 m1_gate）：由 step 内联计算，不信任 manifest.py
-      m = yaml.safe_load(service.objects.get(get_revision(manifest_rev)["sha256"]))
-      gate = {
-        "gate_profile": "intake_png_only",
-        "pages_match": [x["page"] for x in m["source_assets"]] == m["edition_part"]["pages"] == pages,
-        "asset_hashes_match": [x["sha256"] for x in m["source_assets"]] == [各 source_asset 修订登记 sha256],
-        "sizes_positive": 全部 width > 0 且 height > 0,
-        "identity_match": m["source_id"] == sub["source_id"] 且 m["edition_part"]["artifact_id"] == ep,
-        "unlisted_assets": unlisted
-      }
-      四个布尔中任一为 False → _fail(step, "m1_gate", 失败项名)
-      report_rev = put "validation_report"(json {"passed": True, "gate": gate, "rights_scope": "internal", "admission": "recorded_in_configuration"}) → seal
-      log_rev = put "step_log"(每步一行的 UTF-8 文本，不含时间戳与绝对路径) → seal
-
-    第 7 步：transformation_id = record_transformation(step, operation="ingest_source", tool=M1_TOOL, tool_version=M1_TOOL_VERSION, configuration_revision_id=config_revision_id, input_revision_ids=[], output_revision_ids=[manifest_rev] + asset_revs, validation_report_revision_id=report_rev, human_event_revision_ids=[])
-
-    第 8 步：StagePackage
-      stage_package_id = ids.new_id("stage_package_id", stage="m1")；package_revision_id = ids.new_id("artifact_revision_id")
-      package = {"schema_version": "1.0.0", "stage_package_id", "artifact_revision_id": package_revision_id, "stage": "m1", "status": "sealed",
-        "payload": {"source_manifest": {"source_id": sub["source_id"], "source_manifest_revision_id": manifest_rev, "edition_part_artifact_id": ep}, "source_asset_revision_ids": {page: rev}},
-        "manifest": {"schema_version": "1.0.0", "processing_run_id": prun, "step_run_id": step, "input_artifacts": [], "output_artifacts": [ref(manifest_rev)] + [ref(r) for r in asset_revs], "counts": {"pages": n, "source_assets": n}, "content_sha256": hashlib.sha256(mbytes).hexdigest()},
-        "validation": {"passed": True, "report_artifacts": [ref(report_rev)]},
-        "lineage": {"upstream_artifacts": [], "transformations": [{"operation": "ingest_source", "step_run_id": step, "configuration_artifact_revision_id": config_revision_id, "input_artifact_revision_ids": [], "output_artifact_revision_ids": [manifest_rev] + asset_revs}]},
-        "logs": [ref(log_rev)], "failures": []}
-      register_stage_package(step, package, json.dumps(package, sort_keys=True, ensure_ascii=False).encode("utf-8"), stage_package_id=…, artifact_revision_id=…) → seal
-
-    第 9 步：step_manifest_revision_id = finish_step_run(step, StepResult)
-      StepResult = {"schema_version": "1.0.0", "processing_run_id": prun, "step_run_id": step, "status_version": 当前值 + 1, "status": "succeeded", "output_artifact_ids": [manifest_rev] + asset_revs + [package_revision_id], "validation_report_ids": [report_rev], "log_artifact_ids": [log_rev], "failure_artifact_ids": []}
-
-    _fail(step, check, detail)：put "failure_report"(json {"check", "detail"}) → seal；fail_step_run(step, [失败修订], "M1 %s: %s" % (check, detail))；返回 status "failed" 的 summary
-
-    返回 summary 键：
-      共有：status ("succeeded" | "failed"), processing_run_id, step_run_id, configuration_revision_id, edition_part_id
-      成功时另有：manifest_revision_id, manifest_sha256, asset_revision_ids({页: 修订}), checkpoint_revision_ids, validation_report_revision_id, log_revision_id, transformation_id, stage_package_id, package_revision_id, step_manifest_revision_id, counts, unlisted_assets
-      失败时另有：failed_check, failure_revision_id, reason
-
-  __main__.py：python -m pipeline.source_intake --root <ledger_root> --submission <yaml> --asset-dir <dir>
-    申报件以 yaml.safe_load 读入；LedgerService(<root>)，--root 即 Ledger 根目录（与 impl-02 J2 裁定一致）
-    stdout 与退出码：
-      成功 → 末行 `M1 OK <step_run_id> pages=<n> manifest=<manifest_revision_id>`，exit 0
-      begin 后失败 → `M1 FAILED <step_run_id> <failed_check>`，exit 1
-      begin 前被拒（IntakeRefused、SchemaViolation、InvalidIdentifier、DuplicateIdentifier、申报件文件不存在或 YAML 非法）→ `M1 REFUSED <异常类名>: <消息>`，exit 2
-      SourceAssetMissing → 每个缺失路径一行 `BLOCKED_SOURCE_ASSET_MISSING <路径>`，exit 3
-      WriterLocked → `M1 LOCKED <消息>`，exit 4（D-09-11 附问：3 专指素材缺失）
+  step.py：
+    run_m1(service, source_info, files, edition_part_id) -> dict
+      事务序列（§17）：
+      1. 检查同一 edition_part_id 不得已有 m1 Checkpoint，有则 IntakeRefused("M1 已封存")
+      2. begin_step_run(service, stage="m1", task_id="ingest_source")
+      3. 对每个文件：put_artifact(service, artifact_type="raw_text", content=bytes, ...) → 冻结 raw_text 修订
+      4. put_artifact(service, artifact_type="source_manifest", content=manifest_bytes, ...)
+      5. record_transformation(service, task_id="ingest_source", inputs=[], outputs=[manifest_rev, raw_text_revs])
+      6. seal_revision(service, manifest_rev)
+      7. finish_step_run(service)
+      返回：{"manifest_revision_id": str, "raw_text_revision_ids": list[str], "step_run_id": str}
+      失败时：fail_step_run(service, failed_check="...")，返回 {"error": str}
+    failed_check 闭集：input_contract, internal
+  __main__.py：
+    CLI 入口：--source-dir, --source-json（JSON 字符串或文件路径）, --edition-part-id, --ledger-dir
+    成功 exit 0，末行以 "M1 OK" 开头
+    IntakeRefused exit 2
+    SourceAssetMissing exit 3
 tests:
   test_step.py: |
-    统一脚手架：tempfile 目录 → helpers.write_synthetic_assets(tmp/"assets", 三页) → LedgerService(tmp/"ledger") → run_m1(service, helpers.fixture_submission(), tmp/"assets")
-    - test_run_m1_succeeds_counts_and_status（succeeded；counts {"pages": 3, "source_assets": 3}；StepRun succeeded）
-    - test_checkpoints_asset_tasks_then_ingest_source_chained（4 个；task_id 依次为 asset_page_001、asset_page_002、asset_page_003、ingest_source；prev 成链）
-    - test_source_asset_bytes_in_object_store（修订 sha256 == 文件 sha256；service.objects.get 取回字节 == 文件字节；artifact_type 为 source_asset；rights_scope 为 internal）
-    - test_manifest_revision_bytes_equal_manifest_bytes
-    - test_stage_package_schema_and_lineage（jsonschema 校验 stage_package.schema.json；content_sha256 == sha256(manifest 字节)；lineage 输出 == [manifest] + assets）
-    - test_config_records_submission_and_snapshot（配置内容 stage == "m1"；submission == load_submission(输入)；asset_snapshot 的 sha256 与文件一致）
-    - test_resolve_m3_m1_part_compatible（from pipeline.corpus_compiler.inputs import resolve_m3_inputs；同一 Ledger 上调用 → CompileRefused，message 含「M2 未灌入」）
-    - test_missing_asset_raises_before_any_write（删除 1 页 → SourceAssetMissing；processing_runs、artifact_revisions、step_runs、audit_log 行数不变）
-    - test_second_run_refused_M1_sealed（第二次 → IntakeRefused「M1 已封存」，行数不变）
-    - test_asset_hash_changed_mid_run_fails_step_run（patch read_assets 返回值中某页 sha256 改为 "0"*64 → failed_check "asset_register"；失败修订 sealed；无 m1 StagePackage）
-    - test_manifest_missing_asset_fails_m1_gate（patch step 模块内 manifest_bytes，使写入的 manifest 少一个 source_assets 项 → failed_check "m1_gate"）
-    - test_cli_exit_codes（subprocess：成功 0，末行以 "M1 OK" 开头；空资产目录 3，含 BLOCKED_SOURCE_ASSET_MISSING；重复运行 2，以 "M1 REFUSED" 开头）
-    - test_real_assets_ten_pages（skipUnless ocr/data_work/sanche_pages/page_001..010.png 全部存在，否则 skip 原因为 "BLOCKED_SOURCE_ASSET_MISSING ..."；fixture_submission(十页) 但 artifact_id 用 ids.new_id；succeeded；十个 sha256 == 现场计算的文件哈希）
+    - test_run_m1_success（合法输入 → manifest_revision_id, raw_text_revision_ids, step_run_id）
+    - test_run_m1_duplicate_refused（同 edition_part_id 二次运行 → IntakeRefused）
+    - test_run_m1_zero_writes_on_failure（失败时 Ledger 行数不变）
+    - test_run_m1_raw_text_frozen（raw_text 修订不可变）
+    - test_run_m1_manifest_sha256（manifest 内容 sha256 可从 Object Store 取回）
+    - test_run_m1_cli_success（exit 0，末行 "M1 OK"）
+    - test_run_m1_cli_missing_files（exit 3，"BLOCKED_SOURCE_ASSET_MISSING"）
 verify:
-  - .venv/bin/python -m unittest discover -s pipeline/source_intake/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 31，本机 skip 为 0
-  - grep -rn '_fixture' pipeline/source_intake --include='*.py' | grep -v '/tests/' | wc -l      # 0
-  - .venv/bin/python -m unittest discover -s pipeline/ledger/tests -t . 2>&1 | tail -1           # OK（未改 ledger）
+  - .venv/bin/python -m unittest discover -s pipeline/intake/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 23
   - TDD §3 回归
 commit:
-  add: [pipeline/source_intake/step.py, pipeline/source_intake/__main__.py, pipeline/source_intake/tests/test_step.py]
-  message: "feat(m1): register page images into object store and seal source manifest with m1 stage package on the artifact ledger"
-on_fail: 停止并报告；不得改 pipeline/ledger 或 pipeline/corpus_compiler；不得读 fixture 路径代替页图；真实页图哈希与 README §9 不符时停手上报
+  add: [pipeline/intake]
+  message: "feat(m1-intake): Ledger write path for electronic text source manifest and raw_text freeze (§17)"
+on_fail: 停止并报告

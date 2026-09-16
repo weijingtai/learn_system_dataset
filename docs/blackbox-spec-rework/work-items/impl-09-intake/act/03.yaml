@@ -1,81 +1,44 @@
 act_id: impl-09/03
-title: 独立 M2 Gate：evaluate_m2_gate（§10.1 放行规则 + intake_only 画像，不依赖 plan）
-estimated_minutes: 70
-group: K2
+title: M2 Gate：电子文本清洗放行判定
+estimated_minutes: 60
+group: J3
 depends_on: [impl-09/02]
 scope:
   write: [pipeline/digitization/gate.py, pipeline/digitization/tests/test_gate.py]
 tests_first:
-  - 先写 tests/test_gate.py（用例名逐字），新增用例全部 ERROR 后再实现
+  - 先写 tests/test_gate.py（用例名与下文逐字），因 import 失败全红，记录 Red；再实现
 contract: |
-  gate.py（纯函数；只允许 import 标准库与 pipeline.digitization 包的 __init__ 常量；不得 import plan、decisions、ocr_work）
-  CHECK_NAMES = ("page_set", "page_identity", "anomaly_terminal", "no_deferred", "evidence_attached", "exclusion_consistent", "manual_evidence", "glyph_structure")
-
-  evaluate_m2_gate(*, manifest, raw_pages, effective_pages, anomaly_records, audit_events, terminal_states, human_events) -> dict
-    参数：
-      manifest：source_manifest 解析后的 dict
-      raw_pages、effective_pages：{page: bytes}；Gate 自行 json.loads 与计算 sha256
-      anomaly_records、audit_events：list[dict]
-      terminal_states：{page: 终态}，只含非 None
-      human_events：list[dict]（human_event 内容）
-
-    检查逐项（每项结果 {"ok": bool, "detail": str}）：
-      page_set：raw_pages 与 effective_pages 的键集合都 == set(manifest["edition_part"]["pages"])
-      page_identity：每页有效 doc 满足
-        doc["page"] == 页名
-        basename(doc["image"]) == basename(该页 source_assets.path_ref)
-        doc["width"] == 该页 source_assets.width，doc["height"] == 该页 source_assets.height（§16:714 坐标系同源）
-      anomaly_terminal：自行重算必需页（原始 lines 为空，或 anomaly_records 中有该页记录，只看 manifest 页序内）；每个必需页的 terminal_states 值 ∈ TERMINAL_STATES
-      no_deferred：terminal_states 值中无 "deferred"（§10.1:492）
-      evidence_attached：terminal_states 中每页
-        human_events 中 page 为该页者恰 1 条
-        其 terminal_state 相同，reason 与 decided_by 为非空 str
-        若该页有异常记录（取最后一条 rec），则 event["evidence"] == {k: rec[k] for k in EVIDENCE_KEYS}
-        另：human_events 中不得出现 terminal_states 之外的页
-      exclusion_consistent：
-        known_unrecognizable 页：有效 doc 的 lines、chars 均为空
-          若原始 lines 非空：有效 doc["extra"]["m2_exclusion"]["raw_sha256"] == sha256(raw bytes)，且 raw_line_count == 原始行数
-        非 known_unrecognizable 页：effective bytes == raw bytes
-      manual_evidence：manually_transcribed 页须满足其一
-        audit_events 中该页 action ∈ MANUAL_AUDIT_ACTIONS 的条数 ≥ 1
-        原始 chars 中 source 以 "manual" 开头或 status == "corrected" 的数 ≥ 1
-      glyph_structure：每页有效 doc 的 lines 与 chars 每项含 id，且 box 含 x/y/w/h 数值（int 或 float，非 bool）
-        孤儿字框（parent 非 None 且不是本页 line id）与「line.text ≠ 子字框拼接」只写入 warnings，不使该项失败（D-09-13）
-
-    返回：
-      {"gate_profile": GATE_PROFILE,
-       "m2_gate": "passed"（全部 ok）| "failed",
-       "checks": {name: {...}}（键序 == CHECK_NAMES）,
-       "failed_checks": [未通过的检查名，按 CHECK_NAMES 顺序],
-       "warnings": [str，按页序],
-       "proofreading": "not_evaluated",
-       "ocr_profile": "not_captured"}
+  gate.py：
+    class GateResult：属性 passed: bool, failed_checks: list[str], warnings: list[str]
+    evaluate_m2_gate(report: dict, decisions: dict|None = None) -> GateResult
+      report: build_sanitization_report 的返回值
+      decisions: 用户决定表（可选，第一版可为 None）
+      检查项（逐条独立）：
+      1. report_valid：report 结构合法（有 findings、summary 键）
+      2. no_deferred：summary.deferred_count == 0
+      3. findings_valid：每个 finding 的 kind ∈ FINDING_KINDS，terminal_state ∈ TERMINAL_STATES
+      4. patches_consistent：每个 finding 的 patch_id 如存在则在 patches 列表中
+      5. summary_consistent：summary 各 kind 计数 == 实际 findings 数
+      全过 → GateResult(passed=True, failed_checks=[], warnings=...)
+      任一失败 → GateResult(passed=False, failed_checks=[失败项], warnings=...)
+      warnings：非阻断项（如 kind=variant_mixed 的发现数 > 阈值时警告）
+      gate.py 不 import cleaner、patcher、reporter、raw_text
 tests:
   test_gate.py: |
-    统一素材：fixture 三页原字节作为 raw 与 effective；manifest = fixture manifest；anomaly_records = [helpers.fixture_anomaly_record()]；terminal_states = {"page_002": "known_unrecognizable"}；human_events = [与 plan 输出同形的 page_002 事件，在测试中手写构造，不调用 plan]
-    - test_fixture_all_checks_pass
-    - test_proofreading_and_ocr_profile_constants
-    - test_missing_page_fails_page_set
-    - test_page_name_mismatch_fails_page_identity
-    - test_image_basename_mismatch_fails_page_identity
-    - test_size_mismatch_fails_page_identity
-    - test_anomaly_page_without_state_fails
-    - test_deferred_fails_no_deferred
-    - test_known_unrecognizable_without_event_fails_evidence
-    - test_event_reason_empty_fails_evidence
-    - test_event_evidence_tampered_fails
-    - test_excluded_with_lines_fails_exclusion（known_unrecognizable 页的有效字节仍含行）
-    - test_exclusion_raw_sha_wrong_fails
-    - test_normal_page_effective_differs_from_raw_fails
-    - test_manual_without_evidence_fails
-    - test_bad_box_fails_glyph_structure（某字框 box.w 为字符串）
-    - test_orphan_and_mismatch_are_warnings_only（m2_gate 仍为 passed，warnings 非空）
-    - test_gate_does_not_import_plan（读 gate.py 源码：不含 "plan"、"decisions"、"ocr_work" 的 import 语句）
+    - test_gate_passes_clean_input（无 findings → passed=True）
+    - test_gate_passes_with_processed_findings（有 processed findings → passed=True）
+    - test_gate_fails_deferred（deferred_count > 0 → passed=False, "no_deferred"）
+    - test_gate_fails_invalid_kind（非法 kind → passed=False, "findings_valid"）
+    - test_gate_fails_invalid_terminal_state（非法 terminal_state → passed=False, "findings_valid"）
+    - test_gate_fails_patch_missing（patch_id 不在 patches 中 → passed=False, "patches_consistent"）
+    - test_gate_fails_summary_mismatch（计数不符 → passed=False, "summary_consistent"）
+    - test_gate_fails_invalid_report（缺 findings 键 → passed=False, "report_valid"）
+    - test_gate_independence（不 import cleaner/patcher/reporter/raw_text）
 verify:
-  - .venv/bin/python -m unittest discover -s pipeline/digitization/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 39
-  - grep -cE '^\s*(from|import) .*(plan|decisions|ocr_work)' pipeline/digitization/gate.py      # 0
+  - .venv/bin/python -m unittest discover -s pipeline/digitization/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 22
+  - grep -rnE 'import.*(cleaner|patcher|reporter|raw_text)' pipeline/digitization/gate.py | wc -l   # 0
   - TDD §3 回归
 commit:
-  add: [pipeline/digitization/gate.py, pipeline/digitization/tests/test_gate.py]
-  message: "feat(m2): independent m2 gate enforcing §10.1 terminal states, evidence and exclusion consistency (intake_only profile)"
-on_fail: 停止并报告；不得为让用例通过而 import plan 复用逻辑；需要把警告项升级为阻断时停手上报（D-09-13）
+  add: [pipeline/digitization]
+  message: "feat(m2-gate): independent M2 sanitization gate for electronic text (§10.1)"
+on_fail: 停止并报告

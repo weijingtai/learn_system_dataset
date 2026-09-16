@@ -1,0 +1,56 @@
+act_id: impl-09/07
+title: 验收脚本：m1-intake.sh 与 m2-sanitization.sh
+estimated_minutes: 60
+group: J4
+depends_on: [impl-09/06]
+scope:
+  write: [pipeline/intake/acceptance.py, pipeline/intake/tests/test_acceptance.py, pipeline/digitization/acceptance.py, pipeline/digitization/tests/test_acceptance.py, openspec/acceptance/m1-intake.sh, openspec/acceptance/m2-sanitization.sh]
+tests_first:
+  - 先写 test_acceptance.py（用例名与下文逐字），因 import 失败全红，记录 Red；再实现
+contract: |
+  pipeline/intake/acceptance.py：
+    check_m1_intake(ledger_dir: Path, fixture_path: Path | None) -> list[dict]
+      返回 [{"check": str, "status": "PASS"|"FAIL"|"BLOCKED", "detail": str}]
+      检查项：
+      1. manifest_exists：m1 StagePackage 存在
+      2. manifest_shape：manifest 内容键序合法
+      3. raw_text_exists：raw_text 修订存在
+      4. source_sites：source_sites 字段存在且非空
+      5. gated_by_m2：m2 未阻断
+  pipeline/digitization/acceptance.py：
+    check_m2_sanitization(ledger_dir: Path, fixture_path: Path | None) -> list[dict]
+      检查项：
+      1. report_exists：sanitization_report 存在
+      2. report_shape：report 结构合法（findings、summary）
+      3. patches_exists：deterministic_patch_set 存在
+      4. cleaned_exists：cleaned_text_revision 存在
+      5. gate_passed：M2 Gate 通过
+      6. no_deferred：无 deferred findings
+      7. finding_coverage：§4.4 十三项各至少一条记录
+  openspec/acceptance/m1-intake.sh：
+    调用 check_m1_intake，输出 PASS/FAIL/BLOCKED 行
+    末行 SUMMARY pass=N fail=N blocked=N
+    exit 0（全部 PASS）/ exit 1（有 FAIL）/ exit 2（有 BLOCKED）
+  openspec/acceptance/m2-sanitization.sh：
+    调用 check_m2_sanitization，输出 PASS/FAIL/BLOCKED 行
+    末行 SUMMARY pass=N fail=N blocked=N
+    exit 0/1/2 同上
+tests:
+  test_acceptance.py: |
+    - test_m1_check_passes_on_valid_ledger
+    - test_m1_check_fails_on_missing_manifest
+    - test_m1_check_blocked_on_no_ledger
+    - test_m2_check_passes_on_valid_ledger
+    - test_m2_check_fails_on_deferred
+    - test_m2_check_fails_on_missing_report
+    - test_m2_check_blocked_on_no_ledger
+verify:
+  - .venv/bin/python -m unittest discover -s pipeline/intake/tests -t . 2>&1 | tail -3   # OK
+  - .venv/bin/python -m unittest discover -s pipeline/digitization/tests -t . 2>&1 | tail -3   # OK
+  - bash openspec/acceptance/m1-intake.sh; echo exit=$?   # exit 2（BLOCKED，无真实素材）
+  - bash openspec/acceptance/m2-sanitization.sh; echo exit=$?   # exit 2（BLOCKED）
+  - TDD §3 回归
+commit:
+  add: [pipeline/intake, pipeline/digitization, openspec/acceptance/m1-intake.sh, openspec/acceptance/m2-sanitization.sh]
+  message: "feat(acceptance): m1-intake.sh and m2-sanitization.sh acceptance scripts (§19.0)"
+on_fail: 停止并报告

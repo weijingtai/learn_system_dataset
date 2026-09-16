@@ -1,44 +1,43 @@
 act_id: impl-09/05
-title: M2 deferred 停在 awaiting_human、begin 后三类失败封存、CLI 退出码与真实十页用例
-estimated_minutes: 75
-group: K3
+title: M2 决定表：人工终态决定表加载与 §7.1 人工事件登记
+estimated_minutes: 60
+group: J3
 depends_on: [impl-09/04]
 scope:
-  write: [pipeline/digitization/step.py, pipeline/digitization/__main__.py, pipeline/digitization/tests/test_step_failures.py]
+  write: [pipeline/digitization/decisions.py, pipeline/digitization/tests/test_decisions.py]
 tests_first:
-  - 先写 tests/test_step_failures.py（用例名逐字），新增用例全部 ERROR 后再实现
+  - 先写 tests/test_decisions.py（用例名与下文逐字），因 import 失败全红，记录 Red；再实现
 contract: |
-  step.py 在 impl-09/04 基础上增补（已有行为与测试不变）：
-    deferred（D-09-09 A）：plan["deferred_pages"] 非空时
-      第 0～5 步照常执行：deferred 页也登记 ocr_page 与 human_event，也走 await/record/resume，Checkpoint 的 terminal_state 为 "deferred"
-      第 6 步改为：
-        先封存 validation_report（json {"gate": gate, "quality", "counts", "pending_deferred_pages": deferred_pages}）与 step_log
-        token = await_human(step, [deferred 各页有效修订，页序])
-        丢弃 token，不写入任何文件或 Artifact，不打印
-        不执行第 7～10 步：不产出 ocr_page_set、Transformation、StagePackage
-      返回 summary：status "awaiting_human"，另含 pending_pages（deferred 页列表）、validation_report_revision_id、checkpoint_revision_ids、human_event_revision_ids
-    失败检查名闭集：input_contract, logs, register_pages, m2_gate, internal
-      begin 后任何未被显式检查名捕获的异常 → _fail(step, "internal", "<异常类名>: <消息>")（impl-02 ACT 05 教训）
-  __main__.py 增补：
-    status "awaiting_human" → 末行 `M2 AWAITING_HUMAN <step_run_id> pages=<逗号分隔的 deferred 页>`，exit 2
+  decisions.py：
+    load_decisions(data: dict) -> dict
+      data 必须键：schema_version, edition_part_artifact_id, entries
+      schema_version == "1.0.0"
+      entries: list[dict]，每项必须键：page, terminal_state, reason, decided_by
+      terminal_state ∈ {"processed", "known_unresolvable", "deferred"}
+      reason: 非空 str
+      decided_by: 非空 str（P7：必须由用户本人填写，执行者不得代填）
+      note: 可选 str
+      返回：{"schema_version": str, "edition_part_artifact_id": str, "entries": list[dict]}
+      校验失败 → DigitizationRefused(SCH_001 或 SCH_002)
+    check_decisions_coverage(decisions: dict, findings: list[Finding]) -> list[str]
+      返回需要决定但缺决定的 finding_id 列表
+      deferred findings 必须有对应决定
+      无决定的 deferred → 返回缺决定的 finding_id 列表
 tests:
-  test_step_failures.py: |
-    脚手架同 impl-09/04 test_step.py（可复制 setUp，不 import 该测试模块）
-    - test_deferred_leaves_awaiting_human_no_package（page_002 标 deferred → StepRun awaiting_human；无 ocr_page_set；无 m2 StagePackage；m2 Checkpoint 3 个；最后一个 await_human 事件的 payload pending_queue == [page_002 有效修订]）
-    - test_deferred_blocks_m3（resolve_m3_inputs → CompileRefused，message 含「M2 未通过」）
-    - test_ocr_root_drift_fails_input_contract（patch step 模块内 snapshot_matches 返回 ["data/page_001.json"] → failed_check "input_contract"；failure_report sealed；无 StagePackage）
-    - test_gate_failure_fails_step_run（patch step 模块内 plan_digitization，把 page_003 任务的 effective 改为 excluded 且 effective_bytes 仍含行 → failed_check "m2_gate"，reason 含 exclusion_consistent；无 StagePackage）
-    - test_exception_after_begin_is_sealed_as_internal（patch service.record_transformation 抛 RuntimeError → failed_check "internal"；StepRun failed）
-    - test_cli_exit_codes（subprocess：成功 0，末行 "M2 OK"；空决定表 2，"M2 REFUSED"；deferred 2，"M2 AWAITING_HUMAN"；--ocr-root 指向空目录 3，含 BLOCKED_SOURCE_ASSET_MISSING）
-    - test_real_ten_pages_with_user_sheet
-        skipUnless 以下全部存在：ocr/data_work/sanche_pages/page_001..010.png、ocr/data_work/data 与 logs、README §4 D-09-02 的申报件、D-09-03 的用户决定表
-        skip 原因写明缺哪一项；页图缺失时以 BLOCKED_SOURCE_ASSET_MISSING 开头，决定表缺失时以「缺人工决定表」开头
-        run_m1(真实申报件) → run_m2(真实工作根, 用户决定表字节)：两者 succeeded；ocr_page_set 10 页；terminal_states == 决定表中非 deferred 的决定
-        OCR 工作根总指纹在运行前后相同
+  test_decisions.py: |
+    - test_load_decisions_valid（合法输入 → 返回值键序固定）
+    - test_load_decisions_missing_key_SCH_001
+    - test_load_decisions_bad_terminal_state_SCH_002
+    - test_load_decisions_empty_reason_SCH_001
+    - test_load_decisions_bad_schema_version_SCH_002
+    - test_check_decisions_coverage_all_decided
+    - test_check_decisions_coverage_missing_deferred
+    - test_check_decisions_coverage_non_deferred_not_required
+    - test_decisions_modification_does_not_affect_input
 verify:
-  - .venv/bin/python -m unittest discover -s pipeline/digitization/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 59
-  - TDD §3 回归（含 OCR 工作根指纹 diff 为空）
+  - .venv/bin/python -m unittest discover -s pipeline/digitization/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 38
+  - TDD §3 回归
 commit:
-  add: [pipeline/digitization/step.py, pipeline/digitization/__main__.py, pipeline/digitization/tests/test_step_failures.py]
-  message: "feat(m2): deferred pages hold step run in awaiting_human; seal input_contract/m2_gate/internal failures; cli exit codes"
-on_fail: 停止并报告；不得持久化 resume_token；不得为 deferred 产出 StagePackage；真实十页用例失败时不得修改用户决定表或申报件，报告失败检查名与详情
+  add: [pipeline/digitization]
+  message: "feat(m2-decisions): decision sheet loading and coverage check for deferred findings (§7.1/P7)"
+on_fail: 停止并报告
