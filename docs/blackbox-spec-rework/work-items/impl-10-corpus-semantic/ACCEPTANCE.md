@@ -154,7 +154,28 @@ ID 形态与第 78 条逐字一致（源码正则）：`^ss_[a-z][a-z0-9_]*_ed[0
 
 执行方纪律：两个 ACT 各一提交、Red 原文齐、七条门槛输出齐、未越界、停手待验收，达标。
 
-### 3.3 实现组 L2
+### 3.3 实现组 L2（进行中）
+
+**act/02（`e5b07ed`）已通过主 Agent 独立验收**；act/03 因执行器额度耗尽中断（Gemini「Individual quota reached」，约 3.4 小时后恢复），L2 整组待 act/03 完成后一并判定。
+
+act/02 复核（`git archive e5b07ed` 干净树）：
+
+- 范围：只动 `step_offset.py` 与 `tests/test_step_offset.py`；`pipeline/corpus_compiler/` 既有文件（含 L1 的两个）改动 **0**。
+- 测试：`Ran 120 OK` = §2.1 corpus 套 act/02 累计（102 + 18），口径整套无 `-p` 过滤（第 89 条）。
+- act/02 的 18 条具名用例逐字齐全，缺失 **0**。
+- 零网络／模型库 import **0**。
+
+矩阵外篡改（主 Agent 自建，验判定非空转）：
+
+| 篡改 | 期望 | 实测 |
+|---|---|---|
+| 把 `if deferred_count > 0:` 改为 `if False:`（令 §10.1 的 `deferred` 阻断失效） | 转红 | `Ran 120 FAILED (failures=1)` |
+| 把 `if m2_step_run is None or m2_step_run.get("status") != "succeeded":` 改为 `if False:`（令 P5 上游守卫失效） | 转红 | `Ran 120 FAILED (failures=1)` |
+| 还原 | 回到基线 | `Ran 120 OK` |
+
+两条关键守卫（`deferred` 阻断 M3、P5 只认 succeeded 上游）均 load-bearing。
+
+### 3.4 实现组 L3
 
 （待填）
 
