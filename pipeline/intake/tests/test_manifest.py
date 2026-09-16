@@ -24,7 +24,16 @@ class TestManifest(unittest.TestCase):
         self.assertEqual(loaded, src)
 
     def test_dump_does_not_touch_global_safedumper(self):
-        """synthetic_fixture: true，调用前后 yaml.SafeDumper.yaml_representers 相等。"""
+        """synthetic_fixture: true，调用前后以及模块 import 均不得污染全局 yaml.SafeDumper。"""
+        from pipeline.intake.serialize import _str_representer
+
+        # (乙) 直接断言全局 SafeDumper 注册的 str representer 不是本模块的私有 _str_representer
+        self.assertIsNot(
+            yaml.SafeDumper.yaml_representers.get(str),
+            _str_representer,
+            "全局 yaml.SafeDumper 被污染：注册了 pipeline.intake.serialize._str_representer",
+        )
+
         before_keys = set(yaml.SafeDumper.yaml_representers.keys())
         before_map = dict(yaml.SafeDumper.yaml_representers)
 
@@ -36,6 +45,14 @@ class TestManifest(unittest.TestCase):
 
         self.assertEqual(before_keys, after_keys)
         self.assertEqual(before_map, after_map)
+
+    def test_global_safedumper_str_representer_is_pyyaml_default(self):
+        """synthetic_fixture: true，全局 SafeDumper 的 str representer 保持为 PyYAML 默认。"""
+        self.assertIs(
+            yaml.SafeDumper.yaml_representers.get(str),
+            yaml.representer.SafeRepresenter.represent_str,
+            "全局 yaml.SafeDumper.yaml_representers[str] 不是 PyYAML 默认实现",
+        )
 
     def test_sha256_quoted_other_strings_plain(self):
         """synthetic_fixture: true，64 位十六进制带双引号；其他字符串不加引号。"""

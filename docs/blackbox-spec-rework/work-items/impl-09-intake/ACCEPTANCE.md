@@ -96,7 +96,7 @@
 - `executor_groups` 与 `act/*.yaml` `group:` 一一对应：`MATCH`；`ACT.yaml` `acts[].id` 与各 `act_id` 集合一致。
 - 分组：J1=[00]、J2=[01]、J3=[02,03,04,05]、J4=[06,07]；`depends_on` 全部前向、无环。
 - 八个 ACT 的 `scope.write` 全部落在 `pipeline/intake/**`、`pipeline/digitization/**` 与 `openspec/acceptance/m{1,2}-*.sh`；越界 0、禁写路径（`pipeline/corpus/_fixture/**`、`openspec/schemas/**`、`run_all.sh`）0；八个 ACT 均有 `tests_first`、`contract`、`tests`、`verify`、`commit`、`on_fail`。
-- 用例阈值与 act 文件实数一致：act/00 18 条（原 16 −1 已删的 `test_build_manifest_source_sites` +3 新增）；M1 累计 28；M2 累计 49。
+- 用例阈值与 act 文件实数一致：act/00 19 条（原 16 −1 已删的 test_build_manifest_source_sites +4 新增）；M1 累计 29；M2 累计 49。
 - `ACCEPTANCE.md` §1 小节编号 1.1–1.7 连续。
 
 未决（不阻断 J1）：电子文本验收宿主（《乾元秘旨》片段）属独占 fixture ACT，由主 Agent 另行安排（P4）；本包只写对宿主的接口需求（README §7.2）。
