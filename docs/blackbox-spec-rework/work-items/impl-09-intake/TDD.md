@@ -58,6 +58,7 @@ git diff --check
 | 07 | 4 | 67 | + test_acceptance.py digitization 侧 4 条 |
 | J3d | 3 | 70 | + test_gate.py 3 条（第 96 条 D1 具名用例；gate 终态集改为导入包常量） |
 | J3e | 11 | 81 | + test_cleaner.py 11 条（第 98 条①–⑦ 的正反例成对 + 真实书源回归 `test_real_book_star_diagram_separator_not_duplicate`） |
+| J3f | 1 | 82 | + test_cleaner.py 1 条（第 99 条：第 98 条②独立护栏，未被转义残留或图表覆盖的纯标点重复不计 duplicate；仅回退②须转红） |
 
 **各 act grep -c 实数**：
 
@@ -65,7 +66,7 @@ git diff --check
 $ for f in docs/blackbox-spec-rework/work-items/impl-09-intake/act/*.yaml; do echo "$(basename $f): $(grep -c '^\s*- test_' $f)"; done
 00.yaml: 23
 01.yaml: 7
-02.yaml: 31
+02.yaml: 43
 03.yaml: 9
 04.yaml: 8
 05.yaml: 9

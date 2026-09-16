@@ -558,6 +558,15 @@ class TestCleaner(unittest.TestCase):
             f"纯标点重复被误登记: {[f.raw_excerpt for f in res.findings if f.kind == 'duplicate']}",
         )
 
+    def test_clean_text_duplicate_punctuation_repeat_outside_covered_range_negative(self):
+        """synthetic_fixture: true，独立守护第 98 条②：未被转义残留或图表覆盖的纯标点重复不计 duplicate。"""
+        text = "天地玄黄，～～～～～～～～宇宙洪荒，阴阳肇分，四时顺序。"
+        res = clean_text(text)
+        kinds = [f.kind for f in res.findings]
+        self.assertNotIn("escape_residue", kinds)
+        self.assertNotIn("textualized_diagram", kinds)
+        self.assertNotIn("duplicate", kinds)
+
     def test_clean_text_textualized_diagram_star_chart_positive(self):
         """synthetic_fixture: true，星曜名与分隔符交替的两行成块 → 检出 textualized_diagram（第 98 条④正例）。"""
         block = _star_chart_lines()
