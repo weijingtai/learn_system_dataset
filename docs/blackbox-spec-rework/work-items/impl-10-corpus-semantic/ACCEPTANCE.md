@@ -92,7 +92,41 @@
 
 ## 3. 验收记录
 
-验收记录由主 Agent 填写。
+### 3.1 阶段 A 起草（2026-09-15，主 Agent 独立验收，`git archive 3359e4b` 干净树）
+
+判定：**阶段 A ACCEPTED**，可放行实现组 L1。执行器：agy / Gemini 3.8 Flash Medium。两轮交付：`fcf9458`（初稿）→ `3359e4b`（第 89 条改正）。
+
+`fcf9458` 复核通过项：
+
+- 结构自检三条全过：9 份 YAML 全部 `yaml.safe_load` 成功；`executor_groups` 与八个 `act/*.yaml` 的 `group:` **MATCH**；`depends_on` 全部前向无环；八个 ACT 的 `tests_first`/`contract`/`tests`/`verify`/`commit`/`on_fail` 一个不缺。
+- 范围外文件 **0**。act/00–06 全部**新建**文件（`offset_anchors.py`、`text_compiler.py`、`step_offset.py`、`gate_offset.py`、`semantic/**`），未改动已验收的 M3 生产代码（P9 守住）；act/07 改 `acceptance.py` 与 `m3-coverage.sh`，属 M3 自有的 §19.0 判据面，非 P4 共享面。
+- 锚点七键与第 78 条逐字一致：`{raw_text_revision_id, raw_start, raw_end, cleaned_text_revision_id, start_offset, end_offset, quote_sha256}`。
+- 片段 ID `ss_<work>_ed<NN>_o<NNNNNNN>` 与语义层 `sem_<work>_ed<NN>_o<NNNNNNN>` 形态正确；页码形态保留标 DEFERRED；**无自创新前缀**（P8）。
+- M2 四类产物一律写「详见 impl-09 README §4.x」而不复述形态（第 85、86 条）。
+- P6 合规：`ReplayProposer` 纯回放 + `LiveProposer` 有无环境变量均抛 `ModelCallDisabled` + `test_proposer_zero_network_via_socket_monkeypatch` 拦截 `socket.socket`/`create_connection` 断言网络调用为 0；另有 `test_request_contains_only_current_window_text` 防跨窗口/跨 slot 泄漏。护栏用例均注明何以不空转（第 88 条）。
+- 不自建 fixture（P4）：README §1.11、§6、§7 与 ACCEPTANCE §1、§2 四处均明确「宿主由主 Agent 另行以独占 fixture ACT 安排，本包只声明接口需求」。
+
+主 Agent 验收查出的缺陷（第 89 条，已于 `3359e4b` 改正）：
+
+| # | 缺陷 | 改正 |
+|---|---|---|
+| D1 | 忽略既有基线：`pipeline/corpus_compiler/tests` 已有 **68** 条已验收用例（主 Agent 实测 `Ran 68 OK`），§2 累计表却从 18 起算；且 act/03 的累计恰为 68，与真实基线撞号 | §2 分两套并逐字写明基线取值与取数命令；corpus 套自 68 起算 |
+| D2 | `-p` 过滤与累计互斥：verify 用 `-p 'test_step_offset.py'` 只跑单文件却断言累计（act/02 跑 18 条要 ≥52、act/06 跑 18 条要 ≥122、act/07 跑 12 条要 ≥134），命令**永不可能达标** | 全部去掉 `-p`，一律跑整套 `-s <套目录> -t .` |
+| D3 | 两套目录混成一条累计链：act/04–06 跑 `semantic/tests`（新建目录），累计却从 `tests/` 总数往上加 | 两套独立累计，绝不跨套相加 |
+
+`3359e4b` 复核（干净树实测）：
+
+- §2 分两套：corpus 套基线 68 → 86 → 102 → 120 → 136 → 148；semantic 套基线 0 → 18 → 36 → 54。算术逐行正确，且两套目录互不包含（`semantic/tests` 不在 `tests/` 之下），无重复计数。
+- 八条 verify 命令全部无 `-p` 过滤，目录与所断言阈值同口径，数字逐条等于 §2 对应行。
+- §1 Red/Green 表已改为带「套」列的两套分列，Green 列引用 §2。
+- ACCEPTANCE「派发前核对」由三条增至 **五条**，新增第 4 条（阈值与累计表严格对齐）与第 5 条（**verify 命令统计范围与断言阈值口径一致：同一套目录、无 `-p` 过滤、且已计入既有基线**）。
+- 结构自检复跑：YAML 9/9 解析、分组 **MATCH**。
+
+登记（制度）：本轮暴露的是「自检只核了表内自洽，没核命令口径」——第 89 条已把口径一致性写成可判定项并入本包核对清单；同类问题的通用版本见第 86 条。
+
+### 3.2 实现组 L1
+
+（待填）
 
 ---
 
