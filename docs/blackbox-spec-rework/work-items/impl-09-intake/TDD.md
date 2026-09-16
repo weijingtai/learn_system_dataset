@@ -56,6 +56,8 @@ git diff --check
 | 05 | 9 | 57 | + test_decisions.py 9 条 |
 | 06 | 6 | 63 | + test_parity.py 6 条＝act/06 `tests` 列 4 + J4（第 94 条 D3）新增 2 |
 | 07 | 4 | 67 | + test_acceptance.py digitization 侧 4 条 |
+| J3d | 3 | 70 | + test_gate.py 3 条（第 96 条 D1 具名用例；gate 终态集改为导入包常量） |
+| J3e | 11 | 81 | + test_cleaner.py 11 条（第 98 条①–⑦ 的正反例成对 + 真实书源回归 `test_real_book_star_diagram_separator_not_duplicate`） |
 
 **各 act grep -c 实数**：
 

@@ -21,6 +21,101 @@ DATA_DIR = Path(__file__).resolve().parent / "data"
 _DEFAULT_VARIANT_PAIRS: list[dict[str, str]] | None = None
 _DEFAULT_SUSPECTED_PAIRS: list[dict[str, str]] | None = None
 
+# 文件头 YAML front matter（含首尾 --- 围栏）：转换站点添加的元数据，不是书的正文（第 98 条①）
+_YAML_FRONT_MATTER_RE = re.compile(
+    r"\A---[ \t]*\r?\n.*?\r?\n---[ \t]*(?:\r?\n|\Z)", re.DOTALL
+)
+_YAML_SEPARATION_BASIS = "YAML 头与正文分离（转换残留检查项之一，README §5 第 5 项）"
+
+# Markdown 单字符转义对（\-、\[、\]、\*、\_、\\）
+_ESCAPE_PAIR_RE = re.compile(r"\\[\-\[\]\*\_\\]\Z")
+
+# 框线与 ASCII 图形字符集，及成块判定的数量阈值（README §5 第 10 项、第 98 条④）
+_BOX_CHARS = frozenset("┌┐└┘├┤┬┴┼─│━┃┏┓┗┛═║╔╗╚╝╠╣╦╩╬+-—―|")
+_DIAGRAM_LINE_MIN_BOX_CHARS = 3
+_DIAGRAM_MIN_LINES = 2
+
+# 紧邻重复的重复单元须至少含一个 CJK 字符或字母（第 98 条②）
+_LETTER_OR_CJK_RE = re.compile(r"[A-Za-z\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff]")
+
+
+def split_front_matter(raw_content: str) -> tuple[int, str]:
+    """切出文件头 YAML front matter，返回 (头结束偏移, 供检测器扫描的掩码文本)。
+
+    头部区间内的字符一律换成空格（换行保留），长度不变，因此各检测器偏移与原文一致，
+    但**不再扫描该区间**（第 98 条①）。无 front matter 时返回 (0, raw_content)。
+    """
+    m = _YAML_FRONT_MATTER_RE.match(raw_content)
+    if m is None:
+        return 0, raw_content
+    end = m.end()
+    masked = "".join(
+        "\n" if ch == "\n" else " " for ch in raw_content[:end]
+    ) + raw_content[end:]
+    return end, masked
+
+
+def diagram_runs(text: str) -> list[tuple[int, int]]:
+    """返回连续 >= 2 行、每行 >= 3 个框线/ASCII 图形字符的区块区间（第 98 条④）。
+
+    只要求行内该类字符达到数量阈值，不要求整行皆是——星曜名与分隔符交替的排布因此可检出。
+    """
+    runs: list[tuple[int, int]] = []
+    offset = 0
+    run_start: int | None = None
+    run_end = 0
+    run_lines = 0
+    for line in text.splitlines(keepends=True):
+        content = line.rstrip("\r\n")
+        boxes = sum(1 for ch in content if ch in _BOX_CHARS)
+        if boxes >= _DIAGRAM_LINE_MIN_BOX_CHARS:
+            if run_start is None:
+                run_start = offset
+                run_lines = 0
+            run_end = offset + len(content)
+            run_lines += 1
+        else:
+            if run_start is not None and run_lines >= _DIAGRAM_MIN_LINES:
+                runs.append((run_start, run_end))
+            run_start = None
+            run_lines = 0
+        offset += len(line)
+    if run_start is not None and run_lines >= _DIAGRAM_MIN_LINES:
+        runs.append((run_start, run_end))
+    return runs
+
+
+def is_fully_covered(ranges: list[tuple[int, int]], start: int, end: int) -> bool:
+    """判断 [start, end) 是否被 ranges 完全覆盖（第 98 条⑥）。"""
+    pos = start
+    for r_start, r_end in sorted(ranges):
+        if r_end <= pos:
+            continue
+        if r_start > pos:
+            return False
+        pos = max(pos, r_end)
+        if pos >= end:
+            return True
+    return pos >= end
+
+
+def patch_replacement(finding: Finding) -> str:
+    """返回 finding 在清洗文本中的替换内容（clean_text 与 patcher 共用的唯一定义）。
+
+    第 85/96 条：同一契约只允许一处权威出处——两处各自实现必然漂移。
+    """
+    if finding.action != "patched":
+        return finding.raw_excerpt
+    if finding.kind == "escape_residue":
+        if _ESCAPE_PAIR_RE.match(finding.raw_excerpt):
+            # Markdown 单字符转义对：去除反斜杠，恢复文献本字
+            return finding.raw_excerpt[1:]
+        # YAML 头与正文分离：整块移出正文
+        return ""
+    if finding.kind in ("control_char", "encoding_issue", "watermark", "header_footer"):
+        return ""
+    return finding.raw_excerpt
+
 
 def load_default_variant_pairs() -> list[dict[str, str]]:
     """加载默认繁简字对照表（数据驱动，≥ 100 对）。"""
@@ -110,9 +205,28 @@ def clean_text(
     """
     findings: list[Finding] = []
 
+    # 0. YAML 头与正文分离（第 98 条①）：头是转换站点的元数据，不是书的正文。
+    #    登记一条 escape_residue，以可逆 patch 整块移出正文，其余检测器一律不扫描该区间。
+    front_matter_end, scan_text = split_front_matter(raw_content)
+    if front_matter_end > 0:
+        findings.append(
+            Finding(
+                finding_id=f"escape_residue@0-{front_matter_end}",
+                kind="escape_residue",
+                raw_start=0,
+                raw_end=front_matter_end,
+                raw_excerpt=raw_content[:front_matter_end],
+                context=f"文件头 YAML front matter（{front_matter_end} 字符，含首尾 --- 围栏），非书的正文",
+                action="patched",
+                patch_id=None,
+                basis=_YAML_SEPARATION_BASIS,
+                terminal_state="processed",
+            )
+        )
+
     # 1. encoding_issue 检查：BOM 与编码声明
     for m in re.finditer(
-        r"\ufeff|<!--\s*coding:[^>]+-->|#\s*-\*-\s*coding:[^\n]+", raw_content
+        r"\ufeff|<!--\s*coding:[^>]+-->|#\s*-\*-\s*coding:[^\n]+", scan_text
     ):
         start, end = m.span()
         findings.append(
@@ -131,7 +245,7 @@ def clean_text(
         )
 
     # 2. replacement_char 检查：?、□、U+FFFD
-    for m in re.finditer(r"[\?□\ufffd]", raw_content):
+    for m in re.finditer(r"[\?□\ufffd]", scan_text):
         start, end = m.span()
         findings.append(
             Finding(
@@ -151,7 +265,7 @@ def clean_text(
     # 3. private_use_area 检查：Unicode PUA 码位 (E000-F8FF, F0000-FFFFD, 100000-10FFFD)
     for m in re.finditer(
         r"[\ue000-\uf8ff\U000f0000-\U000ffffd\U00100000-\U0010fffd]",
-        raw_content,
+        scan_text,
     ):
         start, end = m.span()
         findings.append(
@@ -171,7 +285,7 @@ def clean_text(
 
     # 4. control_char 检查：零宽字符与异常控制字符（BOM 归入 encoding_issue）
     for m in re.finditer(
-        r"[\u200b\u200c\u200d\x00-\x08\x0b\x0e-\x1f]", raw_content
+        r"[\u200b\u200c\u200d\x00-\x08\x0b\x0e-\x1f]", scan_text
     ):
         start, end = m.span()
         findings.append(
@@ -189,8 +303,8 @@ def clean_text(
             )
         )
 
-    # 5. escape_residue 检查：Markdown 转义残留（如 \-、\[、\] 等）
-    for m in re.finditer(r"\\[\-\[\]\*\_\\]", raw_content):
+    # 5. escape_residue 检查：Markdown 转义残留（如 \-、\[、\] 等）；逐字符登记（第 98 条③）
+    for m in re.finditer(r"\\[\-\[\]\*\_\\]", scan_text):
         start, end = m.span()
         findings.append(
             Finding(
@@ -210,7 +324,7 @@ def clean_text(
     # 6. watermark 检查：非文献内容检测（页脚、维护者声明、链接）
     for m in re.finditer(
         r"(?:https?://[^\s]+|www\.[^\s]+|殆知阁整理|本电子书由[^\s\n]+提供|下载自[^\s\n]+|扫校[：:][^\s\n]+|扫描制作[：:][^\s\n]+)",
-        raw_content,
+        scan_text,
     ):
         start, end = m.span()
         findings.append(
@@ -230,7 +344,7 @@ def clean_text(
 
     # 7. header_footer 检查（§91）：
     # 同一非空行在全文重复出现 >= 3 次（或按固定间隔重复）即登记；分页标记作为附加触发保留。
-    lines = raw_content.splitlines(keepends=True)
+    lines = scan_text.splitlines(keepends=True)
     line_counts = Counter()
     for line in lines:
         stripped = line.strip()
@@ -269,7 +383,7 @@ def clean_text(
     # 附加触发：分页标记
     for m in re.finditer(
         r"(?:---\s*第\s*\d+\s*页\s*---|===+\s*.*?\s*===+|【第\s*[0-9一二三四五六七八九十]+\s*页】)",
-        raw_content,
+        scan_text,
     ):
         start, end = m.span()
         # 避免与重复标题行区间重合
@@ -289,9 +403,86 @@ def clean_text(
                 )
             )
 
+    # 10.（前移：第 98 条⑥ 要求 duplicate 排除图形区间，故图形判定须先于 duplicate）
+    # textualized_diagram 检查（§91）：
+    # 节标题识别、正文/注文/夹注格式、文本化图表区块登记；增加连续框线／制表符／ASCII 图形区块识别
+    # (a) 显式图表标记与 Markdown 表格
+    for m in re.finditer(
+        r"(?:【图(?:表|式)?(?:：.*?)?】|\[图(?:表|式)?(?:：.*?)?\]|\|(?:\s*---\s*\|)+)",
+        scan_text,
+    ):
+        start, end = m.span()
+        findings.append(
+            Finding(
+                finding_id=f"textualized_diagram@{start}-{end}",
+                kind="textualized_diagram",
+                raw_start=start,
+                raw_end=end,
+                raw_excerpt=raw_content[start:end],
+                context=_get_context(raw_content, start, end),
+                action="flagged",
+                patch_id=None,
+                basis="节标题识别、正文/注文/夹注格式、文本化图表区块登记",
+                terminal_state="processed",
+            )
+        )
+
+    # (b) 连续框线、制表线、破折连线与 ASCII/几何图形区块（§92 覆盖制表符、ASCII 框线与破折连线）
+    diagram_box_pattern = re.compile(
+        r"(?:(?:^[ \t]*[┌┐└┘├┤┬┴┼─│━┃┏┓┗┛═║╔╗╚╝╠╣╦╩╬+\-—―|]{3,}[ \t]*$\n?){2,}"
+        r"|(?:^[ \t]*[┌│├└+|║][^\n]*[┐│┤┘+|║][ \t]*$\n?){2,}"
+        r"|(?:[|+][\-+|=—―]{3,}[|+]\n?){2,})",
+        re.MULTILINE,
+    )
+    for m in diagram_box_pattern.finditer(scan_text):
+        start, end = m.span()
+        if not any(f.kind == "textualized_diagram" and f.raw_start <= start and f.raw_end >= end for f in findings):
+            findings.append(
+                Finding(
+                    finding_id=f"textualized_diagram@{start}-{end}",
+                    kind="textualized_diagram",
+                    raw_start=start,
+                    raw_end=end,
+                    raw_excerpt=raw_content[start:end],
+                    context=_get_context(raw_content, start, end),
+                    action="flagged",
+                    patch_id=None,
+                    basis="文本化图表与几何框线区块识别（制表符/ASCII框线/破折连线）",
+                    terminal_state="processed",
+                )
+            )
+
+    # (c) 行内框线／ASCII 图形字符达数量阈值、连续 >= 2 行成块（第 98 条④：不要求整行皆是）
+    for start, end in diagram_runs(scan_text):
+        if not any(
+            f.kind == "textualized_diagram" and f.raw_start <= start and f.raw_end >= end
+            for f in findings
+        ):
+            findings.append(
+                Finding(
+                    finding_id=f"textualized_diagram@{start}-{end}",
+                    kind="textualized_diagram",
+                    raw_start=start,
+                    raw_end=end,
+                    raw_excerpt=raw_content[start:end],
+                    context=_get_context(raw_content, start, end),
+                    action="flagged",
+                    patch_id=None,
+                    basis="行内框线/ASCII 图形字符达阈值且连续 >= 2 行成块（文本化图表）",
+                    terminal_state="processed",
+                )
+            )
+
     # 8. duplicate 检查（§91）：全文去重比对，登记每一处出现位置（含非紧邻的重复段落），不静默删除
-    # 按段落切分，收集长度 >= 10 字符的段落
-    paragraphs = re.split(r"(\n+)", raw_content)
+    # 第 98 条⑥：不得命中已被 escape_residue 或 textualized_diagram 覆盖的区间。
+    covered_ranges = [
+        (f.raw_start, f.raw_end)
+        for f in findings
+        if f.kind in ("escape_residue", "textualized_diagram")
+    ]
+
+    # 按段落切分，收集长度 >= 8 字符的段落
+    paragraphs = re.split(r"(\n+)", scan_text)
     para_counts = Counter()
     p_offset = 0
     para_positions: dict[str, list[tuple[int, int]]] = {}
@@ -300,7 +491,7 @@ def clean_text(
         p_len = len(part)
         if len(stripped_p) >= 8 and "\n" not in stripped_p:
             para_counts[stripped_p] += 1
-            start = raw_content.find(stripped_p, p_offset)
+            start = scan_text.find(stripped_p, p_offset)
             end = start + len(stripped_p)
             para_positions.setdefault(stripped_p, []).append((start, end))
         p_offset += p_len
@@ -309,6 +500,8 @@ def clean_text(
     for text_block, count in para_counts.items():
         if count >= 2:
             for start, end in para_positions[text_block]:
+                if is_fully_covered(covered_ranges, start, end):
+                    continue
                 findings.append(
                     Finding(
                         finding_id=f"duplicate@{start}-{end}",
@@ -324,9 +517,13 @@ def clean_text(
                     )
                 )
 
-    # 附加触发：连续紧邻重复短语（>= 4 字符）
-    for m in re.finditer(r"([^\s，。！？、]{4,})\1+", raw_content):
+    # 附加触发：连续紧邻重复短语（重复单元须 >= 4 字符且至少含一个 CJK 字符或字母，第 98 条②）
+    for m in re.finditer(r"([^\s，。！？、]{4,})\1+", scan_text):
         start, end = m.span()
+        if not _LETTER_OR_CJK_RE.search(m.group(1)):
+            continue
+        if is_fully_covered(covered_ranges, start, end):
+            continue
         if not any(f.kind == "duplicate" and f.raw_start <= start and f.raw_end >= end for f in findings):
             findings.append(
                 Finding(
@@ -347,10 +544,10 @@ def clean_text(
     # (a) 解析文内目录（目錄/目录/卷目等节），逐条核对其标题是否在正文中出现；缺者登记，终态恒 deferred
     # 边界（README §5）：文内无目录时不产出 finding
     toc_pattern = re.compile(r"(?:^|\n)[ \t]*(?:[^\n]{0,15})?(?:目錄|目录|卷目|目次)[ \t*：:\n]+")
-    toc_match = toc_pattern.search(raw_content)
+    toc_match = toc_pattern.search(scan_text)
     if toc_match:
         toc_start_pos = toc_match.end()
-        remainder = raw_content[toc_start_pos:]
+        remainder = scan_text[toc_start_pos:]
         lines = remainder.splitlines(keepends=True)
         toc_items = []
         body_start_pos = toc_start_pos
@@ -386,7 +583,7 @@ def clean_text(
             cur_offset += len(line)
             body_start_pos = cur_offset
 
-        body_text = raw_content[body_start_pos:]
+        body_text = scan_text[body_start_pos:]
         for item, f_start, f_end in toc_items:
             clean_title = re.sub(r"^(?:卷[0-9一二三四五六七八九十]+|第[0-9一二三四五六七八九十]+[章节卷回]|[0-9]+)[、.\s·]*", "", item).strip()
             match_title = clean_title if len(clean_title) >= 2 else item
@@ -397,7 +594,7 @@ def clean_text(
                         kind="missing",
                         raw_start=f_start,
                         raw_end=f_end,
-                        raw_excerpt=item,
+                        raw_excerpt=raw_content[f_start:f_end],
                         context=_get_context(raw_content, f_start, f_end),
                         action="flagged",
                         patch_id=None,
@@ -408,7 +605,7 @@ def clean_text(
 
     # 附加触发：原显式缺失标记
     for m in re.finditer(
-        r"(?:【缺(?:字|失)?】|\[缺(?:字|失)?\]|〔阙〕)", raw_content
+        r"(?:【缺(?:字|失)?】|\[缺(?:字|失)?\]|〔阙〕)", scan_text
     ):
         start, end = m.span()
         if not any(f.kind == "missing" and f.raw_start == start for f in findings):
@@ -427,54 +624,6 @@ def clean_text(
                 )
             )
 
-    # 10. textualized_diagram 检查（§91）：
-    # 节标题识别、正文/注文/夹注格式、文本化图表区块登记；增加连续框线／制表符／ASCII 图形区块识别
-    # (a) 显式图表标记与 Markdown 表格
-    for m in re.finditer(
-        r"(?:【图(?:表|式)?(?:：.*?)?】|\[图(?:表|式)?(?:：.*?)?\]|\|(?:\s*---\s*\|)+)",
-        raw_content,
-    ):
-        start, end = m.span()
-        findings.append(
-            Finding(
-                finding_id=f"textualized_diagram@{start}-{end}",
-                kind="textualized_diagram",
-                raw_start=start,
-                raw_end=end,
-                raw_excerpt=raw_content[start:end],
-                context=_get_context(raw_content, start, end),
-                action="flagged",
-                patch_id=None,
-                basis="节标题识别、正文/注文/夹注格式、文本化图表区块登记",
-                terminal_state="processed",
-            )
-        )
-
-    # (b) 连续框线、制表线、破折连线与 ASCII/几何图形区块（§92 覆盖制表符、ASCII 框线与破折连线）
-    diagram_box_pattern = re.compile(
-        r"(?:(?:^[ \t]*[┌┐└┘├┤┬┴┼─│━┃┏┓┗┛═║╔╗╚╝╠╣╦╩╬+\-—―|]{3,}[ \t]*$\n?){2,}"
-        r"|(?:^[ \t]*[┌│├└+|║][^\n]*[┐│┤┘+|║][ \t]*$\n?){2,}"
-        r"|(?:[|+][\-+|=—―]{3,}[|+]\n?){2,})",
-        re.MULTILINE,
-    )
-    for m in diagram_box_pattern.finditer(raw_content):
-        start, end = m.span()
-        if not any(f.kind == "textualized_diagram" and f.raw_start <= start and f.raw_end >= end for f in findings):
-            findings.append(
-                Finding(
-                    finding_id=f"textualized_diagram@{start}-{end}",
-                    kind="textualized_diagram",
-                    raw_start=start,
-                    raw_end=end,
-                    raw_excerpt=raw_content[start:end],
-                    context=_get_context(raw_content, start, end),
-                    action="flagged",
-                    patch_id=None,
-                    basis="文本化图表与几何框线区块识别（制表符/ASCII框线/破折连线）",
-                    terminal_state="processed",
-                )
-            )
-
     # 11. suspected_error 检查（§91 数据驱动）：
     suspected_list = (
         suspected_error_pairs
@@ -489,7 +638,7 @@ def clean_text(
             "basis",
             f"形近误字疑点：{wrong} 疑为 {pair.get('correct', '')}，须人工核验底本",
         )
-        for m in re.finditer(re.escape(wrong), raw_content):
+        for m in re.finditer(re.escape(wrong), scan_text):
             start, end = m.span()
             findings.append(
                 Finding(
@@ -506,7 +655,7 @@ def clean_text(
                 )
             )
 
-    # 12. variant_mixed 检查（§91 数据驱动）：
+    # 12. variant_mixed 检查（§91 数据驱动，第 98 条⑤：逐处登记，不因首处命中而止）：
     v_pairs = (
         variant_pairs
         if variant_pairs is not None
@@ -515,10 +664,10 @@ def clean_text(
     tc_set = {p["tc"] for p in v_pairs if p.get("tc") and p.get("sc") and p["tc"] != p["sc"]}
     sc_set = {p["sc"] for p in v_pairs if p.get("tc") and p.get("sc") and p["tc"] != p["sc"]}
 
-    has_tc = any(c in tc_set for c in raw_content)
-    has_sc = any(c in sc_set for c in raw_content)
+    has_tc = any(c in tc_set for c in scan_text)
+    has_sc = any(c in sc_set for c in scan_text)
     if has_tc and has_sc:
-        for i, ch in enumerate(raw_content):
+        for i, ch in enumerate(scan_text):
             if ch in tc_set:
                 findings.append(
                     Finding(
@@ -526,7 +675,7 @@ def clean_text(
                         kind="variant_mixed",
                         raw_start=i,
                         raw_end=i + 1,
-                        raw_excerpt=ch,
+                        raw_excerpt=raw_content[i:i + 1],
                         context=_get_context(raw_content, i, i + 1),
                         action="kept",
                         patch_id=None,
@@ -534,7 +683,6 @@ def clean_text(
                         terminal_state="processed",
                     )
                 )
-                break
 
     # 按 raw_start 升序排列
     findings.sort(key=lambda f: (f.raw_start, f.raw_end))
@@ -548,19 +696,7 @@ def clean_text(
     for f in patched_findings:
         if f.raw_start > idx:
             cleaned_chars.append(raw_content[idx : f.raw_start])
-        if f.kind in (
-            "control_char",
-            "encoding_issue",
-            "watermark",
-            "header_footer",
-        ):
-            # 剥离
-            pass
-        elif f.kind == "escape_residue":
-            # 去除反斜杠，保留转义后的字符
-            cleaned_chars.append(f.raw_excerpt[1:])
-        else:
-            cleaned_chars.append(f.raw_excerpt)
+        cleaned_chars.append(patch_replacement(f))
         idx = max(idx, f.raw_end)
 
     if idx < len(raw_content):

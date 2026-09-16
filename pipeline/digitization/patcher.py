@@ -5,7 +5,7 @@
 
 from dataclasses import dataclass
 
-from .cleaner import Finding
+from .cleaner import Finding, patch_replacement
 
 
 @dataclass
@@ -50,13 +50,8 @@ def build_patches(raw_text: str, cleaned_text: str, findings: list[Finding]) -> 
         prefix_len = f.raw_start - raw_offset
         cleaned_start = cleaned_offset + prefix_len
 
-        # 推导 replacement 内容
-        if f.kind in ("control_char", "encoding_issue", "watermark", "header_footer"):
-            replacement = ""
-        elif f.kind == "escape_residue":
-            replacement = f.raw_excerpt[1:]
-        else:
-            replacement = ""
+        # 推导 replacement 内容（与 clean_text 共用同一处定义，第 85/96 条）
+        replacement = patch_replacement(f)
 
         cleaned_end = cleaned_start + len(replacement)
 

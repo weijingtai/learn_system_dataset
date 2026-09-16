@@ -19,6 +19,27 @@ from pipeline.digitization.reporter import build_sanitization_report
 from pipeline.digitization.tests.helpers import sample_clean_text, sample_dirty_text
 
 
+def _star_chart_lines() -> str:
+    r"""按《乾元秘旨》第 23–24 行星图行的形态构造两行星曜排布。
+
+    synthetic_fixture: true——**不拷真书原文**，只按其形态（星曜名目与 `\-` 分隔符交替、
+    每行框线/ASCII 图形字符远多于 3 个、连续两行成块）构造，供第 98 条②④⑥⑦ 的正反例使用。
+    """
+    line1 = (
+        " 　　计" + r"\-\-\-\-" + "日" + r"\-\-\-\-\-\-" + "月" + r"\-\-\-\-"
+        + "罗水" + r"\-\-\-\-" + "元星天道" + r"\-\-\-\-" + "气木" + r"\-\-\-\-"
+        + "立极之图" + r"\-\-\-\-" + "金火" + r"\-\-\-\-" + "土"
+        + r"\-\-\-\-\-\-" + "计" + r"\-\-\-\-" + "孛   "
+    )
+    line2 = (
+        "　　计壬" + r"\-\-" + "太阳" + r"\-\-\-" + "太阴" + r"\-\-" + "罗癸水庚"
+        + r"\-\-\-" + "元星仰观" + r"\-\-\-\-" + "气辛木丙" + r"\-\-\-\-"
+        + "天文之图" + r"\-\-\-\-" + "金丁火甲" + r"\-\-\-" + "土戊" + r"\-\-"
+        + "月己" + r"\-\-" + "孛乙   "
+    )
+    return line1 + "\n" + line2 + "\n"
+
+
 class TestCleaner(unittest.TestCase):
     """M2 纯函数测试集。"""
 
@@ -441,6 +462,176 @@ class TestCleaner(unittest.TestCase):
             0,
             f"纯净古籍文本产生了意外误报: {[f.kind for f in res.findings]}",
         )
+
+    # --- J3e（第 98 条）：真书仲裁后的六项修正，正反例成对 ---
+
+    def test_clean_text_yaml_front_matter_separated(self):
+        """synthetic_fixture: true，YAML 头登记一条 escape_residue 并从正文分离（第 98 条①）。"""
+        head = (
+            "---\n"
+            "title:\n"
+            "  zh-hans: 乾元秘旨\n"
+            "  zh-hant: 乾元祕旨\n"
+            "author: '[清]舒继英'\n"
+            "additional_info:\n"
+            "  - 2025-09-15 转换自「殆知阁」GitHub 仓库中的 txt 版本\n"
+            "---\n"
+        )
+        body = "《楚词》言：阛则九重，孰营度之？则天有九重，古昔已言之矣。\n"
+        res = clean_text(head + "\n" + body)
+
+        head_findings = [f for f in res.findings if f.raw_end <= len(head)]
+        self.assertEqual(len(head_findings), 1, f"YAML 头应恰好登记一条发现: {head_findings}")
+        f = head_findings[0]
+        self.assertEqual(f.kind, "escape_residue")
+        self.assertEqual((f.raw_start, f.raw_end), (0, len(head)))
+        self.assertEqual(f.action, "patched")
+        self.assertEqual(f.terminal_state, "processed")
+        self.assertIn("YAML 头与正文分离", f.basis)
+
+        # 可逆 patch：头部整体移出正文，其余内容原样保留
+        self.assertNotIn("zh-hans", res.cleaned_text)
+        self.assertEqual(res.cleaned_text, "\n" + body)
+
+        patches = build_patches(head + "\n" + body, res.cleaned_text, res.findings)
+        self.assertEqual(apply_patches(head + "\n" + body, patches), res.cleaned_text)
+
+    def test_clean_text_yaml_front_matter_scope_excluded(self):
+        """synthetic_fixture: true，头内溯源 URL 不再计入 watermark，正文同类内容仍被检出（第 98 条①）。"""
+        head = (
+            "---\n"
+            "title:\n"
+            "  zh-hans: 乾元秘旨\n"
+            "github_repo_url: https://github.com/daizhige-org/daizhigev20/blob/data/x.md\n"
+            "daizhige_url: https://daizhige.org/x.html\n"
+            "---\n"
+        )
+        body = "《楚词》言：阛则九重。\n本电子书由殆知阁整理制作，下载自 https://daizhige.org\n"
+        res = clean_text(head + body)
+
+        # 头内除「YAML 头与正文分离」那一条外，无任何发现
+        head_findings = [f for f in res.findings if f.raw_end <= len(head)]
+        self.assertEqual([f.kind for f in head_findings], ["escape_residue"])
+
+        # 正文里的维护者声明与链接仍被检出（证明排除不是空转）
+        watermark = [f for f in res.findings if f.kind == "watermark"]
+        self.assertTrue(watermark, "正文中的维护者声明/链接应被检出")
+        for f in watermark:
+            self.assertGreaterEqual(f.raw_start, len(head))
+        self.assertTrue(any("daizhige.org" in f.raw_excerpt for f in watermark))
+
+    def test_clean_text_yaml_front_matter_negative(self):
+        """synthetic_fixture: true，反例：正文中段围栏或未闭合围栏均不得判为 YAML 头分离。"""
+        samples = [
+            "乾元秘旨卷之一\n---\ntitle: 示例\n---\n太极图说\n天地之初，太极肇判。",
+            "---\ntitle: 示例\n太极图说\n天地之初，太极肇判。",
+            "乾元秘旨卷之一\n太极图说\n---\n天地之初，太极肇判。",
+        ]
+        for text in samples:
+            res = clean_text(text)
+            separated = [
+                f for f in res.findings
+                if f.kind == "escape_residue" and "YAML 头与正文分离" in f.basis
+            ]
+            self.assertEqual(separated, [], f"不应判为 YAML 头分离: {text!r}")
+
+    def test_clean_text_duplicate_requires_cjk_or_letter(self):
+        """synthetic_fixture: true，含中文字词的紧邻重复仍须登记（第 98 条②正例）。"""
+        text = "乾元秘旨卷之一\n稽古天地玄黄天地玄黄之说，阴阳肇分，四时顺序。\n"
+        res = clean_text(text)
+        dups = [f for f in res.findings if f.kind == "duplicate"]
+        self.assertTrue(dups, "含中文字词的紧邻重复应被登记")
+        self.assertEqual(text[dups[0].raw_start:dups[0].raw_end], "天地玄黄天地玄黄")
+
+    def test_clean_text_duplicate_pure_punctuation_repeat_negative(self):
+        r"""synthetic_fixture: true，反例：纯 ASCII 标点／转义序列的重复不得登记为 duplicate。"""
+        text = (
+            "乾元秘旨卷之一\n"
+            " 　　计" + "\\-\\-\\-\\-" * 3 + "日\n"
+            "　　计壬" + "\\-\\-" * 3 + "太阳\n"
+            "天地玄黄，宇宙洪荒。\n"
+        )
+        res = clean_text(text)
+        self.assertNotIn(
+            "duplicate",
+            [f.kind for f in res.findings],
+            f"纯标点重复被误登记: {[f.raw_excerpt for f in res.findings if f.kind == 'duplicate']}",
+        )
+
+    def test_clean_text_textualized_diagram_star_chart_positive(self):
+        """synthetic_fixture: true，星曜名与分隔符交替的两行成块 → 检出 textualized_diagram（第 98 条④正例）。"""
+        block = _star_chart_lines()
+        text = (
+            "《元星》一书开载星图如下：\n"
+            + block +
+            "右将元星天道立极之图、元星仰观天文之图，依元星一书开载。\n"
+        )
+        res = clean_text(text)
+        diagrams = [f for f in res.findings if f.kind == "textualized_diagram"]
+        self.assertTrue(diagrams, "星曜名与分隔符交替的两行应被判为文本化图表")
+        excerpt = text[diagrams[0].raw_start:diagrams[0].raw_end]
+        self.assertEqual(excerpt, block.rstrip("\n"))
+        self.assertEqual(diagrams[0].terminal_state, "processed")
+
+    def test_clean_text_textualized_diagram_occasional_dash_negative(self):
+        """synthetic_fixture: true，反例：正常行文中偶有破折号不得触发 textualized_diagram。"""
+        text = (
+            "乾元秘旨卷之一\n"
+            "天地之初，太极肇判——阴阳相生。\n"
+            "星曜运行——各有其度。\n"
+            "右将元星天道立极之图、元星仰观天文之图，依元星一书开载。\n"
+            "岁在实沉而晋文得位，淫於伭枵而裨灶知楚子之将死。\n"
+        )
+        res = clean_text(text)
+        self.assertNotIn(
+            "textualized_diagram",
+            [f.kind for f in res.findings],
+            f"正常行文被误判为图表: {[f.raw_excerpt for f in res.findings if f.kind == 'textualized_diagram']}",
+        )
+
+    def test_clean_text_variant_mixed_per_occurrence(self):
+        """synthetic_fixture: true，繁简混杂逐处登记（第 98 条⑤正例）。"""
+        text = "乾元秘旨卷之一\n其法取於天官，于是为则，於象可推。\n"
+        res = clean_text(text)
+        got = [(f.raw_start, f.raw_end) for f in res.findings if f.kind == "variant_mixed"]
+        expected = [(i, i + 1) for i, ch in enumerate(text) if ch == "於"]
+        self.assertEqual(len(expected), 2)
+        self.assertEqual(got, expected, "繁简混杂应逐处登记，而非仅登记首处")
+
+    def test_clean_text_variant_mixed_negative(self):
+        """synthetic_fixture: true，反例：全文统一用字不得误报 variant_mixed。"""
+        text = "乾元秘旨卷之一\n其法取于天官，于是为则，于象可推。\n"
+        res = clean_text(text)
+        self.assertNotIn("variant_mixed", [f.kind for f in res.findings])
+
+    def test_clean_text_duplicate_excludes_covered_range(self):
+        """synthetic_fixture: true，duplicate 不得命中已被 textualized_diagram 覆盖的区间（第 98 条⑥）。"""
+        repeated_line = "─── 元星天道立极之图 ───"
+        text = "《元星》星图：\n" + repeated_line + "\n" + repeated_line + "\n"
+        res = clean_text(text)
+        kinds = [f.kind for f in res.findings]
+        self.assertIn("textualized_diagram", kinds, "该区块应被图形类登记")
+        self.assertNotIn("duplicate", kinds, "同一区块不得被 duplicate 重复登记")
+
+        # 对照：同一重复内容若不落在图形/转义区间内，仍须登记
+        plain = "《元星》正文：\n元星天道立极之图\n元星天道立极之图\n"
+        res_plain = clean_text(plain)
+        self.assertIn("duplicate", [f.kind for f in res_plain.findings])
+
+    def test_real_book_star_diagram_separator_not_duplicate(self):
+        """synthetic_fixture: true，真实书源回归：星图分隔符形态不得产生 duplicate（第 98 条⑦）。"""
+        # 按《乾元秘旨》第 23–24 行星图行的形态构造，不拷真书原文
+        text = "《元星》星图：\n" + _star_chart_lines()
+        res = clean_text(text)
+        kinds = [f.kind for f in res.findings]
+        self.assertNotIn(
+            "duplicate",
+            kinds,
+            f"星图分隔符被误登记为重复内容: {[f.raw_excerpt for f in res.findings if f.kind == 'duplicate']}",
+        )
+        # 同一区块仍由转义残留与文本化图表两类各自登记（排除不得是空转）
+        self.assertIn("escape_residue", kinds)
+        self.assertIn("textualized_diagram", kinds)
 
 
 if __name__ == "__main__":

@@ -72,7 +72,7 @@ tests:
     - test_suspected_error_pairs_content_integrity_and_behavior（synthetic_fixture: true，形近表内容自洽无自映射无空依据且动态追加改变行为）
     - test_clean_corpus_zero_false_positives（synthetic_fixture: true，反例复核：纯净古籍文本零误报）
 verify:
-  - .venv/bin/python -m unittest discover -s pipeline/digitization/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 31
+  - .venv/bin/python -m unittest discover -s pipeline/digitization/tests -t . 2>&1 | tail -3   # OK，本套累计用例数 ≥ 81（TDD §2 digitization 套累计列：31→…→67→70(J3d)→81(J3e)）
   - TDD §3 回归
 commit:
   add: [pipeline/digitization]
