@@ -35,7 +35,7 @@ tests:
     - test_gate_fails_invalid_report（synthetic_fixture: true，缺 findings 键 → passed=False, "report_valid"）
     - test_gate_independence（不 import cleaner/patcher/reporter/raw_text）
 verify:
-  - .venv/bin/python -m unittest discover -s pipeline/digitization/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 31
+  - .venv/bin/python -m unittest discover -s pipeline/digitization/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 40
   - grep -rnE 'import.*(cleaner|patcher|reporter|raw_text)' pipeline/digitization/gate.py | wc -l   # 0
   - TDD §3 回归
 commit:

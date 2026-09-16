@@ -62,8 +62,17 @@ tests:
     - test_clean_text_finds_missing（synthetic_fixture: true，含缺失缺口标记 → missing finding，终态恒 deferred）
     - test_clean_text_finds_textualized_diagram（synthetic_fixture: true，含文本化图表区块 → textualized_diagram finding）
     - test_every_finding_kind_has_detector（断言每个 kind 存在触发样本，缺失检测逻辑时转红）
+    - test_clean_text_encoding_issue_negative（synthetic_fixture: true，反例：无 BOM 纯净文本不误报）
+    - test_clean_text_watermark_negative（synthetic_fixture: true，反例：正常文献语句不误报）
+    - test_clean_text_header_footer_negative（synthetic_fixture: true，反例：出现不足 3 次不误报）
+    - test_clean_text_duplicate_negative（synthetic_fixture: true，反例：无重复段落不误报）
+    - test_clean_text_missing_negative（synthetic_fixture: true，反例：无目录或章节齐全不误报）
+    - test_clean_text_textualized_diagram_negative（synthetic_fixture: true，反例：普通排版不误报）
+    - test_variant_pairs_scale_and_behavior（synthetic_fixture: true，繁简表规模 ≥ 100 且动态追加改变行为）
+    - test_suspected_error_pairs_scale_and_behavior（synthetic_fixture: true，形近字表规模 ≥ 20 且动态追加改变行为）
+    - test_clean_corpus_zero_false_positives（synthetic_fixture: true，反例复核：纯净古籍文本零误报）
 verify:
-  - .venv/bin/python -m unittest discover -s pipeline/digitization/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 22
+  - .venv/bin/python -m unittest discover -s pipeline/digitization/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 31
   - TDD §3 回归
 commit:
   add: [pipeline/digitization]

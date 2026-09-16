@@ -159,6 +159,10 @@ terminal_state: processed | known_unresolvable | deferred
 | 12 | 形近误字 | 只登记疑点，改字须有底本依据并走 patch，不得由模型直接改 | `suspected_error` | deferred |
 | 13 | 扫描本差异 | 第一版不改正，留第二版对勘 | — | —（不生成发现） |
 
+> **数据驱动与检测边界说明（裁决第 91 条）**：
+> 1. **`missing` 检测边界**：对照文内目录（如「目錄」「卷目」等节）核对各章节在正文中是否出现，缺失者登记为已知缺口并恒设 `deferred`；文内无目录时（无从判定）不产出 `missing` finding，此属已知边界而非缺陷。正文中若有显式「【缺】」类标记亦作为附加触发识别。
+> 2. **数据驱动查证表**：`variant_mixed`（繁简字表 ≥ 100 对）与 `suspected_error`（形近误字表 ≥ 20 对）采用 `pipeline/digitization/data/` 下的数据文件驱动，查证表非穷尽、可后续按版本校勘增补。
+
 ## 6. 追踪链
 
 ```

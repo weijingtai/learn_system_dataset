@@ -35,7 +35,7 @@ tests:
     - test_check_decisions_coverage_non_deferred_not_required（synthetic_fixture: true）
     - test_decisions_modification_does_not_affect_input（synthetic_fixture: true）
 verify:
-  - .venv/bin/python -m unittest discover -s pipeline/digitization/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 48
+  - .venv/bin/python -m unittest discover -s pipeline/digitization/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 57
   - TDD §3 回归
 commit:
   add: [pipeline/digitization]
