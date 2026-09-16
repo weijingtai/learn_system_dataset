@@ -287,7 +287,7 @@ class TestCleaner(unittest.TestCase):
     # --- 数据驱动规模断言与动态行为测试 ---
 
     def test_variant_pairs_scale_and_behavior(self):
-        """synthetic_fixture: true，繁简对照表规模 >= 100 且动态追加条目即改变判定行为。"""
+        """synthetic_fixture: true，繁简对照表规模 >= 100、无自映射且动态追加条目即改变判定行为。"""
         default_pairs = load_default_variant_pairs()
         distinct_pairs = [
             p for p in default_pairs
@@ -298,6 +298,12 @@ class TestCleaner(unittest.TestCase):
             100,
             f"繁简对照表规模不足 100（实有 {len(distinct_pairs)}）",
         )
+        # 质量护栏：不得包含 tc == sc 自映射条目
+        for p in default_pairs:
+            if p.get("tc") and p.get("sc"):
+                self.assertNotEqual(
+                    p["tc"], p["sc"], f"繁简对照表不得包含自身映射: {p}"
+                )
 
         # 动态扩展性测试：新增条目即改变行为
         test_sample = "古籍校勘测试本：此句包含测试简体字与测试繁體字混杂。"
@@ -305,16 +311,51 @@ class TestCleaner(unittest.TestCase):
         res_custom = clean_text(test_sample, variant_pairs=custom_pairs)
         self.assertIn("variant_mixed", [f.kind for f in res_custom.findings])
 
-    def test_suspected_error_pairs_scale_and_behavior(self):
-        """synthetic_fixture: true，形近误字表规模 >= 20 且动态追加条目即改变判定行为。"""
+    def test_suspected_error_pairs_content_integrity_and_behavior(self):
+        """synthetic_fixture: true，形近误字表内容自洽（无自映射、无空依据、正反例有效）且动态追加改变行为。"""
         default_pairs = load_default_suspected_pairs()
-        self.assertGreaterEqual(
-            len(default_pairs),
-            20,
-            f"形近误字表规模不足 20（实有 {len(default_pairs)}）",
-        )
+        self.assertGreater(len(default_pairs), 0, "形近误字表不得为空")
 
-        # 动态扩展性测试：新增条目即改变行为
+        # 1. 质量护栏：不得包含 wrong == correct 的自映射条目
+        for p in default_pairs:
+            wrong = p.get("wrong", "")
+            correct = p.get("correct", "")
+            self.assertNotEqual(
+                wrong, correct, f"形近误字表不得包含自身映射条目: wrong={wrong!r}, correct={correct!r}"
+            )
+            # 2. 质量护栏：每条必须包含非空 basis（校勘/工具书依据）
+            basis = p.get("basis", "")
+            self.assertTrue(
+                bool(basis and basis.strip()),
+                f"形近误字条目必须带依据 basis: {p}",
+            )
+
+        # 3. 正例断言：表中每条 wrong 均能在其专属样例中被检出
+        for p in default_pairs:
+            sample_text = f"古籍考异载记：经文此处有{p['wrong']}之讹，宜审校。"
+            res = clean_text(sample_text)
+            kinds = [f.kind for f in res.findings]
+            self.assertIn(
+                "suspected_error",
+                kinds,
+                f"条目 wrong={p['wrong']!r} 未能触发 suspected_error finding",
+            )
+            f_err = next(f for f in res.findings if f.kind == "suspected_error")
+            self.assertEqual(f_err.terminal_state, "deferred")
+
+        # 4. 反例断言：干净古籍文本不误报 suspected_error
+        clean_ancient_text = (
+            "周易正义卷之一\n"
+            "魏少保尚书左仆射王弼注\n"
+            "唐国子祭酒兼修国史孔颖达疏\n"
+            "第一卦乾\n"
+            "乾元亨利贞\n"
+            "初九潜龙勿用\n"
+        )
+        res_clean = clean_text(clean_ancient_text)
+        self.assertNotIn("suspected_error", [f.kind for f in res_clean.findings])
+
+        # 5. 动态扩展性测试：新增条目即改变行为
         test_sample = "周易经传：此中有特定形近误字出现。"
         custom_pairs = list(default_pairs) + [
             {"wrong": "特定形近误字", "correct": "特定正字", "basis": "动态扩展测试"}

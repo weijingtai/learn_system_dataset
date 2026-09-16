@@ -298,7 +298,7 @@ def clean_text(
     for part in paragraphs:
         stripped_p = part.strip()
         p_len = len(part)
-        if len(stripped_p) >= 10 and "\n" not in stripped_p:
+        if len(stripped_p) >= 8 and "\n" not in stripped_p:
             para_counts[stripped_p] += 1
             start = raw_content.find(stripped_p, p_offset)
             end = start + len(stripped_p)
@@ -431,7 +431,7 @@ def clean_text(
     # 节标题识别、正文/注文/夹注格式、文本化图表区块登记；增加连续框线／制表符／ASCII 图形区块识别
     # (a) 显式图表标记与 Markdown 表格
     for m in re.finditer(
-        r"(?:【图表(?:：.*?)?】|\[图(?:表)?(?:：.*?)?\]|\|(?:\s*---\s*\|)+)",
+        r"(?:【图(?:表|式)?(?:：.*?)?】|\[图(?:表|式)?(?:：.*?)?\]|\|(?:\s*---\s*\|)+)",
         raw_content,
     ):
         start, end = m.span()
@@ -450,11 +450,14 @@ def clean_text(
             )
         )
 
-    # (b) 连续框线、制表线与 ASCII 几何图形区块
-    for m in re.finditer(
-        r"(?:(?:[┌┐└┘├┤┬┴┼─│━┃┏┓┗┛+-]{4,}\n?){2,}|(?:[|+][-+|=]{3,}[|+]\n?){2,})",
-        raw_content,
-    ):
+    # (b) 连续框线、制表线、破折连线与 ASCII/几何图形区块（§92 覆盖制表符、ASCII 框线与破折连线）
+    diagram_box_pattern = re.compile(
+        r"(?:(?:^[ \t]*[┌┐└┘├┤┬┴┼─│━┃┏┓┗┛═║╔╗╚╝╠╣╦╩╬+\-—―|]{3,}[ \t]*$\n?){2,}"
+        r"|(?:^[ \t]*[┌│├└+|║][^\n]*[┐│┤┘+|║][ \t]*$\n?){2,}"
+        r"|(?:[|+][\-+|=—―]{3,}[|+]\n?){2,})",
+        re.MULTILINE,
+    )
+    for m in diagram_box_pattern.finditer(raw_content):
         start, end = m.span()
         if not any(f.kind == "textualized_diagram" and f.raw_start <= start and f.raw_end >= end for f in findings):
             findings.append(
@@ -467,7 +470,7 @@ def clean_text(
                     context=_get_context(raw_content, start, end),
                     action="flagged",
                     patch_id=None,
-                    basis="文本化图表与几何框线区块识别",
+                    basis="文本化图表与几何框线区块识别（制表符/ASCII框线/破折连线）",
                     terminal_state="processed",
                 )
             )

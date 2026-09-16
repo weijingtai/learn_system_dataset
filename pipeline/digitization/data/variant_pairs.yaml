@@ -1,283 +1,245 @@
-# 古籍电子文本繁简字对照表（数据驱动，非穷尽，可增补）
-# 每项包含繁体字 (tc) 与对应简体字 (sc)，要求 tc != sc
 pairs:
-  - tc: "極"
-    sc: "极"
-  - tc: "體"
-    sc: "体"
-  - tc: "國"
-    sc: "国"
-  - tc: "學"
-    sc: "学"
-  - tc: "氣"
-    sc: "气"
-  - tc: "經"
-    sc: "经"
-  - tc: "書"
-    sc: "书"
-  - tc: "圖"
-    sc: "图"
-  - tc: "說"
-    sc: "说"
-  - tc: "陰"
-    sc: "阴"
-  - tc: "陽"
-    sc: "阳"
-  - tc: "門"
-    sc: "门"
-  - tc: "開"
-    sc: "开"
-  - tc: "關"
-    sc: "关"
-  - tc: "東"
-    sc: "东"
-  - tc: "發"
-    sc: "发"
-  - tc: "萬"
-    sc: "万"
-  - tc: "變"
-    sc: "变"
-  - tc: "廣"
-    sc: "广"
-  - tc: "歸"
-    sc: "归"
-  - tc: "義"
-    sc: "义"
-  - tc: "禮"
-    sc: "礼"
-  - tc: "樂"
-    sc: "乐"
-  - tc: "綱"
-    sc: "纲"
-  - tc: "紀"
-    sc: "纪"
-  - tc: "傳"
-    sc: "传"
-  - tc: "觀"
-    sc: "观"
-  - tc: "辭"
-    sc: "辞"
-  - tc: "斷"
-    sc: "断"
-  - tc: "繫"
-    sc: "系"
-  - tc: "雜"
-    sc: "杂"
-  - tc: "類"
-    sc: "类"
-  - tc: "應"
-    sc: "应"
-  - tc: "當"
-    sc: "当"
-  - tc: "時"
-    sc: "时"
-  - tc: "動"
-    sc: "动"
-  - tc: "靜"
-    sc: "静"
-  - tc: "順"
-    sc: "顺"
-  - tc: "進"
-    sc: "进"
-  - tc: "數"
-    sc: "数"
-  - tc: "術"
-    sc: "术"
-  - tc: "曆"
-    sc: "历"
-  - tc: "準"
-    sc: "准"
-  - tc: "繩"
-    sc: "绳"
-  - tc: "儀"
-    sc: "仪"
-  - tc: "範"
-    sc: "范"
-  - tc: "則"
-    sc: "则"
-  - tc: "備"
-    sc: "备"
-  - tc: "顯"
-    sc: "显"
-  - tc: "闡"
-    sc: "阐"
-  - tc: "贊"
-    sc: "赞"
-  - tc: "聖"
-    sc: "圣"
-  - tc: "賢"
-    sc: "贤"
-  - tc: "業"
-    sc: "业"
-  - tc: "問"
-    sc: "问"
-  - tc: "證"
-    sc: "证"
-  - tc: "詳"
-    sc: "详"
-  - tc: "簡"
-    sc: "简"
-  - tc: "編"
-    sc: "编"
-  - tc: "緝"
-    sc: "辑"
-  - tc: "訂"
-    sc: "订"
-  - tc: "讎"
-    sc: "仇"
-  - tc: "註"
-    sc: "注"
-  - tc: "釋"
-    sc: "释"
-  - tc: "訓"
-    sc: "训"
-  - tc: "詁"
-    sc: "诂"
-  - tc: "箋"
-    sc: "笺"
-  - tc: "讀"
-    sc: "读"
-  - tc: "點"
-    sc: "点"
-  - tc: "標"
-    sc: "标"
-  - tc: "號"
-    sc: "号"
-  - tc: "錄"
-    sc: "录"
-  - tc: "總"
-    sc: "总"
-  - tc: "彙"
-    sc: "汇"
-  - tc: "叢"
-    sc: "丛"
-  - tc: "輯"
-    sc: "辑"
-  - tc: "鈔"
-    sc: "钞"
-  - tc: "寫"
-    sc: "写"
-  - tc: "風"
-    sc: "风"
-  - tc: "雲"
-    sc: "云"
-  - tc: "龍"
-    sc: "龙"
-  - tc: "鳳"
-    sc: "凤"
-  - tc: "靈"
-    sc: "灵"
-  - tc: "寶"
-    sc: "宝"
-  - tc: "運"
-    sc: "运"
-  - tc: "會"
-    sc: "会"
-  - tc: "機"
-    sc: "机"
-  - tc: "樞"
-    sc: "枢"
-  - tc: "紐"
-    sc: "纽"
-  - tc: "維"
-    sc: "维"
-  - tc: "緯"
-    sc: "纬"
-  - tc: "統"
-    sc: "统"
-  - tc: "緒"
-    sc: "绪"
-  - tc: "繼"
-    sc: "继"
-  - tc: "續"
-    sc: "续"
-  - tc: "終"
-    sc: "终"
-  - tc: "始"
-    sc: "始"
-  - tc: "徹"
-    sc: "彻"
-  - tc: "通"
-    sc: "通"
-  - tc: "達"
-    sc: "达"
-  - tc: "遠"
-    sc: "远"
-  - tc: "邇"
-    sc: "迩"
-  - tc: "長"
-    sc: "长"
-  - tc: "短"
-    sc: "短"
-  - tc: "專"
-    sc: "专"
-  - tc: "門"
-    sc: "门"
-  - tc: "戶"
-    sc: "户"
-  - tc: "處"
-    sc: "处"
-  - tc: "虛"
-    sc: "虚"
-  - tc: "實"
-    sc: "实"
-  - tc: "無"
-    sc: "无"
-  - tc: "獲"
-    sc: "获"
-  - tc: "勝"
-    sc: "胜"
-  - tc: "負"
-    sc: "负"
-  - tc: "興"
-    sc: "兴"
-  - tc: "衰"
-    sc: "衰"
-  - tc: "榮"
-    sc: "荣"
-  - tc: "華"
-    sc: "华"
-  - tc: "嚴"
-    sc: "严"
-  - tc: "肅"
-    sc: "肃"
-  - tc: "齊"
-    sc: "齐"
-  - tc: "潔"
-    sc: "洁"
-  - tc: "純"
-    sc: "纯"
-  - tc: "粹"
-    sc: "粹"
-  - tc: "精"
-    sc: "精"
-  - tc: "微"
-    sc: "微"
-  - tc: "妙"
-    sc: "妙"
-  - tc: "玄"
-    sc: "玄"
-  - tc: "奧"
-    sc: "奥"
-  - tc: "秘"
-    sc: "秘"
-  - tc: "訣"
-    sc: "诀"
-  - tc: "旨"
-    sc: "旨"
-  - tc: "歸"
-    sc: "归"
-  - tc: "宿"
-    sc: "宿"
-  - tc: "歲"
-    sc: "岁"
-  - tc: "月"
-    sc: "月"
-  - tc: "晝"
-    sc: "昼"
-  - tc: "夜"
-    sc: "夜"
-  - tc: "晨"
-    sc: "晨"
-  - tc: "昏"
-    sc: "昏"
+- tc: 極
+  sc: 极
+- tc: 體
+  sc: 体
+- tc: 國
+  sc: 国
+- tc: 學
+  sc: 学
+- tc: 氣
+  sc: 气
+- tc: 經
+  sc: 经
+- tc: 書
+  sc: 书
+- tc: 圖
+  sc: 图
+- tc: 說
+  sc: 说
+- tc: 陰
+  sc: 阴
+- tc: 陽
+  sc: 阳
+- tc: 門
+  sc: 门
+- tc: 開
+  sc: 开
+- tc: 關
+  sc: 关
+- tc: 東
+  sc: 东
+- tc: 發
+  sc: 发
+- tc: 萬
+  sc: 万
+- tc: 變
+  sc: 变
+- tc: 廣
+  sc: 广
+- tc: 歸
+  sc: 归
+- tc: 義
+  sc: 义
+- tc: 禮
+  sc: 礼
+- tc: 樂
+  sc: 乐
+- tc: 綱
+  sc: 纲
+- tc: 紀
+  sc: 纪
+- tc: 傳
+  sc: 传
+- tc: 觀
+  sc: 观
+- tc: 辭
+  sc: 辞
+- tc: 斷
+  sc: 断
+- tc: 繫
+  sc: 系
+- tc: 雜
+  sc: 杂
+- tc: 類
+  sc: 类
+- tc: 應
+  sc: 应
+- tc: 當
+  sc: 当
+- tc: 時
+  sc: 时
+- tc: 動
+  sc: 动
+- tc: 靜
+  sc: 静
+- tc: 順
+  sc: 顺
+- tc: 進
+  sc: 进
+- tc: 數
+  sc: 数
+- tc: 術
+  sc: 术
+- tc: 曆
+  sc: 历
+- tc: 準
+  sc: 准
+- tc: 繩
+  sc: 绳
+- tc: 儀
+  sc: 仪
+- tc: 範
+  sc: 范
+- tc: 則
+  sc: 则
+- tc: 備
+  sc: 备
+- tc: 顯
+  sc: 显
+- tc: 闡
+  sc: 阐
+- tc: 贊
+  sc: 赞
+- tc: 聖
+  sc: 圣
+- tc: 賢
+  sc: 贤
+- tc: 業
+  sc: 业
+- tc: 問
+  sc: 问
+- tc: 證
+  sc: 证
+- tc: 詳
+  sc: 详
+- tc: 簡
+  sc: 简
+- tc: 編
+  sc: 编
+- tc: 緝
+  sc: 辑
+- tc: 訂
+  sc: 订
+- tc: 讎
+  sc: 仇
+- tc: 註
+  sc: 注
+- tc: 釋
+  sc: 释
+- tc: 訓
+  sc: 训
+- tc: 詁
+  sc: 诂
+- tc: 箋
+  sc: 笺
+- tc: 讀
+  sc: 读
+- tc: 點
+  sc: 点
+- tc: 標
+  sc: 标
+- tc: 號
+  sc: 号
+- tc: 錄
+  sc: 录
+- tc: 總
+  sc: 总
+- tc: 彙
+  sc: 汇
+- tc: 叢
+  sc: 丛
+- tc: 輯
+  sc: 辑
+- tc: 鈔
+  sc: 钞
+- tc: 寫
+  sc: 写
+- tc: 風
+  sc: 风
+- tc: 雲
+  sc: 云
+- tc: 龍
+  sc: 龙
+- tc: 鳳
+  sc: 凤
+- tc: 靈
+  sc: 灵
+- tc: 寶
+  sc: 宝
+- tc: 運
+  sc: 运
+- tc: 會
+  sc: 会
+- tc: 機
+  sc: 机
+- tc: 樞
+  sc: 枢
+- tc: 紐
+  sc: 纽
+- tc: 維
+  sc: 维
+- tc: 緯
+  sc: 纬
+- tc: 統
+  sc: 统
+- tc: 緒
+  sc: 绪
+- tc: 繼
+  sc: 继
+- tc: 續
+  sc: 续
+- tc: 終
+  sc: 终
+- tc: 徹
+  sc: 彻
+- tc: 達
+  sc: 达
+- tc: 遠
+  sc: 远
+- tc: 邇
+  sc: 迩
+- tc: 長
+  sc: 长
+- tc: 專
+  sc: 专
+- tc: 戶
+  sc: 户
+- tc: 處
+  sc: 处
+- tc: 虛
+  sc: 虚
+- tc: 實
+  sc: 实
+- tc: 無
+  sc: 无
+- tc: 獲
+  sc: 获
+- tc: 勝
+  sc: 胜
+- tc: 負
+  sc: 负
+- tc: 興
+  sc: 兴
+- tc: 榮
+  sc: 荣
+- tc: 華
+  sc: 华
+- tc: 嚴
+  sc: 严
+- tc: 肅
+  sc: 肃
+- tc: 齊
+  sc: 齐
+- tc: 潔
+  sc: 洁
+- tc: 純
+  sc: 纯
+- tc: 奧
+  sc: 奥
+- tc: 訣
+  sc: 诀
+- tc: 歲
+  sc: 岁
+- tc: 晝
+  sc: 昼
