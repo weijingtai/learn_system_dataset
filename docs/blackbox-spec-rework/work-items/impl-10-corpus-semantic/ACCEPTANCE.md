@@ -124,7 +124,37 @@
 
 登记（制度）：本轮暴露的是「自检只核了表内自洽，没核命令口径」——第 89 条已把口径一致性写成可判定项并入本包核对清单；同类问题的通用版本见第 86 条。
 
-### 3.2 实现组 L1
+### 3.2 实现组 L1 / act/00 + act/01（2026-09-15，主 Agent 独立验收，`git archive 1eab4be` 干净树）
+
+判定：**L1 ACCEPTED**，可放行 L2。执行器：agy / Gemini 3.8 Flash Medium。两个提交：`0d50d29`（act/00 偏移锚点）、`1eab4be`（act/01 电子文本切分与 SourceSpan）。
+
+范围核对：`0d50d29` 只动 `offset_anchors.py` + 其测试；`1eab4be` 只动 `text_compiler.py` + 其测试。**`pipeline/corpus_compiler/` 既有文件改动 0**（P9 守住），既有 68 条用例一条未减。
+
+测试：`pipeline/corpus_compiler/tests` `Ran 102 OK` —— 等于 §2.1 corpus 套累计（基线 68 + act/00 的 18 + act/01 的 16 = 102），口径与第 89 条要求一致（整套、无 `-p` 过滤）。
+
+ID 形态与第 78 条逐字一致（源码正则）：`^ss_[a-z][a-z0-9_]*_ed[0-9]{2}_o[0-9]{7}$`、`^sem_[a-z][a-z0-9_]*_ed[0-9]{2}_o[0-9]{7}$`；`edition` 参数强制 `^ed[0-9]{2}$`。
+
+**主 Agent 独立探针（不复用执行方任何测试数据，自建含水印行与 U+FFFD 的合成古籍片段，第 91 条制度要求）**：
+
+| 检查 | 结果 |
+|---|---|
+| 双向换算往返一致（cleaned→raw→cleaned，**全量扫描 31 个区间**） | **True**，无一失配 |
+| `make_offset_anchor` 返回键序七键逐字（第 78 条） | **True** |
+| `quote_sha256 == sha256(cleaned[start:end])` | **True** |
+| `verify_anchor` 正例 | `True` |
+| `verify_anchor` 反例（`quote_sha256` 篡改为全 0） | **`False`**，且报 `引文哈希不符: 期望 …`（判定非空转） |
+| 片段 ID | `ss_qianyuan_ed01_o0000018`，7 位零填充正确；语义层 `sem_qianyuan_ed01_o0000018` |
+| 纯函数不改入参（`map_cleaned_to_raw`/`map_raw_to_cleaned` 前后深比对） | **True** |
+
+片段 ID 跨清洗修订的稳定性（第 78 条）由**结构**保证而不止于测试：`format_source_span_id(work, edition, raw_start)` 的签名根本不接受 `patches` 或 `cleaned_text_revision_id`，ID 只能由冻结 RawText 的 `raw_start` 决定，因而不可能随清洗修订漂移。
+
+跨模块契约核对：M2 `patcher.Patch` 字段为 `patch_id, raw_start, raw_end, cleaned_start, cleaned_end, action, basis, replacement`，与 M3 `map_cleaned_to_raw`/`map_raw_to_cleaned` 读取的键一致，两侧接口对得上（主 Agent 初次探针因自造 patch 缺 `cleaned_start` 而报错，核对后确认是探针错、实现对）。
+
+其他：`offset_anchors.py`/`text_compiler.py` 网络与模型库 import **0**；`compile_offset_spans` 顶层与逐 Span 的 `evidence_level` 恒 `offset_level`（第 76 条）；`check_interfaces` `fail=0`；`run_all.sh SUMMARY pass=2 fail=1 blocked=8`。
+
+执行方纪律：两个 ACT 各一提交、Red 原文齐、七条门槛输出齐、未越界、停手待验收，达标。
+
+### 3.3 实现组 L2
 
 （待填）
 
