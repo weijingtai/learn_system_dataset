@@ -203,9 +203,33 @@ act/02 复核（`git archive e5b07ed` 干净树）：
 
 **跟进（不阻断本次验收，L3 一并做）**：三条注入反例用例直接改写**真实源文件** `gate_offset.py` 再以 `finally` 还原。本会话已有一次因「注入后未还原」而毁掉该文件的先例；`finally` 挡不住进程被强杀。要求改为**注入到临时副本**（或以独立子进程 + 临时目录运行），使任何中断都不可能损坏工作树中的源文件。
 
-### 3.4 实现组 L3
+### 3.4 实现组 L3 / act/04 + act/05 + act/06（2026-09-16，主 Agent 独立验收，`git archive 61070ad` 干净树）
 
-（待填）
+判定：**L3 ACCEPTED**。执行器：cmd / DeepSeek V4.1 Flash。四个提交：`13ddfd1`（act/04 语义窗口、Proposer Adapter、提议比较）、`e42c482`（act/05 `sem_` 语义片段合成与人工裁决队列）、`2d7b613`（act/06 独立语义 Gate）、`61070ad`（安全加固，见下）。
+
+复核（干净树实测）：
+
+- `pipeline/corpus_compiler/semantic/tests` **`Ran 54 OK`** —— 等于 §2.2 semantic 套终值（基线 0 + 18 + 18 + 18）。
+- `pipeline/corpus_compiler/tests` **`Ran 139 OK`** —— 无回退。
+- 具名用例：act/04 要求 18 缺失 **0**；act/05 要求 18 缺失 **0**；act/06 要求 18 缺失 **0**。
+- 范围：三个 ACT 全部落在新建的 `pipeline/corpus_compiler/semantic/` 下；越界仅 `tests/test_gate_offset.py` 一个文件，属主 Agent 明确授权的安全加固。
+- **不新增 ID 前缀**（P8）：`semantic/` 全量源码中出现的实体前缀只有 `sem_` 与 `ss_`，均为已登记形态（第 78、80 条）。
+- **P6 零模型调用**：生产代码（排除 tests）网络／模型库 import **0**。
+
+**主 Agent 独立 P6 篡改**（第 93 条：不接受转述，亲自复跑）：
+
+| 篡改 | 实测 |
+|---|---|
+| 往 `proposer.py` 注入 `import socket` 并加入 `socket.create_connection(("example.com", 80))` | `Ran 54 FAILED (failures=1)` |
+| 还原 | `Ran 54 OK` |
+
+零网络护栏 load-bearing，非空转。
+
+**安全加固 `61070ad`（第 94 条验收时登记的跟进项，本组一并完成）**：
+
+本会话曾因执行器「注入真实源文件后未还原」而彻底毁掉 `gate_offset.py`（2 行垃圾，原实现丢失），`finally` 挡不住进程被强杀。要求改为注入临时副本。实测复核：`test_gate_offset.py` 中 `gate_path.write_text` 出现次数 **0**，注入改由 `tempfile.TemporaryDirectory()` 承载——**任何中断都不再可能损坏工作树中的源文件**，该类事故从结构上消除。
+
+**至此 impl-10 的 L1、L2、L3 全部 ACCEPTED，仅余 L4（act/07：`m3-coverage.sh` 电子文本宿主支持）。**
 
 ---
 
