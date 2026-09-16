@@ -16,7 +16,9 @@ contract: |
      - 宿主缺失分支：未提供该参数或对应目录不存在时，semantic_layer 子项如实判定为 BLOCKED：
        "BLOCKED", "semantic_layer", "前置缺失: 电子文本验收宿主匮乏；未提供 --electronic-text-fixture"
        总结果 exit 2（BLOCKED）；
-     - 宿主存在分支：调用 check_electronic_semantic_layer 验证端到端编译与语义 Gate，全部通过时输出 SUMMARY pass=9 fail=0 blocked=0，exit 0；
+     - 宿主存在分支：调用 check_electronic_semantic_layer 验证端到端编译与语义 Gate；各子项逐行输出 PASS/FAIL/BLOCKED；
+       **不钉死 pass 总数**（第 54、87 条：不变量是 fail=0）——无 FAIL 且无 BLOCKED 时 exit 0；有 FAIL 时 exit 1；
+       宿主内容存在 deferred 发现（如 missing）导致 M3 被阻断时，如实判 BLOCKED 并 exit 2，**不得**视为失败、**不得**绕过（第 95 条：不对未分析文本的内容作预设）；
      - 零网络断言：整个验收过程在 socket 拦截补丁下执行，网络连接尝试计数必须为 0。
 
   2. openspec/acceptance/m3-coverage.sh：
@@ -24,15 +26,20 @@ contract: |
      - 当宿主目录缺失时，如实输出 BLOCKED 并 exit 2；
      - 严禁修改 openspec/acceptance/run_all.sh（P4，接线属于主 Agent 单独安排的独占 ACT）。
 
-  3. 护栏约束（第 88 条）：
+  3. 护栏约束（第 88、94 条）：
      - 宿主缺失时严禁伪造 PASS 或 exit 0，必须严格 exit 2；
+     - 【第 94 条 D2】默认宿主**不得**回落到 OCR 路线的 `pipeline/corpus/_fixture/mini_ed01`；
+     - 【第 94 条 D3】脚本必须使用验收入口的退出码 rc：rc != 0，或解析到的 PASS/FAIL/BLOCKED 行数为 0，一律不得 exit 0（判 BLOCKED exit 2）；脚本先 cd "$REPO_ROOT" 再运行，并回显逐项结果；
+     - 测试中凡需「有效宿主」的用例，一律以 tempfile 构造合成宿主并标 synthetic_fixture: true，**不得**依赖正在另行落地的真实宿主 `qianyuan_ed01_text`（P4）；
      - 严禁修改 run_all.sh，run_all.sh 基线必须保持 SUMMARY pass=2 fail=1 blocked=8。
 tests:
   test_acceptance.py: |
     - test_missing_fixture_exits_2_blocked（第 88 条护栏用例：未提供宿主时断言脚本输出含 exact BLOCKED 文本且 exit=2，不伪造绿灯）
     - test_missing_fixture_exact_blocked_message
     - test_tampered_electronic_fixture_fails_acceptance
-    - test_electronic_semantic_acceptance_nine_subchecks_pass
+    - test_electronic_semantic_acceptance_subchecks_no_fail（合成宿主：断言各具名子项均出现且 fail=0，不断言固定 pass 总数）
+    - test_shell_no_silent_pass_on_empty_output（第 94 条 D3）
+    - test_shell_no_silent_pass_on_nonzero_rc（第 94 条 D3）
     - test_zero_network_enforced_during_acceptance（第 88 条护栏用例：注入网络调用时验收必报 zero_network FAIL）
     - test_acceptance_cli_exit_codes
     - test_shell_script_exits_2_when_fixture_missing
@@ -42,7 +49,7 @@ tests:
     - test_run_all_sh_untouched_and_zero_network（第 88 条护栏用例：断言 openspec/acceptance/run_all.sh 无任何未提交修改）
     - test_acceptance_summary_line_format
 verify:
-  - .venv/bin/python -m unittest discover -s pipeline/corpus_compiler/tests -t . 2>&1 | grep -E '^(Ran|OK|FAILED)'   # OK，≥ 148（累计 136 + 12）
+  - .venv/bin/python -m unittest discover -s pipeline/corpus_compiler/tests -t . 2>&1 | grep -E '^(Ran|OK|FAILED)'   # OK，≥ 153（实测基线 139 + 本 ACT 14；基线 139 = 既有 120 + act/03 的 19，其中 3 条为第 93 条补的注入反例）
   - bash openspec/acceptance/m3-coverage.sh | tail -1; echo exit=$?   # exit=2（因电子文本宿主属后续独占 ACT）
   - bash openspec/acceptance/run_all.sh | tail -1   # 不变：SUMMARY pass=2 fail=1 blocked=8
   - git diff --check

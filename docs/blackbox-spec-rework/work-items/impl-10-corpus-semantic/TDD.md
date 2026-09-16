@@ -37,7 +37,7 @@ git diff --check
 | 04 | L3 | semantic | `$TS` → `ImportError`（套件目录新建） | `$TS` OK，≥ 18（基线 0 + 本 ACT 18） |
 | 05 | L3 | semantic | `$TS` → 新增用例 `ImportError` | `$TS` OK，≥ 36（累计 18 + 18） |
 | 06 | L3 | semantic | `$TS` → 新增用例 `ImportError` | `$TS` OK，≥ 54（累计 36 + 18） |
-| 07 | L4 | corpus | `$TC` → 新增用例 `ImportError` | `$TC` OK，≥ 148（累计 136 + 12）；`m3-coverage.sh` exit 2（BLOCKED） |
+| 07 | L4 | corpus | `$TC` → 新增用例 `ImportError` | `$TC` OK，≥ 153（实测基线 139 + 14）；`m3-coverage.sh` 宿主缺失时 exit 2（BLOCKED） |
 
 ---
 
@@ -58,9 +58,10 @@ git diff --check
 | `impl-10/01` | L1 | `test_text_compiler.py` | 16 | 86 + 16 | **102** |
 | `impl-10/02` | L2 | `test_step_offset.py` | 18 | 102 + 18 | **120** |
 | `impl-10/03` | L2 | `test_gate_offset.py` | 16 | 120 + 16 | **136** |
-| `impl-10/07` | L4 | `test_acceptance.py` | 12 | 136 + 12 | **148** |
+| `impl-10/03` 补 | L2 | `test_gate_offset.py`（第 93 条注入反例） | 3 | 136 + 3 | **139** |
+| `impl-10/07` | L4 | `test_acceptance.py` | 14 | 139 + 14 | **153** |
 
-corpus 套总计新增用例：18 + 16 + 18 + 16 + 12 = **80** 条；最终套件总数：68 + 80 = **148** 条。
+corpus 套总计新增用例：18 + 16 + 18 + 16 + 3 + 14 = **85** 条；最终套件总数：68 + 85 = **153** 条。（2026-09-16 主 Agent 修订：act/03 验收时依第 93 条补入 3 条注入反例，实测基线 139；act/07 依第 94 条增 2 条、改名 1 条，本 ACT 14 条。）
 
 ### 2.2 semantic 套（$TS，`pipeline/corpus_compiler/semantic/tests`，基线 0）
 
