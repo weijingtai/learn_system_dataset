@@ -37,7 +37,7 @@ contract: |
   F. check_interfaces.py 检查清单（**IF01–IF29 编号与语义不得改变**；现有 18 个用例引用 IF02/IF10/IF11/IF13/IF18/IF19–IF29）：
     IF30 required `raw_text` 在 §4 表出现恰 1 次；IF31 `cleaned_text_revision`；IF32 `deterministic_patch_set`；IF33 `sanitization_report`
     IF34 `sanitization_report` 行含最小键集说明（`finding_id` 出现）
-    IF35 `ss_` 行含偏移形态说明（`o<NNNNNNN>` 出现）
+    IF35 `ss_` 行含偏移形态说明（`o<NNNNNNN>` 出现在 id-prefix-registry.md）
     IF36 `sem_` 前缀在登记册出现（`sem_` 在 id-prefix-registry.md 出现）
     实现要求：把 M2 类型放入独立的 `M2_ET_TYPES`（显式编号 IF30–IF33），禁止用单一 enumerate 生成编号；IF34 检查 INTERFACES.md 全文含 `finding_id`；IF35 检查 id-prefix-registry.md 含 `o<NNNNNNN>`；IF36 检查 id-prefix-registry.md 含 `sem_`；`IF11` 的类型集合改为 `REQUIRED_TYPES + M4_TYPES + M6_TYPES + M2_ET_TYPES`；docstring 由「IF01–IF29」改为「IF01–IF36」
     绿色时期望（第 54 条）：末行 `fail=0` 且 exit 0，IF30–IF36 七个 PASS 行存在；不写死 pass 总数
@@ -71,7 +71,7 @@ tests:
 verify:
   - python3 docs/blackbox-spec-rework/work-items/impl-00-interfaces/check_interfaces.py; echo exit=$?   # 末行 fail=0 且 exit=0；IF30–IF36 七个 PASS 行存在（第 54 条，不写死 pass 总数）
   - .venv/bin/python -m unittest discover -s docs/blackbox-spec-rework/work-items/impl-00-interfaces/tests -t docs/blackbox-spec-rework/work-items/impl-00-interfaces 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例 ≥ 25
-  - grep -c '^| M2 ' docs/blackbox-spec-rework/work-items/impl-00-interfaces/INTERFACES.md   # ≥ 6（旧 2 + 新 4）
+  - grep -c '^| M2 ' docs/blackbox-spec-rework/work-items/impl-00-interfaces/INTERFACES.md   # ≥ 5（旧 OCR 合并行 1 + 新增 4）
   - grep -c 'raw_text' docs/blackbox-spec-rework/work-items/impl-00-interfaces/INTERFACES.md   # ≥ 1
   - grep -c 'cleaned_text_revision' docs/blackbox-spec-rework/work-items/impl-00-interfaces/INTERFACES.md   # ≥ 1
   - grep -c 'deterministic_patch_set' docs/blackbox-spec-rework/work-items/impl-00-interfaces/INTERFACES.md   # ≥ 1

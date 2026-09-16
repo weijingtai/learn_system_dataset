@@ -202,8 +202,13 @@ def run_checks(path: Path, registry_path: Path | None = None) -> list:
         add("IF%02d" % (i + 30), count == 1, "%s 出现 %d 次" % (token, count))
     # IF34：sanitization_report 行含最小键集说明（finding_id 出现）
     add("IF34", "finding_id" in text, "" if "finding_id" in text else "缺 finding_id")
-    # IF35：ss_ 行含偏移形态说明（o<NNNNNNN> 出现）
-    add("IF35", "o<NNNNNNN>" in text, "" if "o<NNNNNNN>" in text else "缺 o<NNNNNNN>")
+    # IF35：ss_ 行含偏移形态说明（o<NNNNNNN> 出现于登记册）
+    if registry_path is None:
+        _reg = Path(__file__).resolve().parent.parent.parent.parent.parent / "openspec" / "id-prefix-registry.md"
+    else:
+        _reg = registry_path
+    _reg_text = _reg.read_text(encoding="utf-8") if _reg.is_file() else ""
+    add("IF35", "o<NNNNNNN>" in _reg_text, "" if "o<NNNNNNN>" in _reg_text else "缺 o<NNNNNNN>")
     # IF36：sem_ 前缀在登记册出现
     if registry_path is None:
         registry_path = Path(__file__).resolve().parent.parent.parent.parent.parent / "openspec" / "id-prefix-registry.md"

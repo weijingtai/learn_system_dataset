@@ -181,14 +181,20 @@ class CheckInterfacesTest(unittest.TestCase):
         self.assertEqual(res["IF34"], "FAIL")
 
     def test_ss_offset_form_missing_fails(self):
-        # 删去偏移形态说明
-        text = self.text.replace("o<NNNNNNN>", "NO_OFFSET")
-        res = statuses(ci.run_checks(self._copy(text)))
-        self.assertEqual(res["IF35"], "FAIL")
+        # 副本的 registry 缺 o<NNNNNNN>
+        registry_path = W.parent.parent.parent.parent / "openspec" / "id-prefix-registry.md"
+        if registry_path.is_file():
+            registry_text = registry_path.read_text(encoding="utf-8")
+            modified_registry = registry_text.replace("o<NNNNNNN>", "NO_OFFSET")
+            # 写入临时文件
+            tmp_registry = self.tmp / "id-prefix-registry.md"
+            tmp_registry.write_text(modified_registry, encoding="utf-8")
+            res = statuses(ci.run_checks(REPO_DOC, tmp_registry))
+            self.assertEqual(res["IF35"], "FAIL")
 
     def test_sem_prefix_missing_fails(self):
         # 副本的 registry 缺 sem_
-        registry_path = W.parent.parent / "openspec" / "id-prefix-registry.md"
+        registry_path = W.parent.parent.parent.parent / "openspec" / "id-prefix-registry.md"
         if registry_path.is_file():
             registry_text = registry_path.read_text(encoding="utf-8")
             modified_registry = registry_text.replace("sem_", "NO_SEM_")
