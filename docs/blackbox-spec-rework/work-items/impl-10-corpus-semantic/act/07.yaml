@@ -42,7 +42,7 @@ tests:
     - test_run_all_sh_untouched_and_zero_network（第 88 条护栏用例：断言 openspec/acceptance/run_all.sh 无任何未提交修改）
     - test_acceptance_summary_line_format
 verify:
-  - .venv/bin/python -m unittest discover -s pipeline/corpus_compiler/tests -p 'test_acceptance.py' -t . 2>&1 | grep -E '^(Ran|OK|FAILED)'   # OK，≥ 134（累计算术：122 + 12 = 134）
+  - .venv/bin/python -m unittest discover -s pipeline/corpus_compiler/tests -t . 2>&1 | grep -E '^(Ran|OK|FAILED)'   # OK，≥ 148（累计 136 + 12）
   - bash openspec/acceptance/m3-coverage.sh | tail -1; echo exit=$?   # exit=2（因电子文本宿主属后续独占 ACT）
   - bash openspec/acceptance/run_all.sh | tail -1   # 不变：SUMMARY pass=2 fail=1 blocked=8
   - git diff --check

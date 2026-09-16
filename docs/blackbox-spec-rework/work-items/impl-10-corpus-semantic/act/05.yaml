@@ -63,7 +63,7 @@ tests:
     - test_resume_lineage_contains_all_transformations
     - test_resume_step_run_transitions_to_succeeded
 verify:
-  - .venv/bin/python -m unittest discover -s pipeline/corpus_compiler/semantic/tests -p 'test_*.py' -t . 2>&1 | grep -E '^(Ran|OK|FAILED)'   # OK，≥ 104（累计算术：86 + 18 = 104）
+  - .venv/bin/python -m unittest discover -s pipeline/corpus_compiler/semantic/tests -t . 2>&1 | grep -E '^(Ran|OK|FAILED)'   # OK，≥ 36（累计 18 + 18）
   - grep -rn 'sem_' pipeline/corpus_compiler/semantic/offset_assemble.py | wc -l   # > 0
   - git diff --check
 commit:

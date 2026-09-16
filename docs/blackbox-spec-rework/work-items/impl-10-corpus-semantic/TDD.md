@@ -2,6 +2,8 @@
 
 ## 0. 执行环境与基线命令
 
+在仓库根目录运行。测试分两套独立套件：
+
 ```bash
 cd /Users/jingtaiwei/Git/Public/learn_system && export LC_ALL=en_US.UTF-8
 PY=.venv/bin/python
@@ -9,7 +11,12 @@ TL="$PY -m unittest discover -s pipeline/ledger/tests -t ."
 TC="$PY -m unittest discover -s pipeline/corpus_compiler/tests -t ."
 TS="$PY -m unittest discover -s pipeline/corpus_compiler/semantic/tests -t ."
 
-# 基线门禁
+# 基线取值与取数命令（第 89 条）：
+# 1. corpus 套基线（68 条）：
+#    $TC 2>&1 | grep -E '^(Ran|OK|FAILED)'   # 得到：Ran 68 tests ... OK（2026-09-15 主 Agent 与起草方实测）
+# 2. semantic 套基线（0 条）：目录尚不存在，从 0 开始累计。
+
+# 全局门禁
 python3 docs/blackbox-spec-rework/work-items/impl-00-interfaces/check_interfaces.py | tail -1   # I00-IF SUMMARY pass=36 fail=0
 bash openspec/acceptance/run_all.sh | tail -1                                                 # SUMMARY pass=2 fail=1 blocked=8
 bash openspec/schemas/verify.sh >/dev/null; echo $?                                          # 0
@@ -19,41 +26,69 @@ git diff --check
 
 ---
 
-## 1. 逐 ACT 的 Red → Green
+## 1. 逐 ACT 的 Red → Green（两套分列，第 89 条）
 
-| ACT | 组 | Red（实现前） | Green（实现后，权威引用 §2 累计列） |
-|---|---|---|---|
-| 00 | L1 | `.venv/bin/python -m unittest discover -s pipeline/corpus_compiler/tests -p 'test_offset_anchors.py' -t .` → `ImportError`（全红） | OK，≥ 18 |
-| 01 | L1 | `.venv/bin/python -m unittest discover -s pipeline/corpus_compiler/tests -p 'test_*.py' -t .` → 新增用例 `ImportError` | OK，≥ 34 |
-| 02 | L2 | `.venv/bin/python -m unittest discover -s pipeline/corpus_compiler/tests -p 'test_step_offset.py' -t .` → `ImportError` | OK，≥ 52 |
-| 03 | L2 | `.venv/bin/python -m unittest discover -s pipeline/corpus_compiler/tests -p 'test_gate_offset.py' -t .` → `ImportError` | OK，≥ 68 |
-| 04 | L3 | `.venv/bin/python -m unittest discover -s pipeline/corpus_compiler/semantic/tests -p 'test_*.py' -t .` → `ImportError` | OK，≥ 86 |
-| 05 | L3 | `.venv/bin/python -m unittest discover -s pipeline/corpus_compiler/semantic/tests -p 'test_*.py' -t .` → 新增用例 `ImportError` | OK，≥ 104 |
-| 06 | L3 | `.venv/bin/python -m unittest discover -s pipeline/corpus_compiler/semantic/tests -p 'test_semantic_gate.py' -t .` → `ImportError` | OK，≥ 122 |
-| 07 | L4 | `.venv/bin/python -m unittest discover -s pipeline/corpus_compiler/tests -p 'test_acceptance.py' -t .` → 新增用例 `ImportError` | OK，≥ 134；`m3-coverage.sh` exit 2（BLOCKED） |
+| ACT | 组 | 套 | Red（实现前） | Green（实现后，权威引用 §2 对应套累计列） |
+|---|---|---|---|---|
+| 00 | L1 | corpus | `$TC` → 新增用例 `ImportError`（基线 68 全绿） | `$TC` OK，≥ 86（基线 68 + 本 ACT 18） |
+| 01 | L1 | corpus | `$TC` → 新增用例 `ImportError` | `$TC` OK，≥ 102（累计 86 + 16） |
+| 02 | L2 | corpus | `$TC` → 新增用例 `ImportError` | `$TC` OK，≥ 120（累计 102 + 18） |
+| 03 | L2 | corpus | `$TC` → 新增用例 `ImportError` | `$TC` OK，≥ 136（累计 120 + 16） |
+| 04 | L3 | semantic | `$TS` → `ImportError`（套件目录新建） | `$TS` OK，≥ 18（基线 0 + 本 ACT 18） |
+| 05 | L3 | semantic | `$TS` → 新增用例 `ImportError` | `$TS` OK，≥ 36（累计 18 + 18） |
+| 06 | L3 | semantic | `$TS` → 新增用例 `ImportError` | `$TS` OK，≥ 54（累计 36 + 18） |
+| 07 | L4 | corpus | `$TC` → 新增用例 `ImportError` | `$TC` OK，≥ 148（累计 136 + 12）；`m3-coverage.sh` exit 2（BLOCKED） |
 
 ---
 
-## 2. 用例阈值计算与权威累计表（第 86 条）
+## 2. 用例阈值计算与权威累计表（第 86、89 条）
 
-> **唯一权威出处声明（第 86 条）**：
-> 本表「累计用例阈值」列为工作包全部用例计数的**唯一权威依据**。
+> **唯一权威出处声明（第 86、89 条）**：
+> 本节按两套独立分列：`corpus` 套与 `semantic` 套**各自独立累计，绝不跨套相加**。
+> 累计值严格等于「既有基线 + 本包新增用例实数之和」。
 > §1 的 Green 列以及各 `act/*.yaml` 中 `verify` 注释里的期望数字，一律且必须精确引用本表数值，绝不允许各写各的。
 
-### 2.1 阈值计算过程
+### 2.1 corpus 套（$TC，`pipeline/corpus_compiler/tests`，基线 68）
+
+基线取数命令：`.venv/bin/python -m unittest discover -s pipeline/corpus_compiler/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"` → `Ran 68 OK`（2026-09-15 实测）。
 
 | ACT | 组 | 模块与用例文件 | 本 ACT 具名用例实数 | 累计算术公式 | 累计用例阈值 |
 |---|---|---|---|---|---|
-| `impl-10/00` | L1 | `test_offset_anchors.py` | 18 | 18 | **18** |
-| `impl-10/01` | L1 | `test_text_compiler.py` | 16 | 18 + 16 | **34** |
-| `impl-10/02` | L2 | `test_step_offset.py` | 18 | 34 + 18 | **52** |
-| `impl-10/03` | L2 | `test_gate_offset.py` | 16 | 52 + 16 | **68** |
-| `impl-10/04` | L3 | `test_offset_rules.py`, `test_proposer.py`, `test_proposals.py` (3+9+6) | 18 | 68 + 18 | **86** |
-| `impl-10/05` | L3 | `test_offset_assemble.py`, `test_review.py` (8+10) | 18 | 86 + 18 | **104** |
-| `impl-10/06` | L3 | `test_semantic_gate.py` | 18 | 104 + 18 | **122** |
-| `impl-10/07` | L4 | `test_acceptance.py` | 12 | 122 + 12 | **134** |
+| `impl-10/00` | L1 | `test_offset_anchors.py` | 18 | 基线 68 + 18 | **86** |
+| `impl-10/01` | L1 | `test_text_compiler.py` | 16 | 86 + 16 | **102** |
+| `impl-10/02` | L2 | `test_step_offset.py` | 18 | 102 + 18 | **120** |
+| `impl-10/03` | L2 | `test_gate_offset.py` | 16 | 120 + 16 | **136** |
+| `impl-10/07` | L4 | `test_acceptance.py` | 12 | 136 + 12 | **148** |
 
-**总计具名用例数**：134 条。
+corpus 套总计新增用例：18 + 16 + 18 + 16 + 12 = **80** 条；最终套件总数：68 + 80 = **148** 条。
+
+### 2.2 semantic 套（$TS，`pipeline/corpus_compiler/semantic/tests`，基线 0）
+
+基线：新建子包目录，基线为 **0**。
+
+| ACT | 组 | 模块与用例文件 | 本 ACT 具名用例实数 | 累计算术公式 | 累计用例阈值 |
+|---|---|---|---|---|---|
+| `impl-10/04` | L3 | `test_offset_rules.py` (3) + `test_proposer.py` (9) + `test_proposals.py` (6) | 18 | 基线 0 + 18 | **18** |
+| `impl-10/05` | L3 | `test_offset_assemble.py` (8) + `test_review.py` (10) | 18 | 18 + 18 | **36** |
+| `impl-10/06` | L3 | `test_semantic_gate.py` | 18 | 36 + 18 | **54** |
+
+semantic 套总计新增用例：18 + 18 + 18 = **54** 条；最终套件总数：**54** 条。
+
+**全包两套总计新增具名用例数**：80 + 54 = **134** 条。
+
+### 2.3 各 ACT grep -c 实数核对
+
+```bash
+$ for f in docs/blackbox-spec-rework/work-items/impl-10-corpus-semantic/act/*.yaml; do echo "$(basename $f): $(grep -c '^\s*- test_' $f)"; done
+00.yaml: 18
+01.yaml: 16
+02.yaml: 18
+03.yaml: 16
+04.yaml: 18  (test_offset_rules: 3, test_proposer: 9, test_proposals: 6)
+05.yaml: 18  (test_offset_assemble: 8, test_review: 10)
+06.yaml: 18  (test_semantic_gate: 18)
+07.yaml: 12  (test_acceptance: 12)
+```
 
 ---
 
@@ -70,9 +105,9 @@ bash openspec/acceptance/run_all.sh | tail -1                                   
 bash openspec/schemas/verify.sh >/dev/null; echo $?                                          # 恒为 0
 
 # 4. 单元测试全量
-.venv/bin/python -m unittest discover -s pipeline/ledger/tests -t .                          # OK
-.venv/bin/python -m unittest discover -s pipeline/corpus_compiler/tests -t .                 # OK
-.venv/bin/python -m unittest discover -s pipeline/corpus_compiler/semantic/tests -t .        # OK（L3 起）
+$TL 2>&1 | grep -E '^(Ran|OK|FAILED)'                                                        # OK
+$TC 2>&1 | grep -E '^(Ran|OK|FAILED)'                                                        # OK，按 §2.1 阈值
+$TS 2>&1 | grep -E '^(Ran|OK|FAILED)'                                                        # OK，按 §2.2 阈值（L3 起）
 
 # 5. 代码与 Git 规范
 git diff --check

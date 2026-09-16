@@ -66,7 +66,7 @@ tests:
     - test_verify_anchor_detects_patch_offset_drift（偏移与 patch 换算不符检出失败）
     - test_anchors_pure_does_not_mutate_inputs（护栏用例：断言入参 patches 深度比对在调用前后完全一致，检出意外修改）
 verify:
-  - .venv/bin/python -m unittest discover -s pipeline/corpus_compiler/tests -p 'test_offset_anchors.py' -t . 2>&1 | grep -E '^(Ran|OK|FAILED)'   # OK，≥ 18（本 ACT 共 18）
+  - .venv/bin/python -m unittest discover -s pipeline/corpus_compiler/tests -t . 2>&1 | grep -E '^(Ran|OK|FAILED)'   # OK，≥ 86（基线 68 + 本 ACT 18）
   - git diff --check
 commit:
   add: [pipeline/corpus_compiler/offset_anchors.py, pipeline/corpus_compiler/tests/test_offset_anchors.py]

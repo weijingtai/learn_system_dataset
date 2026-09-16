@@ -58,7 +58,7 @@ tests:
     - test_run_m3_text_spans_bytes_deterministic_between_runs
     - test_run_m3_text_batch_size_configuration_respected
 verify:
-  - .venv/bin/python -m unittest discover -s pipeline/corpus_compiler/tests -p 'test_step_offset.py' -t . 2>&1 | grep -E '^(Ran|OK|FAILED)'   # OK，≥ 52（累计算术：34 + 18 = 52）
+  - .venv/bin/python -m unittest discover -s pipeline/corpus_compiler/tests -t . 2>&1 | grep -E '^(Ran|OK|FAILED)'   # OK，≥ 120（累计 102 + 18）
   - grep -rn 'socket\.' pipeline/corpus_compiler/step_offset.py | wc -l   # 0
   - git diff --check
 commit:

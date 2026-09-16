@@ -60,7 +60,7 @@ tests:
     - test_assemble_m3_text_stage_package_manifest_sha256
     - test_assemble_m3_text_stage_package_lineage
 verify:
-  - .venv/bin/python -m unittest discover -s pipeline/corpus_compiler/tests -p 'test_gate_offset.py' -t . 2>&1 | grep -E '^(Ran|OK|FAILED)'   # OK，≥ 68（累计算术：52 + 16 = 68）
+  - .venv/bin/python -m unittest discover -s pipeline/corpus_compiler/tests -t . 2>&1 | grep -E '^(Ran|OK|FAILED)'   # OK，≥ 136（累计 120 + 16）
   - grep -rn 'import.*text_compiler' pipeline/corpus_compiler/gate_offset.py | wc -l   # 0
   - git diff --check
 commit:

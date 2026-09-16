@@ -52,7 +52,7 @@ tests:
     - test_window_count_mismatch_fails_header_counts
     - test_dispute_count_mismatch_fails_header_counts
 verify:
-  - .venv/bin/python -m unittest discover -s pipeline/corpus_compiler/semantic/tests -p 'test_semantic_gate.py' -t . 2>&1 | grep -E '^(Ran|OK|FAILED)'   # OK，≥ 122（累计算术：104 + 18 = 122）
+  - .venv/bin/python -m unittest discover -s pipeline/corpus_compiler/semantic/tests -t . 2>&1 | grep -E '^(Ran|OK|FAILED)'   # OK，≥ 54（累计 36 + 18）
   - grep -rn 'import.*offset_assemble' pipeline/corpus_compiler/semantic/semantic_gate.py | wc -l   # 0
   - git diff --check
 commit:
