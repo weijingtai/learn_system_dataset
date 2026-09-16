@@ -227,17 +227,25 @@ terminal_state: processed | known_unresolvable | deferred
 | `source_asset.file_sha256` | 对原始 `.txt`/`.md` 文件全文取 SHA-256；宿主产出后写死 |
 | `sanitization_report` 的 sha256 | 对 report YAML 序列化后取 SHA-256；宿主产出后写死 |
 
-**《乾元秘旨》取样规格**：
+**《乾元秘旨》取样规格**（第 95 条改写，2026-09-16）：
 
-- 取前两节（"太极图说"与"河图洛书"），约 2000–5000 字符
-- 原始文本须包含以下已知问题（确保清洗有实际效果）：
-  - `?` 替换字符 ≥ 4 处
-  - PUA 码位 ≥ 39 个
-  - 零宽控制字符 ≥ 2 处
-  - Markdown 转义残留（`\-`、`\[`）≥ 1 处
-  - 繁简混杂 ≥ 1 处
-- 清洗后期望发现条数：约 46 条（与上游 fixture 对齐；具体以 `grep -c 'kind:'` 实数为准）
-- `deferred_count` = 0（第一版不含需人工决定的发现）
+- **取全文**，不截取。宿主路径：`pipeline/corpus/_fixture/qianyuan_ed01_text/`
+- 原始文件逐字节原样入库，不得改写、不得重新编码：
+
+| 项 | 值 |
+|---|---|
+| 来源仓库 | `github.com/daizhige-org/daizhigev20`，分支 `data` |
+| 仓库路径 | `易藏/术数/乾元秘旨.md` |
+| `repo_commit` | `aa2b70789d153f2542e5f4786265157c7356ab76`（2026-08-16） |
+| Git blob sha | `5bc5641a889d0c57ae12196599b00063e1959141`（主 Agent 本地重算与 GitHub 记录一致） |
+| 文件 `sha256` | `3f7170cd504e496096bc933ab5ed8805d68fa98625c91c5c09a9e3a61fcecdbb` |
+| 规模 | 50,451 字节 / 17,735 字符 / 156 行 / 无 BOM |
+| `rights_status` | `站方声明免费下载、未附许可证`（仓库 API `license: None`，第 77 条） |
+| `release_policy` | `reference_and_hash_only`（第 76 条：第一版仅 `INTERNAL_DEMO`/`DEV_SEARCH`） |
+
+- **不预设任何发现数量**。各 `kind` 的条数与 `deferred_count` 由独立分析实测得出后作为事实登记（原先写死的「`?` ≥4、PUA ≥39、零宽 ≥2、转义 ≥1、繁简 ≥1、约 46 条、`deferred_count = 0`」系对未分析文本的预言，已撤销）。
+- **金标独立产出**：`乾元秘旨_期望_sanitization_report.yaml` 由一个**不读、不运行 `pipeline/**` 任何代码**的独立分析 Agent 通读原文、按 §5 十二类逐条登记后产出。M2 实际产出与金标逐条比对，差异上报主 Agent 裁决；**不得**以 M2 输出反向覆盖金标。无法独立判定的项标 `uncertain` 并写明理由。
+- `乾元秘旨_期望_cleaned.txt` 由金标中 `action: patched` 的条目**独立推导**，不得取自 M2 的 `cleaned_text_revision`。
 
 ### 7.3 对 Ledger
 
