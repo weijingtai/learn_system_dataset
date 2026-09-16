@@ -10,24 +10,10 @@ from collections import Counter
 from dataclasses import dataclass, field
 from typing import Any
 
-FINDING_KINDS = frozenset(
-    {
-        "replacement_char",
-        "private_use_area",
-        "escape_residue",
-        "watermark",
-        "header_footer",
-        "duplicate",
-        "missing",
-        "textualized_diagram",
-        "variant_mixed",
-        "suspected_error",
-        "control_char",
-        "encoding_issue",
-    }
-)
-
-TERMINAL_STATES = frozenset({"processed", "deferred", "retained", "rejected"})
+# 唯一权威出处：FINDING_KINDS 与 TERMINAL_STATES 只在本包 __init__ 定义一处，
+# gate.py 一律导入，不得自有副本（第 85 条、第 96 条 D1）。
+from . import FINDING_KINDS as FINDING_KINDS
+from . import TERMINAL_STATES as TERMINAL_STATES
 
 VARIANT_MIXED_WARNING_THRESHOLD = 50
 

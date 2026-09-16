@@ -5,6 +5,7 @@ import inspect
 import unittest
 from pathlib import Path
 
+import pipeline.digitization
 from pipeline.digitization.gate import GateResult, evaluate_m2_gate
 
 
@@ -136,6 +137,39 @@ class TestGate(unittest.TestCase):
         res = evaluate_m2_gate(report)
         self.assertFalse(res.passed)
         self.assertIn("report_valid", res.failed_checks)
+
+    def test_gate_accepts_every_terminal_state(self):
+        """synthetic_fixture: true，权威闭集里每一个终态都须通过 findings_valid（第 96 条 D1）。"""
+        for state in pipeline.digitization.TERMINAL_STATES:
+            with self.subTest(terminal_state=state):
+                report = self._make_valid_report()
+                report["findings"][0]["terminal_state"] = state
+                res = evaluate_m2_gate(report)
+                self.assertNotIn(
+                    "findings_valid",
+                    res.failed_checks,
+                    f"权威终态 {state} 被 findings_valid 拒绝",
+                )
+
+    def test_gate_rejects_stale_ocr_terminal_states(self):
+        """synthetic_fixture: true，OCR 路线遗留的 retained/rejected 不在权威闭集，须被拒。"""
+        for state in ("retained", "rejected"):
+            with self.subTest(terminal_state=state):
+                self.assertNotIn(state, pipeline.digitization.TERMINAL_STATES)
+                report = self._make_valid_report()
+                report["findings"][0]["terminal_state"] = state
+                res = evaluate_m2_gate(report)
+                self.assertIn(
+                    "findings_valid",
+                    res.failed_checks,
+                    f"遗留终态 {state} 未被 findings_valid 拒绝",
+                )
+
+    def test_gate_terminal_states_is_package_constant(self):
+        """gate.TERMINAL_STATES 必须与包常量是同一个对象（is，非 ==），防止再次分叉。"""
+        from pipeline.digitization import gate
+
+        self.assertIs(gate.TERMINAL_STATES, pipeline.digitization.TERMINAL_STATES)
 
     def test_gate_independence(self):
         """不 import cleaner/patcher/reporter/raw_text。"""
