@@ -250,6 +250,30 @@ D4（BOM／GB18030 导致 `sha256` 与磁盘原始文件字节不符、追踪链
 
 **至此 impl-09（M1 电子文本入库 + M2 电子文本清洗）全部完成并验收，追踪链两端闭合。**
 
+### 3.7 返工 J3d（2026-09-16，主 Agent 独立验收，`git archive d64dd9b` 干净树）
+
+判定：**J3d ACCEPTED**。第 96 条 D1 落地——**真实书源首次跑通 M1→M2→M3 全链**。
+
+缺陷回顾：`gate.py` 自有一份 `TERMINAL_STATES = {processed, deferred, retained, rejected}`，与权威闭集 `{processed, known_unresolvable, deferred}` 分叉；真实文本的私用区生僻字（终态 `known_unresolvable`）使 `findings_valid` 恒失败，整条链在 M2 断开。该缺陷**所有合成测试都未发现**（`test_gate.py` 中 `known_unresolvable` 出现 0 次），是在《乾元秘旨》真实全文首跑时由 cmd 执行方查出的。**主 Agent 在 J3 验收时亦未发现**：当时只在 `pipeline/digitization/` 全部源码中查到三个终态字符串存在（因 `__init__.py` 有），未单独核对 `gate.py` 自有的那一份。
+
+复核（干净树实测）：
+
+- 范围：仅 `gate.py` 与 `tests/test_gate.py`，符合 P9 返工约束。
+- `gate.py` 已**删除自有定义**，改为 `from . import FINDING_KINDS as FINDING_KINDS` 与 `from . import TERMINAL_STATES as TERMINAL_STATES`——闭集在代码中只剩一处权威定义（第 85 条同样适用于代码）。
+- `pipeline/digitization/tests` `Ran 70 OK`（67 + 3）；执行方 Red 原文含四处失败，其中 `权威终态 known_unresolvable 被 findings_valid 拒绝` 即本缺陷的直接复现。
+- **主 Agent 篡改**（临时副本）：在 `gate.py` 导入之后重新塞入一份自有 `TERMINAL_STATES` → `Ran 70 FAILED (failures=4)`；还原 → `Ran 70 OK`。防分叉护栏 load-bearing。
+- **主 Agent 独立复现**：仅含 `U+E123` 的输入，修复前 `GateResult(passed=False, failed_checks=['findings_valid'])`，修复后 **`GateResult(passed=True, failed_checks=[], warnings=[])`**。
+
+**真实书源全链结果**（执行方在临时 Ledger 上对《乾元秘旨》全文 50,451 字节实跑）：
+
+| 阶段 | 终态 | 产出 |
+|---|---|---|
+| M1 入库 | `succeeded` | `raw_text` 的 `sha256` 与 `normalized_sha256` 均 `3f7170cd…`（无 BOM，两者相等，与第 94 条 D4 预期一致） |
+| M2 清洗 | `succeeded`，Gate `passed: True` | 133 条发现，`deferred_count = 0`，78 条 patch |
+| M3 偏移编译 | `succeeded` | **710** 个 `offset_level` 片段，71 批 |
+
+登记（非缺陷）：`spans_sha256` 跨运行不同，因 `source_anchor` 内嵌随机 uuid4 修订 ID；同一运行内确定。与 §9 第 7 条「生产 uuid4；金标比对前身份归一化」一致。
+
 ## 4. 待裁决
 
 无。
