@@ -233,6 +233,30 @@ act/02 复核（`git archive e5b07ed` 干净树）：
 
 ---
 
+### 3.5 实现组 L4 / act/07（2026-09-16，主 Agent 独立验收，`git archive 5b573e3` 干净树）
+
+判定：**L4 ACCEPTED**（`eff2305` + 返工 L4a `5b573e3`）。**impl-10（M3 偏移锚点 + 语义层）L1–L4 全部完成**。执行器：cmd / DeepSeek V4.1 Flash。
+
+**`eff2305` 的缺陷（第 97 条）**：为使 `m3-coverage.sh` 只服务电子文本，删除了已验收的 OCR 路线用例 `test_shell_exit_2_on_fixture` 与防篡改护栏 `test_shell_never_trusts_copy_verify`。主 Agent 以「删一条片段 + 把拷贝里的 `verify.sh` 换成恒 `exit 0`」的篡改宿主在改动前后各跑一次：改前 `exit=1 FAIL fixture_host … spans.yaml sha256 不符`（识破），改后 `exit=2 BLOCKED … 电子文本验收宿主不存在`（`FIXTURE_DIR` 被整体忽略，**篡改未被发现**，且 exit 2 在汇总层不计失败）。根因为主 Agent 将第 94 条 D2（针对**只服务电子文本**的新脚本）原样套用到**原本服务 OCR 路线**的 `m3-coverage.sh`。
+
+**L4a `5b573e3` 复核**（干净树实测）：
+
+- 范围：`m3-coverage.sh`、`tests/test_acceptance.py`、`act/07.yaml`、`TDD.md`。
+- `pipeline/corpus_compiler/tests` **`Ran 156 OK`**；`semantic/tests` **`Ran 54 OK`**（无回退）。
+- 两条被删用例已恢复：与 `eff2305^` 相比，**测试逻辑逐字相同**，仅各增一行 docstring 说明出处（无语义改动，接受）。新增 `test_shell_routes_do_not_cross_fallback` 在位。
+
+**主 Agent 三态复验**（第 96 条制度：验收脚本须在各状态下各跑一次）：
+
+| 场景 | 实测 | 结论 |
+|---|---|---|
+| **篡改 OCR 宿主**（删片段 + 假 `verify.sh`），不设电子文本变量 | `exit=1`，`FAIL fixture_host FAIL manifest_sha256 spans.yaml sha256 不符` | **防篡改护栏恢复** |
+| 电子文本变量指向不存在目录（`mini_ed01` 存在） | `exit=2`，输出含 `fixture_host` **0** 处 | **无交叉回落** |
+| 什么变量都不设 | `exit=2`，末行 `SUMMARY pass=8 fail=0 blocked=1` | OCR 路线既有行为逐字保持 |
+
+**真实书源首次过 M3 验收脚本**（执行方观察，主 Agent 采信其原始输出）：以《乾元秘旨》真实宿主运行电子文本路线，`host_source`、`m1_manifest`（11 键逐字）、`m2_gate`（`deferred_count=0`）、`zero_network` 四项 **PASS**，`m3_semantic` 因宿主缺 `recordings.yaml` 如实 **BLOCKED**，`exit=2`——未当失败、未绕过。语义层所需的 `recordings.yaml` 与 `human_decisions.yaml` 属宿主后续交付（P4），其中人工裁决须由用户产出（P7）。
+
+执行方纪律：回报如实写明「单删 `rc==1` 分支的独立转红复验未跑——该层与 `elif` 冗余，未声称其为独立护栏」；并书面接受第 97 条纪律（删已验收护栏须写待裁决停手），本轮未再发生。
+
 ## 4. 待裁决
 
 无。
