@@ -227,6 +227,29 @@ D4（BOM／GB18030 导致 `sha256` 与磁盘原始文件字节不符、追踪链
 
 执行方纪律记功：回报设「## 九、第 93 条：未跑清单」，逐条声明哪些**未跑／未验证**（含「主 Agent 的独立复验那是你的动作」「其余 11 条 Gate 用例我按读码判断非空转，**没有**用把断言改成恒真的方式做对照实验」），无一处未然语气断言。这是第 93 条立规后的合格样板。
 
+### 3.6 返工 J1b（2026-09-16，主 Agent 独立验收，`git archive 3e25993` 干净树）
+
+判定：**J1b ACCEPTED**。第 94 条 D4 落地——追踪链在 BOM／GB18030 来源上的断裂已修复。
+
+缺陷回顾：`source.py` 原先记录 `sha256(norm_bytes)`（去 BOM、重编码 UTF-8 **之后**的内容哈希），与磁盘上该文件的字节哈希不等，链条回不到「我当初下载的就是这个文件」——而这正是用户 2026-09-15 提出的核心要求。该缺陷由 cmd 执行方在 J4 验证过程中自行发现并上报。
+
+改法落地：`source_assets[]` 现同时承载两个哈希，各闭合链条一端；键序 12 → **14**：
+`page, path_ref, sha256, normalized_sha256, original_encoding, size, width, height, object_store, in_git, yaml_metadata, source_site, source_url, repo_commit`
+
+**主 Agent 独立探针**（自造三个不同编码的文件，不复用执行方任何测试数据）：
+
+| 来源编码 | `original_encoding` | 记录 `sha256` == 磁盘字节哈希 | `normalized_sha256` |
+|---|---|---|---|
+| UTF-8 带 BOM | `utf-8-sig` | **True** | 与 `sha256` **不同**（BOM 已剥离） |
+| 纯 UTF-8 | `utf-8` | **True** | 与 `sha256` 相同（无需归一化，正确） |
+| GB18030 | `gb18030` | **True** | 与 `sha256` 不同 |
+
+**交叉印证**：GB18030 文件与纯 UTF-8 文件承载同一段文字，两者的 `normalized_sha256` **完全相同**（`73908845799c976d…`），而各自的 `sha256` 互不相同且分别等于其磁盘字节哈希——证明归一化是按内容而非按字节做的，两端哈希各自正确。
+
+回归：`pipeline/intake/tests` `Ran 35 OK`（31 → 35，+4 条新增具名用例）；`pipeline/digitization/tests` `Ran 67 OK`（无回退）。范围为 `source.py`、`manifest.py`、`tests/test_manifest.py` 加同步的四份文档，单独提交，符合 P9 返工要求。
+
+**至此 impl-09（M1 电子文本入库 + M2 电子文本清洗）全部完成并验收，追踪链两端闭合。**
+
 ## 4. 待裁决
 
 无。
