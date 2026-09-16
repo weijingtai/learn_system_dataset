@@ -38,7 +38,7 @@ M1 电子文本入库按来源无关设计。每份来源登记以下信息：
 | `edition_part` | 分册信息（artifact_id, label, pages） | 是 |
 | `source_site` | 来源站点域名（如 `daizhige.org`、`ctext.org`） | 是 |
 | `source_url` | 原始 URL | 是 |
-| `file_sha256` | 原始文件 SHA-256 | 是 |
+| `file_sha256` | 原始文件（磁盘下载物）SHA-256 | 是 |
 | `pages` | 页/文件列表（非空，无重复） | 是 |
 | `repo_commit` | 仓库提交号（如适用） | 否（缺省 None） |
 | `yaml_metadata` | 文件头 YAML 元数据原样保存（如有） | 否（缺省 None） |
@@ -77,7 +77,9 @@ edition_part:
 source_assets:
   - page: <filename_stem>
     path_ref: <relative_path>
-    sha256: <64-hex>
+    sha256: <64-hex>            # 磁盘原始文件字节的 SHA-256 → 追踪链闭合到下载物
+    normalized_sha256: <64-hex> # 归一化 UTF-8 后字节的 SHA-256 → 追踪链闭合到冻结 RawText
+    original_encoding: <utf-8-sig | utf-8 | gb18030>   # 实际探测到的原编码
     size: <文件字节长度>
     width: null           # 电子文本无图像尺寸
     height: null
@@ -96,7 +98,7 @@ conversion:
 content_status: "machine_extracted"
 ```
 
-`source_assets[]` 键序逐字：`page, path_ref, sha256, size, width, height, object_store, in_git, yaml_metadata, source_site, source_url, repo_commit`（12 个）。`width`/`height` 对电子文本为 null（无图像尺寸）；`size` = 文件字节长度；`repo_commit` 无则 null。顶层不含 `source_sites`——来源以 `source_assets[]` 逐份登记为权威（§77 来源无关），顶层不冗余。
+`source_assets[]` 键序逐字：`page, path_ref, sha256, normalized_sha256, original_encoding, size, width, height, object_store, in_git, yaml_metadata, source_site, source_url, repo_commit`（14 个）。`sha256` 为**磁盘原始文件字节**的哈希（与 M1 输入 `source_info.file_sha256` 同源），`normalized_sha256` 为 UTF-8 归一化后、即冻结进 `raw_text` 的字节哈希——两个哈希各自闭合追踪链的一端（第 94 条 D4）；`original_encoding` 由 `read_source_files` 探测写入。`width`/`height` 对电子文本为 null（无图像尺寸）；`size` = 归一化后字节长度；`repo_commit` 无则 null。顶层不含 `source_sites`——来源以 `source_assets[]` 逐份登记为权威（§77 来源无关），顶层不冗余。
 
 ## 4. M2 产出契约（§10:478，§81）
 
@@ -172,8 +174,16 @@ terminal_state: processed | known_unresolvable | deferred
   → 清洗文本偏移（cleaned_text_revision 中的位置）
     → DeterministicPatchSet 映射（patch_id）
       → 原始文本偏移（raw_text 中的位置）
-        → SourceAsset SHA-256（M1 入库时冻结）
+        → SourceAsset SHA-256
 ```
+
+`source_assets[]` 同时登记两个哈希，各自闭合追踪链的一端（第 94 条 D4）：
+
+```
+最终产物 ──normalized_sha256──→ 冻结 RawText ──patch 映射──→ raw 偏移 ──sha256──→ 磁盘下载物
+```
+
+即：`sha256` 是磁盘上那个文件的字节哈希（与 `source_info.file_sha256` 同源），`normalized_sha256` 是归一化 UTF-8 后、即冻结进 `raw_text` 的字节哈希。带 BOM 或 GB18030 来源两者不等——原实现只记归一化哈希，链条回不到「我当初下载的就是这个文件」。
 
 每个 `sanitization_report` 发现都带 `raw_start/raw_end`（原始偏移）和关联 `patch_id`，可沿 patch 映射追溯到清洗后文本的对应位置。片段 ID `ss_<work>_ed<NN>_o<NNNNNNN>` 的偏移基准为冻结的 `raw_text`，不随清洗修订漂移（§78 D3）。
 

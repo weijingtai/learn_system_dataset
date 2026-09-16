@@ -4,6 +4,7 @@
 """
 
 import copy
+import hashlib
 
 from . import M1_TOOL, M1_TOOL_VERSION
 from .serialize import dump_manifest_yaml
@@ -13,8 +14,13 @@ def build_source_manifest(source_info: dict, files: list[dict]) -> dict:
     """构建 source_manifest 字典（纯函数）。
 
     顶层包含 11 个键，严格按固定键序排列；
-    source_assets[] 包含 12 个键，严格按固定键序排列；
+    source_assets[] 包含 14 个键，严格按固定键序排列；
     顶层不含 source_sites。
+
+    两个哈希各自闭合追踪链的一端（G7-RULINGS 第 94 条 D4）：
+    `sha256` 为磁盘原始文件字节哈希（与 source_info.file_sha256 同源，回到下载物）；
+    `normalized_sha256` 为归一化 UTF-8 字节哈希（回到冻结的 RawText）。
+    若传入的 file 记录未带 `normalized_sha256`，则由其 `data`（即归一化字节）现算。
 
     参数：
         source_info：经校验的来源信息字典。
@@ -28,12 +34,17 @@ def build_source_manifest(source_info: dict, files: list[dict]) -> dict:
         page = f["page"]
         path_ref = f.get("path_ref", page)
         sha256 = f["sha256"]
+        normalized_sha256 = f.get("normalized_sha256")
+        if normalized_sha256 is None:
+            normalized_sha256 = hashlib.sha256(f["data"]).hexdigest()
         size = f["size"]
 
         asset = {
             "page": page,
             "path_ref": path_ref,
             "sha256": sha256,
+            "normalized_sha256": normalized_sha256,
+            "original_encoding": f.get("original_encoding"),
             "size": size,
             "width": None,
             "height": None,

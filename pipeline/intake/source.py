@@ -159,10 +159,19 @@ def read_source_files(source_dir: Path | str, pages: list[str]) -> list[dict]:
 
     返回：
         文件对象列表，每项形如：
-        {"page": str, "path_ref": str, "data": bytes, "sha256": str, "size": int}
+        {"page": str, "path_ref": str, "data": bytes,
+         "sha256": str, "normalized_sha256": str, "original_encoding": str, "size": int}
+
+        `data`：归一化（统一 UTF-8）后的字节，即冻结进 raw_text 的内容；
+        `sha256`：**磁盘原始文件字节**的 SHA-256，与 source_info.file_sha256 同源，
+                  使追踪链闭合到下载物（G7-RULINGS 第 94 条 D4）；
+        `normalized_sha256`：归一化后字节的 SHA-256，使追踪链闭合到 RawText；
+        `original_encoding`：探测到的原编码，`utf-8-sig`（带 BOM）／`utf-8`／`gb18030`；
+        `size`：归一化后字节长度。
 
     异常：
         SourceAssetMissing：目录不存在或文件缺失时抛出。
+        IntakeRefused(code="SCH_002")：文件既不能按 UTF-8 也不能按 GB18030 解码时抛出。
     """
     sdir = Path(source_dir)
     if not sdir.is_dir():
@@ -190,20 +199,25 @@ def read_source_files(source_dir: Path | str, pages: list[str]) -> list[dict]:
     results = []
     for page, file_path in found_files:
         raw_bytes = file_path.read_bytes()
+        # 磁盘原始文件字节的哈希：追踪链闭合到「当初下载的就是这个文件」
+        raw_sha256 = hashlib.sha256(raw_bytes).hexdigest()
 
         # 编码检测与统一 UTF-8 编码
         if raw_bytes.startswith(b"\xef\xbb\xbf"):
             # 带 UTF-8 BOM，去除 BOM
             text = raw_bytes[3:].decode("utf-8")
             norm_bytes = text.encode("utf-8")
+            original_encoding = "utf-8-sig"
         else:
             try:
                 text = raw_bytes.decode("utf-8")
                 norm_bytes = text.encode("utf-8")
+                original_encoding = "utf-8"
             except UnicodeDecodeError:
                 try:
                     text = raw_bytes.decode("gb18030")
                     norm_bytes = text.encode("utf-8")
+                    original_encoding = "gb18030"
                 except UnicodeDecodeError as exc:
                     raise IntakeRefused("文件 %s 无法按 UTF-8/GB18030 解码" % (file_path,), code="SCH_002") from exc
 
@@ -212,7 +226,9 @@ def read_source_files(source_dir: Path | str, pages: list[str]) -> list[dict]:
             "page": page,
             "path_ref": path_ref,
             "data": norm_bytes,
-            "sha256": hashlib.sha256(norm_bytes).hexdigest(),
+            "sha256": raw_sha256,
+            "normalized_sha256": hashlib.sha256(norm_bytes).hexdigest(),
+            "original_encoding": original_encoding,
             "size": len(norm_bytes),
         })
 

@@ -57,7 +57,8 @@
 
 | 检查项 | 判据 | 依据 |
 |---|---|---|
-| M1 产出键序 | source_manifest 顶层键序与 README §3 一致（11 键）；source_assets[] 键序与 §3 一致（12 键）；顶层不含 source_sites | act/00 contract, README §3 |
+| M1 产出键序 | source_manifest 顶层键序与 README §3 一致（11 键）；source_assets[] 键序与 §3 一致（14 键）；顶层不含 source_sites | act/00 contract, README §3 |
+| 追踪链闭合 | `source_assets[].sha256` == 磁盘原始文件字节哈希（与 `source_info.file_sha256` 同源）；`source_assets[].normalized_sha256` == 冻结 `raw_text` 内容哈希；`original_encoding` 为 `utf-8-sig`／`utf-8`／`gb18030` 之一 | 第 94 条 D4, README §3/§6 |
 | M2 四类产物 | raw_text, cleaned_text_revision, deterministic_patch_set, sanitization_report 均产出 | act/02 contract |
 | kind 闭集 | 12 项（encoding_issue, replacement_char, private_use_area, control_char, escape_residue, watermark, header_footer, duplicate, missing, textualized_diagram, variant_mixed, suspected_error） | §81 |
 | terminal_state 闭集 | 3 项（processed, known_unresolvable, deferred） | §10.1 |

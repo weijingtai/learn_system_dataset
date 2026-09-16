@@ -10,7 +10,9 @@ from pipeline.intake.errors import IntakeRefused, SourceAssetMissing
 from pipeline.intake.manifest import build_source_manifest, manifest_bytes
 from pipeline.intake.serialize import dump_manifest_yaml
 from pipeline.intake.source import load_source, read_source_files
+from pipeline.intake.step import run_m1
 from pipeline.intake.tests.helpers import fixture_source, make_text_file
+from pipeline.ledger.service import LedgerService
 
 
 class TestManifest(unittest.TestCase):
@@ -228,6 +230,61 @@ class TestManifest(unittest.TestCase):
             self.assertEqual(item["sha256"], hashlib.sha256(data_bytes).hexdigest())
             self.assertEqual(item["size"], len(data_bytes))
 
+    def test_read_source_files_sha256_is_original_file_bytes(self):
+        """synthetic_fixture: true，sha256 为磁盘原始文件字节哈希，与归一化哈希不等（第 94 条 D4）。"""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            td = Path(tmpdir)
+            content_text = "乾元秘旨·太极图说\n天地之先。"
+            bom_bytes = b"\xef\xbb\xbf" + content_text.encode("utf-8")
+            make_text_file("page_001", bom_bytes, target_dir=td)
+            normalized = content_text.encode("utf-8")
+
+            item = read_source_files(td, ["page_001"])[0]
+
+            # sha256 必须是磁盘上那个文件的字节哈希
+            self.assertEqual(item["sha256"], hashlib.sha256(bom_bytes).hexdigest())
+            self.assertEqual(item["sha256"], hashlib.sha256((td / "page_001").read_bytes()).hexdigest())
+            # 且不得等于归一化字节的哈希（这正是本次修正的旧行为）
+            self.assertNotEqual(item["sha256"], hashlib.sha256(normalized).hexdigest())
+            # data 仍为归一化字节（去 BOM）
+            self.assertEqual(item["data"], normalized)
+
+    def test_read_source_files_records_normalized_sha256(self):
+        """synthetic_fixture: true，normalized_sha256 为归一化 UTF-8 字节哈希（回到 RawText）。"""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            td = Path(tmpdir)
+            content_text = "乾元秘旨·河图洛书\n象数之源。"
+            bom_bytes = b"\xef\xbb\xbf" + content_text.encode("utf-8")
+            make_text_file("page_001", bom_bytes, target_dir=td)
+            normalized = content_text.encode("utf-8")
+
+            item = read_source_files(td, ["page_001"])[0]
+
+            self.assertEqual(item["normalized_sha256"], hashlib.sha256(normalized).hexdigest())
+            self.assertEqual(item["normalized_sha256"], hashlib.sha256(item["data"]).hexdigest())
+            self.assertNotEqual(item["normalized_sha256"], item["sha256"])
+
+    def test_read_source_files_records_original_encoding(self):
+        """synthetic_fixture: true，BOM 记 utf-8-sig、纯 UTF-8 记 utf-8、GB18030 记 gb18030。"""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            td = Path(tmpdir)
+            content_text = "乾元秘旨·太极图说"
+
+            make_text_file("page_001", b"\xef\xbb\xbf" + content_text.encode("utf-8"), target_dir=td)
+            make_text_file("page_002", content_text.encode("utf-8"), target_dir=td)
+            make_text_file("page_003", content_text.encode("gb18030"), target_dir=td)
+
+            res = {item["page"]: item for item in read_source_files(td, ["page_001", "page_002", "page_003"])}
+
+            self.assertEqual(res["page_001"]["original_encoding"], "utf-8-sig")
+            self.assertEqual(res["page_002"]["original_encoding"], "utf-8")
+            self.assertEqual(res["page_003"]["original_encoding"], "gb18030")
+            # 三种来源归一化后内容一致，但原始字节哈希互不相同
+            self.assertEqual(res["page_001"]["data"], res["page_002"]["data"])
+            self.assertEqual(res["page_001"]["data"], res["page_003"]["data"])
+            self.assertNotEqual(res["page_001"]["sha256"], res["page_002"]["sha256"])
+            self.assertNotEqual(res["page_002"]["sha256"], res["page_003"]["sha256"])
+
     def test_build_manifest_key_order(self):
         """synthetic_fixture: true，顶层键序严格固定 11 个键。"""
         src = fixture_source()
@@ -259,7 +316,7 @@ class TestManifest(unittest.TestCase):
         self.assertEqual(list(manifest.keys()), expected_top_keys)
 
     def test_build_manifest_source_assets_key_order(self):
-        """synthetic_fixture: true，逐字断言 12 键键序。"""
+        """synthetic_fixture: true，逐字断言 14 键键序（第 94 条 D4 新增两键）。"""
         src = fixture_source()
         loaded_src = load_source(src)
         files = [
@@ -279,6 +336,8 @@ class TestManifest(unittest.TestCase):
             "page",
             "path_ref",
             "sha256",
+            "normalized_sha256",
+            "original_encoding",
             "size",
             "width",
             "height",
@@ -331,6 +390,55 @@ class TestManifest(unittest.TestCase):
         b2 = manifest_bytes(loaded_src, files)
         self.assertEqual(b1, b2)
         self.assertTrue(b1.endswith(b"\n"))
+
+    def test_trace_chain_closes_to_source_file_sha256(self):
+        """synthetic_fixture: true，端到端：sha256 → 磁盘下载物，normalized_sha256 → 冻结 RawText。"""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            td = Path(tmpdir)
+            content_text = "乾元秘旨·太极图说\n無極而太極。"
+            disk_bytes = b"\xef\xbb\xbf" + content_text.encode("utf-8")
+            make_text_file("page_001", disk_bytes, target_dir=td)
+            disk_sha = hashlib.sha256(disk_bytes).hexdigest()
+
+            src = fixture_source()
+            src["file_sha256"] = disk_sha
+            loaded_src = load_source(src)
+            files = read_source_files(td, ["page_001"])
+
+            # 已序列化的清单字节，而非内存字典
+            manifest = yaml.safe_load(manifest_bytes(loaded_src, files).decode("utf-8"))
+            asset = manifest["source_assets"][0]
+
+            # 第一端：manifest.sha256 回算到磁盘原始文件字节
+            self.assertEqual(asset["sha256"], disk_sha)
+            self.assertEqual(
+                asset["sha256"], hashlib.sha256((td / "page_001").read_bytes()).hexdigest()
+            )
+            self.assertEqual(asset["sha256"], loaded_src["file_sha256"])
+
+            # 第二端：manifest.normalized_sha256 回算到冻结进 raw_text 的字节
+            ledger_tmp = tempfile.TemporaryDirectory()
+            service = LedgerService(ledger_tmp.name)
+            try:
+                result = run_m1(
+                    service,
+                    loaded_src,
+                    files,
+                    loaded_src["edition_part"]["artifact_id"],
+                )
+                self.assertIn("raw_text_revision_ids", result)
+                rev = service.get_revision(result["raw_text_revision_ids"][0])
+                frozen_bytes = service.objects.get(rev["sha256"])
+            finally:
+                service.close()
+                ledger_tmp.cleanup()
+
+            self.assertEqual(
+                hashlib.sha256(frozen_bytes).hexdigest(), asset["normalized_sha256"]
+            )
+            self.assertEqual(frozen_bytes, content_text.encode("utf-8"))
+            # 两端不同源：原始字节含 BOM，冻结字节不含
+            self.assertNotEqual(asset["sha256"], asset["normalized_sha256"])
 
 
 if __name__ == "__main__":

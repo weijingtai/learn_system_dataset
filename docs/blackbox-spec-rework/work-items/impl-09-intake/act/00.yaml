@@ -32,21 +32,27 @@ contract: |
       pages：非空 list，每项匹配 ^[a-zA-Z0-9_-]+$，无重复
       edition_part：键集合 == {artifact_id, label, pages}；artifact_id 非空 str；label 非空 str
       返回：按固定键序重建的新 dict
-    read_source_files(source_dir, pages) -> list[dict]
-      source_dir 不是目录 → SourceAssetMissing([str(source_dir)])
-      按 pages 顺序先收集全部不存在的路径，非空则一次 raise SourceAssetMissing(paths)
-      每项 {"page", "data": bytes, "sha256": hashlib.sha256(data).hexdigest(), "size": len(data)}
-      编码检测：尝试 UTF-8；如有 BOM 则记录原始编码
-      返回 bytes 为 UTF-8 编码后的字节（统一编码）
+   read_source_files(source_dir, pages) -> list[dict]
+     source_dir 不是目录 → SourceAssetMissing([str(source_dir)])
+     按 pages 顺序先收集全部不存在的路径，非空则一次 raise SourceAssetMissing(paths)
+     每项 {"page", "path_ref", "data": bytes, "sha256", "normalized_sha256", "original_encoding", "size"}
+       sha256：磁盘原始文件字节的 hashlib.sha256（与 source_info.file_sha256 同源，闭合到下载物）
+       normalized_sha256：归一化（统一 UTF-8）后字节的 hashlib.sha256（闭合到冻结 RawText）
+       original_encoding：探测到的原编码，utf-8-sig（带 BOM）／utf-8／gb18030
+       size = len(data)（归一化后字节长度）
+     编码检测：尝试 UTF-8；如有 BOM 则记 utf-8-sig 并去 BOM；否则再试 GB18030
+     返回 data 为 UTF-8 编码后的字节（统一编码）
   manifest.py（纯函数）：
-    build_source_manifest(source_info, files) -> dict
-      顶层键序（11 个）：source_id, work_title, edition_note, technique_id, rights_status, release_policy, edition_part, source_assets, files, conversion, content_status
-      source_assets[] 键序（12 个）：page, path_ref, sha256, size, width, height, object_store, in_git, yaml_metadata, source_site, source_url, repo_commit
-        width/height：电子文本恒为 None
-        size：文件字节长度
-        object_store: "local"
-        in_git: false
-        repo_commit：无则 None
+   build_source_manifest(source_info, files) -> dict
+     顶层键序（11 个）：source_id, work_title, edition_note, technique_id, rights_status, release_policy, edition_part, source_assets, files, conversion, content_status
+     source_assets[] 键序（14 个）：page, path_ref, sha256, normalized_sha256, original_encoding, size, width, height, object_store, in_git, yaml_metadata, source_site, source_url, repo_commit
+       sha256：取自 files[].sha256（磁盘原始文件字节）；normalized_sha256：取自 files[].normalized_sha256，缺失时由 files[].data 现算
+       original_encoding：取自 files[].original_encoding
+       width/height：电子文本恒为 None
+       size：归一化后字节长度
+       object_store: "local"
+       in_git: false
+       repo_commit：无则 None
       files = []
       conversion = {"tool": M1_TOOL, "tool_version": M1_TOOL_VERSION, "inputs": [各 path_ref], "note": "M1 电子文本入库；不做清洗（§9）"}
       content_status = "machine_extracted"
@@ -72,12 +78,16 @@ tests:
     - test_read_source_files_missing_dir（synthetic_fixture: true）
     - test_read_source_files_reads_utf8（synthetic_fixture: true）
     - test_read_source_files_records_sha256（synthetic_fixture: true）
+    - test_read_source_files_sha256_is_original_file_bytes（synthetic_fixture: true，带 BOM 文件：sha256 == 磁盘原始字节哈希，且 != 归一化字节哈希；第 94 条 D4）
+    - test_read_source_files_records_normalized_sha256（synthetic_fixture: true，normalized_sha256 == 归一化 UTF-8 字节哈希；第 94 条 D4）
+    - test_read_source_files_records_original_encoding（synthetic_fixture: true，BOM → utf-8-sig、纯 UTF-8 → utf-8、GB18030 → gb18030；第 94 条 D4）
     - test_build_manifest_key_order（synthetic_fixture: true）
-    - test_build_manifest_source_assets_key_order（synthetic_fixture: true，逐字断言 12 键键序）
+    - test_build_manifest_source_assets_key_order（synthetic_fixture: true，逐字断言 14 键键序）
     - test_build_manifest_no_source_sites（synthetic_fixture: true，顶层不含 source_sites）
     - test_manifest_bytes_deterministic（synthetic_fixture: true）
+    - test_trace_chain_closes_to_source_file_sha256（synthetic_fixture: true，端到端：manifest.sha256 → 磁盘原始文件字节；manifest.normalized_sha256 → 冻结 raw_text 内容哈希；第 94 条 D4）
 verify:
-  - .venv/bin/python -m unittest discover -s pipeline/intake/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 19
+  - .venv/bin/python -m unittest discover -s pipeline/intake/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 24（TDD §2 intake 累计）
   - grep -rnE 'PIL|paddle|requests|openai|anthropic|httpx' pipeline/intake --include='*.py' | wc -l   # 0
   - grep -rn 'SafeDumper.add_representer' pipeline/intake --include='*.py' | wc -l   # 0
   - TDD §3 回归
