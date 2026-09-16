@@ -24,7 +24,7 @@ contract: |
       若 expected.first_review 有 decisions 列表，则 decisions 列表长度 == human_decisions 数
     legacy_workbench_seed：更新 BLOCKED 说明文案，去掉已过时的「前置缺失: M4 Knowledge Extraction」字样，如实写当前真正缺的前置：「前置缺失: M6 Review Workbench；pattern_knowledge_workbench 旧数据体未迁入（准入判定见 run_all 20.7）」
     upstream_real：更新 BLOCKED 说明文案，去掉已过时的「前置缺失: M4 Knowledge Extraction；M5 仍 scope=corpus_only，candidate 级校验未实现」字样，如实写当前真正缺的前置：「前置缺失: 真实 expert_verified 签发决定表由用户撰写（第 80 条签发决定表）；旧工作台数据迁入；M5 候选级校验未实现」
-  m6-data-fields.sh：期望 SUMMARY pass=12 fail=0 blocked=2、exit 2（BLOCKED 从 3 降至 2）
+  m6-data-fields.sh：期望 SUMMARY pass=13 fail=0 blocked=2、exit 2（BLOCKED 从 3 降至 2）
   pipeline/review/model.py：清理尾随空白（行尾空格/制表符）
 tests:
   test_acceptance.py: |
@@ -33,10 +33,10 @@ tests:
     - test_snapshot_projection_content_status_expert_verified（Snapshot approved 对象 content_status 为 expert_verified）
     - test_snapshot_projection_rejected_not_in_snapshot（reviewed_edition.rejected 的 entity_id 不得出现在 Snapshot knowledge 的任何对象 ID 中）
     - test_first_review_counts_match（expected.first_review.decisions 长度 == human_decisions 计数）
-    - test_shell_summary_pass_12_fail_0_blocked_2（subprocess，末行 SUMMARY pass=12 fail=0 blocked=2）
+    - test_shell_summary_pass_13_fail_0_blocked_2（subprocess，末行 SUMMARY pass=13 fail=0 blocked=2）
 verify:
   - .venv/bin/python -m unittest discover -s pipeline/review/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 151（145 + 6 新增具名用例）
-  - export LC_ALL=en_US.UTF-8; bash openspec/acceptance/m6-data-fields.sh; echo exit=$?    # 12 PASS + 2 BLOCKED + SUMMARY pass=12 fail=0 blocked=2；exit=2
+  - export LC_ALL=en_US.UTF-8; bash openspec/acceptance/m6-data-fields.sh; echo exit=$?    # 13 PASS + 2 BLOCKED + SUMMARY pass=13 fail=0 blocked=2；exit=2
   - bash openspec/acceptance/run_all.sh | tail -1   # SUMMARY pass=2 fail=1 blocked=8（本切片不改 run_all.sh）
   - git diff --check
 commit:

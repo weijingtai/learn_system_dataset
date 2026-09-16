@@ -1,11 +1,11 @@
-"""M6 m6-data-fields 验收（规格 §19.0:910 判据）：十四项判定（11 PASS + 3 BLOCKED）。
+"""M6 m6-data-fields 验收（规格 §19.0:910 判据）：十六项判定（12 PASS + 2 BLOCKED）。
 
 判定只读 Ledger 与 ``testing/data/expected_review.yaml``（或 ``--expected``）；**不**直接
 import ``gate`` / ``model`` / ``propagation`` / ``step`` / ``rework`` 的判定函数，也不信任
 ``close_review`` 返回的 Gate 报告，一律自行重算。驱动准备步骤的函数经 ``importlib`` 取用
 （属运行入口，不属判定）。
 
-依赖真实 ``expert_verified`` 签发与 M7 创世汇编的判定恒 BLOCKED（P7 / 第 61 条）。
+依赖真实 ``expert_verified`` 签发的判定恒 BLOCKED（P7 / 第 80 条签发决定表）。
 """
 
 import argparse
@@ -61,14 +61,13 @@ REVIEW_TOP_KEYS = {
 REVIEW_TARGET_KEYS = {"entity_kind", "entity_id", "artifact_revision_id"}
 
 BLOCKED_CHECKS = (
-    ("snapshot_projection", "前置缺失: M7 创世汇编"),
     (
         "legacy_workbench_seed",
         "前置缺失: M6 Review Workbench；pattern_knowledge_workbench 旧数据体未迁入（准入判定见 run_all 20.7）",
     ),
     (
         "upstream_real",
-        "前置缺失: M4 Knowledge Extraction；M5 仍 scope=corpus_only，candidate 级校验未实现；本次为非生产合成 M4 输入与合成决定",
+        "前置缺失: 真实 expert_verified 签发决定表由用户撰写（第 80 条签发决定表）；旧工作台数据迁入；M5 候选级校验未实现",
     ),
 )
 
@@ -659,6 +658,204 @@ def _check_rework_rereview_scope(world):
     return errors
 
 
+def _check_snapshot_projection(world) -> list[str]:
+    """真实 M6 产出驱动 M7 产出 Snapshot，独立核对投影（第 83 条）。"""
+    from pipeline.assembly.model import validate_snapshot_knowledge
+    from pipeline.assembly.step import run_m7 as _run_m7
+
+    errors = []
+    service = world["service"]
+    edition_part_id = world["edition_part_id"]
+
+    # 1. 查找 m6 StagePackage 与 reviewed_edition
+    if "rework_close" in world and world["rework_close"]:
+        m6_pkg_rev_id = world["rework_close"]["package_revision_id"]
+        re_rev_id = world["rework_close"]["reviewed_edition_revision_id"]
+    elif "first_close" in world and world["first_close"]:
+        m6_pkg_rev_id = world["first_close"]["package_revision_id"]
+        re_rev_id = world["first_close"]["reviewed_edition_revision_id"]
+    else:
+        row = service.store.conn.execute(
+            "SELECT ar.artifact_revision_id FROM artifact_revisions ar "
+            "JOIN stage_packages sp ON ar.artifact_id = sp.artifact_id "
+            "WHERE sp.stage='m6' ORDER BY ar.rowid DESC LIMIT 1"
+        ).fetchone()
+        if not row:
+            return ["未找到 m6 StagePackage"]
+        m6_pkg_rev_id = row[0]
+        pkg_doc = _doc(service, m6_pkg_rev_id) or {}
+        re_rev_id = pkg_doc.get("payload", {}).get("reviewed_edition_revision_id")
+        if not re_rev_id:
+            return ["m6 StagePackage payload 缺少 reviewed_edition_revision_id"]
+
+    re_doc = _doc(service, re_rev_id)
+    if not re_doc:
+        return ["未找到 reviewed_edition: %s" % re_rev_id]
+
+    # 2. 运行或获取 Snapshot 修订
+    snap_rev_id = world.get("snapshot_revision_id")
+    if not snap_rev_id:
+        try:
+            res = _run_m7(
+                service, edition_part_id, technique_id="qizheng",
+                reviewed_package_revision_ids=[m6_pkg_rev_id],
+                base_snapshot_revision_id=None,
+            )
+            if res.get("status") != "succeeded":
+                return ["run_m7 未成功: %r" % res.get("failed_check")]
+            snap_rev_id = res["snapshot_revision_id"]
+            world["snapshot_revision_id"] = snap_rev_id
+        except Exception as exc:
+            return ["run_m7 异常: %s" % exc]
+
+    snap_rev = service.get_revision(snap_rev_id)
+    if not snap_rev:
+        return ["未找到 Snapshot 修订: %s" % snap_rev_id]
+    snap_doc = json.loads(service.objects.get(snap_rev["sha256"]).decode("utf-8"))
+    k = snap_doc.get("knowledge", snap_doc)
+
+    # 独立核对四项（不复用 run_m7 返回的 gate/report）：
+    # 1. reviewed_edition.approved 的 entity_id 集合，与 Snapshot knowledge 中对应对象的 ID 集合按 kind 分别比对
+    approved_by_kind = {"assertion": set(), "pattern": set(), "school_view": set(), "concept": set()}
+    for a in re_doc.get("approved", []):
+        kind = a.get("kind")
+        if kind in approved_by_kind:
+            approved_by_kind[kind].add(a["entity_id"])
+        else:
+            errors.append("approved 包含未知 kind: %s" % kind)
+
+    snap_assertion_ids = {a["assertion_id"] for a in k.get("assertions", [])}
+    snap_pattern_ids = {p["pattern_id"] for p in k.get("patterns", [])}
+    snap_sv_ids = {sv["school_view_id"] for sv in k.get("school_views", [])}
+    snap_concept_ids = {c["concept_id"] for c in k.get("concepts", [])}
+
+    if approved_by_kind["assertion"] != snap_assertion_ids:
+        errors.append(
+            "approved assertions 与 Snapshot assertions 不符: approved=%s vs snap=%s"
+            % (sorted(approved_by_kind["assertion"]), sorted(snap_assertion_ids))
+        )
+    if approved_by_kind["pattern"] != snap_pattern_ids:
+        errors.append(
+            "approved patterns 与 Snapshot patterns 不符: approved=%s vs snap=%s"
+            % (sorted(approved_by_kind["pattern"]), sorted(snap_pattern_ids))
+        )
+    if approved_by_kind["school_view"] != snap_sv_ids:
+        errors.append(
+            "approved school_views 与 Snapshot school_views 不符: approved=%s vs snap=%s"
+            % (sorted(approved_by_kind["school_view"]), sorted(snap_sv_ids))
+        )
+    if approved_by_kind["concept"] != snap_concept_ids:
+        errors.append(
+            "approved concepts 与 Snapshot concepts 不符: approved=%s vs snap=%s"
+            % (sorted(approved_by_kind["concept"]), sorted(snap_concept_ids))
+        )
+
+    # 2. Snapshot 修订中 evidence_links 的 source_span_id 与 reviewed_edition.evidence_links 一致
+    re_evidence = {e["source_span_id"] for e in re_doc.get("evidence_links", [])}
+    snap_evidence = set()
+    for item in (k.get("assertions", []) + k.get("patterns", []) + k.get("school_views", []) + k.get("concepts", [])):
+        for ev in item.get("evidence", []):
+            span_id = ev.get("source_span_id")
+            if span_id:
+                snap_evidence.add(span_id)
+    if re_evidence != snap_evidence:
+        errors.append(
+            "evidence_links 不一致: reviewed_edition=%s vs Snapshot=%s"
+            % (sorted(re_evidence), sorted(snap_evidence))
+        )
+
+    # 3. Snapshot 修订中 content_status 在 approved 对象上投影为 expert_verified
+    for a in k.get("assertions", []):
+        if a["assertion_id"] in approved_by_kind["assertion"]:
+            if a.get("content_status") != "expert_verified":
+                errors.append(
+                    "approved assertion %s content_status 非 expert_verified: %s"
+                    % (a["assertion_id"], a.get("content_status"))
+                )
+    for p in k.get("patterns", []):
+        if p["pattern_id"] in approved_by_kind["pattern"]:
+            if p.get("content_status") != "expert_verified":
+                errors.append(
+                    "approved pattern %s content_status 非 expert_verified: %s"
+                    % (p["pattern_id"], p.get("content_status"))
+                )
+    for sv in k.get("school_views", []):
+        if sv["school_view_id"] in approved_by_kind["school_view"]:
+            if sv.get("content_status") != "expert_verified":
+                errors.append(
+                    "approved school_view %s content_status 非 expert_verified: %s"
+                    % (sv["school_view_id"], sv.get("content_status"))
+                )
+    for c in k.get("concepts", []):
+        if c["concept_id"] in approved_by_kind["concept"]:
+            if c.get("content_status") != "expert_verified":
+                errors.append(
+                    "approved concept %s content_status 非 expert_verified: %s"
+                    % (c["concept_id"], c.get("content_status"))
+                )
+
+    # 4. reviewed_edition.rejected 的 entity_id 不得出现在 Snapshot knowledge 的任何对象 ID 中
+    rejected_ids = {r["entity_id"] for r in re_doc.get("rejected", [])}
+    all_snap_ids = snap_assertion_ids | snap_pattern_ids | snap_sv_ids | snap_concept_ids
+    leaked = rejected_ids & all_snap_ids
+    if leaked:
+        errors.append("rejected entity_id 出现在 Snapshot 中: %s" % sorted(leaked))
+
+    # 5. Schema 校验
+    try:
+        validate_snapshot_knowledge(k)
+    except Exception as exc:
+        errors.append("validate_snapshot_knowledge 失败: %s" % exc)
+
+    return errors
+
+
+def _check_first_review_counts(world) -> list[str]:
+    """比对金标 expected.first_review.decisions 计数与实际 m6 运行的 Checkpoint 中 human_decisions 计数。"""
+    errors = []
+    service = world["service"]
+    expected = world.get("expected", {})
+    first_review = expected.get("first_review", {})
+    exp_decisions = first_review.get("decisions")
+    if exp_decisions is None:
+        return errors
+
+    if isinstance(exp_decisions, list):
+        expected_count = len(exp_decisions)
+    elif isinstance(exp_decisions, int):
+        expected_count = exp_decisions
+    else:
+        errors.append("expected.first_review.decisions 类型未知: %r" % type(exp_decisions))
+        return errors
+
+    # 统计首审关联 step runs 的 Checkpoints 中 human_decisions（review_decision 计数）
+    first_steps = set()
+    if "first_open" in world and world["first_open"]:
+        first_steps.add(world["first_open"]["step_run_id"])
+
+    if "recovery" in world and world["recovery"]:
+        first_steps.add(world["recovery"]["step_run_id"])
+    if "first_close" in world and world["first_close"]:
+        first_steps.add(world["first_close"]["step_run_id"])
+
+    cps = service.list_checkpoints(world["edition_part_id"], "m6")
+    first_cps = [cp for cp in cps if cp.get("step_run_id") in first_steps]
+    human_decisions = set()
+    for cp in first_cps:
+        for rev in cp.get("content", {}).get("human_decisions") or []:
+            doc = _doc(service, rev)
+            if doc and doc.get("event_kind") == "review_decision":
+                human_decisions.add(rev)
+    human_count = len(human_decisions)
+
+    if expected_count != human_count:
+        errors.append(
+            "first_review.decisions 计数 %d != human_decisions 计数 %d"
+            % (expected_count, human_count)
+        )
+    return errors
+
+
 COMPUTED_CHECKS = (
     ("inputs_frozen", _check_inputs_frozen),
     ("queue_from_upstream", _check_queue_from_upstream),
@@ -671,6 +868,8 @@ COMPUTED_CHECKS = (
     ("precise_invalidation", _check_precise_invalidation),
     ("no_cross_module_status_change", _check_no_cross_module_status_change),
     ("rework_rereview_scope", _check_rework_rereview_scope),
+    ("snapshot_projection", _check_snapshot_projection),
+    ("first_review_counts", _check_first_review_counts),
 )
 
 

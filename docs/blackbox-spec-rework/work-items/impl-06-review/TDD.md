@@ -35,7 +35,7 @@ test ! -e openspec/acceptance/m6-data-fields.sh; echo $?                    # K1
 | 09 | 新增用例全 ERROR | `$TR` OK ≥ 135 |
 | 10 | WITHDRAWN（第 61 条：Snapshot 归 M7）——不派发 | — |
 | 11 | `m6-data-fields.sh` 不存在（exit 127）；新增用例全 ERROR | `$TR` OK ≥ 145；脚本 `SUMMARY pass=11 fail=0 blocked=3`、exit 2 |
-| 12 | `snapshot_projection` 为 BLOCKED；新增用例全 ERROR | `$TR` OK ≥ 151；脚本 `SUMMARY pass=12 fail=0 blocked=2`、exit 2 |
+| 12 | `snapshot_projection` 为 BLOCKED；新增用例全 ERROR | `$TR` OK ≥ 151；脚本 `SUMMARY pass=13 fail=0 blocked=2`、exit 2 |
 
 阈值 = 各 ACT 具名用例（`- test_` 行）实际累计：23/48/63/71/86/98/107/109(06a，第 72 条)/121/124(09a，第 74 条)/135/136(09b，第 75 条)/145/151(ACT 12，第 83 条)（F4；ACT 10 WITHDRAWN 不计）。
 
