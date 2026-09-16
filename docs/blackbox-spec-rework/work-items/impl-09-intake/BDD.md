@@ -6,7 +6,7 @@
 
 - 1.1 Given 合法 source_info（含 11 个必填键：source_id, work_title, edition_note, technique_id, rights_status, release_policy, edition_part, source_site, source_url, file_sha256, pages + 可选 repo_commit/yaml_metadata），When `load_source`，Then 返回键序固定的新 dict。Given 缺必填键、非法 URL、非法 SHA-256、重复页名、表外键，Then 分别以 SCH_001 / SCH_002 拒绝。
 - 1.2 Given 合成文本文件（UTF-8），When `read_source_files`，Then 每项含 page, data, sha256, size。Given 缺文件，Then 一次性抛出 `SourceAssetMissing`，paths 按序列出全部缺失路径。
-- 1.3 Given 合法 source_info 与文件列表，When `build_source_manifest`，Then 顶层键序固定（10 个键）；source_assets 键序固定（12 个键：page, path_ref, sha256, size, width, height, object_store, in_git, yaml_metadata, source_site, source_url, repo_commit）；顶层不含 source_sites；files == []。
+- 1.3 Given 合法 source_info 与文件列表，When `build_source_manifest`，Then 顶层键序固定（11 个键）；source_assets 键序固定（12 个键：page, path_ref, sha256, size, width, height, object_store, in_git, yaml_metadata, source_site, source_url, repo_commit）；顶层不含 source_sites；files == []。
 - 1.4 Given dump_manifest_yaml 写出后 safe_load 回来，Then 字节相同；全局 SafeDumper 未被修改。
 
 ## 2. M1 事务（ACT 01）

@@ -110,3 +110,40 @@ G0-04 `ACCEPTED`。
 - 观察（建议，不阻断）：`acceptance.py:405` 在 `no_model_calls` 的 AST 扫描中对解析失败的文件 `except Exception: continue`，会静默跳过不可解析文件，下一波宜改为计 FAIL；金标 JSON 为与 Snapshot 规范字节逐字比对而不带合成标记，其合成属性由 `tests/data/genesis_package.json` 的 `synthetic` 标记承载；金标由执行方据实现产出落盘，同错同过风险由独立 Gate 与主 Agent 矩阵外篡改（§5.3、本节）兜底。
 
 G0-05 `ACCEPTED`。**impl-07 创世薄切片 G0（G0-01、G0-01a、G0-02～G0-05）全部 `ACCEPTED`**；完整增量汇编（§1–§8）仍 `DEFERRED`。真实 M6 上游接入待 impl-06 返工 06a 验收后另行复核 `upstream_m6_real`。
+
+### 5.6 G0-06（2026-09-15，主 Agent 独立验收，`git archive 0ef4105` 干净树）
+
+判定：**ACCEPTED**。
+
+改动范围（5 文件）：`act/g0-06.yaml`、`pipeline/assembly/acceptance.py`、`pipeline/assembly/tests/test_acceptance.py`、`pipeline/review/testing/data/m4_candidates.yaml`、`pipeline/review/testing/upstream_stub.py`。
+
+第 84 条四条约束逐条核对：
+
+| 约束 | 判据 | 实测 |
+|---|---|---|
+| (1) 不动 `pipeline/review/**` 生产代码（P9） | 本次改到的 `pipeline/review/` 文件必须全在 `testing/` 下 | 越界文件 **0** |
+| (1) 桩只增字段、不改既有键值 | `git diff` 在 `pipeline/review/testing` 下的删行数为 0 | 删行数 **0**（`m4_candidates.yaml` +2 行、`upstream_stub.py` +1 行，纯增量） |
+| (2) 补出字段依真实 M4 输出契约 | `claim_refs`（断言号列表）、`changes_current_judgment`（布尔）、`counts.concept_mentions`（整数）形态与 `assemble.py:565/567` 一致 | 一致；篡改测试证明三者皆为受检字段（见下） |
+| (3) 回归绿、`pipeline/review/tests` 不减 | ≥145 且全过；`m6-data-fields.sh` 在 act/12 前保持 `pass=11 fail=0 blocked=3` exit 2 | review `Ran 145 OK`；`m6-data-fields.sh SUMMARY pass=11 fail=0 blocked=3` exit=2 |
+| (4) 新增防回归具名用例 | `test_stub_candidate_set_conforms_to_m7_validate` 存在 | 存在 |
+
+g0-06 本体：
+
+- 七条具名用例全部存在（`test_upstream_m6_real_passes_and_snapshot_has_patterns`、`..._independent_of_run_m7_gate`、`..._m6_package_immutable`、`test_no_model_calls_counts_parse_failures`、`..._synthetic_fixture_true`、`test_shell_summary_pass_11_fail_0_blocked_5`、`test_stub_candidate_set_conforms_to_m7_validate`）。
+- `COMPUTED_CHECKS` 11 项（含 `upstream_m6_real`），`BLOCKED_CHECKS` 5 项。
+- `check_upstream_m6_real` 独立性核对通过：判据取自 Ledger 回读的 Snapshot 文档与 `validate_snapshot_knowledge`，未复用 `run_m7` 返回的 gate/report（第 83 条）。
+- `_prepare_with_real_m6` 确为真实写路径：`upstream_stub.seed_upstream` 驱动真实 M3/M4/M5 → `open_review`/`record_decision`/`close_review` → 真实 m6 StagePackage → `run_m7`；人工决定仍为合成替身，不计真实 `expert_verified`。
+- `check_no_model_calls` 解析失败已计入 FAIL（`errors.append("%s 解析失败: %s")`），不再 `continue` 静默跳过。
+
+矩阵外篡改（主 Agent 自建，验证判定非空转）：
+
+| 篡改 | 期望 | 实测 |
+|---|---|---|
+| T1 删 `m4_candidates.yaml` 的 `claim_refs` | `upstream_m6_real` FAIL | `FAIL upstream_m6_real SchemaViolation: school_view.claim_refs 必须为列表`；`SUMMARY pass=10 fail=1 blocked=5` |
+| T2 删 `upstream_stub.py` 的 `concept_mentions` | `upstream_m6_real` FAIL | `FAIL upstream_m6_real SchemaViolation: candidate_set 缺必填键: ['concept_mentions']`；`SUMMARY pass=10 fail=1 blocked=5` |
+| T3 注入语法错误 `.py` 进 `pipeline/assembly` | `no_model_calls` FAIL | `FAIL no_model_calls _tamper_broken.py 解析失败: invalid syntax`；`SUMMARY pass=10 fail=1 blocked=5` |
+| 还原后复跑 | 回到基线 | `SUMMARY pass=11 fail=0 blocked=5` |
+
+测试与门禁：`pipeline/assembly/tests` `Ran 96 OK`；`pipeline/review/tests` `Ran 145 OK`；`m7-assembler.sh SUMMARY pass=11 fail=0 blocked=5` exit=2；`check_interfaces.py I00-IF SUMMARY pass=36 fail=0`；`schemas/verify.sh` exit=0；`run_all.sh SUMMARY pass=2 fail=1 blocked=8`（基线不变）。
+
+执行方回报纪律：g0-06 完成后**未**在回报写完成段落（回报末尾仍停在第 84 条的待裁决），缺陷由主 Agent 验收时自行发现范围与结论，记入第 86 条同类问题。

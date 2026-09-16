@@ -1,6 +1,6 @@
 package: blackbox-impl-09-electronic-text
 title: M1 电子文本入库 + M2 电子文本清洗（§9、§10、G7-RULINGS §76–§83）
-status: DRAFT
+status: READY_FOR_REVIEW   # 阶段 A 起草经主 Agent 独立验收 2026-09-15（ACCEPTANCE §3.1，`7031e42` + 主 Agent D5 改正）；依 G7-RULINGS §1 P1–P9、§9.18 第 76–83 条、§9.19 第 85–86 条；未经实现
 executor_groups:
   J1: [impl-09/00]                                        # M1 纯函数：source/manifest/serialize/errors
   J2: [impl-09/01]                                        # M1 入库事务：step.py + __main__

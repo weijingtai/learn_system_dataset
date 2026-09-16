@@ -40,7 +40,7 @@ contract: |
       返回 bytes 为 UTF-8 编码后的字节（统一编码）
   manifest.py（纯函数）：
     build_source_manifest(source_info, files) -> dict
-      顶层键序（10 个）：source_id, work_title, edition_note, technique_id, rights_status, release_policy, edition_part, source_assets, files, conversion, content_status
+      顶层键序（11 个）：source_id, work_title, edition_note, technique_id, rights_status, release_policy, edition_part, source_assets, files, conversion, content_status
       source_assets[] 键序（12 个）：page, path_ref, sha256, size, width, height, object_store, in_git, yaml_metadata, source_site, source_url, repo_commit
         width/height：电子文本恒为 None
         size：文件字节长度

@@ -15,7 +15,7 @@ contract: |
       1. manifest_exists：m1 StagePackage 存在
       2. manifest_shape：manifest 内容键序合法
       3. raw_text_exists：raw_text 修订存在
-      4. source_sites：source_sites 字段存在且非空
+      4. source_registration：source_assets[] 每项的 source_site 与 source_url 均非空（来源以 source_assets[] 逐份登记为权威，顶层无 source_sites，第 85 条）
       5. gated_by_m2：m2 未阻断
   pipeline/digitization/acceptance.py：
     check_m2_sanitization(ledger_dir: Path, fixture_path: Path | None) -> list[dict]
