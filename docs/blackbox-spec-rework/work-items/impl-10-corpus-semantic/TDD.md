@@ -1,65 +1,97 @@
-# TDD：impl-10 M3 语义层
+# TDD：impl-10 M3 电子文本偏移锚点 + 语义层
 
-`export LC_ALL=en_US.UTF-8`；`PY=.venv/bin/python`；`TL="$PY -m unittest discover -s pipeline/ledger/tests -t ."`；`TC="$PY -m unittest discover -s pipeline/corpus_compiler/tests -t ."`；`TS="$PY -m unittest discover -s pipeline/corpus_compiler/semantic/tests -t ."`；`SFX=pipeline/corpus/_fixture/mini_ed01_semantic`；在仓库根运行。
-
-## 0. 开工基线（J1 与 J2 各一次）
+## 0. 执行环境与基线命令
 
 ```bash
-grep -c '^状态：`ACCEPTED`' docs/blackbox-spec-rework/work-items/impl-02-corpus/README.md   # 1（否则停手：impl-02 未验收）
-git status --short pipeline/corpus_compiler pipeline/ledger pipeline/corpus/_fixture openspec/acceptance   # 空
-ls pipeline/corpus_compiler/semantic 2>/dev/null | grep -v __pycache__ | wc -l   # J1: 0；J2: 10（__init__ errors proposer proposals rules anchors reconcile assemble semantic_gate tests）
-ls $SFX 2>/dev/null | wc -l                                                     # J1: 0；J2: 8
-bash docs/blackbox-spec-rework/verify-T.sh | tail -1                            # FAIL 合计: 0
-bash openspec/schemas/verify.sh >/dev/null; echo $?                             # 0
-$TL 2>&1 | grep -E '^(Ran|OK|FAILED)'                                           # OK
-$TC 2>&1 | grep -E '^(Ran|OK|FAILED)'                                           # OK，≥ 67（记下精确值 N_TC）
-bash openspec/acceptance/m3-coverage.sh | tail -1; echo exit=$?                 # SUMMARY pass=8 fail=0 blocked=1；exit=2
-bash openspec/acceptance/run_all.sh | tail -1                                   # SUMMARY pass=2 fail=1 blocked=8
-shasum -a 256 pipeline/corpus/_fixture/mini_ed01/spans.yaml                     # ec6d77b90aa1408d040465babc28a81f59aadf6d6edd9ba8db66ff8ead0b44ef
-git grep -c '\bsem_' -- pipeline openspec | wc -l                               # 0（D1 选 A 时）
+cd /Users/jingtaiwei/Git/Public/learn_system && export LC_ALL=en_US.UTF-8
+PY=.venv/bin/python
+TL="$PY -m unittest discover -s pipeline/ledger/tests -t ."
+TC="$PY -m unittest discover -s pipeline/corpus_compiler/tests -t ."
+TS="$PY -m unittest discover -s pipeline/corpus_compiler/semantic/tests -t ."
+
+# 基线门禁
+python3 docs/blackbox-spec-rework/work-items/impl-00-interfaces/check_interfaces.py | tail -1   # I00-IF SUMMARY pass=36 fail=0
+bash openspec/acceptance/run_all.sh | tail -1                                                 # SUMMARY pass=2 fail=1 blocked=8
+bash openspec/schemas/verify.sh >/dev/null; echo $?                                          # 0
+$TL 2>&1 | grep -E '^(Ran|OK|FAILED)'                                                        # OK
+git diff --check
 ```
+
+---
 
 ## 1. 逐 ACT 的 Red → Green
 
-| ACT | Red（实现前） | Green（实现后） |
-|---|---|---|
-| 00 | `bash $SFX/verify.sh` → exit 127 | exit 0，末行 `SEMANTIC FIXTURE OK`；五类副本篡改各 exit 1；生成器重放 `diff -r` 无输出 |
-| 01 | `$TS` → ImportError | `$TS` OK，≥ 16 |
-| 02 | 新增用例全 ERROR | `$TS` OK，≥ 32；`compile_semantic` 字节 == `$SFX/semantic_spans.yaml` |
-| 03 | 新增用例全 ERROR | `$TS` OK，≥ 52 |
-| 04 | 新增用例全 ERROR | `$TS` OK，≥ 64；`$TC` == N_TC 且 OK |
-| 05 | 新增用例全 ERROR | `$TS` OK，≥ 78；CLI 三段式跑通 |
-| 06 | `m3-coverage.sh` exit 2；新增用例 ERROR | `$TS` OK，≥ 84；`$TC` OK（== N_TC + 2）；`m3-coverage.sh` → `SUMMARY pass=9 fail=0 blocked=0`、exit 0 |
+| ACT | 组 | Red（实现前） | Green（实现后，权威引用 §2 累计列） |
+|---|---|---|---|
+| 00 | L1 | `.venv/bin/python -m unittest discover -s pipeline/corpus_compiler/tests -p 'test_offset_anchors.py' -t .` → `ImportError`（全红） | OK，≥ 18 |
+| 01 | L1 | `.venv/bin/python -m unittest discover -s pipeline/corpus_compiler/tests -p 'test_*.py' -t .` → 新增用例 `ImportError` | OK，≥ 34 |
+| 02 | L2 | `.venv/bin/python -m unittest discover -s pipeline/corpus_compiler/tests -p 'test_step_offset.py' -t .` → `ImportError` | OK，≥ 52 |
+| 03 | L2 | `.venv/bin/python -m unittest discover -s pipeline/corpus_compiler/tests -p 'test_gate_offset.py' -t .` → `ImportError` | OK，≥ 68 |
+| 04 | L3 | `.venv/bin/python -m unittest discover -s pipeline/corpus_compiler/semantic/tests -p 'test_*.py' -t .` → `ImportError` | OK，≥ 86 |
+| 05 | L3 | `.venv/bin/python -m unittest discover -s pipeline/corpus_compiler/semantic/tests -p 'test_*.py' -t .` → 新增用例 `ImportError` | OK，≥ 104 |
+| 06 | L3 | `.venv/bin/python -m unittest discover -s pipeline/corpus_compiler/semantic/tests -p 'test_semantic_gate.py' -t .` → `ImportError` | OK，≥ 122 |
+| 07 | L4 | `.venv/bin/python -m unittest discover -s pipeline/corpus_compiler/tests -p 'test_acceptance.py' -t .` → 新增用例 `ImportError` | OK，≥ 134；`m3-coverage.sh` exit 2（BLOCKED） |
 
-## 2. 主 Agent 验收附加判据（执行者不需跑，但不得让其失败）
+---
+
+## 2. 用例阈值计算与权威累计表（第 86 条）
+
+> **唯一权威出处声明（第 86 条）**：
+> 本表「累计用例阈值」列为工作包全部用例计数的**唯一权威依据**。
+> §1 的 Green 列以及各 `act/*.yaml` 中 `verify` 注释里的期望数字，一律且必须精确引用本表数值，绝不允许各写各的。
+
+### 2.1 阈值计算过程
+
+| ACT | 组 | 模块与用例文件 | 本 ACT 具名用例实数 | 累计算术公式 | 累计用例阈值 |
+|---|---|---|---|---|---|
+| `impl-10/00` | L1 | `test_offset_anchors.py` | 18 | 18 | **18** |
+| `impl-10/01` | L1 | `test_text_compiler.py` | 16 | 18 + 16 | **34** |
+| `impl-10/02` | L2 | `test_step_offset.py` | 18 | 34 + 18 | **52** |
+| `impl-10/03` | L2 | `test_gate_offset.py` | 16 | 52 + 16 | **68** |
+| `impl-10/04` | L3 | `test_offset_rules.py`, `test_proposer.py`, `test_proposals.py` (3+9+6) | 18 | 68 + 18 | **86** |
+| `impl-10/05` | L3 | `test_offset_assemble.py`, `test_review.py` (8+10) | 18 | 86 + 18 | **104** |
+| `impl-10/06` | L3 | `test_semantic_gate.py` | 18 | 104 + 18 | **122** |
+| `impl-10/07` | L4 | `test_acceptance.py` | 12 | 122 + 12 | **134** |
+
+**总计具名用例数**：134 条。
+
+---
+
+## 3. 回归与全量门禁（每 ACT 完成后必须执行）
 
 ```bash
-# 签名逐字：act/01–06 contract 中的函数名、参数名、返回键、检查名、artifact_type、失败检查名在实现中逐字存在
-# 金标：Ledger 中 semantic_spans 修订字节 == $SFX/semantic_spans.yaml；两次独立 run→decide→resume（两个临时 Ledger）字节相同
-# 金标独立性：$SFX/tools/build_semantic_fixture.py 不 import pipeline.*
-# Gate 独立：semantic_gate.py 不 import compiler/serialize/rules/proposals/proposer/reconcile/anchors/assemble
-# 验收独立：semantic/acceptance.py 不 import semantic_gate/assemble/reconcile/anchors/rules，且不读 run 返回的 gate 报告作为判定依据
-# 零网络：grep -rE '^\s*(import|from) (socket|urllib|http|requests|httpx|openai|anthropic)' pipeline/corpus_compiler/semantic --include='*.py' | grep -v '/tests/' → 0
-# 开关唯一：grep -rn 'LEARN_SYSTEM_ALLOW_MODEL_CALLS' pipeline --include='*.py' | grep -v '/tests/' → 只在 semantic/proposer.py
-# 录制诚实：$SFX/recordings.yaml 顶层 synthetic: true 与 origin: hand_authored_replay_fixture
-# 结构层零改动：git diff --stat 相对开工基线，pipeline/corpus_compiler 下只有 acceptance.py 与 tests/test_acceptance.py 两个已有文件变化（ACT 06）
-# 写入原子性：begin_step_run 之前被拒时 artifact_revisions、step_runs、audit_log 行数不变
-# 矩阵外篡改（主 Agent 自定，不预告）：录制、裁决事件对象、审核队列对象、语义金标、Checkpoint、StagePackage、配置修订各至少 1 例
-# 退出码：semantic acceptance 注入异常 → 1；缺 recordings.yaml → 3；m3-coverage.sh 在语义副本假 verify.sh 下 → 1
+# 1. 接口与闭集检查
+python3 docs/blackbox-spec-rework/work-items/impl-00-interfaces/check_interfaces.py | tail -1   # 必须 fail=0
+
+# 2. 全量回归基线（恒不变）
+bash openspec/acceptance/run_all.sh | tail -1                                                 # 恒为 SUMMARY pass=2 fail=1 blocked=8
+
+# 3. Schemas 语法校验
+bash openspec/schemas/verify.sh >/dev/null; echo $?                                          # 恒为 0
+
+# 4. 单元测试全量
+.venv/bin/python -m unittest discover -s pipeline/ledger/tests -t .                          # OK
+.venv/bin/python -m unittest discover -s pipeline/corpus_compiler/tests -t .                 # OK
+.venv/bin/python -m unittest discover -s pipeline/corpus_compiler/semantic/tests -t .        # OK（L3 起）
+
+# 5. 代码与 Git 规范
+git diff --check
+git status --short | grep -v '^??' | grep -vE 'pipeline/corpus_compiler|openspec/acceptance/m3-coverage.sh'   # 必须为空
 ```
 
-## 3. 回归（每个 ACT 后）
+---
 
-```bash
-bash docs/blackbox-spec-rework/verify-T.sh | tail -1
-bash openspec/schemas/verify.sh >/dev/null; echo $?
-$TL 2>&1 | grep -E '^(Ran|OK|FAILED)'
-$TC 2>&1 | grep -E '^(Ran|OK|FAILED)'
-$TS 2>&1 | grep -E '^(Ran|OK|FAILED)'      # ACT 01 起
-bash pipeline/corpus/_fixture/mini_ed01/verify.sh | tail -1
-bash $SFX/verify.sh | tail -1               # ACT 00 起
-bash openspec/acceptance/m3-coverage.sh | tail -1   # ACT 06 前：pass=8 blocked=1；ACT 06 后：pass=9 blocked=0
-bash openspec/acceptance/run_all.sh | tail -1       # 恒为 SUMMARY pass=2 fail=1 blocked=8
-git diff --check
-git status --short | grep -v '^??' | grep -vE 'pipeline/corpus_compiler/semantic|pipeline/corpus/_fixture/mini_ed01_semantic|pipeline/corpus_compiler/acceptance.py|pipeline/corpus_compiler/tests/test_acceptance.py|openspec/acceptance/m3-coverage.sh'   # 空
+## 附录：OCR 路线 TDD（第二版 OCR）
+
+> **以下内容为原 OCR / 页码路线草稿，全部标记为 `DEFERRED（第二版 OCR）`，不在第一版电子文本实现中启用。**
+
+```text
+原 OCR 路线 TDD（留第二版参考）：
+- 原 ACT 00: mini_ed01_semantic 宿主校验（exit 0）
+- 原 ACT 01: Proposer Adapter 接口与回放（≥ 16）
+- 原 ACT 02: 规则、字框对齐锚点与 assemble（≥ 32）
+- 原 ACT 03: 独立语义 Gate（≥ 52）
+- 原 ACT 04: run_m3_full 进入人工队列（≥ 64）
+- 原 ACT 05: 人工裁决落盘 Checkpoint 与恢复（≥ 78）
+- 原 ACT 06: 验收九子项与 m3-coverage.sh exit 0（≥ 84）
 ```

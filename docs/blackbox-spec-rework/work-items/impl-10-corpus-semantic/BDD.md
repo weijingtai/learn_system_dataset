@@ -1,61 +1,212 @@
-# BDD：impl-10 M3 语义层
+# BDD：impl-10 M3 电子文本偏移锚点 + 语义层
 
-fixture 场景固定（ACT 00 手写录制）：两个窗口
-- `sanche_w001` = `ss_sanche_ed01_p0001_s04`「三辰通載三十卷宋錢如璧撰據静嘉堂藏」：A、B 都切成 `[0,7) [7,12) [12,17)`（理由不同）→ 一致采纳
-- `sanche_w002` = `ss_sanche_ed01_p0003_s13`「論星曜合照命宮論星曜對照命宮」：A 切 `[0,7) [7,14)`，B 给 `[0,14)` → 分歧 → 人工选 `proposal_a`
+## 1. 概述与场景背景
 
-期望：46 条 SemanticSpan（page_001 6 条，page_003 40 条），glyphbox_level 42 / offset_level 4，窗口 2、分歧 1、人工裁决 1，m3 Checkpoint 10 个。
+本工作包覆盖第一版电子文本（以《乾元秘旨》电子文本片段为验收宿主原型）的 M3 编译体系：
+- 消费 M2 产出的四类产物（`raw_text`、`cleaned_text_revision`、`deterministic_patch_set`、`sanitization_report`）；
+- 产出带双向偏移锚点的 `corpus_spans`，片段 ID 格式为 `ss_<work>_ed<NN>_o<NNNNNNN>`；
+- 在结构片段之上构建语义层，片段 ID 格式为 `sem_<work>_ed<NN>_o<NNNNNNN>`；
+- 证据级别恒为 `offset_level`，发布级别签发 `INTERNAL_DEMO` / `DEV_SEARCH`；
+- 原有 OCR 扫描页路线全部保留在附录并标记为 `DEFERRED（第二版 OCR）`。
 
-## 0. 语义金标宿主（ACT 00）
+---
 
-- 0.1 Given `mini_ed01_semantic`，When 跑其 `verify.sh`，Then 全部 PASS、末行 `SEMANTIC FIXTURE OK`、exit 0。
-- 0.2 Given 删掉生成物后重跑生成器，Then 与仓库内文件逐字节相同。
-- 0.3 Given 副本里 `recordings.yaml` 的 `synthetic` 改成 false、某条 `window_text_sha256` 改一个字符、`human_decisions.yaml` 裁决了非分歧窗口、`semantic_spans.yaml` 改一个字，或 `mini_ed01/spans.yaml` 的钉住哈希不符，Then 对应检查 FAIL、exit 1。
+## 2. 核心场景（第一版电子文本）
 
-## 1. Proposer 与提议解析（ACT 01）
+### 场景 1：偏移锚点与 DeterministicPatchSet 双向换算（L1 / act/00）
 
-- 1.1 Given 回放录制，When A、B 对同一窗口 `propose`，Then 返回字节等于录制 `response_text`，`model_id` 分别为 `replay_model_a`/`replay_model_b`。
-- 1.2 Given B 的请求字节，Then 不含 A 的响应内容、不含其他窗口原文（初次互不可见，§12.2）。
-- 1.3 Given 录制缺该窗口，Then `RecordingMiss`；录制 `synthetic` 不为 true、`template_id` 不符、键重复，Then `RecordingSetInvalid`。
-- 1.4 Given 未设 `LEARN_SYSTEM_ALLOW_MODEL_CALLS=1`，When 构造 `LiveProposer`，Then `ModelCallDisabled`；设了之后调用 `propose`，Then 仍抛 `ModelCallDisabled`；整个过程没有任何 socket 连接。
-- 1.5 Given 响应非 JSON、缺 `segments`、offset 为 bool/负数/越界、有缺口、有重叠、有空片段，Then `parse_proposal` 返回 `valid: false` 并给出对应 `error`；响应里带的 `text` 字段被忽略，片段原文由程序截取。
-- 1.6 Given 两份合法且边界相同的提议，Then `agreed`（理由不同不影响）；边界不同，Then `disputed/boundary_mismatch`；任一非法，Then `disputed/proposal_invalid`。
+- **1.1 基础区间双向映射**
+  - **Given** 原始文本 `raw_text` 与有序补丁集 `patches`；
+  - **When** 调用 `map_raw_to_cleaned(patches, raw_start, raw_end)`；
+  - **Then** 能够确定性计算出在清洗后文本中的对应区间 `(start_offset, end_offset)`；
+  - **When** 调用 `map_cleaned_to_raw(patches, start_offset, end_offset)`；
+  - **Then** 映射结果严格等于原始区间 `(raw_start, raw_end)`（正反向可逆）。
 
-## 2. 规则、锚点、裁决合成（ACT 02）
+- **1.2 补丁增删变化下的边界精确性**
+  - **Given** 补丁集合中包含替换（replacement）、插入（insertion）与删除（deletion）等不同动作；
+  - **When** 针对跨补丁区间与补丁内部字符进行偏移映射；
+  - **Then** 换算后的区间偏移严格考虑了各补丁的长度变化量（cumulative delta），切片字符与补丁预期逐字吻合。
 
-- 2.1 Given fixture 结构 Span、`model_min_chars=12`，Then 恰好选出 `sanche_w001`、`sanche_w002` 两个窗口。
-- 2.2 Given 两个窗口的比较结果与 `human_decisions.yaml`，When `compile_semantic`，Then 序列化字节 == `semantic_spans.yaml`，两次运行字节相同。
-- 2.3 Given `p0001_s03`、`p0001_s04`，Then 其语义片段为 `offset_level`、`glyphs: []`；`p0003_s13` 拆出的两片为 `glyphbox_level`，glyph 分别是该行非空字框的第 0–6 个、第 7–13 个。
-- 2.4 Given 分歧窗口没有裁决，Then `DisputesUnresolved`；裁决了一致窗口、`choice` 非法、`custom` 片段不铺满、`proposal_b` 却给出 A 的片段、`decision_type` 不在八类、`reason` 为空，Then `DecisionRejected`。
+- **1.3 锚点数据结构与哈希校验**
+  - **Given** 原始与清洗文本的有效区间及引文 `quote`；
+  - **When** 调用 `make_offset_anchor`；
+  - **Then** 返回 7 键严格有序字典 `{raw_text_revision_id, raw_start, raw_end, cleaned_text_revision_id, start_offset, end_offset, quote_sha256}`；
+  - **And** `quote_sha256` 精确等于 `sha256(quote.encode('utf-8'))`。
 
-## 3. 独立语义 Gate（ACT 03）
+- **1.4 异常区间拦截**
+  - **Given** 传入倒置区间（`raw_start > raw_end`）、负数偏移或引文长度与区间差不符；
+  - **Then** 抛出 `ValueError("SCH_002: ...")`，拒绝构造非法锚点。
 
-- 3.1 Given 金标语义文档与原始录制、裁决，Then 九项检查全过，`semantic: passed`。
-- 3.2 Given 删一片、两片重叠、改 offset、改文字、改 `quote_sha256`、改 `structural_refs`、窗口外一行拆两片、一致窗口的边界被改、分歧窗口无裁决或片段与裁决不符、把 offset_level 改成 glyphbox_level、改 glyph、重复 ID、序号跳号、表头计数错，Then 每种篡改都让指定检查失败，Gate 为 `failed`。
-- 3.3 Gate 不 import `compiler`、`serialize` 及语义子包的 `rules/proposals/proposer/reconcile/anchors/assemble`。
+---
 
-## 4. Ledger 集成到人工队列（ACT 04）
+### 场景 2：电子文本切分与片段 ID 跨清洗稳定性（L1 / act/01）
 
-- 4.1 Given Ledger 只灌入 m1、m2，When `run_m3_full`（回放 A/B），Then StepRun `awaiting_human`，返回 `resume_token`、`disputed_window_ids == ["sanche_w002"]`；结构产物 `corpus_spans` 字节 == 金标；已写 8 个 m3 Checkpoint（5 批次 + `semantic_rules` + 2 窗口）；`model_request`/`model_response`/`boundary_proposal` 各 4 个；`propose_boundaries` Transformation 4 条且带 `model_ref`。
-- 4.2 Given 录制把 w002 的 B 改成与 A 相同，Then 不进入人工队列，直接 succeeded（无分歧路径）。
-- 4.3 Given M3 已封存、M3 有进行中的 StepRun、A/B `model_id` 相同、传入 `LiveProposer`，Then begin 前拒绝，Ledger 无新增写入。
-- 4.4 Given 录制缺 w001 的 B，Then StepRun `failed`、`failed_check == "proposer"`、失败报告封存。
-- 4.5 Given 冻结输入对象被篡改，Then `failed_check == "input_contract"`。
+- **2.1 全文连续覆盖与切分**
+  - **Given** 清洗后文本 `cleaned_text`；
+  - **When** 调用 `segment_cleaned_text`；
+  - **Then** 产出所有切分片段区间，首尾相接、无缺口、无重叠，片段拼接后 100% 还原 `cleaned_text`。
 
-## 5. 人工裁决、恢复与封存（ACT 05）
+- **2.2 片段 ID 跨清洗修订的绝对稳定性（G7-RULINGS 第 78 条）**
+  - **Given** 初始版本生成的 SourceSpan，ID 为 `ss_qianyuan_ed01_o0000128`（基于原始文本偏移 128）；
+  - **When** 后续清洗规则调整，在偏移 0～100 之间增加了补丁，导致该片段在 `cleaned_text_revision` 中的起点从 128 漂移到 135；
+  - **Then** 因为底层的 `raw_text` 保持冻结，其在 RawText 中的起点 `raw_start` 依然为 128；
+  - **And** 重新编译后，该片段的 ID 依然稳定保持为 `ss_qianyuan_ed01_o0000128`，不随清洗修订漂移。
 
-- 5.1 Given 4.1 的状态，When 按 `human_decisions.yaml` 调 `submit_boundary_decision`，Then 封存一个 `human_event`，`record_human_event` 以 `review_source_fidelity` 登记，并立即写第 9 个 Checkpoint（`human_decisions` 含该事件）；token 不被消费。
-- 5.2 When `resume_m3_full`，Then StepRun succeeded；`semantic_spans` 字节 == 金标；m3 StagePackage 过 Schema，`gate_profile == structural_and_semantic`、`counts` 为 43/5/46/2/1/1；共 10 个 Checkpoint；`reconcile_semantic_spans` 的人工事件 == 该裁决。
-- 5.3 Given 分歧未裁决就恢复，Then `DisputesUnresolved`，token 仍有效，StepRun 仍 `awaiting_human`。
-- 5.4 Given 错误 token、同一窗口重复裁决、裁决非分歧窗口、恢复后再次恢复，Then 分别拒绝，Ledger 状态不变。
-- 5.5 Given 恢复时冻结输入被篡改、审核队列对象被篡改、语义 Gate 失败（patch 合成结果删一片），Then StepRun `failed`，检查名分别为 `resume_contract`、`resume_contract`、`semantic_gate`，不产出 m3 StagePackage。
-- 5.6 Given 另开一个 Python 进程执行 `decide`、`resume`，Then 结果与同进程相同（恢复只依赖 Ledger）。
-- 5.7 CLI：`run` 有分歧时 exit 4，末行以 `M3S AWAITING` 开头；`decide` exit 0；`resume` exit 0，末行以 `M3S OK` 开头；`--live` exit 2，末行以 `M3S REFUSED ModelCallDisabled` 开头。
+- **2.3 格式与前缀合规性**
+  - **Given** 产出的所有 SourceSpan；
+  - **Then** 片段 ID 严格匹配 `^ss_[a-z][a-z0-9_]*_ed[0-9]{2}_o[0-9]{7}$`，绝不含未登记前缀（P8）；
+  - **And** 每条 Span 的 `evidence_level` 严格为 `"offset_level"`。
 
-## 6. 验收（ACT 06）
+---
 
-- 6.1 Given mini_ed01 + mini_ed01_semantic，When `m3-coverage.sh`，Then 9 行 PASS、`SUMMARY pass=9 fail=0 blocked=0`、exit 0。
-- 6.2 Given 不传 `--semantic-fixture`，Then 仍是 8 PASS + BLOCKED `semantic_layer`（新说明文字）、exit 2。
-- 6.3 Given 语义金标副本改一个字（数据）并把副本 `verify.sh` 换成假脚本，Then `FAIL semantic_fixture_host`、exit 1。
-- 6.4 Given 准备阶段 `run_m3_full` 抛异常，Then `FAIL semantic_layer 宿主准备失败: …`、exit 1；语义金标目录缺 `recordings.yaml`，Then exit 3。
-- 6.5 Given 验收全程 socket 连接被补丁拦截，Then 拦截计数为 0，`zero_network` PASS。
+### 场景 3：M3 电子文本输入解析与 StepRun 事务（L2 / act/02）
+
+- **3.1 上游 M2 产物完整消费**
+  - **Given** Ledger 中已封存且状态为 `succeeded` 的 M2 运行；
+  - **When** 调用 `resolve_m3_text_inputs`；
+  - **Then** 成功解析 `raw_text`、`cleaned_text_revision`、`deterministic_patch_set`、`sanitization_report` 四类产物。
+
+- **3.2 上游未就绪或未成功阻断（P5）**
+  - **Given** M2 StepRun 处于 `running` 或 `failed` 状态；
+  - **When** 尝试启动 M3 编译；
+  - **Then** 拒绝编译并抛出 `CompileRefused("P5: M2 阶段未成功完成")`。
+
+- **3.3 清洗未结项阻断（§10.1）**
+  - **Given** M2 `sanitization_report` 中 `deferred_count > 0`；
+  - **When** 尝试启动 M3 编译；
+  - **Then** 必须以 fail-closed 拦截，抛出 `CompileRefused("§10.1: 存在暂缓处理项 deferred")`，且 Ledger 无新增写入。
+
+- **3.4 Checkpoint 与 Transformation 审计**
+  - **Given** 正常的 M3 电子文本编译流程；
+  - **When** 调用 `run_m3_text`；
+  - **Then** 按批次有序写入 Checkpoint，封存 `corpus_spans` 制品；
+  - **And** 记录 `compile_corpus` 的 Transformation，包含完整的输入与配置修订血缘。
+
+---
+
+### 场景 4：M3 电子文本结构 Gate 独立判定（L2 / act/03）
+
+- **4.1 独立 Gate 判定放行**
+  - **Given** 合法的 spans 文档与对应原始/清洗文本；
+  - **When** 运行 `evaluate_text_coverage`；
+  - **Then** 六项检查（`text_contiguous_coverage`、`text_strict_offset`、`raw_anchor_fidelity`、`identity_and_stability`、`evidence_level_honest`、`header_counts`）全部通过，`passed: true`。
+
+- **4.2 文本篡改与哈希不符检出**
+  - **Given** 人为篡改某片段的文本内容或引文哈希；
+  - **When** 运行 `evaluate_text_coverage`；
+  - **Then** `text_strict_offset` 检查如实判 FAIL，`passed: false`。
+
+- **4.3 片段缺失或重叠检出**
+  - **Given** 删去某一条片段或使相邻片段发生区间重叠；
+  - **When** 运行 `evaluate_text_coverage`；
+  - **Then** `text_contiguous_coverage` 检查如实判 FAIL。
+
+---
+
+### 场景 5：双模型切分提议与边界分歧判定（L3 / act/04）
+
+- **5.1 窗口筛选规则**
+  - **Given** 电子文本结构 spans 列表；
+  - **When** 文本长度 `>= model_min_chars`（默认 12）；
+  - **Then** 选为模型窗口，分配 `<work>_w%03d` 编号；小于阈值的片段作为单片段。
+
+- **5.2 Proposer 请求体隔离与零网络（§12.2、P6）**
+  - **Given** 为窗口构造请求；
+  - **Then** 请求体只含本窗口文本，绝不包含其他窗口或另一 slot 内容；
+  - **And** 整个回放流程在网络拦截下执行，网络连接尝试为 0；
+  - **And** `LiveProposer` 无论是否配置环境变量均拒绝执行并抛出 `ModelCallDisabled`。
+
+- **5.3 提议一致与分歧**
+  - **Given** A、B 两个 Proposer 返回切分响应；
+  - **When** 提议边界一致，Then 判定为 `agreed`；
+  - **When** 提议边界不一致或任一非法，Then 判定为 `disputed`。
+
+---
+
+### 场景 6：语义层合成（`sem_` 偏移形态）与人工裁决恢复（L3 / act/05）
+
+- **6.1 边界分歧进入人工队列**
+  - **Given** 存在分歧窗口；
+  - **When** StepRun 运行至边界判定后；
+  - **Then** StepRun 状态进入 `awaiting_human`，封存 `boundary_review_queue`，返回 `resume_token`。
+
+- **6.2 人工裁决与 Checkpoint 即时落盘（§17.1）**
+  - **Given** 审核员提交人工裁决；
+  - **When** 调用 `submit_boundary_decision`；
+  - **Then** 写入 `human_event`（`decision_type: review_source_fidelity`）；
+  - **And** 立即写入一个对应的 Checkpoint（`task_id: review:<window_id>`），绝不延后合并。
+
+- **6.3 未结分歧阻断恢复**
+  - **Given** 仍有分歧窗口未提交裁决；
+  - **When** 调用 `resume_m3_text_full`；
+  - **Then** 抛出 `DisputesUnresolved`，StepRun 维持 `awaiting_human`，`resume_token` 保持有效。
+
+- **6.4 全部解决后封存 StagePackage**
+  - **Given** 全部窗口已解决；
+  - **When** 调用 `resume_m3_text_full`；
+  - **Then** 产出带 `sem_<work>_ed<NN>_o<NNNNNNN>` 的 SemanticSpan；
+  - **And** 组装并封存 m3 StagePackage，`gate_profile: "structural_and_semantic"`，`semantic: "passed"`，StepRun 转为 `succeeded`。
+
+---
+
+### 场景 7：独立语义 Gate 严格判定（L3 / act/06）
+
+- **7.1 八项独立语义检查通过**
+  - **Given** 恢复后的语义产物与原始响应、裁决事件；
+  - **When** 运行 `evaluate_semantic_offset`；
+  - **Then** 八项检查全部 ok，`semantic: "passed"`。
+
+- **7.2 Gate 模块独立性（防同错同过）**
+  - **Given** `semantic_gate.py` 源码；
+  - **Then** 严禁 import 任何生成器实现模块（`offset_assemble`、`review`、`proposer` 等）。
+
+---
+
+### 场景 8：证据级别 offset_level 与 M5 校验兼容（L3, L4）
+
+- **8.1 M5 G3 证据校验兼容**
+  - **Given** `evidence_level == "offset_level"` 的电子文本片段；
+  - **When** M5 G3 进行引文与偏移核对；
+  - **Then** 严格复算引文哈希与切片偏移，验证与底层 `raw_text` 的换算链路；
+  - **And** 判定合法通过，不校验字框 coordinates。
+
+- **8.2 目标消费级别拦截**
+  - **Given** `offset_level` 的 M3 包；
+  - **Then** 允许下游用于签发 `INTERNAL_DEMO` 与 `DEV_SEARCH`；
+  - **And** 若配置目标为 `PUBLIC_RELEASE`，M5 G3 严格拦截并拒绝通过。
+
+---
+
+### 场景 9：验收脚本与宿主缺失 BLOCKED 机制（L4 / act/07）
+
+- **9.1 电子文本宿主缺失时如实 BLOCKED**
+  - **Given** 未提供电子文本验收宿主目录；
+  - **When** 执行 `openspec/acceptance/m3-coverage.sh`；
+  - **Then** 打印包含 exact BLOCKED 文本的说明行，退出码为 2（BLOCKED），严禁伪造 exit 0。
+
+- **9.2 宿主完整时验收通过**
+  - **Given** 提供了有效的电子文本宿主目录；
+  - **When** 执行验收检查；
+  - **Then** 输出 `SUMMARY pass=9 fail=0 blocked=0`，退出码为 0。
+
+- **9.3 全程零网络与 run_all.sh 不变**
+  - **Given** 验收全程在 socket 拦截下运行；
+  - **Then** 网络连接计数为 0；
+  - **And** `git status` 确认 `openspec/acceptance/run_all.sh` 未发生任何改动。
+
+---
+
+## 附录：OCR 路线 BDD 场景（第二版 OCR）
+
+> **以下内容为原 OCR / 页码路线草稿，全部标记为 `DEFERRED（第二版 OCR）`，不在第一版电子文本实现中启用。**
+
+```text
+原 OCR 路线场景（留第二版参考）：
+- 0. 语义金标宿主 mini_ed01_semantic 校验与生成器重放
+- 1. Proposer 与提议解析（基于 OCR 行文本）
+- 2. 规则、字框对齐锚点、裁决合成 compile_semantic（基于 mini_ed01 字框对齐判定 glyphbox_level 与 offset_level 混合计数）
+- 3. 独立语义 Gate（九项检查，覆盖页图与字框）
+- 4. Ledger 集成到人工队列（run_m3_full）
+- 5. 人工裁决、恢复与封存（基于页图与 OCR 行）
+- 6. m3-coverage.sh 验收（基于 mini_ed01）
+```

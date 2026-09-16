@@ -1,88 +1,67 @@
 act_id: impl-10/02
-title: 规则窗口、字框对齐锚点、人工裁决校验与语义片段合成 compile_semantic（金标字节）〔D1 D6 D11 D12〕
-estimated_minutes: 85
-group: J1
+title: M3 电子文本输入解析与 StepRun 事务（resolve_m3_text_inputs 与 run_m3_text）
+estimated_minutes: 80
+group: L2
 depends_on: [impl-10/01]
 scope:
-  write: [pipeline/corpus_compiler/semantic/rules.py, pipeline/corpus_compiler/semantic/anchors.py, pipeline/corpus_compiler/semantic/reconcile.py, pipeline/corpus_compiler/semantic/assemble.py, pipeline/corpus_compiler/semantic/tests/test_assemble.py]
+  write:
+    - pipeline/corpus_compiler/step_offset.py
+    - pipeline/corpus_compiler/tests/test_step_offset.py
 tests_first:
-  - 先写 tests/test_assemble.py（用例名逐字），新增用例全 ERROR，记录 Red；再实现
+  - 先写 tests/test_step_offset.py（具名用例逐字），全红，记录真实 Red 原文；再实现 step_offset.py
 contract: |
-  全部纯函数：不读文件、不访问 Ledger、不取时间、不用随机数。
+  模块 pipeline/corpus_compiler/step_offset.py：
 
-  rules.py：
-    select_windows(structural_spans_doc: dict, *, model_min_chars: int) -> list[dict]
-      model_min_chars < 1 → SchemaViolation(code="SCH_002")（pipeline.ledger.errors）
-      work = 由 pipeline.corpus_compiler.compiler.parse_source_id(doc["source_id"]) 取得
-      按 spans 顺序，len(text) ≥ model_min_chars 的结构 Span 依次成为窗口；n 从 1；window_id = "%s_w%03d" % (work, n)
-      每项键序：window_id, structural_span_id, page, text, text_sha256
-      fixture：[sanche_w001 → ss_sanche_ed01_p0001_s04, sanche_w002 → ss_sanche_ed01_p0003_s13]
+  1. resolve_m3_text_inputs(service: LedgerService, edition_part_id: str) -> M3TextInputs
+     - 从 Ledger 查询对应 EditionPart 的最新 M2 阶段产物：
+       (a) raw_text 修订
+       (b) cleaned_text_revision 修订
+       (c) deterministic_patch_set 修订
+       (d) sanitization_report 修订
+     - 校验 M2 StepRun 状态：必须为 succeeded，否则抛 CompileRefused("P5: M2 阶段未成功完成")；
+     - 校验清洗报告终态：sanitization_report 中的 deferred_count 必须 == 0；若 > 0，抛 CompileRefused("§10.1: 存在暂缓处理项 deferred，阻断 M3 编译")；
+     - 返回数据类 M3TextInputs，封装上述产物的文本内容、解析后的 patches 以及 revision_id。
 
-  anchors.py：
-    glyph_sequence(page_doc: dict, line_id: str) -> list[dict]
-      [ch for ch in page_doc["chars"] if ch["parent"] == line_id and ch["char"] != ""]（保持页 chars 原顺序）
-    glyph_aligned(page_doc, line_id, text) -> bool
-      [ch["char"] for ch in glyph_sequence(...)] == list(text)
-    sub_anchor(*, structural_span, page_doc, start, end) -> tuple[str, dict]
-      aligned → ("glyphbox_level", anchor)，anchor.glyphs = [{"glyph_id": ch["id"], "char": ch["char"], "box": dict(ch["box"])} for ch in 序列[start:end]]
-      否则 → ("offset_level", anchor)，anchor.glyphs = []〔D11〕
-      anchor 键序：page, image_sha256, line_id, bbox（后三者取自 structural_span["source_anchor"]，bbox 为 dict 拷贝）, glyphs
-      说明：结构锚点里的 char_index 是页 chars 下标，不是文本位置，禁止用它推算 offset
+  2. run_m3_text(service: LedgerService, edition_part_id: str, *, batch_size: int = 10) -> dict
+     - 执行 M3 电子文本结构编译 StepRun：
+       P1 输入解析：inputs = resolve_m3_text_inputs(service, edition_part_id)
+       P2 阶段守卫：同阶段已存在 succeeded StepRun 且未提供 supersedes 时拒绝；
+       P3 配置与启动：写入 configuration（指定 tool="pipeline.corpus_compiler.step_offset", evidence_level="offset_level"），调用 begin_step_run 冻结输入；
+       P4 编译产出：调用 compile_offset_spans 生成结构 spans，按 batch_size 切分子批次并写入 Checkpoint；
+       P5 封存制品：封存 corpus_spans（artifact_type="corpus_spans", evidence_level="offset_level"）；
+       P6 记录血缘：写入 record_transformation(operation="compile_corpus", ...)。
+     - 异常分层：已知校验失败走 _fail(<check_name>) 并记录 failure_report；未捕获异常走 _fail("internal")。
+     - 失败检查名闭集：input_contract, compile, deferred_findings, structural_gate, internal。
 
-  reconcile.py：
-    DECISION_SCHEMA = "m3_boundary_decision/1"
-    validate_decision(decision: dict, *, window: dict, comparison: dict, parsed_a: dict, parsed_b: dict) -> list[list[int]]
-      comparison.status 必须 "disputed" → 否则 DecisionRejected（message 含「非分歧窗口」）
-      decision.structural_span_id == window.structural_span_id；decision_type ∈ pipeline.ledger.states.REVIEW_DECISION_TYPES〔D6〕；reason 为非空 str
-      choice ∈ {"proposal_a", "proposal_b", "custom"}
-      segments：非空 list，每项 {"start_offset": int, "end_offset": int}（非 bool），铺满 [0, len(window.text))、无空片段
-      choice == proposal_a/b：对应提议必须 valid 且 segments 与之逐项相等
-      任一不满足 → DecisionRejected；返回 [[s, e], ...]
-    resolve_windows(windows, comparisons: dict, decisions: dict) -> dict
-      comparisons = {window_id: compare_proposals 结果}；decisions = {window_id: 已校验的 [[s,e],...]}
-      agreed → {"segments": comparison.segments, "boundary_origin": "cross_model_agreed"}；agreed 窗口出现在 decisions → DecisionRejected
-      disputed 且有裁决 → {"segments": 裁决, "boundary_origin": "human_decided"}
-      存在无裁决的 disputed 窗口 → DisputesUnresolved（message 列出全部 window_id，按窗口顺序）
-      返回 {window_id: {...}}
-
-  assemble.py：
-    SEMANTIC_SPAN_ID_FORMAT = "sem_%s_ed%s_p%04d_s%03d"〔D1〕
-    compile_semantic(*, structural_spans_doc, structural_spans_sha256, page_docs, windows, resolutions, comparisons, model_min_chars) -> dict
-      遍历结构 spans（原顺序）；按页维护 sequence（从 1）
-        非窗口行：片段 [[0, len(text)]]，boundary_origin "rule"，window_id None
-        窗口行：片段与 boundary_origin 取 resolutions[window_id]
-      每片：start_offset = 结构 start_offset + s；end_offset = 结构 start_offset + e；text = 结构 text[s:e]；quote_sha256 = sha256(text UTF-8)
-        structural_refs = [{"span_id", "start": s, "end": e}]；(evidence_level, source_anchor) = anchors.sub_anchor(...)
-        semantic_span_id = SEMANTIC_SPAN_ID_FORMAT % (work, edition, page_number(page), sequence)，经正则 ^sem_[a-z][a-z0-9]*_ed[0-9]{2}_p[0-9]{4}_s[0-9]{3}$ 校验；sequence > 999 → InvalidIdentifier(code="ID_001")
-      Span 键序、文档键序与 act/00 R8、R9 逐字一致；gate_profile = GATE_PROFILE；segmentation_profile = {"rule": "line_or_model_window", "model_min_chars": model_min_chars, "template_id": PROMPT_TEMPLATE_ID}
-      dispute_count = comparisons 中 disputed 的个数
-      返回键：spans, spans_doc, spans_bytes(= pipeline.corpus_compiler.serialize.dump_yaml(spans_doc)), spans_sha256,
-              counts({"semantic_spans", "windows", "disputes", "human_decisions"(= human_decided 窗口数), "glyphbox_level", "offset_level"})
+  3. 护栏约束（第 88 条）：
+     - 若 M2 报告含 deferred 发现，必须严禁编译并拒绝写入任何 M3 产物（fail-closed）；
+     - 未成功的 M2 运行产物严禁被读取消费；
+     - 严禁调用真实模型 API 或外部网络。
 tests:
-  test_assemble.py: |
-    脚手架：读 mini_ed01 spans.yaml（yaml 解析为 structural_spans_doc）与 pages/*.json；读 mini_ed01_semantic recordings.yaml、human_decisions.yaml；
-    经 act/01 的 load_recordings/ReplayProposer/build_request/parse_proposal/compare_proposals 得到 comparisons；裁决经 validate_decision
-    - test_select_windows_fixture_two_windows
-    - test_select_windows_threshold_boundary（model_min_chars=11 → 3 个窗口，含 p0003_s06；=18 → 0 个）
-    - test_select_windows_rejects_zero
-    - test_glyph_alignment_fixture（不对齐恰为 p0001_s03、p0001_s04；其余 41 行对齐）
-    - test_sub_anchor_aligned_slices_glyphs（p0003_s13 [7,14) 的 glyph char 串 == "論星曜對照命宮"）
-    - test_sub_anchor_unaligned_offset_level
-    - test_golden_semantic_spans_bytes_equal_fixture
-    - test_golden_counts（46/2/1/1/42/4；page_001 6 片，page_003 40 片）
-    - test_deterministic_twice_identical_bytes
-    - test_quote_sha256_and_offsets_slice_page_block（页块由结构 Span 文本以 "\n" 连接）
-    - test_disputed_without_decision_raises_DisputesUnresolved
-    - test_decision_on_agreed_window_rejected
-    - test_decision_custom_not_tiling_rejected
-    - test_decision_choice_b_with_a_segments_rejected
-    - test_decision_type_outside_eight_rejected
-    - test_decision_empty_reason_rejected
+  test_step_offset.py: |
+    - test_resolve_m3_text_inputs_success
+    - test_non_succeeded_m2_run_rejected（护栏用例：当 M2 状态为 running 或 failed 时拒绝解析，断言抛 CompileRefused）
+    - test_deferred_sanitization_findings_blocks_compilation（第 88 条护栏用例：构造 deferred_count=1 的 M2 报告，断言严禁放行，抛 CompileRefused 且 Ledger 表无变动）
+    - test_resolve_m3_text_inputs_missing_patch_set_SCH_001
+    - test_resolve_m3_text_inputs_missing_raw_text_SCH_001
+    - test_resolve_m3_text_inputs_missing_cleaned_text_SCH_001
+    - test_run_m3_text_emits_offset_spans_artifact
+    - test_run_m3_text_frozen_inputs_include_all_four_m2_artifacts
+    - test_run_m3_text_checkpoints_chain_in_order
+    - test_run_m3_text_records_compile_corpus_transformation
+    - test_run_m3_text_configuration_contains_tool_and_evidence_level
+    - test_run_m3_text_succeeded_summary_keys
+    - test_run_m3_text_input_contract_tampered_fails_gracefully
+    - test_run_m3_text_already_sealed_stage_refuses_rerun
+    - test_run_m3_text_empty_input_handled
+    - test_run_m3_text_zero_network_via_socket_guard（护栏用例：打补丁拦截 socket 连接，验证全流程零网络）
+    - test_run_m3_text_spans_bytes_deterministic_between_runs
+    - test_run_m3_text_batch_size_configuration_respected
 verify:
-  - .venv/bin/python -m unittest discover -s pipeline/corpus_compiler/semantic/tests -t . 2>&1 | grep -E '^(Ran|OK|FAILED)'   # OK，≥ 32（累计 37）
-  - grep -rE '_fixture' pipeline/corpus_compiler/semantic --include='*.py' | grep -v '/tests/' | wc -l   # 0
-  - TDD §3 回归
+  - .venv/bin/python -m unittest discover -s pipeline/corpus_compiler/tests -p 'test_step_offset.py' -t . 2>&1 | grep -E '^(Ran|OK|FAILED)'   # OK，≥ 52（累计算术：34 + 18 = 52）
+  - grep -rn 'socket\.' pipeline/corpus_compiler/step_offset.py | wc -l   # 0
+  - git diff --check
 commit:
-  add: [pipeline/corpus_compiler/semantic]
-  message: "feat(m3-semantic): rule windows, glyph-aligned anchors, boundary decision validation and golden semantic span assembly (spec §11/§11.1)"
-on_fail: 停止并报告；金标字节不一致时不得修改 fixture，报告首个差异位置与所在 semantic_span_id
+  add: [pipeline/corpus_compiler/step_offset.py, pipeline/corpus_compiler/tests/test_step_offset.py]
+  message: "feat(corpus_compiler): M3 electronic-text input resolution and step run transaction (rulings 76, 78)"
+on_fail: 停止并报告；遇 Ledger 状态异常或前置校验不通过停手

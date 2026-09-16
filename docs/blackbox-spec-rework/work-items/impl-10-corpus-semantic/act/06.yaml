@@ -1,81 +1,61 @@
 act_id: impl-10/06
-title: 语义层验收九子项 + semantic_layer 由 BLOCKED 变 PASS；m3-coverage.sh 校验语义金标宿主并 exit 0〔D9 D10〕
-estimated_minutes: 85
-group: J2
+title: 独立语义 Gate evaluate_semantic_offset（无网络、严格覆盖、未决为零）
+estimated_minutes: 80
+group: L3
 depends_on: [impl-10/05]
 scope:
-  write: [pipeline/corpus_compiler/semantic/acceptance.py, pipeline/corpus_compiler/semantic/tests/test_acceptance_semantic.py, pipeline/corpus_compiler/acceptance.py, pipeline/corpus_compiler/tests/test_acceptance.py, openspec/acceptance/m3-coverage.sh]
-  modify_limits: |
-    pipeline/corpus_compiler/acceptance.py：只允许（a）argparse 增可选 --semantic-fixture；（b）把第 86 行常量 BLOCKED 换成下述分支；（c）替换 SEMANTIC_LAYER_TEXT 文本；其余八项判定、准备流程与退出码逻辑逐字不动
-    pipeline/corpus_compiler/tests/test_acceptance.py：只允许改 test_semantic_layer_line_is_blocked_with_exact_text 的期望文本、把 test_shell_exit_2_on_fixture 改为 test_shell_exit_0_on_fixture、追加下列 2 个用例
-    openspec/acceptance/m3-coverage.sh：只允许增加语义金标宿主校验段与 --semantic-fixture 透传
+  write:
+    - pipeline/corpus_compiler/semantic/semantic_gate.py
+    - pipeline/corpus_compiler/semantic/tests/test_semantic_gate.py
 tests_first:
-  - 先写 test_acceptance_semantic.py 与 test_acceptance.py 的改动，全红（shell 用例期望 exit 0 失败），记录 Red；再实现
+  - 先写 tests/test_semantic_gate.py（具名用例逐字），全红，记录真实 Red 原文；再实现 semantic_gate.py
 contract: |
-  semantic/acceptance.py：python -m pipeline.corpus_compiler.semantic.acceptance --fixture <mini_ed01> --semantic-fixture <mini_ed01_semantic> [--keep]
-    不得 import semantic_gate、assemble、reconcile、anchors、rules（判定一律从 Ledger 字节与 fixture 金标重算）；可 import step/review/proposer（仅用于准备）
-    check_semantic_layer(fixture_dir, semantic_fixture_dir) -> tuple[status, name, detail]
-      返回 ("PASS", "semantic_layer", "") 或 ("FAIL", "semantic_layer", "<首个失败子项名>: <原因>") 或 ("FAIL", "semantic_layer", "宿主准备失败: <类名>: <消息>")
-    准备（全程在 socket 补丁下执行：socket.socket.connect 与 socket.create_connection 替换为计数并抛 ConnectionRefusedError 的函数）：
-      tempfile → LedgerService(root/"ledger") → ingest(fixture, stages=("m1","m2")) → recs = load_recordings(<sf>/recordings.yaml 字节)
-      → s1 = run_m3_full(…, ReplayProposer(recs,"a"), ReplayProposer(recs,"b"))，必须 awaiting_human
-      → 对 <sf>/human_decisions.yaml 每条 submit_boundary_decision → s2 = resume_m3_full，必须 succeeded
-    九个子项（名称与顺序固定；每项一行 PASS/FAIL；子项内异常转该项 FAIL）：
-      semantic_inputs_frozen：frozen_inputs 集合与 impl-02 inputs_frozen 同规则重算相等；配置修订 gate_profile == "structural_and_semantic"、proposers.a/b.adapter == "replay"、recording_set_sha256 == sha256(<sf>/recordings.yaml 字节)、model_min_chars == 12
-      dual_proposals_recorded：每窗口每 slot 恰 1 个 model_request/model_response/boundary_proposal；model_response 字节 == 录制 response_text；
-        B 的 model_request 字节不含 A 的 response_text 且不含 "segments"；propose_boundaries Transformation 4 条、model_ref 各不为空；同窗口两条 request 修订创建时间均早于该窗口任一 response
-      disputes_human_resolved：await_human 事件恰 1 条且其 pending_queue 修订 sealed、artifact_type boundary_review_queue；
-        自行解析队列中每窗口 response_a/b 判定分歧集合 == {sanche_w002}；human_event（本 StepRun 登记）数 == human_decisions.yaml 条数且 decision_type 相符；
-        每条事件之后存在 task_id "review:<window_id>" 的 Checkpoint 且其 human_decisions 含该事件；reconcile_semantic_spans 的 human_event_revision_ids == 这些事件
-      semantic_coverage：从 Ledger 页修订字节重算页块；semantic_spans 修订字节 yaml 解析后每页片段首尾相接（缺口只能 "\n"）、block[start:end] == text、quote_sha256 正确、非窗口行一行一片
-      semantic_anchors：从 Ledger 页修订字节重算字框对齐；evidence_level 与 glyphs 如实；计数 glyphbox_level 42、offset_level 4；image_sha256 == Ledger manifest 修订同页哈希
-      semantic_golden_match：semantic_spans 字节 == <sf>/semantic_spans.yaml；sha256 == <sf>/expected/m3.stage_package.yaml manifest.content_sha256；Ledger m3 StagePackage counts == expected counts；
-        payload 的 coverage、excluded_pages、gate_profile、semantic、disputes、evidence_level_counts == expected 同名字段；corpus_spans 字节 == <fixture>/spans.yaml
-      semantic_checkpoints：该 StepRun 的 m3 Checkpoint 共 10 个，task_id 依次 sanche_b001..sanche_b005, semantic_rules, sanche_w001, sanche_w002, review:sanche_w002, semantic_assemble；prev 成链；StepManifest last_checkpoint_revision_id == 末个
-      semantic_package_lineage：StagePackage 字节过 stage_package.schema.json；validation.passed；lineage operations 多重集合 == {compile_corpus:1, propose_boundaries:4, reconcile_semantic_spans:1}；Transformation 输出全部 sealed；
-        validation_report semantic == "passed"；StepRun succeeded
-      zero_network：准备与判定全程 socket 补丁计数 == 0
-    CLI 输出：九行子项 + `SUMMARY pass=<n> fail=<n> blocked=0`；退出码：<sf>/recordings.yaml 或 <sf>/human_decisions.yaml 不存在、yaml/jsonschema 不可导入 → 3；准备异常 → 首行 `FAIL semantic_acceptance 宿主准备失败: <类名>: <消息>` exit 1；任一 FAIL → 1；全部 PASS → 0
+  模块 pipeline/corpus_compiler/semantic/semantic_gate.py（独立纯函数；不访问 Ledger、零网络）：
 
-  pipeline/corpus_compiler/acceptance.py（D9 最小改动）：
-    SEMANTIC_LAYER_TEXT = "前置缺失: M3 Corpus Compilation；未提供 --semantic-fixture（语义层金标与录制响应）"
-    args.semantic_fixture 为 None → results.append(("BLOCKED", "semantic_layer", SEMANTIC_LAYER_TEXT))（行为同旧：8 PASS + BLOCKED，exit 2）
-    否则：<sf>/recordings.yaml 不存在 → 打印 `FAIL m3_acceptance 宿主准备失败: FileNotFoundError: <路径>` 并返回 3；
-          存在 → results.append(check_semantic_layer(fixture_dir, Path(args.semantic_fixture)))
-    import 放在函数内（未给参数时不加载语义子包）
+  1. evaluate_semantic_offset(*, cleaned_text: str, patches: list[dict],
+                             structural_spans_doc: dict, semantic_spans_doc: dict,
+                             window_responses: list[dict], decisions: list[dict],
+                             model_min_chars: int = 12) -> dict
+     - 返回：{"semantic": "passed" | "failed", "checks": {name: {"ok": bool, "detail": str}}}
+     - 八项独立语义检查（名称与顺序固定）：
+       (1) semantic_contiguous_coverage：语义片段首尾相连、无缺口、无重叠，拼接后完全等于 cleaned_text
+       (2) semantic_strict_offset：每条语义片段的 cleaned_text[start:end] == span.text，且 quote_sha256 正确
+       (3) structural_refs_consistent：每条语义片段引用合法的结构 Span，局部起点与全局起点换算一致
+       (4) window_rule_fidelity：len(text) >= model_min_chars 的片段均正确成为窗口，其余行严格一行一片
+       (5) disputes_resolved_zero：Gate 独立复算双模型提议；分歧窗口必须在 decisions 中恰有 1 条有效裁决；未决分歧数必须为 0（§11:521）
+       (6) evidence_level_honest：每条语义片段及顶层 evidence_level 严格为 "offset_level"
+       (7) semantic_identity：semantic_span_id 严格符合 ^sem_[a-z][a-z0-9_]*_ed[0-9]{2}_o[0-9]{7}$，全局唯一、序号连续
+       (8) header_counts：文档顶层 span_count, window_count, dispute_count 等计数与实体严格一致
+     - 判定规则：八项检查全部 ok 时 semantic 判定为 "passed"，任一失败判定为 "failed"。
 
-  openspec/acceptance/m3-coverage.sh（D9 最小改动）：
-    SEMANTIC_FIXTURE_DIR="${SEMANTIC_FIXTURE_DIR:-$REPO_ROOT/pipeline/corpus/_fixture/mini_ed01_semantic}"，相对路径先解析为绝对路径
-    在现有 mini_ed01 宿主校验之后：SEMANTIC_FIXTURE_DIR="$SEMANTIC_FIXTURE_DIR" BASE_FIXTURE_DIR="$FIXTURE_DIR" bash "$REPO_ROOT/pipeline/corpus/_fixture/mini_ed01_semantic/verify.sh"
-      （永远调用仓库内规范脚本，绝不执行 "$SEMANTIC_FIXTURE_DIR/verify.sh"）；rc 为 0 → 继续；rc 1 → `FAIL semantic_fixture_host <首个 FAIL 行>` + `SUMMARY pass=0 fail=1 blocked=0`，exit 1；
-      rc 3 → `BLOCKED semantic_fixture_host 前置缺失: 测试宿主匮乏；.venv 缺失` + SUMMARY，exit 3；其他 → FAIL exit 1
-    最后一行改为：cd "$REPO_ROOT" && "$PY" -m pipeline.corpus_compiler.acceptance --fixture "$FIXTURE_DIR" --semantic-fixture "$SEMANTIC_FIXTURE_DIR"
+  2. 护栏约束（第 88 条）：
+     - semantic_gate.py 严禁 import offset_assemble、review、proposer、offset_rules 等生产模块（防同错同过）；
+     - 存在未决分歧、重叠或缺口时必须判定 failed。
 tests:
-  test_acceptance_semantic.py: |
-    - test_fixture_nine_subchecks_pass_exit_0
-    - test_semantic_golden_mismatch_fails（<sf> 临时副本 semantic_spans.yaml 改一字 → semantic_golden_match FAIL，exit 1）
-    - test_wrong_decision_fails（副本 human_decisions choice 改 proposal_b 且 segments [[0,14]] → 准备可成功但 semantic_golden_match FAIL，exit 1）
-    - test_prepare_failure_exits_1（patch run_m3_full 抛 RuntimeError → 首行以 "FAIL semantic_acceptance 宿主准备失败: RuntimeError" 开头，exit 1）
-    - test_missing_recordings_exit_3
-    - test_network_attempt_fails_zero_network（patch ReplayProposer.propose 在返回前调用 socket.create_connection(("127.0.0.1", 9)) 并吞掉异常 → zero_network FAIL）
-    - test_acceptance_does_not_import_gate_or_assembly（AST 检查 import）
-    - test_check_semantic_layer_returns_pass_tuple
-  test_acceptance.py 修改与追加: |
-    - test_semantic_layer_line_is_blocked_with_exact_text：期望文本改为新 SEMANTIC_LAYER_TEXT（不传 --semantic-fixture）
-    - test_fixture_yields_eight_pass_one_blocked_exit_2：不改（不传参数时仍成立）
-    - test_shell_exit_2_on_fixture → 改名 test_shell_exit_0_on_fixture：末行 SUMMARY pass=9 fail=0 blocked=0，exit 0
-    - 追加 test_main_with_semantic_fixture_nine_pass_exit_0
-    - 追加 test_shell_never_trusts_copy_semantic_verify（mini_ed01_semantic 副本 semantic_spans.yaml 删一片，并把副本 verify.sh 换成 `echo SEMANTIC FIXTURE OK; exit 0` → SEMANTIC_FIXTURE_DIR=副本 运行 m3-coverage.sh，exit 1，首行以 "FAIL semantic_fixture_host" 开头）
+  test_semantic_gate.py: |
+    - test_evaluate_semantic_offset_golden_all_pass
+    - test_semantic_gate_ast_forbids_compiler_imports（第 88 条护栏用例：AST 解析断言未 import 任何编译器实现模块）
+    - test_semantic_gate_catches_gap_and_overlap（第 88 条护栏用例：篡改片段造成缺口或重叠，断言 semantic_contiguous_coverage 失败）
+    - test_tampered_semantic_text_fails_strict_offset
+    - test_tampered_semantic_quote_hash_fails_strict_offset
+    - test_broken_structural_ref_fails_structural_refs_consistent
+    - test_offset_mismatch_with_structural_ref_fails
+    - test_non_window_split_fails_window_rule_fidelity
+    - test_window_threshold_discrepancy_fails_window_rule_fidelity
+    - test_unresolved_dispute_fails_semantic_gate（第 88 条护栏用例：遗留未决分歧窗口时，断言 disputes_resolved_zero 判定为 ok: False）
+    - test_decision_on_agreed_window_fails
+    - test_tampered_decision_segments_fails
+    - test_upgraded_glyphbox_fails_evidence_level_honest
+    - test_duplicate_semantic_span_id_fails_identity
+    - test_invalid_semantic_span_id_regex_fails_identity
+    - test_semantic_span_count_mismatch_fails_header_counts
+    - test_window_count_mismatch_fails_header_counts
+    - test_dispute_count_mismatch_fails_header_counts
 verify:
-  - .venv/bin/python -m unittest discover -s pipeline/corpus_compiler/semantic/tests -t . 2>&1 | grep -E '^(Ran|OK|FAILED)'   # OK，≥ 84（累计 102）
-  - .venv/bin/python -m unittest discover -s pipeline/corpus_compiler/tests -t . 2>&1 | grep -E '^(Ran|OK|FAILED)'            # OK，== N_TC + 2
-  - export LC_ALL=en_US.UTF-8; bash openspec/acceptance/m3-coverage.sh; echo exit=$?   # 9 行 PASS，SUMMARY pass=9 fail=0 blocked=0，exit=0
-  - .venv/bin/python -m pipeline.corpus_compiler.acceptance --fixture pipeline/corpus/_fixture/mini_ed01; echo exit=$?   # 8 PASS + BLOCKED semantic_layer（新文本），exit=2
-  - grep -c 'SEMANTIC_FIXTURE_DIR/verify.sh' openspec/acceptance/m3-coverage.sh   # 0
-  - git diff pipeline/corpus_compiler/acceptance.py | grep -E '^[-+]\s*def _check_' | wc -l   # 0（八项判定函数未动）
-  - bash openspec/acceptance/run_all.sh | tail -1   # SUMMARY pass=2 fail=1 blocked=8（未改动）
-  - TDD §3 回归
+  - .venv/bin/python -m unittest discover -s pipeline/corpus_compiler/semantic/tests -p 'test_semantic_gate.py' -t . 2>&1 | grep -E '^(Ran|OK|FAILED)'   # OK，≥ 122（累计算术：104 + 18 = 122）
+  - grep -rn 'import.*offset_assemble' pipeline/corpus_compiler/semantic/semantic_gate.py | wc -l   # 0
+  - git diff --check
 commit:
-  add: [pipeline/corpus_compiler/semantic/acceptance.py, pipeline/corpus_compiler/semantic/tests/test_acceptance_semantic.py, pipeline/corpus_compiler/acceptance.py, pipeline/corpus_compiler/tests/test_acceptance.py, openspec/acceptance/m3-coverage.sh]
-  message: "feat(m3-semantic): semantic layer acceptance with replayed dual proposals and human decisions; m3-coverage passes 9/9 (spec §19.0)"
-on_fail: 停止并报告；不得把任何子项写成恒 PASS；不得在未给 --semantic-fixture 时返回 PASS；超出 modify_limits 的改动一律停手上报
+  add: [pipeline/corpus_compiler/semantic/semantic_gate.py, pipeline/corpus_compiler/semantic/tests/test_semantic_gate.py]
+  message: "feat(corpus_compiler): independent semantic gate for offset spans with zero unresolved disputes (spec §11)"
+on_fail: 停止并报告；遇 Gate 检查项遗漏或同错同过停手

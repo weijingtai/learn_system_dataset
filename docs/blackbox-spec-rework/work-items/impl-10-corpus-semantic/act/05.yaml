@@ -1,89 +1,72 @@
 act_id: impl-10/05
-title: 人工裁决写回（每条裁决一个 Checkpoint）+ 恢复 + 语义 Gate + m3 StagePackage 封存 + CLI〔D3 D6〕
-estimated_minutes: 90
-group: J2
+title: 语义层合成 compile_semantic_offset（sem_ 偏移锚点）与人工裁决/恢复
+estimated_minutes: 85
+group: L3
 depends_on: [impl-10/04]
 scope:
-  write: [pipeline/corpus_compiler/semantic/review.py, pipeline/corpus_compiler/semantic/__main__.py, pipeline/corpus_compiler/semantic/step.py, pipeline/corpus_compiler/semantic/tests/test_review.py]
-  note: step.py 只允许把 ACT 04 中无分歧分支接到 review._assemble_and_finish，并取消 test_no_dispute_path_finishes 的 skip（改 tests/test_step_full.py 这一处，记入报告）
+  write:
+    - pipeline/corpus_compiler/semantic/offset_assemble.py
+    - pipeline/corpus_compiler/semantic/review.py
+    - pipeline/corpus_compiler/semantic/tests/test_offset_assemble.py
+    - pipeline/corpus_compiler/semantic/tests/test_review.py
 tests_first:
-  - 先写 tests/test_review.py（用例名逐字），全红，记录 Red；再实现
+  - 先写 tests/test_offset_assemble.py 与 tests/test_review.py（具名用例逐字），全红，记录真实 Red 原文；再实现
 contract: |
-  review.py：
-    submit_boundary_decision(service, step_run_id, resume_token, decision: dict) -> dict
-      1 StepRun 必须 awaiting_human（否则 IllegalTransition 原样抛出）
-      2 queue_rev = 该 StepRun 最近一条 event_type == "await_human" 事件 payload 的 pending_queue[0]（经 list_step_run_events）；读字节并复核 sha256 == 修订 sha256（不符 → DecisionRejected，code SRC_003）
-      3 window = queue.windows 中 structural_span_id == decision.structural_span_id 的项（无 → DecisionRejected）；comparison 取 queue 内值；
-        parsed_a/b 由 parse_proposal(response_a/b) 重算，且必须等于 proposal_a/b 修订内容（不符 → DecisionRejected）
-      4 已有 human_event 指向同一 window_id → DecisionRejected（message 含「重复裁决」）
-      5 segments = validate_decision(...)
-      6 event = {"schema": DECISION_SCHEMA, "decision_type", "window_id", "structural_span_id", "seen_review_queue_revision_id": queue_rev, "choice", "segments": [{"start_offset", "end_offset"}], "reason"}
-        put "human_event"（JSON）→ seal → service.record_human_event(step_run_id, resume_token, event_rev, decision_type=decision["decision_type"])（token 错误 → InvalidResumeToken 原样抛出；此时已封存的事件修订保留为孤立修订，测试需断言 human_events 表无新增）
-      7 立即 write_checkpoint(task_id="review:<window_id>", artifact=event_rev, human_decisions=该 StepRun 全部已登记人工事件（含 M2 冻结的不计入）, pending_queue=剩余未裁决 review 项 + [{"task_id": "semantic_assemble"}])（§17.1 人工决定被接受后即时落盘）
-      返回 {"event_revision_id", "checkpoint_revision_id", "window_id", "remaining_disputed_window_ids"}
-    resume_m3_full(service, step_run_id, resume_token) -> dict
-      R1 未消费 token 前：所有 disputed 窗口都有裁决事件，否则 DisputesUnresolved（StepRun 仍 awaiting_human，token 仍有效）
-      R2 service.resume(step_run_id, resume_token)
-      R3 resume_contract（之后失败走 _fail("resume_contract")）：只读取冻结输入（字节 sha256 复核）、await_human 事件引用的 queue 修订（复核）、本 StepRun 人工事件修订（复核）；
-         用冻结输入重算 compile_structural，其 spans_sha256 必须 == queue.structural_spans_sha256
-      R4 调用 _assemble_and_finish(service, ctx)（ctx 由 R3 组装；ACT 04 无分歧分支用同一函数，ctx 由内存结果组装，字段相同）
-    _assemble_and_finish(service, ctx) -> dict
-      A1 comparisons、decisions（validate_decision 复核）→ resolve_windows → compile_semantic；put "semantic_spans"（spans_bytes）→ seal
-      A2 write_checkpoint(task_id="semantic_assemble", artifact=semantic_spans 修订, human_decisions=全部裁决事件, pending_queue=[], next_pointer=None)
-      A3 sg = evaluate_semantic(...)（window_responses 用 queue/内存中的原始响应文本；decisions 用事件内容）；put "semantic_gate_report"（sg）→ seal
-      A4 validation_report = put "validation_report"（json {"gate_profile": GATE_PROFILE, "structural": "passed", "semantic": sg.semantic, "failed_checks": [未通过的语义检查名]}）→ seal；step_log → seal
-      A5 sg.semantic == "failed" → _fail("semantic_gate")
-      A6 corpus_package = put "corpus_package"（json {"spans_revision_id", "semantic_spans_revision_id", "coverage_report_revision_id", "semantic_gate_report_revision_id", "coverage", "excluded_pages", "gate_profile", "semantic": "passed", "disputes": {"total", "resolved_by_human", "unresolved": 0}, "evidence_level_counts"}）→ seal
-      A7 record_transformation(operation="reconcile_semantic_spans", tool=M3S_TOOL, tool_version, configuration=config,
-           input=[corpus_spans] + 全部 boundary_proposal 修订 + ([queue 修订] 若有), output=[semantic_spans, semantic_gate_report, corpus_package],
-           validation_report_revision_id=validation_report, human_event_revision_ids=全部裁决事件)
-      A8 StagePackage：结构与 impl-02 act/03 第 13 步相同，差异仅在：
-           payload = corpus_package 内容去掉 *_report_revision_id 两键；
-           manifest.output_artifacts = [ref(corpus_package)]；manifest.counts = {"spans", "batches", "semantic_spans", "windows", "disputes", "human_decisions"}；manifest.content_sha256 = semantic_spans sha256；
-           validation.report_artifacts = [ref(validation_report)]；
-           lineage.transformations = 本 StepRun 全部 Transformation（compile_corpus、propose_boundaries×2n、reconcile_semantic_spans），各含 operation/step_run_id/configuration/input/output 修订
-         register_stage_package → seal
-      A9 finish_step_run（status succeeded；output_artifact_ids = [corpus_package, corpus_spans, semantic_spans, coverage_report, semantic_gate_report, package]）
-      返回 succeeded summary 键：status, processing_run_id, step_run_id, stage_package_id, package_revision_id, corpus_package_revision_id, spans_revision_id, semantic_spans_revision_id, semantic_spans_sha256,
-        validation_report_revision_id, step_manifest_revision_id, checkpoint_revision_ids, counts, disputes, evidence_level_counts, semantic_gate
-    失败检查名闭集（本包全部）：input_contract, compile, structural_gate, proposer, resume_contract, semantic_gate, internal
+  1. offset_assemble.py（纯函数）：
+     - compile_semantic_offset(*, structural_spans: list[dict], windows: list[dict],
+                               resolutions: dict, raw_text_revision_id: str, raw_text: str,
+                               cleaned_text_revision_id: str, cleaned_text: str,
+                               patches: list[dict], work: str, edition: str) -> dict
+       - 为每个片段生成带 sem_ 前缀的 SemanticSpan：
+         - semantic_span_id: format_semantic_span_id(work, edition, raw_start)（格式 sem_<work>_<edition>_o<NNNNNNN>）
+         - boundary_origin: "rule"（非窗口）、"cross_model_agreed"（一致窗口）、"human_decided"（裁决窗口）
+         - structural_refs: [{"span_id": 对应结构 Span ID, "start": 局部起点, "end": 局部终点}]
+         - evidence_level: "offset_level"
+         - source_anchor: 7 键偏移锚点字典
+       - 文档顶层键序逐字：work, source_id, edition_part_artifact_id, raw_spans_sha256, gate_profile("structural_and_semantic"), segmentation_profile, content_status("machine_extracted"), span_count, window_count, dispute_count, evidence_level_counts, spans。
 
-  __main__.py：python -m pipeline.corpus_compiler.semantic <子命令>（--root 即 Ledger 根目录，与 pipeline.ledger.cli 一致）
-    run --root R --edition-part A --replay RECORDINGS.yaml [--batch-size 10] [--model-min-chars 12] | --live
-      awaiting → 末行 `M3S AWAITING <srun> disputes=<n> token=<token>` exit 4；succeeded → `M3S OK <srun> semantic_spans=<n>` exit 0；
-      failed → `M3S FAILED <srun> <failed_check>` exit 1；begin 前拒绝（含 ModelCallDisabled、RecordingSetInvalid）→ `M3S REFUSED <异常类名>: <消息>` exit 2；WriterLocked exit 3
-      --live 与 --replay 互斥；--live 构造 LiveProposer（默认禁用）
-    decide --root R --step-run S --token T --decision DECISION.yaml（文件为 human_decisions.yaml 的单条 entry 或含 entries 的文档，逐条提交）
-      成功 → `M3S DECIDED <srun> <window_id> remaining=<n>` exit 0；DecisionRejected/InvalidResumeToken → `M3S REJECTED <异常类名>: <消息>` exit 2
-    resume --root R --step-run S --token T → 同 run 的 OK/FAILED 行；DisputesUnresolved → `M3S REFUSED DisputesUnresolved: …` exit 2
-    提醒：resume_token 是本地防重放凭据，不是鉴权 token（§7.1:220），允许打印
+  2. review.py：
+     - submit_boundary_decision(service: LedgerService, step_run_id: str, resume_token: str, decision: dict) -> dict
+       - 校验 StepRun 处于 awaiting_human 状态；
+       - 校验 decision 指向合法的分歧窗口，格式符合 m3_boundary_decision/1，decision_type 恒为 review_source_fidelity；
+       - 封存 human_event 并记录 record_human_event；
+       - 核心纪律（§17.1）：每条人工裁决被接受后必须立即落盘一个独立 Checkpoint，不得延后合并；
+     - resume_m3_text_full(service: LedgerService, step_run_id: str, resume_token: str) -> dict
+       - 校验所有分歧窗口均已解决；若存在未裁决窗口，拒绝恢复并抛 DisputesUnresolved，保持 awaiting_human；
+       - 恢复后执行 compile_semantic_offset 并运行语义 Gate；
+       - 组装并登记 m3 StagePackage（gate_profile="structural_and_semantic", semantic="passed"）；
+       - 结束 StepRun 为 succeeded。
+
+  3. 护栏约束（第 88 条）：
+     - 存在未解决分歧时恢复必须阻断；
+     - 每次人工裁决必须立即写入 Checkpoint；
+     - 前缀严格限定为 sem_，不得包含任何第三方前缀。
 tests:
+  test_offset_assemble.py: |
+    - test_compile_semantic_offset_keys_and_order
+    - test_semantic_span_id_prefix_strictly_sem（第 88 条护栏用例：断言生成的每一个 ID 严格以 sem_ 起头，绝无未登记前缀）
+    - test_semantic_spans_rule_boundary_origin
+    - test_semantic_spans_cross_model_agreed_origin
+    - test_semantic_spans_human_decided_origin
+    - test_semantic_spans_structural_refs_integrity
+    - test_semantic_spans_evidence_level_strictly_offset_level
+    - test_compile_semantic_offset_counts_exact
   test_review.py: |
-    脚手架同 act/04，先得到 awaiting_human summary；决定取自 mini_ed01_semantic/human_decisions.yaml；全程 socket 补丁
-    - test_submit_decision_seals_event_and_checkpoint（事件 sealed；Ledger human_events 登记 decision_type review_source_fidelity；新 Checkpoint task_id "review:sanche_w002"，human_decisions 含该事件；StepRun 仍 awaiting_human）
-    - test_submit_does_not_consume_token（提交后 resume 仍成功）
-    - test_resume_succeeds_golden_semantic_spans（semantic_spans 字节 == mini_ed01_semantic/semantic_spans.yaml）
-    - test_ten_checkpoints_in_order（…, sanche_w002, review:sanche_w002, semantic_assemble）
-    - test_stage_package_schema_profile_counts（过 stage_package.schema.json；gate_profile structural_and_semantic；counts == expected；content_sha256 == 金标 sha256；payload 与 mini_ed01_semantic/expected payload 同名字段相等（*_path 除外））
-    - test_reconcile_transformation_links_human_event
-    - test_lineage_contains_all_transformations（compile_corpus 1、propose_boundaries 4、reconcile_semantic_spans 1）
-    - test_resume_before_decision_raises_and_keeps_token
-    - test_wrong_token_rejected_no_human_event_row
-    - test_duplicate_decision_rejected
-    - test_decision_on_agreed_window_rejected
-    - test_second_resume_rejected（resume 成功后再次 resume → InvalidResumeToken 或 IllegalTransition，StepRun 仍 succeeded）
-    - test_queue_object_tamper_fails_resume_contract（提交裁决后改队列对象一个字节 → resume → failed_check "resume_contract"，无 m3 StagePackage）
-    - test_frozen_input_tamper_fails_resume_contract
-    - test_semantic_gate_failure_fails_step（patch compile_semantic 返回的 spans_doc 删一片 → failed_check "semantic_gate"，无 m3 StagePackage）
-    - test_no_dispute_path_finishes（从 act/04 移入或取消 skip；status succeeded，Checkpoint 9 个，无 human_event）
-    - test_cross_process_decide_and_resume（subprocess 分三次运行 CLI run/decide/resume，末行分别以 M3S AWAITING / M3S DECIDED / M3S OK 开头，exit 4/0/0；最终 semantic_spans 字节 == 金标）
-    - test_cli_live_refused_exit_2
+    - test_submit_boundary_decision_success
+    - test_submit_boundary_decision_invalid_token_rejected
+    - test_submit_boundary_decision_non_disputed_window_rejected
+    - test_checkpoint_written_immediately_after_each_decision（第 88 条护栏用例：断言在 submit_boundary_decision 调用后 Checkpoint 数量立即 +1，且 task_id 为 review:<window_id>）
+    - test_resume_without_resolving_all_disputes_rejected（第 88 条护栏用例：在存在 2 个分歧仅裁决 1 个时调用 resume，断言严禁放行并抛 DisputesUnresolved）
+    - test_resume_all_resolved_succeeds
+    - test_resume_registers_stage_package_with_structural_and_semantic_profile
+    - test_resume_m3_stage_package_payload_semantic_passed
+    - test_resume_lineage_contains_all_transformations
+    - test_resume_step_run_transitions_to_succeeded
 verify:
-  - .venv/bin/python -m unittest discover -s pipeline/corpus_compiler/semantic/tests -t . 2>&1 | grep -E '^(Ran|OK|FAILED|skipped)'   # OK，≥ 78（累计 94），无 skip
-  - .venv/bin/python -m unittest discover -s pipeline/corpus_compiler/tests -t . 2>&1 | grep -E '^(Ran|OK|FAILED)'   # OK，== N_TC
-  - grep -c '_fail("resume_contract"\|_fail("semantic_gate"' pipeline/corpus_compiler/semantic/review.py   # ≥ 2
-  - TDD §3 回归
+  - .venv/bin/python -m unittest discover -s pipeline/corpus_compiler/semantic/tests -p 'test_*.py' -t . 2>&1 | grep -E '^(Ran|OK|FAILED)'   # OK，≥ 104（累计算术：86 + 18 = 104）
+  - grep -rn 'sem_' pipeline/corpus_compiler/semantic/offset_assemble.py | wc -l   # > 0
+  - git diff --check
 commit:
-  add: [pipeline/corpus_compiler/semantic/review.py, pipeline/corpus_compiler/semantic/__main__.py, pipeline/corpus_compiler/semantic/step.py, pipeline/corpus_compiler/semantic/tests/test_review.py, pipeline/corpus_compiler/semantic/tests/test_step_full.py]
-  message: "feat(m3-semantic): human boundary decisions with per-decision checkpoints, resume from ledger, semantic gate and structural_and_semantic m3 stage package (spec §7.1/§11/§17.1)"
-on_fail: 停止并报告；恢复路径需要读取冻结输入、队列、人工事件以外的修订时停手上报（§7.1:221）；不得改 pipeline/ledger
+  add: [pipeline/corpus_compiler/semantic/offset_assemble.py, pipeline/corpus_compiler/semantic/review.py, pipeline/corpus_compiler/semantic/tests/test_offset_assemble.py, pipeline/corpus_compiler/semantic/tests/test_review.py]
+  message: "feat(corpus_compiler): semantic span assembly with sem_ prefix and human adjudication review queue (rulings 80, 81)"
+on_fail: 停止并报告；遇未决分歧放行或 Checkpoint 未落盘停手
