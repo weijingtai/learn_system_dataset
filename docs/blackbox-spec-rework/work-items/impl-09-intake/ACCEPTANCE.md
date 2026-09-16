@@ -298,6 +298,15 @@ D4（BOM／GB18030 导致 `sha256` 与磁盘原始文件字节不符、追踪链
 - **主 Agent 篡改**（临时副本）：只回退 ⑥ → `test_clean_text_duplicate_excludes_covered_range` 转红；② 与 ⑥ 同时回退 → 3 条转红；**只回退 ② → 42 条全绿**（与执行方自报一致）→ ② 缺独立护栏，第 99 条 J3f 补。
 - 真实书源全链（执行方临时 Ledger）：M1 `succeeded`；M2 `succeeded`、Gate 通过、122 条发现、77 条 patch、`deferred_count = 0`；M3 `succeeded`、**696** 片段（710 → 696，YAML 头不再进正文，第 98 条①预告的预期变化）。
 
+### 3.9 小返工 J3f（2026-09-16，主 Agent 独立验收，`git archive 87ce16c` 干净树；执行器 opencode Union Alpha）
+
+判定：**J3f ACCEPTED**。第 99 条落地：`duplicate`「重复单元须含 CJK/字母」（第 98 条②）有了独立护栏。
+
+- 范围：`tests/test_cleaner.py` +9 行、`act/02.yaml` 补 J3e 11 条与 J3f 1 条用例名、`TDD.md` 阈值；未改实现。
+- 新用例 `test_clean_text_duplicate_punctuation_repeat_outside_covered_range_negative`：单行正文夹全角「～」×8，先断言无 `escape_residue`、无 `textualized_diagram`（证明不在被覆盖区间），再断言无 `duplicate`。
+- 干净树 digitization `Ran 82 OK`。
+- **主 Agent 篡改**（临时副本）：只回退 ②（`if not _LETTER_OR_CJK_RE.search(...)` → `if False:`，替换计数 1）→ `Ran 43 FAILED (failures=1)`，唯一失败即新用例。护栏 load-bearing。
+
 ## 4. 待裁决
 
 无。
