@@ -38,12 +38,17 @@
 - **不修改 `run_all.sh`**；接进 `run_all.sh` 属另一个独占 ACT（P4），由主 Agent 安排
 - 两份脚本在宿主缺失时 exit 2（BLOCKED）
 
-### 1.5 回归
+### 1.6 回归
 
 - check_interfaces.py 末行 fail=0
 - run_all.sh 基线不变（SUMMARY pass=2 fail=1 blocked=8）
 - schemas/verify.sh 退出码 0
 - git diff --check 无警告
+
+### 1.7 派发前核对（照 impl-06 先例）
+
+- 本目录全部 `*.yaml` 与 `act/*.yaml` 均可 `yaml.safe_load` 解析
+- 验证命令：`python3 -c "import glob,yaml;[yaml.safe_load(open(f,encoding='utf-8')) for f in glob.glob('docs/blackbox-spec-rework/work-items/impl-09-intake/**/*.yaml',recursive=True)];print('ALL YAML OK')"`
 
 ## 2. 判据
 
