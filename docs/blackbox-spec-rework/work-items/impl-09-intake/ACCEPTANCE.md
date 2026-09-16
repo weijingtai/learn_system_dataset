@@ -49,6 +49,8 @@
 
 - 本目录全部 `*.yaml` 与 `act/*.yaml` 均可 `yaml.safe_load` 解析
 - 验证命令：`python3 -c "import glob,yaml;[yaml.safe_load(open(f,encoding='utf-8')) for f in glob.glob('docs/blackbox-spec-rework/work-items/impl-09-intake/**/*.yaml',recursive=True)];print('ALL YAML OK')"`
+- `ACT.yaml` 的 `executor_groups` 与每个 `act/*.yaml` 的 `group:` 字段一一对应，无遗漏、无重复、无冲突
+- 验证命令：`python3 -c "import yaml,glob;d=yaml.safe_load(open('docs/blackbox-spec-rework/work-items/impl-09-intake/ACT.yaml',encoding='utf-8'));m={i:g for g,ids in d['executor_groups'].items() for i in ids};f={yaml.safe_load(open(p,encoding='utf-8'))['act_id']:yaml.safe_load(open(p,encoding='utf-8'))['group'] for p in sorted(glob.glob('docs/blackbox-spec-rework/work-items/impl-09-intake/act/*.yaml'))};print('MATCH' if m==f else ('MISMATCH '+str({k:(m.get(k),f.get(k)) for k in set(m)|set(f) if m.get(k)!=f.get(k)})))"`
 
 ## 2. 判据
 
