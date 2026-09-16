@@ -147,3 +147,21 @@
 
 - M6 测试桩 `pipeline/review/testing/` 的合成 candidate_set 为手写 YAML，已漂移于真实 M4 输出契约（第 84 条：缺 `counts.concept_mentions`、`school_views[].claim_refs`/`changes_current_judgment`，被 M7 `validate_candidate_set` 拒）。g0-06 只做最小补字段；长期应改由真实 `run_m4` 产出，随 impl-09 或 impl-04 跟进批一并整改。
 - M7 `acceptance.py` 的 `no_model_calls` 曾静默跳过不可解析文件（g0-06 修）；M6 acceptance 未比对金标 `first_review.decisions`/`checkpoints`（act/12 修）。
+
+## 6. W8 真书走到 M8（2026-09-16，第 100 条）
+
+执行器：tmux + opencode `opencode/union-alpha`（免费档），同时最多 2 路；M4 b 路抽取也用它，a 路用 Claude 子 Agent。监控 `~/tmux-agents/bin/oc-watch.sh`。
+
+| 步 | 内容 | 包 | 前置 | 出口 |
+|---|---|---|---|---|
+| 8.0 | J3f（`duplicate` 独立护栏，第 99 条）→ J4b（M1/M2 验收脚本改为对宿主原文实跑并与独立金标比对；期望文件由金标生成；宿主目录入库） | impl-09 | — | `m1-intake.sh`/`m2-sanitization.sh` 在真书宿主 exit 0；金标缺失 → exit 2 |
+| 8.1 | `ledger/ids.py` 登记偏移与 `sem_` 形态（D3）；电子文本 M3 补 `corpus_package`/`coverage_report`/m3 阶段包（D2） | impl-01、impl-10 返工（可并行，文件不相交） | 8.0 | M4 `resolve_m3_outputs` 在真书临时 Ledger 上通过 |
+| 8.2 | 节选定 + 两路抽取提交件（D4）；M4 去 `page` 硬依赖；真书 M4 跑通 | impl-05 返工 + 宿主 `qianyuan_ed01_text/m4/` | 8.1 | M4 `succeeded`，候选 ≤ 40，分歧进队列 |
+| 8.3 | M5 offset 档 G1/G2/G3（D5） | impl-03 返工 | 8.1（可与 8.2 并行） | 真书 M5 `validation_package` 如实 |
+| 8.4 | M6 适配 + 审核决定表模板（D6）→ **用户填表** → 导入 | impl-06 返工 | 8.2、8.3 | M6 `reviewed_edition` 产出（依赖用户） |
+| 8.5 | M7 ID/证据级别放开（D7），真书 Snapshot | impl-07 返工 | 8.4 | M7 Snapshot 产出 |
+| 8.6 | M8 读 Snapshot、知识链前三段、`reference_and_hash_only`、GraphProjectionPack（先定格式，D8） | impl-04 返工 + impl-00 登记 | 8.5（格式草案可提前） | 真书 `INTERNAL_DEMO` 发布包 |
+| 8.7 | 各验收脚本电子文本路线（D9）；orchestrator 登记 m4/m6、m3 文本入口；`run_all.sh` 按判定输出（独占 ACT） | impl-08、各包 | 8.6 | `run_all.sh` 相应项转判 |
+
+用户待办（W8）：8.4 审核决定表亲填（约 ≤ 40 条）。
+
