@@ -7,6 +7,8 @@ import ast
 import copy
 import hashlib
 import json
+import os
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -14,6 +16,15 @@ import jsonschema
 
 from pipeline.corpus_compiler.assemble_offset import assemble_m3_text_stage_package
 from pipeline.corpus_compiler.gate_offset import evaluate_text_coverage
+
+# 护栏自检时把 AST 扫描目标指向临时副本；未设时扫描工作树中的真实源文件
+GATE_SOURCE_ENV = "M3_GATE_OFFSET_SOURCE"
+
+
+def _gate_source_path():
+    """AST 护栏扫描的源文件路径（自检时经环境变量指向临时副本，绝不改动真实源文件）。"""
+    override = os.environ.get(GATE_SOURCE_ENV)
+    return Path(override) if override else Path(__file__).parent.parent / "gate_offset.py"
 
 
 def _create_golden_fixture():
@@ -113,9 +124,12 @@ class TestGateOffset(unittest.TestCase):
             self.assertTrue(check["ok"], f"检查 {name} 意外失败: {check['detail']}")
 
     def test_gate_offset_does_not_import_compiler_modules(self):
-        """第 88 条护栏用例：通过 AST 解析断言 gate_offset.py 未 import 编译模块，防止同错同过。"""
-        gate_path = Path(__file__).parent.parent / "gate_offset.py"
-        source = gate_path.read_text(encoding="utf-8")
+        """第 88 条护栏用例：通过 AST 解析断言 gate_offset.py 未 import 编译模块，防止同错同过。
+
+        源文件路径取自 ``_gate_source_path()``：默认是工作树中的真实源文件；护栏自检时指向
+        临时副本，故自检绝不会触碰（更不会损坏）真实源文件。
+        """
+        source = _gate_source_path().read_text(encoding="utf-8")
         tree = ast.parse(source)
         imported_modules = []
         for node in ast.walk(tree):
@@ -386,81 +400,96 @@ class TestGateOffset(unittest.TestCase):
 
 
 class TestGateOffsetImportGuard(unittest.TestCase):
-    """第 88/93 条护栏实战用例——注入三种编译模块导入，验证全部被检出。"""
+    """第 88/93 条护栏实战用例——注入三种编译模块导入，验证全部被检出。
+
+    纪律：注入一律落在**临时副本**上（``tempfile.TemporaryDirectory``），由环境变量
+    ``M3_GATE_OFFSET_SOURCE`` 把 AST 护栏指向该副本；工作树中的真实源文件**绝不改动**，
+    因此进程被强杀也不会损坏源文件。
+    """
 
     def _inject_and_run(self, text_to_add):
-        """将 import 写入 gate_offset.py，运行 Gate 用例，返回失败计数和结果。
+        """把违规 import 注入临时副本，运行 Gate 用例，返回 (失败计数, 结果)。
 
         嵌套运行只加载本文件内的 ``TestGateOffset``（含 AST 护栏用例），
         **不得**把 ``TestGateOffsetImportGuard`` 一并载入：那会让本类递归调用自身，
         套件永不终止（护栏仍能检出注入，且不再自噬）。
         """
-        gate_path = Path("pipeline/corpus_compiler/gate_offset.py")
-        original = gate_path.read_text(encoding="utf-8")
-        try:
-            # 注入 import
-            gate_path.write_text(text_to_add.rstrip() + "\n" + text_to_add.split("\n")[-1] + "\n", encoding="utf-8")
-            # 运行 Gate 用例（不含本护栏类，避免递归）
-            loader = unittest.TestLoader()
-            module = __import__(
-                "pipeline.corpus_compiler.tests.test_gate_offset", fromlist=["TestGateOffset"]
+        source_path = Path(__file__).parent.parent / "gate_offset.py"
+        with tempfile.TemporaryDirectory() as tmpdir:
+            copied = Path(tmpdir) / "gate_offset.py"
+            copied.write_text(
+                text_to_add.rstrip() + "\n" + source_path.read_text(encoding="utf-8"),
+                encoding="utf-8",
             )
-            suite = loader.loadTestsFromTestCase(module.TestGateOffset)
-            runner = unittest.TextTestRunner(verbosity=0)
-            result = runner.run(suite)
-            failed = len(result.failures) + len(result.errors)
-            return failed, result
-        finally:
-            # 无论是否失败，都还原原始文件
-            gate_path.write_text(original, encoding="utf-8")
+
+            previous = os.environ.get(GATE_SOURCE_ENV)
+            os.environ[GATE_SOURCE_ENV] = str(copied)
+            try:
+                loader = unittest.TestLoader()
+                module = __import__(
+                    "pipeline.corpus_compiler.tests.test_gate_offset", fromlist=["TestGateOffset"]
+                )
+                suite = loader.loadTestsFromTestCase(module.TestGateOffset)
+                runner = unittest.TextTestRunner(verbosity=0)
+                result = runner.run(suite)
+                failed = len(result.failures) + len(result.errors)
+                return failed, result
+            finally:
+                if previous is None:
+                    os.environ.pop(GATE_SOURCE_ENV, None)
+                else:
+                    os.environ[GATE_SOURCE_ENV] = previous
+
+    def _assert_guard_detected(self, result, injected):
+        """断言 AST 护栏用例本身转红（而非仅仅「有东西失败了」）。"""
+        names = [str(case) for case, _ in result.failures + result.errors]
+        self.assertTrue(
+            any(
+                "test_gate_offset_does_not_import_compiler_modules" in name
+                for name in names
+            ),
+            "%s 未被 AST 护栏检出，失败用例：%s" % (injected, names),
+        )
+
+    def _assert_real_source_untouched(self, before, injected):
+        """断言真实源文件在注入自检前后逐字节不变。"""
+        after = hashlib.sha256(
+            (Path(__file__).parent.parent / "gate_offset.py").read_bytes()
+        ).hexdigest()
+        self.assertEqual(after, before, "%s 自检改动了真实源文件" % injected)
 
     def test_from_dot_import_text_compiler(self):
-        """注入 from . import text_compiler，应被护栏检出转红。"""
-        gate_path = Path("pipeline/corpus_compiler/gate_offset.py")
-        original = gate_path.read_text(encoding="utf-8")
-        try:
-            text_to_add = "from . import text_compiler"
-            failed, result = self._inject_and_run(text_to_add)
-            # 至少应有一条用例因检出 import 而失败
-            self.assertGreater(failed, 0, "from . import text_compiler 未被护栏检出")
-            # 贴出失败详情中的 text_compiler 相关信息
-            for test, traceback in result.failures + result.errors:
-                tb_lower = str(traceback).lower()
-                if "text_compiler" in tb_lower or "import" in tb_lower:
-                    # 记录但不直接fail这里，让报告显示具体输出
-                    pass
-        finally:
-            gate_path.write_text(original, encoding="utf-8")
+        """注入 from . import text_compiler（临时副本），应被护栏检出转红。"""
+        injected = "from . import text_compiler"
+        before = hashlib.sha256(
+            (Path(__file__).parent.parent / "gate_offset.py").read_bytes()
+        ).hexdigest()
+        failed, result = self._inject_and_run(injected)
+        self.assertGreater(failed, 0, "%s 未被护栏检出" % injected)
+        self._assert_guard_detected(result, injected)
+        self._assert_real_source_untouched(before, injected)
 
     def test_from_dot_text_compiler_import(self):
-        """注入 from .text_compiler import segment_cleaned_text，应被护栏检出转红。"""
-        gate_path = Path("pipeline/corpus_compiler/gate_offset.py")
-        original = gate_path.read_text(encoding="utf-8")
-        try:
-            text_to_add = "from .text_compiler import segment_cleaned_text"
-            failed, result = self._inject_and_run(text_to_add)
-            self.assertGreater(failed, 0, "from .text_compiler import segment_cleaned_text 未被护栏检出")
-            for test, traceback in result.failures + result.errors:
-                tb_lower = str(traceback).lower()
-                if "text_compiler" in tb_lower or "import" in tb_lower:
-                    pass
-        finally:
-            gate_path.write_text(original, encoding="utf-8")
+        """注入 from .text_compiler import segment_cleaned_text（临时副本），应被护栏检出转红。"""
+        injected = "from .text_compiler import segment_cleaned_text"
+        before = hashlib.sha256(
+            (Path(__file__).parent.parent / "gate_offset.py").read_bytes()
+        ).hexdigest()
+        failed, result = self._inject_and_run(injected)
+        self.assertGreater(failed, 0, "%s 未被护栏检出" % injected)
+        self._assert_guard_detected(result, injected)
+        self._assert_real_source_untouched(before, injected)
 
     def test_absolute_import_text_compiler(self):
-        """注入 import pipeline.corpus_compiler.text_compiler，应被护栏检出转红。"""
-        gate_path = Path("pipeline/corpus_compiler/gate_offset.py")
-        original = gate_path.read_text(encoding="utf-8")
-        try:
-            text_to_add = "import pipeline.corpus_compiler.text_compiler"
-            failed, result = self._inject_and_run(text_to_add)
-            self.assertGreater(failed, 0, "import pipeline.corpus_compiler.text_compiler 未被护栏检出")
-            for test, traceback in result.failures + result.errors:
-                tb_lower = str(traceback).lower()
-                if "text_compiler" in tb_lower or "import" in tb_lower:
-                    pass
-        finally:
-            gate_path.write_text(original, encoding="utf-8")
+        """注入 import pipeline.corpus_compiler.text_compiler（临时副本），应被护栏检出转红。"""
+        injected = "import pipeline.corpus_compiler.text_compiler"
+        before = hashlib.sha256(
+            (Path(__file__).parent.parent / "gate_offset.py").read_bytes()
+        ).hexdigest()
+        failed, result = self._inject_and_run(injected)
+        self.assertGreater(failed, 0, "%s 未被护栏检出" % injected)
+        self._assert_guard_detected(result, injected)
+        self._assert_real_source_untouched(before, injected)
 
 
 if __name__ == "__main__":
