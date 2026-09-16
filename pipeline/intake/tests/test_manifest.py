@@ -112,6 +112,19 @@ class TestManifest(unittest.TestCase):
             load_source(src)
         self.assertEqual(ctx.exception.code, "SCH_002")
 
+    def test_load_source_derivation_rejected_SCH_002(self):
+        """synthetic_fixture: true，derivation 键被拒且 code 为 SCH_002（第 85 条、第 88 条）。"""
+        src = fixture_source()
+        src["derivation"] = {
+            "parent_kind": "source_asset",
+            "parent_ref": "legacy_ref",
+            "parent_sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+            "note": "legacy derivation",
+        }
+        with self.assertRaises(IntakeRefused) as ctx:
+            load_source(src)
+        self.assertEqual(ctx.exception.code, "SCH_002")
+
     def test_load_source_bad_source_url_SCH_002(self):
         """synthetic_fixture: true，非 http:// 或 https:// 开头的 URL 抛出 SCH_002。"""
         src = fixture_source()
