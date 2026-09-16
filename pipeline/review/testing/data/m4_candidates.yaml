@@ -79,6 +79,8 @@ school_views:
     school: qizheng_classical
     conflict_group_id: cg_00000000000000000000000000000001
     subject_entity_id: as_qizheng_000001
+    claim_refs: [as_qizheng_000001]
+    changes_current_judgment: false
     content_status: machine_extracted
     text: 七政旺宮星度
     source_refs:

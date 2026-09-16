@@ -1,8 +1,8 @@
-"""M7 创世汇编验收（spec §19.0 判据）：十六项判定（10 PASS + 6 BLOCKED）。
+"""M7 创世汇编验收（spec §19.0 判据）：十七项判定（11 PASS + 5 BLOCKED）。
 
 本模块不 import ``genesis``；判定只读 Ledger 与 tests/data 金标，不信任
 ``run_m7`` 返回的 Gate 报告与结果对象。
-依赖真实消费 M6 产出的判定恒 BLOCKED（第 66 条）。
+真实 M6 上游路径经 upstream_stub 驱动（第 83 条）。
 """
 
 import argparse
@@ -22,8 +22,11 @@ except ImportError:
 from pipeline.assembly import fixture_seed
 from pipeline.assembly.canonical import canonical_json
 from pipeline.assembly.gate import evaluate_genesis
+from pipeline.assembly.model import validate_snapshot_knowledge
 from pipeline.assembly.step import run_m7
 from pipeline.ledger.service import LedgerService
+from pipeline.review.testing.upstream_stub import seed_upstream as m6_seed_upstream
+import pipeline.review.step as _review_step
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SCHEMA_DIR = REPO_ROOT / "openspec" / "schemas"
@@ -49,14 +52,105 @@ BLOCKED_CHECKS = (
         "M6 返工替换未实现（D-14）",
     ),
     (
-        "upstream_m6_real",
-        "「消费真实 M6 产出」的判定在 impl-06 实现并验收前恒 BLOCKED（第 66 条）；本切片输入为合成 ReviewedEditionPackage，不伪造",
-    ),
-    (
         "run_all_20_5",
         "§20.5 未接线（Q29 采纳 C）",
     ),
 )
+
+
+def _prepare_with_real_m6():
+    """在临时 Ledger 上用真实 M6 产出准备验收环境，返回 (tmp_dir, service, world)。"""
+    from pipeline.review.testing.upstream_stub import load_data as m6_load_data
+
+    tmp = Path(tempfile.mkdtemp(prefix="m7_real_m6_"))
+    ledger_dir = tmp / "ledger"
+    service = LedgerService(ledger_dir)
+    try:
+        fixture_dir = REPO_ROOT / "pipeline" / "corpus" / "_fixture" / "mini_ed01"
+        seed = m6_seed_upstream(service, fixture_dir)
+        edition_part_id = seed["edition_part_id"]
+
+        # 驱动 M6 review 流程
+        first_open = _review_step.open_review(service, edition_part_id)
+        step_run_id = first_open["step_run_id"]
+        token = first_open["resume_token"]
+        decisions = m6_load_data("m6_decisions")["decisions"]
+        for d in decisions:
+            _review_step.record_decision(
+                service, step_run_id, token,
+                queue_item_id=d["queue_item_id"],
+                verdict=d["verdict"],
+                rationale=d["rationale"],
+                modified_content=d.get("modified_content"),
+            )
+        first_close = _review_step.close_review(service, step_run_id, token)
+        if first_close.get("status") != "succeeded":
+            raise RuntimeError("real M6 close_review 未成功: %r" % first_close.get("failed_check"))
+
+        # 查找 m6 StagePackage 修订
+        m6_pkg_row = service.store.conn.execute(
+            "SELECT ar.artifact_revision_id FROM artifact_revisions ar "
+            "JOIN stage_packages sp ON ar.artifact_id = sp.artifact_id "
+            "WHERE sp.stage='m6'",
+        ).fetchone()
+        if not m6_pkg_row:
+            raise RuntimeError("未找到 m6 StagePackage")
+        m6_pkg_rev_id = m6_pkg_row[0]
+
+        m6_before = service.get_revision(m6_pkg_rev_id)
+
+        # 查找 reviewed_edition 修订
+        re_row = service.store.conn.execute(
+            "SELECT ar.artifact_revision_id FROM artifact_revisions ar "
+            "JOIN artifacts a ON a.artifact_id = ar.artifact_id "
+            "WHERE a.artifact_type='reviewed_edition'",
+        ).fetchone()
+        re_rev_id = re_row[0] if re_row else None
+
+        # 查找 reviewed_edition_package 修订
+        rep_row = service.store.conn.execute(
+            "SELECT ar.artifact_revision_id FROM artifact_revisions ar "
+            "JOIN artifacts a ON a.artifact_id = ar.artifact_id "
+            "WHERE a.artifact_type='reviewed_edition_package'",
+        ).fetchone()
+        rep_rev_id = rep_row[0] if rep_row else None
+
+        # 运行 M7
+        technique_id = "qizheng"
+        res = run_m7(
+            service,
+            edition_part_id,
+            technique_id=technique_id,
+            reviewed_package_revision_ids=[m6_pkg_rev_id],
+            base_snapshot_revision_id=None,
+        )
+
+        m6_after = service.get_revision(m6_pkg_rev_id)
+
+        snap_rev = service.get_revision(res["snapshot_revision_id"])
+        snap_bytes = service.objects.get(snap_rev["sha256"])
+        snap_doc = json.loads(snap_bytes.decode("utf-8"))
+
+        # 读 reviewed_edition 内容
+        re_doc = None
+        if re_rev_id:
+            re_rev = service.get_revision(re_rev_id)
+            re_doc = json.loads(service.objects.get(re_rev["sha256"]).decode("utf-8"))
+
+        world = {
+            "service": service,
+            "run_result": res,
+            "snapshot_doc": snap_doc,
+            "snapshot_revision_id": res["snapshot_revision_id"],
+            "real_m6_before": m6_before,
+            "real_m6_after": m6_after,
+            "real_decisions": decisions,
+            "reviewed_edition": re_doc,
+        }
+        return tmp, service, world
+    except Exception:
+        service.close()
+        raise
 
 
 def _prepare(tmp_root: Path):
@@ -395,14 +489,17 @@ def check_closed_set_types(world) -> list[str]:
 
 
 def check_no_model_calls(world) -> list[str]:
-    assembly_dir = REPO_ROOT / "pipeline" / "assembly"
+    assembly_dir = world.get("_scan_dir", REPO_ROOT / "pipeline" / "assembly")
+    extra_files = world.get("_extra_files", [])
     errors = []
     forbidden = {"requests", "openai", "anthropic", "httpx"}
 
-    for py_file in assembly_dir.rglob("*.py"):
+    py_files = list(assembly_dir.rglob("*.py")) + [Path(f) for f in extra_files]
+    for py_file in py_files:
         try:
             tree = ast.parse(py_file.read_text(encoding="utf-8"))
-        except Exception:
+        except Exception as exc:
+            errors.append("%s 解析失败: %s" % (py_file.name, exc))
             continue
         for node in ast.walk(tree):
             if isinstance(node, ast.Import):
@@ -413,6 +510,36 @@ def check_no_model_calls(world) -> list[str]:
                 if node.module and node.module.split(".")[0] in forbidden:
                     errors.append("%s 包含模型/网络库 import %s" % (py_file.name, node.module))
 
+    return errors
+
+
+def check_upstream_m6_real(world) -> list[str]:
+    """独立核对真实 M6 产出经 M7 后的 Snapshot（第 83 条）。"""
+    errors = []
+    tmp, service, real_world = _prepare_with_real_m6()
+    try:
+        snap_doc = real_world["snapshot_doc"]
+
+        # 1. Snapshot 修订的 knowledge 字段包含 patterns/assertions 键
+        if "patterns" not in snap_doc:
+            errors.append("Snapshot knowledge 缺少 patterns 键")
+        if "assertions" not in snap_doc:
+            errors.append("Snapshot knowledge 缺少 assertions 键")
+
+        # 2. Snapshot 修订的 knowledge 经 validate_snapshot_knowledge 校验通过
+        try:
+            validate_snapshot_knowledge(snap_doc)
+        except Exception as exc:
+            errors.append("validate_snapshot_knowledge 失败: %s" % exc)
+
+        # 3. m6 StagePackage 在运行前后 status/sha256 不变
+        before = real_world["real_m6_before"]
+        after = real_world["real_m6_after"]
+        if before["status"] != after["status"] or before["sha256"] != after["sha256"]:
+            errors.append("真实 M6 StagePackage 在 M7 运行后发生变异")
+    finally:
+        service.close()
+        shutil.rmtree(tmp, True)
     return errors
 
 
@@ -427,6 +554,7 @@ COMPUTED_CHECKS = (
     ("checkpoints", check_checkpoints),
     ("closed_set_types", check_closed_set_types),
     ("no_model_calls", check_no_model_calls),
+    ("upstream_m6_real", check_upstream_m6_real),
 )
 
 

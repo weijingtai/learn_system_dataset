@@ -1,4 +1,4 @@
-"""M7 创世验收测试（act/g0-05，spec §19.0）。"""
+"""M7 创世验收测试（act/g0-05、g0-06，spec §19.0）。"""
 
 import contextlib
 import io
@@ -23,9 +23,9 @@ class TestAcceptance(unittest.TestCase):
             code = acceptance.main([])
         out = buf.getvalue()
         self.assertEqual(code, 2)
-        self.assertIn("SUMMARY pass=10 fail=0 blocked=6", out)
-        self.assertEqual(out.count("PASS "), 10)
-        self.assertEqual(out.count("BLOCKED "), 6)
+        self.assertIn("SUMMARY pass=11 fail=0 blocked=5", out)
+        self.assertEqual(out.count("PASS "), 11)
+        self.assertEqual(out.count("BLOCKED "), 5)
         self.assertEqual(out.count("FAIL "), 0)
 
     def test_blocked_lines_exact_text(self):
@@ -40,10 +40,6 @@ class TestAcceptance(unittest.TestCase):
             ("edition_collation", "Alignment/VariantReading/Addition/Omission 未实现"),
             ("identity_delta", "跨版本身份迁移未实现（§6.3、§16:732）"),
             ("rework_replacement", "M6 返工替换未实现（D-14）"),
-            (
-                "upstream_m6_real",
-                "「消费真实 M6 产出」的判定在 impl-06 实现并验收前恒 BLOCKED（第 66 条）；本切片输入为合成 ReviewedEditionPackage，不伪造",
-            ),
             ("run_all_20_5", "§20.5 未接线（Q29 采纳 C）"),
         ]
         for name, desc in expected_blocked:
@@ -107,7 +103,7 @@ class TestAcceptance(unittest.TestCase):
             proc.returncode, 2, f"stdout: {proc.stdout}\nstderr: {proc.stderr}"
         )
         last_line = proc.stdout.strip().splitlines()[-1]
-        self.assertEqual(last_line, "SUMMARY pass=10 fail=0 blocked=6")
+        self.assertEqual(last_line, "SUMMARY pass=11 fail=0 blocked=5")
 
     def test_shell_missing_env_exit_3(self):
         tmp_dir = tempfile.mkdtemp(prefix="test_missing_env_")
@@ -150,6 +146,7 @@ class TestAcceptance(unittest.TestCase):
         self.assertEqual(proc.returncode, 2)
 
     def test_upstream_m6_real_blocked_until_impl06_accepted(self):
+        """upstream_m6_real 已转为 PASS，验证其不在 BLOCKED 列表中。"""
         from pipeline.assembly import acceptance
 
         buf = io.StringIO()
@@ -158,10 +155,7 @@ class TestAcceptance(unittest.TestCase):
         out = buf.getvalue()
         for line in out.splitlines():
             if line.startswith("BLOCKED upstream_m6_real"):
-                self.assertIn("impl-06 实现并验收前", line)
-                break
-        else:
-            self.fail("BLOCKED upstream_m6_real line not found")
+                self.fail("upstream_m6_real should not be BLOCKED")
 
     def test_synthetic_decisions_not_counted_expert_verified(self):
         from pipeline.assembly.tests.test_genesis_ledger import (
@@ -185,6 +179,105 @@ class TestAcceptance(unittest.TestCase):
         finally:
             service.close()
             shutil.rmtree(tmp, True)
+
+    def test_upstream_m6_real_passes_and_snapshot_has_patterns(self):
+        from pipeline.assembly import acceptance
+
+        tmp, service, world = acceptance._prepare_with_real_m6()
+        try:
+            snap_doc = world["snapshot_doc"]
+            self.assertIn("patterns", snap_doc)
+            self.assertIn("assertions", snap_doc)
+            self.assertIn("technique_id", snap_doc)
+        finally:
+            service.close()
+            shutil.rmtree(tmp, True)
+
+    def test_upstream_m6_real_independent_of_run_m7_gate(self):
+        import ast as _ast
+
+        acc_path = ROOT / "pipeline" / "assembly" / "acceptance.py"
+        tree = _ast.parse(acc_path.read_text(encoding="utf-8"))
+        func = None
+        for node in _ast.walk(tree):
+            if isinstance(node, _ast.FunctionDef) and node.name == "check_upstream_m6_real":
+                func = node
+                break
+        self.assertIsNotNone(func, "check_upstream_m6_real not found")
+        source = _ast.get_source_segment(
+            acc_path.read_text(encoding="utf-8"), func
+        )
+        self.assertNotIn("run_m7", source.split("独立核对")[1] if "独立核对" in source else source)
+
+    def test_upstream_m6_real_m6_package_immutable(self):
+        from pipeline.assembly import acceptance
+
+        tmp, service, world = acceptance._prepare_with_real_m6()
+        try:
+            before = world["real_m6_before"]
+            after = world["real_m6_after"]
+            self.assertEqual(before["status"], after["status"])
+            self.assertEqual(before["sha256"], after["sha256"])
+        finally:
+            service.close()
+            shutil.rmtree(tmp, True)
+
+    def test_no_model_calls_counts_parse_failures(self):
+        from pipeline.assembly import acceptance
+
+        tmp_dir = Path(tempfile.mkdtemp(prefix="test_parse_fail_"))
+        self.addCleanup(shutil.rmtree, tmp_dir, True)
+        bad_file = tmp_dir / "bad_syntax.py"
+        bad_file.write_text("def x(\n", encoding="utf-8")
+        assembly_dir = acceptance.REPO_ROOT / "pipeline" / "assembly"
+        errors = acceptance.check_no_model_calls(
+            {"_scan_dir": assembly_dir, "_extra_files": [bad_file]}
+        )
+        parse_errors = [e for e in errors if "bad_syntax.py" in e]
+        self.assertGreater(len(parse_errors), 0, "parse failure should be counted")
+
+    def test_upstream_m6_real_synthetic_fixture_true(self):
+        from pipeline.review.testing.upstream_stub import load_data as m6_load_data
+
+        decisions_doc = m6_load_data("m6_decisions")
+        self.assertTrue(
+            decisions_doc.get("synthetic_fixture"),
+            "m6_decisions must be marked synthetic_fixture: true",
+        )
+
+    def test_shell_summary_pass_11_fail_0_blocked_5(self):
+        shell_script = ROOT / "openspec" / "acceptance" / "m7-assembler.sh"
+        proc = subprocess.run(
+            ["bash", str(shell_script)],
+            cwd=str(ROOT),
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(
+            proc.returncode, 2, f"stdout: {proc.stdout}\nstderr: {proc.stderr}"
+        )
+        last_line = proc.stdout.strip().splitlines()[-1]
+        self.assertEqual(last_line, "SUMMARY pass=11 fail=0 blocked=5")
+
+    def test_stub_candidate_set_conforms_to_m7_validate(self):
+        """桩 seed 后 candidate_set 过 M7 validate_candidate_set，防漂移。"""
+        import json
+        import tempfile
+        import shutil
+
+        from pipeline.ledger.service import LedgerService
+        from pipeline.review.testing.upstream_stub import seed_upstream
+        from pipeline.assembly.model import validate_candidate_set
+
+        fixture_dir = ROOT / "pipeline" / "corpus" / "_fixture" / "mini_ed01"
+        tmp = Path(tempfile.mkdtemp(prefix="test_stub_conform_"))
+        self.addCleanup(shutil.rmtree, tmp, True)
+        service = LedgerService(tmp / "ledger")
+        self.addCleanup(service.close)
+        seed = seed_upstream(service, fixture_dir)
+        cset_rev = service.get_revision(seed["candidate_set_revision_id"])
+        cset_doc = json.loads(service.objects.get(cset_rev["sha256"]).decode())
+        validate_candidate_set(cset_doc)
 
 
 if __name__ == "__main__":

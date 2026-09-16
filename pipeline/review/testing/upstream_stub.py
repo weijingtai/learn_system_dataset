@@ -125,6 +125,7 @@ def seed_upstream(service, fixture_dir) -> dict:
         "counts": {
             "assertions": len(assertions),
             "school_views": len(school_views),
+            "concept_mentions": 0,
             "disputes": 0,
             "human_decisions": 0,
             "patterns": 0,

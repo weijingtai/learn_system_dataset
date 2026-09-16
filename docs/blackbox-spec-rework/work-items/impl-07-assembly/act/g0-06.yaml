@@ -1,10 +1,10 @@
 act_id: impl-07/G0-06
 title: M7 验收增加「真实 M6 上游」路径——upstream_m6_real 转判 PASS + no_model_calls 修复静默跳过
-estimated_minutes: 90
+estimated_minutes: 110
 group: G0
 depends_on: [impl-07/G0-05]
 scope:
-  write: [pipeline/assembly/acceptance.py, pipeline/assembly/tests/test_acceptance.py, openspec/acceptance/m7-assembler.sh]
+  write: [pipeline/assembly/acceptance.py, pipeline/assembly/tests/test_acceptance.py, openspec/acceptance/m7-assembler.sh, pipeline/review/testing/upstream_stub.py, pipeline/review/testing/data/m4_candidates.yaml]
 tests_first:
   - 先写 tests/test_acceptance.py（用例名逐字）并全红，再实现 acceptance.py 对应逻辑，最后更新 m7-assembler.sh
 contract: |
@@ -19,6 +19,10 @@ contract: |
         3. m6 StagePackage 在运行前后 status/sha256 不变（upstream_immutable 同理）
       人工决定仍为合成测试替身，保持 synthetic_fixture: true，不计真实 expert_verified（第 83 条）
     no_model_calls 修复：解析失败的文件不得 except Exception: continue 静默跳过，改为计入 FAIL（附具名用例 `test_no_model_calls_counts_parse_failures`）
+  upstream_stub / m4_candidates.yaml 补字段（第 84 条授权，方案 A）：
+    只增字段，不改既有键与既有值；不动 pipeline/review/** 生产代码（P9）
+    m4_candidates.yaml school_views 增 claim_refs（有意义断言号）与 changes_current_judgment（布尔），形态依真实 M4 输出契约（assemble.py:565-567）
+    upstream_stub.py counts 增 concept_mentions: len(concept_mentions)
   m7-assembler.sh：期望 SUMMARY pass=11 fail=0 blocked=5、exit 2（BLOCKED 从 6 降至 5）
 tests:
   test_acceptance.py: |
@@ -28,12 +32,15 @@ tests:
     - test_no_model_calls_counts_parse_failures（注入语法错误 .py → check_no_model_calls 返回含该文件名的错误列表）
     - test_upstream_m6_real_synthetic_fixture_true（人工决定含 synthetic_fixture: true，不计 expert_verified）
     - test_shell_summary_pass_11_fail_0_blocked_5（subprocess，末行 SUMMARY pass=11 fail=0 blocked=5）
+    - test_stub_candidate_set_conforms_to_m7_validate（桩 seed 后 candidate_set 过 M7 validate_candidate_set，防漂移）
 verify:
-  - .venv/bin/python -m unittest discover -s pipeline/assembly/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 95（89 + 6 新增具名用例）
+  - .venv/bin/python -m unittest discover -s pipeline/assembly/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 96（89 + 7 新增具名用例）
+  - .venv/bin/python -m unittest discover -s pipeline/review/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 145（不减）
   - export LC_ALL=en_US.UTF-8; bash openspec/acceptance/m7-assembler.sh; echo exit=$?   # 11 PASS + 5 BLOCKED + SUMMARY pass=11 fail=0 blocked=5；exit=2
+  - export LC_ALL=en_US.UTF-8; bash openspec/acceptance/m6-data-fields.sh; echo exit=$?  # 11 PASS + 3 BLOCKED + SUMMARY pass=11 fail=0 blocked=3；exit=2（act/12 落地前不变）
   - bash openspec/acceptance/run_all.sh | tail -1   # SUMMARY pass=2 fail=1 blocked=8（本切片不改 run_all.sh）
   - git diff --check
 commit:
-  add: [pipeline/assembly/acceptance.py, pipeline/assembly/tests/test_acceptance.py, openspec/acceptance/m7-assembler.sh]
-  message: "feat(m7): real M6 upstream wiring in acceptance (upstream_m6_real PASS, no_model_calls parse-failure fix) per spec §83"
+  add: [pipeline/assembly/acceptance.py, pipeline/assembly/tests/test_acceptance.py, openspec/acceptance/m7-assembler.sh, pipeline/review/testing/upstream_stub.py, pipeline/review/testing/data/m4_candidates.yaml]
+  message: "feat(m7): real M6 upstream wiring in acceptance + stub data conformance fix per spec §83, §84"
 on_fail: 停止并报告；upstream_stub 驱动路径异常、Ledger 公开方法行为与 contract 不符、需改 scope 外文件 → 一律停手上报
