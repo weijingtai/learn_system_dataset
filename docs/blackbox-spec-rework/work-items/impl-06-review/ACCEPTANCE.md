@@ -104,3 +104,30 @@ K2 `REWORK`（06a）。
 - 观察（建议，不阻断）：金标 `first_review.decisions`/`checkpoints` 未被 acceptance 直接比对（`checkpoint_per_decision` 另按 Ledger 独立重算）；`cb6ea8e` 在 `model.py` 留 1 处尾随空白；`snapshot_projection` 的 BLOCKED 文案「前置缺失: M7 创世汇编」在 impl-07 G0 已验收后已过时，`upstream_real` 文案仍写「M4 Knowledge Extraction」前置缺失，均宜在转判 ACT 中更新。
 
 K3 `ACCEPTED`。**impl-06 M6 最薄接入（K1、K2+06a、K3+09a/09b）全部 `ACCEPTED`**。
+
+### 5.5 act/12（2026-09-15，主 Agent 独立验收，`git archive dc83cf9` 干净树）
+
+判定：**ACCEPTED**。执行器：agy / Gemini 3.8 Flash Medium（前一执行器 OpenCode/MiMo 免费额度耗尽后切换）。
+
+范围（5 文件）：`pipeline/review/acceptance.py`、`model.py`、`tests/test_acceptance.py`、`openspec/acceptance/m6-data-fields.sh`、外加第 87 条授权的 `act/12.yaml` 与 `TDD.md`。第 87 条授权范围外文件数 **0**。
+
+第 87 条落地核对：
+
+- `first_review_counts` 为 `COMPUTED_CHECKS` 的**独立条目**（`acceptance.py:872`），未被折进任何别的检查。`COMPUTED` 13 项、`BLOCKED` 2 项（`legacy_workbench_seed`、`upstream_real`）。
+- 三处断言（`test_acceptance.py:60`、`:163`、`:360`）全部为 `SUMMARY pass=13 fail=0 blocked=2`；旧名 `pass_12_fail_0_blocked_2` 与 `eleven_pass_three_blocked` 残留 **0**（已按裁决分别更名为 `test_shell_summary_pass_13_fail_0_blocked_2`、`test_fixture_yields_thirteen_pass_two_blocked_exit_2`）。
+- 11 条具名用例逐条存在（四条正向投影 + 四条反向篡改 + `first_review_counts` 正反 + shell）。
+- 独立性（第 83 条）：`_check_snapshot_projection` 只用 `run_m7` 返回值定位 `snapshot_revision_id`，判据取自 Ledger 回读的 Snapshot 与 `reviewed_edition`，未复用 `run_m7` 的 gate/report。
+
+测试与脚本：`pipeline/review/tests Ran 156 OK`（阈值 ≥155 达标）；`pipeline/assembly/tests Ran 96 OK`（g0-06 未回退）；`m6-data-fields.sh SUMMARY pass=13 fail=0 blocked=2` exit=2；`m7-assembler.sh SUMMARY pass=11 fail=0 blocked=5` exit=2；`check_interfaces pass=36 fail=0`；`schemas/verify.sh` exit 0；`run_all.sh SUMMARY pass=2 fail=1 blocked=8`。
+
+矩阵外篡改（主 Agent 自建）：
+
+| 篡改 | 结果 | 结论 |
+|---|---|---|
+| 金标 `expected_review.yaml` 的 `approved` 改为不存在的对象号 | `FAIL reviewed_edition_contract 首审 approved 与 expected 不符`；`snapshot_projection` 仍 PASS | 正确：`snapshot_projection` 比对的是「M6 产出 → M7 投影」这一步，不与金标比对，改金标本就不应令其转红；金标漂移由 `reviewed_edition_contract` 兜住 |
+| `m6_decisions.yaml` 把一条 `accept` 改为 `reject` | 同上 | 正确：该改动同时改变比对两侧，两侧仍自洽 |
+| **主 Agent 在进程内直接篡改 Ledger 中的 Snapshot 修订**（删去一条 assertion 并改写 `sha256`），重跑 `_check_snapshot_projection` | 由 `[]` 转为 2 条错误：`approved assertions 与 Snapshot assertions 不符: approved=['as_qizheng_000001','as_qizheng_000003'] vs snap=['as_qizheng_000001']`、`evidence_links 不一致: …` | **判定load-bearing，非空转**；该篡改点与执行方的反向用例一致，但由主 Agent 独立构造 |
+
+接手情况：本 ACT 由前一执行器做到一半（约 185 行未提交改动）后因额度耗尽中断，agy 接手续做。接手方自行发现并修复了前者两处实现缺陷（`_check_snapshot_projection` 取到被 superseded 的 candidate_set；`_check_first_review_counts` 对 `int` 执行 `len()`），并把前者「只断言 CLI 输出字符串」的空转测试全部重写为真实 Ledger 上的正反断言。Red 原文、七条门槛输出、改名对照表均贴入回报，纪律达标。
+
+**至此 impl-06 的 K3 四个 ACT（08、09、11、12）全部完成，impl-06 M6 全部 `ACCEPTED`。** `snapshot_projection` 由 BLOCKED 转判 PASS，M6 剩余 BLOCKED 两项（`legacy_workbench_seed`、`upstream_real`）依赖旧工作台数据迁入与第 80 条真实签发决定表，属用户待办与后续波次。
