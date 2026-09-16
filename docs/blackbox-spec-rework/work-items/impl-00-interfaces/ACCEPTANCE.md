@@ -97,3 +97,16 @@ act/05 `ACCEPTED`。W4G 组完成。
 - 下游不受影响：`schemas/verify.sh` 0；`verify-T.sh` `FAIL 合计: 0`；fixture `verify.sh` 0；`run_all.sh` `pass=2 fail=1 blocked=8`。
 
 act/13 `ACCEPTED`。impl-06 实现的闭集前提已满足。
+
+### 5.5 act/14 M2 电子文本闭集与片段 ID 登记（2026-09-15，主 Agent 独立验收，`git archive ec8c3a8` 干净树）
+
+执行者：tmux + OpenCode（MiMo V2.5 Free，会话 `oc71`；`opencode-go/deepseek-v4.1-flash` 需账号 opt-in 不可用，按用户决定改用 MiMo）。起草 `b90e3de` → 主 Agent 审出数字矛盾 → 改正 `6e19b9b` → 执行 `c6bcd9f` → 主 Agent 验收发现 IF35 检查错文件 → 返工 `ec8c3a8`。
+
+- 范围：`c6bcd9f` 为 `INTERFACES.md`、`check_interfaces.py`、`tests/test_check_interfaces.py`、`openspec/id-prefix-registry.md`；`ec8c3a8` 为前三者中的三文件；`openspec/schemas`、`pipeline/**`、fixture、`run_all.sh` 改动 0。
+- Red：执行方原文 `I00-IF SUMMARY pass=28 fail=8`、`Ran 25 tests FAILED (failures=3)`；**返工 Red 由主 Agent 独立复现**（`c6bcd9f` 树叠加 `ec8c3a8` 的测试文件 → `test_ss_offset_form_missing_fails` `AssertionError: 'PASS' != 'FAIL'`）。
+- 复验（干净树）：`check_interfaces.py` 末行 `I00-IF SUMMARY pass=36 fail=0`、exit 0，IF30–IF36 七个 PASS 行（第 54 条只认 `fail=0`）；unittest `Ran 25` OK；§4 `| M2 ` 行 5 条（旧 OCR 合并行 1 + 新增 4，act/14 原写「≥ 6」已改为 ≥ 5）；登记册含 `sem_`（§3.6）与 `ss_` 偏移形态 `o<NNNNNNN>`（§3.1）。
+- 矩阵外篡改五组全部命中：T1 删 §4 `raw_text` 行 → `FAIL IF11`+`FAIL IF30`；T2 删 `finding_id` 键集 → `FAIL IF11`+`IF33`+`IF34`；T3 删登记册 `o<NNNNNNN>` → `FAIL IF35`（**返工前此组不命中，是本次返工的原因**：IF35 原判 INTERFACES 正文而非登记册）；T4 删登记册 `sem_` → `FAIL IF36`；T5 删 M6 `review_queue` 行 → `FAIL IF11`+`IF25`（旧检查仍有效）。
+- 回归门禁：`schemas/verify.sh` 0；`verify-T.sh` `FAIL 合计: 0`；fixture `verify.sh` 0；`run_all.sh` `pass=2 fail=1 blocked=8`。
+- 执行方纪律问题（记录，不影响本次结论）：两次回报缺证据——阶段 B 未贴 `grep -c '^| M2 '` 的不达标输出（判据本身写错），返工后未写回报段。已重申「每条 verify 贴真实输出、不达标停手上报、阶段标题逐字」。
+
+act/14 `ACCEPTED`。W7 步骤 7.1 完成，7.2（impl-09 M1+M2 电子文本）可派发。

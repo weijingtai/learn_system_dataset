@@ -13,6 +13,7 @@
   3. 小清理：`acceptance.py:405`（M7 no_model_calls 静默跳过不可解析文件）、`model.py` 尾随空白、M6 acceptance 未比对 `first_review.decisions/checkpoints`。
 - **文本源优先路线（2026-09-15 用户提出）**：第一版以殆知阁电子文本走 M1→M8（`offset_level`，内部版），第二版做 OCR 与证据升级；调研结论、清洗必做清单、第二版必做清单与待决定项**统一登记在 `docs/blackbox-spec-rework/G7-PLAN.md` §4**。
 - 用户决定（2026-09-15，G7-RULINGS 第 76–82 条）：第一版内部版 `offset_level`；书源不限殆知阁；无页码文本片段 ID `ss_<work>_ed<NN>_o<NNNNNNN>`；生僻字保留原码位并记字体；SemanticSpan 前缀 `sem_`；电子文本清洗发现与 OCR 同等可追踪（上游 M1/M2/M3 待实现）；markitdown 仅作可选格式适配器。
+- **W7 进展（tmux + OpenCode，MiMo V2.5 Free；计划见 G7-PLAN §5）**：7.1 impl-00 act/14 已 `ACCEPTED`（`ec8c3a8`，ACCEPTANCE §5.5）；7.0 M6→M7 接线 ACT 已定稿（`be4d3f6` → 主 Agent 审出两处不可实现判定 → 改正 `cefa28d`），会话 `oc70` 实现中；下一步 7.2 impl-09 M1+M2 电子文本。监控用 scratchpad `oc-watch.sh`（opencode 忙碌标志是底部 `esc interrupt`）。MiMo 回报常缺证据，Red 必要时由主 Agent 在修正前树上叠加新测试独立复现。
 - 用户待办：按第 80 条填写 `expert_verified` 签发决定表（主 Agent 先出模板）；前十页人工终态决定表移至第二版 OCR。
 
 ## （上一节）G7 W4 收尾：impl-08 与 impl-05 均 ACCEPTED
