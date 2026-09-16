@@ -49,7 +49,7 @@ tests:
     - test_m2_check_blocked_on_no_ledger（无 Ledger 目录 → BLOCKED）
 verify:
   - .venv/bin/python -m unittest discover -s pipeline/intake/tests -t . 2>&1 | tail -3   # OK，intake 累计 ≥ 29
-  - .venv/bin/python -m unittest discover -s pipeline/digitization/tests -t . 2>&1 | tail -3   # OK，digitization 累计 ≥ 49
+  - .venv/bin/python -m unittest discover -s pipeline/digitization/tests -t . 2>&1 | tail -3   # OK，digitization 累计 ≥ 56
   - bash openspec/acceptance/m1-intake.sh; echo exit=$?   # exit 2（BLOCKED，无真实素材）
   - bash openspec/acceptance/m2-sanitization.sh; echo exit=$?   # exit 2（BLOCKED）
   - TDD §3 回归

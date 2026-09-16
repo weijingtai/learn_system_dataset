@@ -163,5 +163,88 @@ class TestCleaner(unittest.TestCase):
         self.assertEqual(report["summary"]["deferred_count"], len(deferred_findings))
 
 
+    def test_clean_text_finds_encoding_issue(self):
+        """synthetic_fixture: true，含 BOM 或编码声明 → encoding_issue finding。"""
+        text = "\ufeff太极图说\n天地之初"
+        res = clean_text(text)
+        kinds = [f.kind for f in res.findings]
+        self.assertIn("encoding_issue", kinds)
+        f = next(f for f in res.findings if f.kind == "encoding_issue")
+        self.assertEqual(f.terminal_state, "processed")
+
+    def test_clean_text_finds_watermark(self):
+        """synthetic_fixture: true，含非文献水印内容 → watermark finding。"""
+        text = "太极图说\nhttps://daizhige.org 殆知阁整理\n天地之初"
+        res = clean_text(text)
+        kinds = [f.kind for f in res.findings]
+        self.assertIn("watermark", kinds)
+        f = next(f for f in res.findings if f.kind == "watermark")
+        self.assertEqual(f.terminal_state, "processed")
+
+    def test_clean_text_finds_header_footer(self):
+        """synthetic_fixture: true，含重复页眉页脚行 → header_footer finding。"""
+        text = "--- 第 1 页 ---\n太极图说\n天地之初"
+        res = clean_text(text)
+        kinds = [f.kind for f in res.findings]
+        self.assertIn("header_footer", kinds)
+        f = next(f for f in res.findings if f.kind == "header_footer")
+        self.assertEqual(f.terminal_state, "processed")
+
+    def test_clean_text_finds_duplicate(self):
+        """synthetic_fixture: true，含连续重复内容 → duplicate finding，登记位置不静默删除。"""
+        text = "太极图说太极图说\n天地之初"
+        res = clean_text(text)
+        kinds = [f.kind for f in res.findings]
+        self.assertIn("duplicate", kinds)
+        f = next(f for f in res.findings if f.kind == "duplicate")
+        self.assertEqual(f.action, "flagged")
+        self.assertIsNone(f.patch_id)
+
+    def test_clean_text_finds_missing(self):
+        """synthetic_fixture: true，含缺失缺口标记 → missing finding，终态恒 deferred。"""
+        text = "太极图说【缺字】天地之初"
+        res = clean_text(text)
+        kinds = [f.kind for f in res.findings]
+        self.assertIn("missing", kinds)
+        f = next(f for f in res.findings if f.kind == "missing")
+        self.assertEqual(f.terminal_state, "deferred")
+
+    def test_clean_text_finds_textualized_diagram(self):
+        """synthetic_fixture: true，含文本化图表区块 → textualized_diagram finding。"""
+        text = "太极图说\n【图表：太极阴阳总图】\n天地之初"
+        res = clean_text(text)
+        kinds = [f.kind for f in res.findings]
+        self.assertIn("textualized_diagram", kinds)
+        f = next(f for f in res.findings if f.kind == "textualized_diagram")
+        self.assertEqual(f.terminal_state, "processed")
+
+    def test_every_finding_kind_has_detector(self):
+        """对 FINDING_KINDS 每一个 kind，断言存在能触发它的合成输入，缺失检测器时必须转红。"""
+        from pipeline.digitization import FINDING_KINDS
+
+        KIND_SAMPLES = {
+            "encoding_issue": "\ufeff太极图说",
+            "replacement_char": "太极□说",
+            "private_use_area": "天地\ue001之初",
+            "control_char": "太极\u200b图说",
+            "escape_residue": r"\[太极图说\]",
+            "watermark": "太极图说 https://daizhige.org 殆知阁整理",
+            "header_footer": "--- 第 1 页 ---\n太极图说",
+            "duplicate": "太极图说太极图说",
+            "missing": "太极图说【缺字】",
+            "textualized_diagram": "太极图说【图表：太极阴阳图】",
+            "variant_mixed": "繁體与简体",
+            "suspected_error": "子日天地",
+        }
+
+        for kind in FINDING_KINDS:
+            self.assertIn(kind, KIND_SAMPLES, f"FINDING_KINDS 包含未配置检测样本的 kind: {kind}")
+
+        for kind, sample in KIND_SAMPLES.items():
+            res = clean_text(sample)
+            found_kinds = {f.kind for f in res.findings}
+            self.assertIn(kind, found_kinds, f"kind={kind} 未能被 clean_text 检测到！样本: {sample!r}")
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -51,7 +51,7 @@ def build_patches(raw_text: str, cleaned_text: str, findings: list[Finding]) -> 
         cleaned_start = cleaned_offset + prefix_len
 
         # 推导 replacement 内容
-        if f.kind == "control_char":
+        if f.kind in ("control_char", "encoding_issue", "watermark", "header_footer"):
             replacement = ""
         elif f.kind == "escape_residue":
             replacement = f.raw_excerpt[1:]

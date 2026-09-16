@@ -55,8 +55,15 @@ tests:
     - test_findings_have_unique_ids（synthetic_fixture: true，finding_id 格式 <kind>@<raw_start>-<raw_end>）
     - test_findings_raw_offsets_consistent（synthetic_fixture: true，raw_start < raw_end）
     - test_deferred_finding_in_report（synthetic_fixture: true）
+    - test_clean_text_finds_encoding_issue（synthetic_fixture: true，含 BOM 或编码声明 → encoding_issue finding）
+    - test_clean_text_finds_watermark（synthetic_fixture: true，含非文献水印内容 → watermark finding）
+    - test_clean_text_finds_header_footer（synthetic_fixture: true，含重复页眉页脚行 → header_footer finding）
+    - test_clean_text_finds_duplicate（synthetic_fixture: true，含连续重复内容 → duplicate finding）
+    - test_clean_text_finds_missing（synthetic_fixture: true，含缺失缺口标记 → missing finding，终态恒 deferred）
+    - test_clean_text_finds_textualized_diagram（synthetic_fixture: true，含文本化图表区块 → textualized_diagram finding）
+    - test_every_finding_kind_has_detector（断言每个 kind 存在触发样本，缺失检测逻辑时转红）
 verify:
-  - .venv/bin/python -m unittest discover -s pipeline/digitization/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 15
+  - .venv/bin/python -m unittest discover -s pipeline/digitization/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 22
   - TDD §3 回归
 commit:
   add: [pipeline/digitization]

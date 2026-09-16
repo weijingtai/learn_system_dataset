@@ -44,7 +44,7 @@ tests:
     - test_run_m2_cli_success（synthetic_fixture: true，exit 0，"M2 OK"）
     - test_run_m2_cli_gate_failure（synthetic_fixture: true，exit 1）
 verify:
-  - .venv/bin/python -m unittest discover -s pipeline/digitization/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 32
+  - .venv/bin/python -m unittest discover -s pipeline/digitization/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 39
   - TDD §3 回归
 commit:
   add: [pipeline/digitization]

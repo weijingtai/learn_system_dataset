@@ -25,12 +25,12 @@ git diff --check
 |---|---|---|---|
 | 00 | intake | `$TI` → ImportError | `$TI` OK，用例 ≥ 19；dump_manifest_yaml 往返字节相同 |
 | 01 | intake | 新增用例全 ERROR | `$TI` OK ≥ 26；raw_text 冻结不可变 |
-| 02 | digitization | `$TD` → ImportError | `$TD` OK ≥ 15；clean_text 可发现 13 项清洗问题；patches 可逆 |
-| 03 | digitization | 新增用例全 ERROR | `$TD` OK ≥ 24；gate.py 不 import cleaner/patcher/reporter/raw_text |
-| 04 | digitization | 新增用例全 ERROR | `$TD` OK ≥ 32；run_m2 成功路径产出三个 revision_id |
-| 05 | digitization | 新增用例全 ERROR | `$TD` OK ≥ 41；load_decisions 校验通过；check_decisions_coverage 可检出缺决定 |
-| 06 | digitization | 新增用例全 ERROR | `$TD` OK ≥ 45；M1→M2 产出可被 M3 输入解析消费 |
-| 07 | 两套 | `m1-intake.sh` 不存在（exit 127）；新增用例全 ERROR | `$TI` OK ≥ 29；`$TD` OK ≥ 49；两份脚本 exit 2（BLOCKED） |
+| 02 | digitization | `$TD` → ImportError | `$TD` OK ≥ 22；clean_text 可发现 13 项清洗问题；patches 可逆 |
+| 03 | digitization | 新增用例全 ERROR | `$TD` OK ≥ 31；gate.py 不 import cleaner/patcher/reporter/raw_text |
+| 04 | digitization | 新增用例全 ERROR | `$TD` OK ≥ 39；run_m2 成功路径产出三个 revision_id |
+| 05 | digitization | 新增用例全 ERROR | `$TD` OK ≥ 48；load_decisions 校验通过；check_decisions_coverage 可检出缺决定 |
+| 06 | digitization | 新增用例全 ERROR | `$TD` OK ≥ 52；M1→M2 产出可被 M3 输入解析消费 |
+| 07 | 两套 | `m1-intake.sh` 不存在（exit 127）；新增用例全 ERROR | `$TI` OK ≥ 29；`$TD` OK ≥ 56；两份脚本 exit 2（BLOCKED） |
 
 ## 2. 用例阈值计算（按 act 文件 grep -c "^\s*- test_" 实数）
 
@@ -48,12 +48,12 @@ git diff --check
 
 | ACT | 本 act 用例 | 累计 | 计算 |
 |---|---|---|---|
-| 02 | 15 | 15 | test_cleaner.py 15 条 |
-| 03 | 9 | 24 | + test_gate.py 9 条 |
-| 04 | 8 | 32 | + test_step.py 8 条 |
-| 05 | 9 | 41 | + test_decisions.py 9 条 |
-| 06 | 4 | 45 | + test_parity.py 4 条 |
-| 07 | 4 | 49 | + test_acceptance.py digitization 侧 4 条 |
+| 02 | 22 | 22 | test_cleaner.py 22 条 |
+| 03 | 9 | 31 | + test_gate.py 9 条 |
+| 04 | 8 | 39 | + test_step.py 8 条 |
+| 05 | 9 | 48 | + test_decisions.py 9 条 |
+| 06 | 4 | 52 | + test_parity.py 4 条 |
+| 07 | 4 | 56 | + test_acceptance.py digitization 侧 4 条 |
 
 **各 act grep -c 实数**：
 
@@ -61,7 +61,7 @@ git diff --check
 $ for f in docs/blackbox-spec-rework/work-items/impl-09-intake/act/*.yaml; do echo "$(basename $f): $(grep -c '^\s*- test_' $f)"; done
 00.yaml: 19
 01.yaml: 7
-02.yaml: 15
+02.yaml: 22
 03.yaml: 9
 04.yaml: 8
 05.yaml: 9
