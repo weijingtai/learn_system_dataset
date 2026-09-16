@@ -56,7 +56,7 @@ tests:
     - test_findings_raw_offsets_consistent（synthetic_fixture: true，raw_start < raw_end）
     - test_deferred_finding_in_report（synthetic_fixture: true）
 verify:
-  - .venv/bin/python -m unittest discover -s pipeline/digitization/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 14
+  - .venv/bin/python -m unittest discover -s pipeline/digitization/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 15
   - TDD §3 回归
 commit:
   add: [pipeline/digitization]

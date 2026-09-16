@@ -24,7 +24,7 @@ git diff --check
 | ACT | 套 | Red（实现前） | Green（实现后） |
 |---|---|---|---|
 | 00 | intake | `$TI` → ImportError | `$TI` OK，用例 ≥ 19；dump_manifest_yaml 往返字节相同 |
-| 01 | intake | 新增用例全 ERROR | `$TI` OK ≥ 24；raw_text 冻结不可变 |
+| 01 | intake | 新增用例全 ERROR | `$TI` OK ≥ 26；raw_text 冻结不可变 |
 | 02 | digitization | `$TD` → ImportError | `$TD` OK ≥ 15；clean_text 可发现 13 项清洗问题；patches 可逆 |
 | 03 | digitization | 新增用例全 ERROR | `$TD` OK ≥ 24；gate.py 不 import cleaner/patcher/reporter/raw_text |
 | 04 | digitization | 新增用例全 ERROR | `$TD` OK ≥ 32；run_m2 成功路径产出三个 revision_id |
@@ -33,6 +33,8 @@ git diff --check
 | 07 | 两套 | `m1-intake.sh` 不存在（exit 127）；新增用例全 ERROR | `$TI` OK ≥ 29；`$TD` OK ≥ 49；两份脚本 exit 2（BLOCKED） |
 
 ## 2. 用例阈值计算（按 act 文件 grep -c "^\s*- test_" 实数）
+
+> **本节的「累计」列是阈值的唯一权威出处**；§1 的 Green 列与各 `act/*.yaml` 的 `verify` 注释一律引用本表，不得各写各的（第 86 条）。
 
 ### intake 套（$TI，pipeline/intake/tests）
 
@@ -57,7 +59,7 @@ git diff --check
 
 ```
 $ for f in docs/blackbox-spec-rework/work-items/impl-09-intake/act/*.yaml; do echo "$(basename $f): $(grep -c '^\s*- test_' $f)"; done
-00.yaml: 16
+00.yaml: 19
 01.yaml: 7
 02.yaml: 15
 03.yaml: 9

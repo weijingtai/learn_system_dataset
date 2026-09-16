@@ -19,7 +19,7 @@ tests:
     - test_raw_text_frozen（synthetic_fixture: true，M2 运行后 raw_text 修订不变）
     - test_cleaned_text_not_equal_raw（synthetic_fixture: true，cleaned_text != raw_text，清洗有实际效果）
 verify:
-  - .venv/bin/python -m unittest discover -s pipeline/digitization/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 42
+  - .venv/bin/python -m unittest discover -s pipeline/digitization/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 45
   - TDD §3 回归
 commit:
   add: [pipeline/digitization]

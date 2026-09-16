@@ -36,7 +36,7 @@ tests:
     - test_run_m1_cli_success（synthetic_fixture: true，exit 0，末行 "M1 OK"）
     - test_run_m1_cli_missing_files（synthetic_fixture: true，exit 3，"BLOCKED_SOURCE_ASSET_MISSING"）
 verify:
-  - .venv/bin/python -m unittest discover -s pipeline/intake/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 23
+  - .venv/bin/python -m unittest discover -s pipeline/intake/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 26
   - TDD §3 回归
 commit:
   add: [pipeline/intake]

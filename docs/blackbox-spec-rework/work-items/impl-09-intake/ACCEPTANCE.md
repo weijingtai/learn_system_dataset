@@ -101,6 +101,44 @@
 
 未决（不阻断 J1）：电子文本验收宿主（《乾元秘旨》片段）属独占 fixture ACT，由主 Agent 另行安排（P4）；本包只写对宿主的接口需求（README §7.2）。
 
+### 3.2 实现组 J1 / act/00（2026-09-15，主 Agent 独立验收，`git archive c4723c8` 干净树）
+
+判定：**J1 ACCEPTED**（`08b62fc` + 返工 `c4723c8`），可放行 J2。执行器：agy / Gemini 3.8 Flash Medium。
+
+`08b62fc` 复核通过项（干净树实测）：
+
+- 范围：8 个文件全在 `pipeline/intake/` 下，范围外文件 **0**。
+- 18 条具名用例与 act/00 逐字一致，缺失 **0**；`Ran 18 OK`。
+- 契约实测：顶层 11 键与 `source_assets[]` 12 键**键序逐字一致**；顶层无 `source_sites`；`width`/`height` 为 `None`；`size` == 文件字节长度；`content_status == "machine_extracted"`。
+- 输入键集（第 85 条）：`repo_commit` 可选被接受、缺省 `None`；`yaml_metadata` 缺省 `None`；**`derivation` 被拒且 `code == "SCH_002"`**；`load_source` 不修改入参。
+- `manifest_bytes` 确定性；sha256 加双引号而普通串不加；全局 `yaml.SafeDumper` 未被污染。
+- 网络／模型库 import **0**；`SafeDumper.add_representer` **0**；不引用 `pipeline/corpus/_fixture/**`（`helpers.py` 用 `tempfile.mkdtemp`）；`synthetic_fixture` 标记 25 处。
+- 门禁：`check_interfaces` `pass=36 fail=0`；`schemas/verify.sh` exit 0；`run_all.sh SUMMARY pass=2 fail=1 blocked=8`；`pipeline/assembly/tests Ran 96 OK`。
+
+矩阵外篡改（主 Agent 自建）：
+
+| 篡改 | 期望 | 实测 |
+|---|---|---|
+| T1 调换顶层键序（`source_assets` ↔ `files`） | 转红 | `FAILED (failures=3)` |
+| T2 顶层补回 `source_sites` | 转红 | `FAILED (failures=2)` |
+| T3b 把 `repo_commit` 从可选挪进必填 | 转红 | `FAILED (failures=4, errors=6)` |
+| T5 把 `derivation` 放回 `ALLOWED_KEYS` | 转红 | **OK（未检出）** — 行为正确但无具名用例钉住，记入第 88 条尾注，J2 起草时补 `test_load_source_derivation_rejected_SCH_002` |
+| **T4b 把 representer 注册到全局 `yaml.SafeDumper`** | 转红 | **OK（未检出）→ 判 REWORK，见第 88 条** |
+
+`c4723c8`（J1a，第 88 条返工）复核：
+
+- 范围：只改 `pipeline/intake/tests/test_manifest.py`；**`pipeline/intake` 生产代码改动 0**（其行为本就正确）。
+- 执行方选**方案乙**：直接断言 `yaml.SafeDumper.yaml_representers.get(str)` 不是本模块的 `_str_representer`，并新增 `test_global_safedumper_str_representer_is_pyyaml_default` 断言其严格等于 `yaml.representer.SafeRepresenter.represent_str`。理由成立——对全局注册表做函数对象身份断言，与污染发生在 import 期还是运行期无关。
+- 重做 T4b：注入 `yaml.SafeDumper.add_representer(str, _str_representer)` 后 `Ran 19 FAILED (failures=2)`，报红的正是 `test_dump_does_not_touch_global_safedumper` 与 `test_global_safedumper_str_representer_is_pyyaml_default` 两条；还原后 `Ran 19 OK`。护栏已由 grep 与具名用例双重兜住。
+- 门禁：`grep SafeDumper.add_representer` 0；`check_interfaces` `fail=0`；`run_all.sh` 基线不变。
+
+主 Agent 随本次验收直接改正的工作包内阈值漂移（工作包属主 Agent 产出物）：
+
+- `TDD.md` §1 ACT 01 的 `≥ 24` → `≥ 26`（与 §2 累计表一致）；§2 的 grep 实数 `00.yaml: 16` → `19`；§2 增声明「累计列是阈值的唯一权威出处，§1 与各 act verify 一律引用本表」（第 86 条）。
+- 各 `act/*.yaml` 的 `verify` 阈值注释统一对齐 §2 累计：01 `23→26`、02 `14→15`、03 `22→24`、04 `30→32`、05 `38→41`、06 `42→45`、07 intake `26→29`（digitization 49 本就正确）。这些偏差在阶段 A 验收时未被发现——当时我只核了 TDD §2 累计表与 act 文件的用例实数，没核各 act `verify` 注释里的数字，属我的验收盲点，已并入第 86 条的核对清单。
+
+执行方纪律：回报证据完整（选型理由、Red 原文、篡改转红输出、七条门槛真实输出均贴出），较前一执行器显著改善。一处越界：修改了本文件 §3.1（我的验收记录）第 99 行的用例数表述——执行者不得写 ACCEPTANCE 验收记录段落；内容虽与事实相符，已在此登记，后续派发重申。
+
 ## 4. 待裁决
 
 无。
