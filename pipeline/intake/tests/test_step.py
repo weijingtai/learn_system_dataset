@@ -173,6 +173,34 @@ class TestStep(unittest.TestCase):
             combined_output = proc.stdout + proc.stderr
             self.assertIn("BLOCKED_SOURCE_ASSET_MISSING", combined_output)
 
+    def test_run_m1_cli_refused_exit_2(self):
+        """synthetic_fixture: true，IntakeRefused 退出码为 2。"""
+        with tempfile.TemporaryDirectory() as tmp_src_dir, tempfile.TemporaryDirectory() as tmp_cli_ledger:
+            src_path = Path(tmp_src_dir)
+            f_path = make_text_file("page_001.txt", "太极图说", target_dir=src_path)
+            # 非法 source_dict（缺失必填键 source_id）
+            bad_source_dict = fixture_source()
+            del bad_source_dict["source_id"]
+            source_json_path = src_path / "source.json"
+            source_json_path.write_text(json.dumps(bad_source_dict, ensure_ascii=False), encoding="utf-8")
+
+            cmd = [
+                sys.executable,
+                "-m",
+                "pipeline.intake",
+                "--source-dir",
+                str(src_path),
+                "--source-json",
+                str(source_json_path),
+                "--edition-part-id",
+                bad_source_dict["edition_part"]["artifact_id"],
+                "--ledger-dir",
+                tmp_cli_ledger,
+            ]
+            proc = subprocess.run(cmd, capture_output=True, text=True)
+            self.assertEqual(proc.returncode, 2)
+            self.assertIn("INTAKE REFUSED", proc.stderr)
+
 
 if __name__ == "__main__":
     unittest.main()
