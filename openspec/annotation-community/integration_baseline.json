@@ -219,10 +219,11 @@
         "p2p_peer": true
       },
       {
-        "device_id": "iPhone15,2",
-        "platform": "iOS",
-        "os_version": "17.5",
-        "p2p_peer": false
+        "device_id": "JCP6R21628000116",
+        "platform": "Android",
+        "os_version": "12",
+        "model": "HUAWEI WGR-W09",
+        "p2p_peer": true
       }
     ],
     "account_pairs": [

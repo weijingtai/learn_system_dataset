@@ -1,0 +1,81 @@
+task_id: NC-016b
+title: "真实设备 LAN/WebRTC 集成、中转上传与宿主装配"
+status: PREPARING
+created: 2026-09-15
+dependencies:
+  - NC-016a
+  - NC-001-02
+
+acts:
+  - id: act/01
+    title: "设备发现与配对（LAN）"
+    description: "在同一局域网内发现对端设备并完成配对"
+    lines:
+      - "验证设备 ADB 连接状态"
+      - "启动 reading-notes 应用"
+      - "进入配对模式"
+      - "发现对端设备"
+      - "完成 Ed25519 签名验证"
+      - "确认 outOfBandFingerprint 一致"
+    evidence:
+      - "配对成功日志"
+      - "设备列表显示对端"
+
+  - id: act/02
+    title: "会话密钥交换与数据加密传输"
+    description: "建立安全会话并传输加密数据"
+    lines:
+      - "生成 X25519 会话密钥对"
+      - "交换会话公钥（带 Ed25519 签名）"
+      - "派生共享密钥（HKDF）"
+      - "加密测试数据（AES-GCM + AAD）"
+      - "传输加密数据"
+    evidence:
+      - "密钥交换日志"
+      - "加密数据传输成功"
+
+  - id: act/03
+    title: "中转上传与 WebRTC 信令"
+    description: "通过中转服务器上传数据并建立 WebRTC 信令通道"
+    lines:
+      - "上传加密数据到 Storage private/p2p/"
+      - "发送信令消息到 Notifier"
+      - "接收端获取信令"
+      - "建立 WebRTC 数据通道"
+    evidence:
+      - "中转上传成功"
+      - "信令通道建立"
+
+  - id: act/04
+    title: "接收端解密与宿主装配"
+    description: "接收端解密数据并装配到本地存储"
+    lines:
+      - "接收加密数据"
+      - "验证信封签名"
+      - "解密数据（AES-GCM + AAD）"
+      - "写入本地 Drift 数据库"
+      - "更新 UI 显示"
+    evidence:
+      - "解密成功日志"
+      - "本地数据更新"
+
+  - id: act/05
+    title: "SyncRuntime entityType 注册验证"
+    description: "验证同步实体类型在运行时正确注册"
+    lines:
+      - "检查 SyncRuntime 初始化"
+      - "验证 entityType 注册"
+      - "确认同步实体可用"
+    evidence:
+      - "注册成功日志"
+      - "实体类型列表"
+
+acceptance:
+  criteria:
+    - "两台设备能发现彼此并完成配对"
+    - "数据能在设备间加密传输"
+    - "中转服务器能正确转发信令"
+    - "接收端能解密并存储数据"
+    - "所有既有测试保持通过"
+  guard: "bash docs/blackbox-spec-rework/reviews/nc016b_guard.sh --require-impl all"
+  blind_test: "act/01～05 全部通过"
