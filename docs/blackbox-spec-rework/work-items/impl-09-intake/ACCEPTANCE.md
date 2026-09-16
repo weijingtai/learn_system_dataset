@@ -274,6 +274,30 @@ D4（BOM／GB18030 导致 `sha256` 与磁盘原始文件字节不符、追踪链
 
 登记（非缺陷）：`spans_sha256` 跨运行不同，因 `source_anchor` 内嵌随机 uuid4 修订 ID；同一运行内确定。与 §9 第 7 条「生产 uuid4；金标比对前身份归一化」一致。
 
+### 3.8 返工 J3e（2026-09-16，主 Agent 独立验收，`git archive 7feee3c` 干净树）
+
+判定：**J3e ACCEPTED**，另开小返工 J3f（第 99 条）。第 98 条七项全部落地，M2 在《乾元秘旨》全文上与独立金标**12 类全部一致**。
+
+复核（干净树实测）：
+
+- 套件：digitization `Ran 81 OK`（70 + 11）、intake `Ran 35 OK`、corpus `Ran 156 OK`、semantic `Ran 54 OK`；`check_interfaces` `pass=36 fail=0`；`run_all.sh` `SUMMARY pass=2 fail=1 blocked=8`（基线不变）。
+- 范围：`cleaner.py`、`patcher.py`、`data/variant_pairs.yaml`、`tests/test_cleaner.py`、README §5、TDD、act/02；未碰 `gate.py`/`step.py`/`decisions.py`/`reporter.py`。
+- **主 Agent 自写比对脚本**（不用执行方脚本，直接读金标 `golden_findings.yaml`）：
+
+| kind | 金标 | M2 | 一致 |
+|---|---|---|---|
+| `replacement_char` | 4 | 4 | 是（偏移逐一相同） |
+| `private_use_area` | 39 | 39 | 是 |
+| `escape_residue` | 字符覆盖 630 | 字符覆盖 630 | 是（含 YAML 头 0–478） |
+| `watermark` | 1（位于 YAML 头内，依第 98 条①出范围）→ 0 | 0 | 是 |
+| `textualized_diagram` | 1（2250–2458） | 1 | 是 |
+| `variant_mixed` | 1（14282–14283） | 1 | 是 |
+| 其余 6 类 | 0 | 0 | 是 |
+
+- 122 条发现 `raw[raw_start:raw_end] == raw_excerpt` 自检 0 失败。
+- **主 Agent 篡改**（临时副本）：只回退 ⑥ → `test_clean_text_duplicate_excludes_covered_range` 转红；② 与 ⑥ 同时回退 → 3 条转红；**只回退 ② → 42 条全绿**（与执行方自报一致）→ ② 缺独立护栏，第 99 条 J3f 补。
+- 真实书源全链（执行方临时 Ledger）：M1 `succeeded`；M2 `succeeded`、Gate 通过、122 条发现、77 条 patch、`deferred_count = 0`；M3 `succeeded`、**696** 片段（710 → 696，YAML 头不再进正文，第 98 条①预告的预期变化）。
+
 ## 4. 待裁决
 
 无。
