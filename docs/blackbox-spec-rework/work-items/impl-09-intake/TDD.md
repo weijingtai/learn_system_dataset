@@ -23,14 +23,14 @@ git diff --check
 
 | ACT | 套 | Red（实现前） | Green（实现后） |
 |---|---|---|---|
-| 00 | intake | `$TI` → ImportError | `$TI` OK，用例 ≥ 16；dump_manifest_yaml 往返字节相同 |
+| 00 | intake | `$TI` → ImportError | `$TI` OK，用例 ≥ 18；dump_manifest_yaml 往返字节相同 |
 | 01 | intake | 新增用例全 ERROR | `$TI` OK ≥ 23；raw_text 冻结不可变 |
 | 02 | digitization | `$TD` → ImportError | `$TD` OK ≥ 15；clean_text 可发现 13 项清洗问题；patches 可逆 |
 | 03 | digitization | 新增用例全 ERROR | `$TD` OK ≥ 24；gate.py 不 import cleaner/patcher/reporter/raw_text |
 | 04 | digitization | 新增用例全 ERROR | `$TD` OK ≥ 32；run_m2 成功路径产出三个 revision_id |
 | 05 | digitization | 新增用例全 ERROR | `$TD` OK ≥ 41；load_decisions 校验通过；check_decisions_coverage 可检出缺决定 |
 | 06 | digitization | 新增用例全 ERROR | `$TD` OK ≥ 45；M1→M2 产出可被 M3 输入解析消费 |
-| 07 | 两套 | `m1-intake.sh` 不存在（exit 127）；新增用例全 ERROR | `$TI` OK ≥ 26；`$TD` OK ≥ 49；两份脚本 exit 2（BLOCKED） |
+| 07 | 两套 | `m1-intake.sh` 不存在（exit 127）；新增用例全 ERROR | `$TI` OK ≥ 28；`$TD` OK ≥ 49；两份脚本 exit 2（BLOCKED） |
 
 ## 2. 用例阈值计算（按 act 文件 grep -c "^\s*- test_" 实数）
 
@@ -38,9 +38,9 @@ git diff --check
 
 | ACT | 本 act 用例 | 累计 | 计算 |
 |---|---|---|---|
-| 00 | 16 | 16 | test_manifest.py 16 条 |
-| 01 | 7 | 23 | + test_step.py 7 条 |
-| 07 | 3 | 26 | + test_acceptance.py intake 侧 3 条 |
+| 00 | 18 | 18 | test_manifest.py 18 条 |
+| 01 | 7 | 25 | + test_step.py 7 条 |
+| 07 | 3 | 28 | + test_acceptance.py intake 侧 3 条 |
 
 ### digitization 套（$TD，pipeline/digitization/tests）
 

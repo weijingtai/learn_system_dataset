@@ -23,14 +23,14 @@ contract: |
   source.py：
     load_source(data) -> dict（不修改入参）
       data 非 dict → IntakeRefused(SCH_001)
-      必须键：source_site, source_url, file_sha256, pages（list[str]）
-      source_id, work_title, edition_note, technique_id, rights_status, release_policy, edition_part
+      必填键（11 个）：source_id, work_title, edition_note, technique_id, rights_status, release_policy, edition_part, source_site, source_url, file_sha256, pages
+      可选键（2 个）：repo_commit（缺省 None）, yaml_metadata（缺省 None）
+      出现表外键 → IntakeRefused(SCH_002)
       source_site：非空 str
       source_url：以 http:// 或 https:// 开头
       file_sha256：匹配 ^[0-9a-f]{64}$
       pages：非空 list，每项匹配 ^[a-zA-Z0-9_-]+$，无重复
       edition_part：键集合 == {artifact_id, label, pages}；artifact_id 非空 str；label 非空 str
-      derivation：{parent_kind, parent_ref, parent_sha256, note}；parent_sha256 为 None 或匹配 ^[0-9a-f]{64}$
       返回：按固定键序重建的新 dict
     read_source_files(source_dir, pages) -> list[dict]
       source_dir 不是目录 → SourceAssetMissing([str(source_dir)])
@@ -40,12 +40,17 @@ contract: |
       返回 bytes 为 UTF-8 编码后的字节（统一编码）
   manifest.py（纯函数）：
     build_source_manifest(source_info, files) -> dict
-      键序：source_id, work_title, edition_note, technique_id, rights_status, release_policy, edition_part, source_assets, files, conversion, content_status, source_sites
-      source_assets = [{"page", "path_ref", "sha256", "size", "object_store": "local", "in_git": false, "yaml_metadata": null, "source_site", "source_url"}]
+      顶层键序（10 个）：source_id, work_title, edition_note, technique_id, rights_status, release_policy, edition_part, source_assets, files, conversion, content_status
+      source_assets[] 键序（12 个）：page, path_ref, sha256, size, width, height, object_store, in_git, yaml_metadata, source_site, source_url, repo_commit
+        width/height：电子文本恒为 None
+        size：文件字节长度
+        object_store: "local"
+        in_git: false
+        repo_commit：无则 None
       files = []
       conversion = {"tool": M1_TOOL, "tool_version": M1_TOOL_VERSION, "inputs": [各 path_ref], "note": "M1 电子文本入库；不做清洗（§9）"}
       content_status = "machine_extracted"
-      source_sites = [{"site": source_site, "url": source_url, "repo_commit": null}]
+      注意：顶层不含 source_sites——来源以 source_assets[] 逐份登记为权威（§77 来源无关），顶层不冗余
     manifest_bytes(source_info, files) -> bytes = serialize.dump_manifest_yaml(build_source_manifest(source_info, files))
   tests/helpers.py（只供测试）：
     make_text_file(name, content, encoding="utf-8") -> Path：写入临时文件，返回路径
@@ -61,15 +66,17 @@ tests:
     - test_load_source_bad_source_url_SCH_002（synthetic_fixture: true）
     - test_load_source_bad_file_sha256_SCH_002（synthetic_fixture: true）
     - test_load_source_bad_pages_duplicate_SCH_002（synthetic_fixture: true）
+    - test_load_source_optional_repo_commit_accepted（synthetic_fixture: true，带 repo_commit 通过；缺省为 None）
     - test_read_source_files_collects_all_missing（synthetic_fixture: true）
     - test_read_source_files_missing_dir（synthetic_fixture: true）
     - test_read_source_files_reads_utf8（synthetic_fixture: true）
     - test_read_source_files_records_sha256（synthetic_fixture: true）
     - test_build_manifest_key_order（synthetic_fixture: true）
-    - test_build_manifest_source_sites（synthetic_fixture: true）
+    - test_build_manifest_source_assets_key_order（synthetic_fixture: true，逐字断言 12 键键序）
+    - test_build_manifest_no_source_sites（synthetic_fixture: true，顶层不含 source_sites）
     - test_manifest_bytes_deterministic（synthetic_fixture: true）
 verify:
-  - .venv/bin/python -m unittest discover -s pipeline/intake/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 16
+  - .venv/bin/python -m unittest discover -s pipeline/intake/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 18
   - grep -rnE 'PIL|paddle|requests|openai|anthropic|httpx' pipeline/intake --include='*.py' | wc -l   # 0
   - grep -rn 'SafeDumper.add_representer' pipeline/intake --include='*.py' | wc -l   # 0
   - TDD §3 回归

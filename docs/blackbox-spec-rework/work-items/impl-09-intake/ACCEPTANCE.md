@@ -51,12 +51,13 @@
 - 验证命令：`python3 -c "import glob,yaml;[yaml.safe_load(open(f,encoding='utf-8')) for f in glob.glob('docs/blackbox-spec-rework/work-items/impl-09-intake/**/*.yaml',recursive=True)];print('ALL YAML OK')"`
 - `ACT.yaml` 的 `executor_groups` 与每个 `act/*.yaml` 的 `group:` 字段一一对应，无遗漏、无重复、无冲突
 - 验证命令：`python3 -c "import yaml,glob;d=yaml.safe_load(open('docs/blackbox-spec-rework/work-items/impl-09-intake/ACT.yaml',encoding='utf-8'));m={i:g for g,ids in d['executor_groups'].items() for i in ids};f={yaml.safe_load(open(p,encoding='utf-8'))['act_id']:yaml.safe_load(open(p,encoding='utf-8'))['group'] for p in sorted(glob.glob('docs/blackbox-spec-rework/work-items/impl-09-intake/act/*.yaml'))};print('MATCH' if m==f else ('MISMATCH '+str({k:(m.get(k),f.get(k)) for k in set(m)|set(f) if m.get(k)!=f.get(k)})))"`
+- **工作包内同一契约的形态说明只允许有一处权威出处，其余位置一律引用而非复述**（本包权威出处 = README §3）。交付前逐条核对：README §3 键序与 act/*.yaml contract 逐字一致，无矛盾、无遗漏、无冗余复述
 
 ## 2. 判据
 
 | 检查项 | 判据 | 依据 |
 |---|---|---|
-| M1 产出键序 | source_manifest 顶层键序与 INTERFACES §4 一致 | act/00 contract |
+| M1 产出键序 | source_manifest 顶层键序与 README §3 一致（10 键）；source_assets[] 键序与 §3 一致（12 键）；顶层不含 source_sites | act/00 contract, README §3 |
 | M2 四类产物 | raw_text, cleaned_text_revision, deterministic_patch_set, sanitization_report 均产出 | act/02 contract |
 | kind 闭集 | 12 项（encoding_issue, replacement_char, private_use_area, control_char, escape_residue, watermark, header_footer, duplicate, missing, textualized_diagram, variant_mixed, suspected_error） | §81 |
 | terminal_state 闭集 | 3 项（processed, known_unresolvable, deferred） | §10.1 |
@@ -69,6 +70,7 @@
 | synthetic_fixture | 所有测试用合成数据标 `synthetic_fixture: true`；验收判定不把合成数据当真实签发 | 第 52、53 条 |
 | finding_id 格式 | finding_id 为 `<kind>@<raw_start>-<raw_end>`，无新前缀 | P8 |
 | run_all.sh 不动 | 本包不修改 run_all.sh；验收脚本 exit 2 表示 BLOCKED | §1 边界 |
+| source_info 输入键集 | 11 个必填 + 2 个可选（repo_commit, yaml_metadata），缺省为 None 不拒；表外键 SCH_002 | README §2.1 |
 
 ## 3. 验收记录
 

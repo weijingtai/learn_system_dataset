@@ -29,11 +29,21 @@ M1 电子文本入库按来源无关设计。每份来源登记以下信息：
 
 | 字段 | 含义 | 必填 |
 |---|---|---|
+| `source_id` | 来源唯一标识 | 是 |
+| `work_title` | 书名 | 是 |
+| `edition_note` | 版本说明 | 是 |
+| `technique_id` | 技术形态 ID | 是 |
+| `rights_status` | 权利状态声明 | 是 |
+| `release_policy` | 发布策略（full_scan / derived_page_images_only / reference_and_hash_only） | 是 |
+| `edition_part` | 分册信息（artifact_id, label, pages） | 是 |
 | `source_site` | 来源站点域名（如 `daizhige.org`、`ctext.org`） | 是 |
 | `source_url` | 原始 URL | 是 |
-| `repo_commit` | 仓库提交号（如适用） | 否 |
 | `file_sha256` | 原始文件 SHA-256 | 是 |
-| `yaml_metadata` | 文件头 YAML 元数据原样保存（如有） | 否 |
+| `pages` | 页/文件列表（非空，无重复） | 是 |
+| `repo_commit` | 仓库提交号（如适用） | 否（缺省 None） |
+| `yaml_metadata` | 文件头 YAML 元数据原样保存（如有） | 否（缺省 None） |
+
+缺必填键 → `SCH_001`；出现表外键 → `SCH_002`。`repo_commit`/`yaml_metadata` 缺省为 None，不得因缺失而拒。
 
 同书多来源各自登记为独立 SourceAsset/Edition，不写死单一来源站点。
 
@@ -68,6 +78,7 @@ source_assets:
   - page: <filename_stem>
     path_ref: <relative_path>
     sha256: <64-hex>
+    size: <文件字节长度>
     width: null           # 电子文本无图像尺寸
     height: null
     object_store: local
@@ -75,7 +86,7 @@ source_assets:
     yaml_metadata: <原样保存，如有>
     source_site: <来源站点>
     source_url: <原始 URL>
-    repo_commit: <提交号，如有>
+    repo_commit: <提交号，如有，无则 null>
 files: []
 conversion:
   tool: pipeline.intake
@@ -85,7 +96,7 @@ conversion:
 content_status: "machine_extracted"
 ```
 
-`source_assets[].width/height` 对电子文本为 null（无图像尺寸）。`source_manifest` 内容结构为代码草案（P3），正式化随 impl-08 Contract Registry。
+`source_assets[]` 键序逐字：`page, path_ref, sha256, size, width, height, object_store, in_git, yaml_metadata, source_site, source_url, repo_commit`（12 个）。`width`/`height` 对电子文本为 null（无图像尺寸）；`size` = 文件字节长度；`repo_commit` 无则 null。顶层不含 `source_sites`——来源以 `source_assets[]` 逐份登记为权威（§77 来源无关），顶层不冗余。
 
 ## 4. M2 产出契约（§10:478，§81）
 
@@ -189,7 +200,7 @@ terminal_state: processed | known_unresolvable | deferred
 
 | 文件 | 必备键 |
 |---|---|
-| M1 StagePackage | `source_manifest`（键序：source_site, source_url, file_sha256, pages[]），`raw_text`（revision_id, size） |
+| M1 StagePackage | `source_manifest`（键序见 §3：source_id, work_title, ..., content_status），`raw_text`（revision_id, size） |
 | M2 StagePackage | `sanitization_report`（findings[], summary, deferred_count），`deterministic_patch_set`（patches[]） |
 | sanitization_report | `findings[].finding_id`, `findings[].kind`, `findings[].raw_start`, `findings[].raw_end`, `findings[].raw_excerpt`, `findings[].context`, `findings[].action`, `findings[].patch_id`, `findings[].basis`, `findings[].terminal_state`, `summary`（各 kind 计数），`deferred_count` |
 
