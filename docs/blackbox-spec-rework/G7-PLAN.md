@@ -142,3 +142,8 @@
 | 7.5 | impl-04 跟进：M8 知识链前三段 + GraphProjectionPack，按 `INTERNAL_DEMO` 出包 | 7.0、7.3 | M8 BLOCKED 转判；`run_all.sh` 相应项转判 |
 
 顺序：7.0 与 7.1 并行 → 7.2 → 7.3 → 7.4 与 7.5。第二版（OCR、对勘、证据升级、公开发布）见 §4.5，不在 W7。
+
+### 5.3 W7 跟进清理（发现即记，随相应波次做）
+
+- M6 测试桩 `pipeline/review/testing/` 的合成 candidate_set 为手写 YAML，已漂移于真实 M4 输出契约（第 84 条：缺 `counts.concept_mentions`、`school_views[].claim_refs`/`changes_current_judgment`，被 M7 `validate_candidate_set` 拒）。g0-06 只做最小补字段；长期应改由真实 `run_m4` 产出，随 impl-09 或 impl-04 跟进批一并整改。
+- M7 `acceptance.py` 的 `no_model_calls` 曾静默跳过不可解析文件（g0-06 修）；M6 acceptance 未比对金标 `first_review.decisions`/`checkpoints`（act/12 修）。
