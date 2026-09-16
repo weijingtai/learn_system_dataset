@@ -1,12 +1,18 @@
-"""M3 验收判定：九项结构性校验 + semantic_layer BLOCKED（规格 §19.0）。
+"""M3 验收判定：电子文本端到端（偏移锚点 + 语义层）与 OCR 路线两用（规格 §19.0）。
 
 用法::
 
-    python -m pipeline.corpus_compiler.acceptance --fixture <dir> [--keep]
+    python -m pipeline.corpus_compiler.acceptance --electronic-text-fixture <dir>
+    python -m pipeline.corpus_compiler.acceptance --fixture <dir> [--keep]      # OCR 路线
 
-退出码：3 仅限 fixture/manifest.yaml 不可读或依赖缺失；
-        任一判定异常 → 该项 FAIL + exit 1；
-        任一 FAIL → 1；无 FAIL 有 BLOCKED → 2；全部 PASS → 0
+电子文本路线：在合成/真实宿主上跑 M1 → M2 → M3 语义层端到端编译，逐子项输出
+PASS/FAIL/BLOCKED；**不钉死 pass 总数**（G7-RULINGS 第 54、87 条：不变量是 fail=0）。
+宿主缺失时 semantic_layer 如实判 BLOCKED 并 exit 2；宿主含 deferred 发现（如 missing）
+导致 M3 被阻断时同样如实判 BLOCKED、exit 2，不得视为失败、不得绕过（第 95 条）。
+
+退出码：电子文本路线：0 全 PASS；1 有 FAIL；2 有 BLOCKED（宿主缺失/上游阻断）；
+        OCR 路线：3 仅限 fixture/manifest.yaml 不可读或依赖缺失；
+        任一判定异常 → 该项 FAIL + exit 1；任一 FAIL → 1；无 FAIL 有 BLOCKED → 2；全部 PASS → 0
 """
 
 import argparse
@@ -15,6 +21,7 @@ import json
 import os
 import re
 import shutil
+import socket
 import sys
 import tempfile
 from pathlib import Path
@@ -45,16 +52,349 @@ SEMANTIC_LAYER_TEXT = (
     "SemanticSpan（§11 第 2–5 条：双模型边界提议与分歧人工裁决）未实现"
 )
 
+# 电子文本宿主缺失时的逐字 BLOCKED 文本（act/07 contract；第 88、94 条）
+ELECTRONIC_HOST_MISSING_TEXT = "前置缺失: 电子文本验收宿主匮乏；未提供 --electronic-text-fixture"
+
+# M1 source_manifest 顶层键序（唯一权威：impl-09 README §3）
+_MANIFEST_TOP_KEYS = (
+    "source_id",
+    "work_title",
+    "edition_note",
+    "technique_id",
+    "rights_status",
+    "release_policy",
+    "edition_part",
+    "source_assets",
+    "files",
+    "conversion",
+    "content_status",
+)
+
+
+class _ElectronicBlocked(Exception):
+    """电子文本验收的上游前置缺失（宿主文件缺失、M2 Gate 未放行）→ 判 BLOCKED。"""
+
 
 def main(argv=None):
     parser = argparse.ArgumentParser(
         prog="pipeline.corpus_compiler.acceptance",
         description="M3 验收判定（规格 §19.0）",
     )
-    parser.add_argument("--fixture", required=True, help="Fixture 根目录")
+    route = parser.add_mutually_exclusive_group()
+    route.add_argument("--fixture", default=None, help="OCR 路线 fixture 根目录")
+    route.add_argument(
+        "--electronic-text-fixture",
+        dest="electronic_text_fixture",
+        default=None,
+        help="电子文本验收宿主目录（M1 → M2 → M3 语义层端到端）",
+    )
     parser.add_argument("--keep", action="store_true", help="保留临时目录")
     args = parser.parse_args(argv)
 
+    if args.fixture is not None:
+        return _run_ocr(args)
+    return _run_electronic(
+        Path(args.electronic_text_fixture) if args.electronic_text_fixture else None
+    )
+
+
+def _run_electronic(fixture_dir):
+    """电子文本路线入口：宿主缺失如实 BLOCKED，否则跑端到端验收。"""
+    if yaml is None:
+        print("FAIL m3_acceptance 宿主准备失败: ImportError: PyYAML 不可导入")
+        return 3
+
+    if fixture_dir is None or not fixture_dir.is_dir():
+        print("BLOCKED semantic_layer " + ELECTRONIC_HOST_MISSING_TEXT)
+        print("SUMMARY pass=0 fail=0 blocked=1")
+        return 2
+
+    results = check_electronic_semantic_layer(fixture_dir)
+    for status, name, detail in results:
+        if detail:
+            print("%s %s %s" % (status, name, detail))
+        else:
+            print("%s %s" % (status, name))
+
+    pass_count = sum(1 for status, _, _ in results if status == "PASS")
+    fail_count = sum(1 for status, _, _ in results if status == "FAIL")
+    blocked_count = sum(1 for status, _, _ in results if status == "BLOCKED")
+    print("SUMMARY pass=%d fail=%d blocked=%d" % (pass_count, fail_count, blocked_count))
+
+    if fail_count > 0:
+        return 1
+    if blocked_count > 0:
+        return 2
+    return 0
+
+
+def check_electronic_semantic_layer(fixture_dir):
+    """在电子文本宿主上跑 M1 → M2 → M3 语义层端到端编译与语义 Gate。
+
+    全程在 socket 拦截补丁下执行（P6 零网络）：任何连接尝试都被计数，末尾以
+    ``zero_network`` 子项如实汇报，绝不静默放行。
+
+    宿主目录（合成宿主由测试以 tempfile 构造，标 ``synthetic_fixture: true``）：
+        ``source_info.yaml``     M1 来源申报（含 ``edition_part`` / ``pages``）
+        ``<page>.txt``          电子文本原文件（逐字节，被 ``file_sha256`` 钉住）
+        ``recordings.yaml``     双模型回放录制（``schema`` / ``synthetic`` / ``template_id``）
+        ``human_decisions.yaml`` 人工边界裁决列表（P7：由宿主提供，本模块绝不代填）
+
+    返回：
+        ``[(status, name, detail), ...]``，status ∈ {PASS, FAIL, BLOCKED}。
+    """
+    network_attempts = []
+    original_socket = socket.socket
+    original_create_connection = socket.create_connection
+
+    def _blocked(*args, **kwargs):
+        network_attempts.append(args)
+        raise AssertionError("P6: 电子文本验收全程禁止任何网络调用")
+
+    socket.socket = _blocked
+    socket.create_connection = _blocked
+    try:
+        results = _run_electronic_checks(Path(fixture_dir))
+    finally:
+        socket.socket = original_socket
+        socket.create_connection = original_create_connection
+
+    if network_attempts:
+        results.append(
+            ("FAIL", "zero_network", "检出 %d 次网络连接尝试（P6 零网络）" % len(network_attempts))
+        )
+    else:
+        results.append(("PASS", "zero_network", "全程零网络连接尝试"))
+    return results
+
+
+def _run_electronic_checks(fixture_dir):
+    """依次执行电子文本端到端子项；任一失败/阻断即停在该项（后续项无从判定）。"""
+    checks = (
+        ("host_source", _check_electronic_host_source),
+        ("m1_manifest", _check_electronic_m1_manifest),
+        ("m2_gate", _check_electronic_m2_gate),
+        ("m3_semantic", _check_electronic_m3_semantic),
+        ("semantic_gate", _check_electronic_semantic_gate),
+        ("stage_package", _check_electronic_stage_package),
+    )
+    results = []
+    tmpdir = tempfile.mkdtemp(prefix="m3-electronic-")
+    service = None
+    try:
+        service = LedgerService(Path(tmpdir) / "ledger")
+        state: dict = {"service": service}
+        for name, check in checks:
+            try:
+                status, detail = check(fixture_dir, state)
+            except _ElectronicBlocked as exc:
+                results.append(("BLOCKED", name, str(exc)))
+                return results
+            except Exception as exc:
+                results.append(("FAIL", name, "%s: %s" % (type(exc).__name__, exc)))
+                return results
+            results.append((status, name, detail))
+            if status == "FAIL":
+                return results
+        return results
+    finally:
+        if service is not None:
+            try:
+                service.close()
+            except Exception:
+                pass
+        shutil.rmtree(tmpdir, True)
+
+
+def _resolve_host_page_file(fixture_dir, page):
+    """定位宿主的原文文件：依次尝试 `<page>.txt`、`<page>.md`、`<page>` 与唯一 `<page>.*`。"""
+    for candidate in (fixture_dir / ("%s.txt" % page), fixture_dir / ("%s.md" % page), fixture_dir / page):
+        if candidate.is_file():
+            return candidate
+    matches = sorted(path for path in fixture_dir.glob("%s.*" % page) if path.is_file())
+    return matches[0] if len(matches) == 1 else None
+
+
+def _check_electronic_host_source(fixture_dir, state):
+    """宿主原文可读，且字节哈希与 source_info.file_sha256 一致（追踪链闭合）。"""
+    source_info_path = fixture_dir / "source_info.yaml"
+    if not source_info_path.is_file():
+        raise _ElectronicBlocked("前置缺失: 宿主缺 source_info.yaml")
+
+    source_info = yaml.safe_load(source_info_path.read_text(encoding="utf-8"))
+    if not isinstance(source_info, dict):
+        return ("FAIL", "source_info.yaml 顶层必须是映射")
+
+    pages = source_info.get("pages") or (source_info.get("edition_part") or {}).get("pages") or []
+    if not pages:
+        return ("FAIL", "source_info 未声明任何 pages")
+
+    blobs = []
+    for page in pages:
+        path = _resolve_host_page_file(fixture_dir, page)
+        if path is None:
+            raise _ElectronicBlocked("前置缺失: 宿主缺原文文件 %s.*" % page)
+        blobs.append(path.read_bytes())
+
+    expected = source_info.get("file_sha256")
+    combined = b"".join(blobs)
+    actual = hashlib.sha256(combined).hexdigest()
+    if expected and actual != expected:
+        return ("FAIL", "宿主原文哈希 %s 与 source_info.file_sha256 %s 不符（追踪链断裂）" % (actual, expected))
+
+    state["source_info"] = source_info
+    state["edition_part_id"] = (source_info.get("edition_part") or {}).get("artifact_id")
+    state["files"] = [
+        {
+            "page": page,
+            "path_ref": "%s.txt" % page,
+            "data": blob,
+            "sha256": hashlib.sha256(blob).hexdigest(),
+            "size": len(blob),
+        }
+        for page, blob in zip(pages, blobs)
+    ]
+    return ("PASS", "宿主原文 %d 页，字节哈希与 source_info.file_sha256 一致" % len(pages))
+
+
+def _check_electronic_m1_manifest(fixture_dir, state):
+    """M1 入库：source_manifest 封存且顶层键序逐字等于 impl-09 README §3。"""
+    from pipeline.intake.step import run_m1
+
+    edition_part_id = state.get("edition_part_id")
+    if not edition_part_id:
+        return ("FAIL", "宿主 source_info 缺 edition_part.artifact_id")
+
+    result = run_m1(state["service"], state["source_info"], state["files"], edition_part_id)
+    if "error" in result:
+        return ("FAIL", "M1 入库失败: %s" % result["error"])
+
+    manifest_rev = result["manifest_revision_id"]
+    revision = state["service"].get_revision(manifest_rev)
+    if revision is None or revision.get("status") != "sealed":
+        return ("FAIL", "source_manifest 修订未封存: %s" % manifest_rev)
+
+    manifest = yaml.safe_load(state["service"].objects.get(revision["sha256"]).decode("utf-8"))
+    if list(manifest.keys()) != list(_MANIFEST_TOP_KEYS):
+        return ("FAIL", "source_manifest 顶层键序不符: %s" % list(manifest.keys()))
+
+    state["raw_text_revision_id"] = result["raw_text_revision_ids"][0]
+    return ("PASS", "M1 source_manifest 封存且键序逐字（%d 键）" % len(_MANIFEST_TOP_KEYS))
+
+
+def _check_electronic_m2_gate(fixture_dir, state):
+    """M2 清洗：Gate 必须放行；含 deferred 发现时 M3 被阻断 → BLOCKED（不得绕过）。"""
+    from pipeline.digitization.step import run_m2
+
+    result = run_m2(
+        state["service"],
+        state["raw_text_revision_id"],
+        state["source_info"],
+        state["edition_part_id"],
+    )
+    gate = result.get("gate_result")
+    if "error" in result or gate is None or not gate.passed:
+        reason = result.get("error") or (gate.failed_checks if gate is not None else "无 Gate 结果")
+        raise _ElectronicBlocked(
+            "前置缺失: M2 Gate 未放行（%s），M3 编译阻断" % (reason,)
+        )
+    return ("PASS", "M2 Gate 放行（deferred_count=0）")
+
+
+def _check_electronic_m3_semantic(fixture_dir, state):
+    """M3 语义层端到端：开队列 → 逐条人工裁决 → 恢复封存（零模型调用，纯回放）。"""
+    from pipeline.corpus_compiler.semantic.review import (
+        open_semantic_review,
+        resume_m3_text_full,
+        submit_boundary_decision,
+    )
+    from pipeline.corpus_compiler.semantic.semantic_gate import evaluate_semantic_offset
+
+    recordings_path = fixture_dir / "recordings.yaml"
+    if not recordings_path.is_file():
+        raise _ElectronicBlocked("前置缺失: 宿主缺 recordings.yaml")
+    decisions_path = fixture_dir / "human_decisions.yaml"
+    if not decisions_path.is_file():
+        raise _ElectronicBlocked("前置缺失: 宿主缺 human_decisions.yaml")
+
+    decisions = yaml.safe_load(decisions_path.read_text(encoding="utf-8"))
+    if decisions is None:
+        decisions = []
+    if not isinstance(decisions, list):
+        return ("FAIL", "human_decisions.yaml 顶层必须是列表")
+
+    opened = open_semantic_review(
+        state["service"], state["edition_part_id"], recordings=recordings_path.read_bytes()
+    )
+    for decision in decisions:
+        submit_boundary_decision(
+            state["service"], opened["step_run_id"], opened["resume_token"], decision
+        )
+    resumed = resume_m3_text_full(
+        state["service"],
+        opened["step_run_id"],
+        opened["resume_token"],
+        gate=evaluate_semantic_offset,
+    )
+    state["step_run_id"] = opened["step_run_id"]
+    return (
+        "PASS",
+        "M3 语义层端到端：%d 窗口 / %d 分歧 / %d 语义片段"
+        % (resumed["window_count"], resumed["dispute_count"], resumed["span_count"]),
+    )
+
+
+def _check_electronic_semantic_gate(fixture_dir, state):
+    """独立语义 Gate 结果：validation_report 中 semantic 为 passed 且八项全 ok。"""
+    report = _read_step_run_artifact(state["service"], state["step_run_id"], "validation_report")
+    if report is None:
+        return ("FAIL", "未找到 m3 validation_report 制品")
+    document = json.loads(report.decode("utf-8"))
+    if document.get("semantic") != "passed":
+        return ("FAIL", "semantic=%r，非 passed" % (document.get("semantic"),))
+    checks = document.get("checks") or {}
+    failed = [name for name, check in checks.items() if not (check or {}).get("ok")]
+    if failed:
+        return ("FAIL", "语义 Gate 未通过项: %s" % ", ".join(sorted(failed)))
+    return ("PASS", "独立语义 Gate %d 项全通过" % len(checks))
+
+
+def _check_electronic_stage_package(fixture_dir, state):
+    """m3 StagePackage：gate_profile 与 semantic 声明必须与语义层实况一致。"""
+    raw = _read_step_run_artifact(state["service"], state["step_run_id"], "stage_package")
+    if raw is None:
+        return ("FAIL", "未找到 m3 StagePackage 制品")
+    package = json.loads(raw.decode("utf-8"))
+    payload = package.get("payload") or {}
+    if payload.get("gate_profile") != "structural_and_semantic":
+        return ("FAIL", "gate_profile=%r，期望 structural_and_semantic" % (payload.get("gate_profile"),))
+    if payload.get("semantic") != "passed":
+        return ("FAIL", "payload.semantic=%r，期望 passed" % (payload.get("semantic"),))
+    counts = (package.get("manifest") or {}).get("counts") or {}
+    return (
+        "PASS",
+        "m3 StagePackage：spans=%s windows=%s disputes=%s"
+        % (counts.get("spans"), counts.get("windows"), counts.get("disputes")),
+    )
+
+
+def _read_step_run_artifact(service, step_run_id, artifact_type):
+    """读回某 StepRun 下指定 artifact 类型的对象字节（缺失返回 None）。"""
+    rows = service.store.conn.execute(
+        "SELECT r.artifact_revision_id, r.sha256 FROM artifact_revisions r "
+        "JOIN artifacts a ON r.artifact_id = a.artifact_id "
+        "WHERE r.step_run_id=? AND a.artifact_type=?",
+        (step_run_id, artifact_type),
+    ).fetchall()
+    if not rows:
+        return None
+    revision = service.get_revision(rows[0][0])
+    if revision is None:
+        return None
+    return service.objects.get(revision["sha256"])
+
+
+def _run_ocr(args):
     if yaml is None:
         print("FAIL m3_acceptance 宿主准备失败: ImportError: PyYAML 不可导入")
         return 3
