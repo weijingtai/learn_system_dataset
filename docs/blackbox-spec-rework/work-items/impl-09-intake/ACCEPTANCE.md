@@ -139,6 +139,38 @@
 
 执行方纪律：回报证据完整（选型理由、Red 原文、篡改转红输出、七条门槛真实输出均贴出），较前一执行器显著改善。一处越界：修改了本文件 §3.1（我的验收记录）第 99 行的用例数表述——执行者不得写 ACCEPTANCE 验收记录段落；内容虽与事实相符，已在此登记，后续派发重申。
 
+### 3.3 实现组 J2 / act/01（2026-09-15，主 Agent 独立验收，`git archive 744335c` 干净树）
+
+判定：**J2 ACCEPTED**，可放行 J3。执行器：agy / Gemini 3.8 Flash Medium。
+
+范围（4 文件）：`pipeline/intake/step.py`、`__main__.py`、`tests/test_step.py`，外加主 Agent 指定补测的 `tests/test_manifest.py`。**J1 的五个生产文件改动 0**（P9 与第 88 条锁定）。
+
+复核通过项（干净树实测）：
+
+- 具名用例：act/01 的 7 条逐字齐全，外加主 Agent 指定的 `test_load_source_derivation_rejected_SCH_002`；`Ran 27 OK`（阈值 ≥27 达标）。
+- `run_m1(service, source_info, files, edition_part_id) -> dict` 签名与 act/01 逐字一致。
+- `failed_check` 闭集实测只有 `input_contract`、`internal` 两值。
+- 事务要素齐备：`begin_step_run` / `put_artifact` / `seal_revision` / `record_transformation` / `finish_step_run` / `fail_step_run` 均在位；`raw_text` 与 `source_manifest` 两类型取自已登记闭集（act/14 登记）。
+- CLI：成功 exit 0 且末行以 `M1 OK` 开头；`SourceAssetMissing` exit 3；`IntakeRefused` exit 2。
+- 零模型调用 0；`SafeDumper` 全局注册 0；不引用 `pipeline/corpus/_fixture/**` 0。
+- 门禁：`check_interfaces pass=36 fail=0`；`schemas/verify.sh` exit 0；`run_all.sh SUMMARY pass=2 fail=1 blocked=8`。
+
+矩阵外篡改（主 Agent 自建）：
+
+| 篡改 | 期望 | 实测 |
+|---|---|---|
+| 在 `run_m1` 入口注入一次无条件 Ledger 写（模拟失败路径未回滚的残留写入） | `test_run_m1_zero_writes_on_failure` 转红 | `ERROR: test_run_m1_zero_writes_on_failure`；`Ran 27 FAILED (failures=1, errors=5)` |
+| 还原 | 回到基线 | `Ran 27 OK` |
+
+结论：零写入回滚判定 load-bearing，非空转（执行方该用例断言 5 张核心表在失败前后 count 完全一致，不是只断言返回了 `error` 键）。
+
+观察（不阻断，记入 J4 跟进）：
+
+1. `seal_revision` 在 `record_transformation` **之前**调用（step.py:116/127 早于 :130），与 act/01 contract 编号序列（5 记录变换 → 6 封存）字面顺序相反。两者都在同一 StepRun 事务内、无状态依赖，实测全部不变量成立，故不判返工；J4 起草 act/07 验收脚本时若要逐字校验事务顺序，需先统一这一处措辞。
+2. CLI 的 `IntakeRefused` → exit 2 已按 contract 实现，但 act/01 的 `tests` 只列了成功与缺文件两条 CLI 用例，**exit 2 无具名用例钉住**。执行方未自行加戏、也未停手上报，取中间做法；契约既未要求即不判违规，但护栏有缺口——J3/J4 起草时补一条 `test_run_m1_cli_refused_exit_2`。
+
+执行方纪律：回报含开工基线、Red 原文、八条门槛真实输出、用例逐条对照与行号，未越界改 `ACCEPTANCE.md` §3（上一轮登记的问题已改正），达标。
+
 ## 4. 待裁决
 
 无。
