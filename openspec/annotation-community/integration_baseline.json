@@ -213,16 +213,17 @@
   "integration": {
     "devices": [
       {
-        "device_id": "emulator-5554",
-        "platform": "Android",
-        "os_version": "14",
-        "p2p_peer": true
-      },
-      {
         "device_id": "JCP6R21628000116",
         "platform": "Android",
         "os_version": "12",
         "model": "HUAWEI WGR-W09",
+        "p2p_peer": true
+      },
+      {
+        "device_id": "R3CNC0FBC1M",
+        "platform": "Android",
+        "os_version": "15",
+        "model": "Samsung SM-G996U1",
         "p2p_peer": true
       }
     ],

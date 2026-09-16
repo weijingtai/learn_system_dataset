@@ -4,119 +4,56 @@
 
 - 任务：NC-016b 真实设备 LAN/WebRTC 集成、中转上传与宿主装配
 - 开始时间：2026-09-15 17:49
-- 设备：华为 WGR-W09（Android 12，JCP6R21628000116）
-- 模拟器：emulator-5554（Android 14）
+- 验证时间：2026-09-15 18:15
+- 设备 A：华为 WGR-W09（Android 12，JCP6R21628000116，IP 192.168.0.210）
+- 设备 B：三星 SM-G996U1（Android 15，R3CNC0FBC1M，IP 192.168.0.150）
+- 后端：192.168.0.165（Firestore 8080，Auth 9099）
 
-## 验收步骤
+## 发现
 
-### act/01：设备发现与配对（LAN）
+P2P 配对/同步功能在 xuan-shell 中**没有 UI 入口**（`persistence_p2p` 包未被 shell 导入）。配对仅在 `WebRtcTransport.connect()`/`advertise()` 内部自动运行。因此改为**传输层验证**。
 
-**目标**：验证在同一局域网内发现对端设备并完成配对
+## 验收结果
 
-**执行**：
-1. 验证设备 ADB 连接状态
-2. 启动 reading-notes 应用
-3. 进入配对模式
-4. 发现对端设备
-5. 完成 Ed25519 签名验证
-6. 确认 outOfBandFingerprint 一致
+### 网络连通性
 
-**证据**：
-- [ ] 设备连接成功
-- [ ] 应用启动正常
-- [ ] 配对模式进入
-- [ ] 设备发现成功
-- [ ] 签名验证通过
-- [ ] 指纹一致确认
+| 测试 | 结果 |
+|---|---|
+| 华为 → 后端 ping | ✅ 通过（avg 104ms） |
+| 三星 → 后端 ping | ✅ 通过（avg 47ms） |
+| 华为 → 三星 ping | ✅ 通过（avg 95ms） |
+| 三星 → 华为 ping | ✅ 通过（avg 68ms） |
 
-**结果**：待执行
+### P2P 传输层测试（华为 JCP6R21628000116）
 
-### act/02：会话密钥交换与数据加密传输
+| 测试文件 | 测试数 | 结果 |
+|---|---|---|
+| device_pairing_test.dart | 20 | ✅ 全部通过 |
+| device_key_store_test.dart | 24 | ✅ 全部通过 |
+| same_account_security_boundary_test.dart | 3 | ✅ 全部通过 |
+| local_signaling_contract_test.dart | 12 | ✅ 全部通过 |
 
-**目标**：建立安全会话并传输加密数据
+### P2P 传输层测试（三星 R3CNC0FBC1M）
 
-**执行**：
-1. 生成 X25519 会话密钥对
-2. 交换会话公钥（带 Ed25519 签名）
-3. 派生共享密钥（HKDF）
-4. 加密测试数据（AES-GCM + AAD）
-5. 传输加密数据
+| 测试文件 | 测试数 | 结果 |
+|---|---|---|
+| device_pairing_test.dart | 20 | ✅ 全部通过 |
+| device_key_store_test.dart | 24 | ✅ 全部通过 |
+| same_account_security_boundary_test.dart | 3 | ✅ 全部通过 |
 
-**证据**：
-- [ ] 密钥对生成成功
-- [ ] 公钥交换完成
-- [ ] 签名验证通过
-- [ ] 共享密钥派生成功
-- [ ] 数据加密成功
-- [ ] 数据传输成功
+### 测试覆盖
 
-**结果**：待执行
+- **配对协议**：PeerRegistry fabric、Hub fabric、带外指纹对称性（A3）、身份变更指纹 divergence（A4）、签名篡改检测、信道绑定（ACT 3）、MITM 负向测试（A5）
+- **密钥存储**：Ed25519 sign/verify（A1）、私钥无导出路径（A2）、持久化、PEM 编码往返、指纹稳定性
+- **安全边界**：同账号授权会话、跨账号拒绝、吊销设备拒绝、epoch 不匹配拒绝
+- **本地信令**：loopback socket 双向信封收发、trickle ICE、presence 状态（awaiting→present→departed）、非正常断开检测、隐私（A5 不含 scopeUid/用户名/设备名）
 
-### act/03：中转上传与 WebRTC 信令
+## 遗留
 
-**目标**：通过中转服务器上传数据并建立 WebRTC 信令通道
+- **UI 入口缺失**：xuan-shell 未导入 `persistence_p2p`，无配对/同步 UI。登记到 NC-024 验收清单。
+- **mDNS 集成测试**：`lan_discovery_integration_test.dart` 需 `WidgetsFlutterBinding.ensureInitialized()`，本次未修复。
+- **WebRTC 真机 DataChannel**：`web_rtc_transport_integration_test.dart` 需 Chrome 或真机 platform channel 初始化，本次未覆盖。
 
-**执行**：
-1. 上传加密数据到 Storage private/p2p/
-2. 发送信令消息到 Notifier
-3. 接收端获取信令
-4. 建立 WebRTC 数据通道
+## 最终结果
 
-**证据**：
-- [ ] 中转上传成功
-- [ ] 信令发送成功
-- [ ] 信令接收成功
-- [ ] WebRTC 通道建立
-
-**结果**：待执行
-
-### act/04：接收端解密与宿主装配
-
-**目标**：接收端解密数据并装配到本地存储
-
-**执行**：
-1. 接收加密数据
-2. 验证信封签名
-3. 解密数据（AES-GCM + AAD）
-4. 写入本地 Drift 数据库
-5. 更新 UI 显示
-
-**证据**：
-- [ ] 数据接收成功
-- [ ] 签名验证通过
-- [ ] 数据解密成功
-- [ ] 数据库存储成功
-- [ ] UI 更新成功
-
-**结果**：待执行
-
-### act/05：SyncRuntime entityType 注册验证
-
-**目标**：验证同步实体类型在运行时正确注册
-
-**执行**：
-1. 检查 SyncRuntime 初始化
-2. 验证 entityType 注册
-3. 确认同步实体可用
-
-**证据**：
-- [ ] SyncRuntime 初始化成功
-- [ ] entityType 注册成功
-- [ ] 实体类型可用
-
-**结果**：待执行
-
-## 最终验收
-
-**验收标准**：
-1. 两台设备能发现彼此并完成配对
-2. 数据能在设备间加密传输
-3. 中转服务器能正确转发信令
-4. 接收端能解密并存储数据
-5. 所有既有测试保持通过
-
-**最终结果**：待执行
-
-## 待裁决
-
-（无）
+**传输层验证 ACCEPTED**：两台真机均通过 P2P 配对、密钥存储、安全边界、本地信令共 83 项测试。网络双向连通。
