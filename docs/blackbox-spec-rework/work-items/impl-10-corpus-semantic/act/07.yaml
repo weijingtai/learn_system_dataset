@@ -8,6 +8,9 @@ scope:
     - pipeline/corpus_compiler/acceptance.py
     - pipeline/corpus_compiler/tests/test_acceptance.py
     - openspec/acceptance/m3-coverage.sh
+    # 第 97 条 ④（阈值重算同步）授权追加：
+    - docs/blackbox-spec-rework/work-items/impl-10-corpus-semantic/act/07.yaml
+    - docs/blackbox-spec-rework/work-items/impl-10-corpus-semantic/TDD.md
 tests_first:
   - 先写 tests/test_acceptance.py 的新增用例，全红，记录真实 Red 原文；再修改 acceptance.py 与 m3-coverage.sh
 contract: |
@@ -22,14 +25,15 @@ contract: |
      - 零网络断言：整个验收过程在 socket 拦截补丁下执行，网络连接尝试计数必须为 0。
 
   2. openspec/acceptance/m3-coverage.sh：
-     - 支持 ELECTRONIC_TEXT_FIXTURE_DIR 环境变量；
-     - 当宿主目录缺失时，如实输出 BLOCKED 并 exit 2；
+     - **两条路线并存、显式分流、互不回落**（第 97 条）：
+       * 设了 ELECTRONIC_TEXT_FIXTURE_DIR → **只走电子文本路线**；宿主目录缺失时如实输出 BLOCKED 并 exit 2；**绝不**回落 OCR 的 mini_ed01；
+       * 未设该变量 → 走 OCR 路线，既有语义逐字保持：FIXTURE_DIR 默认 `pipeline/corpus/_fixture/mini_ed01`、只调用**仓库内规范** verify.sh（不执行被验目录自带的副本）、rc==1 判 `FAIL fixture_host` 并 exit 1；
      - 严禁修改 openspec/acceptance/run_all.sh（P4，接线属于主 Agent 单独安排的独占 ACT）。
 
-  3. 护栏约束（第 88、94 条）：
+  3. 护栏约束（第 88、94、97 条）：
      - 宿主缺失时严禁伪造 PASS 或 exit 0，必须严格 exit 2；
-     - 【第 94 条 D2】默认宿主**不得**回落到 OCR 路线的 `pipeline/corpus/_fixture/mini_ed01`；
-     - 【第 94 条 D3】脚本必须使用验收入口的退出码 rc：rc != 0，或解析到的 PASS/FAIL/BLOCKED 行数为 0，一律不得 exit 0（判 BLOCKED exit 2）；脚本先 cd "$REPO_ROOT" 再运行，并回显逐项结果；
+     - 【第 94 条 D2 / 第 97 条】**设了** ELECTRONIC_TEXT_FIXTURE_DIR 时只走电子文本路线，**不得**回落到 OCR 路线的 `pipeline/corpus/_fixture/mini_ed01`；未设该变量时按既有语义走 OCR 路线（OCR 路线的防篡改护栏 `test_shell_never_trusts_copy_verify` 必须保留生效，不得随改写消失）；
+     - 【第 94 条 D3】电子文本路线的脚本必须使用验收入口的退出码 rc：rc != 0，或解析到的 PASS/FAIL/BLOCKED 行数为 0，一律不得 exit 0（判 BLOCKED exit 2）；脚本先 cd "$REPO_ROOT" 再运行，并回显逐项结果；
      - 测试中凡需「有效宿主」的用例，一律以 tempfile 构造合成宿主并标 synthetic_fixture: true，**不得**依赖正在另行落地的真实宿主 `qianyuan_ed01_text`（P4）；
      - 严禁修改 run_all.sh，run_all.sh 基线必须保持 SUMMARY pass=2 fail=1 blocked=8。
 tests:
@@ -48,12 +52,16 @@ tests:
     - test_acceptance_does_not_import_compiler_internals
     - test_run_all_sh_untouched_and_zero_network（第 88 条护栏用例：断言 openspec/acceptance/run_all.sh 无任何未提交修改）
     - test_acceptance_summary_line_format
+    - test_shell_exit_2_on_fixture（第 97 条：逐字恢复的 OCR 路线护栏——未设电子文本变量时走 OCR，末行 SUMMARY pass=8 fail=0 blocked=1、exit 2）
+    - test_shell_never_trusts_copy_verify（第 97 条：逐字恢复的**防篡改**护栏——拷贝 OCR 宿主、删一条片段、换掉拷贝里的 verify.sh，仍由仓库内规范 verify.sh 识破，exit 1）
+    - test_shell_routes_do_not_cross_fallback（第 97 条 ③：电子文本变量指向不存在目录、同时 mini_ed01 存在 → BLOCKED exit 2，不得出现 fixture_host）
 verify:
-  - .venv/bin/python -m unittest discover -s pipeline/corpus_compiler/tests -t . 2>&1 | grep -E '^(Ran|OK|FAILED)'   # OK，≥ 153（实测基线 139 + 本 ACT 14；基线 139 = 既有 120 + act/03 的 19，其中 3 条为第 93 条补的注入反例）
-  - bash openspec/acceptance/m3-coverage.sh | tail -1; echo exit=$?   # exit=2（因电子文本宿主属后续独占 ACT）
+  - .venv/bin/python -m unittest discover -s pipeline/corpus_compiler/tests -t . 2>&1 | grep -E '^(Ran|OK|FAILED)'   # OK，≥ 156（实测基线 139 + 本 ACT 17；基线 139 = 既有 120 + act/03 的 19，其中 3 条为第 93 条补的注入反例）
+  - bash openspec/acceptance/m3-coverage.sh | tail -1; echo exit=$?   # 不设变量 → OCR 路线：SUMMARY pass=8 fail=0 blocked=1，exit=2；设 ELECTRONIC_TEXT_FIXTURE_DIR 指向不存在目录 → BLOCKED，exit=2
   - bash openspec/acceptance/run_all.sh | tail -1   # 不变：SUMMARY pass=2 fail=1 blocked=8
   - git diff --check
 commit:
-  add: [pipeline/corpus_compiler/acceptance.py, pipeline/corpus_compiler/tests/test_acceptance.py, openspec/acceptance/m3-coverage.sh]
+  add: [pipeline/corpus_compiler/acceptance.py, pipeline/corpus_compiler/tests/test_acceptance.py, openspec/acceptance/m3-coverage.sh, docs/blackbox-spec-rework/work-items/impl-10-corpus-semantic/act/07.yaml, docs/blackbox-spec-rework/work-items/impl-10-corpus-semantic/TDD.md]
   message: "test(m3-coverage): electronic text host acceptance support and zero-network gate (rulings 76, 81)"
+  # L4a（第 97 条返工）另提交，信息：fix(m3-coverage): restore OCR route and copy-verify tamper guard alongside electronic route, no cross fallback (L4a, ruling 97)
 on_fail: 停止并报告；遇 run_all.sh 漂移或 exit 码异常停手

@@ -400,7 +400,7 @@ class TestElectronicAcceptance(unittest.TestCase):
 
 
 class TestCoverageShell(unittest.TestCase):
-    """m3-coverage.sh 电子文本路由（synthetic_fixture: true）。"""
+    """m3-coverage.sh 两条路线的集成测试（电子文本 / OCR，互不回落；第 97 条）。"""
 
     def setUp(self):
         self._tmp = tempfile.TemporaryDirectory(prefix="m3-shell-")
@@ -416,8 +416,12 @@ class TestCoverageShell(unittest.TestCase):
             capture_output=True, text=True, cwd=str(REPO_ROOT), env=env,
         )
 
-    def _sandbox(self, fake_python: str, *, electronic_host: bool) -> Path:
-        """把脚本复制进伪仓库根，并放置行为可控的 `.venv/bin/python`。"""
+    def _sandbox(self, fake_python: str, *, electronic_host: bool):
+        """把脚本复制进伪仓库根，并放置行为可控的 `.venv/bin/python`。
+
+        返回 (根目录, 脚本路径)。伪仓库根内**始终**放置 OCR 路线的 `mini_ed01/`，
+        用于验证电子文本路线绝不回落到它（第 94 条 D2 / 第 97 条）。
+        """
         root = self.base / ("sandbox_%d" % len(list(self.base.iterdir())))
         dest = root / "openspec" / "acceptance" / "m3-coverage.sh"
         dest.parent.mkdir(parents=True)
@@ -428,9 +432,8 @@ class TestCoverageShell(unittest.TestCase):
         py.chmod(0o755)
         if electronic_host:
             (root / "pipeline" / "corpus" / "_fixture" / "qianyuan_ed01_text").mkdir(parents=True)
-        # OCR 路线的旧宿主存在，用于证明默认宿主未回落到它（第 94 条 D2）
         (root / "pipeline" / "corpus" / "_fixture" / "mini_ed01").mkdir(parents=True)
-        return dest
+        return root, dest
 
     def test_missing_fixture_exits_2_blocked(self):
         """第 88 条护栏：宿主缺失时脚本输出含 exact BLOCKED 文本且 exit=2，不伪造绿灯。"""
@@ -469,28 +472,115 @@ class TestCoverageShell(unittest.TestCase):
         self.assertEqual(proc_missing.returncode, 2)
 
     def test_shell_default_host_is_not_ocr_mini_ed01(self):
-        """第 94 条 D2：默认宿主不得回落到 OCR 路线的 mini_ed01（沙箱内 mini_ed01 存在）。"""
-        dest = self._sandbox("#!/bin/sh\necho 'PASS fixture_host 伪造'\nexit 0\n", electronic_host=False)
-        proc = self._run_shell(script=dest)
+        """第 94 条 D2 / 第 97 条：**设了**电子文本变量时，绝不回落到 OCR 路线的 mini_ed01。
+
+        未设变量时走 OCR 路线是设计意图（第 97 条），故本用例只在设了变量时断言「不回落」。
+        """
+        root, dest = self._sandbox(
+            "#!/bin/sh\necho 'PASS fixture_host 伪造'\nexit 0\n", electronic_host=False
+        )
+        # 指向沙箱内「本应是电子文本默认宿主」的路径（不存在），同时 mini_ed01 存在
+        default_electronic = (
+            root / "pipeline" / "corpus" / "_fixture" / "qianyuan_ed01_text"
+        )
+        self.assertFalse(default_electronic.exists())
+        proc = self._run_shell(
+            {"ELECTRONIC_TEXT_FIXTURE_DIR": str(default_electronic)}, script=dest
+        )
         self.assertEqual(proc.returncode, 2, proc.stdout + proc.stderr)
         self.assertIn("BLOCKED m3_coverage 前置缺失: 电子文本验收宿主不存在", proc.stdout)
         self.assertNotIn("fixture_host", proc.stdout)
         self.assertNotIn("SUMMARY pass=8", proc.stdout)
 
+    def test_shell_routes_do_not_cross_fallback(self):
+        """第 97 条 ③：电子文本变量指向不存在目录、且 mini_ed01 存在 → BLOCKED exit 2，无交叉回落。"""
+        root, dest = self._sandbox(
+            "#!/bin/sh\necho 'PASS fixture_host 伪造'\nexit 0\n", electronic_host=False
+        )
+        self.assertTrue((root / "pipeline" / "corpus" / "_fixture" / "mini_ed01").is_dir())
+        proc = self._run_shell(
+            {"ELECTRONIC_TEXT_FIXTURE_DIR": str(self.base / "cross_fallback_absent")},
+            script=dest,
+        )
+        self.assertEqual(proc.returncode, 2, proc.stdout + proc.stderr)
+        # 必须落在**电子文本**的宿主缺失分支（而不是悄悄换一条路线跑出别的东西）
+        self.assertIn("BLOCKED m3_coverage 前置缺失: 电子文本验收宿主不存在", proc.stdout)
+        self.assertNotIn("fixture_host", proc.stdout)
+        self.assertNotIn("SUMMARY pass=8", proc.stdout)
+        self.assertNotIn("FAIL manifest_sha256", proc.stdout)
+
     def test_shell_no_silent_pass_on_empty_output(self):
         """第 94 条 D3：入口退出 0 但零输出 → 脚本不得返回 0。"""
-        dest = self._sandbox("#!/bin/sh\nexit 0\n", electronic_host=True)
-        proc = self._run_shell(script=dest)
+        root, dest = self._sandbox("#!/bin/sh\nexit 0\n", electronic_host=True)
+        proc = self._run_shell(
+            {
+                "ELECTRONIC_TEXT_FIXTURE_DIR": str(
+                    root / "pipeline" / "corpus" / "_fixture" / "qianyuan_ed01_text"
+                )
+            },
+            script=dest,
+        )
         self.assertNotEqual(proc.returncode, 0, proc.stdout + proc.stderr)
         self.assertIn("SUMMARY", proc.stdout)
 
     def test_shell_no_silent_pass_on_nonzero_rc(self):
         """第 94 条 D3：入口非零退出（即便输出一行 PASS）→ 脚本不得返回 0。"""
-        dest = self._sandbox(
+        root, dest = self._sandbox(
             '#!/bin/sh\necho "PASS host_source 伪造的绿灯"\nexit 7\n', electronic_host=True
         )
-        proc = self._run_shell(script=dest)
+        proc = self._run_shell(
+            {
+                "ELECTRONIC_TEXT_FIXTURE_DIR": str(
+                    root / "pipeline" / "corpus" / "_fixture" / "qianyuan_ed01_text"
+                )
+            },
+            script=dest,
+        )
         self.assertNotEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+
+    def test_shell_exit_2_on_fixture(self):
+        """第 97 条 ②：未设电子文本变量 → 走 OCR 路线，末行 SUMMARY pass=8 fail=0 blocked=1、exit 2。"""
+        proc = subprocess.run(
+            ["bash", str(SHELL_SCRIPT)],
+            capture_output=True,
+            text=True,
+            cwd=str(REPO_ROOT),
+            env={**os.environ, "LC_ALL": "en_US.UTF-8"},
+        )
+        self.assertEqual(proc.returncode, 2)
+        lines = proc.stdout.strip().splitlines()
+        self.assertTrue(lines[-1].startswith("SUMMARY pass=8 fail=0 blocked=1"))
+
+    def test_shell_never_trusts_copy_verify(self):
+        """第 97 条 ②（防篡改护栏）：拷贝 OCR 宿主并换掉拷贝里的 verify.sh，仍由仓库内规范脚本识破。"""
+        tmp = tempfile.mkdtemp(prefix="m3-shell-trust-")
+        try:
+            copy_dir = Path(tmp) / "mini_ed01"
+            shutil.copytree(FIXTURE_DIR, copy_dir, dirs_exist_ok=True)
+            # 删一条 span
+            spans_path = copy_dir / "spans.yaml"
+            original = spans_path.read_text(encoding="utf-8")
+            spans_doc = __import__("yaml").safe_load(original)
+            spans_doc["spans"] = spans_doc["spans"][:-1]
+            spans_path.write_text(
+                __import__("yaml").safe_dump(spans_doc, allow_unicode=True, default_flow_style=False),
+                encoding="utf-8",
+            )
+            # 替换 verify.sh
+            verify_path = copy_dir / "verify.sh"
+            verify_path.write_text("#!/usr/bin/env bash\necho FIXTURE OK; exit 0\n", encoding="utf-8")
+            verify_path.chmod(0o755)
+            proc = subprocess.run(
+                ["bash", str(SHELL_SCRIPT)],
+                capture_output=True,
+                text=True,
+                cwd=str(REPO_ROOT),
+                env={**os.environ, "LC_ALL": "en_US.UTF-8", "FIXTURE_DIR": str(copy_dir)},
+            )
+            self.assertEqual(proc.returncode, 1)
+            self.assertTrue(proc.stdout.strip().splitlines()[0].startswith("FAIL fixture_host"))
+        finally:
+            shutil.rmtree(tmp, True)
 
 
 if __name__ == "__main__":
