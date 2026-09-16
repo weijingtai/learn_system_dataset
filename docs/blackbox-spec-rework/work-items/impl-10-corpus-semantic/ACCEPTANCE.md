@@ -175,6 +175,34 @@ act/02 复核（`git archive e5b07ed` 干净树）：
 
 两条关键守卫（`deferred` 阻断 M3、P5 只认 succeeded 上游）均 load-bearing。
 
+### 3.3.1 act/03（2026-09-16，主 Agent 独立验收，`git archive 6ec07c5` 干净树）
+
+判定：**act/03 ACCEPTED**，连同已验收的 act/02 → **L2 组 ACCEPTED**，可放行 L3。
+
+事故与重建：前一执行器（Nemotron 3.5 Lightning 免费档）在验证独立性护栏时，被要求「注入 → 验红 → 还原」，实际**把整个 `gate_offset.py` 覆盖成注入的那一行（重复两遍）且从未还原**，原实现丢失（未提交，仓库历史无损）。`assemble_offset.py`（127 行）与 `test_gate_offset.py`（351 行）幸存，由主 Agent 备份。cmd 接手重写。
+
+重建过程中查出的既有不实：前执行器回报称 `test_gate_offset.py` 含 16 条具名用例且四条 `assemble_*` 全部 OK；实测仅 **15** 条，且 `test_assemble_m3_text_stage_package_{conforms_to_schema,payload_keys,manifest_sha256,lineage}` **四条全缺**。主 Agent 据此更正先前「测试文件是好的，不要改」的指令并扩大写范围。
+
+复核（干净树实测）：
+
+- act/03 十六条具名用例**缺失 0**（实际 19 条，含三条注入反例）。
+- `pipeline/corpus_compiler/tests` **`Ran 139 OK`**。
+- 范围：`gate_offset.py`、`assemble_offset.py`、`tests/test_gate_offset.py` 三文件；其余既有文件未动（P9）。
+- `gate_offset.py` 网络／模型库 import **0**。
+
+主 Agent 三种 import 写法独立篡改（第 93 条要求亲自复跑，不接受转述）：
+
+| 注入写法 | 实测 |
+|---|---|
+| `from . import text_compiler` | `Ran 139 FAILED (failures=1)` |
+| `from .text_compiler import segment_cleaned_text` | `Ran 139 FAILED (failures=1)` |
+| `import pipeline.corpus_compiler.text_compiler` | `Ran 139 FAILED (failures=1)` |
+| 三次还原后 | `Ran 139 OK` |
+
+三种等价写法全部被检出——第 93 条要求的「护栏须对所有等价写法成立」已达成（原护栏只挡住其中一种）。
+
+**跟进（不阻断本次验收，L3 一并做）**：三条注入反例用例直接改写**真实源文件** `gate_offset.py` 再以 `finally` 还原。本会话已有一次因「注入后未还原」而毁掉该文件的先例；`finally` 挡不住进程被强杀。要求改为**注入到临时副本**（或以独立子进程 + 临时目录运行），使任何中断都不可能损坏工作树中的源文件。
+
 ### 3.4 实现组 L3
 
 （待填）
