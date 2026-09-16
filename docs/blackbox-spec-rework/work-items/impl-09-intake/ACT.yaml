@@ -38,9 +38,11 @@ global_rules:
   - 不得伪造文件、哈希或人工决定；真实决定表由用户写，执行者只在 tempfile 构造测试决定表
   - 中文注释与 docstring；公开函数名、参数名、返回键、检查名、CLI 输出前缀与 ACT contract 逐字一致
   - 每个 ACT 一个提交；不得 git add -A / git add .；执行者不写 ACCEPTANCE 或 ACCEPTED
+  - 所有测试用合成文本样例与合成决定表均标 `synthetic_fixture: true`；验收判定不得把它们当作真实签发或真实书源（第 52、53 条、P7）
+  - `finding_id` 格式 `<kind>@<raw_start>-<raw_end>`，无新前缀（P8）
+  - 本包只新建 `m1-intake.sh`、`m2-sanitization.sh` 两份验收脚本；不修改 `run_all.sh`；接进 `run_all.sh` 属另一个独占 ACT（P4）
 gates:
   - python3 docs/blackbox-spec-rework/work-items/impl-00-interfaces/check_interfaces.py | tail -1   # I00-IF SUMMARY pass=36 fail=0
-  - bash openspec/acceptance/run_all.sh 2>&1 | tail -1                                            # SUMMARY pass=2 fail=1 blocked=8
   - bash openspec/schemas/verify.sh >/dev/null; echo $?                                             # 0
   - git diff --check
-on_fail: 停止并报告；遇到以下任一情况一律停手上报——contract 有两种理解、测试无法按定义写出、需要改 scope 外文件、发现需新增 ID 前缀
+on_fail: 停止并报告；遇到以下任一情况一律停手上报——contract 有两种理解、测试无法按定义写出、需要改 scope 外文件、发现需新增 ID 前缀、发现修改了 run_all.sh

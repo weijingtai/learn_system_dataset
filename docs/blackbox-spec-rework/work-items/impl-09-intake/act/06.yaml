@@ -14,10 +14,10 @@ contract: |
     需要 M1+M2 在 Ledger 上成功运行后的状态
 tests:
   test_parity.py: |
-    - test_m1_manifest_parseable_by_m3（M1 产出的 source_manifest 可被 resolve_m3_inputs 解析）
-    - test_m2_output_parseable_by_m3（M2 产出的 cleaned_text + report 可被 M3 相关解析消费）
-    - test_raw_text_frozen（M2 运行后 raw_text 修订不变）
-    - test_cleaned_text_not_equal_raw（cleaned_text != raw_text，清洗有实际效果）
+    - test_m1_manifest_parseable_by_m3（synthetic_fixture: true，M1 产出的 source_manifest 可被 resolve_m3_inputs 解析）
+    - test_m2_output_parseable_by_m3（synthetic_fixture: true，M2 产出的 cleaned_text + report 可被 M3 相关解析消费）
+    - test_raw_text_frozen（synthetic_fixture: true，M2 运行后 raw_text 修订不变）
+    - test_cleaned_text_not_equal_raw（synthetic_fixture: true，cleaned_text != raw_text，清洗有实际效果）
 verify:
   - .venv/bin/python -m unittest discover -s pipeline/digitization/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 42
   - TDD §3 回归

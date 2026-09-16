@@ -35,18 +35,21 @@ contract: |
     调用 check_m2_sanitization，输出 PASS/FAIL/BLOCKED 行
     末行 SUMMARY pass=N fail=N blocked=N
     exit 0/1/2 同上
+  注意：两份脚本在宿主缺失时 exit 2（BLOCKED）；接进 run_all.sh 属另一个独占 ACT，由主 Agent 安排，本包不动 run_all.sh。
 tests:
   test_acceptance.py: |
-    - test_m1_check_passes_on_valid_ledger
-    - test_m1_check_fails_on_missing_manifest
-    - test_m1_check_blocked_on_no_ledger
-    - test_m2_check_passes_on_valid_ledger
-    - test_m2_check_fails_on_deferred
-    - test_m2_check_fails_on_missing_report
-    - test_m2_check_blocked_on_no_ledger
+    # --- intake 侧（3 个用例）---
+    - test_m1_check_passes_on_valid_ledger（synthetic_fixture: true，合成 Ledger）
+    - test_m1_check_fails_on_missing_manifest（synthetic_fixture: true）
+    - test_m1_check_blocked_on_no_ledger（无 Ledger 目录 → BLOCKED）
+    # --- digitization 侧（4 个用例）---
+    - test_m2_check_passes_on_valid_ledger（synthetic_fixture: true，合成 Ledger）
+    - test_m2_check_fails_on_deferred（synthetic_fixture: true，合成 deferred findings）
+    - test_m2_check_fails_on_missing_report（synthetic_fixture: true）
+    - test_m2_check_blocked_on_no_ledger（无 Ledger 目录 → BLOCKED）
 verify:
-  - .venv/bin/python -m unittest discover -s pipeline/intake/tests -t . 2>&1 | tail -3   # OK
-  - .venv/bin/python -m unittest discover -s pipeline/digitization/tests -t . 2>&1 | tail -3   # OK
+  - .venv/bin/python -m unittest discover -s pipeline/intake/tests -t . 2>&1 | tail -3   # OK，intake 累计 ≥ 26
+  - .venv/bin/python -m unittest discover -s pipeline/digitization/tests -t . 2>&1 | tail -3   # OK，digitization 累计 ≥ 49
   - bash openspec/acceptance/m1-intake.sh; echo exit=$?   # exit 2（BLOCKED，无真实素材）
   - bash openspec/acceptance/m2-sanitization.sh; echo exit=$?   # exit 2（BLOCKED）
   - TDD §3 回归

@@ -11,9 +11,11 @@
 3. **证据级别**：`offset_level`，发布级别只做 `INTERNAL_DEMO` / `DEV_SEARCH`（§76）。
 4. **来源无关**：M1 按来源无关设计——来源站点、原始 URL、仓库提交号为字段，同书多来源各自登记 SourceAsset/Edition（§77 D2）。
 5. **片段 ID**：无页码文本以字符偏移定位，片段 ID 格式 `ss_<work>_ed<NN>_o<NNNNNNN>`（§78 D3）；语义层用 `sem_` 前缀（§80 D5）。
-6. **不新增 ID 前缀**：片段 ID 用已登记的 `ss_`/`sem_` 两种形态；`finding_id` 等新前缀须写「## 待裁决」。
+6. **不新增 ID 前缀**：片段 ID 用已登记的 `ss_`/`sem_` 两种形态；`finding_id` 不引入新前缀，采用 `<kind>@<raw_start>-<raw_end>` 复合键格式（P8 合规）。
 7. **P7**：任何需要人工确认的清洗决定（补字、改形近误字、判定缺失章节）都必须由用户决定表产出，本包只定义决定表格式与导入路径，不得伪造人工决定。
 8. **零模型调用**（P6）：不调用任何 LLM/云服务；清洗为确定性规则。
+9. **run_all.sh 不动**：本包只新建 `m1-intake.sh`、`m2-sanitization.sh` 两份验收脚本；接进 `run_all.sh` 属另一个独占 ACT（P4），由主 Agent 安排。本包验收脚本在宿主缺失时 exit 2（BLOCKED）。
+10. **synthetic_fixture 标记**：本包所有测试用的合成文本样例与合成决定表均标 `synthetic_fixture: true`，验收判定不得把它们当作真实签发或真实书源（第 52、53 条、P7）。
 
 **OCR 路线**（第二版）：
 
@@ -110,7 +112,7 @@ M2 电子文本清洗产出四类 artifacts：
 发现条目最小键集（§81）：
 
 ```yaml
-finding_id: <唯一 ID>
+finding_id: "<kind>@<raw_start>-<raw_end>"（无新前缀，P8 合规；同一 kind 同一区间唯一）
 kind: <闭集，见下>
 raw_start: <字符偏移>
 raw_end: <字符偏移>
@@ -171,7 +173,44 @@ terminal_state: processed | known_unresolvable | deferred
 
 - 电子文本验收宿主（取《乾元秘旨》片段）属**独占 fixture ACT**，由主 Agent 另行安排（P4）
 - 本包**不得自建 fixture、不得写 `pipeline/corpus/_fixture/**`**
-- 本包只定义对验收宿主的接口需求：需要哪些文件、键、哈希
+- 本包只定义对验收宿主的接口需求，具体清单如下：
+
+**需要的文件与用途**：
+
+| 文件名 | 用途 |
+|---|---|
+| `乾元秘旨_电子文本片段.txt`（或 `.md`） | M1 入库的原始电子文本样例；UTF-8 无 BOM；取自《乾元秘旨》前两节（"太极图说"至"河图洛书"区间） |
+| `乾元秘旨_期望_cleaned.txt` | M2 清洗后期望产出的 `cleaned_text_revision` 内容，用于比对 |
+| `乾元秘旨_期望_sanitization_report.yaml` | M2 清洗后期望产出的 `sanitization_report`，包含 finding 列表与 summary |
+| `乾元秘旨_期望_m1_stage_package.yaml` | M1 StagePackage（source_manifest），用于 acceptance 检查键序 |
+| `乾元秘旨_期望_m2_stage_package.yaml` | M2 StagePackage（sanitization_report + patches），用于 acceptance 检查 |
+
+**每份文件的必备键**：
+
+| 文件 | 必备键 |
+|---|---|
+| M1 StagePackage | `source_manifest`（键序：source_site, source_url, file_sha256, pages[]），`raw_text`（revision_id, size） |
+| M2 StagePackage | `sanitization_report`（findings[], summary, deferred_count），`deterministic_patch_set`（patches[]） |
+| sanitization_report | `findings[].finding_id`, `findings[].kind`, `findings[].raw_start`, `findings[].raw_end`, `findings[].raw_excerpt`, `findings[].context`, `findings[].action`, `findings[].patch_id`, `findings[].basis`, `findings[].terminal_state`, `summary`（各 kind 计数），`deferred_count` |
+
+**需要固定的哈希**：
+
+| 字段 | 哈希方式 |
+|---|---|
+| `source_asset.file_sha256` | 对原始 `.txt`/`.md` 文件全文取 SHA-256；宿主产出后写死 |
+| `sanitization_report` 的 sha256 | 对 report YAML 序列化后取 SHA-256；宿主产出后写死 |
+
+**《乾元秘旨》取样规格**：
+
+- 取前两节（"太极图说"与"河图洛书"），约 2000–5000 字符
+- 原始文本须包含以下已知问题（确保清洗有实际效果）：
+  - `?` 替换字符 ≥ 4 处
+  - PUA 码位 ≥ 39 个
+  - 零宽控制字符 ≥ 2 处
+  - Markdown 转义残留（`\-`、`\[`）≥ 1 处
+  - 繁简混杂 ≥ 1 处
+- 清洗后期望发现条数：约 46 条（与上游 fixture 对齐；具体以 `grep -c 'kind:'` 实数为准）
+- `deferred_count` = 0（第一版不含需人工决定的发现）
 
 ### 7.3 对 Ledger
 
@@ -183,8 +222,8 @@ terminal_state: processed | known_unresolvable | deferred
 
 | 待办 | 内容 | 阻断 |
 |---|---|---|
-| 电子文本验收宿主 | 主 Agent 另行安排（P4），取《乾元秘旨》片段 | M2 Gate 真实验证 |
-| 人工终态决定表 | 用户亲笔写（§77 D5），第一版首批取《乾元秘旨》前若干节 | M2 真实验证 |
+| 电子文本验收宿主 | 主 Agent 另行安排（P4），取《乾元秘旨》片段；产出后须标 `synthetic_fixture: true` | M2 Gate 真实验证 |
+| 人工终态决定表 | 用户亲笔写（§77 D5），第一版首批取《乾元秘旨》前若干节；验收判定不得把合成决定表当作真实签发 | M2 真实验证 |
 | PUA 映射表 | 对照 GlyphWiki/Jigmo 查证后建立映射表（§79 D4） | 清洗实现 |
 
 ## 9. 待裁决

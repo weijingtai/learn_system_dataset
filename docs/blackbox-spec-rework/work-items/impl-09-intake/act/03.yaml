@@ -25,14 +25,14 @@ contract: |
       gate.py 不 import cleaner、patcher、reporter、raw_text
 tests:
   test_gate.py: |
-    - test_gate_passes_clean_input（无 findings → passed=True）
-    - test_gate_passes_with_processed_findings（有 processed findings → passed=True）
-    - test_gate_fails_deferred（deferred_count > 0 → passed=False, "no_deferred"）
-    - test_gate_fails_invalid_kind（非法 kind → passed=False, "findings_valid"）
-    - test_gate_fails_invalid_terminal_state（非法 terminal_state → passed=False, "findings_valid"）
-    - test_gate_fails_patch_missing（patch_id 不在 patches 中 → passed=False, "patches_consistent"）
-    - test_gate_fails_summary_mismatch（计数不符 → passed=False, "summary_consistent"）
-    - test_gate_fails_invalid_report（缺 findings 键 → passed=False, "report_valid"）
+    - test_gate_passes_clean_input（synthetic_fixture: true，无 findings → passed=True）
+    - test_gate_passes_with_processed_findings（synthetic_fixture: true，有 processed findings → passed=True）
+    - test_gate_fails_deferred（synthetic_fixture: true，deferred_count > 0 → passed=False, "no_deferred"）
+    - test_gate_fails_invalid_kind（synthetic_fixture: true，非法 kind → passed=False, "findings_valid"）
+    - test_gate_fails_invalid_terminal_state（synthetic_fixture: true，非法 terminal_state → passed=False, "findings_valid"）
+    - test_gate_fails_patch_missing（synthetic_fixture: true，patch_id 不在 patches 中 → passed=False, "patches_consistent"）
+    - test_gate_fails_summary_mismatch（synthetic_fixture: true，计数不符 → passed=False, "summary_consistent"）
+    - test_gate_fails_invalid_report（synthetic_fixture: true，缺 findings 键 → passed=False, "report_valid"）
     - test_gate_independence（不 import cleaner/patcher/reporter/raw_text）
 verify:
   - .venv/bin/python -m unittest discover -s pipeline/digitization/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 22

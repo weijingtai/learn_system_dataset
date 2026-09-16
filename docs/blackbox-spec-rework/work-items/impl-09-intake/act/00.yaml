@@ -52,22 +52,22 @@ contract: |
     fixture_source() -> dict：返回合法 source_info（乾元秘旨片段）
 tests:
   test_manifest.py: |
-    - test_dump_roundtrip（dump_manifest_yaml 写出后 safe_load 回来键值不变）
-    - test_dump_does_not_touch_global_safedumper（调用前后 yaml.SafeDumper.yaml_representers 相等）
-    - test_sha256_quoted_other_strings_plain（64 位十六进制带双引号；其他字符串不加引号）
-    - test_load_source_valid_returns_new_dict（返回值键序固定；修改返回值不影响入参）
-    - test_load_source_missing_key_SCH_001
-    - test_load_source_extra_key_SCH_002
-    - test_load_source_bad_source_url_SCH_002
-    - test_load_source_bad_file_sha256_SCH_002
-    - test_load_source_bad_pages_duplicate_SCH_002
-    - test_read_source_files_collects_all_missing
-    - test_read_source_files_missing_dir
-    - test_read_source_files_reads_utf8
-    - test_read_source_files_records_sha256
-    - test_build_manifest_key_order
-    - test_build_manifest_source_sites
-    - test_manifest_bytes_deterministic
+    - test_dump_roundtrip（synthetic_fixture: true，dump_manifest_yaml 写出后 safe_load 回来键值不变）
+    - test_dump_does_not_touch_global_safedumper（synthetic_fixture: true，调用前后 yaml.SafeDumper.yaml_representers 相等）
+    - test_sha256_quoted_other_strings_plain（synthetic_fixture: true，64 位十六进制带双引号；其他字符串不加引号）
+    - test_load_source_valid_returns_new_dict（synthetic_fixture: true，返回值键序固定；修改返回值不影响入参）
+    - test_load_source_missing_key_SCH_001（synthetic_fixture: true）
+    - test_load_source_extra_key_SCH_002（synthetic_fixture: true）
+    - test_load_source_bad_source_url_SCH_002（synthetic_fixture: true）
+    - test_load_source_bad_file_sha256_SCH_002（synthetic_fixture: true）
+    - test_load_source_bad_pages_duplicate_SCH_002（synthetic_fixture: true）
+    - test_read_source_files_collects_all_missing（synthetic_fixture: true）
+    - test_read_source_files_missing_dir（synthetic_fixture: true）
+    - test_read_source_files_reads_utf8（synthetic_fixture: true）
+    - test_read_source_files_records_sha256（synthetic_fixture: true）
+    - test_build_manifest_key_order（synthetic_fixture: true）
+    - test_build_manifest_source_sites（synthetic_fixture: true）
+    - test_manifest_bytes_deterministic（synthetic_fixture: true）
 verify:
   - .venv/bin/python -m unittest discover -s pipeline/intake/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 16
   - grep -rnE 'PIL|paddle|requests|openai|anthropic|httpx' pipeline/intake --include='*.py' | wc -l   # 0

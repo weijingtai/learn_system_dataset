@@ -7,7 +7,7 @@
 - 所有公开函数名、参数名、返回键、检查名、CLI 输出前缀与 ACT contract 逐字一致
 - 中文注释与 docstring
 - 只用标准库 + PyYAML + jsonschema；无外部依赖
-- 不新增 ID 前缀（片段 ID 用已登记的 `ss_`/`sem_`）
+- 不新增 ID 前缀（片段 ID 用已登记的 `ss_`/`sem_`；finding_id 用 `<kind>@<raw_start>-<raw_end>` 复合键格式，无新前缀）
 
 ### 1.2 契约完整性
 
@@ -29,6 +29,14 @@
 - 不调用模型 API
 - 不写 fixture 目录
 - P7：人工决定由用户决定表产出，执行者不代填
+- P8：finding_id 无新前缀，格式 `<kind>@<raw_start>-<raw_end>`
+- 第 52、53 条：所有测试用合成文本样例与合成决定表均标 `synthetic_fixture: true`；验收判定不得把它们当作真实签发或真实书源
+
+### 1.5 边界
+
+- 本包只新建 `m1-intake.sh`、`m2-sanitization.sh` 两份验收脚本
+- **不修改 `run_all.sh`**；接进 `run_all.sh` 属另一个独占 ACT（P4），由主 Agent 安排
+- 两份脚本在宿主缺失时 exit 2（BLOCKED）
 
 ### 1.5 回归
 
@@ -51,6 +59,9 @@
 | 来源无关 | source_info 含 source_site, source_url 字段 | §77 D2 |
 | 验收脚本 | m1-intake.sh / m2-sanitization.sh exit 0/1/2 如实 | §19.0 |
 | 回归 | check_interfaces.py fail=0，run_all.sh 基线不变 | gates |
+| synthetic_fixture | 所有测试用合成数据标 `synthetic_fixture: true`；验收判定不把合成数据当真实签发 | 第 52、53 条 |
+| finding_id 格式 | finding_id 为 `<kind>@<raw_start>-<raw_end>`，无新前缀 | P8 |
+| run_all.sh 不动 | 本包不修改 run_all.sh；验收脚本 exit 2 表示 BLOCKED | §1 边界 |
 
 ## 3. 验收记录
 

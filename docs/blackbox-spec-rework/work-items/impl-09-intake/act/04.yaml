@@ -35,14 +35,14 @@ contract: |
     Gate 失败 exit 1
 tests:
   test_step.py: |
-    - test_run_m2_success（合法输入 → 三个 revision_id + gate_result.passed=True）
-    - test_run_m2_gate_failure（deferred findings → gate_result.passed=False, failed_check="m2_gate"）
-    - test_run_m2_duplicate_refused（同 edition_part_id 二次运行 → DigitizationRefused）
-    - test_run_m2_zero_writes_on_failure（失败时 Ledger 行数不变）
-    - test_run_m2_raw_text_unchanged（raw_text 修订不可变）
-    - test_run_m2_manifest_sha256（sanitization_report 内容 sha256 可取回）
-    - test_run_m2_cli_success（exit 0，"M2 OK"）
-    - test_run_m2_cli_gate_failure（exit 1）
+    - test_run_m2_success（synthetic_fixture: true，合法输入 → 三个 revision_id + gate_result.passed=True）
+    - test_run_m2_gate_failure（synthetic_fixture: true，deferred findings → gate_result.passed=False, failed_check="m2_gate"）
+    - test_run_m2_duplicate_refused（synthetic_fixture: true，同 edition_part_id 二次运行 → DigitizationRefused）
+    - test_run_m2_zero_writes_on_failure（synthetic_fixture: true，失败时 Ledger 行数不变）
+    - test_run_m2_raw_text_unchanged（synthetic_fixture: true，raw_text 修订不可变）
+    - test_run_m2_manifest_sha256（synthetic_fixture: true，sanitization_report 内容 sha256 可取回）
+    - test_run_m2_cli_success（synthetic_fixture: true，exit 0，"M2 OK"）
+    - test_run_m2_cli_gate_failure（synthetic_fixture: true，exit 1）
 verify:
   - .venv/bin/python -m unittest discover -s pipeline/digitization/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 30
   - TDD §3 回归

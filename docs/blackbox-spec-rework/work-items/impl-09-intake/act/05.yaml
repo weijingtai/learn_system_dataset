@@ -25,15 +25,15 @@ contract: |
       无决定的 deferred → 返回缺决定的 finding_id 列表
 tests:
   test_decisions.py: |
-    - test_load_decisions_valid（合法输入 → 返回值键序固定）
-    - test_load_decisions_missing_key_SCH_001
-    - test_load_decisions_bad_terminal_state_SCH_002
-    - test_load_decisions_empty_reason_SCH_001
-    - test_load_decisions_bad_schema_version_SCH_002
-    - test_check_decisions_coverage_all_decided
-    - test_check_decisions_coverage_missing_deferred
-    - test_check_decisions_coverage_non_deferred_not_required
-    - test_decisions_modification_does_not_affect_input
+    - test_load_decisions_valid（synthetic_fixture: true，合法输入 → 返回值键序固定）
+    - test_load_decisions_missing_key_SCH_001（synthetic_fixture: true）
+    - test_load_decisions_bad_terminal_state_SCH_002（synthetic_fixture: true）
+    - test_load_decisions_empty_reason_SCH_001（synthetic_fixture: true）
+    - test_load_decisions_bad_schema_version_SCH_002（synthetic_fixture: true）
+    - test_check_decisions_coverage_all_decided（synthetic_fixture: true）
+    - test_check_decisions_coverage_missing_deferred（synthetic_fixture: true）
+    - test_check_decisions_coverage_non_deferred_not_required（synthetic_fixture: true）
+    - test_decisions_modification_does_not_affect_input（synthetic_fixture: true）
 verify:
   - .venv/bin/python -m unittest discover -s pipeline/digitization/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 38
   - TDD §3 回归

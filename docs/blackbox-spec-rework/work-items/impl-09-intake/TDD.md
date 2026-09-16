@@ -21,31 +21,51 @@ git diff --check
 
 ## 1. 逐 ACT 的 Red → Green
 
-| ACT | Red（实现前） | Green（实现后） |
-|---|---|---|
-| 00 | `$TI` → ImportError | `$TI` OK，用例 ≥ 16；dump_manifest_yaml 往返字节相同 |
-| 01 | 新增用例全 ERROR | `$TI` OK ≥ 23；raw_text 冻结不可变 |
-| 02 | `$TD` → ImportError | `$TD` OK ≥ 14；clean_text 可发现 13 项清洗问题；patches 可逆 |
-| 03 | 新增用例全 ERROR | `$TD` OK ≥ 22；gate.py 不 import cleaner/patcher/reporter/raw_text |
-| 04 | 新增用例全 ERROR | `$TD` OK ≥ 30；run_m2 成功路径产出三个 revision_id |
-| 05 | 新增用例全 ERROR | `$TD` OK ≥ 38；load_decisions 校验通过；check_decisions_coverage 可检出缺决定 |
-| 06 | 新增用例全 ERROR | `$TD` OK ≥ 42；M1→M2 产出可被 M3 输入解析消费 |
-| 07 | `m1-intake.sh` 不存在（exit 127）；新增用例全 ERROR | `$TI` OK ≥ 23；`$TD` OK ≥ 42；两份脚本 exit 2（BLOCKED） |
+| ACT | 套 | Red（实现前） | Green（实现后） |
+|---|---|---|---|
+| 00 | intake | `$TI` → ImportError | `$TI` OK，用例 ≥ 16；dump_manifest_yaml 往返字节相同 |
+| 01 | intake | 新增用例全 ERROR | `$TI` OK ≥ 23；raw_text 冻结不可变 |
+| 02 | digitization | `$TD` → ImportError | `$TD` OK ≥ 15；clean_text 可发现 13 项清洗问题；patches 可逆 |
+| 03 | digitization | 新增用例全 ERROR | `$TD` OK ≥ 24；gate.py 不 import cleaner/patcher/reporter/raw_text |
+| 04 | digitization | 新增用例全 ERROR | `$TD` OK ≥ 32；run_m2 成功路径产出三个 revision_id |
+| 05 | digitization | 新增用例全 ERROR | `$TD` OK ≥ 41；load_decisions 校验通过；check_decisions_coverage 可检出缺决定 |
+| 06 | digitization | 新增用例全 ERROR | `$TD` OK ≥ 45；M1→M2 产出可被 M3 输入解析消费 |
+| 07 | 两套 | `m1-intake.sh` 不存在（exit 127）；新增用例全 ERROR | `$TI` OK ≥ 26；`$TD` OK ≥ 49；两份脚本 exit 2（BLOCKED） |
 
-## 2. 用例阈值计算
+## 2. 用例阈值计算（按 act 文件 grep -c "^\s*- test_" 实数）
 
-| ACT | 累计用例 | 计算过程 |
-|---|---|---|
-| 00 | 16 | 16（test_manifest.py） |
-| 01 | 23 | 16 + 7（test_step.py） |
-| 02 | 37 | 23 + 14（test_cleaner.py） |
-| 03 | 45 | 37 + 8（test_gate.py） |
-| 04 | 53 | 45 + 8（test_step.py 增补） |
-| 05 | 61 | 53 + 8（test_decisions.py） |
-| 06 | 65 | 61 + 4（test_parity.py） |
-| 07 | 73 | 65 + 8（test_acceptance.py ×2） |
+### intake 套（$TI，pipeline/intake/tests）
 
-**注意**：以上为预估阈值，以实际实现时的具名用例数为准。verify 中只断言 `用例 ≥ 预估值`，不写死 pass 总数。
+| ACT | 本 act 用例 | 累计 | 计算 |
+|---|---|---|---|
+| 00 | 16 | 16 | test_manifest.py 16 条 |
+| 01 | 7 | 23 | + test_step.py 7 条 |
+| 07 | 3 | 26 | + test_acceptance.py intake 侧 3 条 |
+
+### digitization 套（$TD，pipeline/digitization/tests）
+
+| ACT | 本 act 用例 | 累计 | 计算 |
+|---|---|---|---|
+| 02 | 15 | 15 | test_cleaner.py 15 条 |
+| 03 | 9 | 24 | + test_gate.py 9 条 |
+| 04 | 8 | 32 | + test_step.py 8 条 |
+| 05 | 9 | 41 | + test_decisions.py 9 条 |
+| 06 | 4 | 45 | + test_parity.py 4 条 |
+| 07 | 4 | 49 | + test_acceptance.py digitization 侧 4 条 |
+
+**各 act grep -c 实数**：
+
+```
+$ for f in docs/blackbox-spec-rework/work-items/impl-09-intake/act/*.yaml; do echo "$(basename $f): $(grep -c '^\s*- test_' $f)"; done
+00.yaml: 16
+01.yaml: 7
+02.yaml: 15
+03.yaml: 9
+04.yaml: 8
+05.yaml: 9
+06.yaml: 4
+07.yaml: 7  （intake 侧 3 + digitization 侧 4）
+```
 
 ## 3. 回归（每个 ACT 后）
 

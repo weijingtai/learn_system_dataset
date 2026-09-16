@@ -28,13 +28,13 @@ contract: |
     SourceAssetMissing exit 3
 tests:
   test_step.py: |
-    - test_run_m1_success（合法输入 → manifest_revision_id, raw_text_revision_ids, step_run_id）
-    - test_run_m1_duplicate_refused（同 edition_part_id 二次运行 → IntakeRefused）
-    - test_run_m1_zero_writes_on_failure（失败时 Ledger 行数不变）
-    - test_run_m1_raw_text_frozen（raw_text 修订不可变）
-    - test_run_m1_manifest_sha256（manifest 内容 sha256 可从 Object Store 取回）
-    - test_run_m1_cli_success（exit 0，末行 "M1 OK"）
-    - test_run_m1_cli_missing_files（exit 3，"BLOCKED_SOURCE_ASSET_MISSING"）
+    - test_run_m1_success（synthetic_fixture: true，合法输入 → manifest_revision_id, raw_text_revision_ids, step_run_id）
+    - test_run_m1_duplicate_refused（synthetic_fixture: true，同 edition_part_id 二次运行 → IntakeRefused）
+    - test_run_m1_zero_writes_on_failure（synthetic_fixture: true，失败时 Ledger 行数不变）
+    - test_run_m1_raw_text_frozen（synthetic_fixture: true，raw_text 修订不可变）
+    - test_run_m1_manifest_sha256（synthetic_fixture: true，manifest 内容 sha256 可从 Object Store 取回）
+    - test_run_m1_cli_success（synthetic_fixture: true，exit 0，末行 "M1 OK"）
+    - test_run_m1_cli_missing_files（synthetic_fixture: true，exit 3，"BLOCKED_SOURCE_ASSET_MISSING"）
 verify:
   - .venv/bin/python -m unittest discover -s pipeline/intake/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 23
   - TDD §3 回归

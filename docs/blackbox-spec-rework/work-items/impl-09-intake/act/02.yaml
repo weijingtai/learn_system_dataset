@@ -26,6 +26,7 @@ contract: |
       对 raw_content 依次执行 13 项清洗检查，每项生成 Finding 记录
       不修改原始文本，只记录发现
     class Finding：属性 finding_id: str, kind: str, raw_start: int, raw_end: int, raw_excerpt: str, context: str, action: str, patch_id: str|None, basis: str, terminal_state: str
+    finding_id 格式："<kind>@<raw_start>-<raw_end>"（无新前缀，P8 合规；同一 kind 同一区间唯一）
   patcher.py：
     class Patch：属性 patch_id: str, raw_start: int, raw_end: int, cleaned_start: int, cleaned_end: int, action: str, basis: str
     build_patches(raw_text: str, cleaned_text: str, findings: list[Finding]) -> list[Patch]
@@ -39,21 +40,21 @@ contract: |
       finding 键序：finding_id, kind, raw_start, raw_end, raw_excerpt, context, action, patch_id, basis, terminal_state
 tests:
   test_cleaner.py: |
-    - test_clean_text_finds_replacement_chars（含 ? 的文本 → replacement_char finding）
-    - test_clean_text_finds_pua（含 PUA 字符 → private_use_area finding）
-    - test_clean_text_finds_escape_residue（含 \- 的文本 → escape_residue finding）
-    - test_clean_text_finds_control_chars（含零宽字符 → control_char finding）
-    - test_clean_text_finds_variant_mixed（含繁简混杂 → variant_mixed finding）
-    - test_clean_text_finds_suspected_error（含疑似形近误字 → suspected_error finding）
-    - test_clean_text_no_findings_clean_input（无问题文本 → 0 findings）
-    - test_clean_text_deferred_blocks_gate（deferred finding → deferred_count > 0）
-    - test_build_patches_deterministic（两次调用字节相同）
-    - test_apply_patches_reversible（apply_patches(raw, patches) == cleaned）
-    - test_build_sanitization_report_key_order
-    - test_build_sanitization_report_summary_counts
-    - test_findings_have_unique_ids
-    - test_findings_raw_offsets_consistent（raw_start < raw_end）
-    - test_deferred_finding_in_report
+    - test_clean_text_finds_replacement_chars（synthetic_fixture: true，含 ? 的合成文本 → replacement_char finding）
+    - test_clean_text_finds_pua（synthetic_fixture: true，含 PUA 字符 → private_use_area finding）
+    - test_clean_text_finds_escape_residue（synthetic_fixture: true，含 \- 的文本 → escape_residue finding）
+    - test_clean_text_finds_control_chars（synthetic_fixture: true，含零宽字符 → control_char finding）
+    - test_clean_text_finds_variant_mixed（synthetic_fixture: true，含繁简混杂 → variant_mixed finding）
+    - test_clean_text_finds_suspected_error（synthetic_fixture: true，含疑似形近误字 → suspected_error finding）
+    - test_clean_text_no_findings_clean_input（synthetic_fixture: true，无问题文本 → 0 findings）
+    - test_clean_text_deferred_blocks_gate（synthetic_fixture: true，deferred finding → deferred_count > 0）
+    - test_build_patches_deterministic（synthetic_fixture: true，两次调用字节相同）
+    - test_apply_patches_reversible（synthetic_fixture: true，apply_patches(raw, patches) == cleaned）
+    - test_build_sanitization_report_key_order（synthetic_fixture: true）
+    - test_build_sanitization_report_summary_counts（synthetic_fixture: true）
+    - test_findings_have_unique_ids（synthetic_fixture: true，finding_id 格式 <kind>@<raw_start>-<raw_end>）
+    - test_findings_raw_offsets_consistent（synthetic_fixture: true，raw_start < raw_end）
+    - test_deferred_finding_in_report（synthetic_fixture: true）
 verify:
   - .venv/bin/python -m unittest discover -s pipeline/digitization/tests -t . 2>&1 | tail -3   # OK，用例数 ≥ 14
   - TDD §3 回归
