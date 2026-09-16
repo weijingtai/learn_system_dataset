@@ -15,7 +15,7 @@ contract: |
       以 run_m7 消费该 m6 StagePackage 得到 CanonicalKnowledgeSnapshot
       独立核对（不复用 run_m7 返回的 gate/report）：
         1. Snapshot 修订的 knowledge 字段非空且包含 patterns/assertions
-        2. Snapshot 修订经 validate_reviewed_edition 验证无报错
+        2. Snapshot 修订的 knowledge 经 pipeline.assembly.model.validate_snapshot_knowledge 校验通过
         3. m6 StagePackage 在运行前后 status/sha256 不变（upstream_immutable 同理）
       人工决定仍为合成测试替身，保持 synthetic_fixture: true，不计真实 expert_verified（第 83 条）
     no_model_calls 修复：解析失败的文件不得 except Exception: continue 静默跳过，改为计入 FAIL（附具名用例 `test_no_model_calls_counts_parse_failures`）
@@ -29,7 +29,7 @@ tests:
     - test_upstream_m6_real_synthetic_fixture_true（人工决定含 synthetic_fixture: true，不计 expert_verified）
     - test_shell_summary_pass_11_fail_0_blocked_5（subprocess，末行 SUMMARY pass=11 fail=0 blocked=5）
 verify:
-  - .venv/bin/python -m unittest discover -s pipeline/assembly/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 92（89 + 3 新增具名用例）
+  - .venv/bin/python -m unittest discover -s pipeline/assembly/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 95（89 + 6 新增具名用例）
   - export LC_ALL=en_US.UTF-8; bash openspec/acceptance/m7-assembler.sh; echo exit=$?   # 11 PASS + 5 BLOCKED + SUMMARY pass=11 fail=0 blocked=5；exit=2
   - bash openspec/acceptance/run_all.sh | tail -1   # SUMMARY pass=2 fail=1 blocked=8（本切片不改 run_all.sh）
   - git diff --check

@@ -26,7 +26,7 @@ bash openspec/acceptance/m7-assembler.sh >/dev/null 2>&1; echo $?            # G
 | G0-03 | 新增用例全 ERROR | `$TA` OK ≥ 66；篡改矩阵 ≥ 11 例命中指定检查 |
 | G0-04 | 新增用例全 ERROR | `$TA` OK ≥ 79；`$TL` 与基线相同；Ledger 无写入的拒绝路径成立；合成 candidate_set 为 impl-05 真实形状；合成决定的 `synthetic_fixture: true` 保留 |
 | G0-05 | `m7-assembler.sh` exit 127；新增用例全 ERROR | `$TA` OK ≥ 89；`m7-assembler.sh` → `SUMMARY pass=10 fail=0 blocked=6`、exit 2 |
-| G0-06 | `upstream_m6_real` 为 BLOCKED；`no_model_calls` 静默跳过 | `$TA` OK ≥ 92；`m7-assembler.sh` → `SUMMARY pass=11 fail=0 blocked=5`、exit 2 |
+| G0-06 | `upstream_m6_real` 为 BLOCKED；`no_model_calls` 静默跳过 | `$TA` OK ≥ 95；`m7-assembler.sh` → `SUMMARY pass=11 fail=0 blocked=5`、exit 2 |
 
 ### G0.2 主 Agent 验收附加判据（执行者不需跑，但不得让其失败）
 

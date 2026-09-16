@@ -14,10 +14,10 @@ contract: |
       经 pipeline.review.step 的 open_review → record_decision → close_review 产出真实 m6 StagePackage
       以 pipeline.assembly.step.run_m7 消费该 m6 StagePackage 得到 CanonicalKnowledgeSnapshot 修订
       独立核对（不复用 run_m7 返回的 gate/report）：
-        1. Snapshot 修订中 approved 对象的 artifact_revision_id 与 reviewed_edition.decisions 中 approved 的一致
+        1. reviewed_edition.approved 的 entity_id 集合，与 Snapshot knowledge 中对应对象的 ID 集合按 kind 分别比对（assertion→assertions[].assertion_id，pattern→patterns[].pattern_id，school_view→school_views[].school_view_id，concept→concepts）
         2. Snapshot 修订中 evidence_links 的 source_span_id 与 reviewed_edition.evidence_links 一致
         3. Snapshot 修订中 content_status 在 approved 对象上投影为 expert_verified
-        4. Snapshot 修订中 rejected 对象的 content_status 不是 expert_verified
+        4. reviewed_edition.rejected 的 entity_id 不得出现在 Snapshot knowledge 的任何对象 ID 中
       人工决定仍为合成测试替身，保持 synthetic_fixture: true，不计真实 expert_verified（第 83 条）
     first_review_counts 判定：
       比对金标 expected.first_review.decisions 计数与实际 m6 运行的 Checkpoint 中 human_decisions 计数
@@ -28,14 +28,14 @@ contract: |
   pipeline/review/model.py：清理尾随空白（行尾空格/制表符）
 tests:
   test_acceptance.py: |
-    - test_snapshot_projection_passes_and_approved_match（真实 M6 产出经 M7 后 Snapshot approved 与 reviewed_edition 一致）
+    - test_snapshot_projection_passes_and_approved_match（reviewed_edition.approved 的 entity_id 与 Snapshot knowledge 按 kind 分别比对一致）
     - test_snapshot_projection_evidence_links_consistent（Snapshot evidence_links.source_span_id 与 reviewed_edition 一致）
     - test_snapshot_projection_content_status_expert_verified（Snapshot approved 对象 content_status 为 expert_verified）
-    - test_snapshot_projection_rejected_not_expert_verified（Snapshot rejected 对象 content_status 不是 expert_verified）
+    - test_snapshot_projection_rejected_not_in_snapshot（reviewed_edition.rejected 的 entity_id 不得出现在 Snapshot knowledge 的任何对象 ID 中）
     - test_first_review_counts_match（expected.first_review.decisions 长度 == human_decisions 计数）
     - test_shell_summary_pass_12_fail_0_blocked_2（subprocess，末行 SUMMARY pass=12 fail=0 blocked=2）
 verify:
-  - .venv/bin/python -m unittest discover -s pipeline/review/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 148（145 + 3 新增具名用例）
+  - .venv/bin/python -m unittest discover -s pipeline/review/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 151（145 + 6 新增具名用例）
   - export LC_ALL=en_US.UTF-8; bash openspec/acceptance/m6-data-fields.sh; echo exit=$?    # 12 PASS + 2 BLOCKED + SUMMARY pass=12 fail=0 blocked=2；exit=2
   - bash openspec/acceptance/run_all.sh | tail -1   # SUMMARY pass=2 fail=1 blocked=8（本切片不改 run_all.sh）
   - git diff --check
