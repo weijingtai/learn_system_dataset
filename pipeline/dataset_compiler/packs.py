@@ -19,11 +19,10 @@ from pipeline.ledger.errors import (
     SchemaViolation,
 )
 
-from . import SUB_PACK_SCHEMA_VERSION
-from . import SUPPORTED_LEVELS
+from . import CONSUMPTION_LEVELS, SUB_PACK_SCHEMA_VERSION, SUPPORTED_LEVELS
 from .canonical import canonical_bytes, normalized_sha256, quote_sha256, sha256_hex
 from .errors import DatasetRefused
-from .levels import EVIDENCE_LEVELS
+from .levels import CONTENT_STATUSES, EVIDENCE_LEVELS
 
 # D10 草案水印文案
 INTERNAL_DEMO_WATERMARK = "INTERNAL_DEMO｜机器转录，未经人工校对｜不得作为知识来源或权威依据"
@@ -33,6 +32,49 @@ CHAIN_SEGMENTS = ["SourceSpan", "SourceAnchor", "OcrPage", "SourceAsset"]
 
 # §17.1:843 四个 task（每个 task 一个 m8 Checkpoint）
 TASKS = ("source_asset_pack", "evidence_map_pack", "release_manifest", "validation_report")
+
+# §3.15 GraphProjectionPack 闭集与前缀规范（P3，0.1.0-draft）
+GRAPH_PROJECTION_SCHEMA_VERSION = "0.1.0-draft"
+GRAPH_NODE_KINDS = ("pattern", "concept", "assertion", "school_view")
+GRAPH_RELATIONS = (
+    "has_assertion",
+    "belongs_to_concept",
+    "in_conflict_group",
+    "supports",
+    "qualifies",
+    "opposes",
+)
+_VALID_NODE_ID_PREFIXES = ("pat_", "co_", "as_", "sv_", "cg_")
+_FORBIDDEN_NODE_ID_PREFIXES = ("c_", "e_")
+
+
+def _validate_node_id(node_id):
+    """校验 node_id 符合 ids.py 与 §8.1 闭集，严禁 c_ / e_ 前缀（第 107 条更正）。"""
+    if not isinstance(node_id, str):
+        raise InvalidIdentifier("node_id 必须为字符串: %r" % (node_id,), code="ID_001")
+    for forbidden in _FORBIDDEN_NODE_ID_PREFIXES:
+        if node_id.startswith(forbidden):
+            raise InvalidIdentifier(
+                "node_id 严禁使用未登记的前缀 %r: %r" % (forbidden, node_id), code="ID_001"
+            )
+    if not any(node_id.startswith(p) for p in _VALID_NODE_ID_PREFIXES):
+        raise InvalidIdentifier(
+            "node_id 前缀非合法已登记前缀: %r" % (node_id,), code="ID_001"
+        )
+    if node_id.startswith("pat_"):
+        ids.validate("pattern_id", node_id)
+    elif node_id.startswith("co_"):
+        if node_id.startswith("co_shared_"):
+            ids.validate("shared_concept_id", node_id)
+        else:
+            ids.validate("technique_concept_id", node_id)
+    elif node_id.startswith("as_"):
+        ids.validate("assertion_id", node_id)
+    elif node_id.startswith("sv_"):
+        ids.validate("school_view_id", node_id)
+    elif node_id.startswith("cg_"):
+        ids.validate("conflict_group_id", node_id)
+
 
 _PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
 _PAGE_RE = re.compile(r"^page_([0-9]{3,4})$")
@@ -407,4 +449,194 @@ def build_release_manifest(
         "bytes": data,
         "sha256": sha256_hex(data),
         "canonical_hash": canonical_hash,
+    }
+
+
+def build_graph_projection_pack(
+    *,
+    release_id,
+    canonical_hash,
+    consumption_level,
+    nodes=None,
+    edges=None,
+    knowledge_data=None,
+):
+    """编译 GraphProjectionPack（规格 §16:725，INTERFACES §3.15，裁决 107 Q-M8-05）。
+
+    纯函数：可从 KnowledgeDataPack 结构同构映射，或由 nodes/edges 显式输入。
+    返回 ``{"pack", "bytes", "sha256"}``。
+    """
+    ids.validate("release_id", release_id)
+    if _SHA256_RE.match(str(canonical_hash)) is None:
+        raise SchemaViolation(
+            "canonical_hash 格式非法（需 64 位十六进制）: %r" % (canonical_hash,),
+            code="SCH_002",
+        )
+    if consumption_level not in CONSUMPTION_LEVELS:
+        raise SchemaViolation(
+            "consumption_level 非法: %r" % (consumption_level,), code="SCH_002"
+        )
+
+    # 实体提取：若传入 knowledge_data，从中同构提取节点与关系边
+    extracted_nodes = []
+    extracted_edges = []
+    if knowledge_data is not None:
+        for c in knowledge_data.get("concepts", []):
+            extracted_nodes.append({
+                "node_id": c["concept_id"],
+                "kind": "concept",
+                "label": c.get("name") or c.get("canonical_name") or c.get("label", ""),
+                "content_status": c.get("content_status", "machine_extracted"),
+            })
+        for a in knowledge_data.get("assertions", []):
+            extracted_nodes.append({
+                "node_id": a["assertion_id"],
+                "kind": "assertion",
+                "label": a.get("proposition") or a.get("label", ""),
+                "content_status": a.get("content_status") or a.get("status", "machine_extracted"),
+            })
+            if a.get("subject_entity_id") and a["subject_entity_id"].startswith("co_"):
+                extracted_edges.append({
+                    "source": a["assertion_id"],
+                    "relation": "belongs_to_concept",
+                    "target": a["subject_entity_id"],
+                    "content_status": a.get("content_status") or a.get("status", "machine_extracted"),
+                })
+            for cid in a.get("concept_refs", []):
+                extracted_edges.append({
+                    "source": a["assertion_id"],
+                    "relation": "belongs_to_concept",
+                    "target": cid,
+                    "content_status": a.get("content_status") or a.get("status", "machine_extracted"),
+                })
+        for p in knowledge_data.get("patterns", []):
+            extracted_nodes.append({
+                "node_id": p["pattern_id"],
+                "kind": "pattern",
+                "label": p.get("name") or p.get("label", ""),
+                "content_status": p.get("content_status", "machine_extracted"),
+            })
+            for aid in p.get("assertion_ids", []):
+                extracted_edges.append({
+                    "source": p["pattern_id"],
+                    "relation": "has_assertion",
+                    "target": aid,
+                    "content_status": p.get("content_status", "machine_extracted"),
+                })
+        for sv in knowledge_data.get("school_views", []):
+            extracted_nodes.append({
+                "node_id": sv["school_view_id"],
+                "kind": "school_view",
+                "label": sv.get("label") or sv["school_view_id"],
+                "content_status": sv.get("content_status", "machine_extracted"),
+            })
+            if sv.get("conflict_group_id"):
+                extracted_edges.append({
+                    "source": sv["school_view_id"],
+                    "relation": "in_conflict_group",
+                    "target": sv["conflict_group_id"],
+                    "content_status": sv.get("content_status", "machine_extracted"),
+                })
+
+    all_nodes = list(extracted_nodes)
+    if nodes is not None:
+        all_nodes.extend(nodes)
+
+    all_edges = list(extracted_edges)
+    if edges is not None:
+        all_edges.extend(edges)
+
+    # 节点校验与去重
+    seen_nodes = set()
+    validated_nodes = []
+    for node in all_nodes:
+        if not isinstance(node, dict):
+            raise SchemaViolation("node 必须为字典对象", code="SCH_002")
+        nid = node.get("node_id")
+        _validate_node_id(nid)
+        if nid in seen_nodes:
+            raise DuplicateIdentifier("node_id 重复: %s" % (nid,), code="ID_002")
+        seen_nodes.add(nid)
+        kind = node.get("kind")
+        if kind not in GRAPH_NODE_KINDS:
+            raise SchemaViolation(
+                "node kind 非法: %r（闭集 %r）" % (kind, GRAPH_NODE_KINDS), code="SCH_002"
+            )
+        status = node.get("content_status", "machine_extracted")
+        if status not in CONTENT_STATUSES:
+            raise SchemaViolation("node content_status 非法: %r" % (status,), code="SCH_002")
+        watermark = node.get("watermark")
+        if watermark is None:
+            watermark = (consumption_level == "INTERNAL_DEMO" and status.startswith("machine_"))
+        else:
+            watermark = bool(watermark)
+        out_node = {
+            "node_id": nid,
+            "kind": kind,
+            "label": node.get("label", ""),
+            "content_status": status,
+            "watermark": watermark,
+        }
+        if "properties" in node:
+            out_node["properties"] = dict(node["properties"])
+        validated_nodes.append(out_node)
+
+    # 边校验与去重（【I-10】/P8/第 107 条 Q-M8-05：无独立 ID，身份为三元组）
+    seen_edges = set()
+    validated_edges = []
+    for edge in all_edges:
+        if not isinstance(edge, dict):
+            raise SchemaViolation("edge 必须为字典对象", code="SCH_002")
+        if "edge_id" in edge or "id" in edge:
+            raise SchemaViolation(
+                "边禁止包含 edge_id 或 id（【I-10】身份由三元组确定）", code="SCH_002"
+            )
+        src = edge.get("source")
+        rel = edge.get("relation")
+        tgt = edge.get("target")
+        _validate_node_id(src)
+        _validate_node_id(tgt)
+        if rel not in GRAPH_RELATIONS:
+            raise SchemaViolation(
+                "edge relation 非法: %r（闭集 %r）" % (rel, GRAPH_RELATIONS), code="SCH_002"
+            )
+        triple = (src, rel, tgt)
+        if triple in seen_edges:
+            raise DuplicateIdentifier("edge 三元组重复: %r" % (triple,), code="ID_002")
+        seen_edges.add(triple)
+        status = edge.get("content_status", "machine_extracted")
+        if status not in CONTENT_STATUSES:
+            raise SchemaViolation("edge content_status 非法: %r" % (status,), code="SCH_002")
+        watermark = edge.get("watermark")
+        if watermark is None:
+            watermark = (consumption_level == "INTERNAL_DEMO" and status.startswith("machine_"))
+        else:
+            watermark = bool(watermark)
+        validated_edges.append({
+            "source": src,
+            "relation": rel,
+            "target": tgt,
+            "content_status": status,
+            "watermark": watermark,
+        })
+
+    # 确定性排序：nodes 按 node_id 升序，edges 按 (source, relation, target) 字典序升序
+    validated_nodes.sort(key=lambda n: n["node_id"])
+    validated_edges.sort(key=lambda e: (e["source"], e["relation"], e["target"]))
+
+    pack = {
+        "schema_version": GRAPH_PROJECTION_SCHEMA_VERSION,
+        "release_id": release_id,
+        "canonical_hash": canonical_hash,
+        "consumption_level": consumption_level,
+        "nodes": validated_nodes,
+        "edges": validated_edges,
+        "node_count": len(validated_nodes),
+        "edge_count": len(validated_edges),
+    }
+    data = canonical_bytes(pack)
+    return {
+        "pack": pack,
+        "bytes": data,
+        "sha256": sha256_hex(data),
     }

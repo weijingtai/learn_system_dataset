@@ -472,6 +472,180 @@ class ReleaseManifestTests(unittest.TestCase):
         self.assertEqual(ctx.exception.code, "ID_002")
 
 
+class GraphProjectionPackTests(unittest.TestCase):
+    """build_graph_projection_pack 纯函数编译与契约草案（INTERFACES §3.15，ACT 09）。"""
+
+    def _sample_pack_args(self, level="INTERNAL_DEMO"):
+        release_id = "rel_018f9e74e27670008000000000000001"
+        canonical_hash = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        nodes = [
+            {
+                "node_id": "as_synth_000001",
+                "kind": "assertion",
+                "label": "合成断言甲",
+                "content_status": "machine_extracted",
+            },
+            {
+                "node_id": "co_synth_000001",
+                "kind": "concept",
+                "label": "合成概念甲",
+                "content_status": "machine_extracted",
+            },
+            {
+                "node_id": "pat_synth_000001",
+                "kind": "pattern",
+                "label": "合成格局甲",
+                "content_status": "machine_extracted",
+            },
+        ]
+        edges = [
+            {
+                "source": "as_synth_000001",
+                "relation": "belongs_to_concept",
+                "target": "co_synth_000001",
+                "content_status": "machine_extracted",
+            },
+            {
+                "source": "pat_synth_000001",
+                "relation": "has_assertion",
+                "target": "as_synth_000001",
+                "content_status": "machine_extracted",
+            },
+        ]
+        return {
+            "release_id": release_id,
+            "canonical_hash": canonical_hash,
+            "consumption_level": level,
+            "nodes": nodes,
+            "edges": edges,
+        }
+
+    def test_graph_projection_structure_matches_registered_schema(self):
+        args = self._sample_pack_args()
+        result = packs.build_graph_projection_pack(**args)
+        pack = result["pack"]
+        expected_keys = {
+            "schema_version",
+            "release_id",
+            "canonical_hash",
+            "consumption_level",
+            "nodes",
+            "edges",
+            "node_count",
+            "edge_count",
+        }
+        self.assertEqual(set(pack.keys()), expected_keys)
+        self.assertEqual(pack["schema_version"], "0.1.0-draft")
+        self.assertEqual(pack["node_count"], 3)
+        self.assertEqual(pack["edge_count"], 2)
+
+    def test_graph_projection_edges_have_no_id(self):
+        args = self._sample_pack_args()
+        result = packs.build_graph_projection_pack(**args)
+        pack = result["pack"]
+        for edge in pack["edges"]:
+            self.assertNotIn("edge_id", edge)
+            self.assertNotIn("id", edge)
+        # 显式篡改/传入带有 edge_id 的边 → 拒绝
+        bad_args = self._sample_pack_args()
+        bad_args["edges"][0]["edge_id"] = "e_018f9e74e27670008000000000000001"
+        with self.assertRaises(SchemaViolation) as ctx:
+            packs.build_graph_projection_pack(**bad_args)
+        self.assertEqual(ctx.exception.code, "SCH_002")
+
+    def test_graph_projection_sorted_nodes_and_edge_triples(self):
+        args = self._sample_pack_args()
+        # 逆序输入
+        args["nodes"] = list(reversed(args["nodes"]))
+        args["edges"] = list(reversed(args["edges"]))
+        result = packs.build_graph_projection_pack(**args)
+        pack = result["pack"]
+        node_ids = [n["node_id"] for n in pack["nodes"]]
+        self.assertEqual(node_ids, sorted(node_ids))
+        edge_triples = [(e["source"], e["relation"], e["target"]) for e in pack["edges"]]
+        self.assertEqual(edge_triples, sorted(edge_triples))
+
+    def test_graph_projection_shares_release_id_and_canonical_hash(self):
+        args = self._sample_pack_args()
+        result = packs.build_graph_projection_pack(**args)
+        pack = result["pack"]
+        self.assertEqual(pack["release_id"], args["release_id"])
+        self.assertEqual(pack["canonical_hash"], args["canonical_hash"])
+
+    def test_graph_projection_node_ids_use_registered_prefixes(self):
+        args = self._sample_pack_args()
+        # 非法前缀 c_ 或 未知前缀
+        bad_args = self._sample_pack_args()
+        bad_args["nodes"].append({
+            "node_id": "c_synth_000001",
+            "kind": "concept",
+            "label": "非法前缀概念",
+            "content_status": "machine_extracted",
+        })
+        with self.assertRaises(InvalidIdentifier) as ctx:
+            packs.build_graph_projection_pack(**bad_args)
+        self.assertEqual(ctx.exception.code, "ID_001")
+
+    def test_graph_projection_relation_closed_set(self):
+        bad_args = self._sample_pack_args()
+        bad_args["edges"].append({
+            "source": "as_synth_000001",
+            "relation": "unregistered_relation",
+            "target": "co_synth_000001",
+            "content_status": "machine_extracted",
+        })
+        with self.assertRaises(SchemaViolation) as ctx:
+            packs.build_graph_projection_pack(**bad_args)
+        self.assertEqual(ctx.exception.code, "SCH_002")
+
+    def test_graph_projection_internal_demo_watermarks_machine_content(self):
+        args = self._sample_pack_args(level="INTERNAL_DEMO")
+        result = packs.build_graph_projection_pack(**args)
+        pack = result["pack"]
+        for node in pack["nodes"]:
+            if node["content_status"].startswith("machine_"):
+                self.assertTrue(node["watermark"])
+        for edge in pack["edges"]:
+            if edge["content_status"].startswith("machine_"):
+                self.assertTrue(edge["watermark"])
+
+    def test_graph_projection_bytes_deterministic(self):
+        args = self._sample_pack_args()
+        res1 = packs.build_graph_projection_pack(**args)
+        res2 = packs.build_graph_projection_pack(**args)
+        self.assertEqual(res1["bytes"], res2["bytes"])
+        self.assertEqual(res1["sha256"], res2["sha256"])
+
+    def test_graph_projection_mirrors_knowledge_data_entities(self):
+        # 从 KnowledgeDataPack 结构同构生成节点
+        kd = {
+            "release_id": "rel_018f9e74e27670008000000000000001",
+            "technique_id": "synth",
+            "consumption_level": "INTERNAL_DEMO",
+            "concepts": [
+                {"concept_id": "co_synth_000001", "name": "合成概念A", "content_status": "machine_extracted"},
+            ],
+            "assertions": [
+                {"assertion_id": "as_synth_000001", "proposition": "合成命题A", "status": "machine_extracted"},
+                {"assertion_id": "as_synth_000002", "proposition": "合成命题B", "status": "machine_extracted"},
+            ],
+            "patterns": [
+                {"pattern_id": "pat_synth_000001", "name": "合成格局A", "content_status": "machine_extracted"},
+            ],
+        }
+        result = packs.build_graph_projection_pack(
+            release_id=kd["release_id"],
+            canonical_hash="e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            consumption_level=kd["consumption_level"],
+            knowledge_data=kd,
+        )
+        pack = result["pack"]
+        projected_node_ids = {n["node_id"] for n in pack["nodes"]}
+        expected_node_ids = {"co_synth_000001", "as_synth_000001", "as_synth_000002", "pat_synth_000001"}
+        self.assertEqual(projected_node_ids, expected_node_ids)
+        self.assertEqual(pack["node_count"], 4)
+
+
 class MiscPacksTests(unittest.TestCase):
     """png_size 与模块纯函数性。"""
 
