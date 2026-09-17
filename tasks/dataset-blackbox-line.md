@@ -34,6 +34,13 @@ W8：《乾元秘旨》电子文本真书走到 M8（第 100–108 条；计划 
 
 验证基线：`check_interfaces` `pass=44 fail=0`；`run_all.sh` `SUMMARY pass=2 fail=1 blocked=8`；干净树 orchestrator/contract_registry 因页图不入库各有 5/1 条失败，属环境。
 
+## 用户待办
+
+- [ ] **M6 审核表**（W8 8.4 之后由主 Agent 生成）：用户逐条 接受/修改/驳回；不得由 Agent 代填（P7）。
+- [ ] **签发决定表**：真实 `expert_verified` 由用户本人签发（第 80 条），不阻断 W8 的 `INTERNAL_DEMO`，阻断 `PUBLIC_RELEASE` 与 M6 `upstream_real` 判定。
+- [x] 验收宿主原文：《乾元秘旨》全文已入库（J4b `1406048`）。
+- [x] M4 分歧裁决：24 组已由用户填写并导入（2026-09-16）。
+
 ## 计划区（W7）
 
 - [x] 7.0 M6→M7 真实上游接线（impl-07 g0-06 `0ef4105`、impl-06 act/12 `dc83cf9`；裁定 83/84/87）
