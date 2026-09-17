@@ -35,8 +35,8 @@ assertions:
     relation: supports
     evidence:
       - source_span_id: ss_sanche_ed01_p0003_s03
-        start_offset: 13
-        end_offset: 15
+        start_offset: 9
+        end_offset: 11
         quote: 三辰
         quote_sha256: b7b7eb940360724c8630fdc113538c60d0feadb8cf7892ef4b2fe8f57e73d6b3
         support_type: direct
