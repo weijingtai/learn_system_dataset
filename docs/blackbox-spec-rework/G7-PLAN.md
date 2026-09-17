@@ -164,7 +164,7 @@
 | 8.6 | M8 读 Snapshot、知识链前三段、`reference_and_hash_only`、GraphProjectionPack（先定格式，D8） | impl-04 返工 + impl-00 登记 | 8.5（格式草案可提前） | 真书 `INTERNAL_DEMO` 发布包 |
 | 8.7 | 各验收脚本电子文本路线（D9）；orchestrator 登记 m4/m6、m3 文本入口；`run_all.sh` 按判定输出（独占 ACT） | impl-08、各包 | 8.6 | `run_all.sh` 相应项转判 |
 
-用户待办（W8）：8.4 审核决定表亲填（约 ≤ 40 条）。
+用户待办（W8，第 104 条）：8.2 M4 分歧裁决表亲填（每组选 a/b/both/neither）；8.4 M6 审核决定表亲填。真书链 Ledger：`var/ledgers/qianyuan_w8/`。
 
 W8 跟进（发现即记）：
 - 结构层与语义层 m3 阶段包共存规则（第 102 条 Q5）——任何下游消费 `sem_` 之前裁定。
