@@ -26,7 +26,7 @@
 
 微观意图：M6 审核表要显式写两条——26 条 assertion 无 `concept_refs`（不推断，裁定 107 Q-M8-01），要出 Concept 词条须用户 `modify` 补显式引用；2 条 a 路 assertion 已被 M4 G4 拒收。8.5 派发时顺手把 `genesis_package.json` 里「标 offset_level 却用页码形态 ID」的自相矛盾一并修掉（裁定 106 D4）。8.7 时才动 `run_all.sh`（P4 独占）。
 
-真书 Ledger：`var/ledgers/qianyuan_w8/`（不入库；备份 `qianyuan_w8.bak_before_m4_rulings`）。执行器：agy 续接对话 8.4=`1d32b970-8f83-47d6-8571-7476d4b65903`、8.6=`af9e74e2-766b-4ca2-9bd1-6b1c4f4f2fc7`；cmd 周限额 2026-09-19 12:13 重置。
+真书 Ledger：`var/ledgers/qianyuan_w8/`（不入库；备份 `qianyuan_w8.bak_before_m4_rulings`）。**执行器 2026-09-17 全部不可用**：`agy` CLI 已失效（`~/.local/bin/agy` → `/Volumes/256/.../Antigravity.app/Contents/Resources/app/bin/antigravity` 不存在，盘上只剩 `Antigravity IDE.app`，是 IDE 启动器不是 agent CLI）；`cmd` 周限额至 2026-09-19 12:13；`opencode/union-alpha` 常卡死（见墓地）。本机尚有 `mimo` v0.1.1（`~/.mimocode/bin/mimo`，未实测写代码）。
 
 验证方法：
 ```bash
@@ -37,6 +37,23 @@ python3 docs/blackbox-spec-rework/work-items/impl-00-interfaces/check_interfaces
 bash openspec/acceptance/run_all.sh | tail -1                                                  # pass=2 fail=1 blocked=8
 ```
 注：干净树（`git archive`）跑 orchestrator/contract_registry 会各有 5/1 条红，因页图不入库，属环境非回归。
+
+## 交接须知（给接手 Agent，2026-09-17）
+
+读取顺序：本纪要 → `docs/blackbox-spec-rework/G7-RULINGS.md` 表格第 **95–108** 行（W8 全部裁决）→ `G7-PLAN.md` §6（W8 分波表）→ 对应工作包 `README/TDD/ACCEPTANCE`。**不要先读源码**。
+
+角色纪律（沿用 P1–P9 与裁定 93/97）：主 Agent 写计划/工作包/裁决、做独立验收（`git archive <hash>` 干净树 + 自设篡改），**不写实现代码**；执行器遇未知或需删改已验收判据必须写「## 待裁决」停手；回报未亲自跑过的一律写「未跑」；人工决定（M4 分歧裁决、M6 审核、`expert_verified` 签发）**只能由用户填**，Agent 不得代填（P7）。
+
+现成资产（都在盘上，别重做）：
+- 未执行派单：`~/tmux-agents/runs/prompts/agy-84b.txt`（M6 夹具更正 R84c）、`agy-86d.txt`（M8 K2 = ACT 11 知识链+`ent_` 发号表、ACT 12 Gate）。把里面的执行器与回报路径换成新执行器即可，内容不必重写。
+- 历史回报：`~/tmux-agents/runs/{agy-84,agy-86a,agy-86b,agy-86c,cmd-81,cmd-82,cmd-83,cmd-j4b,cmd-fx,oc-w8}.report.md`；M4 分歧原始导出 `cmd-82-disputes.yaml`。
+- 用户已填并已导入的裁决表：`var/ledgers/qianyuan_w8_review/m4_rulings_filled.yaml`。
+- 独立金标与仲裁材料已入库：`pipeline/corpus/_fixture/qianyuan_ed01_text/expected/`（**任何情况下不得修改**，第 95/101 条）。
+
+未验收/未完成边界（接手第一件事是确认这三条）：
+1. M6 的 `4e16022`、`cb96b94` **已提交但未验收**，且 `pipeline/review/tests` 有既有用例红——先做第 108 条夹具更正再验收，别在红基线上继续加功能。
+2. `pipeline/corpus/_fixture/qianyuan_ed01_text/m4/` 已入库，但 M6 之后若改动上游契约，需回看该宿主是否仍成立。
+3. `var/` 永不入库；持久 Ledger 的写操作前先整目录备份。
 
 ## 用户待办
 
