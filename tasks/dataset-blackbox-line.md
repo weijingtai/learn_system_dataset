@@ -20,7 +20,7 @@
 
 刚完成：用户 24 条 M4 分歧裁决已导入持久 Ledger（24 human_event + 24 Checkpoint），M4 `srun_bafd7499…` 封存 `succeeded`（26 assertion / 2 pattern / 10 新概念候选 / 2 条 a 路被 G4 拒收，状态全 `disputed`）；同 Ledger M5 `INTERNAL_DEMO` 通过（warnings 39、failures 0）。M8 ACT 08/09/10 已验收。
 
-半成品：M6 R84 `4e16022`+R84b `cb96b94` **已提交未验收**，review 套件现有既有用例红——需按裁定 108 改 `pipeline/review/testing/data/m4_candidates.yaml` 中 `as_qizheng_000002` 偏移 13→9、15→11（`quote`/`quote_sha256` 不变），派单已写好：`~/tmux-agents/runs/prompts/agy-84b.txt`。M8 K2 派单 `agy-86d.txt` 未开工。
+半成品：M6 R84 `4e16022`+R84b `cb96b94` **已提交未验收**。当前 HEAD 上 `pipeline/review/tests` 实测 **`Ran 146, FAILED (failures=7, errors=27)`**（根因 `RuntimeError: 首审 close_review 未成功: 'internal'` → `KeyError: reviewed_edition_revision_id`）。主 Agent 已在临时副本验证：按裁定 108 把 `pipeline/review/testing/data/m4_candidates.yaml` 中 `as_qizheng_000002` 的 `start_offset: 13`→`9`、`end_offset: 15`→`11`（`quote`、`quote_sha256` 不变，只改这两行）后，该套件 **OK**。接手方照此提交 R84c 即可，无需重新排查。M8 K2 派单 `agy-86d.txt` 未开工。
 
 下一步：① 派 agy 执行 R84c → 主 Agent 验收 8.4；② 在 `var/ledgers/qianyuan_w8/` 跑 M6 到 `awaiting_human`，生成 M6 审核表交用户；③ 并行派 M8 K2（ACT 11 知识链+`ent_` 发号表、ACT 12 Gate）。
 
