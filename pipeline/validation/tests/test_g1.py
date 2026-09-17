@@ -13,7 +13,12 @@ from pipeline.validation.g1_source import (
     validate_unresolved_chars,
 )
 from pipeline.validation.replay import validate_replay
-from pipeline.validation.tests.helpers import fixture_context, offset_fixture_context
+from pipeline.validation.tests.helpers import (
+    OFFSET_PUA_FINDING,
+    fixture_context,
+    offset_fixture_context,
+    offset_pua_fixture_context,
+)
 
 
 def _by_check(result, check):
@@ -131,6 +136,38 @@ class G1UnresolvedCharsTest(unittest.TestCase):
         box = _by_check(validate_unresolved_chars(ctx2), "forbidden_char_in_text")
         self.assertEqual(len(box), 1)
 
+    def test_g1_glyphbox_pua_still_error(self):
+        """OCR 档护栏（第 103 条 D1）：即使清洗报告里有对得上的记录，仍判三级 error。
+
+        为让本护栏对「glyphbox 档也走对账」这一改动**敏感**，这里刻意把对账所需
+        字段补齐（``cleaned_text``／``patches`` 与一条完全对得上的
+        ``known_unresolvable`` 记录）：若 OCR 档误用对账口径，就会产出
+        ``known_unresolvable_char_disclosed``。
+        """
+        ctx = fixture_context()
+        span = ctx["spans_doc"]["spans"][0]
+        span["text"] = "\ue03d三辰通載"
+        start = span["start_offset"]
+        ctx["cleaned_text"] = "占" * (len(span["text"]) + start)
+        ctx["patches"] = []
+        ctx["sanitization_report"] = {
+            "findings": [
+                {
+                    "finding_id": "private_use_area@%d-%d" % (start, start + 1),
+                    "kind": "private_use_area",
+                    "raw_start": start,
+                    "raw_end": start + 1,
+                    "terminal_state": "known_unresolvable",
+                }
+            ]
+        }
+        result = validate_unresolved_chars(ctx)
+        self.assertEqual(_by_check(result, "known_unresolvable_char_disclosed"), [])
+        findings = _by_check(result, "forbidden_char_in_text")
+        self.assertEqual(len(findings), 1)
+        self.assertEqual(findings[0]["code"], "TXT_001")
+        self.assertEqual(set(findings[0]["severity"].values()), {"error"})
+
 
 class G1ReplayTest(unittest.TestCase):
     def test_replay_succeeds_on_fixture(self):
@@ -178,6 +215,85 @@ class G1OffsetLevelTest(unittest.TestCase):
         ctx["configuration"]["tool_version"] = "9.9.9"
         findings = _by_check(validate_replay(ctx), "replay_tool_mismatch")
         self.assertEqual(len(findings), 1)
+
+
+class G1OffsetKeptCharDisclosureTest(unittest.TestCase):
+    """R83b（第 103 条 D1）：offset 档禁止字符与 sanitization_report 对账。"""
+
+    def test_g1_offset_pua_with_known_unresolvable_finding_is_disclosed_warning(self):
+        ctx = offset_pua_fixture_context()
+        result = validate_unresolved_chars(ctx)
+        self.assertEqual(_by_check(result, "forbidden_char_in_text"), [])
+        self.assertEqual(result["checked"]["forbidden_chars"], 1)
+        self.assertEqual(result["checked"]["disclosed"], 1)
+
+        findings = _by_check(result, "known_unresolvable_char_disclosed")
+        self.assertEqual(len(findings), 1)
+        self.assertIsNone(findings[0]["code"])
+        self.assertEqual(
+            findings[0]["severity"],
+            {"INTERNAL_DEMO": "warning", "DEV_SEARCH": "warning", "PUBLIC_RELEASE": "error"},
+        )
+        self.assertIn(OFFSET_PUA_FINDING["finding_id"], findings[0]["detail"])
+        self.assertEqual(findings[0]["validator_id"], "g1_unresolved_chars")
+        self.assertEqual(findings[0]["gate"], "G1")
+
+    def test_g1_offset_pua_without_finding_is_error(self):
+        ctx = offset_pua_fixture_context()
+        ctx["sanitization_report"]["findings"] = []
+        result = validate_unresolved_chars(ctx)
+        self.assertEqual(_by_check(result, "known_unresolvable_char_disclosed"), [])
+        findings = _by_check(result, "forbidden_char_in_text")
+        self.assertEqual(len(findings), 1)
+        self.assertEqual(findings[0]["code"], "TXT_001")
+        self.assertEqual(set(findings[0]["severity"].values()), {"error"})
+
+    def test_g1_offset_pua_with_wrong_terminal_state_is_error(self):
+        ctx = offset_pua_fixture_context()
+        ctx["sanitization_report"]["findings"][0]["terminal_state"] = "processed"
+        result = validate_unresolved_chars(ctx)
+        self.assertEqual(_by_check(result, "known_unresolvable_char_disclosed"), [])
+        self.assertEqual(len(_by_check(result, "forbidden_char_in_text")), 1)
+
+    def test_g1_offset_pua_with_mismatched_kind_is_error(self):
+        ctx = offset_pua_fixture_context()
+        ctx["sanitization_report"]["findings"][0]["kind"] = "escape_residue"
+        result = validate_unresolved_chars(ctx)
+        self.assertEqual(_by_check(result, "known_unresolvable_char_disclosed"), [])
+        self.assertEqual(len(_by_check(result, "forbidden_char_in_text")), 1)
+
+    def test_g1_offset_pua_matched_by_two_findings_is_error(self):
+        ctx = offset_pua_fixture_context()
+        duplicate = dict(OFFSET_PUA_FINDING)
+        duplicate["finding_id"] = "private_use_area@6-7#dup"
+        ctx["sanitization_report"]["findings"].append(duplicate)
+        result = validate_unresolved_chars(ctx)
+        self.assertEqual(_by_check(result, "known_unresolvable_char_disclosed"), [])
+        self.assertEqual(len(_by_check(result, "forbidden_char_in_text")), 1)
+
+    def test_g1_offset_pua_public_release_is_error(self):
+        ctx = offset_pua_fixture_context()
+        findings = _by_check(
+            validate_unresolved_chars(ctx), "known_unresolvable_char_disclosed"
+        )
+        self.assertEqual(len(findings), 1)
+        self.assertEqual(findings[0]["severity"]["PUBLIC_RELEASE"], "error")
+        self.assertEqual(findings[0]["severity"]["INTERNAL_DEMO"], "warning")
+
+    def test_g1_offset_disclosure_names_match_m2_contract(self):
+        """kind / 终态名与 M2 契约常量逐字一致（第 85、103 条 D2）。"""
+        from pipeline.digitization import FINDING_KINDS, TERMINAL_STATES
+
+        from pipeline.validation import g1_source as g1
+
+        for kind in ("private_use_area", "replacement_char", "control_char"):
+            self.assertIn(kind, FINDING_KINDS)
+        self.assertIn(g1._KNOWN_UNRESOLVABLE, TERMINAL_STATES)
+        self.assertEqual(g1._kind_for_forbidden_char("\ue03d"), "private_use_area")
+        self.assertEqual(g1._kind_for_forbidden_char("\ufffd"), "replacement_char")
+        self.assertEqual(g1._kind_for_forbidden_char("\x0c"), "control_char")
+        self.assertIsNone(g1._kind_for_forbidden_char("\u25a1"))
+        self.assertIsNone(g1._kind_for_forbidden_char("\u3013"))
 
 
 if __name__ == "__main__":

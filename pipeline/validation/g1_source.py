@@ -21,6 +21,15 @@ _INFO_WARN_ERR = {
     "DEV_SEARCH": "warning",
     "PUBLIC_RELEASE": "error",
 }
+# 第 103 条 D1：已知不可解决但如实披露的字符（INTERNAL_DEMO 必须披露）
+_WARN_WARN_ERR = {
+    "INTERNAL_DEMO": "warning",
+    "DEV_SEARCH": "warning",
+    "PUBLIC_RELEASE": "error",
+}
+
+# M2 清洗报告的「已知不可解决」终态（第 103 条 D1、impl-09 README 权威表）
+_KNOWN_UNRESOLVABLE = "known_unresolvable"
 
 # 明文中的占位/控制字符：PUA、U+FFFD、□、〓、C0/C1 控制符（不含 \t \n）
 _FORBIDDEN_RE = re.compile(
@@ -39,6 +48,70 @@ def _subject(entity_id, revision_id=None, page=None):
 def _is_offset(ctx):
     """证据级别是否为电子文本档 ``offset_level``（R83，第 100 条 D5）。"""
     return (ctx.get("spans_doc") or {}).get("evidence_level") == "offset_level"
+
+
+def _kind_for_forbidden_char(char):
+    """禁止字符 → 清洗报告 ``kind``（第 103 条 D1）。
+
+    仅三种字符类别有对应 kind：PUA → ``private_use_area``；U+FFFD →
+    ``replacement_char``；C0/C1 控制符（含 DEL）→ ``control_char``。
+    ``□``（U+25A1）与 ``〓``（U+3013）在裁决枚举之外，返回 ``None``
+    （即无记录可比 → 仍判 ``forbidden_char_in_text``）。
+
+    kind 名与终态名逐字取自第 103 条 D1 与 ``pipeline.digitization``
+    常量；``tests/test_g1.py`` 用一条用例把它们钉在
+    ``FINDING_KINDS``/``TERMINAL_STATES`` 上，防静默漂移（第 85 条）。
+    """
+    code = ord(char)
+    if 0xE000 <= code <= 0xF8FF:
+        return "private_use_area"
+    if code == 0xFFFD:
+        return "replacement_char"
+    if code < 0x20 or code == 0x7F:
+        return "control_char"
+    return None
+
+
+def _map_cleaned_offset(ordered_patches, position, is_end):
+    """把 CleanedText 偏移逆向换算为 RawText 偏移（本模块独立实现，不 import M3）。
+
+    与 ``g3_evidence._map_raw_offset`` 同一直属纪律（第 88 条）：语义与
+    ``DeterministicPatchSet`` 一致，代码独立书写，判定不与生产代码同错同过。
+    """
+    if not ordered_patches:
+        return position
+    by_cleaned = sorted(ordered_patches, key=lambda patch: patch["cleaned_start"])
+    if position < by_cleaned[0]["cleaned_start"]:
+        return position
+
+    for index, patch in enumerate(by_cleaned):
+        raw_start = patch["raw_start"]
+        raw_end = patch["raw_end"]
+        cleaned_start = patch["cleaned_start"]
+        cleaned_end = patch["cleaned_end"]
+
+        if position < cleaned_start:
+            previous = by_cleaned[index - 1]
+            return previous["raw_end"] + (position - previous["cleaned_end"])
+        if cleaned_start <= position <= cleaned_end:
+            if cleaned_start == cleaned_end:  # 删除：cleaned 侧长度为零
+                return raw_start if is_end else raw_end
+            if position == cleaned_start:
+                return raw_start
+            if position == cleaned_end:
+                return raw_end
+            raw_len = raw_end - raw_start
+            cleaned_len = cleaned_end - cleaned_start
+            if raw_len == 0:
+                return raw_start
+            if raw_len == cleaned_len:
+                return raw_start + (position - cleaned_start)
+            return raw_start + round(
+                (position - cleaned_start) * raw_len / cleaned_len
+            )
+
+    last = by_cleaned[-1]
+    return last["raw_end"] + (position - last["cleaned_end"])
 
 
 def _frozen(ctx):
@@ -272,16 +345,111 @@ def validate_content_hashes(ctx):
     }
 
 
+def _validate_text_unresolved_chars(ctx):
+    """offset 档逐个禁止字符与清洗报告对账（第 103 条 D1）。
+
+    逐字符（不是按 Span 去重）判定，因为证据链要求逐码位对齐原始偏移：
+    片段 → 清洗偏移 → patch 映射 → 原始偏移 → ``sanitization_report`` 记录。
+    """
+    spans = (ctx.get("spans_doc") or {}).get("spans") or []
+    cleaned_text = ctx.get("cleaned_text")
+    patches = ctx.get("patches") or []
+    report = ctx.get("sanitization_report") or {}
+    report_findings = report.get("findings") or []
+    spans_rev = ctx.get("corpus_spans_revision_id")
+    ordered_patches = sorted(patches, key=lambda patch: patch.get("cleaned_start", 0))
+    findings = []
+    total = 0
+    disclosed = 0
+
+    for span in spans:
+        text = span.get("text") or ""
+        start_offset = span.get("start_offset")
+        subject = _subject(span.get("span_id"), spans_rev)
+        for match in _FORBIDDEN_RE.finditer(text):
+            total += 1
+            char = match.group()
+            kind = _kind_for_forbidden_char(char)
+            cleaned_pos = (
+                start_offset + match.start() if isinstance(start_offset, int) else None
+            )
+            raw_pos = (
+                _map_cleaned_offset(ordered_patches, cleaned_pos, is_end=False)
+                if cleaned_pos is not None and isinstance(cleaned_text, str)
+                else None
+            )
+            matched = [
+                entry
+                for entry in report_findings
+                if kind is not None
+                and isinstance(entry, dict)
+                and entry.get("kind") == kind
+                and entry.get("terminal_state") == _KNOWN_UNRESOLVABLE
+                and isinstance(entry.get("raw_start"), int)
+                and isinstance(entry.get("raw_end"), int)
+                and raw_pos is not None
+                and entry["raw_start"] <= raw_pos < entry["raw_end"]
+            ]
+            if len(matched) == 1:
+                disclosed += 1
+                findings.append(
+                    make_finding(
+                        "g1_unresolved_chars", "G1",
+                        "known_unresolvable_char_disclosed", None,
+                        _WARN_WARN_ERR, subject,
+                        detail="字符 U+%04X（清洗偏移 %r → 原始偏移 %r）已由清洗报告"
+                        "如实登记为 known_unresolvable: %s"
+                        % (
+                            ord(char),
+                            cleaned_pos,
+                            raw_pos,
+                            matched[0].get("finding_id"),
+                        ),
+                    )
+                )
+            else:
+                findings.append(
+                    make_finding(
+                        "g1_unresolved_chars", "G1", "forbidden_char_in_text",
+                        "TXT_001", _ERROR, subject,
+                        detail="字符 U+%04X（清洗偏移 %r → 原始偏移 %r）无合法"
+                        " known_unresolvable 登记（kind=%s，匹配 %d 条）"
+                        % (ord(char), cleaned_pos, raw_pos, kind, len(matched)),
+                    )
+                )
+
+    return {
+        "findings": findings,
+        "checked": {
+            "spans": len(spans),
+            "forbidden_chars": total,
+            "disclosed": disclosed,
+        },
+    }
+
+
 def validate_unresolved_chars(ctx):
     """检查未决字符：占位/控制符、未识别字框与未人工校对字框。
 
+    OCR 档（``glyphbox_level``）：
     - span 文本含 PUA/U+FFFD/``□``/``〓``/控制符 → ``forbidden_char_in_text``
       （TXT_001，三级 ``error``）；
     - 字框 ``status == "unrecognized"`` 或 ``char`` 为空 → ``unresolved_glyph``
       （SRC_001，``{warning, error, error}``），按所属 Span 聚合；
     - 字框 ``status == "pending"`` → ``unproofread_glyphs``（``code=None``，
       ``{info, warning, error}``），按页聚合。
+
+    offset 档（第 103 条 D1）：M2 依第 79 条 D4 **有意保留**无法映射的码位，
+    故每个禁止字符经 patch 映射换算为原始偏移后，须在冻结
+    ``sanitization_report`` 中找到**恰好一条**覆盖该偏移、``kind`` 与字符类别
+    相符、``terminal_state == known_unresolvable`` 的发现：
+    对上 → ``known_unresolvable_char_disclosed``（``{warning, warning, error}``，
+    detail 带 ``finding_id``）；对不上（无记录 / 多条 / kind 不符 / 终态不符）
+    → 仍判 ``forbidden_char_in_text`` 三级 ``error``。OCR 档逐字不变。
     """
+    if _is_offset(ctx):
+        return _validate_text_unresolved_chars(ctx)
+
     spans_doc = ctx.get("spans_doc") or {}
     spans = spans_doc.get("spans") or []
     page_docs = ctx.get("page_docs") or {}

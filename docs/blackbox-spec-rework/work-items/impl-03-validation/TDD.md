@@ -34,6 +34,7 @@ shasum -a 256 pipeline/corpus/_fixture/mini_ed01/spans.yaml         # ec6d77b90a
 | 05 | 新增用例全 ERROR | `$TV` OK ≥ 70；`run_m5` succeeded、14 Checkpoint、`level_verdicts {passed, failed, failed}`、fixture 上 `counts.findings == 7`（G1 4 + G3 3）；`$TL`、`$TC` 用例数不变 |
 | 06 | `m5-evidence-gate.sh` 不存在（exit 127）；新增用例全 ERROR | `$TV` OK ≥ 83；脚本 `SUMMARY pass=9 fail=0 blocked=5`、exit 2；`run_all.sh` 与 `m3-coverage.sh` 末行不变 |
 | R83 | 新增 offset 档用例全 ERROR/断言失败 | `$TV` OK；用例 87 → 100（offset 档 13 条）；`m5-evidence-gate.sh` 在 mini_ed01 上输出与改前**逐字相同**（`pass=9 fail=0 blocked=5`、exit 2）；`quote_hash_stored` 仍为 BLOCKED（OCR 档逐字保留原文案） |
+| R83b | 新增披露对账用例全 ERROR/断言失败 | `$TV` OK；用例 100 → 108（R83b 8 条）；`m5-evidence-gate.sh` 在 mini_ed01 上输出与 R83 后**逐字相同**；真书 M5 G1 转 `passed_with_warnings`（39 条 `known_unresolvable_char_disclosed`、`forbidden_char_in_text` 0 条），INTERNAL_DEMO 通过、PUBLIC_RELEASE 仍 failed |
 
 ## 2. 主 Agent 验收附加判据（执行者不需跑，但不得让其失败）
 

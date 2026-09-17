@@ -18,6 +18,7 @@
         spans_revision_mismatch → REF_001
         source_asset_mismatch → SRC_003（R83：offset 档 SourceAsset 哈希与 raw_text 修订字节不符）
         forbidden_char_in_text → TXT_001
+        known_unresolvable_char_disclosed → None（§5.5 缺口：如实披露项，无错误码；第 103 条 D1）
         unresolved_glyph → SRC_001
         unproofread_glyphs → None（§5.5 缺口：无语义吻合码）
         replay_tool_mismatch → None（§5.5 缺口）
@@ -115,6 +116,7 @@ CHECK_CODES = {
     "spans_revision_mismatch": "REF_001",
     "source_asset_mismatch": "SRC_003",
     "forbidden_char_in_text": "TXT_001",
+    "known_unresolvable_char_disclosed": None,
     "unresolved_glyph": "SRC_001",
     "unproofread_glyphs": None,
     "replay_tool_mismatch": None,

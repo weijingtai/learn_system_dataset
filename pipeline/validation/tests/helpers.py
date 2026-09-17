@@ -57,6 +57,37 @@ OFFSET_PATCHES = [
     }
 ]
 
+# ---- offset 档含「已知不可解决」私用区码位的合成数据（第 103 条 D1）----
+# raw 经 OFFSET_PUA_PATCHES 删去 raw[5:6] 的 "X" 后得 cleaned；PUA 码位
+# U+E03D 有意保留（第 79 条 D4），其原始偏移为 6、清洗偏移为 5。
+OFFSET_PUA_RAW_TEXT = "乾元秘旨\nX\uE03D甲乙\n丙\n"
+OFFSET_PUA_CLEANED_TEXT = "乾元秘旨\n\uE03D甲乙\n丙\n"
+OFFSET_PUA_PATCHES = [
+    {
+        "patch_id": "p0001",
+        "raw_start": 5,
+        "raw_end": 6,
+        "cleaned_start": 5,
+        "cleaned_end": 5,
+        "action": "delete",
+        "basis": "CTP",
+        "replacement": "",
+    }
+]
+# M2 清洗报告中对上述码位的唯一登记（raw[6:7] == U+E03D）
+OFFSET_PUA_FINDING = {
+    "finding_id": "private_use_area@6-7",
+    "kind": "private_use_area",
+    "raw_start": 6,
+    "raw_end": 7,
+    "raw_excerpt": "\uE03D",
+    "context": "甲\uE03D乙",
+    "action": "kept",
+    "patch_id": None,
+    "basis": "保留 PUA 原码位，待字形层查证（§79 D4）",
+    "terminal_state": "known_unresolvable",
+}
+
 
 def default_fixture_dir():
     """返回仓库内 mini_ed01 fixture 的绝对路径。"""
@@ -353,6 +384,67 @@ def offset_fixture_context():
     得 ``OFFSET_CLEANED_TEXT``，切成 3 条片段（cleaned 偏移 [0,5)/[5,8)/[8,10)，
     对应 raw 偏移 [0,5)/[5,9)/[9,11)）。全部值均为独立手算，不调用 M3。
     """
+    revs = _offset_revs()
+    return _offset_context(
+        revs=revs,
+        raw_text=OFFSET_RAW_TEXT,
+        cleaned_text=OFFSET_CLEANED_TEXT,
+        patches=OFFSET_PATCHES,
+        spans=[
+            _text_span(
+                "ss_%s_%s_o0000000" % (OFFSET_WORK, OFFSET_EDITION),
+                1, 0, 5, OFFSET_CLEANED_TEXT[0:5], 0, 5, revs,
+            ),
+            _text_span(
+                "ss_%s_%s_o0000005" % (OFFSET_WORK, OFFSET_EDITION),
+                2, 5, 8, OFFSET_CLEANED_TEXT[5:8], 5, 9, revs,
+            ),
+            _text_span(
+                "ss_%s_%s_o0000009" % (OFFSET_WORK, OFFSET_EDITION),
+                3, 8, 10, OFFSET_CLEANED_TEXT[8:10], 9, 11, revs,
+            ),
+        ],
+        report_findings=[],
+        patch_ids=["p0001"],
+    )
+
+
+def offset_pua_fixture_context():
+    """构造含「已知不可解决」私用区码位的电子文本上下文（第 103 条 D1 合成数据）。
+
+    ``OFFSET_PUA_RAW_TEXT`` 经 ``OFFSET_PUA_PATCHES`` 删去 raw[5:6] 的 ``X`` 后
+    得 ``OFFSET_PUA_CLEANED_TEXT``（PUA 码位 **有意保留**，与 M2 第 79 条 D4
+    一致）。片段 cleaned 偏移 [0,5)/[5,9)/[9,11)，对应 raw 偏移
+    [0,5)/[6,10)/[10,12)；清洗报告恰一条 `private_use_area@6-7`
+    （``terminal_state: known_unresolvable``）覆盖该码位的原始偏移 6。
+    """
+    revs = _offset_revs()
+    return _offset_context(
+        revs=revs,
+        raw_text=OFFSET_PUA_RAW_TEXT,
+        cleaned_text=OFFSET_PUA_CLEANED_TEXT,
+        patches=OFFSET_PUA_PATCHES,
+        spans=[
+            _text_span(
+                "ss_%s_%s_o0000000" % (OFFSET_WORK, OFFSET_EDITION),
+                1, 0, 5, OFFSET_PUA_CLEANED_TEXT[0:5], 0, 5, revs,
+            ),
+            _text_span(
+                "ss_%s_%s_o0000006" % (OFFSET_WORK, OFFSET_EDITION),
+                2, 5, 9, OFFSET_PUA_CLEANED_TEXT[5:9], 6, 10, revs,
+            ),
+            _text_span(
+                "ss_%s_%s_o0000010" % (OFFSET_WORK, OFFSET_EDITION),
+                3, 9, 11, OFFSET_PUA_CLEANED_TEXT[9:11], 10, 12, revs,
+            ),
+        ],
+        report_findings=[dict(OFFSET_PUA_FINDING)],
+        patch_ids=["p0001"],
+    )
+
+
+def _offset_revs():
+    """offset 档上下文的全部修订号（两套合成夹具共用同一形态）。"""
     revs = {role: _rev("text:" + role) for role in _M2_TEXT_ROLES}
     revs.update(
         {
@@ -366,21 +458,21 @@ def offset_fixture_context():
             "batch_001": _rev("text:batch_001"),
         }
     )
+    return revs
+
+
+def _offset_context(
+    *,
+    revs,
+    raw_text,
+    cleaned_text,
+    patches,
+    spans,
+    report_findings,
+    patch_ids,
+):
+    """由给定文本/补丁/片段/清洗发现装配 offset 档纯函数上下文（内部共用）。"""
     page = OFFSET_PAGE
-    spans = [
-        _text_span(
-            "ss_%s_%s_o0000000" % (OFFSET_WORK, OFFSET_EDITION),
-            1, 0, 5, OFFSET_CLEANED_TEXT[0:5], 0, 5, revs,
-        ),
-        _text_span(
-            "ss_%s_%s_o0000005" % (OFFSET_WORK, OFFSET_EDITION),
-            2, 5, 8, OFFSET_CLEANED_TEXT[5:8], 5, 9, revs,
-        ),
-        _text_span(
-            "ss_%s_%s_o0000009" % (OFFSET_WORK, OFFSET_EDITION),
-            3, 8, 10, OFFSET_CLEANED_TEXT[8:10], 9, 11, revs,
-        ),
-    ]
     spans_doc = {
         "work": OFFSET_WORK,
         "source_id": "src_%s_%s" % (OFFSET_WORK, OFFSET_EDITION),
@@ -390,7 +482,7 @@ def offset_fixture_context():
         "span_count": len(spans),
         "spans": spans,
     }
-    raw_sha256 = hashlib.sha256(OFFSET_RAW_TEXT.encode("utf-8")).hexdigest()
+    raw_sha256 = hashlib.sha256(raw_text.encode("utf-8")).hexdigest()
     manifest = {
         "source_id": "src_%s_%s" % (OFFSET_WORK, OFFSET_EDITION),
         "work_title": "合成电子文本",
@@ -407,7 +499,7 @@ def offset_fixture_context():
                 "sha256": raw_sha256,
                 "normalized_sha256": raw_sha256,
                 "original_encoding": "utf-8",
-                "size": len(OFFSET_RAW_TEXT.encode("utf-8")),
+                "size": len(raw_text.encode("utf-8")),
                 "width": None,
                 "height": None,
                 "object_store": "local",
@@ -416,7 +508,11 @@ def offset_fixture_context():
         ],
         "content_status": "machine_extracted",
     }
-    coverage_value = float(len(OFFSET_CLEANED_TEXT)) / len(OFFSET_CLEANED_TEXT)
+    coverage_value = (
+        float(sum(len(span["text"]) for span in spans)) / len(cleaned_text)
+        if cleaned_text
+        else 0.0
+    )
     coverage_report = {
         "gate_profile": "structural_only",
         "structural": "passed",
@@ -436,7 +532,7 @@ def offset_fixture_context():
             page: {
                 "status": "covered",
                 "terminal_state": None,
-                "line_count": len(OFFSET_RAW_TEXT.splitlines()),
+                "line_count": len(raw_text.splitlines()),
                 "span_count": len(spans),
                 "coverage": coverage_value,
                 "gaps": [],
@@ -467,9 +563,15 @@ def offset_fixture_context():
         "failed_checks": [],
     }
     sanitization_report = {
-        "deferred_count": 0,
-        "findings": [],
-        "patch_ids": ["p0001"],
+        "schema_version": "0.1.0-draft",
+        "findings": [dict(entry) for entry in report_findings],
+        "patches": list(patch_ids),
+        "summary": {
+            "deferred_count": 0,
+            "private_use_area": sum(
+                1 for entry in report_findings if entry.get("kind") == "private_use_area"
+            ),
+        },
     }
     spans_bytes = yaml.dump(
         spans_doc, allow_unicode=True, default_flow_style=False, sort_keys=False
@@ -505,10 +607,7 @@ def offset_fixture_context():
         "validation": {"passed": True, "report_artifacts": []},
         "lineage": {
             "upstream_artifacts": [
-                _ref(revs["raw_text"], "raw_text", "text:raw_text"),
-                _ref(revs["cleaned_text_revision"], "cleaned_text_revision", "text:cleaned_text_revision"),
-                _ref(revs["deterministic_patch_set"], "deterministic_patch_set", "text:deterministic_patch_set"),
-                _ref(revs["sanitization_report"], "sanitization_report", "text:sanitization_report"),
+                _ref(revs[role], role, "text:" + role) for role in _M2_TEXT_ROLES
             ],
             "transformations": [],
         },
@@ -524,9 +623,9 @@ def offset_fixture_context():
         "validation_report": validation_report,
         "configuration": configuration,
         "source_manifest": manifest,
-        "raw_text": OFFSET_RAW_TEXT,
-        "cleaned_text_revision": OFFSET_CLEANED_TEXT,
-        "deterministic_patch_set": OFFSET_PATCHES,
+        "raw_text": raw_text,
+        "cleaned_text_revision": cleaned_text,
+        "deterministic_patch_set": patches,
         "sanitization_report": sanitization_report,
         "batch_001": spans,
     }
@@ -581,9 +680,9 @@ def offset_fixture_context():
         "m3_package": m3_package,
         "configuration": configuration,
         "evidence_level": "offset_level",
-        "raw_text": OFFSET_RAW_TEXT,
-        "cleaned_text": OFFSET_CLEANED_TEXT,
-        "patches": list(OFFSET_PATCHES),
+        "raw_text": raw_text,
+        "cleaned_text": cleaned_text,
+        "patches": list(patches),
         "sanitization_report": sanitization_report,
         "batch_assignments": {"batch_001": [span["span_id"] for span in spans]},
         "raw_text_revision_id": revs["raw_text"],
