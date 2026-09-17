@@ -1,20 +1,20 @@
 # HANDOFF
-
-## G7 W5：impl-06 M6 与 impl-07 M7 创世薄切片均 ACCEPTED（Dataset 会话；黑箱线最新状态）
-
-补记七（2026-09-13）：
-- 已验收：impl-01 Ledger、impl-02 M3 结构层、impl-03 M5、impl-04 M8 首切片、impl-05 M4 最薄接入、impl-08 Orchestrator+Contract Registry、impl-00 act/10/12/05/13、**impl-06 M6 最薄接入（K1、K2+06a、K3+09a/09b；ACCEPTANCE §5.1–§5.4）**、**impl-07 M7 创世薄切片 G0（§5.1–§5.5）**。`run_all.sh` 仍 `pass=2 fail=1 blocked=8`；`m6-data-fields.sh` 11 PASS + 3 BLOCKED；`m7-assembler.sh` 10 PASS + 6 BLOCKED。裁决书 `G7-RULINGS.md` 至第 75 条（70–75 为本轮：id_range 两层、补发号可为活对象、reviewed_edition/package 键按 §5.3、run_m7 id_range 缺省、carried × modify 保留首审修订、恢复后结审折叠继承决定）。
-- 执行器：agy 一律 `gemini-3.8-flash-medium`（用户要求不用 Pro/High）；其额度耗尽后用户选择改用 tmux + `cmd --yolo` DeepSeek V4.1 Flash。当前**无在跑会话**（w5g0、w5h1、w5h3 均已关）。
-- 主 Agent 端到端经验：真实 M6 输出须交 M7 `model.validate_reviewed_edition`/`validate_reviewed_package` 校验（曾据此发现裁定 72）；执行方回报可能只写标题，Red 可在修正前树上叠加新测试独立复现；cmd 屏幕底部永远有输入框，判断工作中看「esc to interrupt」。
-- 验收脚本（本会话 scratchpad，可能被清空）：`accept_m6.sh <base> <head> "<act 编号>"`、`accept_g0.sh <commit> [e2e.py]`、`accept_act13.sh <commit>`。
-- 下一步（待派发，建议串行、单路执行器）：
-  1. M7 `upstream_m6_real` 与 M6 `snapshot_projection` 转判：新 ACT 以真实 M6 `close_review` 产出驱动 `run_m7`（不改已验收 acceptance 判定逻辑，只接线并更新 BLOCKED 文案）；
-  2. 起草 impl-04 跟进（M8 知识链前三段 + GraphProjectionPack，依赖 M6 正式知识与 M7 Snapshot），四查后实现；
-  3. 小清理：`acceptance.py:405`（M7 no_model_calls 静默跳过不可解析文件）、`model.py` 尾随空白、M6 acceptance 未比对 `first_review.decisions/checkpoints`。
-- **文本源优先路线（2026-09-15 用户提出）**：第一版以殆知阁电子文本走 M1→M8（`offset_level`，内部版），第二版做 OCR 与证据升级；调研结论、清洗必做清单、第二版必做清单与待决定项**统一登记在 `docs/blackbox-spec-rework/G7-PLAN.md` §4**。
-- 用户决定（2026-09-15，G7-RULINGS 第 76–82 条）：第一版内部版 `offset_level`；书源不限殆知阁；无页码文本片段 ID `ss_<work>_ed<NN>_o<NNNNNNN>`；生僻字保留原码位并记字体；SemanticSpan 前缀 `sem_`；电子文本清洗发现与 OCR 同等可追踪（上游 M1/M2/M3 待实现）；markitdown 仅作可选格式适配器。
-- **W7 进展（tmux + OpenCode，MiMo V2.5 Free；计划见 G7-PLAN §5）**：7.1 impl-00 act/14 已 `ACCEPTED`（`ec8c3a8`，ACCEPTANCE §5.5）；7.0 M6→M7 接线 ACT 已定稿（`be4d3f6` → 主 Agent 审出两处不可实现判定 → 改正 `cefa28d`），会话 `oc70` 实现中；下一步 7.2 impl-09 M1+M2 电子文本。监控用 scratchpad `oc-watch.sh`（opencode 忙碌标志是底部 `esc interrupt`）。MiMo 回报常缺证据，Red 必要时由主 Agent 在修正前树上叠加新测试独立复现。
-- 用户待办：按第 80 条填写 `expert_verified` 签发决定表（主 Agent 先出模板）；前十页人工终态决定表移至第二版 OCR。
+更新时间：2026-09-17
+当前分支/worktree：`codex/docs/knowledge-compilation`；`/Users/jingtaiwei/Git/Public/learn_system`
+刚完成：
+1. 提交 R84c（`e5c960a`，按裁定 108 更正 `m4_candidates.yaml` 偏移 13/15→9/11），`pipeline/review/tests` 转绿（Ran 166 OK），`m6-data-fields.sh` pass=13 fail=0 blocked=2 exit=2，全包回归全绿，8.4 验收通过（`impl-06-review/ACCEPTANCE.md` §5.6）。
+2. 在持久 Ledger `var/ledgers/qianyuan_w8/` 上运行 M6 `open_review`，顺利进入 `awaiting_human`（srun_3009b37a…，26 条队列项），生成审核表模板 `var/ledgers/qianyuan_w8_review/m6_review_decisions_template.yaml`。
+进行到一半的事（精确到文件和章节）：
+1. M6 审核表（`var/ledgers/qianyuan_w8_review/m6_review_decisions_template.yaml`）等待用户逐条填写 verdict/rationale；
+2. M8 K2（ACT 11+12）派单 `~/tmux-agents/runs/prompts/agy-86d.txt` 就绪，待选定执行器派发。
+下一步（第一件事）：
+1. 用户填写 M6 审核表；
+2. 选定执行器派发 M8 K2（ACT 11 知识链 + ACT 12 Gate）；
+3. 8.5 M7 Snapshot 补字段（`corpus_spans_revision_id`/`evidence_level`，裁定 106 D4）。
+已知的坑：
+- 26 条 assertion 均无 `concept_refs`（不推断，裁定 107 Q-M8-01）；若需出 Concept 词条，用户在 M6 审核时须通过 `modified_content` 补显式引用；
+- 2 条 a 路 assertion（命例通则）已被 M4 G4 拒收，不在 M6 队列中；
+- 执行器状态：agy CLI 失效、cmd 周限额到周六 12:13、Union Alpha 已入墓地；mimo（`~/.mimocode/bin/mimo`）或 opencode 免费池可选，派发前须与用户确认。
 
 ## （上一节）G7 W4 收尾：impl-08 与 impl-05 均 ACCEPTED
 

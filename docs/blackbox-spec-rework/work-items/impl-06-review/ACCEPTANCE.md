@@ -131,3 +131,24 @@ K3 `ACCEPTED`。**impl-06 M6 最薄接入（K1、K2+06a、K3+09a/09b）全部 `A
 接手情况：本 ACT 由前一执行器做到一半（约 185 行未提交改动）后因额度耗尽中断，agy 接手续做。接手方自行发现并修复了前者两处实现缺陷（`_check_snapshot_projection` 取到被 superseded 的 candidate_set；`_check_first_review_counts` 对 `int` 执行 `len()`），并把前者「只断言 CLI 输出字符串」的空转测试全部重写为真实 Ledger 上的正反断言。Red 原文、七条门槛输出、改名对照表均贴入回报，纪律达标。
 
 **至此 impl-06 的 K3 四个 ACT（08、09、11、12）全部完成，impl-06 M6 全部 `ACCEPTED`。** `snapshot_projection` 由 BLOCKED 转判 PASS，M6 剩余 BLOCKED 两项（`legacy_workbench_seed`、`upstream_real`）依赖旧工作台数据迁入与第 80 条真实签发决定表，属用户待办与后续波次。
+
+### 5.6 W8 8.4 返工与夹具更正（2026-09-17，主 Agent 独立验收，`e5c960a`）
+
+执行者：R84/R84b 由 agy（`4e16022`、`cb96b94`），R84c 由主 Agent（`e5c960a`，裁定 108）。
+
+- 动因：W8 电子文本路线与裁定 106 D1 要求 M6 证据偏移严格按【I-11】解释（`start_offset/end_offset` 为绝对偏移），删除「猜局部」与「退回整片段」两条静默分支；审核台支持 offset 坐标显示。
+- 过程：
+  - R84 `4e16022`：修复偏移解释、严格校验绝对偏移与 quote。但提交时合成夹具 `m4_candidates.yaml` 未更新导致用例红（裁定 108 记违规一次）。
+  - R84b `cb96b94`：审核台增加 offset_level 支持，验收桩补 offset 上游支持。
+  - R84c `e5c960a`：按裁定 108 将 `as_qizheng_000002` 的偏移由 13/15 更正为 9/11（对应 quote「三辰」真实绝对位置，quote_sha256 不动）。
+- 复验实测：
+  - `pipeline/review/tests` `Ran 166 OK`
+  - `openspec/acceptance/m6-data-fields.sh` `SUMMARY pass=13 fail=0 blocked=2 exit=2`（基线完全一致）
+  - `pipeline/assembly/tests` `Ran 96 OK`
+  - 全包回归（10 个子包）全绿通过（`corpus_compiler` 17-FAIL 为 OCR 宿主页图不入库的既有非回归）
+  - `openspec/acceptance/run_all.sh` `SUMMARY pass=2 fail=1 blocked=8`（基线无漂移）
+  - `git diff --check` 无空白异常。
+- 真书运行（8.4b）：
+  - 持久 Ledger `var/ledgers/qianyuan_w8/` 执行 `open_review` 产生 `srun_3009b37a…`，状态如实进入 `awaiting_human`，生成 26 条审核队列项，已导出模板 `var/ledgers/qianyuan_w8_review/m6_review_decisions_template.yaml` 等待用户填写。
+
+8.4 判定：**ACCEPTED**。

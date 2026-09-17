@@ -18,11 +18,11 @@
 
 ## 当前状态（2026-09-17）
 
-刚完成：用户 24 条 M4 分歧裁决已导入持久 Ledger（24 human_event + 24 Checkpoint），M4 `srun_bafd7499…` 封存 `succeeded`（26 assertion / 2 pattern / 10 新概念候选 / 2 条 a 路被 G4 拒收，状态全 `disputed`）；同 Ledger M5 `INTERNAL_DEMO` 通过（warnings 39、failures 0）。M8 ACT 08/09/10 已验收。
+刚完成：R84c 夹具更正已提交（`e5c960a`，裁定 108），`pipeline/review/tests` `Ran 166 OK`、`m6-data-fields.sh` `pass=13 fail=0 blocked=2 exit=2`、全包回归全绿，8.4 验收通过；持久 Ledger M6 `open_review` 顺利进入 `awaiting_human`（srun_3009b37a…，26 条队列项），已生成 M6 审核决定表模板 `var/ledgers/qianyuan_w8_review/m6_review_decisions_template.yaml` 供用户填写。
 
-半成品：M6 R84 `4e16022`+R84b `cb96b94` **已提交未验收**。当前 HEAD 上 `pipeline/review/tests` 实测 **`Ran 146, FAILED (failures=7, errors=27)`**（根因 `RuntimeError: 首审 close_review 未成功: 'internal'` → `KeyError: reviewed_edition_revision_id`）。主 Agent 已在临时副本验证：按裁定 108 把 `pipeline/review/testing/data/m4_candidates.yaml` 中 `as_qizheng_000002` 的 `start_offset: 13`→`9`、`end_offset: 15`→`11`（`quote`、`quote_sha256` 不变，只改这两行）后，该套件 **OK**。接手方照此提交 R84c 即可，无需重新排查。M8 K2 派单 `agy-86d.txt` 未开工。
+半成品：M6 审核队列 26 项等待用户审核；M8 K2 派单 `agy-86d.txt`（ACT 11 知识链+`ent_` 发号表、ACT 12 Gate）待派发执行器。
 
-下一步：① 派 agy 执行 R84c → 主 Agent 验收 8.4；② 在 `var/ledgers/qianyuan_w8/` 跑 M6 到 `awaiting_human`，生成 M6 审核表交用户；③ 并行派 M8 K2（ACT 11 知识链+`ent_` 发号表、ACT 12 Gate）。
+下一步：① 用户填写 M6 审核表；② 选定执行器执行 M8 K2（ACT 11+12）；③ 8.5 M7 Snapshot 补字段。
 
 微观意图：M6 审核表要显式写两条——26 条 assertion 无 `concept_refs`（不推断，裁定 107 Q-M8-01），要出 Concept 词条须用户 `modify` 补显式引用；2 条 a 路 assertion 已被 M4 G4 拒收。8.5 派发时顺手把 `genesis_package.json` 里「标 offset_level 却用页码形态 ID」的自相矛盾一并修掉（裁定 106 D4）。8.7 时才动 `run_all.sh`（P4 独占）。
 
@@ -82,7 +82,7 @@ bash openspec/acceptance/run_all.sh | tail -1                                   
 - [x] 8.1 `ids.py` 偏移形态（`7bdaa9c`）+ 电子文本 M3 补阶段产物（`08e3bba`）
 - [x] 8.2 M4 offset 支持（`71c913f`）+ 真书宿主与两路提交件（`7838d59`）+ 用户 24 条裁决导入、M4 封存
 - [x] 8.3 M5 offset 档 G1/G2/G3（`2537b75`）+ PUA 对账（`82f7148`）+ 登记表更正（`2db0fcc`）
-- [ ] 8.4 M6：R84 `4e16022`、R84b `cb96b94` 已提交未验收；缺 R84c 夹具更正（裁定 108）→ 跑 M6 出审核表
+- [x] 8.4 M6：R84 `4e16022`、R84b `cb96b94`、R84c `e5c960a`（夹具更正，裁定 108）已验收；`open_review` 已跑至 `awaiting_human`（srun_3009b37a…）并生成审核表模板 `var/ledgers/qianyuan_w8_review/m6_review_decisions_template.yaml`（26 项）
 - [ ] 8.5 M7 Snapshot 补 `evidence_level`/`corpus_spans_revision_id`（裁定 106 D4）
 - [ ] 8.6 M8：ACT 08 `ff21388`、ACT 09 `fc31716`、ACT 10 `ce3ddab` 已验收；K2（ACT 11/12）未开工；ACT 13/14 待 8.5
 - [ ] 8.7 验收脚本电子文本路线 + orchestrator 登记 m4/m6 + `run_all.sh` 按判定输出

@@ -613,9 +613,8 @@
 - [x] 8.0 impl-09 J3f（`87ce16c`）+ J4b（`1406048`）：M1/M2 验收改为对宿主原文实跑并与独立期望比对；宿主与 `expected/` 入库（验收 `impl-09-intake/ACCEPTANCE.md` §3.9/§3.10）
 - [x] 8.1 impl-01 R81a（`7bdaa9c`，`ids.py` 接受 `ss_`/`sem_` 偏移形态、唯一权威）+ impl-10 R81b（`08e3bba`，电子文本 M3 补 `coverage_report`/`corpus_package`/m3 结构层阶段包）；裁定 102（验收 `impl-10-corpus-semantic/ACCEPTANCE.md` §3.6）
 - [x] 8.2 impl-05 R82a（`71c913f`，M4 按 `evidence_level` 分派、去 `page` 依赖）+ R82b（`7838d59`，真书 m4 宿主、协议 v2 两路提交件）；裁定 104；**用户 24 条分歧裁决已导入，M4 `srun_bafd7499…` 封存 `succeeded`**（验收 `impl-05-knowledge/ACCEPTANCE.md` §5.2/§5.3）
-- [x] 8.3 impl-03 R83（`2537b75`）+ R83b（`82f7148`，offset 档 G1 与清洗报告对账）+ impl-00 R83c（`2db0fcc`，M2 闭集登记更正）；裁定 103；真书 M5 `INTERNAL_DEMO` 通过（验收 `impl-03-validation/ACCEPTANCE.md` §5.2）
-- [ ] 8.4 impl-06 M6：R84（`4e16022`，证据偏移严格按 I-11）+ R84b（`cb96b94`，审核台 offset 锚点与 offset 上游桩）**已提交未验收**；缺 R84c（裁定 108：夹具 `m4_candidates.yaml` `as_qizheng_000002` 偏移 13/15 → 9/11），当前 `pipeline/review/tests` 有既有用例红；派单 `~/tmux-agents/runs/prompts/agy-84b.txt`
-- [ ] 8.4b 跑 M6 到 `awaiting_human` → 主 Agent 生成 M6 审核表交用户（须披露：26 条 assertion 无 `concept_refs`、2 条 a 路 assertion 被 G4 拒收）
+- [x] 8.4 impl-06 M6：R84（`4e16022`，证据偏移严格按 I-11）+ R84b（`cb96b94`，审核台 offset 锚点与 offset 上游桩）+ R84c（`e5c960a`，裁定 108 夹具更正）已验收（验收 `impl-06-review/ACCEPTANCE.md` §5.6）
+- [x] 8.4b 跑 M6 到 `awaiting_human`（srun_3009b37a…）→ 主 Agent 已生成 M6 审核表模板 `var/ledgers/qianyuan_w8_review/m6_review_decisions_template.yaml` 交用户（已披露：26 条 assertion 无 `concept_refs`、2 条 a 路 assertion 被 G4 拒收）
 - [ ] 8.5 impl-07 M7：Snapshot `editions[]` 补 `evidence_level`/`corpus_spans_revision_id`、证据偏移统一 I-11、修 `genesis_package.json` 级别与 ID 形态矛盾（裁定 106 D4，未派）
 - [x] 8.6-A impl-04 设计草案（`fa3cc54`）+ 主 Agent 裁决与更正（裁定 107，README §11.11）
 - [x] 8.6-ACT08 impl-00 登记（`ff21388`）：`graph_projection_pack`、`evidence_map_pack` offset 变体、M8 检查名闭集与 `not_applicable`、`entry_id_allocation`（验收 `impl-00-interfaces/ACCEPTANCE.md` §5.6）
