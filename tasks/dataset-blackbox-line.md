@@ -16,23 +16,27 @@
 
 ---
 
-## 当前状态（2026-09-16 暂停）
+## 当前状态（2026-09-17）
 
-W8：《乾元秘旨》电子文本真书走到 M8（第 100–108 条；计划 `G7-PLAN.md` §6）。
+刚完成：用户 24 条 M4 分歧裁决已导入持久 Ledger（24 human_event + 24 Checkpoint），M4 `srun_bafd7499…` 封存 `succeeded`（26 assertion / 2 pattern / 10 新概念候选 / 2 条 a 路被 G4 拒收，状态全 `disputed`）；同 Ledger M5 `INTERNAL_DEMO` 通过（warnings 39、failures 0）。M8 ACT 08/09/10 已验收。
 
-**已完成并验收**：M1/M2（J3e/J3f/J4b，M2 与独立金标 12 类一致，宿主已入库）；M3→M4 衔接（8.1）；M4 offset 支持 + 两路抽取 + **用户 24 条裁决已导入，M4 封存**（8.2）；M5 offset 档 + PUA 对账（8.3，真书 INTERNAL_DEMO 通过）；M8 登记 ACT 08 与 K1（ACT 09 GraphProjectionPack、ACT 10 reference_and_hash_only/offset 七段链）。
+半成品：M6 R84 `4e16022`+R84b `cb96b94` **已提交未验收**，review 套件现有既有用例红——需按裁定 108 改 `pipeline/review/testing/data/m4_candidates.yaml` 中 `as_qizheng_000002` 偏移 13→9、15→11（`quote`/`quote_sha256` 不变），派单已写好：`~/tmux-agents/runs/prompts/agy-84b.txt`。M8 K2 派单 `agy-86d.txt` 未开工。
 
-**真书持久 Ledger**：`var/ledgers/qianyuan_w8/`（不入库；备份 `qianyuan_w8.bak_before_m4_rulings`）——M1→M2→M3→M4（succeeded）→M5（succeeded）已在其上跑完。
+下一步：① 派 agy 执行 R84c → 主 Agent 验收 8.4；② 在 `var/ledgers/qianyuan_w8/` 跑 M6 到 `awaiting_human`，生成 M6 审核表交用户；③ 并行派 M8 K2（ACT 11 知识链+`ent_` 发号表、ACT 12 Gate）。
 
-**半成品 / 回来先做（按顺序）**：
-1. **8.4 M6**：R84 `4e16022`、R84b `cb96b94` 已提交**未验收**，且 review 套件有既有用例红（夹具 `pipeline/review/testing/data/m4_candidates.yaml` 中 `as_qizheng_000002` 偏移应为 9–11，第 108 条）。派单 `~/tmux-agents/runs/prompts/agy-84b.txt`（未执行）；回报 `agy-84.report.md`。agy 续接对话 `1d32b970-8f83-47d6-8571-7476d4b65903`。
-2. 验收 8.4 后：在 `var/ledgers/qianyuan_w8/` 跑 M6 到 awaiting_human → 主 Agent 生成 M6 审核表给用户（须告知：26 条 assertion 无 `concept_refs`，要编出 Concept 词条需用户 `modify` 补显式引用；2 条 a 路 assertion 被 G4 拒收）。
-3. **8.6 M8 K2**（ACT 11 知识链+`ent_` 发号表、ACT 12 Gate）：派单 `agy-86d.txt`（agy 读完代码后撞额度，未动手）；续接对话 `af9e74e2-766b-4ca2-9bd1-6b1c4f4f2fc7`。
-4. 8.5 M7 Snapshot 补 `evidence_level`/`corpus_spans_revision_id`（第 106 条 D4，未派）→ M8 ACT 13 改读 Snapshot → ACT 14 验收脚本与 run_all 转判（8.7）。
+微观意图：M6 审核表要显式写两条——26 条 assertion 无 `concept_refs`（不推断，裁定 107 Q-M8-01），要出 Concept 词条须用户 `modify` 补显式引用；2 条 a 路 assertion 已被 M4 G4 拒收。8.5 派发时顺手把 `genesis_package.json` 里「标 offset_level 却用页码形态 ID」的自相矛盾一并修掉（裁定 106 D4）。8.7 时才动 `run_all.sh`（P4 独占）。
 
-**执行器现状**：cmd（DeepSeek V4.1 Flash）周限额，周六 9-19 12:13 重置；agy（Gemini 3.8 Flash Medium）个人额度约 2 小时重置；opencode Union Alpha 不可靠。换执行器前先问用户。
+真书 Ledger：`var/ledgers/qianyuan_w8/`（不入库；备份 `qianyuan_w8.bak_before_m4_rulings`）。执行器：agy 续接对话 8.4=`1d32b970-8f83-47d6-8571-7476d4b65903`、8.6=`af9e74e2-766b-4ca2-9bd1-6b1c4f4f2fc7`；cmd 周限额 2026-09-19 12:13 重置。
 
-验证基线：`check_interfaces` `pass=44 fail=0`；`run_all.sh` `SUMMARY pass=2 fail=1 blocked=8`；干净树 orchestrator/contract_registry 因页图不入库各有 5/1 条失败，属环境。
+验证方法：
+```bash
+cd /Users/jingtaiwei/Git/Public/learn_system && export LC_ALL=en_US.UTF-8
+for p in ledger intake digitization corpus_compiler corpus_compiler/semantic knowledge_extraction validation review assembly dataset_compiler; do \
+  printf "%-26s " $p; .venv/bin/python -m unittest discover -s pipeline/$p/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)" | tr '\n' ' '; echo; done
+python3 docs/blackbox-spec-rework/work-items/impl-00-interfaces/check_interfaces.py | tail -1   # pass=44 fail=0
+bash openspec/acceptance/run_all.sh | tail -1                                                  # pass=2 fail=1 blocked=8
+```
+注：干净树（`git archive`）跑 orchestrator/contract_registry 会各有 5/1 条红，因页图不入库，属环境非回归。
 
 ## 用户待办
 
@@ -46,14 +50,25 @@ W8：《乾元秘旨》电子文本真书走到 M8（第 100–108 条；计划 
 - [x] 7.0 M6→M7 真实上游接线（impl-07 g0-06 `0ef4105`、impl-06 act/12 `dc83cf9`；裁定 83/84/87）
 - [x] 7.1 impl-00 act/14 电子文本闭集登记（`ec8c3a8`，36 PASS）
 - [x] 7.2 impl-09 M1+M2 电子文本（阶段 A + J1–J4 + J1a/J1b/J3a/J3b/J3c，全部 `ACCEPTED`）
-- [ ] 7.3 impl-10 M3 偏移锚点 + 语义层
+- [x] 7.3 impl-10 M3 偏移锚点 + 语义层
   - [x] 阶段 A 起草（`fcf9458`→`3359e4b`）
   - [x] L1 偏移锚点与切分（`0d50d29`、`1eab4be`）
   - [x] L2 输入解析/事务 + Gate/组装（`e5b07ed`、`6ec07c5`）
   - [x] L3 语义层（`13ddfd1`、`e42c482`、`2d7b613`、`61070ad`）
-  - [ ] **L4 `m3-coverage.sh` 电子文本宿主支持（act/07，阈值 ≥148）**
+  - [x] **L4 `m3-coverage.sh` 电子文本宿主支持（act/07，阈值 ≥148）**
 - [ ] 7.4 签发决定表模板 → 用户填写 → M4/M6 真实签发导入
-- [ ] 7.5 impl-04 跟进：M8 知识链前三段 + GraphProjectionPack
+- [ ] 7.5 impl-04 跟进：M8 知识链前三段 + GraphProjectionPack（并入 W8 8.6）
+
+## 计划区（W8：真书走到 M8；细表见 `G7-PLAN.md` §6，裁决 100–108）
+
+- [x] 8.0 J3f（`87ce16c`）+ J4b（`1406048`）：M1/M2 验收改为对原文实跑比对，宿主入库
+- [x] 8.1 `ids.py` 偏移形态（`7bdaa9c`）+ 电子文本 M3 补阶段产物（`08e3bba`）
+- [x] 8.2 M4 offset 支持（`71c913f`）+ 真书宿主与两路提交件（`7838d59`）+ 用户 24 条裁决导入、M4 封存
+- [x] 8.3 M5 offset 档 G1/G2/G3（`2537b75`）+ PUA 对账（`82f7148`）+ 登记表更正（`2db0fcc`）
+- [ ] 8.4 M6：R84 `4e16022`、R84b `cb96b94` 已提交未验收；缺 R84c 夹具更正（裁定 108）→ 跑 M6 出审核表
+- [ ] 8.5 M7 Snapshot 补 `evidence_level`/`corpus_spans_revision_id`（裁定 106 D4）
+- [ ] 8.6 M8：ACT 08 `ff21388`、ACT 09 `fc31716`、ACT 10 `ce3ddab` 已验收；K2（ACT 11/12）未开工；ACT 13/14 待 8.5
+- [ ] 8.7 验收脚本电子文本路线 + orchestrator 登记 m4/m6 + `run_all.sh` 按判定输出
 
 ---
 
@@ -94,6 +109,19 @@ act/12 的 `pass=12` 是我起草时的算术疏漏。执行方提出「把 `fir
 
 ---
 
+**2026-09-16 裁定 104（M4 分歧必须人工裁决，撤回第 100 条 D4）**
+规格 §12:572「未解决语义分歧进入人工队列，不能通过 M4 Gate」——我原先写的「分歧以 `disputed` 进 M6」违规。
+同时定抽取协议 v2：证据以整片段为单位（只写 `source_span_id`/`support_type`），否则两路引文边界随意、证据键对不齐。
+实测：v1 分歧 35 组 → v2 24 组。
+
+**2026-09-16 裁定 107（M8 设计）**
+`ent_` 用 UUIDv4 + 发号表作冻结输入（否决 UUIDv5/哈希派生，规格 §8.1 明文）；边不发 ID，身份为 `(source, relation, target)`（【I-10】不新增前缀）；
+证据链保持规格的固定七段，第 6/7 段按证据级别分派；KnowledgeEntry 主体双轨且**不推断**，无主体 assertion 计入 `known_defects`。
+
+**2026-09-17 操作决定（真书链在持久 Ledger 上跑）**
+用户裁决导入与 M4/M5 运行由主 Agent 直接执行（只调既有接口、不写实现代码），导入前先整目录备份 Ledger。
+M6 不在验收前跑，避免用户依据未验收实现作出审核决定。
+
 ## 踩坑墓地
 
 **2026-09-15 别再用：OpenCode Zen 免费档（MiMo / MUSE Spark 1.2）**
@@ -127,3 +155,18 @@ impl-10 起草稿的 verify 命令只跑单个测试文件却断言整套累计�
 `m1-intake.sh`/`m2-sanitization.sh`（及后续 `m3-coverage.sh`）在电子文本宿主未落地前如实 exit 2（BLOCKED），
 是设计意图（P4 独占 fixture ACT 尚未安排）。**不要为了让它变绿而改默认宿主或加兜底分支**——
 裁定 94 D2/D3 正是为此而立。
+
+**2026-09-16 别再用：opencode `opencode/union-alpha`（Union Alpha Free）写代码**
+供应端反复 `Error from provider (Console): Upstream request failed: Endpoint is unavailable`，会话不退出只原地重试：
+两次各卡 1.5–2 小时零产出（一次 Write 工具循环不落盘，一次 8.1 全程零改动、回报只有 `placeholder`）。
+小任务（J3f）能完成。判定卡死：token 数 + `git diff --stat` 20 分钟不变 → kill 改派。半成品必须让接手方先审再用。
+
+**2026-09-16 别再让执行方「带红提交」**
+8.4 执行方按裁定 106 改严偏移解释后，既有用例因夹具数据错误转红，它**先提交实现再停手请示**，
+导致仓库停在红色基线（裁定 108 记违规一次）。结论：待裁决事项导致既有用例红时，保持工作树未提交、只写「## 待裁决」。
+
+**2026-09-16 监控脚本误报两次（`oc-watch.sh`）**
+① 完成标题用 `grep -qE "$KEY|## 待裁决"` 匹配全文，回报正文里提到「写「## 待裁决」」即误判完成 → 改为行首 `^` 匹配；
+② 限额关键词 `quota|limit` 命中屏幕上的代码文本 → 改为只认 `Error from provider` 横幅。
+结论：监控的完成/异常判据必须锚定 agent 自身输出的固定形态，不能是会出现在任务内容里的词。
+
