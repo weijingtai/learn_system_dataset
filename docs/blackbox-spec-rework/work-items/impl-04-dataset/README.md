@@ -596,3 +596,26 @@ openspec/acceptance/run_all.sh（ACT 08 只改 20.4/20.8）
 | Q-M8-06 | `m8-span-identity.sh` 电子文本路线的环境变量名称 | A: `EVAL_ROUTE=text`（配 `FIXTURE_TEXT_DIR`）<br>B: `M8_ROUTE=offset`<br>C: 仅通过 `FIXTURE_DIR` 路径特征隐式推导（违反第 97 条，不推荐） | **推荐 A**（显式分流、语义清晰） | 主 Agent |
 | Q-M8-07 | offset 证据链在 `EvidenceMapPack` 中的 `chain_segments` 声明 | A: 显式写为 `["KnowledgeEntry", "Assertion", "EvidenceLink", "SourceSpan", "SourceAnchor", "DeterministicPatchSet", "RawText", "SourceAsset"]`<br>B: 维持 7 段抽象名（用 `SourceAnchor` 代指 offset 锚点层） | **推荐 A**（如实反映证据链完整性，便于 Gate 逐段核对） | 主 Agent |
 | Q-M8-08 | M8 Gate 中检查项清单（`_CHECK_NAMES`）组织形式 | A: 拆分为 `_COMMON_CHECKS` + `_GLYPHBOX_CHECKS` / `_OFFSET_CHECKS`<br>B: 保持单一列表，检查项内部根据 `evidence_level` 自动分派子检查 | **推荐 B**（对上游输出结构保持一致，减少调度复杂度） | 主 Agent |
+
+### 11.11 主 Agent 裁决与更正（2026-09-16，G7-RULINGS 第 107 条）
+
+本节覆盖 §11.1–§11.10 中与之冲突的内容；实现以第 107 条为准。
+
+| 未决点 | 裁定 |
+|---|---|
+| Q-M8-01 主体 | **C 双轨**；主体只来自 Snapshot 中已审定的显式引用，**不推断**；无主体 assertion 不生成 entry、计入 `known_defects` |
+| Q-M8-02 `ent_` | **UUIDv4**（规格 §8.1:318）；发号表（`subject_entity_id → entry_id`）作为冻结输入，step 层分配、纯函数层只读；**否决 UUIDv5/md5 派生** |
+| Q-M8-03 正文 | **B**：`reference_and_hash_only` 下 `quote`、`source_span.text` 置 `null` |
+| Q-M8-04 Snapshot 粒度 | **A** 一 Technique 一 Snapshot |
+| Q-M8-05 边身份 | **C** 不发边 ID，以 `(source, relation, target)` 为身份（【I-10】不新增前缀）|
+| Q-M8-06 验收变量 | `ELECTRONIC_TEXT_FIXTURE_DIR`（第 97 条既有），缺失 BLOCKED **exit 2** |
+| Q-M8-07 链段 | **保持七段、恰 7 键**；第 6/7 段按级别分派：offset 为 `text_mapping{raw_text_revision_id, cleaned_text_revision_id, patch_set_revision_id, raw_start, raw_end}` 与 `source_asset{page, sha256}` |
+| Q-M8-08 检查名 | 单一闭集，每项声明适用级别，不适用输出 `not_applicable` |
+
+更正：
+
+1. §11.6 示意片段中的书中文句（如「天官朝元格」）**两路抽取均无，属编造**，前缀 `c_`、`e_` 亦非规格前缀——该示意作废，实现以 INTERFACES 登记后的 schema 为准，示意不得引用任何书中文句。
+2. §11.8 宿主路径更正为 `pipeline/corpus/_fixture/qianyuan_ed01_text`；宿主缺失为 BLOCKED **exit 2**；变量名见上表。
+3. §11.2 中 `isolation`、`authoritative` 等未登记键删除，用已登记的 `watermark`、`known_defects` 表达。
+4. ACT 顺序：**新增 ACT 08（impl-00 登记）置首**；ACT 13 须待 8.5（M7 Snapshot 补 `evidence_level`、`corpus_spans_revision_id`）验收后开工。
+
