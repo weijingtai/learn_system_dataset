@@ -61,3 +61,14 @@
 - 全部门禁：`verify-T.sh` 0 FAIL、`mutations.sh` 109/109、`schemas/verify.sh` 0、`check_d16.py` OK、`check_interfaces.py` 24 PASS、`m3-coverage.sh` exit 2、`run_all.sh` `pass=2 fail=1 blocked=8`。
 
 impl-05（M4 最薄接入，无模型、合成裁决金标）`ACCEPTED`。真实 `expert_verified` 签发依赖用户撰写决定表（P7），相关判定保持 BLOCKED；§20.4/20.8 仍 BLOCKED（M6 正式知识未接入）。
+
+### 5.2 W8 8.2 返工 R82a + 宿主 R82b（2026-09-16，主 Agent 独立验收，`git archive 7838d59` 干净树）
+
+判定：**R82a（`71c913f`，cmd DeepSeek V4.1 Flash）与 R82b（`7838d59`，cmd 完成、agy Gemini 3.8 Flash Medium 提交）ACCEPTED**。真书 M4 如实停在 `awaiting_human`，**等待用户裁决 24 组两路分歧**（第 104 条 D1）。
+
+- 过程：R82a 按 `evidence_level` 分派引文定位基准（`gate.py` `_quote_basis`：offset 用片段自身 `text`/`start_offset`，OCR 页块路径逐字不变）。R82b 首轮真书产生 35 条分歧并停手请示 → 主 Agent 查明第 100 条 D4 与规格 §12:572 冲突（系主 Agent 起草错误），且抽取说明允许自由截取引文致证据键无法对齐 → 第 104 条：分歧由用户裁决、抽取协议 v2（证据以整片段为单位）、两路重新盲抽、空类别如实提交 → 分歧 24 组（assertion 22、pattern 2；concept_mention 两路一致）。
+- 用例审计（AST）：`test_gate.py`、`test_assemble.py`、`test_acceptance.py` 删 0、改 0、仅新增；`test_qianyuan_text_host.py` 新增 4 条（六份提交件登记含空类别、终态 `awaiting_human` 且分歧数 = 24、不写 `candidate_set`、不登记 m4 阶段包；临时 Ledger；宿主缺失 `skipIf` 写明原因）。未写任何 `ruling_*.yaml`，未调用 `resume_m4`。
+- 干净树：knowledge_extraction `Ran 149 OK`；宿主 `m4/SHA256SUMS` 校验全部 OK；`m4-stage-gate.sh`（mini_ed01）`SUMMARY pass=13 fail=0 blocked=3`，与改前同；`run_all.sh` 基线不变。
+- **主 Agent 篡改**（临时副本）：offset 基准起点由片段 `start_offset` 改为 0 → `test_offset_level_candidate_set_all_twelve_checks_pass` 转红。
+- 持久 Ledger `var/ledgers/qianyuan_w8/`（不入库）：M4 `step_run_id = srun_bafd749946aa4cc1b0312cbb3ee1fa8e`；残留 0 字节 `writer.lock` 经 agy 只读分析为 `fcntl.flock` 进程锁（`pipeline/ledger/lock.py:25-37`），进程退出即释放，不阻塞后续导入。
+- 用户待办：`var/ledgers/qianyuan_w8_review/m4_rulings.yaml`（主 Agent 从 `dispute_queue` 原样导出，未预填、无建议）。
