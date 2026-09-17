@@ -10,7 +10,7 @@ from pipeline.ledger.service import LedgerService
 import pipeline.review.inputs
 from pipeline.review.errors import ReviewRefused
 from pipeline.review.step import close_review, open_review, record_decision, recover_review
-from pipeline.review.testing.upstream_stub import seed_upstream, load_data
+from pipeline.review.testing.upstream_stub import seed_upstream, seed_offset_upstream, load_data
 
 ROOT = Path(__file__).resolve().parents[3]
 FIXTURE_DIR = ROOT / "pipeline" / "corpus" / "_fixture" / "mini_ed01"
@@ -344,6 +344,18 @@ class TestStepOpen(unittest.TestCase):
         recover_review(self.service, self.edition_part_id, reason="test_status")
         old_step = self.service.get_step_run(step_run_id)
         self.assertEqual(old_step["status"], "awaiting_human")
+
+    def test_seed_offset_upstream_open_review_awaiting_human(self):
+        offset_dir = Path(tempfile.mkdtemp(prefix="m6-offset-open-test-"))
+        self.addCleanup(shutil.rmtree, offset_dir, True)
+        service = LedgerService(offset_dir / "ledger")
+        self.addCleanup(service.close)
+        seed_res = seed_offset_upstream(service)
+        ep_id = seed_res["edition_part_id"]
+        res = open_review(service, ep_id)
+        self.assertEqual(res["status"], "awaiting_human")
+        self.assertTrue(res["resume_token"])
+        self.assertEqual(len(res["queue"]), 5)
 
 
 if __name__ == "__main__":

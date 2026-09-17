@@ -9,7 +9,7 @@ from pathlib import Path
 import yaml
 
 from pipeline.ledger.service import LedgerService
-from pipeline.review.testing.upstream_stub import seed_upstream
+from pipeline.review.testing.upstream_stub import seed_upstream, seed_offset_upstream
 
 ROOT = Path(__file__).resolve().parents[3]
 FIXTURE_DIR = ROOT / "pipeline" / "corpus" / "_fixture" / "mini_ed01"
@@ -227,6 +227,79 @@ class TestConsole(unittest.TestCase):
         self.assertEqual(res_close.returncode, 2)
         out = res_close.stdout + res_close.stderr
         self.assertIn("M6 REFUSED", out)
+
+    def test_show_prints_offset_level_evidence_anchor_fields(self):
+        offset_tmp = tempfile.mkdtemp(prefix="m6-offset-console-test-")
+        self.addCleanup(shutil.rmtree, offset_tmp, True)
+        ledger_dir = Path(offset_tmp) / "ledger"
+        service = LedgerService(ledger_dir)
+        try:
+            seed_res = seed_offset_upstream(service)
+            ep_id = seed_res["edition_part_id"]
+        finally:
+            service.close()
+
+        env = os.environ.copy()
+        env["PYTHONPATH"] = str(ROOT)
+        cmd_open = [
+            sys.executable,
+            "-m",
+            "pipeline.review",
+            "--root",
+            str(ledger_dir),
+            "open",
+            "--edition-part",
+            ep_id,
+        ]
+        res_open = subprocess.run(cmd_open, capture_output=True, text=True, env=env, cwd=str(ROOT))
+        self.assertEqual(res_open.returncode, 0, res_open.stderr)
+        lines = [line.strip() for line in res_open.stdout.strip().split("\n") if line.strip()]
+        step_run_id = lines[-1].split()[2]
+
+        cmd_show = [
+            sys.executable,
+            "-m",
+            "pipeline.review",
+            "--root",
+            str(ledger_dir),
+            "show",
+            "--step-run",
+            step_run_id,
+            "--item",
+            "as_qizheng_000001#review_source_fidelity",
+        ]
+        res_show = subprocess.run(cmd_show, capture_output=True, text=True, env=env, cwd=str(ROOT))
+        self.assertEqual(res_show.returncode, 0, res_show.stderr)
+        out = res_show.stdout
+        self.assertIn("TARGET as_qizheng_000001", out)
+        self.assertIn("EVIDENCE ss_qianyuan_ed01_o0008663", out)
+        self.assertIn("raw_text_revision_id=", out)
+        self.assertIn("raw_start=8663", out)
+        self.assertIn("raw_end=8673", out)
+        self.assertIn("start_offset=8663", out)
+        self.assertIn("end_offset=8673", out)
+        self.assertIn("quote=天官者，天干之官", out)
+
+    def test_glyphbox_console_output_format_invariance(self):
+        # 既有 glyphbox 路线控制台输出逐字段不破坏
+        step_run_id, token, _ = self._open_review()
+        res = self._run_cli(
+            "show",
+            "--step-run",
+            step_run_id,
+            "--item",
+            "as_qizheng_000001#review_source_fidelity",
+        )
+        self.assertEqual(res.returncode, 0)
+        lines = [l for l in res.stdout.splitlines() if l.startswith("EVIDENCE ")]
+        self.assertTrue(len(lines) >= 1)
+        ev_line = lines[0]
+        self.assertIn("page=", ev_line)
+        self.assertIn("line=", ev_line)
+        self.assertIn("bbox=", ev_line)
+        self.assertIn("image_sha256=", ev_line)
+        self.assertIn("quote=", ev_line)
+        self.assertNotIn("raw_text_revision_id=", ev_line)
 
 
 if __name__ == "__main__":

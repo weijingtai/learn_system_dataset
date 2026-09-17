@@ -206,22 +206,40 @@ def cmd_show(args):
         for ev in target.get("evidence", []):
             span_id = ev.get("source_span_id")
             span = spans_dict.get(span_id, {})
-            page = span.get("page", "-")
             anchor = span.get("source_anchor") or {}
-            line_id = anchor.get("line_id", "-")
-            bbox = anchor.get("bbox")
-            if bbox and isinstance(bbox, dict):
-                bbox_str = f"{bbox.get('x', 0)},{bbox.get('y', 0)},{bbox.get('w', 0)},{bbox.get('h', 0)}"
-            else:
-                bbox_str = "-"
-            image_sha256 = anchor.get("image_sha256", "-")
+            is_offset_level = (
+                span.get("evidence_level") == "offset_level"
+                or "raw_text_revision_id" in anchor
+                or spans_doc.get("evidence_level") == "offset_level"
+            )
             quote = ev.get("quote")
             if quote is None:
                 text = span.get("text", "")
                 start = ev.get("start_offset", ev.get("start", 0))
                 end = ev.get("end_offset", ev.get("end", len(text)))
                 quote = text[start:end]
-            print(f"EVIDENCE {span_id} page={page} line={line_id} bbox={bbox_str} image_sha256={image_sha256} quote={quote}")
+
+            if is_offset_level:
+                raw_rev = anchor.get("raw_text_revision_id", "-")
+                raw_start = anchor.get("raw_start", "-")
+                raw_end = anchor.get("raw_end", "-")
+                s_off = anchor.get("start_offset", span.get("start_offset", "-"))
+                e_off = anchor.get("end_offset", span.get("end_offset", "-"))
+                print(
+                    f"EVIDENCE {span_id} raw_text_revision_id={raw_rev} "
+                    f"raw_start={raw_start} raw_end={raw_end} "
+                    f"start_offset={s_off} end_offset={e_off} quote={quote}"
+                )
+            else:
+                page = span.get("page", "-")
+                line_id = anchor.get("line_id", "-")
+                bbox = anchor.get("bbox")
+                if bbox and isinstance(bbox, dict):
+                    bbox_str = f"{bbox.get('x', 0)},{bbox.get('y', 0)},{bbox.get('w', 0)},{bbox.get('h', 0)}"
+                else:
+                    bbox_str = "-"
+                image_sha256 = anchor.get("image_sha256", "-")
+                print(f"EVIDENCE {span_id} page={page} line={line_id} bbox={bbox_str} image_sha256={image_sha256} quote={quote}")
 
         gr_rev = val_pkg_doc.get("gate_results_revision_id")
         gr_doc = _read_doc(reader, gr_rev) if gr_rev else {}
