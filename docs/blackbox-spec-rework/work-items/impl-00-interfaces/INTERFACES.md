@@ -339,7 +339,7 @@
 | M2 | `raw_text` | 任务级（未经清洗的原始文字） | 代码草案（P3） | M2 电子文本薄接入（act/14 登记；实现见 impl-00 后续） |
 | M2 | `cleaned_text_revision` | 任务级（清洗后文字修订） | 代码草案（P3） | 同上 |
 | M2 | `deterministic_patch_set` | 任务级（确定性修补集） | 代码草案（P3） | 同上 |
-| M2 | `sanitization_report` | 任务级（清洗报告） | `sanitization_report` 代码草案（见 §3.7）；键集：`{finding_id, kind, raw_start, raw_end, raw_excerpt, context, action, patch_id, basis, terminal_state}`；`kind` ∈ `{hook_variant, fallback_variant, orthographic_variant, truncated_source, numeral_mismatch}`；`terminal_state` ∈ `{patch_applied, superseded, deferred, terminal}` | 同上 |
+| M2 | `sanitization_report` | 任务级（清洗报告） | `sanitization_report` 代码草案（P3）；键集：`{finding_id, kind, raw_start, raw_end, raw_excerpt, context, action, patch_id, basis, terminal_state}`；`kind` 与 `terminal_state` 的枚举**不在本表复述**，唯一权威为 `impl-09-intake/README.md`《清洗发现》的 kind 闭集与 terminal_state 闭集两节、以及代码常量 `pipeline.digitization.FINDING_KINDS` / `pipeline.digitization.TERMINAL_STATES`（第 85 条；第 103 条 D2 更正本行原先登记的陈旧枚举） | 同上 |
 | M3 | `corpus_batch` / `corpus_spans` / `coverage_report` / `corpus_package` | 任务级 / 主内容 / 报告 / 阶段输出 | — | 【实际】 |
 | M4 | `candidate_submission` | 任务级（每路 category×lane 的提交件） | 代码草案 0.1.0-draft（P3） | M4 薄接入（act/12 登记；实现见 impl-05） |
 | M4 | `candidate_lane_set` | 任务级（每路规范化结果） | 代码草案（P3） | 同上 |

@@ -173,8 +173,11 @@ fixture 上的期望判定（目标消费级别 `INTERNAL_DEMO`，§22.1 第 968
 | `count_mismatch` | `g2_count_reconciliation` | 「计数对账不符」无语义吻合码 |
 | `unproofread_glyphs` | `g1_unresolved_chars` | 「未人工校对」是披露项而非「未决字符」错误码 |
 | `replay_tool_mismatch` | `g1_replay` | 「工具版本不符」不属 SRC_003（哈希）/REF_001（引用） |
+| `known_unresolvable_char_disclosed` | `g1_unresolved_chars` | 「已知不可解决但如实披露」（第 103 条 D1）是披露项而非错误，无错误码可映射 |
 
 其余检查名逐一映射到九码；`act/00` 的 `CHECK_CODES` 为权威表，`tests/test_registry.py` 逐项断言其值 ⊆ `ERROR_CODES ∪ {None}`。实现中若发现新的无映射检查名，同规则取 `null` 并在实现回报中登记。
+
+**offset 档新增检查名（R83b，第 103 条 D1）**：`known_unresolvable_char_disclosed` 已进 `registry.CHECK_CODES`（`code: null`，见上表）；其余 R83 新增检查名 `source_asset_mismatch`（SRC_003）、`anchor_offset_mismatch`（REF_001）、`anchor_revision_mismatch`（REF_001）、`raw_anchor_mismatch`（TXT_001）均落在 §8.2 九码闭集内，无需登记缺口。
 
 ## 6. 目录（落地后）
 

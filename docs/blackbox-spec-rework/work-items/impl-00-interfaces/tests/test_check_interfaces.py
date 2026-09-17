@@ -21,6 +21,7 @@ if str(W) not in sys.path:
 import check_interfaces as ci  # noqa: E402
 
 REPO_DOC = W / "INTERFACES.md"
+REPO = W.parents[3]
 SUMMARY_RE = re.compile(r"^I00-IF SUMMARY pass=\d+ fail=\d+$")
 
 
@@ -216,6 +217,73 @@ class CheckInterfacesTest(unittest.TestCase):
         self.assertTrue(SUMMARY_RE.match(last), last)
         self.assertIn("fail=0", last)
         self.assertEqual(rc, 0)
+
+
+class M2ClosedSetTest(unittest.TestCase):
+    """第 103 条 D2（R83c）：kind / terminal_state 枚举的唯一权威在 impl-09 README 与代码常量。"""
+
+    def setUp(self):
+        self.text = REPO_DOC.read_text(encoding="utf-8")
+        self._tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmp.cleanup)
+        self.tmp = Path(self._tmp.name)
+        self.constants = (REPO / "pipeline" / "digitization" / "__init__.py").read_text(
+            encoding="utf-8"
+        )
+        self.readme = W.parent / "impl-09-intake" / "README.md"
+
+    def _copy(self, text: str) -> Path:
+        path = self.tmp / "INTERFACES.md"
+        path.write_text(text, encoding="utf-8")
+        return path
+
+    def _add_enum_clause(self, clause: str) -> Path:
+        """把一条 ``∈ `{...}` `` 枚举子句插到 sanitization_report 行（键集之后）。"""
+        anchor = "`kind` 与 `terminal_state` 的枚举"
+        self.assertIn(anchor, self.text)
+        patched = self.text.replace(anchor, clause + "；" + anchor, 1)
+        return self._copy(patched)
+
+    def test_if37_if38_pass_when_enums_not_restated(self):
+        res = statuses(ci.run_checks(REPO_DOC))
+        self.assertEqual(res["IF37"], "PASS")
+        self.assertEqual(res["IF38"], "PASS")
+        self.assertEqual(res["IF39"], "PASS")
+
+    def test_restored_stale_kind_enum_fails(self):
+        stale = "`kind` ∈ `{hook_variant, fallback_variant, orthographic_variant, truncated_source, numeral_mismatch}`"
+        res = statuses(ci.run_checks(self._add_enum_clause(stale)))
+        self.assertEqual(res["IF37"], "FAIL")
+        self.assertEqual(res["IF38"], "PASS")
+
+    def test_restored_stale_terminal_state_enum_fails(self):
+        stale = "`terminal_state` ∈ `{patch_applied, superseded, deferred, terminal}`"
+        res = statuses(ci.run_checks(self._add_enum_clause(stale)))
+        self.assertEqual(res["IF38"], "FAIL")
+        self.assertEqual(res["IF37"], "PASS")
+
+    def test_kind_enum_matching_code_constants_passes(self):
+        kinds = ci.code_tuple(self.constants, "FINDING_KINDS")
+        clause = "`kind` ∈ `{%s}`" % ", ".join("`%s`" % kind for kind in kinds)
+        res = statuses(ci.run_checks(self._add_enum_clause(clause)))
+        self.assertEqual(res["IF37"], "PASS")
+
+    def test_code_constants_drift_from_impl09_readme_fails(self):
+        modified = self.readme.read_text(encoding="utf-8").replace(
+            "`control_char`（控制字符）、", ""
+        )
+        readme_copy = self.tmp / "README.md"
+        readme_copy.write_text(modified, encoding="utf-8")
+        res = statuses(ci.run_checks(REPO_DOC, impl09_readme_path=readme_copy))
+        self.assertEqual(res["IF39"], "FAIL")
+
+    def test_missing_code_constants_fail(self):
+        constants_copy = self.tmp / "digitization_init.py"
+        constants_copy.write_text("# 空文件\n", encoding="utf-8")
+        res = statuses(ci.run_checks(REPO_DOC, m2_constants_path=constants_copy))
+        self.assertEqual(res["IF37"], "FAIL")
+        self.assertEqual(res["IF38"], "FAIL")
+        self.assertEqual(res["IF39"], "FAIL")
 
 
 if __name__ == "__main__":

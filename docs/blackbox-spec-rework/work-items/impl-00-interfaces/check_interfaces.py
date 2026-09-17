@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""impl-00/14：INTERFACES.md §4 临时闭集登记检查器（IF01–IF36）。
+"""impl-00/14：INTERFACES.md §4 临时闭集登记检查器（IF01–IF39）。
 
 只用标准库。按行解析 `INTERFACES.md` 的 §4 表，逐项判定并输出
 `PASS IFnn <名>` / `FAIL IFnn <名> <原因>`，末行 `I00-IF SUMMARY pass=<n> fail=<n>`。
@@ -15,7 +15,12 @@ CorrectionRequest 为 `human_event`，不是独立类型）；
 IF30–IF33 为 impl-00/14 新增的 M2 电子文本四个类型（各在 §4 表出现恰一次）；
 IF34 检查 `sanitization_report` 行含最小键集说明；
 IF35 检查 `ss_` 行含偏移形态说明；
-IF36 检查 `sem_` 前缀在登记册出现。
+IF36 检查 `sem_` 前缀在登记册出现；
+IF37–IF39 为第 103 条 D2 新增（impl-00 返工 R83c）：§4 `sanitization_report` 行
+若复述 `kind`／`terminal_state` 枚举，必须与代码常量逐一相等（IF37／IF38）；
+代码常量必须与 impl-09 README《清洗发现》的权威闭集逐一相等（IF39）。
+权威次序：impl-09 README + `pipeline.digitization` 常量（第 85 条）——登记表不复述，
+只引用。
 """
 from __future__ import annotations
 
@@ -73,6 +78,16 @@ SECTION_END = "## 5."
 TOKEN_RE = re.compile(r"`([^`]+)`")
 SEPARATOR_RE = re.compile(r"^\|[\s\-:|]+\|$")
 
+# 第 103 条 D2：§4 `sanitization_report` 行若复述枚举，形态为 `` `kind` ∈ `{a, b}` ``
+ENUM_CLAUSE_RE = "`%s`\\s*∈\\s*`\\{([^}]*)\\}`"
+# 代码常量形态（pipeline/digitization/__init__.py）：NAME = ( "a", "b", )
+CODE_TUPLE_RE = '^%s\\s*=\\s*\\(([^)]*)\\)'
+# impl-09 README 权威闭集行首：``**`kind` 闭集**``
+README_SET_PREFIX = "**`%s` 闭集**"
+# M2 清洗发现的权威来源（第 85、103 条 D2）
+M2_CONSTANTS_RELPATH = ("pipeline", "digitization", "__init__.py")
+IMPL09_README_RELPATH = ("impl-09-intake", "README.md")
+
 IF_NAMES = {
     "IF01": "§4 表存在且数据行 ≥ 15",
     "IF10": "artifact_type 无重复",
@@ -83,6 +98,9 @@ IF_NAMES = {
     "IF34": "sanitization_report 行含最小键集说明",
     "IF35": "ss_ 行含偏移形态说明",
     "IF36": "sem_ 前缀在登记册出现",
+    "IF37": "sanitization_report 行的 kind 枚举（若复述）== 代码常量 FINDING_KINDS",
+    "IF38": "sanitization_report 行的 terminal_state 枚举（若复述）== 代码常量 TERMINAL_STATES",
+    "IF39": "代码常量 FINDING_KINDS/TERMINAL_STATES == impl-09 README 权威闭集",
 }
 # IF02–IF09：首纵切 required 类型
 for _i, _t in enumerate(REQUIRED_TYPES):
@@ -147,8 +165,55 @@ def _status_cell(rows, token: str):
     return None
 
 
-def run_checks(path: Path, registry_path: Path | None = None) -> list:
-    """执行 IF01–IF36，返回 [(编号, 状态, 原因)]，按编号升序。"""
+def sanitization_row_text(rows) -> str:
+    """返回 §4 表中 `sanitization_report` 那一行的全文（各列以空格连接）。"""
+    for cells in rows:
+        if len(cells) >= 2 and "sanitization_report" in TOKEN_RE.findall(cells[1]):
+            return " ".join(cells)
+    return ""
+
+
+def enum_tokens(text: str, label: str):
+    """取 `` `LABEL` ∈ `{a, b}` `` 的取值列表；未复述枚举时返回 None。"""
+    match = re.search(ENUM_CLAUSE_RE % re.escape(label), text)
+    if match is None:
+        return None
+    return [
+        token.strip().strip("`")
+        for token in match.group(1).split(",")
+        if token.strip()
+    ]
+
+
+def code_tuple(text: str, name: str):
+    """从代码文本取 ``NAME = ( "a", "b", )`` 的字符串元组；找不到返回 None。"""
+    match = re.search(CODE_TUPLE_RE % re.escape(name), text, re.M)
+    if match is None:
+        return None
+    return re.findall(r'"([^"]+)"', match.group(1))
+
+
+def readme_closed_set(text: str, label: str):
+    """从 impl-09 README 取 ``**`LABEL` 闭集**：...`` 行的反引号取值列表。"""
+    for line in text.splitlines():
+        if line.startswith(README_SET_PREFIX % label):
+            return [token for token in TOKEN_RE.findall(line) if token != label]
+    return None
+
+
+def _repo_root() -> Path:
+    """返回仓库根（本文件位于 docs/blackbox-spec-rework/work-items/impl-00-interfaces/）。"""
+    return Path(__file__).resolve().parents[4]
+
+
+def run_checks(
+    path: Path,
+    registry_path: Path | None = None,
+    *,
+    impl09_readme_path: Path | None = None,
+    m2_constants_path: Path | None = None,
+) -> list:
+    """执行 IF01–IF39，返回 [(编号, 状态, 原因)]，按编号升序。"""
     try:
         text = Path(path).read_text(encoding="utf-8")
         rows = parse_table(text)
@@ -214,6 +279,58 @@ def run_checks(path: Path, registry_path: Path | None = None) -> list:
         registry_path = Path(__file__).resolve().parent.parent.parent.parent.parent / "openspec" / "id-prefix-registry.md"
     registry_text = registry_path.read_text(encoding="utf-8") if registry_path.is_file() else ""
     add("IF36", "sem_" in registry_text, "" if "sem_" in registry_text else "缺 sem_")
+    # IF37–IF39：第 103 条 D2（登记表不复述枚举；复述则须与代码常量、README 权威一致）
+    _root = _repo_root()
+    constants_path = m2_constants_path or _root.joinpath(*M2_CONSTANTS_RELPATH)
+    readme_path = impl09_readme_path or (
+        Path(__file__).resolve().parent.parent.joinpath(*IMPL09_README_RELPATH)
+    )
+    try:
+        constants_text = constants_path.read_text(encoding="utf-8")
+    except Exception:  # noqa: BLE001
+        constants_text = ""
+    try:
+        readme_text = readme_path.read_text(encoding="utf-8")
+    except Exception:  # noqa: BLE001
+        readme_text = ""
+    code_kinds = code_tuple(constants_text, "FINDING_KINDS")
+    code_terminals = code_tuple(constants_text, "TERMINAL_STATES")
+    row_text = sanitization_row_text(rows)
+
+    for num, label, code_values in (
+        ("IF37", "kind", code_kinds),
+        ("IF38", "terminal_state", code_terminals),
+    ):
+        declared = enum_tokens(row_text, label)
+        if code_values is None:
+            add(num, False, "代码常量缺失: %s" % constants_path)
+        elif declared is None:
+            add(num, True, "未复述枚举（引用权威）")
+        else:
+            add(
+                num,
+                declared == code_values,
+                "登记 %r != 代码常量 %r" % (declared, code_values),
+            )
+
+    if code_kinds is None or code_terminals is None:
+        add("IF39", False, "代码常量缺失: %s" % constants_path)
+    else:
+        readme_kinds = readme_closed_set(readme_text, "kind")
+        readme_terminals = readme_closed_set(readme_text, "terminal_state")
+        problems = []
+        if readme_kinds is None:
+            problems.append("README 缺 kind 闭集行")
+        elif readme_kinds != code_kinds:
+            problems.append("kind 代码常量 %r != README %r" % (code_kinds, readme_kinds))
+        if readme_terminals is None:
+            problems.append("README 缺 terminal_state 闭集行")
+        elif readme_terminals != code_terminals:
+            problems.append(
+                "terminal_state 代码常量 %r != README %r" % (code_terminals, readme_terminals)
+            )
+        add("IF39", not problems, "; ".join(problems))
+
     out.sort(key=lambda item: item[0])
     return out
 
