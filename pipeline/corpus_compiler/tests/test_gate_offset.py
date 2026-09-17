@@ -290,19 +290,54 @@ class TestGateOffset(unittest.TestCase):
         self.assertFalse(res["passed"])
         self.assertFalse(res["checks"]["header_counts"]["ok"])
 
-    def test_assemble_m3_text_stage_package_conforms_to_schema(self):
-        """StagePackage 通过 openspec/schemas/stage_package.schema.json 校验（act/03 contract 2）。"""
-        spans_bytes = json.dumps(self.spans_doc, ensure_ascii=False).encode("utf-8")
-        pkg = assemble_m3_text_stage_package(
-            edition_part_id="art_000000000000000000000000000000e1",
-            spans_revision_id="rev_00000000000000000000000000000001",
-            spans_bytes=spans_bytes,
-            spans_doc=self.spans_doc,
-            validation_report_revision_id="rev_00000000000000000000000000000002",
-            coverage_report_revision_id="rev_00000000000000000000000000000003",
+    def _frozen_ref(self, revision_id, artifact_type):
+        return {
+            "schema_version": "1.0.0",
+            "artifact_kind": "artifact",
+            "artifact_id": "art_" + revision_id[len("rev_"):],
+            "artifact_revision_id": revision_id,
+            "artifact_type": artifact_type,
+        }
+
+    def _assemble(self, **overrides):
+        """按新签名组装一个 m3 StagePackage（默认值为 synthetic 正例）。"""
+        frozen_refs = overrides.pop(
+            "frozen_artifact_refs",
+            [
+                self._frozen_ref("rev_00000000000000000000000000000011", "raw_text"),
+                self._frozen_ref("rev_00000000000000000000000000000012", "cleaned_text_revision"),
+                self._frozen_ref(
+                    "rev_00000000000000000000000000000013", "deterministic_patch_set"
+                ),
+                self._frozen_ref("rev_00000000000000000000000000000014", "sanitization_report"),
+            ],
+        )
+        params = dict(
+            stage_package_id="pkg_m3_" + "0" * 32,
+            artifact_revision_id="rev_" + "0" * 32,
+            processing_run_id="prun_" + "0" * 32,
             step_run_id="srun_00000000000000000000000000000001",
+            spans_revision_id="rev_00000000000000000000000000000001",
+            spans_bytes=json.dumps(self.spans_doc, ensure_ascii=False).encode("utf-8"),
+            counts={"spans": len(self.spans_doc["spans"]), "batches": 1},
+            coverage={"qianyuan_ed01_text": 1.0},
+            excluded_pages={},
+            frozen_artifact_refs=frozen_refs,
+            corpus_package_ref=self._frozen_ref(
+                "rev_00000000000000000000000000000021", "corpus_package"
+            ),
+            validation_report_refs=[
+                self._frozen_ref("rev_00000000000000000000000000000022", "validation_report")
+            ],
+            log_refs=[self._frozen_ref("rev_00000000000000000000000000000023", "step_log")],
             transformations=[],
         )
+        params.update(overrides)
+        return assemble_m3_text_stage_package(**params)
+
+    def test_assemble_m3_text_stage_package_conforms_to_schema(self):
+        """StagePackage 通过 openspec/schemas/stage_package.schema.json 校验（act/03 contract 2）。"""
+        pkg = self._assemble()
         schema_path = (
             Path(__file__).resolve().parents[3]
             / "openspec"
@@ -317,56 +352,80 @@ class TestGateOffset(unittest.TestCase):
         validator.validate(pkg)
 
     def test_assemble_m3_text_stage_package_payload_keys(self):
-        """payload 键序与 act/03 contract 逐字一致，且 evidence_level 为 offset_level。"""
-        pkg = assemble_m3_text_stage_package(
-            edition_part_id="art_000000000000000000000000000000e1",
-            spans_revision_id="rev_00000000000000000000000000000001",
-            spans_bytes=b"sample_bytes",
-            spans_doc=self.spans_doc,
-            validation_report_revision_id="rev_00000000000000000000000000000002",
-            coverage_report_revision_id="rev_00000000000000000000000000000003",
-            step_run_id="srun_00000000000000000000000000000001",
-            transformations=[],
-        )
+        """payload 键名与键序逐字对齐 OCR 路线；evidence_level 不入 payload（第 102 条 Q4⑤）。"""
+        pkg = self._assemble()
         payload = pkg["payload"]
         self.assertEqual(
             list(payload.keys()),
             [
                 "spans_revision_id",
-                "coverage_report_revision_id",
                 "coverage",
+                "excluded_pages",
                 "gate_profile",
-                "evidence_level",
+                "semantic",
             ],
         )
         self.assertEqual(payload["spans_revision_id"], "rev_00000000000000000000000000000001")
-        self.assertEqual(
-            payload["coverage_report_revision_id"], "rev_00000000000000000000000000000003"
-        )
-        self.assertEqual(payload["coverage"], len(self.spans_doc["spans"]))
+        self.assertEqual(payload["coverage"], {"qianyuan_ed01_text": 1.0})
+        self.assertEqual(payload["excluded_pages"], {})
         self.assertEqual(payload["gate_profile"], "structural_only")
-        self.assertEqual(payload["evidence_level"], "offset_level")
+        self.assertEqual(payload["semantic"], "not_evaluated")
+        self.assertNotIn("evidence_level", payload)
+
+    def test_assemble_m3_text_stage_package_key_sets_match_ocr_route(self):
+        """各层键名/键序逐字等于 OCR 路线（step.py），下游不得另写读取分支（第 100 条 D2）。"""
+        pkg = self._assemble()
+        ocr_top = [
+            "schema_version",
+            "stage_package_id",
+            "artifact_revision_id",
+            "stage",
+            "status",
+            "payload",
+            "manifest",
+            "validation",
+            "lineage",
+            "logs",
+            "failures",
+        ]
+        self.assertEqual(list(pkg.keys()), ocr_top)
+        self.assertEqual(
+            list(pkg["manifest"].keys()),
+            [
+                "schema_version",
+                "processing_run_id",
+                "step_run_id",
+                "input_artifacts",
+                "output_artifacts",
+                "counts",
+                "content_sha256",
+            ],
+        )
+        self.assertEqual(list(pkg["manifest"]["counts"].keys()), ["spans", "batches"])
+        self.assertEqual(list(pkg["validation"].keys()), ["passed", "report_artifacts"])
+        self.assertEqual(list(pkg["lineage"].keys()), ["upstream_artifacts", "transformations"])
+        self.assertEqual(
+            list(pkg["validation"]["report_artifacts"][0].keys()),
+            [
+                "schema_version",
+                "artifact_kind",
+                "artifact_id",
+                "artifact_revision_id",
+                "artifact_type",
+            ],
+        )
 
     def test_assemble_m3_text_stage_package_manifest_sha256(self):
         """manifest.content_sha256 与实际内容字节重算一致，counts.spans 与实际片段数一致。"""
         spans_bytes = json.dumps(self.spans_doc, ensure_ascii=False).encode("utf-8")
-        pkg = assemble_m3_text_stage_package(
-            edition_part_id="art_000000000000000000000000000000e1",
-            spans_revision_id="rev_00000000000000000000000000000001",
-            spans_bytes=spans_bytes,
-            spans_doc=self.spans_doc,
-            validation_report_revision_id="rev_00000000000000000000000000000002",
-            coverage_report_revision_id="rev_00000000000000000000000000000003",
-            step_run_id="srun_00000000000000000000000000000001",
-            transformations=[],
-        )
+        pkg = self._assemble(spans_bytes=spans_bytes)
         self.assertEqual(
             pkg["manifest"]["content_sha256"], hashlib.sha256(spans_bytes).hexdigest()
         )
         self.assertEqual(pkg["manifest"]["counts"]["spans"], len(self.spans_doc["spans"]))
 
     def test_assemble_m3_text_stage_package_lineage(self):
-        """lineage 原样承载本 StepRun 变换，其输入为本次冻结输入。"""
+        """lineage.upstream_artifacts 指向本次冻结的 M2 四件产物（第 102 条 Q4④）。"""
         spans_revision_id = "rev_00000000000000000000000000000001"
         transformations = [
             {
@@ -379,19 +438,22 @@ class TestGateOffset(unittest.TestCase):
                 ],
             }
         ]
-        pkg = assemble_m3_text_stage_package(
-            edition_part_id="art_000000000000000000000000000000e1",
-            spans_revision_id=spans_revision_id,
-            spans_bytes=b"sample",
-            spans_doc=self.spans_doc,
-            validation_report_revision_id="rev_00000000000000000000000000000002",
-            coverage_report_revision_id="rev_00000000000000000000000000000003",
-            step_run_id="srun_00000000000000000000000000000001",
-            transformations=transformations,
+        pkg = self._assemble(
+            spans_revision_id=spans_revision_id, transformations=transformations
         )
         lineage = pkg["lineage"]
         self.assertEqual(list(lineage.keys()), ["upstream_artifacts", "transformations"])
-        self.assertEqual(lineage["upstream_artifacts"], [])
+        self.assertEqual(
+            [ref["artifact_type"] for ref in lineage["upstream_artifacts"]],
+            [
+                "raw_text",
+                "cleaned_text_revision",
+                "deterministic_patch_set",
+                "sanitization_report",
+            ],
+        )
+        # manifest.input_artifacts 与 lineage.upstream_artifacts 同源（同为本次冻结输入）
+        self.assertEqual(pkg["manifest"]["input_artifacts"], lineage["upstream_artifacts"])
         self.assertEqual(lineage["transformations"], transformations)
         self.assertEqual(
             lineage["transformations"][0]["input_artifact_revision_ids"],

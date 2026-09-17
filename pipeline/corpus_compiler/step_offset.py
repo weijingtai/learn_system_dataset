@@ -1,8 +1,14 @@
-"""M3 电子文本事务：输入解析与 StepRun 写路径（G7-RULINGS 第 76、78 条，act/02）。
+"""M3 电子文本事务：输入解析与 StepRun 写路径（G7-RULINGS 第 76、78、100、102 条，act/02）。
 
 本模块实现：
 1. resolve_m3_text_inputs：从 Ledger 解析 M2 四类产物（P5 门禁、deferred 门禁、零写入）；
-2. run_m3_text：执行 M3 电子文本编译事务序列（Checkpoint 批次链、corpus_spans 封存、血缘记录）。
+2. run_m3_text：执行 M3 电子文本编译事务序列（Checkpoint 批次链、corpus_spans、
+   coverage_report、corpus_package 与 m3 阶段包封存、血缘记录）。
+
+三件产物（``corpus_spans``/``coverage_report``/``corpus_package``）与 m3 阶段包的键名、键序
+与 OCR 路线（``pipeline/corpus_compiler/step.py``）逐一相等，下游不得为电子文本另写读取分支
+（第 100 条 D2）。Gate 用电子文本路线自己的 ``gate_offset`` 判定（已验收）；Gate 不过即封存
+失败，不登记阶段包。
 
 严格遵守 P6（零网络调用）、第 88 条（SafeDumper 零污染）、P5（上游只认 succeeded）。
 """
@@ -17,10 +23,13 @@ from typing import Any
 
 import yaml
 
+from pipeline.intake import MANIFEST_TASK_ID
 from pipeline.ledger import ids
 from pipeline.ledger.service import LedgerService
 
+from .assemble_offset import assemble_m3_text_stage_package
 from .errors import CompileRefused
+from .gate_offset import evaluate_text_coverage
 from .text_compiler import compile_offset_spans
 
 # 失败检查名闭集（act/02 contract §2）
@@ -78,6 +87,110 @@ def _fail(service: LedgerService, step_run_id: str, check: str, detail: str) -> 
         "failed_check": check,
         "failure_revision_id": failure_rev,
         "reason": detail,
+    }
+
+
+def _artifact_ref(service: LedgerService, revision_id: str) -> dict:
+    """构造 artifact_ref（形态与 OCR 路线 ``step._artifact_ref`` 逐字一致，第 100 条 D2）。"""
+    row = service.store.conn.execute(
+        "SELECT a.artifact_id, a.artifact_type FROM artifacts a "
+        "JOIN artifact_revisions r ON r.artifact_id = a.artifact_id "
+        "WHERE r.artifact_revision_id=?",
+        (revision_id,),
+    ).fetchone()
+    if row is None:
+        raise CompileRefused("SCH_001: 制品修订不存在: %s" % revision_id)
+    return {
+        "schema_version": "1.0.0",
+        "artifact_kind": "artifact",
+        "artifact_id": row[0],
+        "artifact_revision_id": revision_id,
+        "artifact_type": row[1],
+    }
+
+
+def _resolve_m1_page_ids(service: LedgerService, edition_part_id: str) -> list:
+    """解析 M1 ``source_manifest`` 的页单位标识（第 102 条 Q4①）。
+
+    电子文本在 M1 中的 page 标识即它的页单位（如 ``qianyuan_ed01_text``）。
+    """
+    for checkpoint in service.list_checkpoints(edition_part_id, "m1"):
+        for task in checkpoint["content"].get("completed_tasks", []):
+            if task.get("task_id") != MANIFEST_TASK_ID or task.get("status") != "succeeded":
+                continue
+            revision = service.get_revision(task["artifact_revision_id"])
+            if revision is None:
+                continue
+            manifest = yaml.safe_load(service.objects.get(revision["sha256"]).decode("utf-8"))
+            pages = (manifest.get("edition_part") or {}).get("pages") or []
+            if len(pages) != 1:
+                raise CompileRefused(
+                    "SCH_001: 电子文本路线要求 M1 恰 1 个 page 单位（第 102 条 Q4①），实际 %d 个"
+                    % len(pages)
+                )
+            return list(pages)
+    raise CompileRefused("SCH_001: 缺失 M1 source_manifest 产物（无法确定页单位）")
+
+
+def _page_gaps_and_overlaps(spans: list) -> tuple:
+    """按 ``start_offset`` 顺序实算页级缺口与重叠区间（OCR ``pages`` 同键）。"""
+    gaps = []
+    overlaps = []
+    previous_end = 0
+    for span in sorted(spans, key=lambda item: item.get("start_offset", 0)):
+        start = span.get("start_offset")
+        end = span.get("end_offset")
+        if not (isinstance(start, int) and isinstance(end, int)):
+            continue
+        if start > previous_end:
+            gaps.append([previous_end, start])
+        elif start < previous_end:
+            overlaps.append([start, previous_end])
+        previous_end = max(previous_end, end)
+    return gaps, overlaps
+
+
+def _coverage_report(
+    *,
+    gate: dict,
+    page_ids: list,
+    span_count: int,
+    coverage_value: float,
+    line_count: int,
+    spans: list,
+) -> dict:
+    """把已验收的电子文本 Gate 结果转换为 OCR 外形的 coverage_report（第 102 条 Q4③）。
+
+    - ``checks.<名>.failures``：失败时 ``[detail]``，通过时 ``[]``（与 OCR 同键）；
+    - ``pages``：``{<M1 page 标识>: <与 OCR 同键的实算值>}``；``line_count`` 取该页单位
+      冻结 RawText 的物理行数，``span_count``/``coverage`` 为实算值，``gaps``/``overlaps``
+      由 Span 偏移实算；
+    - ``structural``/``semantic``/``gate_profile`` 与 OCR 同类取值；
+    - **不改变** ``gate_offset`` 的判定逻辑。
+    """
+    gaps, overlaps = _page_gaps_and_overlaps(spans)
+    checks = {
+        name: {"ok": check["ok"], "failures": [] if check["ok"] else [check["detail"]]}
+        for name, check in gate["checks"].items()
+    }
+    pages = {
+        page: {
+            "status": "covered",
+            "terminal_state": None,
+            "line_count": line_count,
+            "span_count": span_count,
+            "coverage": coverage_value,
+            "gaps": gaps,
+            "overlaps": overlaps,
+        }
+        for page in page_ids
+    }
+    return {
+        "gate_profile": "structural_only",
+        "structural": "passed" if gate["passed"] else "failed",
+        "semantic": "not_evaluated",
+        "checks": checks,
+        "pages": pages,
     }
 
 
@@ -250,6 +363,9 @@ def run_m3_text(
     # ---- P1. 输入解析（begin 之前，校验失败直接抛出，零写入）----
     inputs = resolve_m3_text_inputs(service, edition_part_id)
 
+    # 页单位（M1 page 标识）取自 M1 source_manifest（第 102 条 Q4①）；解析失败零写入。
+    page_ids = _resolve_m1_page_ids(service, edition_part_id)
+
     # 原始文本内容检查
     if not inputs.raw_text:
         raise CompileRefused("SCH_002: raw_text 不能为空")
@@ -389,8 +505,102 @@ def run_m3_text(
         )
         service.seal_revision(spans_rev_id)
 
-        # 5. 记录 compile_corpus 变换
-        output_artifacts = [spans_rev_id] + batch_rev_ids
+        # 5. Gate 判定与实算覆盖率（电子文本路线自己的 Gate，act/03）
+        covered_chars = sum(span["end_offset"] - span["start_offset"] for span in spans)
+        total_chars = len(inputs.cleaned_text)
+        coverage_value = (covered_chars / total_chars) if total_chars else 0.0
+        coverage = {page: coverage_value for page in page_ids}
+        excluded_pages = {}
+        line_count = len(inputs.raw_text.splitlines())
+
+        gate = evaluate_text_coverage(
+            raw_text=inputs.raw_text,
+            cleaned_text=inputs.cleaned_text,
+            patches=inputs.patches,
+            spans_doc=result["spans_doc"],
+        )
+        failed_checks = [name for name, check in gate["checks"].items() if not check["ok"]]
+
+        # 6. coverage_report / validation_report / step_log（写序与 OCR 路线一致：先写后判）
+        coverage_doc = _coverage_report(
+            gate=gate,
+            page_ids=page_ids,
+            span_count=len(spans),
+            coverage_value=coverage_value,
+            line_count=line_count,
+            spans=spans,
+        )
+        _, coverage_rev = service.put_artifact(
+            step_run_id,
+            "coverage_report",
+            json.dumps(coverage_doc, sort_keys=True, ensure_ascii=False).encode("utf-8"),
+            producer_module=M3_TEXT_TOOL,
+            producer_version=M3_TEXT_TOOL_VERSION,
+        )
+        service.seal_revision(coverage_rev)
+
+        validation_data = {
+            "gate_profile": "structural_only",
+            "structural": coverage_doc["structural"],
+            "semantic": "not_evaluated",
+            "failed_checks": failed_checks,
+        }
+        _, validation_rev = service.put_artifact(
+            step_run_id,
+            "validation_report",
+            json.dumps(validation_data, sort_keys=True, ensure_ascii=False).encode("utf-8"),
+            producer_module=M3_TEXT_TOOL,
+            producer_version=M3_TEXT_TOOL_VERSION,
+        )
+        service.seal_revision(validation_rev)
+
+        log_lines = [
+            "resolve_m3_text_inputs",
+            "compile_offset_spans spans=%d batches=%d" % (len(spans), len(batches)),
+            "evaluate_text_coverage structural=%s" % coverage_doc["structural"],
+        ]
+        _, log_rev = service.put_artifact(
+            step_run_id,
+            "step_log",
+            "\n".join(log_lines).encode("utf-8"),
+            producer_module=M3_TEXT_TOOL,
+            producer_version=M3_TEXT_TOOL_VERSION,
+        )
+        service.seal_revision(log_rev)
+
+        # 7. Gate 失败 → 失败封存，不产出 corpus_package、不登记阶段包（与 OCR 路线一致）
+        if not gate["passed"]:
+            return _fail(
+                service,
+                step_run_id,
+                "structural_gate",
+                "Gate 判定 failed: %s" % "; ".join(failed_checks),
+            )
+
+        # 8. corpus_package
+        corpus_data = json.dumps(
+            {
+                "spans_revision_id": spans_rev_id,
+                "coverage_report_revision_id": coverage_rev,
+                "coverage": coverage,
+                "excluded_pages": excluded_pages,
+                "gate_profile": "structural_only",
+                "semantic": "not_evaluated",
+            },
+            sort_keys=True,
+            ensure_ascii=False,
+        ).encode("utf-8")
+        _, corpus_rev = service.put_artifact(
+            step_run_id,
+            "corpus_package",
+            corpus_data,
+            producer_module=M3_TEXT_TOOL,
+            producer_version=M3_TEXT_TOOL_VERSION,
+        )
+        service.seal_revision(corpus_rev)
+
+        # 9. 记录 compile_corpus 变换（输出与 OCR 路线同形）
+        compiled_outputs = [corpus_rev, spans_rev_id, coverage_rev]
         service.record_transformation(
             step_run_id,
             operation="compile_corpus",
@@ -398,10 +608,48 @@ def run_m3_text(
             tool_version=M3_TEXT_TOOL_VERSION,
             configuration_revision_id=config_rev_id,
             input_revision_ids=frozen,
-            output_revision_ids=output_artifacts,
+            output_revision_ids=compiled_outputs,
+            validation_report_revision_id=validation_rev,
         )
 
-        # 6. 完成 StepRun
+        # 10. StagePackage（键名/键序与 OCR 路线逐一相等，第 100 条 D2）
+        stage_package_id = ids.new_id("stage_package_id", stage="m3")
+        package_revision_id = ids.new_id("artifact_revision_id")
+        package = assemble_m3_text_stage_package(
+            stage_package_id=stage_package_id,
+            artifact_revision_id=package_revision_id,
+            processing_run_id=processing_run_id,
+            step_run_id=step_run_id,
+            spans_revision_id=spans_rev_id,
+            spans_bytes=result["spans_bytes"],
+            counts={"spans": len(spans), "batches": len(batches)},
+            coverage=coverage,
+            excluded_pages=excluded_pages,
+            frozen_artifact_refs=[_artifact_ref(service, rev_id) for rev_id in frozen],
+            corpus_package_ref=_artifact_ref(service, corpus_rev),
+            validation_report_refs=[_artifact_ref(service, validation_rev)],
+            log_refs=[_artifact_ref(service, log_rev)],
+            transformations=[
+                {
+                    "operation": "compile_corpus",
+                    "step_run_id": step_run_id,
+                    "configuration_artifact_revision_id": config_rev_id,
+                    "input_artifact_revision_ids": frozen,
+                    "output_artifact_revision_ids": compiled_outputs,
+                }
+            ],
+        )
+        service.register_stage_package(
+            step_run_id,
+            package,
+            json.dumps(package, sort_keys=True, ensure_ascii=False).encode("utf-8"),
+            stage_package_id=stage_package_id,
+            artifact_revision_id=package_revision_id,
+        )
+        service.seal_revision(package_revision_id)
+
+        # 11. 完成 StepRun
+        output_artifacts = compiled_outputs + [package_revision_id]
         service.finish_step_run(
             step_run_id,
             {
@@ -411,8 +659,8 @@ def run_m3_text(
                 "status_version": 1,
                 "status": "succeeded",
                 "output_artifact_ids": output_artifacts,
-                "validation_report_ids": [],
-                "log_artifact_ids": [],
+                "validation_report_ids": [validation_rev],
+                "log_artifact_ids": [log_rev],
                 "failure_artifact_ids": [],
             },
         )
@@ -425,6 +673,15 @@ def run_m3_text(
             "counts": result["counts"],
             "batches": len(batches),
             "batch_checkpoint_ids": checkpoint_ids,
+            "coverage_report_revision_id": coverage_rev,
+            "corpus_package_revision_id": corpus_rev,
+            "validation_report_revision_id": validation_rev,
+            "log_revision_id": log_rev,
+            "stage_package_id": stage_package_id,
+            "package_revision_id": package_revision_id,
+            "coverage": coverage,
+            "excluded_pages": excluded_pages,
+            "gate": gate,
         }
 
     except Exception as exc:

@@ -8,16 +8,50 @@ import hashlib
 import json
 import tempfile
 import unittest
+from pathlib import Path
 from unittest.mock import patch
 
+import yaml
+
 from pipeline.corpus_compiler.errors import CompileRefused
+from pipeline.corpus_compiler.step import run_m3
 from pipeline.corpus_compiler.step_offset import (
     M3TextInputs,
     resolve_m3_text_inputs,
     run_m3_text,
 )
+from pipeline.intake import MANIFEST_TASK_ID
 from pipeline.ledger import ids
+from pipeline.ledger.fixture_ingest import ingest
 from pipeline.ledger.service import LedgerService
+
+REPO_ROOT = Path(__file__).resolve().parents[3]
+OCR_FIXTURE_DIR = REPO_ROOT / "pipeline" / "corpus" / "_fixture" / "mini_ed01"
+
+# 电子文本路线的页单位即 M1 page 标识（第 102 条 Q4①）
+E_TEXT_PAGE = "qianyuan_ed01_text"
+
+
+def _m1_source_manifest(edition_part_id: str) -> dict:
+    """构造最小 M1 ``source_manifest``（页单位取自 ``edition_part.pages``）。"""
+    return {
+        "schema_version": "1.0.0",
+        "source_id": "src_qianyuan_ed01",
+        "work_title": "乾元秘旨",
+        "edition_note": "synthetic",
+        "technique_id": "qizheng",
+        "rights_status": "synthetic",
+        "release_policy": "synthetic",
+        "edition_part": {
+            "artifact_id": edition_part_id,
+            "label": "synthetic",
+            "pages": [E_TEXT_PAGE],
+        },
+        "source_assets": [],
+        "files": [],
+        "conversion": {"tool": "test_setup", "tool_version": "0.1.0", "inputs": []},
+        "content_status": "source_verified",
+    }
 
 
 def _setup_m2_ledger(
@@ -70,6 +104,36 @@ def _setup_m2_ledger(
     )
     service.seal_revision(raw_rev)
 
+    # M1 source_manifest（电子文本的页单位来源；第 102 条 Q4①）
+    manifest_bytes = json.dumps(
+        _m1_source_manifest(edition_part_id), ensure_ascii=False, sort_keys=True
+    ).encode("utf-8")
+    _, manifest_rev = service.put_artifact(
+        srun_m1_id,
+        "source_manifest",
+        manifest_bytes,
+        producer_module="test_setup",
+        producer_version="0.1.0",
+    )
+    service.seal_revision(manifest_rev)
+
+    service.write_checkpoint(
+        srun_m1_id,
+        edition_part_id=edition_part_id,
+        stage="m1",
+        completed_tasks=[
+            {
+                "task_id": MANIFEST_TASK_ID,
+                "artifact_revision_id": manifest_rev,
+                "status": "succeeded",
+                "terminal_state": None,
+            }
+        ],
+        human_decisions=[],
+        pending_queue=[],
+        next_pointer=None,
+    )
+
     service.finish_step_run(
         srun_m1_id,
         {
@@ -78,7 +142,7 @@ def _setup_m2_ledger(
             "step_run_id": srun_m1_id,
             "status_version": 1,
             "status": "succeeded",
-            "output_artifact_ids": [raw_rev],
+            "output_artifact_ids": [manifest_rev, raw_rev],
             "validation_report_ids": [],
             "log_artifact_ids": [],
             "failure_artifact_ids": [],
@@ -430,6 +494,184 @@ class TestStepOffset(unittest.TestCase):
         summary = run_m3_text(self.service, self.edition_part_id, batch_size=1)
         self.assertEqual(summary["status"], "succeeded")
         self.assertEqual(summary["batches"], 3)
+
+    # ------------------------------------------------- 三件产物与 m3 阶段包（R81b）
+
+    def _revisions_of_type(self, service, step_run_id, artifact_type):
+        rows = service.store.conn.execute(
+            "SELECT r.artifact_revision_id FROM artifacts a "
+            "JOIN artifact_revisions r ON r.artifact_id = a.artifact_id "
+            "WHERE r.step_run_id=? AND a.artifact_type=?",
+            (step_run_id, artifact_type),
+        ).fetchall()
+        return [row[0] for row in rows]
+
+    def _read_doc(self, service, revision_id):
+        rev = service.get_revision(revision_id)
+        return json.loads(service.objects.get(rev["sha256"]).decode("utf-8"))
+
+    def _m3_stage_package_docs(self, service):
+        rows = service.store.conn.execute(
+            "SELECT r.artifact_revision_id FROM stage_packages sp "
+            "JOIN artifact_revisions r ON r.artifact_id = sp.artifact_id "
+            "WHERE sp.stage='m3'"
+        ).fetchall()
+        return [self._read_doc(service, row[0]) for row in rows]
+
+    def test_run_m3_text_registers_structural_stage_package(self):
+        """三件产物各 1 个，且登记 m3 阶段包 gate_profile=structural_only（第 100 条 D2）。"""
+        summary = run_m3_text(self.service, self.edition_part_id)
+        self.assertEqual(summary["status"], "succeeded")
+        step_run_id = summary["step_run_id"]
+        for artifact_type in ("corpus_spans", "coverage_report", "corpus_package"):
+            revisions = self._revisions_of_type(self.service, step_run_id, artifact_type)
+            self.assertEqual(
+                len(revisions), 1, "%s 应为恰 1 个，实际 %r" % (artifact_type, revisions)
+            )
+        packages = self._m3_stage_package_docs(self.service)
+        self.assertEqual(len(packages), 1)
+        package = packages[0]
+        self.assertEqual(package["stage"], "m3")
+        self.assertEqual(package["status"], "sealed")
+        self.assertEqual(package["payload"]["gate_profile"], "structural_only")
+        self.assertEqual(package["payload"]["spans_revision_id"], summary["spans_revision_id"])
+        self.assertEqual(
+            package["payload"]["coverage"], {E_TEXT_PAGE: 1.0},
+            "coverage 为 M1 页标识到实算覆盖率的映射（第 102 条 Q4①）",
+        )
+        self.assertEqual(package["payload"]["excluded_pages"], {})
+        self.assertEqual(package["payload"]["semantic"], "not_evaluated")
+        corpus_package = self._read_doc(
+            self.service,
+            self._revisions_of_type(self.service, step_run_id, "corpus_package")[0],
+        )
+        self.assertEqual(corpus_package["gate_profile"], "structural_only")
+        self.assertEqual(corpus_package["semantic"], "not_evaluated")
+        self.assertEqual(corpus_package["coverage"], {E_TEXT_PAGE: 1.0})
+        self.assertEqual(corpus_package["excluded_pages"], {})
+
+    def test_run_m3_text_output_resolvable_by_m4(self):
+        """跨模块契约护栏：M4 的 resolve_m3_outputs 必须能直接消费真书 M3 输出。"""
+        from pipeline.knowledge_extraction.inputs import resolve_m3_outputs
+
+        summary = run_m3_text(self.service, self.edition_part_id)
+        outputs = resolve_m3_outputs(self.service, self.edition_part_id)
+        self.assertEqual(outputs["spans_revision_id"], summary["spans_revision_id"])
+        self.assertEqual(outputs["corpus_package_revision_id"], summary["corpus_package_revision_id"])
+        self.assertEqual(outputs["corpus_stage_package_id"], summary["stage_package_id"])
+        self.assertEqual(outputs["corpus_stage_package_revision_id"], summary["package_revision_id"])
+
+    def test_run_m3_text_gate_failure_registers_no_stage_package(self):
+        """Gate 不过 → 封存失败，且不登记 m3 阶段包、不产出 corpus_package。"""
+        import pipeline.corpus_compiler.step_offset as step_offset_module
+
+        real_compile = step_offset_module.compile_offset_spans
+
+        def broken_compile(*args, **kwargs):
+            result = real_compile(*args, **kwargs)
+            # 令顶层 span_count 与 spans 列表长度不符 → Gate 的 header_counts 判错
+            result["spans_doc"]["span_count"] += 1
+            return result
+
+        with patch.object(step_offset_module, "compile_offset_spans", side_effect=broken_compile):
+            summary = run_m3_text(self.service, self.edition_part_id)
+
+        self.assertEqual(summary["status"], "failed")
+        self.assertEqual(summary["failed_check"], "structural_gate")
+        self.assertEqual(self._m3_stage_package_docs(self.service), [])
+        self.assertEqual(
+            self._revisions_of_type(self.service, summary["step_run_id"], "corpus_package"), []
+        )
+
+    def test_run_m3_text_coverage_report_carries_ocr_shape(self):
+        """coverage_report 取 OCR 外形，由电子文本 Gate 结果转换得到（第 102 条 Q4③）。
+
+        两条路线都以 ``json.dumps(..., sort_keys=True)`` 落盘，故**落盘键序即排序序**；
+        下面的期望值同时是「OCR 同键」的证明（键集与排序后顺序逐一相等）。
+        """
+        summary = run_m3_text(self.service, self.edition_part_id)
+        revisions = self._revisions_of_type(self.service, summary["step_run_id"], "coverage_report")
+        self.assertEqual(len(revisions), 1)
+        report = self._read_doc(self.service, revisions[0])
+        self.assertEqual(
+            list(report.keys()),
+            ["checks", "gate_profile", "pages", "semantic", "structural"],
+        )
+        self.assertEqual(report["structural"], "passed")
+        self.assertEqual(report["semantic"], "not_evaluated")
+        self.assertEqual(report["gate_profile"], "structural_only")
+        for check in report["checks"].values():
+            self.assertEqual(check["failures"], [])
+        page_report = report["pages"][E_TEXT_PAGE]
+        self.assertEqual(
+            list(page_report.keys()),
+            [
+                "coverage",
+                "gaps",
+                "line_count",
+                "overlaps",
+                "span_count",
+                "status",
+                "terminal_state",
+            ],
+        )
+        self.assertEqual(page_report["status"], "covered")
+        self.assertEqual(page_report["coverage"], 1.0)
+        self.assertEqual(page_report["span_count"], summary["counts"]["spans"])
+        self.assertEqual(page_report["gaps"], [])
+        self.assertEqual(page_report["overlaps"], [])
+
+    def test_run_m3_text_package_key_sets_match_ocr_route(self):
+        """下游不得为电子文本另写读取分支：包内键名与键序逐字等于 OCR 路线（第 100 条 D2）。"""
+        text_summary = run_m3_text(self.service, self.edition_part_id)
+        text_package = self._m3_stage_package_docs(self.service)[0]
+        text_corpus_package = self._read_doc(
+            self.service,
+            self._revisions_of_type(self.service, text_summary["step_run_id"], "corpus_package")[0],
+        )
+        text_coverage = self._read_doc(
+            self.service,
+            self._revisions_of_type(self.service, text_summary["step_run_id"], "coverage_report")[0],
+        )
+
+        with tempfile.TemporaryDirectory() as td:
+            ocr_service = LedgerService(Path(td) / "ledger")
+            try:
+                ingested = ingest(OCR_FIXTURE_DIR, ocr_service, stages=("m1", "m2"))
+                ocr_summary = run_m3(ocr_service, ingested["edition_part_id"])
+                ocr_package = self._m3_stage_package_docs(ocr_service)[0]
+                ocr_corpus_package = self._read_doc(
+                    ocr_service,
+                    self._revisions_of_type(
+                        ocr_service, ocr_summary["step_run_id"], "corpus_package"
+                    )[0],
+                )
+                ocr_coverage = self._read_doc(
+                    ocr_service,
+                    self._revisions_of_type(
+                        ocr_service, ocr_summary["step_run_id"], "coverage_report"
+                    )[0],
+                )
+            finally:
+                ocr_service.close()
+
+        self.assertEqual(list(text_package.keys()), list(ocr_package.keys()))
+        self.assertEqual(list(text_package["payload"].keys()), list(ocr_package["payload"].keys()))
+        self.assertEqual(list(text_package["manifest"].keys()), list(ocr_package["manifest"].keys()))
+        self.assertEqual(
+            list(text_package["validation"].keys()), list(ocr_package["validation"].keys())
+        )
+        self.assertEqual(list(text_package["lineage"].keys()), list(ocr_package["lineage"].keys()))
+        self.assertEqual(
+            list(text_package["lineage"]["transformations"][0].keys()),
+            list(ocr_package["lineage"]["transformations"][0].keys()),
+        )
+        self.assertEqual(list(text_corpus_package.keys()), list(ocr_corpus_package.keys()))
+        self.assertEqual(list(text_coverage.keys()), list(ocr_coverage.keys()))
+        self.assertEqual(
+            list(next(iter(text_coverage["pages"].values())).keys()),
+            list(next(iter(ocr_coverage["pages"].values())).keys()),
+        )
 
 
 if __name__ == "__main__":

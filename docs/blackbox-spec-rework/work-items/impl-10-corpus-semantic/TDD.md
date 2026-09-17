@@ -38,6 +38,8 @@ git diff --check
 | 05 | L3 | semantic | `$TS` → 新增用例 `ImportError` | `$TS` OK，≥ 36（累计 18 + 18） |
 | 06 | L3 | semantic | `$TS` → 新增用例 `ImportError` | `$TS` OK，≥ 54（累计 36 + 18） |
 | 07 | L4 | corpus | `$TC` → 新增用例 `ImportError` | `$TC` OK，≥ 156（实测基线 139 + 本 ACT 17）；`m3-coverage.sh` 不设电子文本变量时走 OCR 路线、末行 `SUMMARY pass=8 fail=0 blocked=1` 且 exit 2；设 `ELECTRONIC_TEXT_FIXTURE_DIR` 指向不存在目录时 BLOCKED exit 2 |
+| R81a | 返工 | corpus | `$TC` → `work_a` 反例转红（`ValueError not raised`） | `$TC` OK，≥ 157（累计 156 + 1：`test_offset_anchors.py` 的 `work_a` 正例改 `worka` 正例 + `work_a` 反例，第 102 条 Q1 授权） |
+| R81b | 返工 | corpus | `$TC` → 5 条新增用例全红（无 `corpus_package`/`coverage_report`/m3 阶段包） | `$TC` OK，≥ 163（累计 157 + 6：`test_step_offset.py` 5 条 + `test_gate_offset.py` 1 条；键名/键序与 OCR 路线逐一相等，第 100 条 D2、第 102 条 Q4） |
 
 ---
 
@@ -60,8 +62,10 @@ git diff --check
 | `impl-10/03` | L2 | `test_gate_offset.py` | 16 | 120 + 16 | **136** |
 | `impl-10/03` 补 | L2 | `test_gate_offset.py`（第 93 条注入反例） | 3 | 136 + 3 | **139** |
 | `impl-10/07` | L4 | `test_acceptance.py` | 17 | 139 + 17 | **156** |
+| W8 8.1 R81a | 返工 | `test_offset_anchors.py` | 1 | 156 + 1 | **157** |
+| W8 8.1 R81b | 返工 | `test_step_offset.py` (5) + `test_gate_offset.py` (1) | 6 | 157 + 6 | **163** |
 
-corpus 套总计新增用例：18 + 16 + 18 + 16 + 3 + 17 = **88** 条；最终套件总数：68 + 88 = **156** 条。（2026-09-16 主 Agent 修订：act/03 验收时依第 93 条补入 3 条注入反例，实测基线 139；act/07 依第 94 条增 2 条、改名 1 条，再依第 97 条逐字恢复 2 条 OCR 路线护栏并新增 1 条防交叉回落用例，本 ACT 17 条。）
+corpus 套总计新增用例：18 + 16 + 18 + 16 + 3 + 17 + 1 + 6 = **95** 条；最终套件总数：68 + 95 = **163** 条。（2026-09-16 主 Agent 修订：act/03 验收时依第 93 条补入 3 条注入反例，实测基线 139；act/07 依第 94 条增 2 条、改名 1 条，再依第 97 条逐字恢复 2 条 OCR 路线护栏并新增 1 条防交叉回落用例，本 ACT 17 条。2026-09-17 依第 102 条：R81a 把 `test_offset_anchors.py` 的 `work_a` 正例改为 `worka` 正例 + `work_a` 反例（+1）；R81b 在 `test_step_offset.py` 新增 5 条、`test_gate_offset.py` 的 4 条 assemble 用例改断言并补 1 条键集用例（+6）。）
 
 ### 2.2 semantic 套（$TS，`pipeline/corpus_compiler/semantic/tests`，基线 0）
 

@@ -1,127 +1,81 @@
-"""M3 电子文本 StagePackage 组装（act/03，rulings 76, 78）。
+"""M3 电子文本 StagePackage 组装（act/03，rulings 76、78、100 D2、102 Q4⑤）。
 
-组装符合 openspec/schemas/stage_package.schema.json 的 StagePackage。
-零网络、零 Ledger，纯函数转换。
+组装符合 openspec/schemas/stage_package.schema.json 的 StagePackage。产出的键名与键序
+**逐字对齐 OCR 路线**（``pipeline/corpus_compiler/step.py``），下游不得为电子文本另写
+读取分支（第 100 条 D2）。
+
+零网络、零 Ledger，纯函数转换：调用方传入已构造好的 artifact_ref 与实算值。
 """
 
 import hashlib
-import uuid
 
 
 def assemble_m3_text_stage_package(
     *,
-    edition_part_id: str,
+    stage_package_id: str,
+    artifact_revision_id: str,
+    processing_run_id: str,
+    step_run_id: str,
     spans_revision_id: str,
     spans_bytes: bytes,
-    spans_doc: dict,
-    validation_report_revision_id: str,
-    coverage_report_revision_id: str,
-    step_run_id: str,
+    counts: dict,
+    coverage: dict,
+    excluded_pages: dict,
+    frozen_artifact_refs: list,
+    corpus_package_ref: dict,
+    validation_report_refs: list,
+    log_refs: list,
     transformations: list,
 ) -> dict:
-    """组装 M3 电子文本 StagePackage。
+    """组装 M3 电子文本 StagePackage（键名/键序与 OCR 路线逐一相等）。
 
-    返回的 dict 包含符合 schema 中 m3 stage required properties 的键：
-        - schema_version: "1.0.0"
-        - stage_package_id: pkg_m3_<32hex>
-        - artifact_revision_id: rev_<32hex>
-        - stage: "m3"
-        - status: "sealed"
-        - payload：包含 spans_revision_id, coverage_report_revision_id, coverage, gate_profile, evidence_level
-        - manifest：包含 schema_version, processing_run_id, step_run_id,
-                     input_artifacts, output_artifacts, counts, content_sha256
-        - validation：passed(True), report_artifacts([validation_report_revision_id])
-        - lineage：包含 transformations 列表
-        - logs: []
-        - failures: []
+    参数：
+        stage_package_id / artifact_revision_id：由调用方经 ``ids.new_id`` 生成。
+        processing_run_id / step_run_id：本次运行身份。
+        spans_revision_id / spans_bytes：本次 ``corpus_spans`` 修订与其字节。
+        counts：``{"spans": n, "batches": m}``（与 OCR 路线同键）。
+        coverage：``{<M1 page 标识>: <实算覆盖率>}``（第 102 条 Q4①）。
+        excluded_pages：``{}``（电子文本无排除页，如实，第 102 条 Q4②）。
+        frozen_artifact_refs：本次冻结的 M2 四件产物引用；它同时充当
+            ``manifest.input_artifacts`` 与 ``lineage.upstream_artifacts``——电子文本路线
+            的真实上游即这四件（第 102 条 Q4④）。
+        corpus_package_ref：本次 ``corpus_package`` 修订引用（manifest.output_artifacts）。
+        validation_report_refs / log_refs：校验报告与步骤日志引用。
+        transformations：``compile_corpus`` 变换条目（键名与 OCR 路线相等）。
+
+    返回：
+        符合 stage_package.schema.json 的 m3 StagePackage dict，键序与 OCR 路线一致。
     """
-    # 生成32位十六进制ID
-    hex_id = uuid.uuid4().hex[:32]
-    processing_run_id = f"prun_{hex_id}"
-
-    # 解析 spans_doc 以获取 spans 列表和 counts
-    spans = spans_doc.get("spans", []) or []
-    span_count = len(spans)
-
-    # 计算 manifest content_sha256
-    content_sha256 = hashlib.sha256(spans_bytes).hexdigest()
-
-    # 构造 artifact ref 对象
-    def _artifact_ref(revision_id, kind="artifact"):
-        # 提取32位hex部分用于模式匹配
-        if "_" in revision_id:
-            hex_part = revision_id.rsplit("_", 1)[1]
-        else:
-            hex_part = revision_id[:32] if len(revision_id) >= 32 else revision_id
-        if kind == "stage_package":
-            return {
-                "schema_version": "1.0.0",
-                "artifact_kind": kind,
-                "stage_package_id": f"pkg_m3_{hex_part}",
-                "artifact_revision_id": f"rev_{hex_part}",
-                "artifact_type": revision_id,
-            }
-        else:
-            return {
-                "schema_version": "1.0.0",
-                "artifact_kind": kind,
-                "artifact_id": f"art_{hex_part}",
-                "artifact_revision_id": f"rev_{hex_part}",
-                "artifact_type": revision_id,
-            }
-
-    # payload
-    payload = {
-        "spans_revision_id": spans_revision_id,
-        "coverage_report_revision_id": coverage_report_revision_id,
-        "coverage": span_count,
-        "gate_profile": "structural_only",
-        "evidence_level": "offset_level",
-    }
-
-    # manifest - 必须包含 schema required: schema_version, processing_run_id,
-    # step_run_id, input_artifacts, output_artifacts, counts, content_sha256
-    manifest = {
+    return {
         "schema_version": "1.0.0",
-        "processing_run_id": processing_run_id,
-        "step_run_id": step_run_id,
-        "input_artifacts": [
-            _artifact_ref(spans_revision_id, kind="stage_package"),
-            _artifact_ref(coverage_report_revision_id, kind="stage_package"),
-        ],
-        "output_artifacts": [
-            _artifact_ref(spans_revision_id, kind="stage_package"),
-            _artifact_ref(coverage_report_revision_id),
-        ],
-        "counts": {"spans": span_count},
-        "content_sha256": content_sha256,
-    }
-
-    # validation
-    validation = {
-        "passed": True,
-        "report_artifacts": [_artifact_ref(validation_report_revision_id, kind="stage_package")],
-    }
-
-    # lineage
-    lineage = {
-        "upstream_artifacts": [],
-        "transformations": transformations,
-    }
-
-    # complete StagePackage
-    pkg = {
-        "schema_version": "1.0.0",
-        "stage_package_id": f"pkg_m3_{hex_id}",
-        "artifact_revision_id": f"rev_{hex_id}",
+        "stage_package_id": stage_package_id,
+        "artifact_revision_id": artifact_revision_id,
         "stage": "m3",
         "status": "sealed",
-        "payload": payload,
-        "manifest": manifest,
-        "validation": validation,
-        "lineage": lineage,
-        "logs": [],
+        "payload": {
+            "spans_revision_id": spans_revision_id,
+            "coverage": coverage,
+            "excluded_pages": excluded_pages,
+            "gate_profile": "structural_only",
+            "semantic": "not_evaluated",
+        },
+        "manifest": {
+            "schema_version": "1.0.0",
+            "processing_run_id": processing_run_id,
+            "step_run_id": step_run_id,
+            "input_artifacts": list(frozen_artifact_refs),
+            "output_artifacts": [corpus_package_ref],
+            "counts": {"spans": counts["spans"], "batches": counts["batches"]},
+            "content_sha256": hashlib.sha256(spans_bytes).hexdigest(),
+        },
+        "validation": {
+            "passed": True,
+            "report_artifacts": list(validation_report_refs),
+        },
+        "lineage": {
+            "upstream_artifacts": list(frozen_artifact_refs),
+            "transformations": list(transformations),
+        },
+        "logs": list(log_refs),
         "failures": [],
     }
-
-    return pkg
