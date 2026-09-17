@@ -307,6 +307,18 @@ D4（BOM／GB18030 导致 `sha256` 与磁盘原始文件字节不符、追踪链
 - 干净树 digitization `Ran 82 OK`。
 - **主 Agent 篡改**（临时副本）：只回退 ②（`if not _LETTER_OR_CJK_RE.search(...)` → `if False:`，替换计数 1）→ `Ran 43 FAILED (failures=1)`，唯一失败即新用例。护栏 load-bearing。
 
+### 3.10 返工 J4b（2026-09-16，主 Agent 独立验收，`git archive 1406048` 干净树；执行器 agy Gemini 3.8 Flash Medium）
+
+判定：**J4b ACCEPTED**。第 96 条 D2、第 101 条、第 105 条落地：M1/M2 验收脚本改为**对宿主原文实跑、再与独立期望比对**；《乾元秘旨》电子文本宿主（原文、`source_info.yaml`、`expected/`）入库。
+
+过程：opencode Union Alpha 卡死两小时零产出 → cmd DeepSeek 接手，审完半成品、请示旧用例处置（第 105 条）后撞每周用量上限 → agy 接手完成。
+
+- 提交内容：16 个文件；**不含** `m4/`、`var/`。宿主原文 sha256 `3f7170cd…`；`expected/golden_findings.yaml` sha256 `8ffc071d…` 与主 Agent 暂存的独立金标逐字节相同，`adjudication.yaml` `2b85f60a…` 相同。
+- 反自证：`pipeline/digitization/acceptance.py` 只导入 `run_m2`（实跑所需）与 `FINDING_KINDS`；YAML 头区间由比对器自行识别，有 `test_compare_does_not_import_digitization_for_header_range` 护栏。
+- 用例审计（AST）：intake 删 2（`test_m1_check_fails_on_missing_manifest`、`test_m1_check_passes_on_valid_ledger`）、digitization 删 3（`test_m2_check_fails_on_deferred`、`test_m2_check_fails_on_missing_report`、`test_m2_check_passes_on_valid_ledger`），恰为第 105 条授权的 5 条，回报有失败侧意图对应表；两条 `..._blocked_on_no_ledger` 仅 docstring 措辞与导入位置变化，断言不变。
+- 干净树：intake `Ran 38 OK`、digitization `Ran 86 OK`；`m1-intake.sh` `SUMMARY pass=11 fail=0 blocked=0`；`m2-sanitization.sh` `SUMMARY pass=17 fail=0 blocked=0`、exit 0（12 类逐类 PASS，`escape_residue` 覆盖 630 = 630，金标头内 1 条按第 98 条①排除）；`run_all.sh` 基线不变。
+- **主 Agent 篡改**（临时副本）：`cleaner.py` 的 `duplicate` 两道防线（第 98 条②⑥）同时回退 → `m2-sanitization.sh` exit 1，`FAIL finding_kind_duplicate … m2-only 12 处`，`SUMMARY pass=16 fail=1`——正是仲裁时发现的 12 条星图误报，验收脚本能在真书上独立抓回。执行方四组篡改（缺金标 → 2、金标改动未更新校验和 → 2、改动并重算校验和 → 1、删 `於/于` → 1）亦符合第 101 条三态。
+
 ## 4. 待裁决
 
 无。
