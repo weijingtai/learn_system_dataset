@@ -16,44 +16,23 @@
 
 ---
 
-## 当前状态
+## 当前状态（2026-09-16 暂停）
 
-刚完成：impl-09 全部 `ACCEPTED`（M1 电子文本入库 + M2 清洗，含追踪链两端闭合）；
-impl-10 的 L1/L2/L3 `ACCEPTED`，语义层落地。
+W8：《乾元秘旨》电子文本真书走到 M8（第 100–108 条；计划 `G7-PLAN.md` §6）。
 
-半成品位置：无。工作区干净，`git status --short -- pipeline openspec` 为空。
+**已完成并验收**：M1/M2（J3e/J3f/J4b，M2 与独立金标 12 类一致，宿主已入库）；M3→M4 衔接（8.1）；M4 offset 支持 + 两路抽取 + **用户 24 条裁决已导入，M4 封存**（8.2）；M5 offset 档 + PUA 对账（8.3，真书 INTERNAL_DEMO 通过）；M8 登记 ACT 08 与 K1（ACT 09 GraphProjectionPack、ACT 10 reference_and_hash_only/offset 七段链）。
 
-下一步：**impl-10 L4** —— `act/07`：`openspec/acceptance/m3-coverage.sh` 支持电子文本宿主，
-写范围 `pipeline/corpus_compiler/acceptance.py`、`tests/test_acceptance.py`、`m3-coverage.sh`，
-corpus 套阈值 **≥148**（139 + 12，见 `impl-10-corpus-semantic/TDD.md` §2.1）。
+**真书持久 Ledger**：`var/ledgers/qianyuan_w8/`（不入库；备份 `qianyuan_w8.bak_before_m4_rulings`）——M1→M2→M3→M4（succeeded）→M5（succeeded）已在其上跑完。
 
-微观意图：L4 派发时顺手把 `m3-coverage.sh` 的宿主缺失分支按裁定 94 D2/D3 的口径写死
-（默认宿主**不得**回落 `mini_ed01`；`rc != 0` 或解析行数为 0 一律不得 `exit 0`）——
-impl-09 的两份脚本已是这个写法，直接照抄即可，别让 M3 这份又退回老毛病。
-L4 之后是 7.4（签发决定表模板，我出模板→用户填）与 7.5（impl-04 M8 知识链 + GraphProjectionPack）。
+**半成品 / 回来先做（按顺序）**：
+1. **8.4 M6**：R84 `4e16022`、R84b `cb96b94` 已提交**未验收**，且 review 套件有既有用例红（夹具 `pipeline/review/testing/data/m4_candidates.yaml` 中 `as_qizheng_000002` 偏移应为 9–11，第 108 条）。派单 `~/tmux-agents/runs/prompts/agy-84b.txt`（未执行）；回报 `agy-84.report.md`。agy 续接对话 `1d32b970-8f83-47d6-8571-7476d4b65903`。
+2. 验收 8.4 后：在 `var/ledgers/qianyuan_w8/` 跑 M6 到 awaiting_human → 主 Agent 生成 M6 审核表给用户（须告知：26 条 assertion 无 `concept_refs`，要编出 Concept 词条需用户 `modify` 补显式引用；2 条 a 路 assertion 被 G4 拒收）。
+3. **8.6 M8 K2**（ACT 11 知识链+`ent_` 发号表、ACT 12 Gate）：派单 `agy-86d.txt`（agy 读完代码后撞额度，未动手）；续接对话 `af9e74e2-766b-4ca2-9bd1-6b1c4f4f2fc7`。
+4. 8.5 M7 Snapshot 补 `evidence_level`/`corpus_spans_revision_id`（第 106 条 D4，未派）→ M8 ACT 13 改读 Snapshot → ACT 14 验收脚本与 run_all 转判（8.7）。
 
-验证方法：
-```bash
-cd /Users/jingtaiwei/Git/Public/learn_system && export LC_ALL=en_US.UTF-8
-.venv/bin/python -m unittest discover -s pipeline/intake/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"        # Ran 35 OK
-.venv/bin/python -m unittest discover -s pipeline/digitization/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"  # Ran 67 OK
-.venv/bin/python -m unittest discover -s pipeline/corpus_compiler/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"          # Ran 139 OK
-.venv/bin/python -m unittest discover -s pipeline/corpus_compiler/semantic/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)" # Ran 54 OK
-bash openspec/acceptance/run_all.sh | tail -1        # SUMMARY pass=2 fail=1 blocked=8（基线，恒不变）
-bash openspec/acceptance/m1-intake.sh; echo exit=$?  # exit=2（宿主未落地）
-```
+**执行器现状**：cmd（DeepSeek V4.1 Flash）周限额，周六 9-19 12:13 重置；agy（Gemini 3.8 Flash Medium）个人额度约 2 小时重置；opencode Union Alpha 不可靠。换执行器前先问用户。
 
----
-
-## 用户待办（不由机时决定，回来先看这两条）
-
-- [ ] **签发决定表**：真实 `expert_verified` 由用户本人签发，主 Agent 出模板（裁定 80）。
-      不填则 M6 `upstream_real`、M4 真实签发等判定**永远 BLOCKED**，规格写死，任何 Agent 不得代填（P7）。
-- [ ] **验收宿主原文**：需《乾元秘旨》一段真实电子文本入仓做验收样本（`pipeline/corpus/_fixture/qianyuan_ed01_text`）。
-      属独占 fixture ACT（P4）。取不取、取多少、权利状态怎么标，等用户发话。
-      在此之前 `m1-intake.sh`/`m2-sanitization.sh`/`m3-coverage.sh` 如实 exit 2 是**设计意图**，不是缺陷。
-
----
+验证基线：`check_interfaces` `pass=44 fail=0`；`run_all.sh` `SUMMARY pass=2 fail=1 blocked=8`；干净树 orchestrator/contract_registry 因页图不入库各有 5/1 条失败，属环境。
 
 ## 计划区（W7）
 
