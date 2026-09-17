@@ -72,3 +72,11 @@ impl-05（M4 最薄接入，无模型、合成裁决金标）`ACCEPTED`。真实
 - **主 Agent 篡改**（临时副本）：offset 基准起点由片段 `start_offset` 改为 0 → `test_offset_level_candidate_set_all_twelve_checks_pass` 转红。
 - 持久 Ledger `var/ledgers/qianyuan_w8/`（不入库）：M4 `step_run_id = srun_bafd749946aa4cc1b0312cbb3ee1fa8e`；残留 0 字节 `writer.lock` 经 agy 只读分析为 `fcntl.flock` 进程锁（`pipeline/ledger/lock.py:25-37`），进程退出即释放，不阻塞后续导入。
 - 用户待办：`var/ledgers/qianyuan_w8_review/m4_rulings.yaml`（主 Agent 从 `dispute_queue` 原样导出，未预填、无建议）。
+
+### 5.3 W8 真书链：用户裁决导入与 M4 封存（2026-09-16，主 Agent 操作记录）
+
+- 用户亲填 `var/ledgers/qianyuan_w8_review/m4_rulings_filled.yaml`（`actor_ref: user:wjt`、`synthetic_fixture: false`）。主 Agent 校验：24 组 ID 完整有序、`choice` 均在闭集、`rationale` 均非空且逐条不同、表中非填写部分未改动；24 组均为 `both`。
+- 导入前备份 `var/ledgers/qianyuan_w8.bak_before_m4_rulings`。以 `record_category_ruling` 逐条导入（24 个 `human_event` + 24 个 Checkpoint，内容原样，未加工），`resume_m4` → M4 StepRun `srun_bafd7499…` **`succeeded`**，m4 阶段包 `pkg_m4_00fb463b…`，`candidate_set` `rev_660985c3…`。
+- `candidate_set` 计数：assertions 26、patterns 2（「去官留煞」「贪合忘煞」）、concept_mentions 0、new_concept_candidates 10、school_views 0、disputes 24、human_decisions 24、**rejected 2**（均为 a 路 assertion，`SCH_002`「G4 命例不得作为通则主张」，M4 既有判据自动拒收）；内容状态全部 `disputed`；assertion 带 `concept_refs` 的 0 条（第 107 条 Q-M8-01 数据缺口，M6 审核时向用户说明）。
+- 同 Ledger 运行 M5（`INTERNAL_DEMO`）：`succeeded`、`gate.passed: true`、`level_verdicts {INTERNAL_DEMO: passed, DEV_SEARCH: passed, PUBLIC_RELEASE: failed}`、warnings 39（已知不可解字符披露）、failures 0；m5 阶段包 `pkg_m5_3af5a2e3…`。
+- M6 待 R84c（第 108 条夹具更正）验收后再在该 Ledger 上运行，避免用户依据未验收实现作出审核决定。
