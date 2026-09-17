@@ -608,6 +608,23 @@
 - [x] impl-09：M1 电子文本入库 + M2 电子文本清洗（状态：**`ACCEPTED`** 2026-09-16，W7-7.2；阶段 A 起草四轮 `ae62250`→`7031e42`（裁定 85/86）；J1 `08b62fc` + J1a `c4723c8`（裁定 88 空转护栏）、J2 `744335c`、J3 `054b4e9`/`a9c3dcd`/`a61501c`/`1d190da` + J3a `7dcfb56`（裁定 90：12 类只实现 6 类）+ J3b `39694fd`（裁定 91：实现的不是 README §5 规则）+ J3c `fff092d`（裁定 92：形近表凑数）、J4 `2084e11`/`84845e6`（裁定 94 D1–D3）、返工 J1b `3e25993`（裁定 94 D4 追踪链闭合）；intake `Ran 35 OK`、digitization `Ran 67 OK`；`m1-intake.sh`/`m2-sanitization.sh` 宿主缺失时 exit 2；验收 `impl-09-intake/ACCEPTANCE.md` §3.1–§3.6）
 - [x] impl-10：M3 偏移锚点 + 语义层（状态：**`ACCEPTED`** 2026-09-16，W7-7.3；阶段 A `fcf9458`→`3359e4b`（裁定 89）；L1 `0d50d29`/`1eab4be`；L2 `e5b07ed`/`6ec07c5`（裁定 93）；L3 `13ddfd1`/`e42c482`/`2d7b613` + `61070ad`；L4 `eff2305` + L4a `5b573e3`（裁定 97 恢复 OCR 防篡改护栏）；corpus 套 `Ran 156 OK`、semantic 套 `Ran 54 OK`；真实书源过 M3 验收脚本 4 PASS + 1 BLOCKED（缺 `recordings.yaml`）；验收 `impl-10-corpus-semantic/ACCEPTANCE.md` §3.1–§3.5）
 
+### W8 真书全链（《乾元秘旨》电子文本 → M8，裁决 100–108；分波表 `G7-PLAN.md` §6）
+
+- [x] 8.0 impl-09 J3f（`87ce16c`）+ J4b（`1406048`）：M1/M2 验收改为对宿主原文实跑并与独立期望比对；宿主与 `expected/` 入库（验收 `impl-09-intake/ACCEPTANCE.md` §3.9/§3.10）
+- [x] 8.1 impl-01 R81a（`7bdaa9c`，`ids.py` 接受 `ss_`/`sem_` 偏移形态、唯一权威）+ impl-10 R81b（`08e3bba`，电子文本 M3 补 `coverage_report`/`corpus_package`/m3 结构层阶段包）；裁定 102（验收 `impl-10-corpus-semantic/ACCEPTANCE.md` §3.6）
+- [x] 8.2 impl-05 R82a（`71c913f`，M4 按 `evidence_level` 分派、去 `page` 依赖）+ R82b（`7838d59`，真书 m4 宿主、协议 v2 两路提交件）；裁定 104；**用户 24 条分歧裁决已导入，M4 `srun_bafd7499…` 封存 `succeeded`**（验收 `impl-05-knowledge/ACCEPTANCE.md` §5.2/§5.3）
+- [x] 8.3 impl-03 R83（`2537b75`）+ R83b（`82f7148`，offset 档 G1 与清洗报告对账）+ impl-00 R83c（`2db0fcc`，M2 闭集登记更正）；裁定 103；真书 M5 `INTERNAL_DEMO` 通过（验收 `impl-03-validation/ACCEPTANCE.md` §5.2）
+- [ ] 8.4 impl-06 M6：R84（`4e16022`，证据偏移严格按 I-11）+ R84b（`cb96b94`，审核台 offset 锚点与 offset 上游桩）**已提交未验收**；缺 R84c（裁定 108：夹具 `m4_candidates.yaml` `as_qizheng_000002` 偏移 13/15 → 9/11），当前 `pipeline/review/tests` 有既有用例红；派单 `~/tmux-agents/runs/prompts/agy-84b.txt`
+- [ ] 8.4b 跑 M6 到 `awaiting_human` → 主 Agent 生成 M6 审核表交用户（须披露：26 条 assertion 无 `concept_refs`、2 条 a 路 assertion 被 G4 拒收）
+- [ ] 8.5 impl-07 M7：Snapshot `editions[]` 补 `evidence_level`/`corpus_spans_revision_id`、证据偏移统一 I-11、修 `genesis_package.json` 级别与 ID 形态矛盾（裁定 106 D4，未派）
+- [x] 8.6-A impl-04 设计草案（`fa3cc54`）+ 主 Agent 裁决与更正（裁定 107，README §11.11）
+- [x] 8.6-ACT08 impl-00 登记（`ff21388`）：`graph_projection_pack`、`evidence_map_pack` offset 变体、M8 检查名闭集与 `not_applicable`、`entry_id_allocation`（验收 `impl-00-interfaces/ACCEPTANCE.md` §5.6）
+- [x] 8.6-K1 impl-04 ACT 09（`fc31716` GraphProjectionPack 纯函数）+ ACT 10（`ce3ddab` `reference_and_hash_only` 与 offset 七段链）（验收 `impl-04-dataset/ACCEPTANCE.md` §5.2）
+- [ ] 8.6-K2 impl-04 ACT 11（知识链前三段 + `ent_` 发号表）+ ACT 12（M8 Gate 闭集与实评）；派单 `~/tmux-agents/runs/prompts/agy-86d.txt`，未开工
+- [ ] 8.6-K3 impl-04 ACT 13（改读 M7 Snapshot，须待 8.5）+ ACT 14（`m8-span-identity.sh` 电子文本路线）
+- [ ] 8.7 impl-08 orchestrator 登记 m4/m6 与 m3 文本入口；各验收脚本电子文本路线；`run_all.sh` 20.4/20.6/20.8/20.9 按判定输出（P4 独占 ACT）
+- 用户待办：M6 审核表（8.4b 后）；真实 `expert_verified` 签发决定表（裁定 80，不阻断 `INTERNAL_DEMO`）
+
 ## G6 NC 注解社区线
 
 任务定义源：`openspec/annotation-community/TASKS.md`；本表持有流转状态，两处不得并存第二套状态源。
