@@ -51,6 +51,20 @@ class InternalDemoAdmissionTests(unittest.TestCase):
         self.assertTrue(result["admitted"])
         self.assertEqual(result["unmet"], [])
 
+    def test_reference_and_hash_only_admitted_by_levels(self):
+        result = _admit(
+            "INTERNAL_DEMO",
+            evidence_level="offset_level",
+            release_policy="reference_and_hash_only",
+        )
+        self.assertTrue(result["admitted"])
+        self.assertEqual(result["unmet"], [])
+
+    def test_derived_page_images_only_admission_unchanged(self):
+        result = _admit("INTERNAL_DEMO", release_policy="derived_page_images_only")
+        self.assertTrue(result["admitted"])
+        self.assertEqual(result["unmet"], [])
+
 
 class AdmissionRejectionTests(unittest.TestCase):
     """非法枚举在准入前以 SCH_002/SCH_001 拒绝。"""

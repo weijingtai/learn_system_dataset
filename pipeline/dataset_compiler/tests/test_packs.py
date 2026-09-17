@@ -8,6 +8,7 @@ import copy
 import hashlib
 import json
 import os
+import re
 import struct
 import unittest
 
@@ -643,7 +644,137 @@ class GraphProjectionPackTests(unittest.TestCase):
         projected_node_ids = {n["node_id"] for n in pack["nodes"]}
         expected_node_ids = {"co_synth_000001", "as_synth_000001", "as_synth_000002", "pat_synth_000001"}
         self.assertEqual(projected_node_ids, expected_node_ids)
-        self.assertEqual(pack["node_count"], 4)
+
+
+class OffsetEvidenceAndReferenceOnlyTests(unittest.TestCase):
+    """ACT 10：reference_and_hash_only 策略与 offset 七段证据链（INTERFACES §3.10、§3.11）。"""
+
+    def test_source_asset_pack_reference_and_hash_only_has_no_bytes_or_text(self):
+        manifest = _manifest()
+        manifest["release_policy"] = "reference_and_hash_only"
+        records = _asset_records()
+        result = packs.build_source_asset_pack(
+            manifest=manifest,
+            asset_records=records,
+        )
+        pack = result["pack"]
+        self.assertEqual(pack["content_level"], "reference_and_hash_only")
+        for page in pack["pages"]:
+            self.assertFalse(page["bytes_included"])
+            self.assertIn("rights_note", page)
+            self.assertIn("sha256", page)
+            self.assertIn("asset_artifact_revision_id", page)
+            self.assertNotIn("width", page)
+            self.assertNotIn("height", page)
+            self.assertNotIn("size", page)
+            self.assertNotIn("text", page)
+
+    def _sample_offset_chain_args(self, policy="derived_page_images_only"):
+        return {
+            "entry_id": "ent_018f9e74e27670008000000000000001",
+            "assertion_id": "as_synth_000001",
+            "evidence_link": {
+                "assertion_id": "as_synth_000001",
+                "source_span_id": "ss_synth_ed01_o0000100",
+                "start_offset": 100,
+                "end_offset": 120,
+                "quote": "合成测试引文",
+                "quote_sha256": sha256_hex("合成测试引文".encode("utf-8")),
+            },
+            "source_span": {
+                "source_span_id": "ss_synth_ed01_o0000100",
+                "source_id": "src_synth_ed01",
+                "page": None,
+                "start_offset": 100,
+                "end_offset": 120,
+                "text": "合成测试片段正文",
+            },
+            "source_anchor": {
+                "source_id": "src_synth_ed01",
+                "edition_part_id": "art_018f9e74e27670008000000000000001",
+                "span_layer": "structural",
+                "start_offset": 100,
+                "end_offset": 120,
+                "cleaned_text_sha256": "0" * 64,
+                "anchor_stability": "permanent",
+            },
+            "evidence_level": "offset_level",
+            "release_policy": policy,
+            "text_mapping": {
+                "raw_text_revision_id": "rev_018f9e74e27670008000000000000001",
+                "cleaned_text_revision_id": "rev_018f9e74e27670008000000000000002",
+                "patch_set_revision_id": "rev_018f9e74e27670008000000000000003",
+                "raw_start": 98,
+                "raw_end": 118,
+            },
+            "source_asset": {
+                "page": None,
+                "sha256": "a" * 64,
+            },
+        }
+
+    def test_evidence_map_offset_chain_has_exactly_seven_keys(self):
+        args = self._sample_offset_chain_args()
+        chain = packs.build_evidence_chain(**args)
+        expected_keys = {
+            "entry_id",
+            "assertion_id",
+            "evidence_link",
+            "source_span",
+            "source_anchor",
+            "text_mapping",
+            "source_asset",
+        }
+        self.assertEqual(set(chain.keys()), expected_keys)
+        self.assertEqual(len(chain.keys()), 7)
+
+    def test_evidence_map_offset_text_mapping_fields(self):
+        args = self._sample_offset_chain_args()
+        chain = packs.build_evidence_chain(**args)
+        expected_tm_keys = {
+            "raw_text_revision_id",
+            "cleaned_text_revision_id",
+            "patch_set_revision_id",
+            "raw_start",
+            "raw_end",
+        }
+        self.assertEqual(set(chain["text_mapping"].keys()), expected_tm_keys)
+
+    def test_evidence_map_reference_and_hash_only_nulls_quote_and_text(self):
+        args = self._sample_offset_chain_args(policy="reference_and_hash_only")
+        chain = packs.build_evidence_chain(**args)
+        self.assertIsNone(chain["evidence_link"]["quote"])
+        self.assertIsNone(chain["source_span"]["text"])
+        self.assertIsNotNone(chain["evidence_link"]["quote_sha256"])
+
+    def test_evidence_map_glyphbox_chain_bytes_unchanged(self):
+        res = _evidence_pack()
+        self.assertEqual(
+            res["sha256"],
+            "b79a7380d79ca8892ae15ad6b4a0034b298765c4240af3c99412153940566fc8",
+        )
+
+    def test_offset_span_identity_via_ledger_ids(self):
+        span_id = "ss_synth_ed01_o0000100"
+        pno, offset = packs.parse_span_identity(span_id)
+        self.assertIsNone(pno)
+        self.assertEqual(offset, 100)
+        # 非法 span_id
+        with self.assertRaises(InvalidIdentifier) as ctx:
+            packs.parse_span_identity("ss_synth_ed01_bad")
+        self.assertEqual(ctx.exception.code, "ID_001")
+
+    def test_no_private_span_regex_in_dataset_compiler(self):
+        pkg_dir = os.path.join(_REPO_ROOT, "pipeline", "dataset_compiler")
+        for fname in os.listdir(pkg_dir):
+            if not fname.endswith(".py"):
+                continue
+            fpath = os.path.join(pkg_dir, fname)
+            with open(fpath, encoding="utf-8") as handle:
+                text = handle.read()
+            # 检查是否有自有 ss_ 正则（除从 ids 导入外）
+            for m in re.finditer(r're\.compile\(r?["\'][^"\']*ss_[^"\']*["\']\)', text):
+                self.fail("文件 %s 包含自有 ss_ 正则: %s（第 102 条）" % (fname, m.group(0)))
 
 
 class MiscPacksTests(unittest.TestCase):

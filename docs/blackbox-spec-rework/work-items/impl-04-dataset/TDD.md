@@ -39,6 +39,7 @@ ls ocr/data_work/sanche_pages/page_001.png ocr/data_work/sanche_pages/page_002.p
 | 07 | `m8-span-identity.sh` 不存在（exit 127）；新增用例全 ERROR | `$TD` OK ≥ 124；`m8-span-identity.sh` → `SUMMARY pass=7 fail=0 blocked=1`、exit 2 |
 | 08 | `run_all.sh 20.4` 输出仍为 `前置缺失: M8 Dataset Compilation；PublicationPackage 反向追溯未实现` | 20.4/20.8 为 `前置缺失: M4 Knowledge Extraction；…`；注入副本 20.4 FAIL；SUMMARY 不变 |
 | 09 | `$TD` 9 条全 ERROR（`build_graph_projection_pack` 不存在） | `$TD` OK ≥ 134；GraphProjection 8 键严格匹配，边无 ID，节点与三元组严格排序 |
+| 10 | `$TD` 6 条 FAIL/ERROR（`reference_and_hash_only` 未放行、`build_evidence_chain` 不存在、`parse_span_identity` 拒 offset） | `$TD` OK ≥ 143；`reference_and_hash_only` 放行且脱敏 null，offset 证据链恰 7 键，经 ids.py 校验 |
 
 ## 2. 主 Agent 验收附加判据（执行者不需要跑，但不得让其失败）
 

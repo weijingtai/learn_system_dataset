@@ -97,7 +97,10 @@ def evaluate_admission(
 
     # R2：未满足项集合
     unmet = set()
-    if release_policy != "derived_page_images_only":
+    if release_policy == "reference_and_hash_only":
+        if evidence_level != "offset_level":
+            unmet.add("release_policy_not_implemented")
+    elif release_policy != "derived_page_images_only":
         unmet.add("release_policy_not_implemented")
     if consumption_level == "DEV_SEARCH":
         unmet.add("dev_search_gates_not_implemented")

@@ -79,6 +79,7 @@ def _validate_node_id(node_id):
 _PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
 _PAGE_RE = re.compile(r"^page_([0-9]{3,4})$")
 _SPAN_TAIL_RE = re.compile(r"_p([0-9]{4})_s([0-9]{2})$")
+_OFFSET_SPAN_RE = re.compile(ids.SOURCE_SPAN_ID_OFFSET_PARTS)
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 
 
@@ -102,24 +103,31 @@ def page_number(page):
 
 
 def parse_span_identity(span_id):
-    """校验并拆解 ``span_id``，返回 ``(页号, 行序)``（§19:882）。"""
+    """校验并拆解 ``span_id``。
+
+    经 ``pipeline.ledger.ids`` 校验，不定义自有正则（第 102 条）。
+    页码形态返回 ``(页号, 行序)``；offset 形态返回 ``(None, 偏移)``。
+    """
     ids.validate("source_span_id", span_id)
     match = _SPAN_TAIL_RE.search(span_id)
-    if match is None:
-        raise InvalidIdentifier("span_id 缺少页号/行序段: %r" % (span_id,), code="ID_001")
-    return int(match.group(1)), int(match.group(2))
+    if match is not None:
+        return int(match.group(1)), int(match.group(2))
+    match_offset = _OFFSET_SPAN_RE.match(span_id)
+    if match_offset is not None:
+        return None, int(match_offset.group(3))
+    raise InvalidIdentifier("span_id 缺少页号/行序或偏移段: %r" % (span_id,), code="ID_001")
 
 
 def build_source_asset_pack(*, manifest, asset_records):
-    """编译 SourceAssetPack（D14、§16:717-723）。
+    """编译 SourceAssetPack（D14、§16:717-723，ACT 10 分派）。
 
     返回 ``{"pack", "bytes", "sha256"}``。
     """
-    # S1：只支持 derived_page_images_only
-    if manifest["release_policy"] != "derived_page_images_only":
+    policy = manifest["release_policy"]
+    if policy not in ("derived_page_images_only", "reference_and_hash_only"):
         raise DatasetRefused(
-            "发布策略未实现，需 derived_page_images_only: %r"
-            % (manifest["release_policy"],),
+            "发布策略未实现，需 derived_page_images_only 或 reference_and_hash_only: %r"
+            % (policy,),
             code="SCH_002",
         )
 
@@ -136,7 +144,7 @@ def build_source_asset_pack(*, manifest, asset_records):
         if page not in page_order:
             raise SchemaViolation("asset_records 含页序外的页: %s" % page, code="SCH_002")
 
-    # S3：哈希与尺寸校验
+    # S3：哈希与尺寸校验（reference_and_hash_only 不含宽高/尺寸/正文/图像，bytes_included: false）
     pages = []
     for page in page_order:
         item = manifest_assets[page]
@@ -144,18 +152,29 @@ def build_source_asset_pack(*, manifest, asset_records):
         ids.validate("artifact_revision_id", record["artifact_revision_id"])
         if record["sha256"] != item["sha256"]:
             raise HashMismatch("页 %s 资产哈希不符（SRC_003）" % page, code="SRC_003")
-        if (record["width"], record["height"]) != (item["width"], item["height"]):
-            raise HashMismatch("页 %s 资产尺寸不符（SRC_003）" % page, code="SRC_003")
-        pages.append(
-            {
-                "page": page,
-                "asset_artifact_revision_id": record["artifact_revision_id"],
-                "sha256": item["sha256"],
-                "size": record["size"],
-                "width": item["width"],
-                "height": item["height"],
-            }
-        )
+        if policy == "reference_and_hash_only":
+            pages.append(
+                {
+                    "page": page,
+                    "asset_artifact_revision_id": record["artifact_revision_id"],
+                    "sha256": item["sha256"],
+                    "bytes_included": False,
+                    "rights_note": manifest.get("rights_status") or item.get("rights_note", ""),
+                }
+            )
+        else:
+            if (record["width"], record["height"]) != (item["width"], item["height"]):
+                raise HashMismatch("页 %s 资产尺寸不符（SRC_003）" % page, code="SRC_003")
+            pages.append(
+                {
+                    "page": page,
+                    "asset_artifact_revision_id": record["artifact_revision_id"],
+                    "sha256": item["sha256"],
+                    "size": record["size"],
+                    "width": item["width"],
+                    "height": item["height"],
+                }
+            )
 
     # S4：组装
     pack = {
@@ -163,7 +182,7 @@ def build_source_asset_pack(*, manifest, asset_records):
         "schema_version": SUB_PACK_SCHEMA_VERSION,
         "source_id": manifest["source_id"],
         "edition_part_artifact_id": manifest["edition_part"]["artifact_id"],
-        "content_level": manifest["release_policy"],
+        "content_level": policy,
         "rights_status": manifest["rights_status"],
         "pages": pages,
     }
@@ -640,3 +659,111 @@ def build_graph_projection_pack(
         "bytes": data,
         "sha256": sha256_hex(data),
     }
+
+
+def build_evidence_chain(
+    *,
+    entry_id,
+    assertion_id,
+    evidence_link,
+    source_span,
+    source_anchor,
+    evidence_level,
+    release_policy="derived_page_images_only",
+    ocr_page=None,
+    text_mapping=None,
+    source_asset=None,
+):
+    """构建固定七段证据链条目（规格 §16:705-712，INTERFACES §3.10，裁决 107 Q-M8-03/Q-M8-07）。
+
+    每条 chain 必须恰含 7 个键。
+    在 reference_and_hash_only 下，evidence_link.quote 与 source_span.text 必须置为 null。
+    """
+    if evidence_level not in EVIDENCE_LEVELS:
+        raise SchemaViolation("evidence_level 非法: %r" % (evidence_level,), code="SCH_002")
+    if release_policy not in ("derived_page_images_only", "reference_and_hash_only", "full_scan"):
+        raise SchemaViolation("release_policy 非法: %r" % (release_policy,), code="SCH_002")
+
+    ids.validate("entry_id", entry_id)
+    ids.validate("assertion_id", assertion_id)
+
+    if not isinstance(evidence_link, dict):
+        raise SchemaViolation("evidence_link 必须为字典", code="SCH_002")
+    quote_hash = evidence_link.get("quote_sha256")
+    if not quote_hash:
+        raise SchemaViolation("evidence_link 缺少 quote_sha256", code="SCH_002")
+    quote = None if release_policy == "reference_and_hash_only" else evidence_link.get("quote")
+    link_out = {
+        "assertion_id": assertion_id,
+        "source_span_id": evidence_link["source_span_id"],
+        "start_offset": evidence_link["start_offset"],
+        "end_offset": evidence_link["end_offset"],
+        "quote": quote,
+        "quote_sha256": quote_hash,
+    }
+
+    if not isinstance(source_span, dict):
+        raise SchemaViolation("source_span 必须为字典", code="SCH_002")
+    text = None if release_policy == "reference_and_hash_only" else source_span.get("text")
+    span_out = {
+        "source_span_id": source_span["source_span_id"],
+        "source_id": source_span["source_id"],
+        "page": source_span.get("page"),
+        "start_offset": source_span["start_offset"],
+        "end_offset": source_span["end_offset"],
+        "text": text,
+    }
+
+    if not isinstance(source_anchor, dict):
+        raise SchemaViolation("source_anchor 必须为字典", code="SCH_002")
+    anchor_out = dict(source_anchor)
+
+    chain = {
+        "entry_id": entry_id,
+        "assertion_id": assertion_id,
+        "evidence_link": link_out,
+        "source_span": span_out,
+        "source_anchor": anchor_out,
+    }
+
+    if evidence_level == "glyphbox_level":
+        if not isinstance(ocr_page, dict):
+            raise SchemaViolation("glyphbox_level 必须提供 ocr_page 字典", code="SCH_002")
+        if not isinstance(source_asset, dict):
+            raise SchemaViolation("glyphbox_level 必须提供 source_asset 字典", code="SCH_002")
+        chain["ocr_page"] = {
+            "page": ocr_page["page"],
+            "glyph_ids": list(ocr_page["glyph_ids"]),
+        }
+        chain["source_asset"] = {
+            "page": source_asset["page"],
+            "image_sha256": source_asset.get("image_sha256") or source_asset.get("sha256"),
+        }
+    elif evidence_level == "offset_level":
+        if not isinstance(text_mapping, dict):
+            raise SchemaViolation("offset_level 必须提供 text_mapping 字典", code="SCH_002")
+        if not isinstance(source_asset, dict):
+            raise SchemaViolation("offset_level 必须提供 source_asset 字典", code="SCH_002")
+        required_tm_fields = (
+            "raw_text_revision_id",
+            "cleaned_text_revision_id",
+            "patch_set_revision_id",
+            "raw_start",
+            "raw_end",
+        )
+        for f in required_tm_fields:
+            if f not in text_mapping:
+                raise SchemaViolation("text_mapping 缺少字段: %s" % (f,), code="SCH_002")
+        chain["text_mapping"] = {
+            "raw_text_revision_id": text_mapping["raw_text_revision_id"],
+            "cleaned_text_revision_id": text_mapping["cleaned_text_revision_id"],
+            "patch_set_revision_id": text_mapping["patch_set_revision_id"],
+            "raw_start": text_mapping["raw_start"],
+            "raw_end": text_mapping["raw_end"],
+        }
+        chain["source_asset"] = {
+            "page": source_asset.get("page"),
+            "sha256": source_asset.get("sha256") or source_asset.get("image_sha256"),
+        }
+
+    return chain
