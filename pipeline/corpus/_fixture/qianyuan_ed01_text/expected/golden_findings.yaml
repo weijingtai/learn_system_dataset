@@ -1,0 +1,720 @@
+schema: qianyuan_golden/1
+source_sha256: 3f7170cd504e496096bc933ab5ed8805d68fa98625c91c5c09a9e3a61fcecdbb
+annotator: independent
+text_length_chars: 17735
+findings:
+- kind: escape_residue
+  raw_start: 0
+  raw_end: 478
+  raw_excerpt: "---\ntitle:\n  zh-hans: 乾元秘旨\n  zh-hant: 乾元祕旨\nauthor: '[清]舒继英'\ncategory: /易藏/术数\nlastmod:\
+    \ 2018-11-26T22:18:44Z\ngithub_repo_url: https://github.com/daizhige-org/daizhigev20/blob/data/%E6%98%93%E8%97%8F/%E6%9C%AF%E6%95%B0/%E4%B9%BE%E5%85%83%E7%A7%98%E6%97%A8.md\n\
+    daizhige_url: https://daizhige.org/%E6%98%93%E8%97%8F/%E6%9C%AF%E6%95%B0/%E4%B9%BE%E5%85%83%E7%A7%98%E6%97%A8.html\n\
+    additional_info:\n  - 2025-09-15 转换自「殆知阁」GitHub 仓库中的 txt 版本\nexternal_links:\n  ctext:\n    - ctp:wb457118\n\
+    ---\n"
+  context: "---\ntitle:\n  zh-hans: 乾元秘旨\n  zh-hant: 乾元祕旨\nauthor: '[清]舒继英'\ncategory: /易藏/术数\nlastmod:\
+    \ 2018-11-26T22:18:44Z\ngithub_repo_url: https://github.com/daizhige-org/daizhigev20/blob/data/%E6%98%93%E8%97%8F/%E6%9C%AF%E6%95%B0/%E4%B9%BE%E5%85%83%E7%A7%98%E6%97%A8.md\n\
+    daizhige_url: https://daizhige.org/%E6%98%93%E8%97%8F/%E6%9C%AF%E6%95%B0/%E4%B9%BE%E5%85%83%E7%A7%98%E6%97%A8.html\n\
+    additional_info:\n  - 2025-09-15 转换自「殆知阁」GitHub 仓库中的 txt 版本\nexternal_links:\n  ctext:\n    - ctp:wb457118\n\
+    ---\n\n\\[七政四余\\]乾"
+  codepoint: null
+  basis: 文件头部为 YAML front matter（title/author/category/lastmod/github_repo_url/daizhige_url/additional_info/external_links），与正文混在同一原始文件内、未与正文分离，属
+    README §5 第5项'转换残留' 中 'YAML 头与正文分离' 一类检查规则；M1 契约（README §2.3）要求 yaml_metadata 原样保存、不做解析转换，但本文件本身仍是头体混合状态，故登记为发现
+  uncertain: false
+  reason: ''
+- kind: watermark
+  raw_start: 392
+  raw_end: 429
+  raw_excerpt: 2025-09-15 转换自「殆知阁」GitHub 仓库中的 txt 版本
+  context: "info:\n  - 2025-09-15 转换自「殆知阁」GitHub 仓库中的 txt 版本\nexternal_"
+  codepoint: null
+  basis: 该行文字性质上是电子化站点（殆知阁）对本文件转换过程的维护者声明，字面上符合 README §5 第6项'水印广告'检查规则所列'维护者声明'一类；但该文字位于文件头部 YAML front
+    matter的 additional_info 字段内，而非混杂在正文可读文本之中
+  uncertain: true
+  reason: README §2.3 规定 YAML 头原样保存进 source_manifest 的 yaml_metadata 字段、不做解析转换，这意味着该字段本身是被设计为结构化保留的来源说明，而不是污染正文的水印；是否应把它计为
+    M2 sanitization_report 里的 watermark 发现（即视为需要从'文本'中清除的非文献内容），还是应视为M1 阶段就该分离出去的合法元数据、不计入 M2 发现，本次独立标注无法从
+    README/RULINGS 两份文件中找到明确分界，故标记不确定，留待主 Agent 裁决
+- kind: escape_residue
+  raw_start: 479
+  raw_end: 481
+  raw_excerpt: \[
+  context: '7118
+
+    ---
+
+
+    \[七政四余\]乾元秘旨'
+  codepoint: null
+  basis: Markdown 转义符残留，连续 1 个 '\X' 形式转义字符（对应清洗后应还原的原符号），属 README §5 第5项'转换残留' 中 Markdown 转义（\-、\[ 等）一类
+  uncertain: false
+  reason: ''
+- kind: escape_residue
+  raw_start: 485
+  raw_end: 487
+  raw_excerpt: \]
+  context: '--
+
+
+    \[七政四余\]乾元秘旨\-\-舒继'
+  codepoint: null
+  basis: Markdown 转义符残留，连续 1 个 '\X' 形式转义字符（对应清洗后应还原的原符号），属 README §5 第5项'转换残留' 中 Markdown 转义（\-、\[ 等）一类
+  uncertain: false
+  reason: ''
+- kind: escape_residue
+  raw_start: 491
+  raw_end: 495
+  raw_excerpt: \-\-
+  context: "七政四余\\]乾元秘旨\\-\\-舒继英    \n 《"
+  codepoint: null
+  basis: Markdown 转义符残留，连续 2 个 '\X' 形式转义字符（对应清洗后应还原的原符号），属 README §5 第5项'转换残留' 中 Markdown 转义（\-、\[ 等）一类
+  uncertain: false
+  reason: ''
+- kind: private_use_area
+  raw_start: 1930
+  raw_end: 1931
+  raw_excerpt: 
+  context: 固借日之光以为光，必对始望，日既居午，故
+  codepoint: U+E03D
+  basis: 码位 U+E03D 落在 Unicode 私用区 U+E000–U+F8FF 范围内，无对应标准字；本次独立标注在零网络环境下无法核对 GlyphWiki/Jigmo 映射表（第 79
+    条要求对照查证），故只登记码位与上下文，不猜测替换为何字，保留原码位
+  uncertain: false
+  reason: ''
+- kind: private_use_area
+  raw_start: 2085
+  raw_end: 2086
+  raw_excerpt: 
+  context: ，适以相成如此。子午而犯君，丑未冲而掩光
+  codepoint: U+E03D
+  basis: 码位 U+E03D 落在 Unicode 私用区 U+E000–U+F8FF 范围内，无对应标准字；本次独立标注在零网络环境下无法核对 GlyphWiki/Jigmo 映射表（第 79
+    条要求对照查证），故只登记码位与上下文，不猜测替换为何字，保留原码位
+  uncertain: false
+  reason: ''
+- kind: private_use_area
+  raw_start: 2099
+  raw_end: 2100
+  raw_excerpt: 
+  context: ，丑未冲而掩光，寅申而炎 燥，巳亥而克
+  codepoint: U+E03D
+  basis: 码位 U+E03D 落在 Unicode 私用区 U+E000–U+F8FF 范围内，无对应标准字；本次独立标注在零网络环境下无法核对 GlyphWiki/Jigmo 映射表（第 79
+    条要求对照查证），故只登记码位与上下文，不猜测替换为何字，保留原码位
+  uncertain: false
+  reason: ''
+- kind: private_use_area
+  raw_start: 2107
+  raw_end: 2108
+  raw_excerpt: 
+  context: 寅申而炎 燥，巳亥而克害，卯酉而侵凌
+  codepoint: U+E03D
+  basis: 码位 U+E03D 落在 Unicode 私用区 U+E000–U+F8FF 范围内，无对应标准字；本次独立标注在零网络环境下无法核对 GlyphWiki/Jigmo 映射表（第 79
+    条要求对照查证），故只登记码位与上下文，不猜测替换为何字，保留原码位
+  uncertain: false
+  reason: ''
+- kind: private_use_area
+  raw_start: 2114
+  raw_end: 2115
+  raw_excerpt: 
+  context: ，巳亥而克害，卯酉而侵凌，辰戌而泄漏
+  codepoint: U+E03D
+  basis: 码位 U+E03D 落在 Unicode 私用区 U+E000–U+F8FF 范围内，无对应标准字；本次独立标注在零网络环境下无法核对 GlyphWiki/Jigmo 映射表（第 79
+    条要求对照查证），故只登记码位与上下文，不猜测替换为何字，保留原码位
+  uncertain: false
+  reason: ''
+- kind: private_use_area
+  raw_start: 2121
+  raw_end: 2122
+  raw_excerpt: 
+  context: ，卯酉而侵凌，辰戌而泄漏，盖化禄之，
+  codepoint: U+E03D
+  basis: 码位 U+E03D 落在 Unicode 私用区 U+E000–U+F8FF 范围内，无对应标准字；本次独立标注在零网络环境下无法核对 GlyphWiki/Jigmo 映射表（第 79
+    条要求对照查证），故只登记码位与上下文，不猜测替换为何字，保留原码位
+  uncertain: false
+  reason: ''
+- kind: private_use_area
+  raw_start: 2130
+  raw_end: 2131
+  raw_excerpt: 
+  context: 戌而泄漏，盖化禄之，实以相亏如此。或又
+  codepoint: U+E03D
+  basis: 码位 U+E03D 落在 Unicode 私用区 U+E000–U+F8FF 范围内，无对应标准字；本次独立标注在零网络环境下无法核对 GlyphWiki/Jigmo 映射表（第 79
+    条要求对照查证），故只登记码位与上下文，不猜测替换为何字，保留原码位
+  uncertain: false
+  reason: ''
+- kind: textualized_diagram
+  raw_start: 2250
+  raw_end: 2458
+  raw_excerpt: " 　　计\\-\\-\\-\\-日\\-\\-\\-\\-\\-\\-月\\-\\-\\-\\-罗水\\-\\-\\-\\-元星天道\\-\\-\\-\\-气木\\-\\\
+    -\\-\\-立极之图\\-\\-\\-\\-金火\\-\\-\\-\\-土\\-\\-\\-\\-\\-\\-计\\-\\-\\-\\-孛   \n　　计壬\\-\\-太阳\\-\\-\\-太阴\\\
+    -\\-罗癸水庚\\-\\-\\-元星仰观\\-\\-\\-\\-气辛木丙\\-\\-\\-天文之图\\-\\-\\-\\-金丁火甲\\-\\-\\-土戊\\-\\-月己\\-\\-孛乙   "
+  context: "体精用博也。   \n 　　计\\-\\-\\-\\-日\\-\\-\\-\\-\\-\\-月\\-\\-\\-\\-罗水\\-\\-\\-\\-元星天道\\-\\-\\-\\-气木\\\
+    -\\-\\-\\-立极之图\\-\\-\\-\\-金火\\-\\-\\-\\-土\\-\\-\\-\\-\\-\\-计\\-\\-\\-\\-孛   \n　　计壬\\-\\-太阳\\-\\-\\\
+    -太阴\\-\\-罗癸水庚\\-\\-\\-元星仰观\\-\\-\\-\\-气辛木丙\\-\\-\\-天文之图\\-\\-\\-\\-金丁火甲\\-\\-\\-土戊\\-\\-月己\\-\\-孛乙\
+    \   \n　　右将元星天道立"
+  codepoint: null
+  basis: 连续两行（原文件第23-24行）使用大量 ASCII 连字符 '-'（文件中以转义形式 \- 出现）作为栏位分隔，排布'计/日/月/罗水/元星天道/气木/立极之图/金火/土/计/孛'等星曜名目，紧接着第25行原文明确说明'右将元星天道立极之图、元星仰观天文之图，依元星一书开载'——可确认这两行是把原书的星图/星盘图示文本化为'名目+分隔符'的线性排布，属
+    README §5 第10项'文本化图表'，且符合裁决第91/92条边界说明中'ASCII 框线 +-|' 一类
+  uncertain: false
+  reason: ''
+- kind: escape_residue
+  raw_start: 2254
+  raw_end: 2262
+  raw_excerpt: \-\-\-\-
+  context: "也。   \n 　　计\\-\\-\\-\\-日\\-\\-\\-\\-\\"
+  codepoint: null
+  basis: Markdown 转义符残留，连续 4 个 '\X' 形式转义字符（对应清洗后应还原的原符号），属 README §5 第5项'转换残留' 中 Markdown 转义（\-、\[ 等）一类
+  uncertain: false
+  reason: ''
+- kind: escape_residue
+  raw_start: 2263
+  raw_end: 2275
+  raw_excerpt: \-\-\-\-\-\-
+  context: 计\-\-\-\-日\-\-\-\-\-\-月\-\-\-\-罗
+  codepoint: null
+  basis: Markdown 转义符残留，连续 6 个 '\X' 形式转义字符（对应清洗后应还原的原符号），属 README §5 第5项'转换残留' 中 Markdown 转义（\-、\[ 等）一类
+  uncertain: false
+  reason: ''
+- kind: escape_residue
+  raw_start: 2276
+  raw_end: 2284
+  raw_excerpt: \-\-\-\-
+  context: -\-\-\-\-月\-\-\-\-罗水\-\-\-\-
+  codepoint: null
+  basis: Markdown 转义符残留，连续 4 个 '\X' 形式转义字符（对应清洗后应还原的原符号），属 README §5 第5项'转换残留' 中 Markdown 转义（\-、\[ 等）一类
+  uncertain: false
+  reason: ''
+- kind: escape_residue
+  raw_start: 2286
+  raw_end: 2294
+  raw_excerpt: \-\-\-\-
+  context: \-\-\-\-罗水\-\-\-\-元星天道\-\-\-
+  codepoint: null
+  basis: Markdown 转义符残留，连续 4 个 '\X' 形式转义字符（对应清洗后应还原的原符号），属 README §5 第5项'转换残留' 中 Markdown 转义（\-、\[ 等）一类
+  uncertain: false
+  reason: ''
+- kind: escape_residue
+  raw_start: 2298
+  raw_end: 2306
+  raw_excerpt: \-\-\-\-
+  context: \-\-\-元星天道\-\-\-\-气木\-\-\-\-
+  codepoint: null
+  basis: Markdown 转义符残留，连续 4 个 '\X' 形式转义字符（对应清洗后应还原的原符号），属 README §5 第5项'转换残留' 中 Markdown 转义（\-、\[ 等）一类
+  uncertain: false
+  reason: ''
+- kind: escape_residue
+  raw_start: 2308
+  raw_end: 2316
+  raw_excerpt: \-\-\-\-
+  context: \-\-\-\-气木\-\-\-\-立极之图\-\-\-
+  codepoint: null
+  basis: Markdown 转义符残留，连续 4 个 '\X' 形式转义字符（对应清洗后应还原的原符号），属 README §5 第5项'转换残留' 中 Markdown 转义（\-、\[ 等）一类
+  uncertain: false
+  reason: ''
+- kind: escape_residue
+  raw_start: 2320
+  raw_end: 2328
+  raw_excerpt: \-\-\-\-
+  context: \-\-\-立极之图\-\-\-\-金火\-\-\-\-
+  codepoint: null
+  basis: Markdown 转义符残留，连续 4 个 '\X' 形式转义字符（对应清洗后应还原的原符号），属 README §5 第5项'转换残留' 中 Markdown 转义（\-、\[ 等）一类
+  uncertain: false
+  reason: ''
+- kind: escape_residue
+  raw_start: 2330
+  raw_end: 2338
+  raw_excerpt: \-\-\-\-
+  context: \-\-\-\-金火\-\-\-\-土\-\-\-\-\
+  codepoint: null
+  basis: Markdown 转义符残留，连续 4 个 '\X' 形式转义字符（对应清洗后应还原的原符号），属 README §5 第5项'转换残留' 中 Markdown 转义（\-、\[ 等）一类
+  uncertain: false
+  reason: ''
+- kind: escape_residue
+  raw_start: 2339
+  raw_end: 2351
+  raw_excerpt: \-\-\-\-\-\-
+  context: 火\-\-\-\-土\-\-\-\-\-\-计\-\-\-\-孛
+  codepoint: null
+  basis: Markdown 转义符残留，连续 6 个 '\X' 形式转义字符（对应清洗后应还原的原符号），属 README §5 第5项'转换残留' 中 Markdown 转义（\-、\[ 等）一类
+  uncertain: false
+  reason: ''
+- kind: escape_residue
+  raw_start: 2352
+  raw_end: 2360
+  raw_excerpt: \-\-\-\-
+  context: "-\\-\\-\\-\\-计\\-\\-\\-\\-孛   \n　　计壬\\"
+  codepoint: null
+  basis: Markdown 转义符残留，连续 4 个 '\X' 形式转义字符（对应清洗后应还原的原符号），属 README §5 第5项'转换残留' 中 Markdown 转义（\-、\[ 等）一类
+  uncertain: false
+  reason: ''
+- kind: escape_residue
+  raw_start: 2369
+  raw_end: 2373
+  raw_excerpt: \-\-
+  context: "-孛   \n　　计壬\\-\\-太阳\\-\\-\\-太阴"
+  codepoint: null
+  basis: Markdown 转义符残留，连续 2 个 '\X' 形式转义字符（对应清洗后应还原的原符号），属 README §5 第5项'转换残留' 中 Markdown 转义（\-、\[ 等）一类
+  uncertain: false
+  reason: ''
+- kind: escape_residue
+  raw_start: 2375
+  raw_end: 2381
+  raw_excerpt: \-\-\-
+  context: 　　计壬\-\-太阳\-\-\-太阴\-\-罗癸水庚
+  codepoint: null
+  basis: Markdown 转义符残留，连续 3 个 '\X' 形式转义字符（对应清洗后应还原的原符号），属 README §5 第5项'转换残留' 中 Markdown 转义（\-、\[ 等）一类
+  uncertain: false
+  reason: ''
+- kind: escape_residue
+  raw_start: 2383
+  raw_end: 2387
+  raw_excerpt: \-\-
+  context: 太阳\-\-\-太阴\-\-罗癸水庚\-\-\-
+  codepoint: null
+  basis: Markdown 转义符残留，连续 2 个 '\X' 形式转义字符（对应清洗后应还原的原符号），属 README §5 第5项'转换残留' 中 Markdown 转义（\-、\[ 等）一类
+  uncertain: false
+  reason: ''
+- kind: escape_residue
+  raw_start: 2391
+  raw_end: 2397
+  raw_excerpt: \-\-\-
+  context: 太阴\-\-罗癸水庚\-\-\-元星仰观\-\-\-
+  codepoint: null
+  basis: Markdown 转义符残留，连续 3 个 '\X' 形式转义字符（对应清洗后应还原的原符号），属 README §5 第5项'转换残留' 中 Markdown 转义（\-、\[ 等）一类
+  uncertain: false
+  reason: ''
+- kind: escape_residue
+  raw_start: 2401
+  raw_end: 2409
+  raw_excerpt: \-\-\-\-
+  context: \-\-\-元星仰观\-\-\-\-气辛木丙\-\-\-
+  codepoint: null
+  basis: Markdown 转义符残留，连续 4 个 '\X' 形式转义字符（对应清洗后应还原的原符号），属 README §5 第5项'转换残留' 中 Markdown 转义（\-、\[ 等）一类
+  uncertain: false
+  reason: ''
+- kind: escape_residue
+  raw_start: 2413
+  raw_end: 2419
+  raw_excerpt: \-\-\-
+  context: \-\-\-气辛木丙\-\-\-天文之图\-\-\-
+  codepoint: null
+  basis: Markdown 转义符残留，连续 3 个 '\X' 形式转义字符（对应清洗后应还原的原符号），属 README §5 第5项'转换残留' 中 Markdown 转义（\-、\[ 等）一类
+  uncertain: false
+  reason: ''
+- kind: escape_residue
+  raw_start: 2423
+  raw_end: 2431
+  raw_excerpt: \-\-\-\-
+  context: \-\-\-天文之图\-\-\-\-金丁火甲\-\-\-
+  codepoint: null
+  basis: Markdown 转义符残留，连续 4 个 '\X' 形式转义字符（对应清洗后应还原的原符号），属 README §5 第5项'转换残留' 中 Markdown 转义（\-、\[ 等）一类
+  uncertain: false
+  reason: ''
+- kind: escape_residue
+  raw_start: 2435
+  raw_end: 2441
+  raw_excerpt: \-\-\-
+  context: \-\-\-金丁火甲\-\-\-土戊\-\-月己\-
+  codepoint: null
+  basis: Markdown 转义符残留，连续 3 个 '\X' 形式转义字符（对应清洗后应还原的原符号），属 README §5 第5项'转换残留' 中 Markdown 转义（\-、\[ 等）一类
+  uncertain: false
+  reason: ''
+- kind: escape_residue
+  raw_start: 2443
+  raw_end: 2447
+  raw_excerpt: \-\-
+  context: '火甲\-\-\-土戊\-\-月己\-\-孛乙  '
+  codepoint: null
+  basis: Markdown 转义符残留，连续 2 个 '\X' 形式转义字符（对应清洗后应还原的原符号），属 README §5 第5项'转换残留' 中 Markdown 转义（\-、\[ 等）一类
+  uncertain: false
+  reason: ''
+- kind: escape_residue
+  raw_start: 2449
+  raw_end: 2453
+  raw_excerpt: \-\-
+  context: "\\-土戊\\-\\-月己\\-\\-孛乙   \n　　右将"
+  codepoint: null
+  basis: Markdown 转义符残留，连续 2 个 '\X' 形式转义字符（对应清洗后应还原的原符号），属 README §5 第5项'转换残留' 中 Markdown 转义（\-、\[ 等）一类
+  uncertain: false
+  reason: ''
+- kind: replacement_char
+  raw_start: 2520
+  raw_end: 2521
+  raw_excerpt: '?'
+  context: 不为诸星之用，无远弗?，无幽弗烛，不分日昼
+  codepoint: null
+  basis: 半角问号出现在陈述句/叙述句中间（非疑问语气词句末），前后为完整语义单元被打断，判断为原文缺字/形近字无法识别后digitization 时以半角 ? 占位替代，属 README §5
+    第2项'乱码与替换字符' 的登记对象；不猜测还原为何字
+  uncertain: false
+  reason: ''
+- kind: private_use_area
+  raw_start: 2932
+  raw_end: 2933
+  raw_excerpt: 
+  context: 得太阳照临，或流太阳钓大限之月，始能有获
+  codepoint: U+E03D
+  basis: 码位 U+E03D 落在 Unicode 私用区 U+E000–U+F8FF 范围内，无对应标准字；本次独立标注在零网络环境下无法核对 GlyphWiki/Jigmo 映射表（第 79
+    条要求对照查证），故只登记码位与上下文，不猜测替换为何字，保留原码位
+  uncertain: false
+  reason: ''
+- kind: private_use_area
+  raw_start: 3774
+  raw_end: 3775
+  raw_excerpt: 
+  context: 木水生木。借势向荣，权抒采。独遗土者，以
+  codepoint: U+E049
+  basis: 码位 U+E049 落在 Unicode 私用区 U+E000–U+F8FF 范围内，无对应标准字；本次独立标注在零网络环境下无法核对 GlyphWiki/Jigmo 映射表（第 79
+    条要求对照查证），故只登记码位与上下文，不猜测替换为何字，保留原码位
+  uncertain: false
+  reason: ''
+- kind: private_use_area
+  raw_start: 5607
+  raw_end: 5608
+  raw_excerpt: 
+  context: 对度对道，则月为日所，阳极 反亢，故蚀；
+  codepoint: U+E03D
+  basis: 码位 U+E03D 落在 Unicode 私用区 U+E000–U+F8FF 范围内，无对应标准字；本次独立标注在零网络环境下无法核对 GlyphWiki/Jigmo 映射表（第 79
+    条要求对照查证），故只登记码位与上下文，不猜测替换为何字，保留原码位
+  uncertain: false
+  reason: ''
+- kind: private_use_area
+  raw_start: 6254
+  raw_end: 6255
+  raw_excerpt: 
+  context: 隔六宫，一百八十度相。隔四宫，一百二十度
+  codepoint: U+E03D
+  basis: 码位 U+E03D 落在 Unicode 私用区 U+E000–U+F8FF 范围内，无对应标准字；本次独立标注在零网络环境下无法核对 GlyphWiki/Jigmo 映射表（第 79
+    条要求对照查证），故只登记码位与上下文，不猜测替换为何字，保留原码位
+  uncertain: false
+  reason: ''
+- kind: private_use_area
+  raw_start: 6346
+  raw_end: 6347
+  raw_excerpt: 
+  context: ，即所谓络也，亦即对三合六合二弦之谓，特
+  codepoint: U+E03D
+  basis: 码位 U+E03D 落在 Unicode 私用区 U+E000–U+F8FF 范围内，无对应标准字；本次独立标注在零网络环境下无法核对 GlyphWiki/Jigmo 映射表（第 79
+    条要求对照查证），故只登记码位与上下文，不猜测替换为何字，保留原码位
+  uncertain: false
+  reason: ''
+- kind: private_use_area
+  raw_start: 6485
+  raw_end: 6486
+  raw_excerpt: 
+  context: ；妻妾敌体，与命宫对，故次七；疾厄人所难
+  codepoint: U+E03D
+  basis: 码位 U+E03D 落在 Unicode 私用区 U+E000–U+F8FF 范围内，无对应标准字；本次独立标注在零网络环境下无法核对 GlyphWiki/Jigmo 映射表（第 79
+    条要求对照查证），故只登记码位与上下文，不猜测替换为何字，保留原码位
+  uncertain: false
+  reason: ''
+- kind: private_use_area
+  raw_start: 7906
+  raw_end: 7907
+  raw_excerpt: 
+  context: "在戌亥之类。   \n  \n    冲（"
+  codepoint: U+E03D
+  basis: 码位 U+E03D 落在 Unicode 私用区 U+E000–U+F8FF 范围内，无对应标准字；本次独立标注在零网络环境下无法核对 GlyphWiki/Jigmo 映射表（第 79
+    条要求对照查证），故只登记码位与上下文，不猜测替换为何字，保留原码位
+  uncertain: false
+  reason: ''
+- kind: private_use_area
+  raw_start: 7907
+  raw_end: 7908
+  raw_excerpt: 
+  context: "戌亥之类。   \n  \n    冲（己"
+  codepoint: U+E03D
+  basis: 码位 U+E03D 落在 Unicode 私用区 U+E000–U+F8FF 范围内，无对应标准字；本次独立标注在零网络环境下无法核对 GlyphWiki/Jigmo 映射表（第 79
+    条要求对照查证），故只登记码位与上下文，不猜测替换为何字，保留原码位
+  uncertain: false
+  reason: ''
+- kind: private_use_area
+  raw_start: 9240
+  raw_end: 9241
+  raw_excerpt: 
+  context: 劫伤合，独与天官经串钓，难望清贵。纵得进
+  codepoint: U+E03D
+  basis: 码位 U+E03D 落在 Unicode 私用区 U+E000–U+F8FF 范围内，无对应标准字；本次独立标注在零网络环境下无法核对 GlyphWiki/Jigmo 映射表（第 79
+    条要求对照查证），故只登记码位与上下文，不猜测替换为何字，保留原码位
+  uncertain: false
+  reason: ''
+- kind: private_use_area
+  raw_start: 9470
+  raw_end: 9471
+  raw_excerpt: 
+  context: 经或络，或串或拱，或或同，拦截皆妙。但阳
+  codepoint: U+E03D
+  basis: 码位 U+E03D 落在 Unicode 私用区 U+E000–U+F8FF 范围内，无对应标准字；本次独立标注在零网络环境下无法核对 GlyphWiki/Jigmo 映射表（第 79
+    条要求对照查证），故只登记码位与上下文，不猜测替换为何字，保留原码位
+  uncertain: false
+  reason: ''
+- kind: private_use_area
+  raw_start: 9563
+  raw_end: 9564
+  raw_excerpt: 
+  context: 宫同度，或独钓，或独，则生煞而煞弥横；如
+  codepoint: U+E03D
+  basis: 码位 U+E03D 落在 Unicode 私用区 U+E000–U+F8FF 范围内，无对应标准字；本次独立标注在零网络环境下无法核对 GlyphWiki/Jigmo 映射表（第 79
+    条要求对照查证），故只登记码位与上下文，不猜测替换为何字，保留原码位
+  uncertain: false
+  reason: ''
+- kind: private_use_area
+  raw_start: 9587
+  raw_end: 9588
+  raw_excerpt: 
+  context: 宫同度，或独钓，或独，则于官亦不无小补。
+  codepoint: U+E03D
+  basis: 码位 U+E03D 落在 Unicode 私用区 U+E000–U+F8FF 范围内，无对应标准字；本次独立标注在零网络环境下无法核对 GlyphWiki/Jigmo 映射表（第 79
+    条要求对照查证），故只登记码位与上下文，不猜测替换为何字，保留原码位
+  uncertain: false
+  reason: ''
+- kind: private_use_area
+  raw_start: 10503
+  raw_end: 10504
+  raw_excerpt: 
+  context: 凶，则内喜乎善，吉凶扶阳势，余奴亦足敌杀
+  codepoint: U+E049
+  basis: 码位 U+E049 落在 Unicode 私用区 U+E000–U+F8FF 范围内，无对应标准字；本次独立标注在零网络环境下无法核对 GlyphWiki/Jigmo 映射表（第 79
+    条要求对照查证），故只登记码位与上下文，不猜测替换为何字，保留原码位
+  uncertain: false
+  reason: ''
+- kind: private_use_area
+  raw_start: 11156
+  raw_end: 11157
+  raw_excerpt: 
+  context: 且要也。度固因太岁填钓而弥动，其初入度将
+  codepoint: U+E03D
+  basis: 码位 U+E03D 落在 Unicode 私用区 U+E000–U+F8FF 范围内，无对应标准字；本次独立标注在零网络环境下无法核对 GlyphWiki/Jigmo 映射表（第 79
+    条要求对照查证），故只登记码位与上下文，不猜测替换为何字，保留原码位
+  uncertain: false
+  reason: ''
+- kind: private_use_area
+  raw_start: 11184
+  raw_end: 11185
+  raw_excerpt: 
+  context: "与寻常不同。   \n度   \n度之说，所"
+  codepoint: U+E052
+  basis: 码位 U+E052 落在 Unicode 私用区 U+E000–U+F8FF 范围内，无对应标准字；本次独立标注在零网络环境下无法核对 GlyphWiki/Jigmo 映射表（第 79
+    条要求对照查证），故只登记码位与上下文，不猜测替换为何字，保留原码位
+  uncertain: false
+  reason: ''
+- kind: private_use_area
+  raw_start: 11247
+  raw_end: 11248
+  raw_excerpt: 
+  context: 官非等事。若带刃煞来，流年又逢度之星、
+  codepoint: U+E052
+  basis: 码位 U+E052 落在 Unicode 私用区 U+E000–U+F8FF 范围内，无对应标准字；本次独立标注在零网络环境下无法核对 GlyphWiki/Jigmo 映射表（第 79
+    条要求对照查证），故只登记码位与上下文，不猜测替换为何字，保留原码位
+  uncertain: false
+  reason: ''
+- kind: private_use_area
+  raw_start: 11253
+  raw_end: 11254
+  raw_excerpt: 
+  context: 带刃煞来，流年又逢度之星、杀刃之 类，
+  codepoint: U+E052
+  basis: 码位 U+E052 落在 Unicode 私用区 U+E000–U+F8FF 范围内，无对应标准字；本次独立标注在零网络环境下无法核对 GlyphWiki/Jigmo 映射表（第 79
+    条要求对照查证），故只登记码位与上下文，不猜测替换为何字，保留原码位
+  uncertain: false
+  reason: ''
+- kind: replacement_char
+  raw_start: 11349
+  raw_end: 11350
+  raw_excerpt: '?'
+  context: 轻，行度至此，其害立?。如限入刃乡，度又为
+  codepoint: null
+  basis: 半角问号出现在陈述句/叙述句中间（非疑问语气词句末），前后为完整语义单元被打断，判断为原文缺字/形近字无法识别后digitization 时以半角 ? 占位替代，属 README §5
+    第2项'乱码与替换字符' 的登记对象；不猜测还原为何字
+  uncertain: false
+  reason: ''
+- kind: private_use_area
+  raw_start: 11404
+  raw_end: 11405
+  raw_excerpt: 
+  context: ，木登木殿，遇流气来， 太岁刃煞又至其宫
+  codepoint: U+E052
+  basis: 码位 U+E052 落在 Unicode 私用区 U+E000–U+F8FF 范围内，无对应标准字；本次独立标注在零网络环境下无法核对 GlyphWiki/Jigmo 映射表（第 79
+    条要求对照查证），故只登记码位与上下文，不猜测替换为何字，保留原码位
+  uncertain: false
+  reason: ''
+- kind: private_use_area
+  raw_start: 11472
+  raw_end: 11473
+  raw_excerpt: 
+  context: 为率。虽系天官，既是度，亦任中闻 擢而亡
+  codepoint: U+E052
+  basis: 码位 U+E052 落在 Unicode 私用区 U+E000–U+F8FF 范围内，无对应标准字；本次独立标注在零网络环境下无法核对 GlyphWiki/Jigmo 映射表（第 79
+    条要求对照查证），故只登记码位与上下文，不猜测替换为何字，保留原码位
+  uncertain: false
+  reason: ''
+- kind: private_use_area
+  raw_start: 11500
+  raw_end: 11501
+  raw_excerpt: 
+  context: 久。命主所泊之度尤怕破，在后破犹轻，在
+  codepoint: U+E052
+  basis: 码位 U+E052 落在 Unicode 私用区 U+E000–U+F8FF 范围内，无对应标准字；本次独立标注在零网络环境下无法核对 GlyphWiki/Jigmo 映射表（第 79
+    条要求对照查证），故只登记码位与上下文，不猜测替换为何字，保留原码位
+  uncertain: false
+  reason: ''
+- kind: private_use_area
+  raw_start: 11505
+  raw_end: 11506
+  raw_excerpt: 
+  context: 泊之度尤怕破，在后破犹轻，在前破更重
+  codepoint: U+E052
+  basis: 码位 U+E052 落在 Unicode 私用区 U+E000–U+F8FF 范围内，无对应标准字；本次独立标注在零网络环境下无法核对 GlyphWiki/Jigmo 映射表（第 79
+    条要求对照查证），故只登记码位与上下文，不猜测替换为何字，保留原码位
+  uncertain: false
+  reason: ''
+- kind: private_use_area
+  raw_start: 11512
+  raw_end: 11513
+  raw_excerpt: 
+  context: ，在后破犹轻，在前破更重。行至破之度
+  codepoint: U+E052
+  basis: 码位 U+E052 落在 Unicode 私用区 U+E000–U+F8FF 范围内，无对应标准字；本次独立标注在零网络环境下无法核对 GlyphWiki/Jigmo 映射表（第 79
+    条要求对照查证），故只登记码位与上下文，不猜测替换为何字，保留原码位
+  uncertain: false
+  reason: ''
+- kind: private_use_area
+  raw_start: 11519
+  raw_end: 11520
+  raw_excerpt: 
+  context: ，在前破更重。行至破之度，未及所之度
+  codepoint: U+E052
+  basis: 码位 U+E052 落在 Unicode 私用区 U+E000–U+F8FF 范围内，无对应标准字；本次独立标注在零网络环境下无法核对 GlyphWiki/Jigmo 映射表（第 79
+    条要求对照查证），故只登记码位与上下文，不猜测替换为何字，保留原码位
+  uncertain: false
+  reason: ''
+- kind: private_use_area
+  raw_start: 11527
+  raw_end: 11528
+  raw_excerpt: 
+  context: 行至破之度，未及所之度数犹轻，已过所
+  codepoint: U+E052
+  basis: 码位 U+E052 落在 Unicode 私用区 U+E000–U+F8FF 范围内，无对应标准字；本次独立标注在零网络环境下无法核对 GlyphWiki/Jigmo 映射表（第 79
+    条要求对照查证），故只登记码位与上下文，不猜测替换为何字，保留原码位
+  uncertain: false
+  reason: ''
+- kind: private_use_area
+  raw_start: 11537
+  raw_end: 11538
+  raw_excerpt: 
+  context: 之度数犹轻，已过所之度数更重。然亦须因
+  codepoint: U+E052
+  basis: 码位 U+E052 落在 Unicode 私用区 U+E000–U+F8FF 范围内，无对应标准字；本次独立标注在零网络环境下无法核对 GlyphWiki/Jigmo 映射表（第 79
+    条要求对照查证），故只登记码位与上下文，不猜测替换为何字，保留原码位
+  uncertain: false
+  reason: ''
+- kind: private_use_area
+  raw_start: 12037
+  raw_end: 12038
+  raw_excerpt: 
+  context: 如在对宫照。太岁于填钓之外，尚 有逐拦二
+  codepoint: U+E03D
+  basis: 码位 U+E03D 落在 Unicode 私用区 U+E000–U+F8FF 范围内，无对应标准字；本次独立标注在零网络环境下无法核对 GlyphWiki/Jigmo 映射表（第 79
+    条要求对照查证），故只登记码位与上下文，不猜测替换为何字，保留原码位
+  uncertain: false
+  reason: ''
+- kind: private_use_area
+  raw_start: 12403
+  raw_end: 12404
+  raw_excerpt: 
+  context: 即有此限度，太岁尚不钓，亦将从缓。」是诚
+  codepoint: U+E03D
+  basis: 码位 U+E03D 落在 Unicode 私用区 U+E000–U+F8FF 范围内，无对应标准字；本次独立标注在零网络环境下无法核对 GlyphWiki/Jigmo 映射表（第 79
+    条要求对照查证），故只登记码位与上下文，不猜测替换为何字，保留原码位
+  uncertain: false
+  reason: ''
+- kind: private_use_area
+  raw_start: 12981
+  raw_end: 12982
+  raw_excerpt: 
+  context: 宰。合此二命观之，全气之作用，而非局局于
+  codepoint: U+E049
+  basis: 码位 U+E049 落在 Unicode 私用区 U+E000–U+F8FF 范围内，无对应标准字；本次独立标注在零网络环境下无法核对 GlyphWiki/Jigmo 映射表（第 79
+    条要求对照查证），故只登记码位与上下文，不猜测替换为何字，保留原码位
+  uncertain: false
+  reason: ''
+- kind: replacement_char
+  raw_start: 13033
+  raw_end: 13034
+  raw_excerpt: '?'
+  context: 书成而星命之理昭然可?矣，然亦有书不尽言，
+  codepoint: null
+  basis: 半角问号出现在陈述句/叙述句中间（非疑问语气词句末），前后为完整语义单元被打断，判断为原文缺字/形近字无法识别后digitization 时以半角 ? 占位替代，属 README §5
+    第2项'乱码与替换字符' 的登记对象；不猜测还原为何字
+  uncertain: false
+  reason: ''
+- kind: private_use_area
+  raw_start: 13710
+  raw_end: 13711
+  raw_excerpt: 
+  context: "高乎？   \n   钓之间正须详看。如甲"
+  codepoint: U+E03D
+  basis: 码位 U+E03D 落在 Unicode 私用区 U+E000–U+F8FF 范围内，无对应标准字；本次独立标注在零网络环境下无法核对 GlyphWiki/Jigmo 映射表（第 79
+    条要求对照查证），故只登记码位与上下文，不猜测替换为何字，保留原码位
+  uncertain: false
+  reason: ''
+- kind: private_use_area
+  raw_start: 13809
+  raw_end: 13810
+  raw_excerpt: 
+  context: 七、六、五等度，正财对生官，官场极顺，及
+  codepoint: U+E03D
+  basis: 码位 U+E03D 落在 Unicode 私用区 U+E000–U+F8FF 范围内，无对应标准字；本次独立标注在零网络环境下无法核对 GlyphWiki/Jigmo 映射表（第 79
+    条要求对照查证），故只登记码位与上下文，不猜测替换为何字，保留原码位
+  uncertain: false
+  reason: ''
+- kind: private_use_area
+  raw_start: 13986
+  raw_end: 13987
+  raw_excerpt: 
+  context: ，所当细为查参。分金度，先天五行，皆节外
+  codepoint: U+E052
+  basis: 码位 U+E052 落在 Unicode 私用区 U+E000–U+F8FF 范围内，无对应标准字；本次独立标注在零网络环境下无法核对 GlyphWiki/Jigmo 映射表（第 79
+    条要求对照查证），故只登记码位与上下文，不猜测替换为何字，保留原码位
+  uncertain: false
+  reason: ''
+- kind: variant_mixed
+  raw_start: 14282
+  raw_end: 14283
+  raw_excerpt: 於
+  context: 在实沉而晋文得位，淫於伭枵而裨?知楚子之将
+  codepoint: null
+  basis: 全文'于'作为介词出现约71次（简体/现代规范用字），仅此1处用'於'（繁体/古字），与全文用字习惯不一致，疑似简繁混杂或转换不彻底；但'於'也是文言文介词的传统写法，不能排除底本原样如此或属作者/刊刻者行文习惯，本次无权威底本可比对校勘，无法确证是转换残留还是原文如此
+  uncertain: true
+  reason: '''於/于''二字在文言文语境中经常并存且语义相同，无法仅凭本文件内部证据区分是（a）原书底本行文本就混用，还是（b）电子化/简化转换时该处遗漏未转换；零网络环境无法调阅殆知阁站方所据底本或其他版本比对，故标记为不确定，供主
+    Agent 裁决是否计入 variant_mixed'
+- kind: replacement_char
+  raw_start: 14287
+  raw_end: 14288
+  raw_excerpt: '?'
+  context: 文得位，淫於伭枵而裨?知楚子之将死，星见大
+  codepoint: null
+  basis: 半角问号出现在陈述句/叙述句中间（非疑问语气词句末），前后为完整语义单元被打断，判断为原文缺字/形近字无法识别后digitization 时以半角 ? 占位替代，属 README §5
+    第2项'乱码与替换字符' 的登记对象；不猜测还原为何字
+  uncertain: false
+  reason: ''
+- kind: private_use_area
+  raw_start: 15152
+  raw_end: 15153
+  raw_excerpt: 
+  context: 或三合、或六合、或对、二弦 相照，主星即
+  codepoint: U+E03D
+  basis: 码位 U+E03D 落在 Unicode 私用区 U+E000–U+F8FF 范围内，无对应标准字；本次独立标注在零网络环境下无法核对 GlyphWiki/Jigmo 映射表（第 79
+    条要求对照查证），故只登记码位与上下文，不猜测替换为何字，保留原码位
+  uncertain: false
+  reason: ''
+summary:
+  encoding_issue: 0
+  replacement_char: 4
+  private_use_area: 39
+  control_char: 0
+  escape_residue: 24
+  watermark: 1
+  header_footer: 0
+  duplicate: 0
+  missing: 0
+  textualized_diagram: 1
+  variant_mixed: 1
+  suspected_error: 0
+uncertain_count: 2
+missing_determinable: false

@@ -14,6 +14,7 @@ contract: |
     需要 M1+M2 在 Ledger 上成功运行后的状态
 tests:
   test_parity.py: |
+    # 注（依第 105 条）：本 ACT 4 条等价性用例保留（未在第 105 条退役范围内）；J4 退役用例见 act/07.yaml
     - test_m1_manifest_parseable_by_m3（synthetic_fixture: true，M1 产出的 source_manifest 可被 resolve_m3_inputs 解析）
     - test_m2_output_parseable_by_m3（synthetic_fixture: true，M2 产出的 cleaned_text + report 可被 M3 相关解析消费）
     - test_raw_text_frozen（synthetic_fixture: true，M2 运行后 raw_text 修订不变）

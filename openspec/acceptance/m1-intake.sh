@@ -1,11 +1,14 @@
 #!/usr/bin/env bash
-# m1-intake.sh — M1 电子文本入库验收脚本（规格 §19.0）
+# m1-intake.sh — M1 电子文本入库验收脚本（规格 §19.0；第 96 条 D2 / 第 101 条）
 #
-# 验收宿主：README §7.2 约定的《乾元秘旨》电子文本片段。该宿主由主 Agent 另行以
-# 独占 fixture ACT 安排（P4），本脚本**不自建宿主**，因此宿主不存在是正常状态——
-# 此时打印缺失前置并 exit 2（BLOCKED）。
+# 验收方式：对宿主原文**实跑 M1**（临时 Ledger，用完即删），再把实跑结果与宿主内
+# 独立期望（expected/m1_source_expected.yaml，主 Agent 独立核验产出）逐项比对。
+# 本脚本不读预计算产物，也不把宿主当成装着流水线产物的 Ledger 目录。
 #
-# 退出码：0 全部 PASS；1 有 FAIL；2 有 BLOCKED 或不可判定。
+# 三态（第 101 条）：
+# - 宿主目录或原文缺失 → BLOCKED exit 2
+# - 期望缺失或 SHA256SUMS 校验不符 → BLOCKED exit 2（期望不可信即不可判定）
+# - 齐备 → 实跑后逐项比对 → PASS/FAIL，全 PASS exit 0，有 FAIL exit 1
 #
 # 纪律（G7-RULINGS 第 94 条 D3）：rc != 0，或解析不到任何 PASS/FAIL/BLOCKED 行时，
 # 一律不得 exit 0——禁止「找不到就当通过」。
@@ -24,11 +27,11 @@ fi
 
 PY="$REPO_ROOT/.venv/bin/python"
 
-# 电子文本验收宿主目录（README §7.2；P4 独占 fixture ACT 安排，本脚本不创建）
+# 电子文本验收宿主目录（README §7.2；第 101 条随本 ACT 入库）
 FIXTURE_DIR="${FIXTURE_DIR:-$REPO_ROOT/pipeline/corpus/_fixture/qianyuan_ed01_text}"
 
 if [ ! -d "$FIXTURE_DIR" ]; then
-  echo "BLOCKED m1_intake 前置缺失: 电子文本验收宿主不存在（README §7.2《乾元秘旨》片段；P4 独占 fixture ACT 尚未落地）；FIXTURE_DIR=$FIXTURE_DIR"
+  echo "BLOCKED m1_intake 前置缺失: 电子文本验收宿主不存在（README §7.2《乾元秘旨》原文宿主）；FIXTURE_DIR=$FIXTURE_DIR"
   echo "SUMMARY pass=0 fail=0 blocked=1"
   exit 2
 fi

@@ -38,20 +38,32 @@ contract: |
   注意：两份脚本在宿主缺失时 exit 2（BLOCKED）；接进 run_all.sh 属另一个独占 ACT，由主 Agent 安排，本包不动 run_all.sh。
 tests:
   test_acceptance.py: |
-    # --- intake 侧（3 个用例）---
-    - test_m1_check_passes_on_valid_ledger（synthetic_fixture: true，合成 Ledger）
-    - test_m1_check_fails_on_missing_manifest（synthetic_fixture: true）
-    - test_m1_check_blocked_on_no_ledger（无 Ledger 目录 → BLOCKED）
-    # --- digitization 侧（4 个用例）---
-    - test_m2_check_passes_on_valid_ledger（synthetic_fixture: true，合成 Ledger）
-    - test_m2_check_fails_on_deferred（synthetic_fixture: true，合成 deferred findings）
-    - test_m2_check_fails_on_missing_report（synthetic_fixture: true）
-    - test_m2_check_blocked_on_no_ledger（无 Ledger 目录 → BLOCKED）
+    # --- intake 侧（6 个用例：1 个保留 + 5 个三态与实跑比对；依第 105 条退役 2 个旧用例）---
+    - test_m1_check_blocked_on_no_ledger（无宿主目录 → BLOCKED；保留）
+    - test_shell_blocked_when_host_missing（宿主缺失 → BLOCKED exit 2）
+    - test_shell_blocked_when_expected_missing（期望文件缺失 → BLOCKED exit 2）
+    - test_shell_blocked_when_expected_checksum_mismatch（SHA256SUMS 不符 → BLOCKED exit 2，文案「期望文件被改动」）
+    - test_shell_pass_on_matching_synthetic_host（合成宿主与手写期望相符 → 全部 PASS exit 0）
+    - test_shell_fail_when_output_diverges_from_expected（期望改值 → FAIL exit 1）
+    # 退役：test_m1_check_passes_on_valid_ledger（原断言：在有效 Ledger 目录上 check_m1_intake 返回 PASS；依第 105 条）
+    # 退役：test_m1_check_fails_on_missing_manifest（原断言：缺少 source_manifest.yaml 时 check_m1_intake 返回 FAIL；依第 105 条）
+    # --- digitization 侧（8 个用例：1 个保留 + 7 个三态、12 类比对与反自证护栏；依第 105 条退役 3 个旧用例）---
+    - test_m2_check_blocked_on_no_ledger（无宿主目录 → BLOCKED；保留）
+    - test_shell_blocked_when_host_missing（宿主缺失 → BLOCKED exit 2）
+    - test_shell_blocked_when_expected_missing（金标缺失 → BLOCKED exit 2）
+    - test_shell_blocked_when_expected_checksum_mismatch（SHA256SUMS 不符 → BLOCKED exit 2，文案「期望文件被改动」）
+    - test_shell_pass_on_matching_synthetic_host（合成宿主与手写金标相符 → 12 类逐类 PASS exit 0）
+    - test_shell_fail_when_output_diverges_from_expected（金标改偏移 → FAIL exit 1）
+    - test_compare_excludes_yaml_header_findings_except_separation（第 98 条① YAML 头范围规则）
+    - test_compare_does_not_import_digitization_for_header_range（第 95/101 条反自证：不从 pipeline.digitization 导入头区间函数）
+    # 退役：test_m2_check_passes_on_valid_ledger（原断言：在有效 Ledger 目录上 check_m2_sanitization 返回 PASS；依第 105 条）
+    # 退役：test_m2_check_fails_on_deferred（原断言：有 deferred findings 时 check_m2_sanitization 返回 FAIL；依第 105 条）
+    # 退役：test_m2_check_fails_on_missing_report（原断言：缺少 sanitization_report.yaml 时 check_m2_sanitization 返回 FAIL；依第 105 条）
 verify:
-  - .venv/bin/python -m unittest discover -s pipeline/intake/tests -t . 2>&1 | tail -3   # OK，intake 累计 ≥ 29
-  - .venv/bin/python -m unittest discover -s pipeline/digitization/tests -t . 2>&1 | tail -3   # OK，digitization 累计 ≥ 65
-  - bash openspec/acceptance/m1-intake.sh; echo exit=$?   # exit 2（BLOCKED，无真实素材）
-  - bash openspec/acceptance/m2-sanitization.sh; echo exit=$?   # exit 2（BLOCKED）
+  - .venv/bin/python -m unittest discover -s pipeline/intake/tests -t . 2>&1 | tail -3   # OK，intake 累计 ≥ 38
+  - .venv/bin/python -m unittest discover -s pipeline/digitization/tests -t . 2>&1 | tail -3   # OK，digitization 累计 ≥ 86
+  - bash openspec/acceptance/m1-intake.sh; echo exit=$?   # exit 0（真书宿主逐项 PASS）
+  - bash openspec/acceptance/m2-sanitization.sh; echo exit=$?   # exit 0（真书宿主 12 类逐类 PASS）
   - TDD §3 回归
 commit:
   add: [pipeline/intake, pipeline/digitization, openspec/acceptance/m1-intake.sh, openspec/acceptance/m2-sanitization.sh]

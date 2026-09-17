@@ -1,0 +1,33 @@
+source_id: src_qianyuan_ed01
+work_title: 乾元秘旨
+edition_note: 殆知阁 GitHub 仓库 daizhige-org/daizhigev20（data 分支，commit aa2b70789d153f2542e5f4786265157c7356ab76）路径「易藏/术数/乾元秘旨.md」；[清]舒继英撰；全篇单文件、无页码。本地文件名 qianyuan_ed01_text.md（M1 pages 标识符限 ^[a-zA-Z0-9_-]+$，原名含中文不可用作 page id）；文件内容逐字节原样，sha256 与源文件一致。
+technique_id: qizheng
+rights_status: 站方声明免费下载、未附许可证
+release_policy: reference_and_hash_only
+edition_part:
+  artifact_id: art_00000000000000000000000000000001
+  label: 乾元秘旨·全篇（单文件，无页码）
+  pages:
+  - qianyuan_ed01_text
+source_site: github.com/daizhige-org/daizhigev20
+source_url: https://raw.githubusercontent.com/daizhige-org/daizhigev20/aa2b70789d153f2542e5f4786265157c7356ab76/易藏/术数/乾元秘旨.md
+file_sha256: 3f7170cd504e496096bc933ab5ed8805d68fa98625c91c5c09a9e3a61fcecdbb
+pages:
+- qianyuan_ed01_text
+repo_commit: aa2b70789d153f2542e5f4786265157c7356ab76
+yaml_metadata: |
+  ---
+  title:
+    zh-hans: 乾元秘旨
+    zh-hant: 乾元祕旨
+  author: '[清]舒继英'
+  category: /易藏/术数
+  lastmod: 2018-11-26T22:18:44Z
+  github_repo_url: https://github.com/daizhige-org/daizhigev20/blob/data/%E6%98%93%E8%97%8F/%E6%9C%AF%E6%95%B0/%E4%B9%BE%E5%85%83%E7%A7%98%E6%97%A8.md
+  daizhige_url: https://daizhige.org/%E6%98%93%E8%97%8F/%E6%9C%AF%E6%95%B0/%E4%B9%BE%E5%85%83%E7%A7%98%E6%97%A8.html
+  additional_info:
+    - 2025-09-15 转换自「殆知阁」GitHub 仓库中的 txt 版本
+  external_links:
+    ctext:
+      - ctp:wb457118
+  ---

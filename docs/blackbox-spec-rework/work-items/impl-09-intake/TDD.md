@@ -30,7 +30,7 @@ git diff --check
 | 04 | digitization | 新增用例全 ERROR | `$TD` OK ≥ 48；run_m2 成功路径产出三个 revision_id |
 | 05 | digitization | 新增用例全 ERROR | `$TD` OK ≥ 57；load_decisions 校验通过；check_decisions_coverage 可检出缺决定 |
 | 06 | digitization | 新增用例全 ERROR | `$TD` OK ≥ 61；M1→M2 产出可被 M3 输入解析消费 |
-| 07 | 两套 | `m1-intake.sh` 不存在（exit 127）；新增用例全 ERROR | `$TI` OK ≥ 35；`$TD` OK ≥ 67；两份脚本 exit 2（BLOCKED） |
+| 07 | 两套 | 期望与产出不符/缺失时用例转红（Red 证明完成） | `$TI` OK ≥ 38；`$TD` OK ≥ 86；两份脚本真书实跑逐项 PASS exit 0 |
 
 ## 2. 用例阈值计算（按 act 文件 grep -c "^\s*- test_" 实数）
 
@@ -44,7 +44,7 @@ git diff --check
 |---|---|---|---|
 | 00 | 24 | 24 | test_manifest.py 24 条＝act/00 `tests` 列 19 + J2 指定补测 1 + J1b（第 94 条 D4）新增 4 |
 | 01 | 8 | 32 | + test_step.py 8 条＝act/01 `tests` 列 7 + 主 Agent 指定补测 1 |
-| 07 | 3 | 35 | + test_acceptance.py intake 侧 3 条 |
+| 07 | 6 | 38 | + test_acceptance.py intake 侧 6 条（保留 1 + 新增 5；退役 2 条 J4 旧用例，第 105 条） |
 
 ### digitization 套（$TD，pipeline/digitization/tests）
 
@@ -55,10 +55,10 @@ git diff --check
 | 04 | 8 | 48 | + test_step.py 8 条 |
 | 05 | 9 | 57 | + test_decisions.py 9 条 |
 | 06 | 6 | 63 | + test_parity.py 6 条＝act/06 `tests` 列 4 + J4（第 94 条 D3）新增 2 |
-| 07 | 4 | 67 | + test_acceptance.py digitization 侧 4 条 |
-| J3d | 3 | 70 | + test_gate.py 3 条（第 96 条 D1 具名用例；gate 终态集改为导入包常量） |
-| J3e | 11 | 81 | + test_cleaner.py 11 条（第 98 条①–⑦ 的正反例成对 + 真实书源回归 `test_real_book_star_diagram_separator_not_duplicate`） |
-| J3f | 1 | 82 | + test_cleaner.py 1 条（第 99 条：第 98 条②独立护栏，未被转义残留或图表覆盖的纯标点重复不计 duplicate；仅回退②须转红） |
+| 07 | 8 | 71 | + test_acceptance.py digitization 侧 8 条（保留 1 + 新增 7；退役 3 条 J4 旧用例，第 105 条） |
+| J3d | 3 | 74 | + test_gate.py 3 条（第 96 条 D1 具名用例；gate 终态集改为导入包常量） |
+| J3e | 11 | 85 | + test_cleaner.py 11 条（第 98 条①–⑦ 的正反例成对 + 真实书源回归 `test_real_book_star_diagram_separator_not_duplicate`） |
+| J3f | 1 | 86 | + test_cleaner.py 1 条（第 99 条：第 98 条②独立护栏，未被转义残留或图表覆盖的纯标点重复不计 duplicate；仅回退②须转红） |
 
 **各 act grep -c 实数**：
 
@@ -71,7 +71,7 @@ $ for f in docs/blackbox-spec-rework/work-items/impl-09-intake/act/*.yaml; do ec
 04.yaml: 8
 05.yaml: 9
 06.yaml: 4
-07.yaml: 7  （intake 侧 3 + digitization 侧 4）
+07.yaml: 14  （intake 侧 6 + digitization 侧 8）
 ```
 
 ## 3. 回归（每个 ACT 后）

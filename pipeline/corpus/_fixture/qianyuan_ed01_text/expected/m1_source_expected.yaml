@@ -1,0 +1,15 @@
+# M1 入库期望事实（主 Agent 2026-09-16 下载后独立核验，第 95 条；不来自 M1 输出）
+schema: qianyuan_m1_expected/1
+page: qianyuan_ed01_text
+sha256: 3f7170cd504e496096bc933ab5ed8805d68fa98625c91c5c09a9e3a61fcecdbb
+normalized_sha256: 3f7170cd504e496096bc933ab5ed8805d68fa98625c91c5c09a9e3a61fcecdbb  # 无 BOM、UTF-8，与原字节相同（第 94 条 D4）
+size_bytes: 50451
+text_length_chars: 17735
+line_count: 156
+bom: false
+original_encoding: utf-8
+git_blob_sha: 5bc5641a889d0c57ae12196599b00063e1959141
+source_site: github.com/daizhige-org/daizhigev20
+repo_commit: aa2b70789d153f2542e5f4786265157c7356ab76
+rights_status: 站方声明免费下载、未附许可证
+release_policy: reference_and_hash_only
