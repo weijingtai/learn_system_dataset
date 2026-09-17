@@ -110,3 +110,11 @@ act/13 `ACCEPTED`。impl-06 实现的闭集前提已满足。
 - 执行方纪律问题（记录，不影响本次结论）：两次回报缺证据——阶段 B 未贴 `grep -c '^| M2 '` 的不达标输出（判据本身写错），返工后未写回报段。已重申「每条 verify 贴真实输出、不达标停手上报、阶段标题逐字」。
 
 act/14 `ACCEPTED`。W7 步骤 7.1 完成，7.2（impl-09 M1+M2 电子文本）可派发。
+
+### 5.6 W8 8.6 ACT 08：M8 返工登记（2026-09-16，主 Agent 独立验收，`git archive ff21388` 干净树；执行器 agy Gemini 3.8 Flash Medium）
+
+判定：**ACT 08 ACCEPTED**。第 107 条登记落地。
+
+- 登记：§3.15 `graph_projection_pack` 草案（边无 ID、身份为 `(source, relation, target)`、`kind`/`relation` 闭集、节点前缀限 ids 闭集）；§3.10 `evidence_map_pack` offset 变体（七段恰 7 键；offset 第 6/7 键 `text_mapping`/`source_asset{page, sha256}`；`reference_and_hash_only` 下 `quote`、`source_span.text` 为 `null`）；§3.3 M8 检查名 23 项单一闭集与 `not_applicable`；§3.16 `entry_id_allocation`（UUIDv4 `ent_`）；§3.8 `known_defects` 的 `assertion_without_subject` 口径。
+- 干净树：`check_interfaces` `pass=44 fail=0`；IF44 对 `gate.py` 尚未实现的 9 项检查名输出显式 `XFAIL` 说明，未计入 fail、亦未隐藏。
+- **主 Agent 篡改**（临时副本）：§3.15 边定义加回 `edge_id` → `FAIL IF41`；§3.3 删去检查名 `sanitization_disclosure` → `FAIL IF44 … 缺检查项`。
