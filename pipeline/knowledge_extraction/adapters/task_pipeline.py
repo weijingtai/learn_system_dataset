@@ -176,7 +176,8 @@ def export_task_inputs(
         {
             "seg_id": "s%03d" % (index + 1),
             "span_id": span["span_id"],
-            "page": span["page"],
+            # offset_level（电子文本）片段无页概念，如实导出 None（第 100 条 D2/D4）
+            "page": span.get("page"),
             "text": span["text"],
         }
         for index, span in enumerate(spans)

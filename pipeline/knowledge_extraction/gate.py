@@ -1,7 +1,9 @@
 """独立候选 Gate：对 ``candidate_set`` 做十二项输出契约检查（纯函数）。
 
-本模块**不** import ``assemble`` / ``submission``：页块由本模块自行从 ``spans_doc``
-重算。每项检查收集全部错误，不在首错处停止。
+本模块**不** import ``assemble`` / ``submission``：引文定位基准由本模块自行从
+``spans_doc`` 重算，并按 ``evidence_level`` 分派（``glyphbox_level`` 用页块、
+``offset_level`` 用片段自身 ``text``/``start_offset``，第 100 条 D2/D4）。
+每项检查收集全部错误，不在首错处停止。
 """
 
 import re
@@ -132,16 +134,34 @@ _DISPUTE_ID_RE = re.compile(r"^m4_d[0-9]{3}$")
 
 
 def _page_blocks(spans_doc):
-    """本模块自算页块（同页 Span text 以 ``"\\n"`` 连接），不复用装配器。"""
+    """本模块自算页块（同页 Span text 以 ``"\\n"`` 连接），不复用装配器。
+
+    仅服务 ``glyphbox_level``（OCR）片段；``offset_level`` 无页概念，见 ``_quote_basis``。
+    """
     order = []
     grouped = {}
     for span in spans_doc["spans"]:
-        page = span["page"]
+        page = span.get("page")
         if page not in grouped:
             grouped[page] = []
             order.append(page)
         grouped[page].append(span["text"])
     return {page: "\n".join(grouped[page]) for page in order}
+
+
+def _quote_basis(spans_doc, span, blocks):
+    """按 ``evidence_level`` 分派引文定位基准，返回 ``(基准文本, 基准起点, 基准名)``。
+
+    证据的 ``start_offset/end_offset`` 是「相对基准块的绝对偏移」（README §6.3）：
+
+    - ``offset_level``（电子文本，第 100 条 D2/D4）：基准为**片段自身**的 ``text``，
+      基准起点为该片段的 ``start_offset``（偏移即原文绝对偏移）；
+    - 其余（含 ``glyphbox_level`` 的 OCR 路线）：基准为同页 Span 拼接的**页块**，
+      基准起点 0——与既往实现逐字相同。
+    """
+    if spans_doc.get("evidence_level") == "offset_level":
+        return span["text"], span["start_offset"], "片段"
+    return blocks.get(span.get("page"), ""), 0, "页块"
 
 
 def _iter_evidence(candidate_set):
@@ -348,9 +368,9 @@ def _check_quote_fidelity(candidate_set, spans_doc):
         end = evidence.get("end_offset")
         if not isinstance(start, int) or not isinstance(end, int):
             continue
-        block = blocks.get(span["page"], "")
-        if block[start:end] != quote:
-            errors.append("%s 页块切片 != quote" % label)
+        base_text, base_start, basis_name = _quote_basis(spans_doc, span, blocks)
+        if base_text[start - base_start : end - base_start] != quote:
+            errors.append("%s %s切片 != quote" % (label, basis_name))
     return errors
 
 

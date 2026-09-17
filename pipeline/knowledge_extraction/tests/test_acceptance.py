@@ -1,6 +1,7 @@
 """ACT 07 m4-stage-gate 验收（acceptance）与 shell 包装的单测（先红后绿）。"""
 
 import contextlib
+import hashlib
 import io
 import shutil
 import subprocess
@@ -160,6 +161,110 @@ class AcceptanceTests(unittest.TestCase):
         )
         self.assertEqual(proc.returncode, 1)
         self.assertTrue(proc.stdout.splitlines()[0].startswith("FAIL fixture_host"))
+
+
+# ------------------------------------------------------------------ offset_level
+OFFSET_ACCEPT_SPANS = {
+    "work": "乾元秘旨",
+    "source_id": "src_qianyuan_ed01",
+    "edition_part_artifact_id": "art_00000000000000000000000000000001",
+    "evidence_level": "offset_level",
+    "content_status": "machine_extracted",
+    "span_count": 1,
+    "spans": [
+        {
+            "span_id": "ss_qianyuan_ed01_o0008672",
+            "sequence": 1,
+            "start_offset": 8672,
+            "end_offset": 8680,
+            "text": "余俱从天干取用。",
+            "quote_sha256": "0" * 64,
+            "evidence_level": "offset_level",
+            "source_anchor": {},
+        }
+    ],
+}
+
+
+class _FakeObjects:
+    """最小对象存储替身：只服务按 sha256 取字节。"""
+
+    def __init__(self, payload):
+        self.payload = payload
+
+    def get(self, sha256):
+        return self.payload
+
+
+class _FakeService:
+    """最小 Ledger 读替身：acceptance 的只读路径只需要 ``get_revision``/``objects``。"""
+
+    def __init__(self, payload):
+        self.objects = _FakeObjects(payload)
+        self.spans_bytes = payload
+        self.revisions = {}
+
+    def get_revision(self, revision_id):
+        return self.revisions.get(revision_id)
+
+
+class OffsetLevelQuoteFidelityTests(unittest.TestCase):
+    """R82a：acceptance 自有的第二份引文校验实现同样按 ``evidence_level`` 分派。"""
+
+    def _world(self, candidate_set, spans_doc=None):
+        spans_doc = spans_doc or OFFSET_ACCEPT_SPANS
+        spans_bytes = yaml.safe_dump(spans_doc, allow_unicode=True, sort_keys=False).encode(
+            "utf-8"
+        )
+        service = _FakeService(spans_bytes)
+        service.revisions["rev_spans"] = {"sha256": "spans-sha"}
+        return {
+            "service": service,
+            "m3": {"spans_revision_id": "rev_spans"},
+            "candidate_set": candidate_set,
+        }
+
+    def _candidate_set(self, quote, quote_sha256=None):
+        return {
+            "assertions": [
+                {
+                    "assertion_id": "as_qizheng_000001",
+                    "proposition_id": "pr_qizheng_000001",
+                    "proposition": "天官即天干之官",
+                    "relation": "supports",
+                    "evidence": [
+                        {
+                            "source_span_id": "ss_qianyuan_ed01_o0008672",
+                            "support_type": "direct",
+                            "start_offset": 8672,
+                            "end_offset": 8672 + len(quote),
+                            "quote": quote,
+                            "quote_sha256": quote_sha256
+                            or hashlib.sha256(quote.encode("utf-8")).hexdigest(),
+                        }
+                    ],
+                    "origin": {"lane": "a", "item_index": 0},
+                }
+            ]
+        }
+
+    def test_quote_fidelity_offset_level_passes(self):
+        errors = acceptance._check_quote_fidelity(
+            self._world(self._candidate_set("余俱从天干取用。"))
+        )
+        self.assertEqual(errors, [])
+
+    def test_quote_fidelity_offset_level_rejects_non_substring(self):
+        errors = acceptance._check_quote_fidelity(
+            self._world(self._candidate_set("余俱从天干取乎"))
+        )
+        self.assertTrue(any("片段切片 != quote" in row for row in errors), errors)
+
+    def test_quote_fidelity_offset_level_rejects_wrong_sha(self):
+        errors = acceptance._check_quote_fidelity(
+            self._world(self._candidate_set("余俱从天干取用。", quote_sha256="0" * 64))
+        )
+        self.assertTrue(any("quote_sha256 不一致" in row for row in errors), errors)
 
 
 if __name__ == "__main__":

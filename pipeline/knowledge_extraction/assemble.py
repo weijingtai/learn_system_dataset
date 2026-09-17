@@ -27,7 +27,14 @@ class _ItemRejected(Exception):
 
 # ------------------------------------------------------------------ 页块 / 索引
 def page_blocks(spans_doc):
-    """按 Span 出现顺序，把同页 Span 的 ``text`` 以 ``"\\n"`` 连接。"""
+    """按 Span 出现顺序，把同页 Span 的 ``text`` 以 ``"\\n"`` 连接（``glyphbox_level``）。
+
+    第 100 条 D2/D4：``offset_level``（电子文本）片段无页概念，本函数返回空映射；
+    该类片段的引文定位由 ``locate_evidence`` 直接用片段自身的 ``text``/
+    ``start_offset`` 完成，不经页块。
+    """
+    if spans_doc.get("evidence_level") == "offset_level":
+        return {}
     order = []
     grouped = {}
     for span in spans_doc["spans"]:

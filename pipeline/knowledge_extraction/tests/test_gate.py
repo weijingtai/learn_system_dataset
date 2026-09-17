@@ -5,6 +5,7 @@
 """
 
 import copy
+import hashlib
 import re
 import unittest
 from pathlib import Path
@@ -259,6 +260,160 @@ class GateTests(unittest.TestCase):
         candidate_set = copy.deepcopy(self.base)
         candidate_set["extra_key"] = 1
         self._assert_fails(candidate_set, "schema_shape")
+
+
+# ------------------------------------------------------------------ offset_level
+OFFSET_EVIDENCE_TEXT = "余俱从天干取用"
+OFFSET_SPAN_TEXT = "余俱从天干取用。"
+
+
+def _offset_spans_doc():
+    """合成 ``offset_level`` 片段：**无 page 键**，偏移为原文绝对偏移（第 100 条 D2/D4）。"""
+    rows = [
+        ("ss_qianyuan_ed01_o0008663", 8663, "天官者，天干之官也"),
+        ("ss_qianyuan_ed01_o0008672", 8672, OFFSET_SPAN_TEXT),
+    ]
+    spans = []
+    for index, (span_id, start, text) in enumerate(rows):
+        spans.append(
+            {
+                "span_id": span_id,
+                "sequence": index + 1,
+                "start_offset": start,
+                "end_offset": start + len(text),
+                "text": text,
+                "quote_sha256": hashlib.sha256(text.encode("utf-8")).hexdigest(),
+                "evidence_level": "offset_level",
+                "source_anchor": {},
+            }
+        )
+    return {
+        "work": "乾元秘旨",
+        "source_id": "src_qianyuan_ed01",
+        "edition_part_artifact_id": "art_00000000000000000000000000000001",
+        "evidence_level": "offset_level",
+        "content_status": "machine_extracted",
+        "span_count": len(spans),
+        "spans": spans,
+    }
+
+
+def _offset_submission(lane):
+    """合成提交件：引文为片段 ``text`` 的逐字子串（无 span_char_*，只用 quote）。"""
+    return validate_submission(
+        {
+            "schema_version": "0.1.0-draft",
+            "category": "assertion",
+            "lane": lane,
+            "channel": "task_pipeline_manual",
+            "technique_id": "qizheng",
+            "producer": {"kind": "external_agent", "name": "synthetic_offset"},
+            "items": [
+                {
+                    "proposition": "天官即天干之官",
+                    "relation": "supports",
+                    "evidence": [
+                        {
+                            "source_span_id": "ss_qianyuan_ed01_o0008672",
+                            "support_type": "direct",
+                            "quote": OFFSET_EVIDENCE_TEXT,
+                        }
+                    ],
+                    "conditions": [],
+                    "exceptions": [],
+                    "layer": "general",
+                }
+            ],
+        },
+        technique_id="qizheng",
+    )
+
+
+class OffsetLevelGateTests(unittest.TestCase):
+    """R82a：Gate 按 ``evidence_level`` 分派，offset 级片段不依赖 ``page``。"""
+
+    def setUp(self):
+        self.spans_doc = _offset_spans_doc()
+        self.profile = build_profile()
+        lanes = {
+            "assertion": {
+                lane: assemble.normalize_lane(
+                    _offset_submission(lane),
+                    spans_doc=self.spans_doc,
+                    profile=self.profile,
+                )
+                for lane in ("a", "b")
+            }
+        }
+        result = assemble.assemble_candidates(
+            spans_doc=self.spans_doc,
+            profile=self.profile,
+            lane_results=lanes,
+            required_lanes={"assertion": ["a", "b"]},
+            rulings={},
+            id_range=ID_RANGE,
+        )
+        self.base = result["candidate_set"]
+
+    def _evaluate(self, candidate_set):
+        return gate.evaluate_candidates(
+            spans_doc=self.spans_doc,
+            profile=self.profile,
+            candidate_set=candidate_set,
+            config=CONFIG,
+        )
+
+    def test_offset_level_candidate_set_all_twelve_checks_pass(self):
+        """正例：offset 级合成片段 + 合成提交件必须过全部十二项。"""
+        result = self._evaluate(copy.deepcopy(self.base))
+        self.assertEqual(result["failed_checks"], [])
+        self.assertEqual(result["structural"], "passed")
+        self.assertEqual(len(result["checks"]), 12)
+        self.assertTrue(all(row["passed"] for row in result["checks"]))
+
+    def test_offset_level_evidence_offsets_are_raw_text_absolute(self):
+        """坐标语义：证据偏移 = 片段 ``start_offset`` + 片段内局部起点（原文绝对偏移）。"""
+        evidence = self.base["assertions"][0]["evidence"][0]
+        self.assertEqual(evidence["start_offset"], 8672)
+        self.assertEqual(evidence["end_offset"], 8672 + len(OFFSET_EVIDENCE_TEXT))
+        self.assertEqual(evidence["quote"], OFFSET_EVIDENCE_TEXT)
+        self.assertEqual(self.base["evidence_level"], "offset_level")
+
+    def test_offset_level_quote_not_verbatim_substring_fails_quote_fidelity(self):
+        """反例：引文不是片段逐字子串即拒（sha 同步重算，只留切片一致性这一道关）。
+
+        此用例是 offset 级引文校验的独立护栏：把该校验改成恒通过，它必须转红。
+        """
+        candidate_set = copy.deepcopy(self.base)
+        evidence = candidate_set["assertions"][0]["evidence"][0]
+        evidence["quote"] = "余俱从天干取乎"  # 既非片段子串，也不等于记录区间
+        evidence["quote_sha256"] = hashlib.sha256(
+            evidence["quote"].encode("utf-8")
+        ).hexdigest()
+        result = self._evaluate(candidate_set)
+        self.assertEqual(result["structural"], "failed")
+        checks = {row["name"]: row for row in result["checks"]}
+        self.assertFalse(checks["quote_fidelity"]["passed"])
+        self.assertIn("片段切片 != quote", "; ".join(checks["quote_fidelity"]["errors"]))
+
+    def test_offset_level_wrong_quote_sha_fails_quote_fidelity(self):
+        """反例：``quote_sha256`` 与 ``quote`` 不符即拒。"""
+        candidate_set = copy.deepcopy(self.base)
+        candidate_set["assertions"][0]["evidence"][0]["quote_sha256"] = "0" * 64
+        result = self._evaluate(candidate_set)
+        checks = {row["name"]: row for row in result["checks"]}
+        self.assertFalse(checks["quote_fidelity"]["passed"])
+        self.assertIn("quote_sha256 不一致", "; ".join(checks["quote_fidelity"]["errors"]))
+
+    def test_offset_level_offset_outside_span_fails_evidence_resolvable(self):
+        """反例：offset 越出片段区间即拒。"""
+        candidate_set = copy.deepcopy(self.base)
+        evidence = candidate_set["assertions"][0]["evidence"][0]
+        evidence["start_offset"] = 1
+        evidence["end_offset"] = 5
+        result = self._evaluate(candidate_set)
+        checks = {row["name"]: row for row in result["checks"]}
+        self.assertFalse(checks["evidence_resolvable"]["passed"])
 
 
 if __name__ == "__main__":

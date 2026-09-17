@@ -34,6 +34,8 @@ grep -c 'for stage in ("m1", "m2", "m3")' pipeline/corpus/_fixture/mini_ed01/ver
 | 06 | 新增用例全 ERROR | `$TK` OK ≥ 120 |
 | 07 | `m4-stage-gate.sh` 不存在（exit 127）；新增用例全 ERROR | `$TK` OK ≥ 131；`m4-stage-gate.sh` → `SUMMARY pass=13 fail=0 blocked=3`、exit 2 |
 | 08（可选） | 新增用例全 ERROR | `$TK` OK ≥ 136；20.7 仍 FAIL |
+| R82a | 新增 offset 级用例全 ERROR | `$TK` OK ≥ 145（新增 12 条：gate 5、assemble 4、acceptance 3）；`m4-stage-gate.sh` 输出与改前逐字一致（`pass=13 fail=0 blocked=3`，exit 2） |
+| R82b | 新增真书端到端用例 ERROR | `$TK` OK ≥ 146；真书 M1→M2→M3（696 条 `offset_level` 片段）→ M4 五份提交登记 |
 
 用例数阈值为该 ACT 完成后 `pipeline/knowledge_extraction/tests` 的**具名用例累计**；数值以 ACT 文件 `tests` 段列名逐条计数，实现不得少于该数。
 

@@ -127,15 +127,28 @@ def _iter_evidence(candidate_set):
 
 
 def _page_blocks(spans_doc):
+    """自算页块（同页 Span text 以 ``"\\n"`` 连接）；仅服务 ``glyphbox_level``。"""
     order = []
     grouped = {}
     for span in spans_doc["spans"]:
-        page = span["page"]
+        page = span.get("page")
         if page not in grouped:
             grouped[page] = []
             order.append(page)
         grouped[page].append(span["text"])
     return {page: "\n".join(grouped[page]) for page in order}
+
+
+def _quote_basis(spans_doc, span, blocks):
+    """按 ``evidence_level`` 分派引文定位基准（独立于 ``gate`` 的第二份实现）。
+
+    ``offset_level`` 用片段自身的 ``text``（基准起点 = 片段 ``start_offset``）；
+    其余（``glyphbox_level`` 等）用同页拼接的页块（基准起点 0，与既往逐字相同）。
+    返回 ``(基准文本, 基准起点, 基准名)``。
+    """
+    if spans_doc.get("evidence_level") == "offset_level":
+        return span["text"], span["start_offset"], "片段"
+    return blocks.get(span.get("page"), ""), 0, "页块"
 
 
 def _m4_step_runs(world):
@@ -235,8 +248,9 @@ def _check_quote_fidelity(world):
         end = evidence.get("end_offset")
         if span is None or not isinstance(start, int) or not isinstance(end, int):
             continue
-        if blocks.get(span["page"], "")[start:end] != quote:
-            errors.append("%s 页块切片 != quote" % label)
+        base_text, base_start, basis_name = _quote_basis(spans_doc, span, blocks)
+        if base_text[start - base_start : end - base_start] != quote:
+            errors.append("%s %s切片 != quote" % (label, basis_name))
     return errors
 
 

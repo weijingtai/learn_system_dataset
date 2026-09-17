@@ -585,5 +585,106 @@ class AssembleTests(unittest.TestCase):
         self.assertEqual(first["candidate_bytes"], second["candidate_bytes"])
 
 
+# ------------------------------------------------------------------ offset_level
+OFFSET_SPANS_DOC = {
+    "work": "乾元秘旨",
+    "source_id": "src_qianyuan_ed01",
+    "edition_part_artifact_id": "art_00000000000000000000000000000001",
+    "evidence_level": "offset_level",
+    "content_status": "machine_extracted",
+    "span_count": 2,
+    "spans": [
+        {
+            "span_id": "ss_qianyuan_ed01_o0008663",
+            "sequence": 1,
+            "start_offset": 8663,
+            "end_offset": 8672,
+            "text": "天官者，天干之官也",
+            "quote_sha256": "0" * 64,
+            "evidence_level": "offset_level",
+            "source_anchor": {},
+        },
+        {
+            "span_id": "ss_qianyuan_ed01_o0008672",
+            "sequence": 2,
+            "start_offset": 8672,
+            "end_offset": 8680,
+            "text": "余俱从天干取用。",
+            "quote_sha256": "0" * 64,
+            "evidence_level": "offset_level",
+            "source_anchor": {},
+        },
+    ],
+}
+
+
+class OffsetLevelAssembleTests(unittest.TestCase):
+    """R82a：装配器对 ``offset_level`` 片段（**无 page 键**）的定位行为。"""
+
+    def setUp(self):
+        self.spans_doc = copy.deepcopy(OFFSET_SPANS_DOC)
+        self.index = assemble.span_index(self.spans_doc)
+        self.profile = build_profile()
+
+    def test_page_blocks_offset_level_returns_empty(self):
+        """offset 级无页概念：``page_blocks`` 返回空映射且不抛 KeyError。"""
+        self.assertEqual(assemble.page_blocks(self.spans_doc), {})
+
+    def test_locate_evidence_by_quote_on_offset_span(self):
+        """quote 定位：结果偏移 = 片段 ``start_offset`` + 片段内起点（原文绝对偏移）。"""
+        result = assemble.locate_evidence(
+            {
+                "source_span_id": "ss_qianyuan_ed01_o0008672",
+                "support_type": "direct",
+                "quote": "余俱从天干取用",
+            },
+            self.index,
+        )
+        self.assertEqual((result["start_offset"], result["end_offset"]), (8672, 8679))
+        self.assertEqual(result["quote"], "余俱从天干取用")
+
+    def test_locate_evidence_whole_offset_span_without_range_or_quote(self):
+        result = assemble.locate_evidence(
+            {"source_span_id": "ss_qianyuan_ed01_o0008663", "support_type": "direct"},
+            self.index,
+        )
+        self.assertEqual((result["start_offset"], result["end_offset"]), (8663, 8672))
+
+    def test_normalize_lane_offset_level_accepts_quote_only_submission(self):
+        """offset 级提交件（只有 quote，无 span_char_*）逐条准入成功。"""
+        submission = validate_submission(
+            {
+                "schema_version": "0.1.0-draft",
+                "category": "assertion",
+                "lane": "a",
+                "channel": "task_pipeline_manual",
+                "technique_id": "qizheng",
+                "producer": {"kind": "external_agent", "name": "synthetic_offset"},
+                "items": [
+                    {
+                        "proposition": "天官即天干之官",
+                        "relation": "supports",
+                        "evidence": [
+                            {
+                                "source_span_id": "ss_qianyuan_ed01_o0008672",
+                                "support_type": "direct",
+                                "quote": "余俱从天干取用",
+                            }
+                        ],
+                    }
+                ],
+            },
+            technique_id="qizheng",
+        )
+        result = assemble.normalize_lane(
+            submission, spans_doc=self.spans_doc, profile=self.profile
+        )
+        self.assertEqual(result["rejected"], [])
+        self.assertEqual(len(result["accepted"]), 1)
+        self.assertEqual(
+            result["accepted"][0]["evidence"][0]["start_offset"], 8672
+        )
+
+
 if __name__ == "__main__":
     unittest.main()
