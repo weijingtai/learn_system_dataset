@@ -4,9 +4,17 @@
 ``context.build_context`` 同形的上下文，供 K1 纯函数 Validator 测试使用。
 上下文全部为普通 dict / list，测试对副本施加篡改，绝不写回 fixture 目录。
 
+另含 **offset 档合成脚手架**（R83）：
+``offset_fixture_context()`` 为纯函数上下文，``text_chain()`` 在临时 Ledger 上
+走真实写路径 ``run_m1 → run_m2 → run_m3_text``，供电子文本端到端用例使用。
+两者都不使用仓库内的真书宿主。
+
 上下文键（与 ``pipeline.validation.context.build_context`` 对齐）：
     manifest, ocr_page_set, page_docs, terminal_states, human_events,
-    spans_doc, corpus_package, m3_package, configuration,
+    spans_doc, corpus_package, coverage_report, m3_package, configuration,
+    evidence_level, raw_text, cleaned_text, patches, sanitization_report,
+    batch_assignments, raw_text_revision_id, cleaned_text_revision_id,
+    patch_set_revision_id, sanitization_report_revision_id,
     page_revision_ids, batch_revision_ids, corpus_spans_revision_id,
     corpus_package_revision_id, m3_package_revision_id, revision_roles,
     frozen_revision_ids, technique_id, target_consumption_level, raw
@@ -27,6 +35,27 @@ from pipeline.corpus_compiler import M3_TOOL, M3_TOOL_VERSION
 _PAGES = ("page_001", "page_002", "page_003")
 # 5 个批次
 _BATCHES = ("sanche_b001", "sanche_b002", "sanche_b003", "sanche_b004", "sanche_b005")
+
+# ---- offset 档合成数据（R83）：不读仓库内真书宿主 ----
+OFFSET_EDITION_PART = "art_00000000000000000000000000000001"
+OFFSET_PAGE = "qianyuan_ed01_text"
+OFFSET_WORK = "qianyuan"
+OFFSET_EDITION = "ed01"
+OFFSET_RAW_TEXT = "乾元秘旨\n甲？乙\n丙\n"
+OFFSET_CLEANED_TEXT = "乾元秘旨\n甲乙\n丙\n"
+# 确定性补丁：删掉 raw[6:7] 的「？」，故 cleaned 侧长度零区间 [6, 6)
+OFFSET_PATCHES = [
+    {
+        "patch_id": "p0001",
+        "raw_start": 6,
+        "raw_end": 7,
+        "cleaned_start": 6,
+        "cleaned_end": 6,
+        "action": "delete",
+        "basis": "CTP",
+        "replacement": "",
+    }
+]
 
 
 def default_fixture_dir():
@@ -259,8 +288,19 @@ def fixture_context(fixture_dir=None):
         "human_events": human_events,
         "spans_doc": spans_doc,
         "corpus_package": corpus_package,
+        "coverage_report": coverage_report,
         "m3_package": m3_package,
         "configuration": configuration,
+        "evidence_level": spans_doc.get("evidence_level"),
+        "raw_text": None,
+        "cleaned_text": None,
+        "patches": [],
+        "sanitization_report": {},
+        "batch_assignments": {},
+        "raw_text_revision_id": None,
+        "cleaned_text_revision_id": None,
+        "patch_set_revision_id": None,
+        "sanitization_report_revision_id": None,
         "technique_id": manifest.get("technique_id"),
         "target_consumption_level": "INTERNAL_DEMO",
         "page_revision_ids": {page: revs[page] for page in _PAGES},
@@ -272,3 +312,339 @@ def fixture_context(fixture_dir=None):
         "revision_roles": {role: rev for role, rev in revs.items()},
         "raw": {"frozen": raw_frozen},
     }
+
+
+# ================================================================ offset 档脚手架
+_M2_TEXT_ROLES = (
+    "raw_text",
+    "cleaned_text_revision",
+    "deterministic_patch_set",
+    "sanitization_report",
+)
+
+
+def _text_span(span_id, sequence, start_offset, end_offset, text, raw_start, raw_end, revs):
+    """构造一条电子文本 Span（8 键有序，锚点 7 键有序，第 78 条）。"""
+    quote_sha256 = hashlib.sha256(text.encode("utf-8")).hexdigest()
+    return {
+        "span_id": span_id,
+        "sequence": sequence,
+        "start_offset": start_offset,
+        "end_offset": end_offset,
+        "text": text,
+        "quote_sha256": quote_sha256,
+        "evidence_level": "offset_level",
+        "source_anchor": {
+            "raw_text_revision_id": revs["raw_text"],
+            "raw_start": raw_start,
+            "raw_end": raw_end,
+            "cleaned_text_revision_id": revs["cleaned_text_revision"],
+            "start_offset": start_offset,
+            "end_offset": end_offset,
+            "quote_sha256": quote_sha256,
+        },
+    }
+
+
+def offset_fixture_context():
+    """构造电子文本档（``offset_level``）的纯函数上下文（合成数据，不读 Ledger）。
+
+    文本为 ``OFFSET_RAW_TEXT``，经 ``OFFSET_PATCHES`` 删去 raw[6:7] 的「？」后
+    得 ``OFFSET_CLEANED_TEXT``，切成 3 条片段（cleaned 偏移 [0,5)/[5,8)/[8,10)，
+    对应 raw 偏移 [0,5)/[5,9)/[9,11)）。全部值均为独立手算，不调用 M3。
+    """
+    revs = {role: _rev("text:" + role) for role in _M2_TEXT_ROLES}
+    revs.update(
+        {
+            "m3_package": _rev("text:m3_package"),
+            "corpus_package": _rev("text:corpus_package"),
+            "corpus_spans": _rev("text:corpus_spans"),
+            "coverage_report": _rev("text:coverage_report"),
+            "validation_report": _rev("text:validation_report"),
+            "configuration": _rev("text:configuration"),
+            "source_manifest": _rev("text:source_manifest"),
+            "batch_001": _rev("text:batch_001"),
+        }
+    )
+    page = OFFSET_PAGE
+    spans = [
+        _text_span(
+            "ss_%s_%s_o0000000" % (OFFSET_WORK, OFFSET_EDITION),
+            1, 0, 5, OFFSET_CLEANED_TEXT[0:5], 0, 5, revs,
+        ),
+        _text_span(
+            "ss_%s_%s_o0000005" % (OFFSET_WORK, OFFSET_EDITION),
+            2, 5, 8, OFFSET_CLEANED_TEXT[5:8], 5, 9, revs,
+        ),
+        _text_span(
+            "ss_%s_%s_o0000009" % (OFFSET_WORK, OFFSET_EDITION),
+            3, 8, 10, OFFSET_CLEANED_TEXT[8:10], 9, 11, revs,
+        ),
+    ]
+    spans_doc = {
+        "work": OFFSET_WORK,
+        "source_id": "src_%s_%s" % (OFFSET_WORK, OFFSET_EDITION),
+        "edition_part_artifact_id": OFFSET_EDITION_PART,
+        "evidence_level": "offset_level",
+        "content_status": "machine_extracted",
+        "span_count": len(spans),
+        "spans": spans,
+    }
+    raw_sha256 = hashlib.sha256(OFFSET_RAW_TEXT.encode("utf-8")).hexdigest()
+    manifest = {
+        "source_id": "src_%s_%s" % (OFFSET_WORK, OFFSET_EDITION),
+        "work_title": "合成电子文本",
+        "technique_id": "qizheng",
+        "edition_part": {
+            "artifact_id": OFFSET_EDITION_PART,
+            "label": "合成电子文本（单文件）",
+            "pages": [page],
+        },
+        "source_assets": [
+            {
+                "page": page,
+                "path_ref": "%s.md" % page,
+                "sha256": raw_sha256,
+                "normalized_sha256": raw_sha256,
+                "original_encoding": "utf-8",
+                "size": len(OFFSET_RAW_TEXT.encode("utf-8")),
+                "width": None,
+                "height": None,
+                "object_store": "local",
+                "in_git": False,
+            }
+        ],
+        "content_status": "machine_extracted",
+    }
+    coverage_value = float(len(OFFSET_CLEANED_TEXT)) / len(OFFSET_CLEANED_TEXT)
+    coverage_report = {
+        "gate_profile": "structural_only",
+        "structural": "passed",
+        "semantic": "not_evaluated",
+        "checks": {
+            name: {"ok": True, "failures": []}
+            for name in (
+                "text_contiguous_coverage",
+                "text_strict_offset",
+                "raw_anchor_fidelity",
+                "identity_and_stability",
+                "evidence_level_honest",
+                "header_counts",
+            )
+        },
+        "pages": {
+            page: {
+                "status": "covered",
+                "terminal_state": None,
+                "line_count": len(OFFSET_RAW_TEXT.splitlines()),
+                "span_count": len(spans),
+                "coverage": coverage_value,
+                "gaps": [],
+                "overlaps": [],
+            }
+        },
+    }
+    corpus_package = {
+        "spans_revision_id": revs["corpus_spans"],
+        "coverage_report_revision_id": revs["coverage_report"],
+        "coverage": {page: coverage_value},
+        "excluded_pages": {},
+        "gate_profile": "structural_only",
+        "semantic": "not_evaluated",
+    }
+    configuration = {
+        "stage": "m3",
+        "tool": "pipeline.corpus_compiler.step_offset",
+        "tool_version": "0.1.0",
+        "evidence_level": "offset_level",
+        "batch_size": 10,
+        "gate_profile": "structural_only",
+    }
+    validation_report = {
+        "gate_profile": "structural_only",
+        "structural": "passed",
+        "semantic": "not_evaluated",
+        "failed_checks": [],
+    }
+    sanitization_report = {
+        "deferred_count": 0,
+        "findings": [],
+        "patch_ids": ["p0001"],
+    }
+    spans_bytes = yaml.dump(
+        spans_doc, allow_unicode=True, default_flow_style=False, sort_keys=False
+    ).encode("utf-8")
+    spans_sha256 = hashlib.sha256(spans_bytes).hexdigest()
+
+    m3_package = {
+        "schema_version": "1.0.0",
+        "stage_package_id": "pkg_m3_" + _hex32("text:pkg"),
+        "artifact_revision_id": revs["m3_package"],
+        "stage": "m3",
+        "status": "sealed",
+        "payload": {
+            "spans_revision_id": revs["corpus_spans"],
+            "coverage": {page: coverage_value},
+            "excluded_pages": {},
+            "gate_profile": "structural_only",
+            "semantic": "not_evaluated",
+        },
+        "manifest": {
+            "schema_version": "1.0.0",
+            "processing_run_id": "prun_" + _hex32("text:prun"),
+            "step_run_id": "srun_" + _hex32("text:srun:m3"),
+            "input_artifacts": [
+                _ref(revs[role], role, "text:" + role) for role in _M2_TEXT_ROLES
+            ],
+            "output_artifacts": [
+                _ref(revs["corpus_package"], "corpus_package", "text:corpus_package")
+            ],
+            "counts": {"spans": len(spans), "batches": 1},
+            "content_sha256": spans_sha256,
+        },
+        "validation": {"passed": True, "report_artifacts": []},
+        "lineage": {
+            "upstream_artifacts": [
+                _ref(revs["raw_text"], "raw_text", "text:raw_text"),
+                _ref(revs["cleaned_text_revision"], "cleaned_text_revision", "text:cleaned_text_revision"),
+                _ref(revs["deterministic_patch_set"], "deterministic_patch_set", "text:deterministic_patch_set"),
+                _ref(revs["sanitization_report"], "sanitization_report", "text:sanitization_report"),
+            ],
+            "transformations": [],
+        },
+        "logs": [],
+        "failures": [],
+    }
+
+    docs = {
+        "m3_package": m3_package,
+        "corpus_package": corpus_package,
+        "corpus_spans": spans_doc,
+        "coverage_report": coverage_report,
+        "validation_report": validation_report,
+        "configuration": configuration,
+        "source_manifest": manifest,
+        "raw_text": OFFSET_RAW_TEXT,
+        "cleaned_text_revision": OFFSET_CLEANED_TEXT,
+        "deterministic_patch_set": OFFSET_PATCHES,
+        "sanitization_report": sanitization_report,
+        "batch_001": spans,
+    }
+    role_type = {
+        "m3_package": "stage_package",
+        "corpus_package": "corpus_package",
+        "corpus_spans": "corpus_spans",
+        "coverage_report": "coverage_report",
+        "validation_report": "validation_report",
+        "configuration": "configuration",
+        "source_manifest": "source_manifest",
+        "raw_text": "raw_text",
+        "cleaned_text_revision": "cleaned_text_revision",
+        "deterministic_patch_set": "deterministic_patch_set",
+        "sanitization_report": "sanitization_report",
+        "batch_001": "corpus_batch",
+    }
+    file_sha = {"corpus_spans": spans_sha256, "raw_text": raw_sha256}
+    raw_frozen = {}
+    for role, rev in revs.items():
+        doc = docs[role]
+        sha = file_sha.get(role) or hashlib.sha256(_json_bytes(doc)).hexdigest()
+        raw_frozen[rev] = {
+            "sha256": sha,
+            "actual_sha256": sha,
+            "doc": doc,
+            "status": "sealed",
+            "artifact_type": role_type[role],
+            "artifact_id": _art(role),
+        }
+
+    frozen_order = [
+        revs["m3_package"],
+        revs["corpus_package"],
+        revs["corpus_spans"],
+        revs["coverage_report"],
+        revs["validation_report"],
+        revs["configuration"],
+        revs["batch_001"],
+        revs["source_manifest"],
+    ] + [revs[role] for role in _M2_TEXT_ROLES]
+
+    return {
+        "manifest": manifest,
+        "ocr_page_set": {},
+        "page_docs": {},
+        "terminal_states": {},
+        "human_events": [],
+        "spans_doc": spans_doc,
+        "corpus_package": corpus_package,
+        "coverage_report": coverage_report,
+        "m3_package": m3_package,
+        "configuration": configuration,
+        "evidence_level": "offset_level",
+        "raw_text": OFFSET_RAW_TEXT,
+        "cleaned_text": OFFSET_CLEANED_TEXT,
+        "patches": list(OFFSET_PATCHES),
+        "sanitization_report": sanitization_report,
+        "batch_assignments": {"batch_001": [span["span_id"] for span in spans]},
+        "raw_text_revision_id": revs["raw_text"],
+        "cleaned_text_revision_id": revs["cleaned_text_revision"],
+        "patch_set_revision_id": revs["deterministic_patch_set"],
+        "sanitization_report_revision_id": revs["sanitization_report"],
+        "technique_id": manifest["technique_id"],
+        "target_consumption_level": "INTERNAL_DEMO",
+        "page_revision_ids": {},
+        "batch_revision_ids": [revs["batch_001"]],
+        "corpus_spans_revision_id": revs["corpus_spans"],
+        "corpus_package_revision_id": revs["corpus_package"],
+        "m3_package_revision_id": revs["m3_package"],
+        "frozen_revision_ids": frozen_order,
+        "revision_roles": {role: rev for role, rev in revs.items()},
+        "raw": {"frozen": raw_frozen},
+    }
+
+
+def text_chain(service, source_dir):
+    """在真实 Ledger 上走 M1→M2→M3 电子文本写路径，返回各阶段摘要。
+
+    ``source_dir`` 必须已含一个以 ``OFFSET_PAGE`` 为 stem 的文本文件（调用方用
+    ``write_offset_source`` 生成）。全程使用合成文本，不读仓库内真书宿主。
+    """
+    from pipeline.digitization.step import run_m2
+    from pipeline.intake.source import read_source_files
+    from pipeline.intake.step import run_m1
+
+    from pipeline.corpus_compiler.step_offset import run_m3_text
+
+    source_info = {
+        "source_id": "src_%s_%s" % (OFFSET_WORK, OFFSET_EDITION),
+        "work_title": "合成电子文本",
+        "edition_note": "测试用合成电子文本",
+        "technique_id": "qizheng",
+        "rights_status": "测试数据",
+        "release_policy": "reference_and_hash_only",
+        "edition_part": {
+            "artifact_id": OFFSET_EDITION_PART,
+            "label": "合成电子文本（单文件）",
+            "pages": [OFFSET_PAGE],
+        },
+        "source_site": "example.invalid",
+        "source_url": "https://example.invalid/synthetic.md",
+        "file_sha256": hashlib.sha256(
+            (Path(source_dir) / ("%s.md" % OFFSET_PAGE)).read_bytes()
+        ).hexdigest(),
+        "pages": [OFFSET_PAGE],
+    }
+    files = read_source_files(Path(source_dir), [OFFSET_PAGE])
+    m1 = run_m1(service, source_info, files, OFFSET_EDITION_PART)
+    raw_text_revision_id = m1["raw_text_revision_ids"][0]
+    m2 = run_m2(service, raw_text_revision_id, source_info, OFFSET_EDITION_PART)
+    m3 = run_m3_text(service, OFFSET_EDITION_PART)
+    return {"source_info": source_info, "m1": m1, "m2": m2, "m3": m3}
+
+
+def write_offset_source(directory):
+    """把合成原文写入 ``directory/<page>.md``，返回目录路径。"""
+    target = Path(directory)
+    target.mkdir(parents=True, exist_ok=True)
+    (target / ("%s.md" % OFFSET_PAGE)).write_text(OFFSET_RAW_TEXT, encoding="utf-8")
+    return target

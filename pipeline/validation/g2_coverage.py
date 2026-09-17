@@ -30,6 +30,39 @@ def _page_block(doc):
     return "\n".join(line["text"] for line in doc.get("lines") or [])
 
 
+def _is_offset(ctx):
+    """证据级别是否为电子文本档 ``offset_level``（R83，第 100 条 D5）。"""
+    return (ctx.get("spans_doc") or {}).get("evidence_level") == "offset_level"
+
+
+def _covered_chars(spans):
+    total = 0
+    for span in spans:
+        start = span.get("start_offset")
+        end = span.get("end_offset")
+        if isinstance(start, int) and isinstance(end, int) and end > start:
+            total += end - start
+    return total
+
+
+def _gaps_and_overlaps(spans):
+    """按 ``start_offset`` 顺序独立实算页级缺口与重叠区间（与 M3 同键）。"""
+    gaps = []
+    overlaps = []
+    previous_end = 0
+    for span in sorted(spans, key=lambda item: item.get("start_offset", 0)):
+        start = span.get("start_offset")
+        end = span.get("end_offset")
+        if not (isinstance(start, int) and isinstance(end, int)):
+            continue
+        if start > previous_end:
+            gaps.append([previous_end, start])
+        elif start < previous_end:
+            overlaps.append([start, previous_end])
+        previous_end = max(previous_end, end)
+    return gaps, overlaps
+
+
 def _spans_by_page(spans):
     grouped = {}
     for span in spans:
@@ -51,7 +84,13 @@ def validate_page_accounting(ctx):
       ``excluded_page_no_evidence``（SEM_001）；
     - ``deferred`` 或表外终态 → ``page_deferred``（REF_001）；
     - Span 引用 manifest 页序外的页 → ``page_unregistered``（REF_001）。
+
+    offset 档（R83）改按 M1 页单位与 m3 ``coverage_report``（OCR 外形）判：
+    ``coverage_report.pages`` 的键集必须与 manifest 页序逐一相等，不自造页。
     """
+    if _is_offset(ctx):
+        return _validate_text_page_accounting(ctx)
+
     pages = _manifest_pages(ctx)
     page_docs = ctx.get("page_docs") or {}
     terminal = ctx.get("terminal_states") or {}
@@ -130,6 +169,42 @@ def validate_page_accounting(ctx):
     }
 
 
+def _validate_text_page_accounting(ctx):
+    """offset 档页登记：只能有 manifest 页序里的页，且 m3 报告逐页登记。
+
+    - manifest 页序中的页未进 ``coverage_report.pages`` → ``page_missing``；
+    - ``coverage_report.pages`` 出现 manifest 页序外的页 → ``page_unregistered``。
+    """
+    pages = _manifest_pages(ctx)
+    report_pages = (ctx.get("coverage_report") or {}).get("pages") or {}
+    spans_rev = ctx.get("corpus_spans_revision_id")
+    findings = []
+
+    for page in pages:
+        if page not in report_pages:
+            findings.append(
+                make_finding(
+                    "g2_page_accounting", "G2", "page_missing", "REF_001",
+                    _ERROR, _subject(page, spans_rev),
+                    detail="manifest 页序中的页未登记进 coverage_report: %s" % page,
+                )
+            )
+    for page in report_pages:
+        if page not in set(pages):
+            findings.append(
+                make_finding(
+                    "g2_page_accounting", "G2", "page_unregistered", "REF_001",
+                    _ERROR, _subject(page, spans_rev),
+                    detail="coverage_report 出现 manifest 页序外的页: %s" % page,
+                )
+            )
+
+    return {
+        "findings": findings,
+        "checked": {"pages": len(pages), "reported": len(report_pages)},
+    }
+
+
 def validate_contiguous_coverage(ctx):
     """逐页重算页块，核对 Span 首尾相接、无缺口/重叠/越界、拼接等于页块。
 
@@ -138,7 +213,13 @@ def validate_contiguous_coverage(ctx):
     - 相邻间隔非换行、offset 非法、末条未覆盖块尾 →
       ``span_boundary_mismatch``（TXT_001）；
     - 拼接文本 ≠ 页块 → ``span_text_mismatch``（TXT_001）。
+
+    offset 档（R83）以冻结 ``cleaned_text`` 为全文，独立重算片段连续性与覆盖，
+    再与 m3 ``coverage_report`` 的实算值逐项对账（对账不符 → ``count_mismatch``）。
     """
+    if _is_offset(ctx):
+        return _validate_text_contiguous_coverage(ctx)
+
     page_docs = ctx.get("page_docs") or {}
     terminal = ctx.get("terminal_states") or {}
     page_revs = ctx.get("page_revision_ids") or {}
@@ -255,6 +336,113 @@ def validate_contiguous_coverage(ctx):
     return {"findings": findings, "checked": {"pages": len(by_page)}}
 
 
+def _validate_text_contiguous_coverage(ctx):
+    """offset 档覆盖：片段连续 + 拼接等于 ``cleaned_text`` + 与报告实算值对账。"""
+    spans = (ctx.get("spans_doc") or {}).get("spans") or []
+    cleaned_text = ctx.get("cleaned_text")
+    spans_rev = ctx.get("corpus_spans_revision_id")
+    findings = []
+
+    if not isinstance(cleaned_text, str):
+        findings.append(
+            make_finding(
+                "g2_contiguous_coverage", "G2", "coverage_gap", "TXT_001",
+                _ERROR, _subject(spans_rev, spans_rev),
+                detail="冻结 cleaned_text 对象不可读，无法复算覆盖",
+            )
+        )
+        return {"findings": findings, "checked": {"spans": len(spans)}}
+
+    ordered = sorted(spans, key=lambda span: span.get("start_offset", 0))
+    position = 0
+    for span in ordered:
+        start = span.get("start_offset")
+        end = span.get("end_offset")
+        text = span.get("text") or ""
+        subject = _subject(span.get("span_id"), spans_rev)
+        if (
+            not isinstance(start, int)
+            or not isinstance(end, int)
+            or start < 0
+            or end > len(cleaned_text)
+            or start > end
+        ):
+            findings.append(
+                make_finding(
+                    "g2_contiguous_coverage", "G2", "span_boundary_mismatch", "TXT_001",
+                    _ERROR, subject,
+                    detail="offset 越界或非法: start=%r end=%r len=%d"
+                    % (start, end, len(cleaned_text)),
+                )
+            )
+            continue
+        if start > position:
+            findings.append(
+                make_finding(
+                    "g2_contiguous_coverage", "G2", "coverage_gap", "TXT_001",
+                    _ERROR, subject, detail="存在缺口: [%d, %d)" % (position, start),
+                )
+            )
+        elif start < position:
+            findings.append(
+                make_finding(
+                    "g2_contiguous_coverage", "G2", "coverage_overlap", "TXT_001",
+                    _ERROR, subject, detail="存在重叠: [%d, %d)" % (start, position),
+                )
+            )
+        if cleaned_text[start:end] != text:
+            findings.append(
+                make_finding(
+                    "g2_contiguous_coverage", "G2", "span_text_mismatch", "TXT_001",
+                    _ERROR, subject,
+                    detail="cleaned_text[start:end] 与 span.text 不一致",
+                )
+            )
+        position = max(position, end)
+
+    if position != len(cleaned_text):
+        findings.append(
+            make_finding(
+                "g2_contiguous_coverage", "G2", "coverage_gap", "TXT_001",
+                _ERROR, _subject(spans_rev, spans_rev),
+                detail="片段未覆盖到 cleaned_text 末尾: 覆盖至 %d，实际长度 %d"
+                % (position, len(cleaned_text)),
+            )
+        )
+
+    # ---- 与 m3 coverage_report 的实算值对账（不自造页）----
+    report = ctx.get("coverage_report") or {}
+    gaps, overlaps = _gaps_and_overlaps(spans)
+    covered = _covered_chars(spans)
+    coverage_value = (covered / len(cleaned_text)) if cleaned_text else 0.0
+    line_count = len((ctx.get("raw_text") or "").splitlines())
+
+    def reconcile(page, key, expected, actual):
+        if expected != actual:
+            findings.append(
+                make_finding(
+                    "g2_contiguous_coverage", "G2", "count_mismatch", None,
+                    _ERROR, _subject(page, spans_rev),
+                    detail="coverage_report.%s 实算 %r != 报告 %r" % (key, expected, actual),
+                )
+            )
+
+    for page in _manifest_pages(ctx):
+        entry = (report.get("pages") or {}).get(page)
+        if not isinstance(entry, dict):
+            continue
+        reconcile(page, "span_count", len(spans), entry.get("span_count"))
+        reconcile(page, "coverage", coverage_value, entry.get("coverage"))
+        reconcile(page, "line_count", line_count, entry.get("line_count"))
+        reconcile(page, "gaps", gaps, entry.get("gaps"))
+        reconcile(page, "overlaps", overlaps, entry.get("overlaps"))
+
+    return {
+        "findings": findings,
+        "checked": {"spans": len(spans), "pages": len(_manifest_pages(ctx))},
+    }
+
+
 def validate_batch_partition(ctx):
     """验证批次划分：Span 与批次严格双射、不跨页、不超 ``batch_size``。
 
@@ -262,7 +450,14 @@ def validate_batch_partition(ctx):
     - 同一 Span 出现在多个批次 → ``batch_span_duplicate``（ID_002）；
     - 批次跨页 → ``batch_cross_page``（ID_002）；
     - 批次超过 ``batch_size`` → ``batch_oversize``（SCH_002）。
+
+    offset 档（R83）的片段本身不带 ``batch_id``，批次划分落在冻结 ``corpus_batch``
+    修订里：此处按 ``batch_assignments``（``{task_id: [span_id, ...]}``）独立复算
+    「片段与批次严格双射、不超 ``batch_size``」。
     """
+    if _is_offset(ctx):
+        return _validate_text_batch_partition(ctx)
+
     spans = (ctx.get("spans_doc") or {}).get("spans") or []
     config = ctx.get("configuration") or {}
     batch_size = config.get("batch_size", 10)
@@ -343,11 +538,129 @@ def validate_batch_partition(ctx):
     }
 
 
+def _validate_text_batch_partition(ctx):
+    """offset 档批次：冻结 ``corpus_batch`` 与片段严格双射、不超 ``batch_size``。"""
+    spans = (ctx.get("spans_doc") or {}).get("spans") or []
+    assignments = ctx.get("batch_assignments") or {}
+    config = ctx.get("configuration") or {}
+    batch_size = config.get("batch_size", 10)
+    spans_rev = ctx.get("corpus_spans_revision_id")
+    findings = []
+
+    span_ids = [span.get("span_id") for span in spans]
+    known = set(span_ids)
+    if spans and not assignments:
+        findings.append(
+            make_finding(
+                "g2_batch_partition", "G2", "batch_span_leak", "REF_001",
+                _ERROR, _subject(spans_rev, spans_rev),
+                detail="无任何冻结 corpus_batch 批次可对账",
+            )
+        )
+
+    assigned = {}
+    for batch_id in sorted(assignments, key=str):
+        members = assignments[batch_id] or []
+        if isinstance(batch_size, int) and len(members) > batch_size:
+            findings.append(
+                make_finding(
+                    "g2_batch_partition", "G2", "batch_oversize", "SCH_002",
+                    _ERROR, _subject(batch_id, spans_rev),
+                    detail="批次 %s 超过 batch_size=%s" % (batch_id, batch_size),
+                )
+            )
+        for span_id in members:
+            if span_id not in known:
+                findings.append(
+                    make_finding(
+                        "g2_batch_partition", "G2", "batch_span_leak", "REF_001",
+                        _ERROR, _subject(span_id, spans_rev),
+                        detail="批次 %s 含语料外 Span: %s" % (batch_id, span_id),
+                    )
+                )
+            assigned.setdefault(span_id, []).append(batch_id)
+
+    for span_id, batch_ids in assigned.items():
+        if len(batch_ids) > 1:
+            findings.append(
+                make_finding(
+                    "g2_batch_partition", "G2", "batch_span_duplicate", "ID_002",
+                    _ERROR, _subject(span_id, spans_rev),
+                    detail="同一 Span 出现在多个批次: %s -> %s" % (span_id, sorted(batch_ids)),
+                )
+            )
+    for span_id in span_ids:
+        if span_id not in assigned:
+            findings.append(
+                make_finding(
+                    "g2_batch_partition", "G2", "batch_span_leak", "REF_001",
+                    _ERROR, _subject(span_id, spans_rev),
+                    detail="Span 无批次归属: %s" % span_id,
+                )
+            )
+
+    return {
+        "findings": findings,
+        "checked": {"batches": len(assignments), "spans": len(spans)},
+    }
+
+
+def _validate_text_count_reconciliation(ctx):
+    """offset 档计数对账：表头、m3 包与片段偏移合计 vs ``cleaned_text`` 长度。"""
+    spans_doc = ctx.get("spans_doc") or {}
+    spans = spans_doc.get("spans") or []
+    m3_package = ctx.get("m3_package") or {}
+    assignments = ctx.get("batch_assignments") or {}
+    cleaned_text = ctx.get("cleaned_text")
+    spans_rev = ctx.get("corpus_spans_revision_id")
+    findings = []
+
+    def add(detail):
+        findings.append(
+            make_finding(
+                "g2_count_reconciliation", "G2", "count_mismatch", None, _ERROR,
+                _subject(spans_rev, spans_rev), detail=detail,
+            )
+        )
+
+    batches = len(assignments)
+    if spans_doc.get("span_count") != len(spans):
+        add("表头 span_count %r != 实际 %d" % (spans_doc.get("span_count"), len(spans)))
+    if "batch_count" in spans_doc and spans_doc.get("batch_count") != batches:
+        add("表头 batch_count %r != 实际 %d" % (spans_doc.get("batch_count"), batches))
+
+    counts = (m3_package.get("manifest") or {}).get("counts") or {}
+    if counts.get("spans") != len(spans):
+        add("m3 包 counts.spans %r != 实际 %d" % (counts.get("spans"), len(spans)))
+    if counts.get("batches") != batches:
+        add("m3 包 counts.batches %r != 实际 %d" % (counts.get("batches"), batches))
+
+    if isinstance(cleaned_text, str):
+        covered = _covered_chars(spans)
+        if covered != len(cleaned_text):
+            add("片段偏移合计 %d != cleaned_text 长度 %d" % (covered, len(cleaned_text)))
+
+    return {
+        "findings": findings,
+        "checked": {
+            "spans": len(spans),
+            "batches": batches,
+            "cleaned_chars": len(cleaned_text) if isinstance(cleaned_text, str) else 0,
+        },
+    }
+
+
 def validate_count_reconciliation(ctx):
     """核对 counts：表头、m3 包、页行数合计与锚点字框合计。
 
     任一处不符 → ``count_mismatch``（``code=None``）。
+
+    offset 档（R83）无页文档与字框，改为对账表头计数、m3 包计数，以及片段偏移
+    合计与冻结 ``cleaned_text`` 长度。
     """
+    if _is_offset(ctx):
+        return _validate_text_count_reconciliation(ctx)
+
     spans_doc = ctx.get("spans_doc") or {}
     spans = spans_doc.get("spans") or []
     page_docs = ctx.get("page_docs") or {}

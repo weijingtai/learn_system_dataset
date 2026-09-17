@@ -12,7 +12,11 @@ from pipeline.validation.g2_coverage import (
     validate_count_reconciliation,
     validate_page_accounting,
 )
-from pipeline.validation.tests.helpers import fixture_context
+from pipeline.validation.tests.helpers import (
+    OFFSET_PAGE,
+    fixture_context,
+    offset_fixture_context,
+)
 
 
 def _by_check(result, check):
@@ -105,6 +109,46 @@ class G2CountReconciliationTest(unittest.TestCase):
         self.assertTrue(
             _by_check(validate_count_reconciliation(ctx), "count_mismatch")
         )
+
+
+class G2OffsetLevelTest(unittest.TestCase):
+    """R83（第 100 条 D5）：offset 档 G2 以 m3 coverage_report 实算值判定。"""
+
+    def test_g2_offset_level_uses_coverage_report_values(self):
+        clean = offset_fixture_context()
+        for validator in (
+            validate_page_accounting,
+            validate_contiguous_coverage,
+            validate_batch_partition,
+            validate_count_reconciliation,
+        ):
+            self.assertEqual(
+                validator(clean)["findings"], [],
+                "%s 在 offset 合成上下文上应无发现" % validator.__name__,
+            )
+
+        ctx = offset_fixture_context()
+        page = list(ctx["coverage_report"]["pages"])[0]
+        ctx["coverage_report"]["pages"][page]["coverage"] = 0.5
+        findings = _by_check(validate_contiguous_coverage(ctx), "count_mismatch")
+        self.assertEqual(len(findings), 1)
+        self.assertIn("coverage", findings[0]["detail"])
+
+    def test_g2_offset_level_rejects_unregistered_report_page(self):
+        ctx = offset_fixture_context()
+        ctx["coverage_report"]["pages"]["page_999"] = dict(
+            ctx["coverage_report"]["pages"][OFFSET_PAGE]
+        )
+        findings = _by_check(validate_page_accounting(ctx), "page_unregistered")
+        self.assertEqual(len(findings), 1)
+        self.assertEqual(findings[0]["code"], "REF_001")
+
+    def test_g2_offset_level_batch_partition_is_bijective(self):
+        ctx = offset_fixture_context()
+        ctx["batch_assignments"]["batch_001"] = (
+            ctx["batch_assignments"]["batch_001"][:-1]
+        )
+        self.assertTrue(_by_check(validate_batch_partition(ctx), "batch_span_leak"))
 
 
 if __name__ == "__main__":

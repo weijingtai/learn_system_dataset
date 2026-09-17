@@ -36,6 +36,11 @@ def _subject(entity_id, revision_id=None, page=None):
     }
 
 
+def _is_offset(ctx):
+    """证据级别是否为电子文本档 ``offset_level``（R83，第 100 条 D5）。"""
+    return (ctx.get("spans_doc") or {}).get("evidence_level") == "offset_level"
+
+
 def _frozen(ctx):
     return (ctx.get("raw") or {}).get("frozen") or {}
 
@@ -78,14 +83,26 @@ def validate_frozen_bytes(ctx):
 
 
 def validate_page_registry(ctx):
-    """核对页登记：页集合、页修订哈希与终态一致性。
+    """核对来源登记：页集合、页修订哈希与终态一致性。
 
+    OCR 档（``glyphbox_level``）：
     - 页集合与 manifest 页序不符 → ``page_set_mismatch``（REF_001）；
     - 页修订登记 sha256 与 ``ocr_page_set`` 登记不符 → ``page_hash_mismatch``
       （SRC_003）；
     - ``terminal_states`` 与冻结 ``ocr_page_set.terminal_states`` 不符 →
       ``terminal_state_mismatch``（REF_001）。
+
+    offset 档（``offset_level``，R83）：无 ``ocr_page``，登记单位是 M1
+    ``source_manifest`` 的 SourceAsset——
+    - ``source_assets[].page`` 集合与 manifest 页序不符 → ``page_set_mismatch``；
+    - SourceAsset 声明的 ``normalized_sha256``（M1 契约中指向冻结 RawText 的
+      归一化字节哈希，第 94 条 D4）与冻结 ``raw_text`` 修订对象字节实得哈希
+      不符（或 ``normalized_sha256`` 缺失时退到 ``sha256``）→
+      ``source_asset_mismatch``（SRC_003）。
     """
+    if _is_offset(ctx):
+        return _validate_text_source_registry(ctx)
+
     manifest = ctx.get("manifest") or {}
     pages = (manifest.get("edition_part") or {}).get("pages") or []
     ocr_page_set = ctx.get("ocr_page_set") or {}
@@ -150,6 +167,64 @@ def validate_page_registry(ctx):
     return {
         "findings": findings,
         "checked": {"pages": len(pages), "ocr_pages": len(ocr_map)},
+    }
+
+
+def _validate_text_source_registry(ctx):
+    """offset 档来源登记：SourceAsset 集合与哈希到冻结 ``raw_text`` 字节。
+
+    证据链（§4.7）：片段 → 清洗文本偏移 → patch 映射 → 原始文本偏移 →
+    **SourceAsset SHA-256**。末端一环即此处复算：M1 冻结的 ``raw_text`` 修订
+    对象字节实得哈希，必须等于 ``source_manifest.source_assets`` 声明的归一化
+    哈希（``normalized_sha256``；缺失时退到 ``sha256``）。
+    """
+    manifest = ctx.get("manifest") or {}
+    pages = (manifest.get("edition_part") or {}).get("pages") or []
+    assets = [item for item in (manifest.get("source_assets") or []) if isinstance(item, dict)]
+    raw_text_revision_id = ctx.get("raw_text_revision_id")
+    entry = _frozen(ctx).get(raw_text_revision_id) or {}
+    actual_sha256 = entry.get("actual_sha256")
+    findings = []
+
+    asset_pages = {asset.get("page") for asset in assets}
+    for page in pages:
+        if page not in asset_pages:
+            findings.append(
+                make_finding(
+                    "g1_page_registry", "G1", "page_set_mismatch", "REF_001",
+                    _ERROR, _subject(page, manifest.get("artifact_revision_id")),
+                    detail="manifest 页序中的页未登记 SourceAsset: %s" % page,
+                )
+            )
+    for page in sorted(asset_pages - set(pages), key=str):
+        findings.append(
+            make_finding(
+                "g1_page_registry", "G1", "page_set_mismatch", "REF_001",
+                _ERROR, _subject(page, manifest.get("artifact_revision_id")),
+                detail="SourceAsset 出现 manifest 页序外的页: %s" % page,
+            )
+        )
+
+    for asset in assets:
+        declared = asset.get("normalized_sha256") or asset.get("sha256")
+        if declared is not None and declared == actual_sha256:
+            continue
+        findings.append(
+            make_finding(
+                "g1_page_registry", "G1", "source_asset_mismatch", "SRC_003",
+                _ERROR, _subject(asset.get("page"), raw_text_revision_id),
+                detail="SourceAsset %s 声明哈希 %r != 冻结 raw_text 修订字节 %r"
+                % (asset.get("page"), declared, actual_sha256),
+            )
+        )
+
+    return {
+        "findings": findings,
+        "checked": {
+            "pages": len(pages),
+            "source_assets": len(assets),
+            "raw_text_revision": raw_text_revision_id,
+        },
     }
 
 

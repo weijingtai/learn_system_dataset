@@ -16,6 +16,7 @@
         terminal_state_mismatch → REF_001
         content_sha256_mismatch → SRC_003
         spans_revision_mismatch → REF_001
+        source_asset_mismatch → SRC_003（R83：offset 档 SourceAsset 哈希与 raw_text 修订字节不符）
         forbidden_char_in_text → TXT_001
         unresolved_glyph → SRC_001
         unproofread_glyphs → None（§5.5 缺口：无语义吻合码）
@@ -40,6 +41,7 @@
         span_id_format → ID_001
         span_id_duplicate → ID_002
         page_line_mismatch → REF_001
+        anchor_offset_mismatch → REF_001（R83：offset 档 span_id 起点偏移段与锚点 raw_start 不符）
         source_id_mismatch → REF_001
         content_status_invalid → SCH_002
         dangling_ref → REF_001
@@ -49,6 +51,8 @@
         offset_mismatch → TXT_001
         quote_hash_mismatch → TXT_001
         quote_hash_not_stored → SCH_001
+        anchor_revision_mismatch → REF_001（R83：offset 档锚点修订号与冻结 M1/M2 修订不符）
+        raw_anchor_mismatch → TXT_001（R83：offset 档 patch 映射回原始偏移不成立）
         page_image_hash_mismatch → SRC_003
         line_box_mismatch → TXT_001
         glyph_box_mismatch → TXT_001
@@ -109,6 +113,7 @@ CHECK_CODES = {
     "terminal_state_mismatch": "REF_001",
     "content_sha256_mismatch": "SRC_003",
     "spans_revision_mismatch": "REF_001",
+    "source_asset_mismatch": "SRC_003",
     "forbidden_char_in_text": "TXT_001",
     "unresolved_glyph": "SRC_001",
     "unproofread_glyphs": None,
@@ -133,6 +138,7 @@ CHECK_CODES = {
     "span_id_format": "ID_001",
     "span_id_duplicate": "ID_002",
     "page_line_mismatch": "REF_001",
+    "anchor_offset_mismatch": "REF_001",
     "source_id_mismatch": "REF_001",
     "content_status_invalid": "SCH_002",
     "dangling_ref": "REF_001",
@@ -142,6 +148,8 @@ CHECK_CODES = {
     "offset_mismatch": "TXT_001",
     "quote_hash_mismatch": "TXT_001",
     "quote_hash_not_stored": "SCH_001",
+    "anchor_revision_mismatch": "REF_001",
+    "raw_anchor_mismatch": "TXT_001",
     "page_image_hash_mismatch": "SRC_003",
     "line_box_mismatch": "TXT_001",
     "glyph_box_mismatch": "TXT_001",

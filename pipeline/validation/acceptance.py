@@ -32,14 +32,19 @@ from .step import run_m5
 
 EDITION_PART = "art_000000000000000000000000000000e1"
 
-# 五项 BLOCKED（名称固定，说明逐字取自 §19 第一列行名）
+# 四项 BLOCKED（名称固定，说明逐字取自 §19 第一列行名）
 BLOCKED_ITEMS = (
     ("candidate_evidence", "前置缺失: M4 Knowledge Extraction；Candidate 证据范围与 direct proposition 忠实性未实现"),
     ("g4_content_layering", "前置缺失: M4 Knowledge Extraction；无 Case/editorial 分层输入"),
     ("g5_concept_search", "前置缺失: M4 Knowledge Extraction；无 confirmed concept"),
     ("g6_rule_executability", "前置缺失: M4 Knowledge Extraction；ApplicabilityRule 未产出"),
-    ("quote_hash_stored", "前置缺失: M3 Corpus Compilation；spans 未存储 quote hash（§11.1）"),
 )
+
+# offset 片段按实判定用的证据级别
+_OFFSET_LEVEL = "offset_level"
+
+# OCR 档 spans 未存储 quote hash 的过时文案（§19 第一列行名，逐字保留）
+QUOTE_HASH_BLOCKED = "前置缺失: M3 Corpus Compilation；spans 未存储 quote hash（§11.1）"
 
 _KNOWN_TERMINAL = (None, "manually_transcribed", "known_unrecognizable")
 _CONTENT_STATUSES = (
@@ -481,6 +486,21 @@ def fail_closed_probe(fixture_dir):
         shutil.rmtree(root, ignore_errors=True)
 
 
+def _quote_hash_line(state):
+    """``quote_hash_stored`` 按实判定（R83，第 100 条 D5）。
+
+    - offset 档：片段确实存了 ``quote_sha256`` → PASS；未存 → BLOCKED（如实）。
+    - OCR 档（``glyphbox_level``）：逐字保留原 BLOCKED 文案——fixture 的
+      ``glyphbox_level`` spans 本就不带 quote hash（§11.1）。
+    """
+    stats = _anchor_stats(state["ctx"])
+    if stats["level"] != _OFFSET_LEVEL:
+        return "BLOCKED quote_hash_stored %s" % QUOTE_HASH_BLOCKED
+    if stats["quote_stored"]:
+        return "PASS quote_hash_stored offset 片段已存储 quote_sha256"
+    return "BLOCKED quote_hash_stored 前置缺失: M3 Corpus Compilation；offset 片段未存储 quote hash（§11.1）"
+
+
 # ---------------------------------------------------------------- 入口
 def _evaluate(fixture_dir, *, keep=False):
     lines = []
@@ -491,8 +511,9 @@ def _evaluate(fixture_dir, *, keep=False):
             except Exception as exc:  # noqa: BLE001 —— 判定内异常转该项 FAIL
                 ok, detail = False, "%s: %s" % (type(exc).__name__, exc)
             lines.append(("PASS %s" % name) if ok else ("FAIL %s %s" % (name, detail)))
-    for name, description in BLOCKED_ITEMS:
-        lines.append("BLOCKED %s %s" % (name, description))
+        for name, description in BLOCKED_ITEMS:
+            lines.append("BLOCKED %s %s" % (name, description))
+        lines.append(_quote_hash_line(state))
     return lines
 
 

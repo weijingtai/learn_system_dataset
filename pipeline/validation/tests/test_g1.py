@@ -13,7 +13,7 @@ from pipeline.validation.g1_source import (
     validate_unresolved_chars,
 )
 from pipeline.validation.replay import validate_replay
-from pipeline.validation.tests.helpers import fixture_context
+from pipeline.validation.tests.helpers import fixture_context, offset_fixture_context
 
 
 def _by_check(result, check):
@@ -152,6 +152,32 @@ class G1ReplayTest(unittest.TestCase):
         findings = _by_check(validate_replay(ctx), "replay_bytes_mismatch")
         self.assertEqual(len(findings), 1)
         self.assertEqual(findings[0]["code"], "SRC_003")
+
+
+class G1OffsetLevelTest(unittest.TestCase):
+    """R83（第 100 条 D5）：offset 档 G1 来源链复算（合成数据，不读 ocr_page）。"""
+
+    def test_g1_offset_level_rejects_source_asset_sha_mismatch(self):
+        clean = offset_fixture_context()
+        self.assertEqual(validate_page_registry(clean)["findings"], [])
+
+        ctx = offset_fixture_context()
+        ctx["manifest"]["source_assets"][0]["normalized_sha256"] = "0" * 64
+        findings = _by_check(validate_page_registry(ctx), "source_asset_mismatch")
+        self.assertEqual(len(findings), 1)
+        self.assertEqual(findings[0]["code"], "SRC_003")
+        self.assertEqual(findings[0]["severity"], {
+            "INTERNAL_DEMO": "error", "DEV_SEARCH": "error", "PUBLIC_RELEASE": "error",
+        })
+
+    def test_g1_offset_level_replay_recomputes_spans_bytes(self):
+        ctx = offset_fixture_context()
+        self.assertEqual(validate_replay(ctx)["findings"], [])
+        self.assertTrue(validate_replay(ctx)["checked"]["replayed"])
+
+        ctx["configuration"]["tool_version"] = "9.9.9"
+        findings = _by_check(validate_replay(ctx), "replay_tool_mismatch")
+        self.assertEqual(len(findings), 1)
 
 
 if __name__ == "__main__":

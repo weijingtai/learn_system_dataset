@@ -5,6 +5,7 @@
 """
 
 import copy
+import hashlib
 import unittest
 from pathlib import Path
 
@@ -15,7 +16,7 @@ from pipeline.validation.g3_evidence import (
     validate_span_identity,
     validate_strict_offset_quote,
 )
-from pipeline.validation.tests.helpers import fixture_context
+from pipeline.validation.tests.helpers import fixture_context, offset_fixture_context
 
 
 def _by_check(result, check):
@@ -242,6 +243,74 @@ class G3EvidenceLevelTest(unittest.TestCase):
         findings = _by_check(validate_evidence_level(ctx), "evidence_level_invalid")
         self.assertTrue(findings)
         self.assertEqual(findings[0]["code"], "SCH_002")
+
+
+class G3OffsetLevelTest(unittest.TestCase):
+    """R83（第 100 条 D5）：offset 档 G3 逐片段独立复算（合成数据）。"""
+
+    def test_g3_offset_level_recomputes_quote_sha256_per_span(self):
+        ctx = offset_fixture_context()
+        result = validate_strict_offset_quote(ctx)
+        self.assertEqual(result["findings"], [])
+        self.assertEqual(result["checked"]["spans"], 3)
+        for span in ctx["spans_doc"]["spans"]:
+            expected = hashlib.sha256(span["text"].encode("utf-8")).hexdigest()
+            self.assertEqual(span["quote_sha256"], expected)
+            self.assertEqual(
+                ctx["cleaned_text"][span["start_offset"]:span["end_offset"]],
+                span["text"],
+            )
+
+        self.assertEqual(validate_span_identity(ctx)["findings"], [])
+        self.assertEqual(validate_glyphbox_anchor(ctx)["findings"], [])
+
+    def test_g3_offset_level_rejects_tampered_quote_sha256(self):
+        ctx = offset_fixture_context()
+        ctx["spans_doc"]["spans"][0]["quote_sha256"] = "0" * 64
+        result = validate_strict_offset_quote(ctx)
+        findings = _by_check(result, "quote_hash_mismatch")
+        self.assertEqual(len(findings), 1)
+        self.assertEqual(findings[0]["code"], "TXT_001")
+        self.assertEqual(findings[0]["relation"], "content_hash")
+        self.assertEqual(_by_check(result, "quote_hash_not_stored"), [])
+
+    def test_g3_offset_level_rejects_offset_out_of_cleaned_range(self):
+        ctx = offset_fixture_context()
+        ctx["spans_doc"]["spans"][0]["end_offset"] = 99999
+        findings = _by_check(
+            validate_strict_offset_quote(ctx), "offset_out_of_range"
+        )
+        self.assertEqual(len(findings), 1)
+        self.assertEqual(findings[0]["code"], "TXT_001")
+
+        ctx2 = offset_fixture_context()
+        ctx2["spans_doc"]["spans"][0]["text"] = "篡改"
+        self.assertTrue(_by_check(validate_strict_offset_quote(ctx2), "offset_mismatch"))
+
+    def test_g3_offset_level_rejects_raw_anchor_mapping_break(self):
+        ctx = offset_fixture_context()
+        anchor = ctx["spans_doc"]["spans"][1]["source_anchor"]
+        anchor["raw_start"] += 1
+        anchor["raw_end"] += 1
+        findings = _by_check(
+            validate_strict_offset_quote(ctx), "raw_anchor_mismatch"
+        )
+        self.assertEqual(len(findings), 1)
+        self.assertEqual(findings[0]["code"], "TXT_001")
+
+    def test_g3_offset_level_rejects_span_id_not_from_ids_registry(self):
+        ctx = offset_fixture_context()
+        ctx["spans_doc"]["spans"][0]["span_id"] = "ss_qianyuan_ed01_p0001_s01"
+        findings = _by_check(validate_span_identity(ctx), "span_id_format")
+        self.assertEqual(len(findings), 1)
+        self.assertEqual(findings[0]["code"], "ID_001")
+
+    def test_g3_offset_level_rejects_glyphbox_anchor_key(self):
+        ctx = offset_fixture_context()
+        ctx["spans_doc"]["spans"][0]["source_anchor"]["image_sha256"] = "0" * 64
+        findings = _by_check(validate_glyphbox_anchor(ctx), "anchor_field_missing")
+        self.assertEqual(len(findings), 1)
+        self.assertEqual(findings[0]["code"], "SCH_001")
 
 
 class G3IndependenceTest(unittest.TestCase):

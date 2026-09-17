@@ -21,8 +21,15 @@ from referencing.jsonschema import DRAFT202012
 from pipeline.corpus_compiler.step import run_m3
 from pipeline.ledger.fixture_ingest import ingest
 from pipeline.ledger.service import LedgerService
+from pipeline.validation.context import build_context
 from pipeline.validation.errors import ValidationRefused
+from pipeline.validation.inputs import resolve_m5_inputs
 from pipeline.validation.step import run_m5
+from pipeline.validation.tests.helpers import (
+    OFFSET_EDITION_PART,
+    text_chain,
+    write_offset_source,
+)
 
 REPO = Path(__file__).resolve().parents[3]
 FIXTURE = REPO / "pipeline" / "corpus" / "_fixture" / "mini_ed01"
@@ -79,6 +86,67 @@ class RunM5Test(_Base):
         for revision_id in reports:
             row = self.service.get_revision(revision_id)
             self.assertEqual(row["status"], "sealed")
+
+    def test_glyphbox_level_path_unchanged(self):
+        """OCR 档护栏（R83）：mini_ed01 的 glyphbox_level 路径结论与计数逐项不变。
+
+        等价既有护栏：``test_run_m5_on_fixture_succeeds``、
+        ``test_gate_results_level_verdicts_passed_failed_failed``、
+        ``test_frozen_inputs_exactly_seventeen_and_all_sealed``、
+        ``test_g2.G2FixtureCleanTest.test_fixture_context_passes_all_g2_validators``、
+        ``test_g3.G3FixtureCleanTest.test_fixture_context_g3_clean_except_three_findings``、
+        ``test_g1.G1FixtureCleanTest.test_fixture_context_g1_clean_except_four_unresolved_char_findings``。
+        """
+        inputs = resolve_m5_inputs(self.service, EDITION_PART)
+        ctx = build_context(
+            self.service, inputs, target_consumption_level="INTERNAL_DEMO"
+        )
+        self.assertEqual(ctx["evidence_level"], "glyphbox_level")
+        for key in (
+            "raw_text",
+            "cleaned_text",
+            "raw_text_revision_id",
+            "cleaned_text_revision_id",
+            "patch_set_revision_id",
+            "sanitization_report_revision_id",
+        ):
+            self.assertIsNone(ctx[key])
+        self.assertEqual(ctx["patches"], [])
+        self.assertEqual(ctx["sanitization_report"], {})
+        self.assertEqual(
+            sorted(ctx["batch_assignments"]),
+            ["sanche_b001", "sanche_b002", "sanche_b003", "sanche_b004", "sanche_b005"],
+        )
+
+        summary = run_m5(self.service, EDITION_PART)
+        self.assertEqual(summary["status"], "succeeded")
+        self.assertEqual(summary["counts"]["findings"], 7)
+        self.assertTrue(summary["gate"]["passed"])
+        gate_results = _read_revision_doc(
+            self.service, summary["gate_results_revision_id"]
+        )
+        self.assertEqual(
+            gate_results["gates"],
+            {
+                "G1": "passed_with_warnings",
+                "G2": "passed",
+                "G3": "passed_with_warnings",
+                "G4": "not_evaluated",
+                "G5": "not_evaluated",
+                "G6": "not_evaluated",
+                "G7": "deferred_to_m8",
+            },
+        )
+        self.assertEqual(
+            [finding["check"] for finding in gate_results["warnings"]],
+            [
+                "unresolved_glyph",
+                "unresolved_glyph",
+                "quote_hash_not_stored",
+                "glyph_text_misaligned",
+                "glyph_text_misaligned",
+            ],
+        )
 
     def test_gate_results_level_verdicts_passed_failed_failed(self):
         summary = run_m5(self.service, EDITION_PART)
@@ -204,6 +272,63 @@ class RunM5TamperTest(unittest.TestCase):
         )
         package = _read_revision_doc(self.service, summary["package_revision_id"])
         self.assertFalse(package["validation"]["passed"])
+
+
+class OffsetLevelStepTest(unittest.TestCase):
+    """R83（第 100 条 D5）：电子文本档真实 Ledger 端到端（合成数据，不读真书宿主）。"""
+
+    def setUp(self):
+        self._tmp = tempfile.mkdtemp(prefix="m5-text-step-")
+        self.service = LedgerService(Path(self._tmp) / "ledger")
+        self.addCleanup(self.service.close)
+        source_dir = write_offset_source(Path(self._tmp) / "src")
+        self.chain = text_chain(self.service, source_dir)
+
+    def _frozen_types(self, step_run_id):
+        request = json.loads(self.service.get_step_run(step_run_id)["request_json"])
+        rows = self.service.store.conn.execute(
+            "SELECT a.artifact_type FROM artifacts a "
+            "JOIN artifact_revisions r ON r.artifact_id = a.artifact_id "
+            "WHERE r.artifact_revision_id IN (%s)"
+            % ",".join("?" * len(request["input_artifact_ids"])),
+            tuple(request["input_artifact_ids"]),
+        ).fetchall()
+        return [row[0] for row in rows]
+
+    def test_offset_level_does_not_read_ocr_page(self):
+        self.assertEqual(self.chain["m1"]["raw_text_revision_ids"] is not None, True)
+        self.assertEqual(self.chain["m3"]["status"], "succeeded")
+
+        summary = run_m5(self.service, OFFSET_EDITION_PART)
+        self.assertEqual(summary["status"], "succeeded")
+        frozen_types = self._frozen_types(summary["step_run_id"])
+        self.assertNotIn("ocr_page", frozen_types)
+        self.assertNotIn("ocr_page_set", frozen_types)
+        for required in (
+            "source_manifest",
+            "raw_text",
+            "cleaned_text_revision",
+            "deterministic_patch_set",
+            "sanitization_report",
+        ):
+            self.assertIn(required, frozen_types)
+
+        verdicts = summary["level_verdicts"]
+        self.assertEqual(
+            verdicts,
+            {"INTERNAL_DEMO": "passed", "DEV_SEARCH": "passed", "PUBLIC_RELEASE": "failed"},
+        )
+        self.assertTrue(summary["gate"]["passed"])
+        report = {
+            item["validator_id"]: item for item in summary["validator_reports"]
+        }
+        self.assertTrue(report["g1_replay"]["checked"]["replayed"])
+        self.assertEqual(report["g1_replay"]["findings"], [])
+        self.assertGreater(report["g3_strict_offset_quote"]["checked"]["spans"], 0)
+        self.assertEqual(
+            [finding["check"] for finding in report["g3_evidence_level"]["findings"]],
+            ["evidence_level_insufficient"],
+        )
 
 
 class CliTest(unittest.TestCase):
