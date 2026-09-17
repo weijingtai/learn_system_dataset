@@ -47,3 +47,14 @@ K1、K2 各自通过后由主 Agent 记 `ACCEPTED` 并同步台账；全部通�
 - 登记（第 33 条②）：act/04–06 脚手架文字 `ingest(m1,m2,m3)` 与 BDD 真实链路不一致，实现与测试以 BDD 为准，文档待后续修订。字框比对缺陷修正落在 `9aaccf5`（第 33 条①）。
 
 impl-03（M5 首切片）`ACCEPTED`。`m5-evidence-gate.sh` 返回 2（G4/G5/G6 `not_evaluated` 判 BLOCKED），§19 M5 差距不宣称关闭。
+
+### 5.2 W8 8.3 返工 R83 + R83b + R83c（2026-09-16，主 Agent 独立验收，`git archive 2db0fcc` 干净树；执行器 cmd DeepSeek V4.1 Flash）
+
+判定：**R83（`2537b75`）、R83b（`82f7148`）、R83c（`2db0fcc`，impl-00 登记表更正）ACCEPTED**。第 100 条 D5、第 103 条落地，**真书 M5 在 `INTERNAL_DEMO` 通过**。
+
+- 过程：R83 真书 G1 failed（M2 有意保留的 39 个私用区码位被判 `forbidden_char_in_text`），执行方未放宽判据、停手上报 → 第 103 条（offset 档与清洗报告对账；登记表陈旧闭集更正）→ R83b/R83c。
+- 套件（干净树）：validation `Ran 108 OK`、knowledge_extraction `Ran 145 OK`、corpus `Ran 163 OK`、impl-00 tests `Ran 31 OK`；`check_interfaces` `pass=39 fail=0`；`m5-evidence-gate.sh`（mini_ed01）`SUMMARY pass=9 fail=0 blocked=5`，与改前相同；`run_all.sh` 基线不变。
+- **用例审计**（AST 逐函数）：`test_g1/g2/g3/test_step.py`、`test_check_interfaces.py` 删 0、改 0，仅新增；`tests/helpers.py` 改 `fixture_context`（仅追加键，原键值不变）与新增 offset 夹具，无既有夹具取值变化。
+- **主 Agent 独立脚本**真书 M1→M2→`run_m3_text`→`run_m5`：`INTERNAL_DEMO` → `status: succeeded`、`gate.passed: true`、`level_verdicts {INTERNAL_DEMO: passed, DEV_SEARCH: passed, PUBLIC_RELEASE: failed}`、`findings 40 / failures 0 / warnings 39`；`PUBLIC_RELEASE` → `gate.passed: false`、`severe_error_count 40`（39 条披露项升 error + `evidence_level_insufficient`）。
+- **主 Agent 篡改**（临时副本）：去掉对账中的 `kind` 比对 → `test_g1_offset_pua_with_mismatched_kind_is_error` 转红。执行方另两组（跳过终态判断、OCR 档也走对账）亦转红。
+- 执行方报备：`deferred_count` 实际在 `summary.deferred_count`，M2 Gate/验收/M3 读取一致，impl-09 README 第 228–229 行键清单写法易误读为顶层键——列 W8 跟进，不阻断。

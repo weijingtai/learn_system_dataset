@@ -169,3 +169,4 @@
 W8 跟进（发现即记）：
 - 结构层与语义层 m3 阶段包共存规则（第 102 条 Q5）——任何下游消费 `sem_` 之前裁定。
 - `pipeline/corpus_compiler/gate.py:23` 页码形态 parts 正则收归 `ids.py`（8.1 报备，字符集未分叉，低优先）。
+- impl-09 README 第 228–229 行 `sanitization_report` 键清单把 `deferred_count` 写得像顶层键，实际在 `summary.deferred_count`（8.3 报备）。
