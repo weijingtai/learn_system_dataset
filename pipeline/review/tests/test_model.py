@@ -285,5 +285,159 @@ class TestReviewModel(unittest.TestCase):
             model.normalize_content(c_bad_offset, self.spans_by_id)
         self.assertEqual(ctx2.exception.code, "SCH_002")
 
+    def test_evidence_offsets_are_absolute_per_i11(self):
+        span = {
+            "span_id": "ss_test_01",
+            "start_offset": 100,
+            "end_offset": 104,
+            "text": "七政四余",
+        }
+        quote = "政四"
+        q_hash = hashlib.sha256(quote.encode("utf-8")).hexdigest()
+        ev = {
+            "source_span_id": "ss_test_01",
+            "start_offset": 101,
+            "end_offset": 103,
+            "quote": quote,
+            "quote_sha256": q_hash,
+        }
+        res = model.normalize_evidence_offsets(ev, span)
+        self.assertEqual(res["start"], 1)
+        self.assertEqual(res["end"], 3)
+        self.assertEqual(res["start_offset"], 101)
+        self.assertEqual(res["end_offset"], 103)
+        self.assertEqual(res["quote"], "政四")
+        self.assertEqual(res["quote_sha256"], q_hash)
+
+    def test_evidence_offset_local_interpretation_rejected(self):
+        span = {
+            "span_id": "ss_test_01",
+            "start_offset": 100,
+            "end_offset": 104,
+            "text": "七政四余",
+        }
+        quote = "政四"
+        q_hash = hashlib.sha256(quote.encode("utf-8")).hexdigest()
+        ev = {
+            "source_span_id": "ss_test_01",
+            "start_offset": 1,
+            "end_offset": 3,
+            "quote": quote,
+            "quote_sha256": q_hash,
+        }
+        with self.assertRaises(model.EvidenceOffsetError) as ctx:
+            model.normalize_evidence_offsets(ev, span)
+        self.assertTrue(issubclass(model.EvidenceOffsetError, ReviewRefused))
+        self.assertTrue(issubclass(model.EvidenceOffsetError, SchemaViolation))
+        self.assertEqual(ctx.exception.code, "SCH_002")
+
+    def test_evidence_offset_out_of_span_rejected(self):
+        span = {
+            "span_id": "ss_test_01",
+            "start_offset": 100,
+            "end_offset": 104,
+            "text": "七政四余",
+        }
+        ev_before = {"source_span_id": "ss_test_01", "start_offset": 98, "end_offset": 102}
+        with self.assertRaises(model.EvidenceOffsetError):
+            model.normalize_evidence_offsets(ev_before, span)
+
+        ev_after = {"source_span_id": "ss_test_01", "start_offset": 102, "end_offset": 106}
+        with self.assertRaises(model.EvidenceOffsetError):
+            model.normalize_evidence_offsets(ev_after, span)
+
+    def test_evidence_quote_mismatch_rejected(self):
+        span = {
+            "span_id": "ss_test_01",
+            "start_offset": 100,
+            "end_offset": 104,
+            "text": "七政四余",
+        }
+        ev = {
+            "source_span_id": "ss_test_01",
+            "start_offset": 101,
+            "end_offset": 103,
+            "quote": "错字",
+        }
+        with self.assertRaises(model.EvidenceOffsetError) as ctx:
+            model.normalize_evidence_offsets(ev, span)
+        self.assertIn("引文内容不匹配", str(ctx.exception))
+
+    def test_evidence_quote_sha256_mismatch_rejected(self):
+        span = {
+            "span_id": "ss_test_01",
+            "start_offset": 100,
+            "end_offset": 104,
+            "text": "七政四余",
+        }
+        ev = {
+            "source_span_id": "ss_test_01",
+            "start_offset": 101,
+            "end_offset": 103,
+            "quote": "政四",
+            "quote_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+        }
+        with self.assertRaises(model.EvidenceOffsetError) as ctx:
+            model.normalize_evidence_offsets(ev, span)
+        self.assertIn("SHA256", str(ctx.exception))
+
+    def test_no_whole_span_fallback(self):
+        span = {
+            "span_id": "ss_test_01",
+            "start_offset": 100,
+            "end_offset": 104,
+            "text": "七政四余",
+        }
+        ev_inverted = {"source_span_id": "ss_test_01", "start_offset": 103, "end_offset": 101}
+        with self.assertRaises(model.EvidenceOffsetError):
+            model.normalize_evidence_offsets(ev_inverted, span)
+
+        ev_completely_out = {"source_span_id": "ss_test_01", "start_offset": 200, "end_offset": 202}
+        with self.assertRaises(model.EvidenceOffsetError):
+            model.normalize_evidence_offsets(ev_completely_out, span)
+
+    def test_offset_normalization_single_authority(self):
+        from pipeline.review import rework, step
+
+        span = {
+            "span_id": "ss_test_01",
+            "start_offset": 100,
+            "end_offset": 104,
+            "text": "七政四余",
+        }
+        spans_map = {"ss_test_01": span}
+        source_obj = {
+            "assertion_id": "as_qizheng_000001",
+            "evidence": [
+                {
+                    "source_span_id": "ss_test_01",
+                    "start_offset": 101,
+                    "end_offset": 103,
+                    "quote": "政四",
+                    "quote_sha256": hashlib.sha256("政四".encode("utf-8")).hexdigest(),
+                }
+            ],
+        }
+
+        res_model = model.normalize_candidate_object(source_obj, spans_map)
+        res_step = step._normalized_candidate_object(source_obj, spans_map)
+        res_rework = rework._normalized_object(source_obj, spans_map)
+
+        self.assertEqual(res_model, res_step)
+        self.assertEqual(res_step, res_rework)
+        self.assertEqual(res_step["evidence"][0]["start"], 1)
+        self.assertEqual(res_step["evidence"][0]["end"], 3)
+        self.assertEqual(res_step["evidence"][0]["start_offset"], 101)
+        self.assertEqual(res_step["evidence"][0]["end_offset"], 103)
+
+        bad_obj = {
+            "assertion_id": "as_qizheng_000001",
+            "evidence": [{"source_span_id": "ss_test_01", "start_offset": 1, "end_offset": 3}],
+        }
+        with self.assertRaises(model.EvidenceOffsetError):
+            step._normalized_candidate_object(bad_obj, spans_map)
+        with self.assertRaises(model.EvidenceOffsetError):
+            rework._normalized_object(bad_obj, spans_map)
+
 if __name__ == '__main__':
     unittest.main()

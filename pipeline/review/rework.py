@@ -13,7 +13,7 @@ from pipeline.knowledge_extraction.serialize import canonical_json
 from pipeline.ledger import ids
 from pipeline.ledger.errors import MissingReference, NotConsumable, SchemaViolation
 from pipeline.ledger.states import REVIEW_DECISION_TYPES
-from pipeline.review import M6_TOOL, M6_TOOL_VERSION, propagation, step
+from pipeline.review import M6_TOOL, M6_TOOL_VERSION, model, propagation, step
 from pipeline.review.errors import ReviewRefused
 from pipeline.review.inputs import (
     _artifact_types,
@@ -106,30 +106,8 @@ def request_correction(
 
 
 def _normalized_object(source_object, spans_by_id):
-    """按 ``spans`` 文本长度把证据的 ``start_offset/end_offset`` 规范化为 ``start/end``。
-
-    与 ``step.close_review`` 落 Gate 时的口径一致（既有代码约定，不改）。
-    """
-    obj = copy.deepcopy(source_object)
-    for ev in obj.get("evidence", []):
-        if "start" in ev and "end" in ev:
-            continue
-        span = spans_by_id.get(ev.get("source_span_id"), {})
-        text_len = len(span.get("text", ""))
-        span_start = span.get("start_offset", 0)
-        s_off = ev.get("start_offset", 0)
-        e_off = ev.get("end_offset", s_off)
-        if 0 <= s_off < e_off <= text_len:
-            start, end = s_off, e_off
-        elif (
-            span_start > 0
-            and 0 <= (s_off - span_start) < (e_off - span_start) <= text_len
-        ):
-            start, end = s_off - span_start, e_off - span_start
-        else:
-            start, end = 0, text_len
-        ev["start"], ev["end"] = start, end
-    return obj
+    """按 ``spans`` 把证据的 ``start_offset/end_offset`` 规范化为 ``start/end``（委托给 model.normalize_candidate_object，单一权威）。"""
+    return model.normalize_candidate_object(source_object, spans_by_id)
 
 
 def _candidate_objects(candidate_set_doc, candidate_set_revision_id, spans_by_id):

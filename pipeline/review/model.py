@@ -10,6 +10,110 @@ NON_CONTENT_KEYS = ("candidate_revision_id", "content_status", "origin")
 APPROVED_CONTENT_STATUS = "expert_verified"
 ENTITY_ID_KINDS = {"assertion": "assertion_id", "school_view": "school_view_id"}
 
+
+class EvidenceOffsetError(ReviewRefused, SchemaViolation):
+    """证据偏移/引文校验失败（I-11 约束），同时继承 ReviewRefused 与 SchemaViolation。"""
+
+    def __init__(self, message: str, code: str = "SCH_002") -> None:
+        super().__init__(message, code=code)
+
+
+def normalize_evidence_offsets(evidence: dict, span: dict) -> dict:
+    """按 I-11 将证据绝对偏移规范化为局部坐标 start/end，并严格校验边界、引文与哈希。
+
+    - evidence start_offset/end_offset 严格按 I-11 解释为绝对偏移
+    - 局部坐标 local_start = start_offset - span.start_offset, local_end = end_offset - span.start_offset
+    - 若超出 span 边界、或 span.text[local_start:local_end] != quote、或 quote_sha256 不一致，
+      抛出 EvidenceOffsetError (ReviewRefused / SchemaViolation)，不得猜测 local 亦不得退化为整 span。
+    - 无论 OCR 还是 offset 档平等对待。
+    """
+    if not isinstance(evidence, dict):
+        raise SchemaViolation("证据对象必须为字典", code="SCH_002")
+    if not isinstance(span, dict):
+        raise MissingReference("Span 对象必须为字典", code="REF_001")
+
+    if "start_offset" not in evidence or "end_offset" not in evidence:
+        raise EvidenceOffsetError(
+            "证据必须提供 I-11 绝对偏移 start_offset 与 end_offset",
+            code="SCH_002",
+        )
+    s_off = evidence["start_offset"]
+    e_off = evidence["end_offset"]
+    if not isinstance(s_off, int) or not isinstance(e_off, int) or s_off < 0 or e_off <= s_off:
+        raise EvidenceOffsetError(
+            f"无效的证据绝对偏移: start_offset={s_off}, end_offset={e_off}",
+            code="SCH_002",
+        )
+
+    span_start = span.get("start_offset", 0)
+    if not isinstance(span_start, int) or span_start < 0:
+        raise EvidenceOffsetError(
+            f"无效的 span.start_offset: {span_start}",
+            code="SCH_002",
+        )
+
+    local_start = s_off - span_start
+    local_end = e_off - span_start
+    text = span.get("text", "")
+    text_len = len(text)
+    if not (0 <= local_start < local_end <= text_len):
+        raise EvidenceOffsetError(
+            f"证据绝对偏移 [{s_off}, {e_off}) 超出 span 文本边界 [{span_start}, {span_start + text_len}) "
+            f"(局部坐标 [{local_start}, {local_end}), 文本长度 {text_len})",
+            code="SCH_002",
+        )
+
+    if "start" in evidence and evidence["start"] is not None and evidence["start"] != local_start:
+        raise EvidenceOffsetError(
+            f"局部 start ({evidence['start']}) 与绝对偏移换算值 ({local_start}) 不一致",
+            code="SCH_002",
+        )
+    if "end" in evidence and evidence["end"] is not None and evidence["end"] != local_end:
+        raise EvidenceOffsetError(
+            f"局部 end ({evidence['end']}) 与绝对偏移换算值 ({local_end}) 不一致",
+            code="SCH_002",
+        )
+
+    expected_quote = text[local_start:local_end]
+    if "quote" in evidence and evidence["quote"] is not None:
+        if evidence["quote"] != expected_quote:
+            raise EvidenceOffsetError(
+                f"引文内容不匹配: 期望 {expected_quote!r}, 实际 {evidence['quote']!r}",
+                code="SCH_002",
+            )
+
+    expected_sha256 = hashlib.sha256(expected_quote.encode("utf-8")).hexdigest()
+    if "quote_sha256" in evidence and evidence["quote_sha256"] is not None:
+        if evidence["quote_sha256"] != expected_sha256:
+            raise EvidenceOffsetError(
+                f"引文 SHA256 不匹配: 期望 {expected_sha256}, 实际 {evidence['quote_sha256']}",
+                code="SCH_002",
+            )
+
+    evidence["start"] = local_start
+    evidence["end"] = local_end
+    evidence["start_offset"] = s_off
+    evidence["end_offset"] = e_off
+    evidence["quote"] = expected_quote
+    evidence["quote_sha256"] = expected_sha256
+    return evidence
+
+
+def normalize_candidate_object(source_object: dict, spans_dict: dict) -> dict:
+    """把候选对象中所有证据的 start_offset/end_offset 规范化为局部坐标 start/end。
+
+    （依据第 85 条单一权威处原则，收敛自 step.py 与 rework.py）。
+    """
+    import copy
+    obj = copy.deepcopy(source_object)
+    for ev in obj.get("evidence", []) or []:
+        span_id = ev.get("source_span_id")
+        if span_id not in spans_dict:
+            raise MissingReference(f"Span {span_id} 不在 corpus_spans 中", code="REF_001")
+        span = spans_dict[span_id]
+        normalize_evidence_offsets(ev, span)
+    return obj
+
 def queue_item_id(entity_id: str, decision_type: str) -> str:
     return f"{entity_id}#{decision_type}"
 

@@ -77,27 +77,8 @@ def _spans_dict_of(spans_doc):
 
 
 def _normalized_candidate_object(source_object, spans_dict):
-    """把证据 offset 规范化到 span 文本坐标（与 Gate ``content_hash`` 口径一致）。"""
-    obj = copy.deepcopy(source_object)
-    for ev in obj.get("evidence", []):
-        if "start" in ev and "end" in ev:
-            continue
-        span = spans_dict.get(ev.get("source_span_id"), {})
-        text_len = len(span.get("text", ""))
-        span_start = span.get("start_offset", 0)
-        s_off = ev.get("start_offset", 0)
-        e_off = ev.get("end_offset", s_off)
-        if 0 <= s_off < e_off <= text_len:
-            start, end = s_off, e_off
-        elif (
-            span_start > 0
-            and 0 <= (s_off - span_start) < (e_off - span_start) <= text_len
-        ):
-            start, end = s_off - span_start, e_off - span_start
-        else:
-            start, end = 0, text_len
-        ev["start"], ev["end"] = start, end
-    return obj
+    """把证据 offset 规范化到 span 文本坐标（委托给 model.normalize_candidate_object，单一权威）。"""
+    return model.normalize_candidate_object(source_object, spans_dict)
 
 
 def _prior_reviewed_edition(service, step):
@@ -1195,34 +1176,19 @@ def close_review(service, step_run_id: str, resume_token: str) -> dict:
                 span_id = ev.get("source_span_id")
                 if span_id in spans_dict:
                     span = spans_dict[span_id]
-                    text = span.get("text", "")
-                    text_len = len(text)
-                    span_start = span.get("start_offset", 0)
-                    if "start" in ev and "end" in ev:
-                        start, end = ev["start"], ev["end"]
-                    elif "start_offset" in ev and "end_offset" in ev:
-                        s_off = ev["start_offset"]
-                        e_off = ev["end_offset"]
-                        if 0 <= s_off < e_off <= text_len:
-                            start, end = s_off, e_off
-                        elif span_start > 0 and 0 <= (s_off - span_start) < (e_off - span_start) <= text_len:
-                            start, end = s_off - span_start, e_off - span_start
-                        else:
-                            start, end = 0, text_len
-                    else:
-                        start, end = 0, text_len
-                    quote = text[start:end]
-                    q_hash = hashlib.sha256(quote.encode("utf-8")).hexdigest()
+                    norm_ev = model.normalize_evidence_offsets(ev, span)
                     evidence_links.append({
                         "entity_id": eid,
                         "source_span_id": span_id,
-                        "start": start,
-                        "end": end,
-                        "start_offset": start,
-                        "end_offset": end,
-                        "quote_sha256": q_hash,
+                        "start": norm_ev["start"],
+                        "end": norm_ev["end"],
+                        "start_offset": norm_ev["start_offset"],
+                        "end_offset": norm_ev["end_offset"],
+                        "quote_sha256": norm_ev["quote_sha256"],
                         "corpus_spans_revision_id": spans_rev,
                     })
+                else:
+                    raise MissingReference(f"Span {span_id} 不在 corpus_spans 中", code="REF_001")
 
         school_views = []
         for app in approved:
@@ -1260,20 +1226,7 @@ def close_review(service, step_run_id: str, resume_token: str) -> dict:
         cand_for_gate = []
         for obj in cand_objects:
             obj_copy = copy.deepcopy(obj)
-            for ev in obj_copy["source_object"].get("evidence", []):
-                span_id = ev.get("source_span_id")
-                span = spans_dict.get(span_id, {})
-                text_len = len(span.get("text", ""))
-                span_start = span.get("start_offset", 0)
-                if "start" not in ev and "start_offset" in ev:
-                    s_off = ev["start_offset"]
-                    e_off = ev.get("end_offset", s_off)
-                    if 0 <= s_off < e_off <= text_len:
-                        ev["start"], ev["end"] = s_off, e_off
-                    elif span_start > 0 and 0 <= (s_off - span_start) < (e_off - span_start) <= text_len:
-                        ev["start"], ev["end"] = s_off - span_start, e_off - span_start
-                    else:
-                        ev["start"], ev["end"] = 0, text_len
+            obj_copy["source_object"] = model.normalize_candidate_object(obj_copy["source_object"], spans_dict)
             cand_for_gate.append({
                 **obj_copy,
                 "required_decision_types": required_decision_types.get(obj["entity_id"], ["review_source_fidelity"]),
