@@ -15,15 +15,19 @@
 
 独立性（第 88 条）：本模块**不得**引入同包任何编译器实现模块（``offset_assemble``、
 ``review``、``proposer``、``offset_rules``、``proposals``、``text_compiler``、``step_offset``、
-``gate_offset``），以免判定与生产代码“同错同过”。本模块只使用标准库。
+``gate_offset``），以免判定与生产代码“同错同过”。本模块只使用标准库与
+``pipeline.ledger.ids``（片段 ID 形态的唯一权威出处，第 85、102 条）。
 """
 
 import hashlib
 import json
 import re
 
-# 语义片段 ID：sem_<work>_ed<NN>_o<NNNNNNN>（第 80 条）
-_SPAN_ID_RE = re.compile(r"^sem_[a-z][a-z0-9_]*_ed[0-9]{2}_o[0-9]{7}$")
+from pipeline.ledger import ids
+
+# 语义片段 ID：sem_<work>_ed<NN>_o<NNNNNNN>（第 80 条）；正则唯一权威出处为
+# pipeline.ledger.ids（第 85、102 条），本模块不自有形态。
+_SPAN_ID_RE = re.compile(ids.PATTERNS["semantic_span_id"])
 
 EXPECTED_EVIDENCE_LEVEL = "offset_level"
 DECISION_TYPE = "review_source_fidelity"

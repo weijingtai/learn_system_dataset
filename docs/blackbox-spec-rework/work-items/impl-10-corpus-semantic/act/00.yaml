@@ -14,12 +14,12 @@ contract: |
 
   1. format_source_span_id(work: str, edition: str, raw_start: int) -> str
      - 格式：f"ss_{work}_{edition}_o{raw_start:07d}"
-     - 校验：work 符合 ^[a-z][a-z0-9_]*$；edition 符合 ^ed[0-9]{2}$；raw_start >= 0；否则抛 ValueError("SCH_002: 无效的 SourceSpan ID 参数")
-     - 产出严格匹配正则：^ss_[a-z][a-z0-9_]*_ed[0-9]{2}_o[0-9]{7}$
+     - 校验：work 符合 ^[a-z][a-z0-9]*$（依第 102 条 Q1：禁止下划线）；edition 符合 ^ed[0-9]{2}$；raw_start >= 0；否则抛 ValueError("SCH_002: 无效的 SourceSpan ID 参数")
+     - 产出严格匹配正则：^ss_[a-z][a-z0-9]*_ed[0-9]{2}_o[0-9]{7}$（依第 102 条）
 
   2. format_semantic_span_id(work: str, edition: str, raw_start: int) -> str
      - 格式：f"sem_{work}_{edition}_o{raw_start:07d}"
-     - 校验同上，产出匹配：^sem_[a-z][a-z0-9_]*_ed[0-9]{2}_o[0-9]{7}$
+     - 校验同上，产出匹配：^sem_[a-z][a-z0-9]*_ed[0-9]{2}_o[0-9]{7}$（依第 102 条；sem_ 本次只登记偏移形态，页码形态留待第二版）
      - 严禁引入除 ss_ 与 sem_ 之外的任何新前缀（P8）
 
   3. map_raw_to_cleaned(patches: list[dict], raw_start: int, raw_end: int) -> tuple[int, int]

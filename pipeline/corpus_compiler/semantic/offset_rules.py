@@ -9,8 +9,11 @@
 import hashlib
 import re
 
-# 结构片段 ID：ss_<work>_ed<NN>_o<NNNNNNN>
-_RE_SOURCE_SPAN_ID = re.compile(r"^ss_([a-z][a-z0-9]*)_ed[0-9]{2}_o[0-9]{7}$")
+from pipeline.ledger import ids
+
+# 结构片段 ID：ss_<work>_ed<NN>_o<NNNNNNN>；正则唯一权威出处为 pipeline.ledger.ids
+# （第 85、102 条），本模块不自有形态。
+_RE_SOURCE_SPAN_ID = re.compile(ids.SOURCE_SPAN_ID_OFFSET_PARTS)
 
 # README §4.3 默认阈值
 DEFAULT_MODEL_MIN_CHARS = 12

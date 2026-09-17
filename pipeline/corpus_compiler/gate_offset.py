@@ -21,9 +21,12 @@
 import hashlib
 import re
 
+from pipeline.ledger import ids
+
 # G7-RULINGS 第 78 条：无页码文本的片段 ID 为 ss_<work>_ed<NN>_o<NNNNNNN>，
 # o 后为片段起点在冻结 RawText 中的字符偏移（7 位零填充，RawText 冻结不变故 ID 稳定）。
-_SPAN_ID_RE = re.compile(r"^ss_([a-z][a-z0-9]*)_ed([0-9]{2})_o([0-9]{7})$")
+# 正则唯一权威出处为 pipeline.ledger.ids（第 85、102 条），本模块不自有形态。
+_SPAN_ID_RE = re.compile(ids.SOURCE_SPAN_ID_OFFSET_PARTS)
 
 # 电子文本第一版发布级别的证据级别（G7-RULINGS 第 76 条）。
 _EXPECTED_EVIDENCE_LEVEL = "offset_level"

@@ -54,7 +54,7 @@
 
 - **2.3 格式与前缀合规性**
   - **Given** 产出的所有 SourceSpan；
-  - **Then** 片段 ID 严格匹配 `^ss_[a-z][a-z0-9_]*_ed[0-9]{2}_o[0-9]{7}$`，绝不含未登记前缀（P8）；
+  - **Then** 片段 ID 严格匹配 `^ss_[a-z][a-z0-9]*_ed[0-9]{2}_o[0-9]{7}$`（`<work>` 禁止下划线，依第 102 条 Q1；形态唯一权威出处 `pipeline/ledger/ids.py`），绝不含未登记前缀（P8）；
   - **And** 每条 Span 的 `evidence_level` 严格为 `"offset_level"`。
 
 ---

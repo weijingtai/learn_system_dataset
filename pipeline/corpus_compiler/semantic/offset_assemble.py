@@ -14,16 +14,14 @@
 
 import hashlib
 import json
-import re
+
+from pipeline.ledger import ids
 
 from ..offset_anchors import (
     format_semantic_span_id,
     make_offset_anchor,
     map_cleaned_to_raw,
 )
-
-_RE_WORK = re.compile(r"^[a-z][a-z0-9_]*$")
-_RE_EDITION = re.compile(r"^ed[0-9]{2}$")
 
 GATE_PROFILE = "structural_and_semantic"
 SEGMENTATION_PROFILE = "offset_semantic_v1"
@@ -93,9 +91,9 @@ def compile_semantic_offset(
     异常：
         ValueError("SCH_002: ...")：参数形不符、窗口缺裁决结果、边界形非法或原始偏移越界。
     """
-    if not (isinstance(work, str) and _RE_WORK.match(work)):
+    if not ids.is_work(work):
         raise ValueError("SCH_002: 非法的 work 标识: %r" % (work,))
-    if not (isinstance(edition, str) and _RE_EDITION.match(edition)):
+    if not ids.is_edition(edition):
         raise ValueError("SCH_002: 非法的 edition 标识: %r" % (edition,))
     if not isinstance(edition_part_artifact_id, str) or not edition_part_artifact_id:
         raise ValueError("SCH_002: 缺少 edition_part_artifact_id（顶层键必需）")

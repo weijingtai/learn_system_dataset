@@ -11,14 +11,13 @@ import hashlib
 import re
 import yaml
 
+from pipeline.ledger import ids
+
 from .offset_anchors import (
     format_source_span_id,
     make_offset_anchor,
     map_cleaned_to_raw,
 )
-
-_RE_WORK = re.compile(r"^[a-z][a-z0-9_]*$")
-_RE_EDITION = re.compile(r"^ed[0-9]{2}$")
 
 # 切分规则：以句末标点（含后随空白/换行）或换行符为界切分
 _SEGMENT_PATTERN = re.compile(
@@ -90,7 +89,7 @@ def compile_offset_spans(
     """切分 cleaned_text 并为每片构造偏移锚点与 SourceSpan（纯函数）。
 
     参数：
-        work: 作品标识（匹配 ^[a-z][a-z0-9_]*$）
+        work: 作品标识（满足 pipeline.ledger.ids.is_work，第 102 条 Q1 起禁止下划线）
         edition: 版本标识（匹配 ^ed[0-9]{2}$）
         edition_part_artifact_id: 关联的 EditionPart artifact ID
         raw_text_revision_id: 原始文本修订 ID
@@ -111,9 +110,9 @@ def compile_offset_spans(
     异常：
         ValueError("SCH_002: ..."): 参数格式不符、raw_text 为空、补丁越界等
     """
-    if not (isinstance(work, str) and _RE_WORK.match(work)):
+    if not ids.is_work(work):
         raise ValueError(f"SCH_002: 非法的 work 标识: {work!r}")
-    if not (isinstance(edition, str) and _RE_EDITION.match(edition)):
+    if not ids.is_edition(edition):
         raise ValueError(f"SCH_002: 非法的 edition 标识: {edition!r}")
     if not isinstance(raw_text, str) or not raw_text:
         raise ValueError("SCH_002: raw_text 不能为空")

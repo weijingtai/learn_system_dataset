@@ -25,14 +25,20 @@ class TestOffsetAnchors(unittest.TestCase):
         """测试合法的 SourceSpan ID 格式生成与正则匹配。"""
         span_id = format_source_span_id("qianyuan", "ed01", 128)
         self.assertEqual(span_id, "ss_qianyuan_ed01_o0000128")
-        self.assertRegex(span_id, r"^ss_[a-z][a-z0-9_]*_ed[0-9]{2}_o[0-9]{7}$")
+        self.assertRegex(span_id, r"^ss_[a-z][a-z0-9]*_ed[0-9]{2}_o[0-9]{7}$")
 
     def test_format_source_span_id_zero_padded_7_digits(self):
-        """测试 SourceSpan ID 偏移量固定 7 位零填充。"""
-        span_id_zero = format_source_span_id("work_a", "ed02", 0)
-        self.assertEqual(span_id_zero, "ss_work_a_ed02_o0000000")
-        span_id_large = format_source_span_id("work_a", "ed02", 1234567)
-        self.assertEqual(span_id_large, "ss_work_a_ed02_o1234567")
+        """测试 SourceSpan ID 偏移量固定 7 位零填充（第 102 条 Q1：work 段禁止下划线）。"""
+        span_id_zero = format_source_span_id("worka", "ed02", 0)
+        self.assertEqual(span_id_zero, "ss_worka_ed02_o0000000")
+        span_id_large = format_source_span_id("worka", "ed02", 1234567)
+        self.assertEqual(span_id_large, "ss_worka_ed02_o1234567")
+
+    def test_format_source_span_id_rejects_underscore_work_SCH_002(self):
+        """反例（第 102 条 Q1）：work 段含下划线非法，抛 ValueError('SCH_002: ...')。"""
+        with self.assertRaises(ValueError) as ctx:
+            format_source_span_id("work_a", "ed02", 0)
+        self.assertIn("SCH_002", str(ctx.exception))
 
     def test_format_source_span_id_rejects_negative_offset_SCH_002(self):
         """测试负数偏移抛出 ValueError('SCH_002: ...')。"""
@@ -54,7 +60,7 @@ class TestOffsetAnchors(unittest.TestCase):
         """测试合法的 SemanticSpan ID 格式生成。"""
         sem_id = format_semantic_span_id("qianyuan", "ed01", 256)
         self.assertEqual(sem_id, "sem_qianyuan_ed01_o0000256")
-        self.assertRegex(sem_id, r"^sem_[a-z][a-z0-9_]*_ed[0-9]{2}_o[0-9]{7}$")
+        self.assertRegex(sem_id, r"^sem_[a-z][a-z0-9]*_ed[0-9]{2}_o[0-9]{7}$")
 
     def test_format_semantic_span_id_prefix_strictly_sem(self):
         """断言前缀恒以 sem_ 起头，绝无第三方前缀（P8 护栏）。"""

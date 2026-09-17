@@ -2,43 +2,42 @@
 
 本模块仅使用标准库 hashlib 与 re，不依赖外部库、不访问 Ledger、不写文件。
 严格遵守 P6（零网络调用）、P8（前缀严格限定为 ss_ 与 sem_）。
+
+片段 ID 的形态与 ``<work>``/``<edition>`` 段判定**一律取自** ``pipeline.ledger.ids``
+（第 85、102 条），本模块不自有任何 ID 正则。
 """
 
 import hashlib
 import re
 
-_RE_WORK = re.compile(r"^[a-z][a-z0-9_]*$")
-_RE_EDITION = re.compile(r"^ed[0-9]{2}$")
-_RE_SOURCE_SPAN_ID = re.compile(r"^ss_[a-z][a-z0-9_]*_ed[0-9]{2}_o[0-9]{7}$")
-_RE_SEMANTIC_SPAN_ID = re.compile(r"^sem_[a-z][a-z0-9_]*_ed[0-9]{2}_o[0-9]{7}$")
+from pipeline.ledger import ids
 
 
 def format_source_span_id(work: str, edition: str, raw_start: int) -> str:
     """格式化 SourceSpan ID，格式 ss_<work>_<edition>_o<NNNNNNN>。
 
     参数：
-        work: 作品标识（匹配 ^[a-z][a-z0-9_]*$）
-        edition: 版本标识（匹配 ^ed[0-9]{2}$）
+        work: 作品标识（满足 ``pipeline.ledger.ids.is_work``，禁止下划线）
+        edition: 版本标识（满足 ``pipeline.ledger.ids.is_edition``）
         raw_start: 冻结 RawText 中的起始字符偏移（>= 0，7 位零填充）
 
     返回：
-        严格符合 ^ss_[a-z][a-z0-9_]*_ed[0-9]{2}_o[0-9]{7}$ 的 ID 字符串
+        满足 ``pipeline.ledger.ids.PATTERNS["source_span_id"]`` 的偏移形态 ID 字符串
+        （第 78 条；唯一权威出处为 ids.py，第 102 条）
 
     异常：
         ValueError("SCH_002: 无效的 SourceSpan ID 参数")
     """
     if not (
-        isinstance(work, str)
-        and _RE_WORK.match(work)
-        and isinstance(edition, str)
-        and _RE_EDITION.match(edition)
+        ids.is_work(work)
+        and ids.is_edition(edition)
         and isinstance(raw_start, int)
         and raw_start >= 0
     ):
         raise ValueError("SCH_002: 无效的 SourceSpan ID 参数")
 
     span_id = f"ss_{work}_{edition}_o{raw_start:07d}"
-    if not _RE_SOURCE_SPAN_ID.match(span_id):
+    if re.match(ids.PATTERNS["source_span_id"], span_id) is None:
         raise ValueError("SCH_002: 无效的 SourceSpan ID 参数")
     return span_id
 
@@ -46,31 +45,30 @@ def format_source_span_id(work: str, edition: str, raw_start: int) -> str:
 def format_semantic_span_id(work: str, edition: str, raw_start: int) -> str:
     """格式化 SemanticSpan ID，格式 sem_<work>_<edition>_o<NNNNNNN>。
 
-    严格遵守 P8 铁律：除 ss_ 与 sem_ 外严禁引入任何新前缀。
+    严格遵守 P8 铁律：除 ss_ 与 sem_ 外严禁引入任何新前缀。sem_ 本次只登记偏移形态
+    （第 80 条 + 第 102 条 Q2）。
 
     参数：
-        work: 作品标识（匹配 ^[a-z][a-z0-9_]*$）
-        edition: 版本标识（匹配 ^ed[0-9]{2}$）
+        work: 作品标识（满足 ``pipeline.ledger.ids.is_work``，禁止下划线）
+        edition: 版本标识（满足 ``pipeline.ledger.ids.is_edition``）
         raw_start: 冻结 RawText 中的起始字符偏移（>= 0，7 位零填充）
 
     返回：
-        严格符合 ^sem_[a-z][a-z0-9_]*_ed[0-9]{2}_o[0-9]{7}$ 的 ID 字符串
+        满足 ``pipeline.ledger.ids.PATTERNS["semantic_span_id"]`` 的 ID 字符串
 
     异常：
         ValueError("SCH_002: 无效的 SemanticSpan ID 参数")
     """
     if not (
-        isinstance(work, str)
-        and _RE_WORK.match(work)
-        and isinstance(edition, str)
-        and _RE_EDITION.match(edition)
+        ids.is_work(work)
+        and ids.is_edition(edition)
         and isinstance(raw_start, int)
         and raw_start >= 0
     ):
         raise ValueError("SCH_002: 无效的 SemanticSpan ID 参数")
 
     sem_id = f"sem_{work}_{edition}_o{raw_start:07d}"
-    if not _RE_SEMANTIC_SPAN_ID.match(sem_id):
+    if re.match(ids.PATTERNS["semantic_span_id"], sem_id) is None:
         raise ValueError("SCH_002: 无效的 SemanticSpan ID 参数")
     return sem_id
 
