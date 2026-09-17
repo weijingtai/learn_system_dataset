@@ -1,0 +1,175 @@
+schema_version: 0.1.0-draft
+category: assertion
+lane: a
+channel: task_pipeline_manual
+technique_id: qizheng
+producer:
+  kind: external_agent
+  name: w8_lane_a
+  model_id: claude-sonnet-5
+  prompt_sha256: c3e72bd4a9482258a6868322f371ec1b8993ca24099bb88f5143e7d538bf295e
+  response_sha256: d9b7d66060930d0ea45c896c06ae6d342aba3f871961638e6b1f7d128796ecd9
+source_task:
+  task_id: w8_qianyuan_tianguan_qisha_v2
+  instruction_version: c3e72bd4a948
+adapter_notes:
+- '主 Agent 按第 100 条 D4、第 104 条 D2/D3 机械转换：抽取件顶层 lane/model/notes 转入 producer 与本字段，items
+  原样未改；空类别如实提交 items: []'
+- 抽取员 notes：跳过 ss_qianyuan_ed01_o0008670（「等天官者何？」为设问句，无独立论断内容，其答案已由下一片段承载）。
+- 抽取员 notes：跳过 ss_qianyuan_ed01_o0008874 与 ss_qianyuan_ed01_o0009108（均为「余仿此」，仅表示套用前式，无新内容）。
+- 抽取员 notes：跳过 ss_qianyuan_ed01_o0009076（引文收尾「」此亦得其大概也」，为泛泛按语，无独立可抽内容）。
+- 抽取员 notes：跳过 ss_qianyuan_ed01_o0009116（「七煞」纯章节标题，已作为 concept_mention 首现证据取自更早片段
+  o0008718）。
+items:
+- proposition: 天官者，天干之官也，余俱从天干取用。
+  relation: supports
+  evidence:
+  - source_span_id: ss_qianyuan_ed01_o0008680
+    support_type: direct
+  conditions: []
+  exceptions: []
+  layer: general
+- proposition: 甲年生人，甲以辛为官、辛之化禄为气，气即天官；以庚为七煞、庚之化禄为水，水即七煞；以丁为伤官、丁之化禄为金，金即伤官；以丙为食神、丙之化禄为木，木即食神；以己为正财、己之化禄为月，月即正财；以戊为偏财、戊之化禄为土，土即偏财；以壬为偏印、壬之化禄为计，计即偏印；以癸为正印、癸之化禄为罗，罗即正印；以乙为劫财、乙之化禄为孛，孛即劫财；甲之化禄为火，火即元禄。
+  relation: corresponds
+  evidence:
+  - source_span_id: ss_qianyuan_ed01_o0008694
+    support_type: direct
+  - source_span_id: ss_qianyuan_ed01_o0008718
+    support_type: direct
+  - source_span_id: ss_qianyuan_ed01_o0008736
+    support_type: direct
+  - source_span_id: ss_qianyuan_ed01_o0008754
+    support_type: direct
+  - source_span_id: ss_qianyuan_ed01_o0008772
+    support_type: direct
+  - source_span_id: ss_qianyuan_ed01_o0008790
+    support_type: direct
+  - source_span_id: ss_qianyuan_ed01_o0008808
+    support_type: direct
+  - source_span_id: ss_qianyuan_ed01_o0008826
+    support_type: direct
+  - source_span_id: ss_qianyuan_ed01_o0008844
+    support_type: direct
+  - source_span_id: ss_qianyuan_ed01_o0008862
+    support_type: direct
+  conditions:
+  - 甲年生人
+  exceptions: []
+  layer: case
+- proposition: 天官固取其与命度经络贯串（通根），亦有通根而不通根者。
+  relation: qualifies
+  evidence:
+  - source_span_id: ss_qianyuan_ed01_o0008882
+    support_type: direct
+  conditions: []
+  exceptions: []
+  layer: general
+- proposition: 如官躔伤官度、命亦躔伤官度，是通根之例；或官躔他度而正财躔命度，则为不通根而通根。
+  relation: qualifies
+  evidence:
+  - source_span_id: ss_qianyuan_ed01_o0008910
+    support_type: direct
+  - source_span_id: ss_qianyuan_ed01_o0008924
+    support_type: direct
+  conditions: []
+  exceptions: []
+  layer: case
+- proposition: 《天官经》云：日月扶官，才昭廊庙；官入命垣，格低还贵；天官秉令，身居九鼎；天官贯日，食禄丰隆；官命互躔，魁元早夺；官躔伤度，逢生犹荣。
+  relation: supports
+  evidence:
+  - source_span_id: ss_qianyuan_ed01_o0008946
+    support_type: direct
+  - source_span_id: ss_qianyuan_ed01_o0008964
+    support_type: direct
+  - source_span_id: ss_qianyuan_ed01_o0008974
+    support_type: direct
+  - source_span_id: ss_qianyuan_ed01_o0008984
+    support_type: direct
+  - source_span_id: ss_qianyuan_ed01_o0008994
+    support_type: direct
+  - source_span_id: ss_qianyuan_ed01_o0009004
+    support_type: direct
+  conditions: []
+  exceptions: []
+  layer: general
+- proposition: 正财随驾而对照兮，乔迁不次；正财当限而拱官兮，恩宠骈集。
+  relation: supports
+  evidence:
+  - source_span_id: ss_qianyuan_ed01_o0009014
+    support_type: direct
+  - source_span_id: ss_qianyuan_ed01_o0009028
+    support_type: direct
+  conditions: []
+  exceptions: []
+  layer: general
+- proposition: 惟忌伤官作妒，更嫌七煞当前：伤官伴官兮崎岖有阻，七煞混官兮荆棘自生。
+  relation: opposes
+  evidence:
+  - source_span_id: ss_qianyuan_ed01_o0009042
+    support_type: direct
+  - source_span_id: ss_qianyuan_ed01_o0009056
+    support_type: direct
+  conditions: []
+  exceptions: []
+  layer: general
+- proposition: 天官更不宜合化，如丙年以罗为官，见月则愁，土与阴（月）凑合不为官。
+  relation: qualifies
+  evidence:
+  - source_span_id: ss_qianyuan_ed01_o0009085
+    support_type: direct
+  conditions: []
+  exceptions: []
+  layer: general
+- proposition: 子平可去官留煞，五星则煞总不可混官，须以食神制之，遂使官清；否则阳年之煞与劫合化、阴年之煞与伤合化，亦可。
+  relation: supports
+  evidence:
+  - source_span_id: ss_qianyuan_ed01_o0009123
+    support_type: direct
+  conditions: []
+  exceptions: []
+  layer: general
+- proposition: 《天官经》云：劫伤见煞也相制，天官有势。
+  relation: supports
+  evidence:
+  - source_span_id: ss_qianyuan_ed01_o0009180
+    support_type: direct
+  conditions:
+  - 劫伤见煞而相制
+  exceptions: []
+  layer: general
+- proposition: 《天官经》又云：贪合见煞也忘煞，天官亦尊。
+  relation: supports
+  evidence:
+  - source_span_id: ss_qianyuan_ed01_o0009201
+    support_type: direct
+  conditions: []
+  exceptions: []
+  layer: general
+- proposition: 若七煞无食神制，又无劫伤合，独与天官经串钓，难望清贵：纵得进士亦不能馆选，即使馆选亦必至散去，内至京堂四品终不能大轿，外至藩臬两司亦不能八座；更有公卿贵命，原盘并未官受煞混，特无食神制煞、劫伤化煞，往往从不清贵之衙门一转，则煞之为祟大也。
+  relation: qualifies
+  evidence:
+  - source_span_id: ss_qianyuan_ed01_o0009219
+    support_type: direct
+  - source_span_id: ss_qianyuan_ed01_o0009248
+    support_type: direct
+  - source_span_id: ss_qianyuan_ed01_o0009268
+    support_type: direct
+  - source_span_id: ss_qianyuan_ed01_o0009282
+    support_type: direct
+  - source_span_id: ss_qianyuan_ed01_o0009295
+    support_type: direct
+  conditions:
+  - 七煞无食神制
+  - 又无劫伤合
+  exceptions: []
+  layer: general
+- proposition: 惟武职官员，由行五起者，煞而兼刃，或掌威权有之；至于煞兼魁兼科，又当分观魁科之盛衰，或作清宦亦有之。
+  relation: qualifies
+  evidence:
+  - source_span_id: ss_qianyuan_ed01_o0009343
+    support_type: direct
+  - source_span_id: ss_qianyuan_ed01_o0009367
+    support_type: direct
+  conditions: []
+  exceptions: []
+  layer: general

@@ -1,0 +1,51 @@
+schema_version: 0.1.0-draft
+category: concept_mention
+lane: a
+channel: task_pipeline_manual
+technique_id: qizheng
+producer:
+  kind: external_agent
+  name: w8_lane_a
+  model_id: claude-sonnet-5
+  prompt_sha256: c3e72bd4a9482258a6868322f371ec1b8993ca24099bb88f5143e7d538bf295e
+  response_sha256: d9b7d66060930d0ea45c896c06ae6d342aba3f871961638e6b1f7d128796ecd9
+source_task:
+  task_id: w8_qianyuan_tianguan_qisha_v2
+  instruction_version: c3e72bd4a948
+adapter_notes:
+- '主 Agent 按第 100 条 D4、第 104 条 D2/D3 机械转换：抽取件顶层 lane/model/notes 转入 producer 与本字段，items
+  原样未改；空类别如实提交 items: []'
+- 抽取员 notes：跳过 ss_qianyuan_ed01_o0008670（「等天官者何？」为设问句，无独立论断内容，其答案已由下一片段承载）。
+- 抽取员 notes：跳过 ss_qianyuan_ed01_o0008874 与 ss_qianyuan_ed01_o0009108（均为「余仿此」，仅表示套用前式，无新内容）。
+- 抽取员 notes：跳过 ss_qianyuan_ed01_o0009076（引文收尾「」此亦得其大概也」，为泛泛按语，无独立可抽内容）。
+- 抽取员 notes：跳过 ss_qianyuan_ed01_o0009116（「七煞」纯章节标题，已作为 concept_mention 首现证据取自更早片段
+  o0008718）。
+items:
+- surface: 天官
+  evidence:
+  - source_span_id: ss_qianyuan_ed01_o0008663
+    support_type: direct
+- surface: 七煞
+  evidence:
+  - source_span_id: ss_qianyuan_ed01_o0008718
+    support_type: direct
+- surface: 化禄
+  evidence:
+  - source_span_id: ss_qianyuan_ed01_o0008694
+    support_type: direct
+- surface: 通根
+  evidence:
+  - source_span_id: ss_qianyuan_ed01_o0008882
+    support_type: direct
+- surface: 天官经
+  evidence:
+  - source_span_id: ss_qianyuan_ed01_o0008946
+    support_type: direct
+- surface: 伤官
+  evidence:
+  - source_span_id: ss_qianyuan_ed01_o0008736
+    support_type: direct
+- surface: 食神
+  evidence:
+  - source_span_id: ss_qianyuan_ed01_o0008754
+    support_type: direct
