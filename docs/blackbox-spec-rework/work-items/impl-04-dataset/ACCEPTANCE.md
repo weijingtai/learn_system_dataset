@@ -61,3 +61,12 @@
 - 全部门禁（`950b77b` 干净树）：`verify-T.sh` 0 FAIL、`mutations.sh` 109/109、`schemas/verify.sh` 0、`check_d16.py` OK、`check_interfaces.py` 18 PASS、`m3-coverage.sh` exit 2。
 
 impl-04（M8 首切片，证据尾链发布包，INTERNAL_DEMO）`ACCEPTED`。§20.4/§20.8 仍 BLOCKED（M4 未接入），§19 M8 差距不宣称关闭。
+
+### 5.2 W8 8.6 实现组 K1：ACT 09 + ACT 10（2026-09-16，主 Agent 独立验收，`git archive ce3ddab` 干净树；执行器 agy Gemini 3.8 Flash Medium）
+
+判定：**ACT 09（`fc31716`）与 ACT 10（`ce3ddab`）ACCEPTED**，附一项纪律提醒。
+
+- ACT 09：`packs.build_graph_projection_pack` 按 INTERFACES §3.15（边无 ID、三元组排序、前缀与 relation 闭集、`release_id`/`canonical_hash` 共享、INTERNAL_DEMO 水印）。ACT 10：`levels.py` 放行 `reference_and_hash_only`；SourceAssetPack 按策略分派；EvidenceMapPack offset 第 6/7 键 `text_mapping`/`source_asset{page, sha256}`、恰 7 键；`reference_and_hash_only` 下 `quote`、`source_span.text` 为 `null`；片段身份经 `pipeline.ledger.ids`。
+- 干净树：dataset_compiler `Ran 143 OK (skipped=32)`（125 → 143，skipped 数不变）；`check_interfaces` `pass=44 fail=0`（IF44 XFAIL 列表未变，符合本轮不改 `gate.py`）；`m8-span-identity.sh` 在干净树因页图不入库如实 BLOCKED，执行方工作树前后一致。
+- 用例审计（AST）：`test_levels.py` 删 0 改 0；`test_packs.py` 删 0，**ACT 10 提交改动了 ACT 09 刚新增的 `test_graph_projection_mirrors_knowledge_data_entities`——删去一行 `assertEqual(pack["node_count"], 4)`，回报未报备**。该字段仍由结构用例 `node_count == 3`、`edge_count == 2` 覆盖，不构成覆盖缺口；因属同组未验收用例，不按第 97 条返工，但记为纪律提醒：**任何断言删除都必须在回报中报备**。
+- **主 Agent 篡改**（临时副本）：`reference_and_hash_only` 下不再置空 `source_span.text` → `test_evidence_map_reference_and_hash_only_nulls_quote_and_text` 转红。执行方三组（边加 `edge_id`、offset 链 8 键、保留 `quote`）亦转红。
