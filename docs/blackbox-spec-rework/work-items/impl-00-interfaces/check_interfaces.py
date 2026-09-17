@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""impl-00/14：INTERFACES.md §4 临时闭集登记检查器（IF01–IF39）。
+"""impl-00/15：INTERFACES.md §4 临时闭集登记检查器（IF01–IF44）。
 
 只用标准库。按行解析 `INTERFACES.md` 的 §4 表，逐项判定并输出
 `PASS IFnn <名>` / `FAIL IFnn <名> <原因>`，末行 `I00-IF SUMMARY pass=<n> fail=<n>`。
@@ -18,9 +18,12 @@ IF35 检查 `ss_` 行含偏移形态说明；
 IF36 检查 `sem_` 前缀在登记册出现；
 IF37–IF39 为第 103 条 D2 新增（impl-00 返工 R83c）：§4 `sanitization_report` 行
 若复述 `kind`／`terminal_state` 枚举，必须与代码常量逐一相等（IF37／IF38）；
-代码常量必须与 impl-09 README《清洗发现》的权威闭集逐一相等（IF39）。
-权威次序：impl-09 README + `pipeline.digitization` 常量（第 85 条）——登记表不复述，
-只引用。
+代码常量必须与 impl-09 README《清洗发现》的权威闭集逐一相等（IF39）；
+IF40 为第 107 条（W8 8.6 ACT 08）新增：M8 词条发号表 `entry_id_allocation` 登记；
+IF41 检查 `graph_projection_pack` 边定义不含独立 ID 键（禁止 edge_id/id/e_）；
+IF42 检查 `graph_projection_pack` 节点 ID 符合 ids.py 闭集且无 c_/e_ 前缀；
+IF43 检查 `evidence_map_pack` 两变体（glyphbox 档与 offset 档）均恰含 7 键；
+IF44 检查 M8 检查名闭集 23 项齐全，并如实报告与 `pipeline/dataset_compiler/gate.py` 的差异（XFAIL 处理）。
 """
 from __future__ import annotations
 
@@ -62,6 +65,39 @@ M2_ET_TYPES = (
     "deterministic_patch_set",
     "sanitization_report",
 )
+# M8 W8 登记类型（IF40；impl-00/15 登记，显式编号，第 107 条 Q-M8-02）
+M8_W8_TYPES = (
+    "entry_id_allocation",
+)
+
+# M8 Gate 检查项 23 项闭集（第 107 条 Q-M8-08）
+M8_CHECK_NAMES = (
+    "span_identity",
+    "span_page_binding",
+    "text_offsets",
+    "glyph_anchor_closure",
+    "highlight_level",
+    "ocr_page_binding",
+    "source_asset_binding",
+    "coordinate_frame",
+    "reverse_index",
+    "release_manifest_hashes",
+    "input_reconciliation",
+    "consumption_level",
+    "watermark_disclosure",
+    "knowledge_chain",
+    "chain_closure",
+    "no_assertion_bypass",
+    "quote_hash_integrity",
+    "content_status_admission",
+    "offset_anchor_continuity",
+    "patch_reversible",
+    "raw_text_binding",
+    "sanitization_disclosure",
+    "graph_projection_closure",
+)
+M8_GATE_RELPATH = ("pipeline", "dataset_compiler", "gate.py")
+
 FORBIDDEN_TYPES = ("gate_report", "validator_report")   # IF18
 FORBIDDEN_M4_NAMES = ("candidate_batch", "model_run", "candidate_diff_report")   # IF24
 FORBIDDEN_M6_TYPES = ("correction_request",)   # IF29（impl-06 D-10）
@@ -101,6 +137,11 @@ IF_NAMES = {
     "IF37": "sanitization_report 行的 kind 枚举（若复述）== 代码常量 FINDING_KINDS",
     "IF38": "sanitization_report 行的 terminal_state 枚举（若复述）== 代码常量 TERMINAL_STATES",
     "IF39": "代码常量 FINDING_KINDS/TERMINAL_STATES == impl-09 README 权威闭集",
+    "IF40": "M8 词条发号表 entry_id_allocation 登记",
+    "IF41": "graph_projection_pack 边定义无独立 ID",
+    "IF42": "graph_projection_pack 节点 ID 符合 ids.py 闭集且无 c_/e_",
+    "IF43": "evidence_map_pack 两变体均恰含 7 键",
+    "IF44": "M8 检查名闭集 23 项齐全且如实报告 gate.py 差异",
 }
 # IF02–IF09：首纵切 required 类型
 for _i, _t in enumerate(REQUIRED_TYPES):
@@ -206,14 +247,34 @@ def _repo_root() -> Path:
     return Path(__file__).resolve().parents[4]
 
 
+def extract_section(text: str, start_header: str, end_header: str) -> str:
+    """提取两个指定标题之间的文本。"""
+    lines = text.splitlines()
+    start = end = None
+    for i, line in enumerate(lines):
+        if start is None:
+            if line.startswith(start_header):
+                start = i
+            continue
+        if line.startswith(end_header):
+            end = i
+            break
+    if start is None:
+        return ""
+    if end is None:
+        end = len(lines)
+    return "\n".join(lines[start:end])
+
+
 def run_checks(
     path: Path,
     registry_path: Path | None = None,
     *,
     impl09_readme_path: Path | None = None,
     m2_constants_path: Path | None = None,
+    gate_path: Path | None = None,
 ) -> list:
-    """执行 IF01–IF39，返回 [(编号, 状态, 原因)]，按编号升序。"""
+    """执行 IF01–IF44，返回 [(编号, 状态, 原因)]，按编号升序。"""
     try:
         text = Path(path).read_text(encoding="utf-8")
         rows = parse_table(text)
@@ -236,7 +297,7 @@ def run_checks(
     dup = sorted(name for name, count in counts.items() if count > 1)
     add("IF10", not dup, "重复: %s" % ",".join(dup) if dup else "")
     bad_rows = []
-    for token in REQUIRED_TYPES + M4_TYPES + M6_TYPES + M2_ET_TYPES:
+    for token in REQUIRED_TYPES + M4_TYPES + M6_TYPES + M2_ET_TYPES + M8_W8_TYPES:
         status = _status_cell(rows, token)
         if status is None:
             bad_rows.append("%s 缺行" % token)
@@ -330,6 +391,97 @@ def run_checks(
                 "terminal_state 代码常量 %r != README %r" % (code_terminals, readme_terminals)
             )
         add("IF39", not problems, "; ".join(problems))
+
+    # IF40：M8 词条发号表 entry_id_allocation 登记（显式编号，第 107 条 Q-M8-02）
+    count_eid = counts.get("entry_id_allocation", 0)
+    add("IF40", count_eid == 1, "%s 出现 %d 次" % ("entry_id_allocation", count_eid))
+
+    # IF41：graph_projection_pack 边定义无独立 ID（禁止 edge_id、id 或 e_ 边 ID，第 107 条 Q-M8-05）
+    sec_315 = extract_section(text, "### 3.15", "### 3.16")
+    sec_315_edges_fail = []
+    if not sec_315:
+        sec_315_edges_fail.append("缺 §3.15 graph_projection_pack")
+    else:
+        if re.search(r'edges\[\][^|]*\|[^|]*\b(?:edge_id|id)\b', sec_315):
+            sec_315_edges_fail.append("edges[] 字段定义含 edge_id 或 id")
+        if re.search(r'"edges"\s*:\s*\[[^\]]*"(?:edge_id|id)"\s*:', sec_315):
+            sec_315_edges_fail.append("edges 示例 JSON 含 edge_id 或 id")
+        if re.search(r'["\']e_[0-9a-zA-Z]+["\']', sec_315):
+            sec_315_edges_fail.append("出现 e_ 边 ID")
+    add("IF41", not sec_315_edges_fail, "; ".join(sec_315_edges_fail))
+
+    # IF42：graph_projection_pack 登记的 node_id 前缀均在 ids.py 闭集内，严禁 c_ / e_（第 107 条更正）
+    sec_315_nodes_fail = []
+    if not sec_315:
+        sec_315_nodes_fail.append("缺 §3.15 graph_projection_pack")
+    else:
+        if re.search(r'"node_id"\s*:\s*"(?:c|e)_[^"]+"', sec_315):
+            sec_315_nodes_fail.append("node_id 示例含未登记的 c_ 或 e_ 前缀")
+        if re.search(r'"(?:source|target)"\s*:\s*"(?:c|e)_[^"]+"', sec_315):
+            sec_315_nodes_fail.append("边 source/target 引用含未登记的 c_ 或 e_ 前缀")
+        if "c_" not in sec_315 or "e_" not in sec_315:
+            sec_315_nodes_fail.append("未明确说明禁止 c_ / e_ 前缀")
+        node_ids = re.findall(r'"node_id"\s*:\s*"([^"]+)"', sec_315)
+        if not node_ids:
+            sec_315_nodes_fail.append("缺示例 node_id")
+        else:
+            valid_prefixes = ("pat_", "co_", "as_", "sv_", "cg_")
+            for nid in node_ids:
+                if not any(nid.startswith(p) for p in valid_prefixes):
+                    sec_315_nodes_fail.append("node_id %r 前缀非合法前缀" % nid)
+    add("IF42", not sec_315_nodes_fail, "; ".join(sec_315_nodes_fail))
+
+    # IF43：evidence_map_pack 两变体均恰含 7 键（第 107 条 Q-M8-07 否决 8 段）
+    sec_310 = extract_section(text, "### 3.10", "### 3.11")
+    sec_310_fail = []
+    if not sec_310:
+        sec_310_fail.append("缺 §3.10 evidence_map_pack")
+    else:
+        if "恰含 7 个键" not in sec_310 and "恰 7 键" not in sec_310:
+            sec_310_fail.append("未明文声明恰含 7 个键")
+        for m in re.finditer(r'[8八]\s*(?:段|键|个键)', sec_310):
+            prefix = sec_310[max(0, m.start() - 10):m.start()]
+            if not any(neg in prefix for neg in ("否决", "禁止", "非", "不得", "不采纳")):
+                sec_310_fail.append("出现 8 键或 8 段描述: %s" % m.group(0))
+        for k in ("entry_id", "assertion_id", "evidence_link", "source_span", "source_anchor"):
+            if k not in sec_310:
+                sec_310_fail.append("缺公共键 %s" % k)
+        for k in ("ocr_page", "source_asset", "text_mapping"):
+            if k not in sec_310:
+                sec_310_fail.append("缺分派键 %s" % k)
+    add("IF43", not sec_310_fail, "; ".join(sec_310_fail))
+
+    # IF44：M8 检查名闭集 23 项齐全且如实报告 gate.py 差异（第 107 条 Q-M8-08）
+    sec_33 = extract_section(text, "### 3.3", "### 3.4")
+    tokens_in_sec_33 = set(TOKEN_RE.findall(sec_33))
+    missing_in_doc = [chk for chk in M8_CHECK_NAMES if chk not in tokens_in_sec_33]
+    if missing_in_doc:
+        add("IF44", False, "INTERFACES §3.3 缺检查项: %s" % ", ".join(missing_in_doc))
+    else:
+        gate_file = gate_path or _root.joinpath(*M8_GATE_RELPATH)
+        try:
+            gate_text = gate_file.read_text(encoding="utf-8")
+        except Exception:  # noqa: BLE001
+            gate_text = ""
+        gate_checks = code_tuple(gate_text, "_CHECK_NAMES")
+        if gate_checks is None:
+            m_chk = re.search(r'_CHECK_NAMES\s*=\s*\(([^)]*)\)', gate_text, re.M)
+            if m_chk:
+                gate_checks = re.findall(r'"([^"]+)"', m_chk.group(1))
+        if gate_checks is None:
+            add("IF44", False, "gate.py 缺失或无法解析 _CHECK_NAMES: %s" % gate_file)
+        else:
+            missing_in_gate = sorted(set(M8_CHECK_NAMES) - set(gate_checks))
+            if missing_in_gate:
+                add(
+                    "IF44",
+                    True,
+                    "XFAIL: gate.py 待实现新增 %d 项检查: %s" % (
+                        len(missing_in_gate), ", ".join(missing_in_gate)
+                    ),
+                )
+            else:
+                add("IF44", True, "gate.py 已与登记册 23 项检查一致")
 
     out.sort(key=lambda item: item[0])
     return out

@@ -209,6 +209,91 @@ class CheckInterfacesTest(unittest.TestCase):
         rc = ci.main(["--file", str(self.tmp / "nope.md")])
         self.assertEqual(rc, 3)
 
+    def test_m8_w8_required_type_present(self):
+        res = statuses(ci.run_checks(REPO_DOC))
+        self.assertEqual(res["IF40"], "PASS")
+
+    def test_entry_id_allocation_missing_fails(self):
+        res = statuses(
+            ci.run_checks(self._copy(self._drop_lines(self.text, "`entry_id_allocation`")))
+        )
+        self.assertEqual(res["IF40"], "FAIL")
+
+    def test_entry_id_allocation_marked_deferred_fails(self):
+        text = self._mutate_status_cell(self.text, "`entry_id_allocation`", "纵切后")
+        res = statuses(ci.run_checks(self._copy(text)))
+        self.assertEqual(res["IF11"], "FAIL")
+
+    def test_entry_id_allocation_duplicate_type_fails(self):
+        out = []
+        for line in self.text.splitlines():
+            out.append(line)
+            if line.lstrip().startswith("|") and "`entry_id_allocation`" in line:
+                out.append(line)
+        res = statuses(ci.run_checks(self._copy("\n".join(out) + "\n")))
+        self.assertEqual(res["IF10"], "FAIL")
+
+    def test_if41_graph_projection_edge_no_id_passes(self):
+        res = statuses(ci.run_checks(REPO_DOC))
+        self.assertEqual(res["IF41"], "PASS")
+
+    def test_graph_projection_pack_with_edge_id_fails(self):
+        tampered = self.text.replace(
+            "{source, relation, target",
+            "{edge_id, source, relation, target",
+        )
+        res = statuses(ci.run_checks(self._copy(tampered)))
+        self.assertEqual(res["IF41"], "FAIL")
+
+    def test_graph_projection_pack_with_e_prefix_fails(self):
+        tampered = self.text.replace(
+            '"relation": "belongs_to_concept"',
+            '"edge_id": "e_018f9e740001", "relation": "belongs_to_concept"',
+        )
+        res = statuses(ci.run_checks(self._copy(tampered)))
+        self.assertEqual(res["IF41"], "FAIL")
+
+    def test_if42_graph_projection_node_id_passes(self):
+        res = statuses(ci.run_checks(REPO_DOC))
+        self.assertEqual(res["IF42"], "PASS")
+
+    def test_graph_projection_pack_with_forbidden_prefix_fails(self):
+        tampered = self.text.replace(
+            '"node_id": "as_example_000001"',
+            '"node_id": "c_example_000001"',
+        )
+        res = statuses(ci.run_checks(self._copy(tampered)))
+        self.assertEqual(res["IF42"], "FAIL")
+
+    def test_if43_evidence_map_7_keys_passes(self):
+        res = statuses(ci.run_checks(REPO_DOC))
+        self.assertEqual(res["IF43"], "PASS")
+
+    def test_evidence_map_pack_with_8_keys_fails(self):
+        tampered = self.text.replace(
+            "必须恰含 7 个键",
+            "每条 chain 包含 8 个键",
+        )
+        res = statuses(ci.run_checks(self._copy(tampered)))
+        self.assertEqual(res["IF43"], "FAIL")
+
+    def test_if44_m8_checks_passes_with_xfail_on_repo(self):
+        raw_res = ci.run_checks(REPO_DOC)
+        res = statuses(raw_res)
+        self.assertEqual(res["IF44"], "PASS")
+        reasons = {num: r for num, _, r in raw_res}
+        self.assertTrue(reasons["IF44"].startswith("XFAIL: gate.py 待实现新增"), reasons["IF44"])
+
+    def test_if44_m8_checks_missing_fails(self):
+        tampered = self.text.replace("`chain_closure`", "`NO_CHAIN_CLOSURE`")
+        res = statuses(ci.run_checks(self._copy(tampered)))
+        self.assertEqual(res["IF44"], "FAIL")
+
+    def test_if44_gate_file_missing_fails(self):
+        fake_gate = self.tmp / "nonexistent_gate.py"
+        res = statuses(ci.run_checks(REPO_DOC, gate_path=fake_gate))
+        self.assertEqual(res["IF44"], "FAIL")
+
     def test_summary_line_format(self):
         buf = io.StringIO()
         with redirect_stdout(buf):

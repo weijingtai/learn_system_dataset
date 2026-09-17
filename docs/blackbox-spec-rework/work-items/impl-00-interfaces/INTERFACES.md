@@ -193,14 +193,14 @@
 | 项 | 内容 |
 |---|---|
 | 运行归属 | ReleaseRun，`stage=m8` |
-| 冻结输入 | 【G7-RULINGS §2 D1-A 尾链、§9 第 3/15 条】首切片只读 M3 StagePackage 及其血缘输入（m1 `source_manifest`、m2 `ocr_page_set`/`ocr_page`）+ 薄 M1 登记的派生页图；TechniqueProfile 只有 `technique_profile_id="qizheng"` 字符串；发布范围/ReleasePolicy/消费级别写进配置修订键 `release_scope, release_policy, consumption_level` |
-| 任务与 Checkpoint【草案】 | 首切片 4 个 task（`source_asset_pack, evidence_map_pack, release_manifest, validation_report`），每 task 一个 Checkpoint；纵切后随子包集合扩展 |
-| 输出 artifact_type【草案】 | 首切片 5 个独立 Artifact（699）：`source_asset_pack`、`evidence_map_pack`、`release_manifest`（主内容）、`validation_report`、`publication_package`（阶段输出）；纵切后另有 `knowledge_data_pack`、`query_contract_pack`、`anchor_contract_pack`、`rule_index_pack`、`search_index_pack`、`graph_projection_pack`、`technique_profile_pack` |
+| 冻结输入 | 【G7-RULINGS §2 D1-A 尾链、§9 第 3/15 条、第 107 条 Q-M8-02】首切片只读 M3 StagePackage 及其血缘输入（m1 `source_manifest`、m2 `ocr_page_set`/`ocr_page`）+ 薄 M1 登记的派生页图；TechniqueProfile 只有 `technique_profile_id="qizheng"` 字符串；发布范围/ReleasePolicy/消费级别写进配置修订键 `release_scope, release_policy, consumption_level`；W8 阶段增加 M7 `canonical_snapshot`（第 106 条 D4/D5）及 `entry_id_allocation` 发号表（第 107 条 Q-M8-02）作为冻结输入 |
+| 任务与 Checkpoint【草案】 | 首切片 4 个 task（`source_asset_pack, evidence_map_pack, release_manifest, validation_report`），每 task 一个 Checkpoint；W8 增加 `knowledge_data_pack`、`graph_projection_pack` 编译 task |
+| 输出 artifact_type【草案】 | 首切片 5 个独立 Artifact（699）：`source_asset_pack`、`evidence_map_pack`、`release_manifest`（主内容）、`validation_report`、`publication_package`（阶段输出）；W8 产出 `knowledge_data_pack`、`graph_projection_pack`（代码草案 0.1.0-draft，P3）；冻结输入/中间产物 `entry_id_allocation`；纵切后另有 `query_contract_pack`、`anchor_contract_pack`、`rule_index_pack`、`search_index_pack`、`technique_profile_pack` |
 | payload【草案】 | `stage_payload_m8`：`{release_id, consumption_level, release_manifest_revision_id, subpack_revision_ids{type: rev}, canonical_snapshot_revision_id}` |
 | counts【草案】 | `{entries, assertions, evidence_chains, source_assets, subpacks}`；content_sha256 = sha256(release_manifest)；operation `compile_dataset` |
-| Gate | 首切片只闭合尾链四段 SourceSpan→SourceAnchor→OcrPage→SourceAsset（705–713），三段知识链（KnowledgeEntry/Assertion/EvidenceLink）记 `knowledge_chain: "not_compiled"`；G6 复验（603）blocked、G7（604）；拒绝 `source_release=dev` 进入 PUBLIC_RELEASE（697）；消费级别只签发 `INTERNAL_DEMO`，`DEV_SEARCH`/`PUBLIC_RELEASE` 在 begin 之后以 `admission` 失败封存（670–678） |
+| Gate | 首切片只闭合尾链四段 SourceSpan→SourceAnchor→OcrPage→SourceAsset（705–713），三段知识链（KnowledgeEntry/Assertion/EvidenceLink）记 `knowledge_chain: "not_compiled"`；W8 知识链实评（`chain_closure, no_assertion_bypass, quote_hash_integrity, content_status_admission`）；offset 档执行 `offset_anchor_continuity, patch_reversible, raw_text_binding, sanitization_disclosure`，不适用项记 `not_applicable`（第 107 条 Q-M8-08）；GraphProjection 校验 `graph_projection_closure`；G6 复验（603）blocked、G7（604）；拒绝 `source_release=dev` 进入 PUBLIC_RELEASE（697）；消费级别签发依准入规则 |
 | 下游 | APP 后端与客户端（黑箱外，§1 22–27）、注解社区锚点（`openspec/annotation-community`，`anc_` 三要素 731） |
-| 未定义 | 子包范围、`min_app_version`、`source_release` 闭集（D-15）；KnowledgeEntry 主体选 Concept 还是 Pattern 的规则（86 只说「一个 Concept 或 Pattern」）；GraphProjectionPack 格式（纵切后） |
+| 未定义 | 子包范围、`min_app_version`、`source_release` 闭集（D-15）；KnowledgeEntry 主体采纳 C 双轨（`subject_entity_id ∈ patternId ∪ conceptId`，不推断，无主体记 `known_defects`，第 107 条 Q-M8-01）；`ent_` 为 UUIDv4 由 `entry_id_allocation` 发号表提供（第 107 条 Q-M8-02）；边无独立 ID 以三元组为身份（第 107 条 Q-M8-05）；GraphProjectionPack 格式见 §3.15 |
 
 ---
 
@@ -220,7 +220,7 @@
 | `reviewDecisionType` | 8 值 | 355–364 |
 | `errorCode` | 9 值 | 370–380 |
 | `gateCode` | `G1…G7` | 586 |
-| `gateStatus` | `passed / failed / blocked`【草案】 | D-09 |
+| `gateStatus` | `passed / failed / blocked / not_applicable`【草案】 | D-09、第 107 条 Q-M8-08（`not_applicable` 声明检查项不适用当前证据级别，不同于 `not_evaluated`，亦不得冒充 ok） |
 | `consumptionLevel` | `INTERNAL_DEMO / DEV_SEARCH / PUBLIC_RELEASE` | 666 |
 | `evidenceLevel` | `offset_level / glyphbox_level` | 527–528 |
 | `terminalState` | `manually_transcribed / known_unrecognizable / deferred` | 486–488 |
@@ -273,6 +273,36 @@
 | `summary` | `{critical_errors, failed_checks, blocked_checks, warnings, broken_relations, rework_tasks}`，均为非负整数 | 606 |
 | `gate_passed` | bool | 606、D-09 |
 
+M8 Gate 检查项闭集（单一 `_CHECK_NAMES` 闭集，共 23 项；每项声明适用证据级别，不适用输出 `status: not_applicable`，第 107 条 Q-M8-08）：
+1. **通用检查项（14 项，`glyphbox_level` 与 `offset_level` 均适用）**：
+   - `span_identity`（片段 ID 唯一性与格式）
+   - `text_offsets`（文本偏移合法性）
+   - `highlight_level`（高亮级别判定）
+   - `source_asset_binding`（资源文件绑定与哈希比对）
+   - `reverse_index`（页到片段反向索引覆盖）
+   - `release_manifest_hashes`（各子包哈希比对）
+   - `input_reconciliation`（输入来源与修订对账）
+   - `consumption_level`（消费级别准入）
+   - `watermark_disclosure`（水印与已知缺陷披露）
+   - `chain_closure`（知识链完整闭合：Entry→Assertion→EvidenceLink）
+   - `no_assertion_bypass`（证据链不绕过 Assertion 直接关联 Entry）
+   - `quote_hash_integrity`（引文 quote_sha256 逐字与哈希一致）
+   - `content_status_admission`（内容成熟度状态与消费级别准入）
+   - `graph_projection_closure`（GraphProjection 闭合与同构比对）
+2. **扫描字框独有检查项（4 项，仅 `glyphbox_level` 适用；`offset_level` 下输出 `not_applicable`）**：
+   - `span_page_binding`（页号与行号正则绑定）
+   - `glyph_anchor_closure`（字框闭合与字符匹配）
+   - `ocr_page_binding`（OCR 页数据绑定）
+   - `coordinate_frame`（坐标系与页面尺寸一致性）
+3. **电子文本独有检查项（4 项，仅 `offset_level` 适用；`glyphbox_level` 下输出 `not_applicable`）**：
+   - `offset_anchor_continuity`（偏移锚点连续性无重叠）
+   - `patch_reversible`（修补集双向映射可逆性）
+   - `raw_text_binding`（原始文本切片与哈希绑定）
+   - `sanitization_disclosure`（禁止字符与清洗发现对账披露）
+4. **过渡项（1 项）**：
+   - `knowledge_chain`（首切片过渡项；未实评时输出 `not_evaluated`）
+
+
 ### 3.4 `review_decision.schema.json`（`human_event` 内容）
 
 顶层键**恰为** `{schema_version, event_kind("review_decision"), stage("m6"), decision_type(8 类), verdict(accept|modify|reject|request_evidence|school_dispute), target{entity_kind(assertion|pattern|school_view), entity_id, artifact_revision_id(恒为 seen 修订，第 68 条)}, processing_run_id, step_run_id, actor_ref, rationale(minLength 1), evidence_refs[sourceSpanId]（元素为 `ss_` 前缀 span 号，`validate("source_span_id")`）, consumption_level(INTERNAL_DEMO|DEV_SEARCH|PUBLIC_RELEASE)}`；校验拒收多余键；`verdict=school_dispute` 只能配 `review_school_attribution`；`modify` 的修改产出锚不入事件，由 M6 `decision_entry.modified_revision_id` 承载（第 68 条）。来源 265、351–364、618、622–625、830；`pipeline/knowledge_extraction/review_events.py`；D-14。
@@ -291,7 +321,7 @@
 
 ### 3.8 `release_manifest.schema.json`（M8）
 
-`{release_id, previous_release_id: rel|null, technique_id, consumption_level, source_release: internal|dev|release, canonical_snapshot_revision_id, canonical_hash, schema_versions{name: "1.0.0"}, profile_versions{fact_set_profile: string|null, ast_schema_version: string|null}, min_app_version, release_policy: sourceAssetPolicy, rights[{source_id, rights_status, distribution_note}], subpacks[{artifact_type, artifact_revision_id, sha256, byte_size}] minItems 1, source_revision_reconciliation[{source_id, edition_part_artifact_id, corpus_spans_sha256, reviewed_edition_package_revision_id}] minItems 1, known_defects[string], watermark: bool, retired_anchor_disclosures[{from_entity_id, orphaned_reason}], anchor_migration_rate: number[0,1]|null}`。约束：`consumption_level=PUBLIC_RELEASE` 时 `source_release` 不得为 `dev` 且 `anchor_migration_rate` 必须为 1；`INTERNAL_DEMO` 时 `watermark` 为 true 且 `known_defects` minItems 1。来源 676–678、697、734；D-15。
+`{release_id, previous_release_id: rel|null, technique_id, consumption_level, source_release: internal|dev|release, canonical_snapshot_revision_id, canonical_hash, schema_versions{name: "1.0.0"}, profile_versions{fact_set_profile: string|null, ast_schema_version: string|null}, min_app_version, release_policy: sourceAssetPolicy, rights[{source_id, rights_status, distribution_note}], subpacks[{artifact_type, artifact_revision_id, sha256, byte_size}] minItems 1, source_revision_reconciliation[{source_id, edition_part_artifact_id, corpus_spans_sha256, reviewed_edition_package_revision_id}] minItems 1, known_defects[string], watermark: bool, retired_anchor_disclosures[{from_entity_id, orphaned_reason}], anchor_migration_rate: number[0,1]|null}`。约束：`consumption_level=PUBLIC_RELEASE` 时 `source_release` 不得为 `dev` 且 `anchor_migration_rate` 必须为 1；`INTERNAL_DEMO` 时 `watermark` 为 true 且 `known_defects` minItems 1。无主体断言披露（第 107 条 Q-M8-01）：若 Snapshot 中 Assertion 未被 Pattern 或 Concept 显式引用，Agent 不得代为推断主体；此类 Assertion 不生成 KnowledgeEntry，必须作为已知缺陷记录在 `known_defects` 中，格式为 `assertion_without_subject: N` 并逐条列出 assertion ID。来源 676–678、697、734；D-15。
 
 ### 3.9 `knowledge_data_pack.schema.json`
 
@@ -299,7 +329,24 @@
 
 ### 3.10 `evidence_map_pack.schema.json`
 
-`{release_id, chains[] minItems 1}`；每条 chain 必须恰含 7 个键 `entry_id, assertion_id, evidence_link{assertion_id, source_span_id, start_offset, end_offset, quote_sha256}, source_span{source_span_id, source_id, page, start_offset, end_offset, text}, source_anchor: sourceAnchor, ocr_page{page, glyph_ids[] minItems 1}, source_asset{page, image_sha256}`。JSON Schema 无法约束键序，**键序由 fixture `verify.sh` V11 与 M8 验收检查**。来源 705–714；坐标口径见 §3.1（G7-RULINGS §9.6 第 49 条 / §9.7 第 51 条）。
+`{release_id, chains[] minItems 1}`；每条 chain **必须恰含 7 个键**（第 107 条 Q-M8-07 否决 8 段，保持固定七段闭合）。前 5 个键为两证据级别公共键，后 2 个键按 `evidence_level` 分派：
+
+1. **公共前 5 键**：
+   - `entry_id`: entryId（`ent_<32hex>`，UUIDv4）
+   - `assertion_id`: assertionId
+   - `evidence_link`: `{assertion_id, source_span_id, start_offset, end_offset, quote_sha256}`
+   - `source_span`: `{source_span_id, source_id, page, start_offset, end_offset, text}`
+   - `source_anchor`: sourceAnchor（OCR 档含 line_id/bbox/chars；offset 档含 7 键锚点，见第 78 条）
+2. **`glyphbox_level` 变体第 6、7 键**：
+   - 第 6 键 `ocr_page`: `{page, glyph_ids[] minItems 1}`
+   - 第 7 键 `source_asset`: `{page, image_sha256}`
+3. **`offset_level` 变体第 6、7 键**（第 107 条 Q-M8-07）：
+   - 第 6 键 `text_mapping`: `{raw_text_revision_id, cleaned_text_revision_id, patch_set_revision_id, raw_start, raw_end}`
+   - 第 7 键 `source_asset`: `{page, sha256}`
+
+**权利与正文脱敏约束**（第 107 条 Q-M8-03、§16:721）：在 `release_policy: reference_and_hash_only` 下，EvidenceMapPack 中 `evidence_link.quote` 与 `source_span.text` **必须置为 `null`**，保留偏移与 `quote_sha256`；`derived_page_images_only` 与 `full_scan` 下保持原文正文字符串。
+
+JSON Schema 无法约束键序，**键序由 fixture `verify.sh` V11 与 M8 验收检查**。来源 705–714；坐标口径见 §3.1（G7-RULINGS §9.6 第 49 条 / §9.7 第 51 条）。
 
 ### 3.11 `source_asset_pack.schema.json`
 
@@ -317,15 +364,110 @@
 
 五份，键见 §2.4–§2.8 的 payload 行；全部 `additionalProperties: false`，禁止出现以 `_path` 结尾的键（`propertyNames: {not: {pattern: "_path$"}}`）。
 
-### 3.15 不在本包范围
+### 3.15 `graph_projection_pack.schema.json`（M8 子包；代码草案 0.1.0-draft，P3）
 
-`rule_index_pack / search_index_pack / graph_projection_pack / technique_profile_pack`（规格字段不足，纵切后，D-15）；四类 Proposal、`term_layer_report`（由 M4/M7 包各自起草，回填到本表 §4）。
+内容结构以代码草案表达，`schema_version: "0.1.0-draft"`；服务于图计算与可视化投影视图（规格 §16:725、第 107 条 Q-M8-05）：
+
+| 键 | 类型 / 约束 | 来源 |
+|---|---|---|
+| `schema_version` | const `"0.1.0-draft"` | D-10/P3 |
+| `release_id` | releaseId（`rel_<32hex>`） | §8.1 |
+| `canonical_hash` | sha256Hex（与 ReleaseManifest 与 Snapshot 一致） | §16:725 |
+| `consumption_level` | consumptionLevel | §16:666 |
+| `nodes[]` | `{node_id, kind, label, content_status, watermark, properties?: object}` | §16:725 |
+| `edges[]` | `{source, relation, target, content_status, watermark}` | §16:725 |
+| `node_count` / `edge_count` | 非负整数 | — |
+
+**格式与约束细则**：
+1. **`kind` 闭集**：`{pattern, concept, assertion, school_view}`。
+2. **`relation` 闭集**（依 §11.6、规格 §16:725、INTERFACES §3.2/§3.7，剔除非规格关系名）：
+   - `has_assertion`（Pattern → Assertion）
+   - `belongs_to_concept`（Assertion 或 Pattern → Concept）
+   - `in_conflict_group`（SchoolView → ConflictGroup）
+   - `supports`（Assertion → Assertion 语义支持）
+   - `qualifies`（Assertion → Assertion 语义限定）
+   - `opposes`（Assertion → Assertion 语义对立）
+3. **边无独立 ID（【I-10】/P8/第 107 条 Q-M8-05）**：边**不发**独立 ID（禁止 `edge_id`、`id` 或 `e_` 前缀）；边身份由 `(source, relation, target)` 三元组唯一确定。
+4. **`node_id` 前缀约束**：`node_id` 必须使用 `pipeline/ledger/ids.py` 与规格 §8.1 登记的前缀（`pat_` 为 Pattern、`co_` 为 Concept、`as_` 为 Assertion、`sv_` 为 SchoolView、`cg_` 为 ConflictGroup）；**严禁出现未登记的 `c_` 或 `e_` 前缀**（第 107 条更正）。
+5. **确定性排序**：`nodes` 严格按 `node_id` 字典序升序排列；`edges` 严格按 `(source, relation, target)` 三元组字典序升序排列。
+6. **占位示意（不引用任何真实书中文句，第 107 条更正）**：
+   ```json
+   {
+     "schema_version": "0.1.0-draft",
+     "release_id": "rel_018f9e74e27670008000000000000001",
+     "canonical_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "consumption_level": "INTERNAL_DEMO",
+     "nodes": [
+       {
+         "node_id": "as_example_000001",
+         "kind": "assertion",
+         "label": "示例断言A",
+         "content_status": "machine_extracted",
+         "watermark": true
+       },
+       {
+         "node_id": "co_example_000001",
+         "kind": "concept",
+         "label": "示例概念A",
+         "content_status": "machine_extracted",
+         "watermark": true
+       },
+       {
+         "node_id": "pat_example_000001",
+         "kind": "pattern",
+         "label": "示例格局A",
+         "content_status": "machine_extracted",
+         "watermark": true
+       }
+     ],
+     "edges": [
+       {
+         "source": "as_example_000001",
+         "relation": "belongs_to_concept",
+         "target": "co_example_000001",
+         "content_status": "machine_extracted",
+         "watermark": true
+       },
+       {
+         "source": "pat_example_000001",
+         "relation": "has_assertion",
+         "target": "as_example_000001",
+         "content_status": "machine_extracted",
+         "watermark": true
+       }
+     ],
+     "node_count": 3,
+     "edge_count": 2
+   }
+   ```
+
+### 3.16 `entry_id_allocation.schema.json`（M8 冻结输入/中间产物；代码草案 0.1.0-draft，P3）
+
+词条身份发号表（第 107 条 Q-M8-02）：M8 step 层读取前序 Release 的 `subject_entity_id → entry_id` 映射（首个 Release 为空）、为新主体分配 UUIDv4 并登记为 Artifact，纯函数打包层只接收该映射。
+
+| 键 | 类型 / 约束 | 来源 |
+|---|---|---|
+| `schema_version` | const `"0.1.0-draft"` | D-10/P3 |
+| `release_id` | releaseId（`rel_<32hex>`） | §8.1 |
+| `technique_id` | `^[a-z][a-z0-9]*$` | §8.1 |
+| `allocations[]` | `{subject_entity_id, entry_id, allocated_in_release_id}` | 第 107 条 Q-M8-02 |
+| `allocation_count` | 非负整数 | — |
+
+**约束细则**：
+1. `subject_entity_id`: 必选，且 `subject_entity_id ∈ patternId ∪ conceptId`（`pat_` 或 `co_` 前缀，来自已审定 Snapshot 显式引用，不推断，第 107 条 Q-M8-01）。
+2. `entry_id`: 必选，entryId 家族正则 `^ent_[0-9a-f]{32}$`（UUIDv4 格式，规格 §8.1:318，否决 UUIDv5/md5 派生）。
+3. `allocated_in_release_id`: 首次分配该 entry_id 的 releaseId，支持跨 Release 恒定保号与退役审计。
+4. `allocations` 严格按 `subject_entity_id` 升序排列。
+
+### 3.17 不在本包范围
+
+`rule_index_pack / search_index_pack / technique_profile_pack`（规格字段不足，纵切后，D-15）；四类 Proposal、`term_layer_report`（由 M4/M7 包各自起草，回填到本表 §4）。
 
 ---
 
 ## 4. artifact_type 总表（在 Contract Registry 落地前充当临时闭集，D-10）
 
-登记纪律：唯一登记处为本表，直至 impl-08 Contract Registry 接管（P2）；同一时刻只有一路写本表。未入本表的类型名，实现不得使用；M5 任务级报告已按 G7-RULINGS §9.1 第 24/26 条删除，每 task 复用通用 `validation_report`。M4 五行由 `impl-00/12` 登记，其 `candidate_set` 内容结构为代码草案（P3），正式化随 impl-08 Contract Registry。M6 四行由 `impl-00/13` 登记，`reviewed_edition`/`rework_impact_report` 内容结构为代码草案（P3），正式化随 impl-08 Contract Registry；Stage Gate 报告不落盘（§9.5 第 46 条）。M2 电子文本四行由 `impl-00/14` 登记，`sanitization_report` 内容结构为代码草案（P3），正式化随 impl-08 Contract Registry。`ss_` 偏移形态 `o<NNNNNNN>`（7 位零填充）用于跨页连续定位，页码形态与偏移形态共存（registry §3.1）。
+登记纪律：唯一登记处为本表，直至 impl-08 Contract Registry 接管（P2）；同一时刻只有一路写本表。未入本表的类型名，实现不得使用；M5 任务级报告已按 G7-RULINGS §9.1 第 24/26 条删除，每 task 复用通用 `validation_report`。M4 五行由 `impl-00/12` 登记，其 `candidate_set` 内容结构为代码草案（P3），正式化随 impl-08 Contract Registry。M6 四行由 `impl-00/13` 登记，`reviewed_edition`/`rework_impact_report` 内容结构为代码草案（P3），正式化随 impl-08 Contract Registry；Stage Gate 报告不落盘（§9.5 第 46 条）。M2 电子文本四行由 `impl-00/14` 登记，`sanitization_report` 内容结构为代码草案（P3），正式化随 impl-08 Contract Registry。`ss_` 偏移形态 `o<NNNNNNN>`（7 位零填充）用于跨页连续定位，页码形态与偏移形态共存（registry §3.1）。M8 词条发号表由 impl-00/15（W8 8.6 ACT 08，第 107 条）登记，内容结构为代码草案（P3，见 §3.16）。
 
 | 阶段 | artifact_type | 角色 | 内容 Schema | 状态 |
 |---|---|---|---|---|
@@ -354,6 +496,7 @@
 | M6 | `reviewed_edition_package` | 阶段输出索引 | 代码草案（P3） | 同上 |
 | M7 | `merge_proposal` / `alias_proposal` / `conflict_proposal` / `evidence_relation_proposal` / `canonical_snapshot` / `assembly_package` | 提案 / 主内容 / 阶段输出 | canonical_snapshot | 纵切后（§9 第 3 条） |
 | M8（首纵切） | `source_asset_pack` / `evidence_map_pack` / `release_manifest` / `publication_package` | 子包 / 主内容（release_manifest）/ 阶段输出 | 代码草案（P3）；ValidationReport 复用通用 `validation_report` | 首纵切（D4、§9 第 15 条） |
+| M8 | `entry_id_allocation` | 词条身份发号表（冻结输入/中间产物） | 代码草案 0.1.0-draft（P3；§3.16） | W8（ACT 08 登记；第 107 条 Q-M8-02） |
 | M8（纵切后） | `knowledge_data_pack` / `query_contract_pack` / `anchor_contract_pack` / `rule_index_pack` / `search_index_pack` / `graph_projection_pack` / `technique_profile_pack` | 子包 | 纵切后 | 纵切后（D-15） |
 
 ---
