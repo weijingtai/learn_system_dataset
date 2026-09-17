@@ -222,3 +222,377 @@ pipeline/dataset_compiler/
 openspec/acceptance/m8-span-identity.sh
 openspec/acceptance/run_all.sh（ACT 08 只改 20.4/20.8）
 ```
+
+## 11. §W8 返工设计（草案，待主 Agent 裁决）
+
+依据 `G7-RULINGS.md` 第 100 条 D1/D2/D8 与第 106 条 D5，本节起草 W8 阶段 M8 数据集编译模块（`pipeline/dataset_compiler`）从「OCR 尾链首切片」向「真书电子文本（《乾元秘旨》）全链发布」演进的返工设计草案。
+本节仅做架构设计与契约分析，不编写实现代码，不越权裁决未决点。
+
+### 11.1 输入改读 M7 Snapshot
+
+- **现状（文件:行号）**：
+  1. `pipeline/dataset_compiler/inputs.py:52-95`（`_resolve_m3`）：M8 目前仅通过 `list_checkpoints(edition_part_id, "m3")` 读取 M3 的 StagePackage，并强依赖 `payload.spans_revision_id`；
+  2. `pipeline/dataset_compiler/inputs.py:97-138`（`_resolve_pages`）：强制从 M3 包的 `manifest.input_artifacts` 反查 `ocr_page_set`（恰 1 个）与 `ocr_page`（至少 1 个），页名严格校验为 `page_\d{3,4}`；
+  3. `pipeline/dataset_compiler/inputs.py:141-164`（`_resolve_assets`）：强制从 m1 Checkpoint 的 `source_asset_` 任务收集 `source_asset_page` 修订；
+  4. `pipeline/dataset_compiler/inputs.py:167-215`（`resolve_m8_inputs`）：整体验收输入完全绑定 OCR 扫描路线与 M3 首切片，未消费任何 M4/M6/M7 知识产物；
+  5. `pipeline/assembly/genesis.py:275-285`：M7 创世汇编产出的 Snapshot `knowledge.editions[]` 仅有 `{source_id, work_key, reviewed_edition_package_revision_id, reviewed_edition_revision_id, stage_package_id, edition_part_artifact_ids, edition_complete}`，缺失 `evidence_level` 与 `corpus_spans_revision_id`。
+- **设计**：
+  1. **冻结输入清单**：依据规格 §16:661-666，M8 冻结输入第一项改读 CanonicalKnowledgeSnapshot Revision（`canonical_snapshot`）。完整冻结清单包括：
+     - `canonical_snapshot` Revision；
+     - 发布范围（`release_scope`，即 `edition_part_ids` 清单）；
+     - `technique_profile`（如 `qizheng` 技法配置）；
+     - `release_policy`（`reference_and_hash_only` 或 `derived_page_images_only`）；
+     - 目标消费级别（`consumption_level`: `INTERNAL_DEMO` / `DEV_SEARCH` / `PUBLIC_RELEASE`）；
+     - 血缘支持：M7 `assembly_package` 及沿 lineage 反查的 M6 `reviewed_edition_package`、M3 `corpus_package`、M2 清洗产物（`raw_text`、`cleaned_text_revision`、`deterministic_patch_set`、`sanitization_report`）与 M1 `source_manifest`。
+  2. **契约统一在上游与分派机制**：依据第 100 条 D2，`resolve_m8_inputs` 保持为统一入口函数，不另为电子文本写独立入口分支。读取流程：
+     - 首先加载 `canonical_snapshot`，从 `snapshot.knowledge.editions[0]`（或 M3 `corpus_spans`）读取 `evidence_level`；
+     - 若 `evidence_level == "glyphbox_level"`：分派至 OCR 扫描线逻辑，解析 `ocr_page_set`、`ocr_page` 与 `source_asset_page`；
+     - 若 `evidence_level == "offset_level"`：分派至电子文本线逻辑，解析 M2 产物（`raw_text`、`cleaned_text_revision`、`deterministic_patch_set`、`sanitization_report`）与 M1 `source_manifest` 中的 SourceAsset 元数据。
+  3. **Snapshot 补字段**：依第 106 条 D4，M7 Snapshot 的 `knowledge.editions[]` 补充 `evidence_level` 与 `corpus_spans_revision_id`。M8 输入解析层可直接通过 Snapshot 定位底层语料切片，无需跨层越权猜测。
+- **依据**：
+  - 规格 `openspec/learn-system-blackbox-architecture.md` §16:661-666（M8 冻结五项输入）；
+  - `docs/blackbox-spec-rework/work-items/impl-00-interfaces/INTERFACES.md` §2.8（M8 卡片，:195-200）；
+  - `docs/blackbox-spec-rework/G7-RULINGS.md` 第 100 条 D2（契约统一在上游，下游按证据级别分派，不另写一套入口）、第 100 条 D8（改读 M7 Snapshot）、第 106 条 D4（Snapshot `editions[]` 补 `evidence_level` 与 `corpus_spans_revision_id`）。
+- **未决点**：
+  - 未决点 Q-M8-04：M8 输入中 Snapshot 粒度是以 Technique 为单位聚合的多 EditionPart 单 Snapshot，还是单 EditionPart 对应独立 Snapshot？
+
+### 11.2 知识链前三段 KnowledgeEntry → Assertion → EvidenceLink
+
+- **现状（文件:行号）**：
+  1. `pipeline/dataset_compiler/packs.py:32`：`CHAIN_SEGMENTS = ["SourceSpan", "SourceAnchor", "OcrPage", "SourceAsset"]`，尾链仅定义了后四段；
+  2. `pipeline/dataset_compiler/packs.py:261-262`：`evidence_map_pack` 固定写入 `"chain_segments": CHAIN_SEGMENTS, "knowledge_chain": "not_compiled"`；
+  3. `pipeline/dataset_compiler/gate.py:30-31` 与 `:393-405`：Gate 检查项 `knowledge_chain` 恒为 `{"ok": None, "status": "not_evaluated"}`；
+  4. `pipeline/assembly/genesis.py:317-367`：M7 创世汇编产出的 Snapshot 虽已有 `patterns[]` 与 `assertions[]`（:391-430），但 M8 从未读取和组装它们；
+  5. `pipeline/assembly/genesis.py:401-418`：M7 对证据偏移在局部与绝对值间存在混用（已由第 106 条 D1 裁决要求修复为 I-11 绝对偏移）。
+- **设计**：
+  1. **编译规则与产物字段**：
+     - 输出子包由原先的 2 个扩充为包含 `KnowledgeDataPack`（`knowledge_data_pack.json`）与完整无损 `EvidenceMapPack`（`evidence_map_pack.json`）。
+     - `KnowledgeDataPack` 编译规则：从 Snapshot 的 `knowledge` 提取对象，组装：
+       - `entries[]`：`{entry_id, subject_entity_id, title, assertion_ids, school_view_ids, content_status, mark_binding}`；
+       - `assertions[]`：`{assertion_id, proposition, subject_entity_id, status}`；
+       - `school_views[]` 与 `conflict_groups[]`。
+     - `EvidenceMapPack` 编译规则：七段链完整闭合（KnowledgeEntry → Assertion → EvidenceLink → SourceSpan → SourceAnchor → offset尾段/OcrPage → SourceAsset）。
+     - `EvidenceLink` 字段严格依 INTERFACES:235【I-11】：`{source_span_id, support_type, start_offset, end_offset, quote, quote_sha256}`，其中 `start_offset/end_offset` 为绝对偏移（与 M3 `corpus_spans` 同一坐标系）。
+  2. **与 M6 审核后内容状态的关系及 INTERNAL_DEMO 水印披露（§16.1）**：
+     - 状态继承：M8 继承 Snapshot 中由 M6 审定或机器抽取的 `content_status`（如 `machine_extracted` / `source_verified` / `cross_model_reviewed` / `expert_verified`），不提级、不合成；
+     - 消费级别准入：
+       - `INTERNAL_DEMO`：允许 `machine_*` 状态进入，但必须隔离（`isolation: "internal_only"`）、打水印（Entry 与 EvidenceMap entry 标记 `watermark: true`）、`ReleaseManifest` 中启用水印（`watermark{required: true, text: ...}`），并在 `known_defects` 中披露 `machine_content` 等，禁止声称权威（`authoritative: false`）或完备；
+       - `DEV_SEARCH`：要求可判定内容至少为 `cross_model_reviewed`；
+       - `PUBLIC_RELEASE`：所有断言必须为 `expert_verified`，机器记录不得泄露。
+  3. **Gate 判定机制（闭环与不得绕过 Assertion）**：
+     - 检查项 1（`chain_closure`）：遍历 `KnowledgeDataPack.entries`，断言每个 entry 拥有至少 1 个 `assertion_id`，且该 ID 存在于 `KnowledgeDataPack.assertions` 中；
+     - 检查项 2（`assertion_evidence_closure`）：遍历 `KnowledgeDataPack.assertions`，断言每个 assertion 拥有至少 1 条 EvidenceLink，且其引用的 `source_span_id` 在底料语料中存在；
+     - 检查项 3（`no_assertion_bypass`）：验证所有 EvidenceLink 必须从属于明确的 Assertion。严禁存在由 KnowledgeEntry 直接链接到 SourceSpan 的 EvidenceLink；
+     - 检查项 4（`entry_assertion_reachability`）：断言无孤儿断言（每个 Assertion 至少被一个 KnowledgeEntry 引用），任一悬空或断裂立即导致 Gate fail-closed 阻断签发。
+- **依据**：
+  - 规格 §16:703-715（七段固定顺序证据链、每个 KnowledgeEntry 至少追溯到一个 Assertion、EvidenceLink 不得绕过 Assertion、一票否决）；§16.1:670-678（消费级别准入门槛与披露）；
+  - `INTERFACES.md` §3.9（`knowledge_data_pack.schema.json`，:296-299）、§3.10（`evidence_map_pack.schema.json`，:300-303）、【I-11】（:416）；
+  - `G7-RULINGS.md` 第 100 条 D1、D8、第 106 条 D1。
+- **未决点**：
+  - 未决点 Q-M8-01：KnowledgeEntry 的主体选取规则（Pattern 为主 / Concept 为主 / 双轨制）。
+  - 未决点 Q-M8-03：在 `reference_and_hash_only` 发布策略下，EvidenceMapPack 与 EvidenceLink 是否允许包含原文 `quote` 字符切片，还是只保留 `quote_sha256` 与偏移？
+
+### 11.3 KnowledgeEntry 主体与 `ent_` 发号（提案）
+
+- **现状（文件:行号）**：
+  1. `openspec/learn-system-blackbox-architecture.md:318`：冻结 `ent_<32hex>` 格式，UUIDv4 家族，语义为 `entry_id`，跨 Release 保号，退役写入 `IdentityMigrationMap`；
+  2. `docs/blackbox-spec-rework/work-items/impl-00-interfaces/INTERFACES.md:203`：明确保留未定义项——「KnowledgeEntry 主体选 Concept 还是 Pattern 的规则（86 只说『一个 Concept 或 Pattern』）」；
+  3. `docs/blackbox-spec-rework/work-items/impl-00-interfaces/INTERFACES.md:298`：`knowledge_data_pack.schema.json` 草案中定义 `entries[].subject_entity_id: conceptId|patternId`；
+  4. `pipeline/assembly/genesis.py:317-367`：M7 当前创世 Snapshot 包含 `patterns[]`（但 `concept_id` 为 `None`，rules 为空）与 `concepts[]`（仅名称别名），未合成统一发布词条。
+- **设计（候选方案与权衡）**：
+  - **候选 1：以 Pattern（格局）为主体，Concept 为辅助**
+    - *机制*：每个经审核的 Pattern 编译为一个 `KnowledgeEntry`（`subject_entity_id = pat_...`），条目标题取 Pattern 名称，汇聚其名下的 `assertion_ids` 与 `school_view_ids`；
+    - *对规格与本书数据后果*：《乾元秘旨》「天官」「七煞」两节核心内容皆为星曜格局推步断语（如「天官会紫气」「七煞逢吉化权」），以 Pattern 为主体能精确映射术数推步的核心断语；但对于纯概念名词（如星曜本质属性说明）在无格局时无法独立成词条。
+  - **候选 2：以 Concept（概念）为主体，Pattern 挂载于 Concept 之下**
+    - *机制*：以星曜概念（如「天官」「七煞」）为主体（`subject_entity_id = c_...` 或 `tc_...`），Pattern 作为子模式；
+    - *对规格与本书数据后果*：词条结构类似传统百科，但古籍中大量断言涉及多星交会（例如天官与紫气合论），强行归属单一 Concept 会破坏对等性；且 M7 当前 `patterns[].concept_id` 为 `None`，缺乏显式归属。
+  - **候选 3：双轨制（PatternEntry 与 ConceptEntry 并列，由 `subject_entity_id` 区分）（推荐）**
+    - *机制*：`subject_entity_id` 既可指向 `pattern_id` 也可指向 `concept_id`（完全符合 INTERFACES:298 契约）。凡 M7 Snapshot 中拥有断言的 Pattern 生成格局词条；凡拥有定义性释义或概念引用的 Concept 生成概念词条。
+    - *推荐理由*：兼顾术数文献「名词概念检索」与「格局断语推步」两种场景；且与 M7 创世现状无缝契合，无需强求 M7 在汇编期完成 Pattern 到 Concept 的排他绑定。
+  - **`ent_` 发号规则与确定性保障**：
+    - *格式*：严格依 §8.1:318 为 `ent_<32hex>`（32位小写十六进制）；
+    - *确定性生成*：为满足编译纯函数与多次运行字节确定一致的要求（`packs.py:3`），禁止在生产运行时调用随机 `uuid4()`。提案采用基于命名空间的确定性派生：`ent_id = "ent_" + hashlib.md5(f"{technique_id}:{subject_entity_id}".encode("utf-8")).hexdigest()` 或 UUIDv5；
+    - *跨 Release 身份延续与 IdentityMigrationMap（§16:727-734）*：
+      - 单一技法在不同 Release 重新编译时，相同 `subject_entity_id` 始终派生出相同的 `ent_` 标识，保证客户端外挂注解（`anc_`）不因重新编译而漂移；
+      - 若后续 Release 发生 Pattern 合并（merged）、拆分（split）或废弃（retired），在 `AnchorContractPack.identity_migration_map` 中记录身份演变。首个 Release（创世）无前序 Release，`identity_migration_map.entries` 为空列表。
+- **依据**：
+  - 规格 §4:86-94（KnowledgeEntry 定义）、§8.1:318（`ent_` 格式与身份）、§16:727-734（AnchorContractPack 与 IdentityMigrationMap）；
+  - `INTERFACES.md` §2.8（:203）、§3.9（:298）、§3.12（:310）；
+  - `G7-RULINGS.md` 第 106 条 D5。
+- **未决点**：
+  - 未决点 Q-M8-01：主 Agent 裁决采纳候选 1、候选 2 还是候选 3。
+  - 未决点 Q-M8-02：`ent_` 确定性发号算法采用 UUIDv5 还是确定性哈希派生。
+
+### 11.4 `reference_and_hash_only` 发布包内容
+
+- **现状（文件:行号）**：
+  1. `pipeline/dataset_compiler/packs.py:77-82`：代码硬编码校验 `if manifest["release_policy"] != "derived_page_images_only": raise DatasetRefused("发布策略未实现，需 derived_page_images_only")`；
+  2. `pipeline/dataset_compiler/levels.py:100-101`：准入校验 `if release_policy != "derived_page_images_only": unmet.add("release_policy_not_implemented")`；
+  3. `pipeline/dataset_compiler/packs.py:98-116`：SourceAssetPack 硬编码包含每一页的尺寸与页图对象修订 `asset_artifact_revision_id`；
+  4. `pipeline/dataset_compiler/packs.py:232`：EvidenceMapPack entry 中直接内嵌 `text: span["text"]`。
+- **设计**：
+  1. **SourceAssetPack 发布包内容**：
+     - 严格遵循 `INTERFACES.md` §3.11（:304-307）：
+       - `pack_type`: `"source_asset_pack"`
+       - `policy`: `"reference_and_hash_only"`
+       - `assets[]`: 每一项仅包含 `{source_id, page, sha256, width: null, height: null, ref: {object_store: "local", path_ref: ...}, rights_note: ..., bytes_included: false}`；
+     - **明确不包含任何扫描图像二进制，也不包含任何古籍原文正文字节**。
+  2. **EvidenceMapPack 发布包内容**：
+     - 承载完整的引用与偏移证据链，但**明确剥离古籍原文文本**：
+       - 保留字段：`entry_id`, `assertion_id`, `evidence_link`（含 `source_span_id`, `start_offset`, `end_offset`, `quote_sha256`, `support_type`）；
+       - 尾部锚点字段：清洗文本偏移、patch 映射关系、原始文本偏移区间及底本 SourceAsset `sha256`；
+       - **不含正文**：`text` 字段置为 `null` 或不输出；`quote` 不输出字面量，仅保留 `quote_sha256`；
+       - 客户端使用方式：客户端在获得合法底本时，在本地通过 `path_ref` + `sha256` 匹配底本，结合偏移与 patch 换算完成高亮展示，发布包自身杜绝版权文本泄漏。
+  3. **与 `derived_page_images_only` 分支并存设计**：
+     - `levels.py:100` 放行 `reference_and_hash_only`，不再判 `release_policy_not_implemented`；
+     - `packs.py` 的 `build_source_asset_pack` 根据 `manifest["release_policy"]` 分派：
+       - `derived_page_images_only`：要求 `bytes_included: true`，校验 Object Store 图像修订与宽高；
+       - `reference_and_hash_only`：强制 `bytes_included: false`，宽高为 `None`，只校验底本元数据与 `sha256`。
+- **依据**：
+  - 规格 §16:717-723（三种权利级别定义，721 明确 `reference_and_hash_only` 只携带引用、SHA-256、页标识和权利说明）；
+  - `INTERFACES.md` §3.11（:304-307）；
+  - `G7-RULINGS.md` 第 76 条 D1、第 100 条 D8、第 101 条。
+- **未决点**：
+  - 未决点 Q-M8-03：EvidenceMapPack 在 `reference_and_hash_only` 策略下，`quote` 与 `text` 字段是直接移除、置为 `null` 还是有其他表示方式？
+
+### 11.5 offset 证据链尾段
+
+- **现状（文件:行号）**：
+  1. `pipeline/dataset_compiler/packs.py:32`：当前尾段写死为 `["SourceSpan", "SourceAnchor", "OcrPage", "SourceAsset"]`；
+  2. `pipeline/dataset_compiler/packs.py:177-183`：通过 `parse_span_identity` 强制解析页号与行号（`_p\d{4}_s\d{2}`）；
+  3. `pipeline/dataset_compiler/packs.py:195-245`：强制读取 `anchor["bbox"]`、`anchor["chars"]`，与 `ocr_page`、`source_asset` 进行坐标比对；
+  4. `pipeline/dataset_compiler/gate.py:145-207`：`check_glyph_anchor_closure`、`check_ocr_page_binding`、`check_coordinate_frame` 均为 OCR 字框专属检查。
+- **设计**：
+  1. **证据链尾段定义转换（第 81 条）**：
+     - OCR 路线尾段：`SourceSpan` → `SourceAnchor` → `OcrPage`（字框坐标） → `SourceAsset`（页图像）；
+     - 电子文本路线尾段：`SourceSpan`（`ss_<work>_ed<NN>_o<NNNNNNN>`） → 清洗文本偏移（`start_offset, end_offset`） → `DeterministicPatchSet` 映射 → 原始文本偏移（`raw_start, raw_end`） → `RawText` 修订 → `SourceAsset`（底本 SHA-256）。
+  2. **对应位置与字段映射**：
+     - `SourceSpan`：承载清洗文本中的切片标识，ID 锚定原始偏移（第 78 条）；
+     - `SourceAnchor`（第 78 条七键）：承载 `{raw_text_revision_id, raw_start, raw_end, cleaned_text_revision_id, start_offset, end_offset, quote_sha256}`，取代 OCR 的 `line_id/bbox/chars`；
+     - 替代 `OcrPage` 的环节：`DeterministicPatchSet` 与 `SanitizationReport`。证明清洗文本与原始底本文字的双向可逆换算关系，以及生僻字/保留字符的对账依据；
+     - 替代页图 `SourceAsset` 的环节：`RawText` 对应的 SourceAsset 文件 `file_sha256`。
+  3. **包内表达**：
+     - 在 `EvidenceMapPack` 中，当 `evidence_level == "offset_level"` 时，`chain_segments` 声明为：`["KnowledgeEntry", "Assertion", "EvidenceLink", "SourceSpan", "SourceAnchor", "DeterministicPatchSet", "RawText", "SourceAsset"]`。
+- **依据**：
+  - 规格 §11.1:527-528（`offset_level` 证据级别定义）；
+  - `G7-RULINGS.md` 第 78 条 D3（字符偏移定位与锚点七键）、第 81 条（电子文本可追踪证据链模型）、第 102 条 Q4、第 103 条 D1。
+- **未决点**：
+  - 未决点 Q-M8-07：`chain_segments` 是否保持统一抽象名（如用 `SourceAnchor` 统一代表定位层），还是显式区分为两组枚举？
+
+### 11.6 GraphProjectionPack 格式草案（§16:725）
+
+- **现状（文件:行号）**：
+  1. `openspec/learn-system-blackbox-architecture.md:725`：要求「GraphProjectionPack 与移动端数据必须来自同一 CanonicalKnowledgeSnapshot，并共享 release_id、canonical_hash、实体 ID 和关系 ID」；
+  2. `docs/blackbox-spec-rework/work-items/impl-00-interfaces/INTERFACES.md:203` 与 `:322`：明确将 GraphProjectionPack 格式列为「首切片外未定义」与「不在本包范围」；
+  3. `pipeline/dataset_compiler/step.py:362-375`：M8 发布包生成清单中未包含 GraphProjectionPack；
+  4. `openspec/acceptance/run_all.sh:333`：20.9 判定为硬编码的 `BLOCKED`。
+- **设计（格式草案）**：
+  1. **元数据绑定**：
+     - `pack_type`: `"graph_projection_pack"`；
+     - `schema_version`: `"0.1.0-draft"`；
+     - `release_id`: 与 PublicationPackage 及 ReleaseManifest 严格一致；
+     - `canonical_hash`: 严格等于 CanonicalKnowledgeSnapshot 的 `meta.canonical_hash`；
+     - `consumption_level`: 显式标注目标级别。
+  2. **节点格式（`nodes[]`）**：
+     - `node_id`: 实体 ID（`pat_...`, `c_...`, `as_...`, `sv_...`，与 KnowledgeDataPack 严格一致）；
+     - `kind`: `pattern` | `concept` | `assertion` | `school_view`；
+     - `label`: 中文展示名称；
+     - `content_status`: 状态枚举；
+     - `watermark`: bool（`INTERNAL_DEMO` 下 machine 条目为 true）；
+     - `properties`: 扩展属性字典。
+  3. **边格式（`edges[]`）**：
+     - `edge_id`: 确定性标识；
+     - `source`: 源实体 ID；
+     - `target`: 目标实体 ID；
+     - `relation`: 语义关系，闭集为：
+       - `has_assertion`（Pattern → Assertion）；
+       - `belongs_to_concept`（Assertion/Pattern → Concept）；
+       - `in_conflict_group`（SchoolView → ConflictGroup）；
+       - `qualifies` / `opposes` / `supports`（Assertion 间关系）；
+     - `content_status` 与 `watermark`。
+  4. **确定性排序与哈希**：
+     - `nodes` 严格按 `node_id` 字典序升序；
+     - `edges` 严格按 `(source, relation, target)` 字典序升序；
+     - 规范化 JSON 序列化后计算 SHA-256，登记入 `ReleaseManifest.packs`。
+  5. **示意片段（以《乾元秘旨》「天官」「七煞」为例，示意，非金标）**：
+     ```json
+     {
+       "schema_version": "0.1.0-draft",
+       "pack_type": "graph_projection_pack",
+       "release_id": "rel_018f9e74e27670008000000000000001",
+       "canonical_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+       "consumption_level": "INTERNAL_DEMO",
+       "nodes": [
+         {
+           "node_id": "as_qizheng_000101",
+           "kind": "assertion",
+           "label": "天官客曜遇吉神福禄尤甚",
+           "content_status": "machine_extracted",
+           "watermark": true,
+           "properties": {"layer": "general"}
+         },
+         {
+           "node_id": "as_qizheng_000102",
+           "kind": "assertion",
+           "label": "七煞照命主兵权杀伐",
+           "content_status": "machine_extracted",
+           "watermark": true,
+           "properties": {"layer": "general"}
+         },
+         {
+           "node_id": "c_qizheng_qisha",
+           "kind": "concept",
+           "label": "七煞",
+           "content_status": "machine_extracted",
+           "watermark": true,
+           "properties": {"imagery": "凶杀"}
+         },
+         {
+           "node_id": "c_qizheng_tianguan",
+           "kind": "concept",
+           "label": "天官",
+           "content_status": "machine_extracted",
+           "watermark": true,
+           "properties": {"imagery": "客曜"}
+         },
+         {
+           "node_id": "pat_qizheng_000001",
+           "kind": "pattern",
+           "label": "天官朝元格",
+           "content_status": "machine_extracted",
+           "watermark": true,
+           "properties": {"recognition_rule_status": "not_captured"}
+         }
+       ],
+       "edges": [
+         {
+           "edge_id": "e_018f9e74e27670008000000000000001",
+           "source": "as_qizheng_000101",
+           "target": "c_qizheng_tianguan",
+           "relation": "belongs_to_concept",
+           "content_status": "machine_extracted",
+           "watermark": true
+         },
+         {
+           "edge_id": "e_018f9e74e27670008000000000000002",
+           "source": "as_qizheng_000102",
+           "target": "c_qizheng_qisha",
+           "relation": "belongs_to_concept",
+           "content_status": "machine_extracted",
+           "watermark": true
+         },
+         {
+           "edge_id": "e_018f9e74e27670008000000000000003",
+           "source": "pat_qizheng_000001",
+           "target": "as_qizheng_000101",
+           "relation": "has_assertion",
+           "content_status": "machine_extracted",
+           "watermark": true
+         }
+       ],
+       "node_count": 5,
+       "edge_count": 3
+     }
+     ```
+- **依据**：
+  - 规格 §16:689、§16:725（GraphProjectionPack 契约约束）；
+  - `INTERFACES.md` §2.8（:198）、§4（:357）；
+  - `G7-RULINGS.md` 第 100 条 D1、D8、第 106 条 D5。
+- **未决点**：
+  - 未决点 Q-M8-05：`edge_id` 生成机制（UUIDv5 派生 vs 确定性三元组拼接）。
+
+### 11.7 M8 Gate 变化
+
+- **现状（文件:行号）**：
+  1. `pipeline/dataset_compiler/gate.py:16-31`：固化 14 个检查项常量 `_CHECK_NAMES`；
+  2. `pipeline/dataset_compiler/gate.py:110-120`（`check_span_page_binding`）：使用 `_SPAN_TAIL_RE` 强核对 span_id 的页号和行号；
+  3. `pipeline/dataset_compiler/gate.py:145-207`：包含 `check_glyph_anchor_closure`、`check_ocr_page_binding`、`check_source_asset_binding`、`check_coordinate_frame`，均针对 OCR 字框与页图像素尺寸；
+  4. `pipeline/dataset_compiler/gate.py:393-405`（`check_knowledge_chain`）：恒为 `not_evaluated`；
+  5. `pipeline/dataset_compiler/gate.py:434`：`knowledge_chain` 直接硬编码返回 `"not_evaluated"`。
+- **设计**：
+  1. **`knowledge_chain` 实评检查项清单**：
+     - `chain_closure`: 校验每个 KnowledgeEntry 至少链接 1 个 Assertion，每个 Assertion 至少拥有 1 个 EvidenceLink，引用闭合且无断裂；
+     - `no_assertion_bypass`: 校验 EvidenceLink 不得绕过 Assertion 直接关联 KnowledgeEntry；
+     - `quote_hash_integrity`: 校验每个 EvidenceLink 的 `quote_sha256` 准确反映引文字符串；
+     - `content_status_admission`: 校验知识链各节点的成熟度状态是否符合消费级别准入。
+  2. **offset 档替代页绑定与字框检查的项**：
+     - 检查项依据 `evidence_level` 进行分派（或细分子检查）：
+       - 当 `evidence_level == "glyphbox_level"`：保持现有 4 项 OCR 检查；
+       - 当 `evidence_level == "offset_level"`：
+         1. `offset_anchor_continuity`: 校验 Span 的 `start_offset/end_offset` 在清洗文本范围内，无非法重叠；
+         2. `patch_reversible`: 校验 `DeterministicPatchSet` 能够准确在原始偏移与清洗偏移间双向映射；
+         3. `raw_text_binding`: 校验原始偏移对应的文本切片与原始 `RawText` 逐字相符，且 `RawText` 的 SHA-256 与 SourceAsset 清单一致；
+         4. `sanitization_disclosure`: 依第 103 条 D1，检查禁止字符是否已与 `sanitization_report` 逐条对账并按规定披露。
+  3. **新增 GraphProjection 校验**：
+     - `graph_projection_closure`: 校验 GraphProjectionPack 中的 `release_id`、`canonical_hash` 与 Snapshot 及 ReleaseManifest 严格相等，节点/边集合与 KnowledgeDataPack 严格同构。
+- **依据**：
+  - 规格 §16:703-715（发布 Gate fail-closed 一票否决）；
+  - `INTERFACES.md` §3.3（:261-274）、【I-11】、【I-12】；
+  - `G7-RULINGS.md` 第 100 条 D5、D8、第 103 条 D1、第 106 条 D1。
+- **未决点**：
+  - 未决点 Q-M8-08：Gate 检查名清单（`_CHECK_NAMES`）如何优雅兼容两套证据级别。
+
+### 11.8 验收面
+
+- **现状（文件:行号）**：
+  1. `openspec/acceptance/m8-span-identity.sh:11-12`：写死 `FIXTURE_DIR` 为 `mini_ed01`，`FIXTURE_ASSET_ROOT` 为 `sanche_pages`；
+  2. `openspec/acceptance/m8-span-identity.sh:58-60`：仅执行 `--check span_identity`；
+  3. `openspec/acceptance/run_all.sh:267,280,327,333`：20.4、20.6、20.8、20.9 均硬编码或条件判定为 `BLOCKED`。
+- **设计**：
+  1. **`m8-span-identity.sh` 电子文本路线分流**：
+     - 引入环境变量分流：`EVAL_ROUTE=${EVAL_ROUTE:-ocr}`；
+     - **第 97 条铁律**：显式变量分流、互不回落。
+       - 若 `EVAL_ROUTE=text`（或设置了 `FIXTURE_TEXT_DIR`），指向《乾元秘旨》电子文本宿主（`pipeline/corpus/_fixture/qianyuan_w8`）。宿主缺失时退出码严格为 3（BLOCKED），绝不自动回退到 `mini_ed01`；
+       - 若未指定（默认），保持原 OCR 路径与行为完全不变。
+  2. **`run_all.sh` 20.4 / 20.6 / 20.8 / 20.9 转判条件**：
+     - **20.4**（发布物↔原始证据双向可追溯）：当前因「候选/驳回项/正式知识未产出」BLOCKED。转判条件：M8 读 M7 Snapshot，编译出包含前三段的 EvidenceMapPack，并在 Gate 中通过 `chain_closure` 实评，双向索引全覆盖且无悬空；
+     - **20.6**（Pattern 与 KnowledgeEntry 编译）：当前因「KnowledgeEntry 编译未实现」BLOCKED。转判条件：KnowledgeEntry 经 M7 正式 Pattern/Concept 聚合发号，支持 `not_captured` 语义并输出至 KnowledgeDataPack；
+     - **20.8**（结构化知识与 SourceAssetPack 引用完整）：当前因「缺结构化知识」BLOCKED。转判条件：KnowledgeDataPack、EvidenceMapPack、SourceAssetPack（支持 `reference_and_hash_only`）编译成功且在 ReleaseManifest 中完成输入对账；
+     - **20.9**（GraphProjectionPack 投影）：当前因「GraphProjectionPack 未实现」BLOCKED。转判条件：GraphProjectionPack 按照草案格式生成，节点/边完备且与 Snapshot 共享 `canonical_hash`。
+- **依据**：
+  - 规格 §20:940-945（20.4、20.6、20.8、20.9 判定条目）；
+  - `G7-RULINGS.md` 第 97 条（显式分流、不回落）、第 100 条 D8、D9。
+- **未决点**：
+  - 未决点 Q-M8-06：电子文本宿主环境变量命名与判定入口参数。
+
+### 11.9 ACT 拆分建议
+
+依据依赖顺序与修改范围，建议将 M8 返工拆分为 6 个独立执行与验收的 ACT：
+
+1. **ACT 09：`GraphProjectionPack` 纯函数编译器与契约草案**
+   - *写范围*：`pipeline/dataset_compiler/packs.py`、`pipeline/dataset_compiler/tests/test_packs.py`；
+   - *用例名*：`test_build_graph_projection_pack_structure`、`test_graph_projection_nodes_edges_sorted`、`test_graph_projection_canonical_hash_matches_snapshot`、`test_graph_projection_watermark_flagging`；
+   - *用例与阈值估计*：新增约 12 条用例，套件累计达到 136 条。
+2. **ACT 10：`reference_and_hash_only` 策略与 offset 证据链纯函数组装**
+   - *写范围*：`pipeline/dataset_compiler/packs.py`、`pipeline/dataset_compiler/levels.py`、`pipeline/dataset_compiler/tests/test_packs.py`、`test_levels.py`；
+   - *用例名*：`test_reference_and_hash_only_admission_allowed`、`test_build_source_asset_pack_reference_and_hash_only`、`test_build_evidence_map_pack_offset_chain`、`test_reference_and_hash_only_omits_raw_text`；
+   - *用例与阈值估计*：新增约 15 条用例，套件累计达到 151 条。
+3. **ACT 11：知识链前三段（KnowledgeEntry/Assertion/EvidenceLink）组装与 `ent_` 确定性发号**
+   - *写范围*：`pipeline/dataset_compiler/packs.py`、`pipeline/dataset_compiler/canonical.py`、`pipeline/dataset_compiler/tests/test_packs.py`；
+   - *用例名*：`test_ent_uuid5_deterministic_generation`、`test_build_knowledge_data_pack_entries`、`test_evidence_link_absolute_offset_binding`、`test_knowledge_chain_internal_demo_watermark`；
+   - *用例与阈值估计*：新增约 16 条用例，套件累计达到 167 条。
+4. **ACT 12：M8 独立 Gate 升级（知识链实评与 offset 校验）**
+   - *写范围*：`pipeline/dataset_compiler/gate.py`、`pipeline/dataset_compiler/tests/test_gate.py`；
+   - *用例名*：`test_gate_evaluates_knowledge_chain_closure`、`test_gate_rejects_assertion_bypass`、`test_gate_offset_anchor_continuity`、`test_gate_sanitization_disclosure_checked`、`test_gate_graph_projection_checked`；
+   - *用例与阈值估计*：新增约 18 条用例，套件累计达到 185 条。
+5. **ACT 13：M8 Ledger 事务与输入改读 M7 Snapshot**
+   - *写范围*：`pipeline/dataset_compiler/inputs.py`、`pipeline/dataset_compiler/step.py`、`pipeline/dataset_compiler/tests/test_inputs.py`、`test_step.py`；
+   - *用例名*：`test_resolve_m8_inputs_from_snapshot`、`test_resolve_m8_inputs_dispatches_by_evidence_level`、`test_run_m8_offset_level_internal_demo_succeeds`、`test_run_m8_packs_sealed_and_checkpoints`；
+   - *用例与阈值估计*：新增约 16 条用例，套件累计达到 201 条。
+6. **ACT 14：M8 验收面扩展与 `run_all.sh` 20.4/20.6/20.8/20.9 转判（独占 ACT，P4）**
+   - *写范围*：`pipeline/dataset_compiler/acceptance.py`、`openspec/acceptance/m8-span-identity.sh`、`openspec/acceptance/run_all.sh`；
+   - *用例名*：`test_acceptance_text_route_runs_and_verifies`、`test_acceptance_text_route_missing_blocks_exit_3`；
+   - *用例与阈值估计*：新增约 10 条用例，套件累计达到 211 条；推动 20.4/20.6/20.8/20.9 依据实际产出转判。
+
+### 11.10 未决点汇总表
+
+| 编号 | 问题 | 候选方案 | 推荐 | 需谁裁决 |
+|---|---|---|---|---|
+| Q-M8-01 | KnowledgeEntry 主体选取原则 | A: 以 Pattern 为主体<br>B: 以 Concept 为主体<br>C: 双轨制（Pattern 与 Concept 均可为主体，依 `subject_entity_id` 区分） | **推荐 C**（符合 INTERFACES:298，兼顾概念字典与命理断语） | 主 Agent |
+| Q-M8-02 | `ent_` 发号算法与跨 Release 延续 | A: UUIDv5（以 `technique_id:subject_entity_id` 为命名空间派生，纯函数确定性）<br>B: 号段确定性自增分配（如 `ent_qizheng_000001`，需维护分配器）<br>C: 运行时 UUIDv4 随机（破坏编译幂等，不推荐） | **推荐 A**（天然幂等，跨 Release 同对象不漂移） | 主 Agent |
+| Q-M8-03 | `reference_and_hash_only` 下 EvidenceMapPack 是否保留 `quote`/`text` 字符串 | A: 彻底剔除（不输出字段，客户端仅通过 offset 与底本核对）<br>B: 字段置为 `null`<br>C: 保留短引文 `quote`，仅剔除全文 `text` | **推荐 B**（保持 Schema 键集稳定，同时杜绝文本泄露） | 主 Agent |
+| Q-M8-04 | M8 输入中 M7 Snapshot 的粒度与形式 | A: 单 Technique 唯一定位一个 Snapshot（内含多个 Edition/EditionPart）<br>B: 单个 EditionPart 对应一个独立 Snapshot | **推荐 A**（符合规格 §16:699 与第 63 条 R1 裁决） | 主 Agent |
+| Q-M8-05 | GraphProjectionPack 中边的 `edge_id` 生成规则 | A: 确定性三元组哈希（如 `e_` + sha256(source:relation:target)[:32]）<br>B: 顺序数字号段（如 `e_000001`）<br>C: 边不发独立 ID，仅以 `(source, relation, target)` 标识 | **推荐 A**（满足全局 ID 规范与跨 Release 稳定性） | 主 Agent |
+| Q-M8-06 | `m8-span-identity.sh` 电子文本路线的环境变量名称 | A: `EVAL_ROUTE=text`（配 `FIXTURE_TEXT_DIR`）<br>B: `M8_ROUTE=offset`<br>C: 仅通过 `FIXTURE_DIR` 路径特征隐式推导（违反第 97 条，不推荐） | **推荐 A**（显式分流、语义清晰） | 主 Agent |
+| Q-M8-07 | offset 证据链在 `EvidenceMapPack` 中的 `chain_segments` 声明 | A: 显式写为 `["KnowledgeEntry", "Assertion", "EvidenceLink", "SourceSpan", "SourceAnchor", "DeterministicPatchSet", "RawText", "SourceAsset"]`<br>B: 维持 7 段抽象名（用 `SourceAnchor` 代指 offset 锚点层） | **推荐 A**（如实反映证据链完整性，便于 Gate 逐段核对） | 主 Agent |
+| Q-M8-08 | M8 Gate 中检查项清单（`_CHECK_NAMES`）组织形式 | A: 拆分为 `_COMMON_CHECKS` + `_GLYPHBOX_CHECKS` / `_OFFSET_CHECKS`<br>B: 保持单一列表，检查项内部根据 `evidence_level` 自动分派子检查 | **推荐 B**（对上游输出结构保持一致，减少调度复杂度） | 主 Agent |
