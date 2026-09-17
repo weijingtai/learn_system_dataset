@@ -24,7 +24,7 @@ contract: |
        (4) window_rule_fidelity：len(text) >= model_min_chars 的片段均正确成为窗口，其余行严格一行一片
        (5) disputes_resolved_zero：Gate 独立复算双模型提议；分歧窗口必须在 decisions 中恰有 1 条有效裁决；未决分歧数必须为 0（§11:521）
        (6) evidence_level_honest：每条语义片段及顶层 evidence_level 严格为 "offset_level"
-       (7) semantic_identity：semantic_span_id 严格符合 ^sem_[a-z][a-z0-9_]*_ed[0-9]{2}_o[0-9]{7}$，全局唯一、序号连续
+       (7) semantic_identity：semantic_span_id 严格符合 ^sem_[a-z][a-z0-9]*_ed[0-9]{2}_o[0-9]{7}$（依第 102 条，work 段禁止下划线；唯一权威 pipeline/ledger/ids.py），全局唯一、序号连续
        (8) header_counts：文档顶层 span_count, window_count, dispute_count 等计数与实体严格一致
      - 判定规则：八项检查全部 ok 时 semantic 判定为 "passed"，任一失败判定为 "failed"。
 

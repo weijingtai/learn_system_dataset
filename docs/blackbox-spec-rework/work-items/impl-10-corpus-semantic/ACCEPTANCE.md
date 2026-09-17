@@ -257,6 +257,20 @@ act/02 复核（`git archive e5b07ed` 干净树）：
 
 执行方纪律：回报如实写明「单删 `rc==1` 分支的独立转红复验未跑——该层与 `elif` 冗余，未声称其为独立护栏」；并书面接受第 97 条纪律（删已验收护栏须写待裁决停手），本轮未再发生。
 
+### 3.6 W8 8.1 返工 R81a + R81b（2026-09-16，主 Agent 独立验收，`git archive 08e3bba` 干净树；执行器 cmd DeepSeek V4.1 Flash）
+
+判定：**R81a（`7bdaa9c`）与 R81b（`08e3bba`）ACCEPTED**。第 100 条 D2/D3、第 102 条落地，**真书 M3 产出首次可被 M4 读取**。R81a 同时是 impl-01 `ids.py` 的返工，记录统一在此。
+
+过程：原派 opencode Union Alpha 一个半小时零产出（供应端反复 `Endpoint is unavailable`，回报仅 `placeholder`），主 Agent 关停改派 cmd；cmd 首轮查出五处口径冲突、零改动停手上报（第 102 条），裁决后完成。
+
+复核（干净树实测）：
+
+- 套件：ledger `Ran 84 OK`、corpus `Ran 163 OK`、semantic `Ran 54 OK`、intake 35、digitization 82、knowledge_extraction 133、validation 87、review 156、assembly 96、dataset_compiler 125 均 OK；orchestrator `FAILED (failures=5)`、contract_registry `FAILED (failures=1)`——**与改动前 `dfc2a4c` 干净树失败集合逐条相同**，原文为「BLOCKED real_chain_mini_ed01 前置缺失: …派生页图缺失」，系 `git archive` 不含不入库的页图所致（执行方工作树实测两套 OK），非回归。`check_interfaces fail=0`；`run_all.sh` 基线不变；`m3-coverage.sh` exit 与改前同。
+- **用例变动审计**（主 Agent 以 AST 逐函数比对提交前后）：`test_gate_offset.py` 删 0、改 4（均为 `assemble_m3_text_stage_package_*`，第 102 条 Q4⑤ 授权）、增 1；`test_offset_anchors.py` 删 0、改 3（`work_a` → 下划线禁止，第 102 条 Q1 授权）、增 1；`test_ids.py` 删 0、改 1（家族遍历，19→20，Q3 授权）、增 10；`test_step_offset.py` 删 0、改 0、增 5。无越权放宽。
+- **主 Agent 篡改**（临时副本）：(1) `ids.py` `WORK` 放开下划线 → 4 条转红（含 `test_span_id_work_segment_rejects_underscore`、`test_format_source_span_id_rejects_underscore_work_SCH_002`）；(2) `step_offset.py` 不登记阶段包 → 12 条转红（含 `test_run_m3_text_output_resolvable_by_m4`）。
+- **主 Agent 独立脚本**真书 M1→M2→M3→M4 读取：M3 `succeeded`、696 片段、`coverage = {qianyuan_ed01_text: 1.0}`、`excluded_pages = {}`、`stage_packages = [m3]`，`resolve_m3_outputs` 成功。
+- 执行方报备处理：`act/06.yaml:27` 陈旧正则由主 Agent 改正（依第 102 条）；`pipeline/corpus_compiler/gate.py:23` 页码形态 parts 正则未收归 ids（字符集与 ids 逐字相同、未分叉），列 W8 跟进；`coverage_report.pages.line_count` 取 RawText 物理行数（157），接受；电子文本路线要求 M1 恰 1 个 page 单位，接受。
+
 ## 4. 待裁决
 
 无。
