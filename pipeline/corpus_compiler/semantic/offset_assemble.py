@@ -1,3 +1,4 @@
+from pipeline.corpus_compiler.semantic.prompt_registry import get_default_registry
 """M3 语义层合成：``sem_`` 偏移锚点 SemanticSpan 与语义文档（act/05，G7-RULINGS 第 80 条）。
 
 在结构片段之上按「规则优先 + 双模型窗口 + 人工裁决」合成语义片段：
@@ -68,6 +69,7 @@ def compile_semantic_offset(
     work: str,
     edition: str,
     edition_part_artifact_id: str = None,
+    prompt_template_id: str = "m3_boundary_v1",
 ) -> dict:
     """合成语义层文档（顶层键序与 README §6.2 逐字一致）。
 
@@ -218,6 +220,10 @@ def compile_semantic_offset(
         "gate_profile": GATE_PROFILE,
         "segmentation_profile": {
             "profile": SEGMENTATION_PROFILE,
+            "prompt_template_id": prompt_template_id,
+            "prompt_id": getattr(get_default_registry().get(prompt_template_id), "prompt_id", prompt_template_id),
+            "prompt_version": getattr(get_default_registry().get(prompt_template_id), "version", "1.0.0"),
+            "prompt_sha256": getattr(get_default_registry().get(prompt_template_id), "sha256", None),
             "boundary_origins": origin_counts,
         },
         "content_status": CONTENT_STATUS,

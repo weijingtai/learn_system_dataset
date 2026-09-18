@@ -173,6 +173,7 @@ def open_semantic_review(
     queue_doc = {
         "schema": QUEUE_SCHEMA,
         "edition_part_id": edition_part_id,
+        "template_id": recorded.get("template_id"),
         "work": inputs.work,
         "edition": inputs.edition,
         "model_min_chars": model_min_chars,
@@ -406,7 +407,9 @@ def resume_m3_text_full(
         decision_documents.append(document)
 
     windows = select_text_windows(structural["spans"], model_min_chars=model_min_chars)
+    prompt_template_id = queue_doc.get("template_id") or PROMPT_TEMPLATE_ID
     semantic_doc = compile_semantic_offset(
+        prompt_template_id=prompt_template_id,
         structural_spans=structural["spans"],
         windows=windows,
         resolutions=resolutions,

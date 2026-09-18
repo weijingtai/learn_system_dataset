@@ -1,3 +1,4 @@
+from pipeline.corpus_compiler.semantic.prompt_registry import PromptProfile, PromptRegistry, get_default_registry
 """act/04 Proposer Adapter（prompt 模板、请求体隔离、录制回放、禁用桩、零网络）具名用例。
 
 synthetic_fixture: true —— 录制内容为内联合成数据，标 synthetic: true，不写 fixture 目录（P4）。
@@ -282,6 +283,70 @@ class TestZeroNetwork(unittest.TestCase):
                     self.assertTrue(parsed["valid"], parsed["error"])
 
         self.assertEqual(network_calls, [], "P6 违例：回放流程发起了网络调用")
+
+
+class TestPromptAssetRegistry(unittest.TestCase):
+    """Prompt 资产化与解耦校验（Prompt as Artifact）。"""
+
+    def test_default_registry_loads_v1_asset(self):
+        reg = get_default_registry()
+        profile = reg.require("m3_boundary_v1")
+        self.assertEqual(profile.prompt_id, "m3_boundary")
+        self.assertEqual(profile.version, "1.0.0")
+        self.assertEqual(profile.sha256, PROMPT_TEMPLATE_SHA256)
+        self.assertEqual(
+            hashlib.sha256(profile.template.encode("utf-8")).hexdigest(),
+            profile.sha256,
+        )
+
+    def test_profile_self_consistency_rejects_hash_mismatch(self):
+        with self.assertRaises(ValueError):
+            PromptProfile.from_dict({
+                "template_id": "bad_hash_profile",
+                "template": "some text",
+                "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+            })
+
+    def test_dynamic_registration_and_usage(self):
+        custom_template = "新版古籍分词提示词模板。"
+        custom_sha = hashlib.sha256(custom_template.encode("utf-8")).hexdigest()
+        custom_profile = PromptProfile.from_dict({
+            "prompt_id": "m3_boundary_experimental",
+            "version": "2.0.0",
+            "template_id": "m3_boundary_v2_test",
+            "description": "实验版切分提示词",
+            "template": custom_template,
+            "sha256": custom_sha,
+        })
+        reg = PromptRegistry(prompts_dir=Path("/nonexistent"))
+        reg.register(custom_profile)
+
+        # 1. 注册表中查询
+        self.assertTrue(reg.contains("m3_boundary_v2_test"))
+        self.assertEqual(reg.require("m3_boundary_v2_test").sha256, custom_sha)
+
+        # 2. 构造请求体携带资产信息
+        req_bytes = build_request(
+            slot="a",
+            model=MODEL,
+            window=make_window_a(),
+            template_id="m3_boundary_v2_test",
+            registry=reg,
+        )
+        req_doc = json.loads(req_bytes.decode("utf-8"))
+        self.assertEqual(req_doc["template_id"], "m3_boundary_v2_test")
+        self.assertEqual(req_doc["prompt_id"], "m3_boundary_experimental")
+        self.assertEqual(req_doc["prompt_version"], "2.0.0")
+        self.assertEqual(req_doc["prompt_sha256"], custom_sha)
+        self.assertEqual(req_doc["template"], custom_template)
+
+        # 3. 录制文档回放支持动态模板
+        rec_doc = recordings_doc(template_id="m3_boundary_v2_test")
+        loaded = load_recordings(
+            json.dumps(rec_doc, ensure_ascii=False).encode("utf-8"),
+            registry=reg,
+        )
+        self.assertEqual(loaded["template_id"], "m3_boundary_v2_test")
 
 
 if __name__ == "__main__":

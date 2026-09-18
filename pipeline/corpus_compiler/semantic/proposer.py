@@ -1,3 +1,4 @@
+from typing import Optional
 """M3 语义层 Proposer Adapter：请求体构造、录制回放与禁用桩（act/04，P6）。
 
 零模型调用、零网络是首纵切红线（P6）：本模块**不得**引入任何网络库，也不得含任何
@@ -18,23 +19,22 @@ import os
 
 import yaml
 
-# 提示词模板标识（录制文档须与之逐字一致，防模板漂移）
-PROMPT_TEMPLATE_ID = "m3_boundary_v1"
-
-# 古籍语义切分提示词模板：只输出 JSON，不复述原文
-PROMPT_TEMPLATE = (
-    "你是古籍文本的语义切分助手。\n"
-    "任务：把下面给出的【窗口原文】切分为语义完整的片段。\n"
-    "输出要求：\n"
-    "1. 只输出 JSON，形如 "
-    '{"segments": [{"start_offset": 0, "end_offset": 3, "reason": "短语"}]}；\n'
-    "2. 偏移以窗口原文起点为 0，区间左闭右开，必须首尾相连并完整覆盖整个窗口；\n"
-    "3. 不得复述原文，不得在输出中夹带窗口原文的任何整句内容；\n"
-    "4. 不得输出 JSON 之外的解释、注释或 Markdown 代码围栏。\n"
+from pipeline.corpus_compiler.semantic.prompt_registry import (
+    PromptProfile,
+    PromptRegistry,
+    get_default_registry,
 )
 
-# 模板指纹：任何模板漂移都会使该常量与重算结果不一致
-PROMPT_TEMPLATE_SHA256 = hashlib.sha256(PROMPT_TEMPLATE.encode("utf-8")).hexdigest()
+# 提示词模板标识（向后兼容默认常量，防模板漂移）
+PROMPT_TEMPLATE_ID = "m3_boundary_v1"
+
+_default_profile = get_default_registry().require(PROMPT_TEMPLATE_ID)
+
+# 古籍语义切分提示词模板：只输出 JSON，不复述原文（由资产注册表提供）
+PROMPT_TEMPLATE = _default_profile.template
+
+# 模板指纹：由资产内容自洽生成（防模板漂移，向后兼容常量）
+PROMPT_TEMPLATE_SHA256 = _default_profile.sha256
 
 # 录制文档 schema 标识
 RECORDINGS_SCHEMA = "m3_boundary_recordings/1"
@@ -58,7 +58,14 @@ class RecordingSchemaError(ValueError):
     """录制文档不合规（schema / synthetic / template_id / 结构不符）。"""
 
 
-def build_request(*, slot: str, model: dict, window: dict) -> bytes:
+def build_request(
+    *,
+    slot: str,
+    model: dict,
+    window: dict,
+    template_id: str = PROMPT_TEMPLATE_ID,
+    registry: Optional[PromptRegistry] = None,
+) -> bytes:
     """为一侧模型构造切分请求体（确定性字节）。
 
     参数：
@@ -87,10 +94,20 @@ def build_request(*, slot: str, model: dict, window: dict) -> bytes:
     if not isinstance(text, str) or not text:
         raise ValueError("SCH_002: window.text 必须为非空字符串")
 
+    reg = registry or get_default_registry()
+    profile = reg.get(template_id)
+    template_text = profile.template if profile else PROMPT_TEMPLATE
+    prompt_id = profile.prompt_id if profile else template_id
+    prompt_version = profile.version if profile else "1.0.0"
+    prompt_sha256 = profile.sha256 if profile else PROMPT_TEMPLATE_SHA256
+
     payload = {
         "schema_version": "1.0.0",
-        "template_id": PROMPT_TEMPLATE_ID,
-        "template": PROMPT_TEMPLATE,
+        "template_id": template_id,
+        "prompt_id": prompt_id,
+        "prompt_version": prompt_version,
+        "prompt_sha256": prompt_sha256,
+        "template": template_text,
         "slot": slot,
         "model": model,
         "window_id": window.get("window_id"),
@@ -100,7 +117,7 @@ def build_request(*, slot: str, model: dict, window: dict) -> bytes:
     return json.dumps(payload, sort_keys=True, ensure_ascii=False).encode("utf-8")
 
 
-def load_recordings(data: bytes) -> dict:
+def load_recordings(data: bytes, *, registry: Optional[PromptRegistry] = None) -> dict:
     """解析并校验回放录制文档。
 
     校验项（任一不符即抛 ``RecordingSchemaError``）：
@@ -128,9 +145,11 @@ def load_recordings(data: bytes) -> dict:
             "录制必须显式标注 synthetic: true（合成回放，不得冒充真实模型输出）"
         )
 
-    if doc.get("template_id") != PROMPT_TEMPLATE_ID:
+    reg = registry or get_default_registry()
+    doc_template_id = doc.get("template_id")
+    if not reg.contains(doc_template_id):
         raise RecordingSchemaError(
-            "template_id 必须为 %r，实际 %r" % (PROMPT_TEMPLATE_ID, doc.get("template_id"))
+            "未知的 template_id: %r（未在 PromptRegistry 注册）" % (doc_template_id,)
         )
 
     if not isinstance(doc.get("recordings"), list):
