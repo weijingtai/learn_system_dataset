@@ -2,22 +2,23 @@
 更新时间：2026-09-18
 当前分支/worktree：`feat/web-console`；`/Users/jingtaiwei/Git/Public/learn_system-web-console`
 刚完成：
-1. 完整搭建与交付 Web 综合控制台前端工程 `console_frontend`（Vue 3 + TypeScript + Ant Design Vue + Pinia + md-editor-v3，ACT 03、04、05）：
-   - 全局 8 阶段 Steps 动态步骤导航条与状态映射（M1 图像转写 -> M2 文本清洗 -> M3 分词边界 -> M4 实体抽取 -> M5 关系抽取 -> M6 命题提炼 -> M7 规则编译 -> M8 数据发布）；
-   - WebSocket 实时事件通道封装（`src/utils/ws.ts`，自动重连、心跳、stage_change 与 log_append 同步）；
-   - M1 OCR 工作台组件（`M1OcrWorkbench.vue`：移植古籍底图、双栏中缝切线、CharBox 单字检测框、状态色彩映射、缩放、拆分行、合并框与字符属性检查）；
-   - M2 数据清洗工作台（`M2SanitizationWorkbench.vue`：使用 `md-editor-v3` 展示原文与清洗后规范文本，支持 13 项清洗规则检出表格与定位高亮、一键重洗）；
-   - M3/M6 协同审核工作台（`ReviewWorkbench.vue`：呈现第三方 AI 预审初筛 + 人工复核决策工作流，包含采纳、修改、驳回、补证与批量提交）；
-   - M8 标准发布出包面板（`M8ReleaseExport.vue`：指标统计看板、一键下载 Release Bundle JSON、预留下游服务与 Firebase Config / Hosting 同步卡片）；
-   - 全局实时执行日志折叠抽屉（`PipelineLogDrawer.vue`）与新建流水线弹窗（`CreateRunModal.vue`）；
-   - 前端构建验证通过（`npm run build` 零错误打包完成）。
-2. 后端补齐配套的 `/api/pipeline/export/{run_id}` 及 `/api/workbench/*` 路由并全部通过单元测试（14 项测试 100% 通过）。
+1. 实现 Workbench M1、M2、Review 以及 Export 相关的 Protobuf 路由接口：
+   - `GET /api/workbench/m1/{run_id}` 及 `/api/workbench/m1/page`：返回双栏版心中缝 Mock PageScan 数据；
+   - `POST /api/workbench/m1/rectify`：处理 OCR 单字校正及加切线动作，广播 `ocr_rectify` 事件；
+   - `GET /api/workbench/m2/{run_id}` 及 `/api/workbench/m2/data`：集成真实 `pipeline.digitization.cleaner.clean_text` 产出 13 项清洗规则 findings，完整映射 terminal_state 与 offset；
+   - `POST /api/workbench/m2/clean`：支持实时输入文本重跑清洗并返回最新发现项；
+   - `GET /api/workbench/review/{run_id}` 及 `/api/workbench/review/queue`：返回包含 AI 预审决策（`VERDICT_ACCEPT` / `VERDICT_MODIFY`）的术数知识命题队列；
+   - `POST /api/workbench/review/decide` 及 `/api/workbench/review/batch`：提交审核决议，全员过审后推进流水线阶段到 M7_ASSEMBLY 并通过 WebSocket 广播阶段更新；
+   - `GET /api/pipeline/export/{run_id}`：支持一键下载 ReleaseBundle JSON，设置 `Content-Disposition: attachment; filename="release_bundle_{run_id}.json"`。
+2. 完善 Protobuf `always_print_fields_with_no_presence=True, preserving_proto_field_name=True` 与驼峰兼容映射，静态路由置前避免参数截获。
+3. 单元测试 `console_backend/tests/test_workbench_api.py` 覆盖全套 M1/M2/Review/Export 接口，全套 22 项测试 100% 通过。
 进行到一半的事（精确到文件和章节）：
-- 控制台前端与后端的全链路联合调试就绪。
+- 前端 `console_frontend` 与后端 API 的端到端联动测试与联调闭环。
 下一步（第一件事）：
-- 启动 backend 与 frontend 进行全链路端到端功能验证与用户演示。
+- 启动前后端服务进行用户端到端操作演示与功能验收。
 已知的坑：
-- 后端 FastAPI 依赖环境需通过 `uv run` 执行。
+- Protobuf 在 Proto3 模式下默认省略零值字段（如 line_index=0, start_offset=0），转字典时必须显式开启 `always_print_fields_with_no_presence=True`。
+- FastAPI 动态路由如 `/{run_id}` 会贪婪匹配静态同级路径（如 `/page`, `/data`, `/queue`），静态路由必须声明在动态路由前面。
 
 ## （上一节）G7 W4 收尾：impl-08 与 impl-05 均 ACCEPTED
 

@@ -184,6 +184,16 @@ def _create_default_review_queue() -> List[workbench_review_pb2.ReviewQueueItem]
 # M1 OCR 端点
 # ==========================================
 
+@router.get("/m1/page", response_model=dict, include_in_schema=False)
+def get_m1_page_by_param(
+    run_id: str = Query(...),
+    page_index: int = Query(1),
+    repo: SqlitePipelineRepository = Depends(get_repository),
+) -> dict[str, Any]:
+    """兼容 query 参数形式获取 M1 PageScan。"""
+    return get_m1_page(run_id=run_id, page_index=page_index, repo=repo)
+
+
 @router.get("/m1/{run_id}", response_model=dict)
 def get_m1_page(
     run_id: str,
@@ -195,17 +205,14 @@ def get_m1_page(
     if scan is None:
         scan = _create_default_mock_page_scan(page_index=page_index)
         repo.save_m1_page_scan(run_id, scan)
-    return json_format.MessageToDict(scan, preserving_proto_field_name=True)
-
-
-@router.get("/m1/page", response_model=dict, include_in_schema=False)
-def get_m1_page_by_param(
-    run_id: str = Query(...),
-    page_index: int = Query(1),
-    repo: SqlitePipelineRepository = Depends(get_repository),
-) -> dict[str, Any]:
-    """兼容 query 参数形式获取 M1 PageScan。"""
-    return get_m1_page(run_id=run_id, page_index=page_index, repo=repo)
+    res = json_format.MessageToDict(
+        scan,
+        always_print_fields_with_no_presence=True,
+        preserving_proto_field_name=True,
+    )
+    res["charBoxes"] = res.get("char_boxes", [])
+    res["cutLines"] = res.get("cut_lines", [])
+    return res
 
 
 @router.post("/m1/rectify", response_model=dict)
@@ -268,12 +275,28 @@ async def rectify_m1_ocr(
     )
     await ws_manager.broadcast(ws_event)
 
-    return json_format.MessageToDict(scan, preserving_proto_field_name=True)
+    res = json_format.MessageToDict(
+        scan,
+        always_print_fields_with_no_presence=True,
+        preserving_proto_field_name=True,
+    )
+    res["charBoxes"] = res.get("char_boxes", [])
+    res["cutLines"] = res.get("cut_lines", [])
+    return res
 
 
 # ==========================================
 # M2 Sanitization 端点
 # ==========================================
+
+@router.get("/m2/data", response_model=dict, include_in_schema=False)
+def get_m2_data_by_param(
+    run_id: str = Query(...),
+    repo: SqlitePipelineRepository = Depends(get_repository),
+) -> dict[str, Any]:
+    """兼容 query 参数形式获取 M2 数据。"""
+    return get_m2_data(run_id=run_id, repo=repo)
+
 
 @router.get("/m2/{run_id}", response_model=dict)
 def get_m2_data(
@@ -285,16 +308,15 @@ def get_m2_data(
     if wb_data is None:
         wb_data = _build_m2_workbench_data(run_id=run_id, raw_text=DEFAULT_M2_RAW_TEXT)
         repo.save_m2_data(run_id, wb_data)
-    return json_format.MessageToDict(wb_data, preserving_proto_field_name=True)
-
-
-@router.get("/m2/data", response_model=dict, include_in_schema=False)
-def get_m2_data_by_param(
-    run_id: str = Query(...),
-    repo: SqlitePipelineRepository = Depends(get_repository),
-) -> dict[str, Any]:
-    """兼容 query 参数形式获取 M2 数据。"""
-    return get_m2_data(run_id=run_id, repo=repo)
+    res = json_format.MessageToDict(
+        wb_data,
+        always_print_fields_with_no_presence=True,
+        preserving_proto_field_name=True,
+    )
+    res["rawText"] = res.get("raw_text", "")
+    res["cleanedText"] = res.get("cleaned_text", "")
+    res["totalFindings"] = res.get("total_findings", len(res.get("findings", [])))
+    return res
 
 
 @router.post("/m2/clean", response_model=dict)
@@ -313,12 +335,29 @@ def clean_m2_text(
 
     wb_data = _build_m2_workbench_data(run_id=run_id, raw_text=raw_text, rule_ids_to_clean=rule_ids)
     repo.save_m2_data(run_id, wb_data)
-    return json_format.MessageToDict(wb_data, preserving_proto_field_name=True)
+    res = json_format.MessageToDict(
+        wb_data,
+        always_print_fields_with_no_presence=True,
+        preserving_proto_field_name=True,
+    )
+    res["rawText"] = res.get("raw_text", "")
+    res["cleanedText"] = res.get("cleaned_text", "")
+    res["totalFindings"] = res.get("total_findings", len(res.get("findings", [])))
+    return res
 
 
 # ==========================================
 # Review (M3 / M6) 端点
 # ==========================================
+
+@router.get("/review/queue", response_model=List[dict], include_in_schema=False)
+def get_review_queue_by_param(
+    run_id: str = Query(...),
+    repo: SqlitePipelineRepository = Depends(get_repository),
+) -> List[dict[str, Any]]:
+    """兼容 query 参数形式获取审核队列。"""
+    return get_review_queue(run_id=run_id, repo=repo)
+
 
 @router.get("/review/{run_id}", response_model=List[dict])
 def get_review_queue(
@@ -330,16 +369,14 @@ def get_review_queue(
     if not items:
         items = _create_default_review_queue()
         repo.save_review_items(run_id, items)
-    return [json_format.MessageToDict(item, preserving_proto_field_name=True) for item in items]
-
-
-@router.get("/review/queue", response_model=List[dict], include_in_schema=False)
-def get_review_queue_by_param(
-    run_id: str = Query(...),
-    repo: SqlitePipelineRepository = Depends(get_repository),
-) -> List[dict[str, Any]]:
-    """兼容 query 参数形式获取审核队列。"""
-    return get_review_queue(run_id=run_id, repo=repo)
+    return [
+        json_format.MessageToDict(
+            item,
+            always_print_fields_with_no_presence=True,
+            preserving_proto_field_name=True,
+        )
+        for item in items
+    ]
 
 
 @router.post("/review/decide", response_model=dict)
@@ -402,7 +439,11 @@ async def submit_review_decisions(
         )
         await ws_manager.broadcast(ws_event)
 
-    result = json_format.MessageToDict(req, preserving_proto_field_name=True)
+    result = json_format.MessageToDict(
+        req,
+        always_print_fields_with_no_presence=True,
+        preserving_proto_field_name=True,
+    )
     result["status"] = "ok"
     result["success"] = True
     result["count"] = len(req.decisions)
