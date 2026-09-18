@@ -335,15 +335,27 @@ def cmd_decide_batch(args):
         decisions = raw.get("decisions", []) if isinstance(raw, dict) else (raw or [])
 
         for d in decisions:
+            verdict = d.get("verdict")
+            if verdict == "accepted":
+                verdict = "accept"
+            elif verdict == "modified":
+                verdict = "modify"
+            elif verdict == "rejected":
+                verdict = "reject"
+
+            mod_content = d.get("modified_content")
+            if isinstance(mod_content, str):
+                mod_content = {"proposition": mod_content}
+
             try:
                 res = step.record_decision(
                     service,
                     args.step_run,
                     args.resume_token,
                     queue_item_id=d["queue_item_id"],
-                    verdict=d["verdict"],
+                    verdict=verdict,
                     rationale=d["rationale"],
-                    modified_content=d.get("modified_content"),
+                    modified_content=mod_content,
                     evidence_refs=tuple(d.get("evidence_refs") or ()),
                 )
                 print(f"M6 DECIDED {res['decision_revision_id']} remaining={res['remaining']}")
