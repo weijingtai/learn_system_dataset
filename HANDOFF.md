@@ -1,21 +1,17 @@
 # HANDOFF
 更新时间：2026-09-18
-当前分支/worktree：`feat/web-console`；`/Users/jingtaiwei/Git/Public/learn_system-web-console`
+当前分支/worktree：`codex/docs/knowledge-compilation`；`/Users/jingtaiwei/Git/Public/learn_system`
 刚完成：
-1. 实现 Workbench M1、M2、Review 以及 Export 相关的 Protobuf 路由接口：
-   - `GET /api/workbench/m1/{run_id}` 及 `/api/workbench/m1/page`：返回双栏版心中缝 Mock PageScan 数据；
-   - `POST /api/workbench/m1/rectify`：处理 OCR 单字校正及加切线动作，广播 `ocr_rectify` 事件；
-   - `GET /api/workbench/m2/{run_id}` 及 `/api/workbench/m2/data`：集成真实 `pipeline.digitization.cleaner.clean_text` 产出 13 项清洗规则 findings，完整映射 terminal_state 与 offset；
-   - `POST /api/workbench/m2/clean`：支持实时输入文本重跑清洗并返回最新发现项；
-   - `GET /api/workbench/review/{run_id}` 及 `/api/workbench/review/queue`：返回包含 AI 预审决策（`VERDICT_ACCEPT` / `VERDICT_MODIFY`）的术数知识命题队列；
-   - `POST /api/workbench/review/decide` 及 `/api/workbench/review/batch`：提交审核决议，全员过审后推进流水线阶段到 M7_ASSEMBLY 并通过 WebSocket 广播阶段更新；
-   - `GET /api/pipeline/export/{run_id}`：支持一键下载 ReleaseBundle JSON，设置 `Content-Disposition: attachment; filename="release_bundle_{run_id}.json"`。
-2. 完善 Protobuf `always_print_fields_with_no_presence=True, preserving_proto_field_name=True` 与驼峰兼容映射，静态路由置前避免参数截获。
-3. 单元测试 `console_backend/tests/test_workbench_api.py` 覆盖全套 M1/M2/Review/Export 接口，全套 22 项测试 100% 通过。
+1. Web 综合控制台（Web Console）全栈工程交付并在 `feat/web-console` 分支开发验收后合并入主工作树：
+   - **Protobuf 契约层**（`proto/console/v1/`）：`common.proto`, `pipeline.proto`, `workbench_m1_m2.proto`, `workbench_review.proto` 契约定义与编译脚本 `scripts/compile_proto.sh`；
+   - **FastAPI 后端**（`console_backend/`）：原生 WebSocket 事件总线（`ws.py`）、SQLite 仓储层（`repository.py`），以及流水线、M1 OCR、M2 清洗（接入真实 `cleaner.py` 13项清洗规则）、M3/M6 AI 预审协同审核与 M8 ReleaseBundle 导出下载路由；
+   - **Vue 3 前端工程**（`console_frontend/`）：Vite 6 + Vue 3 + TypeScript + Ant Design Vue + Pinia + `md-editor-v3`；实现全局 8 阶段 Stepper 步骤导航、M1 古籍 OCR 画布工作台、M2 数据清洗对比与脏数据高亮定位、M3/M6 双轨 AI 预审初筛与人工复核决策卡片、M8 数据集出包下载及下游外部数据服务（Firebase Config / Hosting 挂载预留）；
+   - **双端验收通过**：后端 22 项单元测试 100% 通过（`Ran 22 tests in 0.064s OK`）；前端 `npm run build` 生产构建零警告零错误。
+   - **Worktree 规范收口**：已将 `feat/web-console` 快进合并回 `codex/docs/knowledge-compilation`，清理临时 worktree。
 进行到一半的事（精确到文件和章节）：
-- 前端 `console_frontend` 与后端 API 的端到端联动测试与联调闭环。
+- 控制台前后端一体化本地联调启动与用户验收。
 下一步（第一件事）：
-- 启动前后端服务进行用户端到端操作演示与功能验收。
+- 向用户汇报交付成果，提供前后端服务一键启动与使用指引。
 已知的坑：
 - Protobuf 在 Proto3 模式下默认省略零值字段（如 line_index=0, start_offset=0），转字典时必须显式开启 `always_print_fields_with_no_presence=True`。
 - FastAPI 动态路由如 `/{run_id}` 会贪婪匹配静态同级路径（如 `/page`, `/data`, `/queue`），静态路由必须声明在动态路由前面。
