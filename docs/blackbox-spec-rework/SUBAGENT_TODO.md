@@ -614,7 +614,7 @@
 - [x] 8.1 impl-01 R81a（`7bdaa9c`，`ids.py` 接受 `ss_`/`sem_` 偏移形态、唯一权威）+ impl-10 R81b（`08e3bba`，电子文本 M3 补 `coverage_report`/`corpus_package`/m3 结构层阶段包）；裁定 102（验收 `impl-10-corpus-semantic/ACCEPTANCE.md` §3.6）
 - [x] 8.2 impl-05 R82a（`71c913f`，M4 按 `evidence_level` 分派、去 `page` 依赖）+ R82b（`7838d59`，真书 m4 宿主、协议 v2 两路提交件）；裁定 104；**用户 24 条分歧裁决已导入，M4 `srun_bafd7499…` 封存 `succeeded`**（验收 `impl-05-knowledge/ACCEPTANCE.md` §5.2/§5.3）
 - [x] 8.4 impl-06 M6：R84（`4e16022`，证据偏移严格按 I-11）+ R84b（`cb96b94`，审核台 offset 锚点与 offset 上游桩）+ R84c（`e5c960a`，裁定 108 夹具更正）已验收（验收 `impl-06-review/ACCEPTANCE.md` §5.6）
-- [x] 8.4b 跑 M6 到 `awaiting_human`（srun_3009b37a…）→ 主 Agent 已生成 M6 审核表模板 `var/ledgers/qianyuan_w8_review/m6_review_decisions_template.yaml` 交用户（已披露：26 条 assertion 无 `concept_refs`、2 条 a 路 assertion 被 G4 拒收）
+- [x] 8.4b 跑 M6 到 `awaiting_human`（srun_3009b37a…）→ **用户 26 条审核决定已完整导入，M6 `close` 封存 `succeeded`（approved=26 rejected=0，9 项 Review Gate 全 PASS）**
 - [ ] 8.5 impl-07 M7：Snapshot `editions[]` 补 `evidence_level`/`corpus_spans_revision_id`、证据偏移统一 I-11、修 `genesis_package.json` 级别与 ID 形态矛盾（裁定 106 D4，未派）
 - [x] 8.6-A impl-04 设计草案（`fa3cc54`）+ 主 Agent 裁决与更正（裁定 107，README §11.11）
 - [x] 8.6-ACT08 impl-00 登记（`ff21388`）：`graph_projection_pack`、`evidence_map_pack` offset 变体、M8 检查名闭集与 `not_applicable`、`entry_id_allocation`（验收 `impl-00-interfaces/ACCEPTANCE.md` §5.6）
@@ -622,7 +622,7 @@
 - [x] 8.6-K2 impl-04 ACT 11（`496fbb1` 知识链前三段 + `ent_` 发号表）+ ACT 12（`162250c` M8 Gate 闭集与实评）（验收 `impl-04-dataset/ACCEPTANCE.md` §5.3）
 - [ ] 8.6-K3 impl-04 ACT 13（改读 M7 Snapshot，须待 8.5）+ ACT 14（`m8-span-identity.sh` 电子文本路线）
 - [ ] 8.7 impl-08 orchestrator 登记 m4/m6 与 m3 文本入口；各验收脚本电子文本路线；`run_all.sh` 20.4/20.6/20.8/20.9 按判定输出（P4 独占 ACT）
-- 用户待办：M6 审核表（8.4b 后）；真实 `expert_verified` 签发决定表（裁定 80，不阻断 `INTERNAL_DEMO`）
+- 用户待办：真实 `expert_verified` 签发决定表（裁定 80，不阻断 `INTERNAL_DEMO`）
 
 ## G6 NC 注解社区线
 
