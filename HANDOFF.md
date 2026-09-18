@@ -4,8 +4,9 @@
 刚完成：
 1. 验收 8.6 K2（ACT 11 `496fbb1` + ACT 12 `162250c`）：`dataset_compiler` 162 OK，`check_interfaces.py` 44 PASS (IF44 清空)，`m8-span-identity.sh` pass=7 fail=0 blocked=1 exit=2，`run_all.sh` pass=2 fail=1 blocked=8；`impl-04-dataset/ACCEPTANCE.md` §5.3 记录 ACCEPTED。
 2. 在独立 worktree（`feat/prompt-asset`）中完成 **Prompt as Artifact** 资产化重构（`f23084c`）：将硬编码 SHA256 常量解耦为 `PromptRegistry` + `PromptProfile` 自洽资产体系，支持多版本 Prompt 注册、A/B 评估对比及产出物（请求体、分歧队列、语义片段产物）回溯记录 `prompt_id` / `prompt_version` / `prompt_sha256`；全量测试 100% 绿；fast-forward 合并回分支并清理 worktree。
-3. Web 综合控制台完整技术方案与任务拆解已定稿：`docs/blackbox-spec-rework/WEB_CONSOLE_PRD_AND_PLAN.md`。
+3. Web 综合控制台完整技术方案与任务拆解已定稿：`docs/blackbox-spec-rework/WEB_CONSOLE_PRD_AND_PLAN.md`（`1a03fb3`）。
 4. **导入并执行 M6 人工审核决定（`3635121`）**：用户填写的 26 项审核决定（`var/ledgers/qianyuan_w8_review/m6_review_decisions_template_filled.yaml`）已通过 `decide-batch` 全部入账，M6 `close` 顺利封存 `succeeded`（`srun_3009b37a…`，approved=26 rejected=0），9 项 Review Gate 检查全 PASS，生成了权威 `reviewed_edition` 与 `reviewed_edition_package`。
+5. **归档后续工作调研文档（`4db6770`）**：将多文档检索与图谱选型调研（`guwen-multidoc-retrieval-terminology-and-stack.md`）及多模型切词评测选型报告（`guwen-multimodel-eval-report.md`）提交进 Git 仓库。
 进行到一半的事（精确到文件和章节）：
 1. 停下来向用户汇报，等待用户对 Web 综合控制台开发方案进行确认与指令。
 下一步（第一件事）：
