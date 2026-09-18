@@ -182,9 +182,43 @@ class TestPipelineApiAndWs(unittest.TestCase):
         self.assertEqual(len(runs_list), 1)
         self.assertEqual(runs_list[0]["runId"], run_id)
 
-        # 5. 查询不存在的任务应返回 404
-        res_404 = self.client.get("/api/pipeline/run/non_existent_12345")
+        # 5.        # 验证 404 容错
+        res_404 = self.client.get("/api/pipeline/run/non_existent_run")
         self.assertEqual(res_404.status_code, 404)
+
+    def test_pipeline_export_endpoint(self):
+        # 验证 release bundle 导出端点
+        res = self.client.get("/api/pipeline/export/run_test_export")
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertIn("manifest", data)
+        self.assertEqual(data["manifest"]["run_id"], "run_test_export")
+        self.assertIn("entities", data)
+        self.assertIn("rules", data)
+
+    def test_workbench_endpoints(self):
+        # 1. M1 OCR
+        res_m1 = self.client.get("/api/workbench/m1/page", params={"run_id": "run_01", "page_index": 1})
+        self.assertEqual(res_m1.status_code, 200)
+        m1_data = res_m1.json()
+        self.assertIn("charBoxes", m1_data)
+        self.assertIn("cutLines", m1_data)
+
+        # 2. M2 Sanitization
+        res_m2 = self.client.get("/api/workbench/m2/data", params={"run_id": "run_01"})
+        self.assertEqual(res_m2.status_code, 200)
+        m2_data = res_m2.json()
+        self.assertIn("findings", m2_data)
+        self.assertIn("rawText", m2_data)
+        self.assertIn("cleanedText", m2_data)
+
+        # 3. Review queue
+        res_rev = self.client.get("/api/workbench/review/queue", params={"run_id": "run_01"})
+        self.assertEqual(res_rev.status_code, 200)
+        queue_data = res_rev.json()
+        self.assertIsInstance(queue_data, list)
+        self.assertGreater(len(queue_data), 0)
+
 
     def test_create_run_validation_failure(self):
         # 传入非法 Proto 字段结构

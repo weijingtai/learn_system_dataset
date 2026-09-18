@@ -20,3 +20,8 @@ openspec/annotation-community/.venv-openapi/
 
 # 规格仓 Python 工具导入时生成的字节码缓存（NC-015 验收 R1）
 openspec/annotation-community/tools/__pycache__/
+__pycache__/
+**/__pycache__/
+node_modules/
+dist/
+*.tsbuildinfo

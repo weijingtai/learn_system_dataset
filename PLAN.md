@@ -368,3 +368,8 @@ RE→T-11 + D-18；RF→D-14~D-17 + T-12/T-13；RG→D-19。**覆盖完整，无
 - [ ] R7 `segment_block` 横排分支墨迹掩码与取轴错误
 - [ ] 清掉 `_find_gaps` 未被使用的 `min_gap` 死参
 - [ ] 收紧 `tests/test_segment.py` 的宽松断言（`>= 2` 类）
+
+## Web 综合控制台实施进度 (feat/web-console)
+- [x] ACT 01: 定义 Protobuf 契约与工具链（`common.proto`, `pipeline.proto`, `workbench_m1_m2.proto`, `workbench_review.proto`，`7189b57`）
+- [x] ACT 02: 后端基础设施构建（FastAPI 异步网关、SQLite 仓储层与 WebSocket 广播总线，`0c82e50`）
+- [x] ACT 03/04/05: 前端工程交付（`console_frontend`：Vue 3 + TypeScript + Ant Design Vue + md-editor-v3，含 8 阶段 Steps 步骤条、M1 OCR 画布组件、M2 十三项规则数据清洗工作台、M3/M6 AI 预审初筛与人工复核决策工作台、M8 Release Bundle 出包下载与 Firebase/下游服务对接预留）

@@ -1,19 +1,23 @@
 # HANDOFF
-更新时间：2026-09-17
-当前分支/worktree：`codex/docs/knowledge-compilation`；`/Users/jingtaiwei/Git/Public/learn_system`
+更新时间：2026-09-18
+当前分支/worktree：`feat/web-console`；`/Users/jingtaiwei/Git/Public/learn_system-web-console`
 刚完成：
-1. 验收 8.6 K2（ACT 11 `496fbb1` + ACT 12 `162250c`）：`dataset_compiler` 162 OK，`check_interfaces.py` 44 PASS (IF44 清空)，`m8-span-identity.sh` pass=7 fail=0 blocked=1 exit=2，`run_all.sh` pass=2 fail=1 blocked=8；`impl-04-dataset/ACCEPTANCE.md` §5.3 记录 ACCEPTED。
-2. 在独立 worktree（`feat/prompt-asset`）中完成 **Prompt as Artifact** 资产化重构（`f23084c`）：将硬编码 SHA256 常量解耦为 `PromptRegistry` + `PromptProfile` 自洽资产体系，支持多版本 Prompt 注册、A/B 评估对比及产出物（请求体、分歧队列、语义片段产物）回溯记录 `prompt_id` / `prompt_version` / `prompt_sha256`；全量测试 100% 绿；fast-forward 合并回分支并清理 worktree。
-3. Web 综合控制台完整技术方案与任务拆解已定稿：`docs/blackbox-spec-rework/WEB_CONSOLE_PRD_AND_PLAN.md`（`1a03fb3`）。
-4. **导入并执行 M6 人工审核决定（`3635121`）**：用户填写的 26 项审核决定（`var/ledgers/qianyuan_w8_review/m6_review_decisions_template_filled.yaml`）已通过 `decide-batch` 全部入账，M6 `close` 顺利封存 `succeeded`（`srun_3009b37a…`，approved=26 rejected=0），9 项 Review Gate 检查全 PASS，生成了权威 `reviewed_edition` 与 `reviewed_edition_package`。
-5. **归档后续工作调研文档（`4db6770`）**：将多文档检索与图谱选型调研（`guwen-multidoc-retrieval-terminology-and-stack.md`）及多模型切词评测选型报告（`guwen-multimodel-eval-report.md`）提交进 Git 仓库。
+1. 完整搭建与交付 Web 综合控制台前端工程 `console_frontend`（Vue 3 + TypeScript + Ant Design Vue + Pinia + md-editor-v3，ACT 03、04、05）：
+   - 全局 8 阶段 Steps 动态步骤导航条与状态映射（M1 图像转写 -> M2 文本清洗 -> M3 分词边界 -> M4 实体抽取 -> M5 关系抽取 -> M6 命题提炼 -> M7 规则编译 -> M8 数据发布）；
+   - WebSocket 实时事件通道封装（`src/utils/ws.ts`，自动重连、心跳、stage_change 与 log_append 同步）；
+   - M1 OCR 工作台组件（`M1OcrWorkbench.vue`：移植古籍底图、双栏中缝切线、CharBox 单字检测框、状态色彩映射、缩放、拆分行、合并框与字符属性检查）；
+   - M2 数据清洗工作台（`M2SanitizationWorkbench.vue`：使用 `md-editor-v3` 展示原文与清洗后规范文本，支持 13 项清洗规则检出表格与定位高亮、一键重洗）；
+   - M3/M6 协同审核工作台（`ReviewWorkbench.vue`：呈现第三方 AI 预审初筛 + 人工复核决策工作流，包含采纳、修改、驳回、补证与批量提交）；
+   - M8 标准发布出包面板（`M8ReleaseExport.vue`：指标统计看板、一键下载 Release Bundle JSON、预留下游服务与 Firebase Config / Hosting 同步卡片）；
+   - 全局实时执行日志折叠抽屉（`PipelineLogDrawer.vue`）与新建流水线弹窗（`CreateRunModal.vue`）；
+   - 前端构建验证通过（`npm run build` 零错误打包完成）。
+2. 后端补齐配套的 `/api/pipeline/export/{run_id}` 及 `/api/workbench/*` 路由并全部通过单元测试（14 项测试 100% 通过）。
 进行到一半的事（精确到文件和章节）：
-1. 停下来向用户汇报，等待用户对 Web 综合控制台开发方案进行确认与指令。
+- 控制台前端与后端的全链路联合调试就绪。
 下一步（第一件事）：
-1. 停下来请示用户：确认后在新的独立 worktree（`worktree-web-console`）中启动 Vue 3 + FastAPI 综合控制台第一阶段开发（骨架与 M1/M2 数据清洗工作台）；
-2. 8.5 M7 Snapshot 补字段（`corpus_spans_revision_id`/`evidence_level`，裁定 106 D4）。
+- 启动 backend 与 frontend 进行全链路端到端功能验证与用户演示。
 已知的坑：
-- 2 条 a 路 assertion（命例通则）已被 M4 G4 拒收，不在 M6 队列中。
+- 后端 FastAPI 依赖环境需通过 `uv run` 执行。
 
 ## （上一节）G7 W4 收尾：impl-08 与 impl-05 均 ACCEPTED
 

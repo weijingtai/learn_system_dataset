@@ -6,7 +6,7 @@ from fastapi import Depends, FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 
 from console_backend.app.dependencies import get_ws_manager
-from console_backend.app.routers import pipeline
+from console_backend.app.routers import pipeline, workbench
 from console_backend.app.ws import ConnectionManager
 
 app = FastAPI(
@@ -26,6 +26,8 @@ app.add_middleware(
 
 # 挂载业务路由
 app.include_router(pipeline.router)
+app.include_router(workbench.router, prefix="/api/workbench", tags=["workbench"])
+
 
 
 # 挂载 WebSocket 实时事件端点
