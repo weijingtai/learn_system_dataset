@@ -1,0 +1,45 @@
+syntax = "proto3";
+
+package console.v1;
+
+import "proto/console/v1/common.proto";
+
+message StageProgress {
+  PipelineStage stage = 1;
+  RunStatus status = 2;
+  string step_run_id = 3;
+  int64 started_at = 4;
+  int64 finished_at = 5;
+  string summary = 6;
+  string gate_result = 7;
+}
+
+message PipelineRun {
+  string run_id = 1;
+  string work = 2;
+  string edition = 3;
+  string edition_part_id = 4;
+  RunStatus overall_status = 5;
+  PipelineStage current_stage = 6;
+  repeated StageProgress stages = 7;
+  string created_at = 8;
+}
+
+message PipelineRunRequest {
+  string work = 1;
+  string edition = 2;
+  string file_type = 3; // "txt", "epub", "pdf"
+  string source_file_path = 4;
+  string technique_id = 5;
+  string prompt_profile_id = 6;
+}
+
+message WebSocketEvent {
+  string event_type = 1; // "stage_change", "log_append", "human_ready", "error"
+  string run_id = 2;
+  PipelineStage stage = 3;
+  RunStatus status = 4;
+  string log_message = 5;
+  string payload_json = 6;
+  int64 timestamp = 7;
+}

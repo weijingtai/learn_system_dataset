@@ -1,0 +1,43 @@
+syntax = "proto3";
+
+package console.v1;
+
+enum PipelineStage {
+  PIPELINE_STAGE_UNSPECIFIED = 0;
+  PIPELINE_STAGE_M1_DIGITIZATION = 1;
+  PIPELINE_STAGE_M2_SANITIZATION = 2;
+  PIPELINE_STAGE_M3_STRUCTURAL = 3;
+  PIPELINE_STAGE_M4_KNOWLEDGE = 4;
+  PIPELINE_STAGE_M5_VALIDATION = 5;
+  PIPELINE_STAGE_M6_REVIEW = 6;
+  PIPELINE_STAGE_M7_ASSEMBLY = 7;
+  PIPELINE_STAGE_M8_DATASET = 8;
+}
+
+enum RunStatus {
+  RUN_STATUS_UNSPECIFIED = 0;
+  RUN_STATUS_PENDING = 1;
+  RUN_STATUS_RUNNING = 2;
+  RUN_STATUS_AWAITING_HUMAN = 3;
+  RUN_STATUS_SUCCEEDED = 4;
+  RUN_STATUS_FAILED = 5;
+}
+
+enum EvidenceLevel {
+  EVIDENCE_LEVEL_UNSPECIFIED = 0;
+  EVIDENCE_LEVEL_GLYPHBOX = 1;
+  EVIDENCE_LEVEL_OFFSET = 2;
+  EVIDENCE_LEVEL_REFERENCE_ONLY = 3;
+}
+
+message ErrorResponse {
+  string code = 1;
+  string message = 2;
+  string detail = 3;
+}
+
+message Pagination {
+  int32 page = 1;
+  int32 page_size = 2;
+  int32 total_items = 3;
+}

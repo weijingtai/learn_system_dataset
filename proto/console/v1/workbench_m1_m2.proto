@@ -1,0 +1,54 @@
+syntax = "proto3";
+
+package console.v1;
+
+import "proto/console/v1/common.proto";
+
+message BBox {
+  int32 x = 1;
+  int32 y = 2;
+  int32 width = 3;
+  int32 height = 4;
+}
+
+message CharBox {
+  string char = 1;
+  BBox bbox = 2;
+  int32 line_index = 3;
+  int32 char_index = 4;
+}
+
+message PageScan {
+  int32 page_index = 1;
+  string image_url = 2;
+  string image_sha256 = 3;
+  int32 width = 4;
+  int32 height = 5;
+  repeated CharBox char_boxes = 6;
+  repeated int32 cut_lines = 7;
+}
+
+message OcrRectifyRequest {
+  string run_id = 1;
+  int32 page_index = 2;
+  string action = 3; // "fix_char", "split_row", "merge_row", "add_cutline"
+  string payload_json = 4;
+}
+
+message SanitizationFinding {
+  string rule_id = 1;
+  string kind = 2; // "watermark", "pua", "escape_residue", "header_footer", "duplicate"
+  int32 start_offset = 3;
+  int32 end_offset = 4;
+  string original_text = 5;
+  string suggested_replacement = 6;
+  string terminal_state = 7; // "cleaned", "deferred", "retained"
+}
+
+message SanitizationWorkbenchData {
+  string run_id = 1;
+  string raw_text = 2;
+  string cleaned_text = 3;
+  repeated SanitizationFinding findings = 4;
+  int32 total_findings = 5;
+}

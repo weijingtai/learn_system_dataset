@@ -1,0 +1,40 @@
+syntax = "proto3";
+
+package console.v1;
+
+import "proto/console/v1/common.proto";
+
+enum Verdict {
+  VERDICT_UNSPECIFIED = 0;
+  VERDICT_ACCEPT = 1;
+  VERDICT_MODIFY = 2;
+  VERDICT_REJECT = 3;
+  VERDICT_REQUEST_EVIDENCE = 4;
+}
+
+message ReviewQueueItem {
+  string queue_item_id = 1;
+  string target_entity_id = 2;
+  string proposition = 3;
+  string lane = 4;
+  repeated string evidence_quotes = 5;
+  string model_suggestion_a = 6;
+  string model_suggestion_b = 7;
+  Verdict auto_verdict = 8;
+  string auto_rationale = 9;
+}
+
+message DecisionSubmission {
+  string queue_item_id = 1;
+  Verdict verdict = 2;
+  string rationale = 3;
+  string modified_content = 4;
+  repeated string evidence_refs = 5;
+}
+
+message ReviewBatchRequest {
+  string run_id = 1;
+  string step_run_id = 2;
+  string resume_token = 3;
+  repeated DecisionSubmission decisions = 4;
+}
