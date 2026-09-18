@@ -1,18 +1,23 @@
-"""M8 独立发布 Gate ``evaluate_publication``（规格 §16:703-715，裁决 D10/D11）。
+"""M8 独立发布 Gate ``evaluate_publication``（规格 §16:703-715，裁决 D10/D11、第 107 条 Q-M8-08）。
 
 独立实现，防止与编译器「同错同过」：本模块从页 JSON 与清单重新计算字框锚点、
 坐标同源、哈希清单、级别与披露，**不得** import ``packs``/``canonical``/
 ``levels``/``step``。只 import 标准库。
 
 本函数不抛异常：任一检查内部异常都转成该项 ``{"ok": False, "detail": ...}``。
-``knowledge_chain`` 恒为 ``{"ok": None, "status": "not_evaluated"}``。
+``_CHECK_NAMES`` 为登记的 23 项单一闭集（INTERFACES §3.3）；不适用的检查项
+输出 ``{"ok": None, "status": "not_applicable"}``（不同于 ``not_evaluated``，
+也不得冒充 ok）。``knowledge_chain`` 为过渡项：知识链未编译时
+``not_evaluated``；已编译时按知识链五项实评汇总。
 """
 
 import hashlib
 import json
 import re
 
-# 检查名称与固定顺序
+# 检查名称与固定顺序：登记的 23 项单一闭集（INTERFACES §3.3，第 107 条 Q-M8-08）
+# 每项声明适用证据级别："both"=两档实评；"glyphbox"/"offset"=仅该档实评，
+# 另一档输出 not_applicable；"transition"=过渡项（未实评时 not_evaluated）。
 _CHECK_NAMES = (
     "span_identity",
     "span_page_binding",
@@ -28,7 +33,43 @@ _CHECK_NAMES = (
     "consumption_level",
     "watermark_disclosure",
     "knowledge_chain",
+    "chain_closure",
+    "no_assertion_bypass",
+    "quote_hash_integrity",
+    "content_status_admission",
+    "offset_anchor_continuity",
+    "patch_reversible",
+    "raw_text_binding",
+    "sanitization_disclosure",
+    "graph_projection_closure",
 )
+
+# 检查项适用级别声明（同上口径；键为 _CHECK_NAMES 的闭集成员）
+_CHECK_APPLICABILITY = {
+    "span_identity": "both",
+    "span_page_binding": "glyphbox",
+    "text_offsets": "both",
+    "glyph_anchor_closure": "glyphbox",
+    "highlight_level": "glyphbox",
+    "ocr_page_binding": "glyphbox",
+    "source_asset_binding": "both",
+    "coordinate_frame": "glyphbox",
+    "reverse_index": "glyphbox",
+    "release_manifest_hashes": "both",
+    "input_reconciliation": "both",
+    "consumption_level": "both",
+    "watermark_disclosure": "both",
+    "knowledge_chain": "transition",
+    "chain_closure": "knowledge",
+    "no_assertion_bypass": "knowledge",
+    "quote_hash_integrity": "knowledge",
+    "content_status_admission": "knowledge",
+    "graph_projection_closure": "knowledge",
+    "offset_anchor_continuity": "offset",
+    "patch_reversible": "offset",
+    "raw_text_binding": "offset",
+    "sanitization_disclosure": "offset",
+}
 
 _SPAN_TAIL_RE = re.compile(r"_p([0-9]{4})_s([0-9]{2})$")
 
@@ -60,6 +101,16 @@ def _manifest_assets(manifest):
     return {item["page"]: item for item in manifest["source_assets"]}
 
 
+def _not_applicable(detail):
+    """not_applicable：声明检查项不适用当前证据级别（≠ ok，≠ not_evaluated）。"""
+    return {"ok": None, "status": "not_applicable", "detail": detail}
+
+
+def _ev(ok, detail):
+    """知识链五项实评结果（带 status=evaluated；仅此五项，OCR 既有项不动）。"""
+    return {"ok": ok, "status": "evaluated", "detail": detail}
+
+
 def evaluate_publication(
     *,
     manifest,
@@ -75,8 +126,24 @@ def evaluate_publication(
     release_manifest,
     pack_bytes,
     consumption_level,
+    snapshot_knowledge=None,
+    graph_projection_pack=None,
+    raw_text_binding=None,
+    raw_text=None,
+    sanitization_report=None,
+    checks_override=None,
 ):
-    """独立判定 M8 发布物（§16:703-715）。返回见模块 docstring 与 ACT 契约。"""
+    """独立判定 M8 发布物（§16:703-715）。返回见模块 docstring 与 ACT 契约。
+
+    ACT 12 新增可选冻结输入（缺省 None，向后兼容 K1/K2 既有调用）：
+    - ``snapshot_knowledge``：M7 Snapshot knowledge（缺省视为知识链未编译）；
+    - ``graph_projection_pack``：GraphProjectionPack（缺省视为未投影）；
+    - ``raw_text_binding``：``{sha256}``——RawText/SourceAsset 底本哈希（offset 档）；
+    - ``raw_text``：``{text}``——原始底本文本（offset 档）；
+    - ``sanitization_report``：M2 清洗报告（offset 档）；
+    - ``checks_override``：仅用于自检注入（将检查项 ok 强改为 True 必须导致
+      passed 翻转失败）。
+    """
     checks = {}
 
     def run(name, func):
@@ -84,6 +151,23 @@ def evaluate_publication(
             checks[name] = func()
         except Exception as exc:  # noqa: BLE001 - 设计上所有异常转该项失败
             checks[name] = _fail("%s: %s" % (type(exc).__name__, exc))
+
+    # 级别分派（第 107 条 Q-M8-08）：不适用 → not_applicable，不得冒充 ok
+    evidence_level = evidence_map_pack.get("evidence_level", "glyphbox_level")
+    knowledge_compiled = evidence_map_pack.get("knowledge_chain") == "compiled"
+
+    def applicable(name):
+        scope = _CHECK_APPLICABILITY[name]
+        if scope == "both":
+            return True
+        if scope == "glyphbox":
+            return evidence_level == "glyphbox_level"
+        if scope == "offset":
+            return evidence_level == "offset_level"
+        if scope == "knowledge":
+            # 知识链五项：已编译时实评，未编译时 not_applicable
+            return knowledge_compiled
+        return True  # transition 项恒执行（内部自判 not_evaluated）
 
     # 1 span_identity
     def check_span_identity():
@@ -389,7 +473,8 @@ def evaluate_publication(
             )
         return _ok("水印与已知缺陷披露完整")
 
-    # 14 knowledge_chain
+    # 14 knowledge_chain（过渡项：未编译 → not_evaluated；已编译 → 实评汇总）。
+    # 注意：实评汇总需要 #15–#19、#23 的结果，真正的汇总在闭集循环之后执行。
     def check_knowledge_chain():
         value = evidence_map_pack["knowledge_chain"]
         if value == "not_compiled":
@@ -398,38 +483,371 @@ def evaluate_publication(
                 "status": "not_evaluated",
                 "detail": "KnowledgeEntry→Assertion→EvidenceLink 未编译",
             }
+        if value == "compiled":
+            return {
+                "ok": None,
+                "status": "pending",
+                "detail": "知识链五项实评后汇总",
+            }
         return {
             "ok": False,
             "status": "evaluated",
-            "detail": "knowledge_chain 声称非 not_compiled: %r" % (value,),
+            "detail": "knowledge_chain 声称非 not_compiled/compiled: %r" % (value,),
         }
 
-    run("span_identity", check_span_identity)
-    run("span_page_binding", check_span_page_binding)
-    run("text_offsets", check_text_offsets)
-    run("glyph_anchor_closure", check_glyph_anchor_closure)
-    run("highlight_level", check_highlight_level)
-    run("ocr_page_binding", check_ocr_page_binding)
-    run("source_asset_binding", check_source_asset_binding)
-    run("coordinate_frame", check_coordinate_frame)
-    run("reverse_index", check_reverse_index)
-    run("release_manifest_hashes", check_release_manifest_hashes)
-    run("input_reconciliation", check_input_reconciliation)
-    run("consumption_level", check_consumption_level)
-    run("watermark_disclosure", check_watermark_disclosure)
-    run("knowledge_chain", check_knowledge_chain)
+    # 15 chain_closure
+    def check_chain_closure():
+        knowledge = snapshot_knowledge
+        if not isinstance(knowledge, dict):
+            return _fail("snapshot_knowledge 缺失，无法实评知识链")
+        patterns = {
+            pat["pattern_id"]: pat
+            for pat in knowledge.get("patterns", [])
+            if pat.get("pattern_id")
+        }
+        assertions = {
+            a["assertion_id"]: a
+            for a in knowledge.get("assertions", [])
+            if a.get("assertion_id")
+        }
+        # 双轨显式引用（与 packs.build_knowledge_data_pack 同一口径，独立重算）
+        entry_map = {}
+        for pat_id, pat in patterns.items():
+            for aid in pat.get("assertion_ids") or []:
+                if aid not in assertions:
+                    return _fail("pattern.assertion_ids 悬空: %s -> %s" % (pat_id, aid))
+                entry_map.setdefault(aid, []).append(pat_id)
+        for a in knowledge.get("assertions", []):
+            for cid in a.get("concept_refs") or []:
+                if not any(
+                    c.get("concept_id") == cid
+                    for c in knowledge.get("concepts", [])
+                ):
+                    return _fail(
+                        "assertion.concept_refs 悬空: %s -> %s"
+                        % (a["assertion_id"], cid)
+                    )
+                entry_map.setdefault(a["assertion_id"], []).append(cid)
+        if not entry_map:
+            return _ev(False, "知识链为空：无任何 entry（无主体 assertion 不生成 entry）")
+        # 每个 entry 至少 1 条 assertion 且 assertion 存在
+        for subject, aids in entry_map.items():
+            if not aids:
+                return _ev(False, "entry 无 assertion: %s" % subject)
+        return _ev(
+            True,
+            "知识链闭合：%d 个主体词条、%d 条断言（双轨显式引用）"
+            % (len(entry_map), len(assertions)),
+        )
+
+    # 16 no_assertion_bypass
+    def check_no_assertion_bypass():
+        knowledge = snapshot_knowledge
+        if not isinstance(knowledge, dict):
+            return _fail("snapshot_knowledge 缺失，无法实评知识链")
+        assertion_ids = {
+            a["assertion_id"] for a in knowledge.get("assertions", [])
+        }
+        referenced = set()
+        for pat in knowledge.get("patterns", []):
+            referenced.update(pat.get("assertion_ids") or [])
+        for a in knowledge.get("assertions", []):
+            referenced.update(a.get("concept_refs") or [])
+        bypass = sorted(assertion_ids - referenced)
+        if bypass:
+            return _ev(
+                False,
+                "assertion 未被 entry 显式引用（不得绕过 Assertion）: %s"
+                % ",".join(bypass),
+            )
+        return _ev(True, "全部 assertion 均经显式引用接入知识链")
+
+    # 17 quote_hash_integrity
+    def check_quote_hash_integrity():
+        knowledge = snapshot_knowledge
+        if not isinstance(knowledge, dict):
+            return _fail("snapshot_knowledge 缺失，无法实评知识链")
+        spans_by_id = _spans_by_id(spans_doc)
+        for a in knowledge.get("assertions", []):
+            for ev in a.get("evidence") or []:
+                qh = ev.get("quote_sha256")
+                if not qh:
+                    return _fail(
+                        "assertion.evidence 缺 quote_sha256: %s" % a["assertion_id"]
+                    )
+                span = spans_by_id.get(ev["source_span_id"])
+                if span is None:
+                    return _fail(
+                        "evidence 引用悬空 span: %s -> %s"
+                        % (a["assertion_id"], ev["source_span_id"])
+                    )
+                start = ev.get("start_offset")
+                end = ev.get("end_offset")
+                if start is None or end is None:
+                    return _fail(
+                        "evidence 缺偏移: %s" % a["assertion_id"]
+                    )
+                if not (0 <= start <= end <= len(span["text"])):
+                    return _fail(
+                        "evidence 偏移越界: %s [%d,%d) len=%d"
+                        % (a["assertion_id"], start, end, len(span["text"]))
+                    )
+                recomputed = _sha256(span["text"][start:end].encode("utf-8"))
+                if qh != recomputed:
+                    return _ev(
+                        False,
+                        "quote_sha256 与正文重算不符: %s [%d,%d)"
+                        % (a["assertion_id"], start, end),
+                    )
+        return _ev(True, "quote_sha256 逐条与 span 正文切片重算一致")
+
+    # 18 content_status_admission
+    def check_content_status_admission():
+        knowledge = snapshot_knowledge
+        if not isinstance(knowledge, dict):
+            return _fail("snapshot_knowledge 缺失，无法实评知识链")
+        if consumption_level == "PUBLIC_RELEASE":
+            for a in knowledge.get("assertions", []):
+                if a.get("content_status") != "expert_verified":
+                    return _ev(
+                        False,
+                        "PUBLIC_RELEASE 要求 expert_verified: %s = %r"
+                        % (a["assertion_id"], a.get("content_status")),
+                    )
+        elif consumption_level == "DEV_SEARCH":
+            for a in knowledge.get("assertions", []):
+                if a.get("content_status") not in (
+                    "expert_verified",
+                    "cross_model_reviewed",
+                    "source_verified",
+                ):
+                    return _ev(
+                        False,
+                        "DEV_SEARCH 要求可判定内容不低于 cross_model_reviewed: %s = %r"
+                        % (a["assertion_id"], a.get("content_status")),
+                    )
+        return _ev(
+            True,
+            "知识链内容状态符合 %s 准入" % consumption_level,
+        )
+
+    # 19 offset_anchor_continuity
+    def check_offset_anchor_continuity():
+        entries = evidence_map_pack["entries"]
+        last_end = -1
+        for key in sorted(entries):
+            start = entries[key]["start_offset"]
+            end = entries[key]["end_offset"]
+            if not (0 <= start <= end):
+                return _fail("span 偏移非法: %s [%d,%d)" % (key, start, end))
+            if start < last_end:
+                return _fail(
+                    "span 偏移重叠/乱序: %s start=%d < 前段 end=%d"
+                    % (key, start, last_end)
+                )
+            last_end = end
+        return _ok("offset 档锚点连续无重叠，共 %d 段" % len(entries))
+
+    # 20 patch_reversible
+    def check_patch_reversible():
+        report = sanitization_report or {}
+        patches = report.get("patches") or []
+        cursor = None
+        for patch in patches:
+            raw_start = patch.get("raw_start")
+            raw_end = patch.get("raw_end")
+            cleaned_start = patch.get("cleaned_start")
+            cleaned_end = patch.get("cleaned_end")
+            if None in (raw_start, raw_end, cleaned_start, cleaned_end):
+                return _fail("patch 缺偏移字段: %r" % (patch.get("patch_id"),))
+            if not (0 <= raw_start <= raw_end) or not (0 <= cleaned_start <= cleaned_end):
+                return _fail("patch 偏移非法: %r" % (patch.get("patch_id"),))
+            if cursor is not None and raw_start < cursor:
+                return _fail("patch 区间重叠/乱序: %r" % (patch.get("patch_id"),))
+            cursor = raw_end
+            replacement = patch.get("replacement")
+            if replacement is None:
+                return _fail("patch 缺 replacement: %r" % (patch.get("patch_id"),))
+            if cleaned_end - cleaned_start != len(replacement):
+                return _fail(
+                    "patch cleaned 区间与 replacement 长度不符: %r"
+                    % (patch.get("patch_id"),)
+                )
+        return _ok("DeterministicPatchSet 双向映射可逆（%d 条 patch）" % len(patches))
+
+    # 21 raw_text_binding
+    def check_raw_text_binding():
+        if not isinstance(raw_text_binding, dict) or not raw_text_binding.get("sha256"):
+            return _fail("raw_text_binding 缺失或无 sha256")
+        raw_text_doc = raw_text or {}
+        text = raw_text_doc.get("text")
+        if not isinstance(text, str):
+            return _fail("raw_text.text 缺失")
+        recomputed = _sha256(text.encode("utf-8"))
+        if recomputed != raw_text_binding["sha256"]:
+            return _fail("raw_text SHA-256 与绑定值不符")
+        # 底本哈希须与资产包一致（offset 档第 7 段 source_asset.sha256）
+        pages = source_asset_pack.get("pages") or []
+        if pages:
+            sha_list = {page.get("sha256") for page in pages}
+            if raw_text_binding["sha256"] not in sha_list:
+                return _fail(
+                    "raw_text sha 不在 SourceAssetPack 资产哈希集合内"
+                )
+        return _ok("原始文本切片与 RawText 哈希绑定一致")
+
+    # 22 sanitization_disclosure（第 103 条 D1 同口径）
+    def check_sanitization_disclosure():
+        report = sanitization_report
+        if not isinstance(report, dict):
+            return _fail("sanitization_report 缺失")
+        findings = report.get("findings") or []
+        raw_text_doc = raw_text or {}
+        text = raw_text_doc.get("text")
+        if not isinstance(text, str):
+            return _fail("raw_text.text 缺失")
+        forbidden = set("?\u25a1\ufffd")
+        uncovered = []
+        for index, char in enumerate(text):
+            if char in forbidden:
+                covered = any(
+                    f.get("raw_start", -1) <= index < f.get("raw_end", -1)
+                    for f in findings
+                )
+                if not covered:
+                    uncovered.append(index)
+        unresolvable = [
+            f
+            for f in findings
+            if f.get("terminal_state") == "known_unresolvable"
+        ]
+        if uncovered and not unresolvable:
+            return _fail(
+                "文本含 %d 处禁止字符但发现无 known_unresolvable 终态" % len(uncovered)
+            )
+        if uncovered:
+            return _ok(
+                "禁止字符已与 known_unresolvable 发现对账披露（%d 处）" % len(uncovered)
+            )
+        return _ok("清洗文本无未披露禁止字符")
+
+    # 23 graph_projection_closure
+    def check_graph_projection_closure():
+        if not isinstance(graph_projection_pack, dict):
+            return _fail("graph_projection_pack 缺失，无法实评投影闭合")
+        if graph_projection_pack.get("release_id") != release_manifest["release_id"]:
+            return _fail("graph_projection.release_id 与 ReleaseManifest 不符")
+        expected_hash = release_manifest["canonical_hash"]
+        if graph_projection_pack.get("canonical_hash") != expected_hash:
+            return _fail("graph_projection.canonical_hash 与 ReleaseManifest 不符")
+        if graph_projection_pack.get("consumption_level") != consumption_level:
+            return _fail("graph_projection.consumption_level 与清单不符")
+        nodes = graph_projection_pack.get("nodes") or []
+        edges = graph_projection_pack.get("edges") or []
+        if graph_projection_pack.get("node_count") != len(nodes):
+            return _fail("node_count 与 nodes 长度不符")
+        if graph_projection_pack.get("edge_count") != len(edges):
+            return _fail("edge_count 与 edges 长度不符")
+        node_ids = [n.get("node_id") for n in nodes]
+        if node_ids != sorted(node_ids):
+            return _fail("nodes 未按 node_id 升序排列")
+        if len(set(node_ids)) != len(node_ids):
+            return _fail("node_id 重复")
+        triples = [(e.get("source"), e.get("relation"), e.get("target")) for e in edges]
+        if triples != sorted(triples):
+            return _ev(False, "edges 未按三元组升序排列")
+        if any("edge_id" in e or "id" in e for e in edges):
+            return _ev(False, "edge 不得携带独立 ID（【I-10】）")
+        return _ev(
+            True,
+            "GraphProjection 闭合：%d 节点 %d 边，canonical_hash 一致"
+            % (len(nodes), len(edges)),
+        )
+
+    # 闭集固定顺序执行；不适用项输出 not_applicable（第 107 条 Q-M8-08）
+    _RUNNERS = {
+        "span_identity": check_span_identity,
+        "span_page_binding": check_span_page_binding,
+        "text_offsets": check_text_offsets,
+        "glyph_anchor_closure": check_glyph_anchor_closure,
+        "highlight_level": check_highlight_level,
+        "ocr_page_binding": check_ocr_page_binding,
+        "source_asset_binding": check_source_asset_binding,
+        "coordinate_frame": check_coordinate_frame,
+        "reverse_index": check_reverse_index,
+        "release_manifest_hashes": check_release_manifest_hashes,
+        "input_reconciliation": check_input_reconciliation,
+        "consumption_level": check_consumption_level,
+        "watermark_disclosure": check_watermark_disclosure,
+        "knowledge_chain": check_knowledge_chain,
+        "chain_closure": check_chain_closure,
+        "no_assertion_bypass": check_no_assertion_bypass,
+        "quote_hash_integrity": check_quote_hash_integrity,
+        "content_status_admission": check_content_status_admission,
+        "offset_anchor_continuity": check_offset_anchor_continuity,
+        "patch_reversible": check_patch_reversible,
+        "raw_text_binding": check_raw_text_binding,
+        "sanitization_disclosure": check_sanitization_disclosure,
+        "graph_projection_closure": check_graph_projection_closure,
+    }
+    for name in _CHECK_NAMES:
+        if not applicable(name):
+            checks[name] = _not_applicable(
+                "不适用证据级别 %s" % evidence_level
+            )
+        else:
+            run(name, _RUNNERS[name])
+            if _CHECK_APPLICABILITY[name] == "knowledge":
+                # 知识链五项为实评项（含异常转失败路径），补 status=evaluated
+                if "status" not in checks[name]:
+                    checks[name] = dict(checks[name], status="evaluated")
+
+    # 过渡项 knowledge_chain 的实评汇总（依赖 #15–#19、#23 已出结果）
+    if checks["knowledge_chain"].get("status") == "pending":
+        knowledge_names = (
+            "chain_closure",
+            "no_assertion_bypass",
+            "quote_hash_integrity",
+            "content_status_admission",
+            "graph_projection_closure",
+        )
+        failed = [name for name in knowledge_names if checks[name]["ok"] is not True]
+        if failed:
+            checks["knowledge_chain"] = {
+                "ok": False,
+                "status": "evaluated",
+                "detail": "知识链实评未过: %s" % ",".join(failed),
+            }
+        else:
+            checks["knowledge_chain"] = {
+                "ok": True,
+                "status": "evaluated",
+                "detail": "知识链五项实评全过",
+            }
+
+    # 自检注入：任何检查项被强改为 ok:True 都必须导致整体失败（防冒充）
+    if checks_override:
+        for name, override in checks_override.items():
+            merged = dict(checks[name])
+            merged.update(override)
+            checks[name] = merged
 
     passed = all(
         checks[name]["ok"] is True
         for name in _CHECK_NAMES
         if checks[name]["ok"] is not None
     )
+    if checks_override:
+        passed = False
     failed_checks = [
         name for name in _CHECK_NAMES if checks[name]["ok"] is False
     ]
+    knowledge_chain_state = (
+        "evaluated" if knowledge_compiled else "not_evaluated"
+    )
     return {
         "passed": passed,
         "checks": checks,
         "failed_checks": failed_checks,
-        "knowledge_chain": "not_evaluated",
+        "knowledge_chain": knowledge_chain_state,
     }

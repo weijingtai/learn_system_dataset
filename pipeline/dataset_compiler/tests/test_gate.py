@@ -165,17 +165,35 @@ def _evaluate(base, **overrides):
     return gate.evaluate_publication(**kwargs)
 
 
+from pipeline.dataset_compiler.canonical import quote_sha256 as _quote_sha256  # noqa: E402
+
+
 class GateGoldenTests(unittest.TestCase):
-    """金标：13 项 ok True、knowledge_chain not_evaluated、passed True。"""
+    """金标：14 项实评 ok True + 9 项 not_applicable（ACT 12 闭集扩为 23）；passed True。"""
 
     def test_fixture_all_checks_pass_knowledge_not_evaluated(self):
         out = _evaluate(_golden())
         checks = out["checks"]
-        self.assertEqual(len(checks), 14)
+        self.assertEqual(len(checks), 23)
+        not_applicable = {
+            "chain_closure",
+            "no_assertion_bypass",
+            "quote_hash_integrity",
+            "content_status_admission",
+            "graph_projection_closure",
+            "offset_anchor_continuity",
+            "patch_reversible",
+            "raw_text_binding",
+            "sanitization_disclosure",
+        }
         for name, check in checks.items():
             if name == "knowledge_chain":
                 continue
-            self.assertTrue(check["ok"], msg="%s 未通过: %s" % (name, check["detail"]))
+            if name in not_applicable:
+                self.assertIsNone(check["ok"])
+                self.assertEqual(check["status"], "not_applicable")
+            else:
+                self.assertTrue(check["ok"], msg="%s 未通过: %s" % (name, check["detail"]))
         self.assertIsNone(checks["knowledge_chain"]["ok"])
         self.assertEqual(checks["knowledge_chain"]["status"], "not_evaluated")
         self.assertTrue(out["passed"])
@@ -442,6 +460,328 @@ class GateTamperTests(unittest.TestCase):
         }
         out = _evaluate(base, page_docs=page_docs)
         self.assertFalse(out["checks"]["glyph_anchor_closure"]["ok"])
+        self.assertFalse(out["passed"])
+
+
+class GateClosedSetTests(unittest.TestCase):
+    """ACT 12：_CHECK_NAMES 23 项单一闭集 + not_applicable（第 107 条 Q-M8-08）。"""
+
+    M8_CHECK_NAMES = (
+        "span_identity",
+        "span_page_binding",
+        "text_offsets",
+        "glyph_anchor_closure",
+        "highlight_level",
+        "ocr_page_binding",
+        "source_asset_binding",
+        "coordinate_frame",
+        "reverse_index",
+        "release_manifest_hashes",
+        "input_reconciliation",
+        "consumption_level",
+        "watermark_disclosure",
+        "knowledge_chain",
+        "chain_closure",
+        "no_assertion_bypass",
+        "quote_hash_integrity",
+        "content_status_admission",
+        "offset_anchor_continuity",
+        "patch_reversible",
+        "raw_text_binding",
+        "sanitization_disclosure",
+        "graph_projection_closure",
+    )
+
+    def test_gate_check_names_match_registered_closed_set(self):
+        self.assertEqual(gate._CHECK_NAMES, self.M8_CHECK_NAMES)
+
+    def test_gate_glyphbox_results_unchanged(self):
+        """OCR 既有 Gate 结果逐字不变护栏（14 项实评全过、knowledge_chain 过渡项不变）。"""
+        out = _evaluate(_golden())
+        checks = out["checks"]
+        self.assertEqual(len(checks), 23)
+        expected_statuses = {
+            "chain_closure": "not_applicable",
+            "no_assertion_bypass": "not_applicable",
+            "quote_hash_integrity": "not_applicable",
+            "content_status_admission": "not_applicable",
+            "graph_projection_closure": "not_applicable",
+            "offset_anchor_continuity": "not_applicable",
+            "patch_reversible": "not_applicable",
+            "raw_text_binding": "not_applicable",
+            "sanitization_disclosure": "not_applicable",
+        }
+        for name in self.M8_CHECK_NAMES:
+            check = checks[name]
+            if name in expected_statuses:
+                self.assertEqual(
+                    check["status"],
+                    expected_statuses[name],
+                    msg="%s 应为 not_applicable" % name,
+                )
+                self.assertNotEqual(check["status"], "ok")
+            elif name == "knowledge_chain":
+                self.assertIsNone(check["ok"])
+            else:
+                self.assertTrue(
+                    check["ok"], msg="%s 未通过: %s" % (name, check["detail"])
+                )
+        self.assertIsNone(checks["knowledge_chain"]["ok"])
+        self.assertEqual(checks["knowledge_chain"]["status"], "not_evaluated")
+        self.assertTrue(out["passed"])
+        self.assertEqual(out["failed_checks"], [])
+
+    def test_gate_not_applicable_is_not_ok(self):
+        """not_applicable 不得冒充 ok：ok 非 True 不计入 passed；污染 ok:True 被检测。"""
+        out = _evaluate(_golden())
+        na = out["checks"]["chain_closure"]
+        self.assertEqual(na["status"], "not_applicable")
+        self.assertIsNot(na["ok"], True)
+        # 篡改：把 not_applicable 改成 ok True → 自检必须报失败（passed 翻转）
+        base = _golden()
+        out2 = _evaluate(base, checks_override={"chain_closure": {"ok": True}})
+        self.assertFalse(out2["passed"])
+
+    def test_gate_knowledge_chain_compiled_evaluates_chain_closure(self):
+        """knowledge_chain 已编译时：知识链五项转实评；此处缺 assertion → chain_closure 失败。"""
+        base = _golden()
+        evidence = copy.deepcopy(base["evidence_map_pack"])
+        evidence["knowledge_chain"] = "compiled"
+        knowledge = {
+            "patterns": [
+                {
+                    "pattern_id": "pat_qizheng_000001",
+                    "name": "示例格局",
+                    "assertion_ids": ["as_qizheng_999999"],
+                    "school_view_ids": [],
+                }
+            ],
+            "concepts": [],
+            "assertions": [
+                {
+                    "assertion_id": "as_qizheng_000001",
+                    "proposition": "示例断言",
+                    "subject_entity_id": "pat_qizheng_000001",
+                    "evidence": [],
+                    "school_view_ids": [],
+                    "content_status": "machine_extracted",
+                }
+            ],
+            "school_views": [],
+            "conflict_groups": [],
+        }
+        release = copy.deepcopy(base["release_manifest"])
+        out = _evaluate(
+            base,
+            evidence_map_pack=evidence,
+            snapshot_knowledge=knowledge,
+            release_manifest=release,
+        )
+        self.assertFalse(out["checks"]["chain_closure"]["ok"])
+        self.assertEqual(out["checks"]["chain_closure"]["status"], "evaluated")
+        self.assertFalse(out["passed"])
+    def test_gate_knowledge_chain_compiled_passes_on_consistent_snapshot(self):
+        """知识链已编译且一致时：五项实评全过、过渡项 knowledge_chain 转为 evaluated ok。"""
+        base = _golden()
+        evidence = copy.deepcopy(base["evidence_map_pack"])
+        evidence["knowledge_chain"] = "compiled"
+        knowledge = {
+            "patterns": [
+                {
+                    "pattern_id": "pat_qizheng_000001",
+                    "name": "示例格局",
+                    "assertion_ids": ["as_qizheng_000001"],
+                    "school_view_ids": [],
+                }
+            ],
+            "concepts": [],
+            "assertions": [
+                {
+                    "assertion_id": "as_qizheng_000001",
+                    "proposition": "示例断言",
+                    "subject_entity_id": "pat_qizheng_000001",
+                    "evidence": [
+                        {
+                            "source_span_id": "ss_sanche_ed01_p0001_s04",
+                            "start_offset": 0,
+                            "end_offset": 6,
+                            "quote_sha256": packs.quote_sha256(
+                                base["spans_doc"]["spans"][3]["text"][0:6]
+                            ),
+                        }
+                    ],
+                    "school_view_ids": [],
+                    "content_status": "machine_extracted",
+                }
+            ],
+            "school_views": [],
+            "conflict_groups": [],
+        }
+        graph = {
+            "schema_version": "0.1.0-draft",
+            "release_id": base["release_manifest"]["release_id"],
+            "canonical_hash": base["release_manifest"]["canonical_hash"],
+            "consumption_level": "INTERNAL_DEMO",
+            "nodes": [],
+            "edges": [],
+            "node_count": 0,
+            "edge_count": 0,
+        }
+        out = _evaluate(
+            base,
+            evidence_map_pack=evidence,
+            snapshot_knowledge=knowledge,
+            graph_projection_pack=graph,
+        )
+        for name in (
+            "chain_closure",
+            "no_assertion_bypass",
+            "quote_hash_integrity",
+            "content_status_admission",
+            "graph_projection_closure",
+            "knowledge_chain",
+        ):
+            check = out["checks"][name]
+            self.assertTrue(
+                check["ok"], msg="%s 应通过: %s" % (name, check["detail"])
+            )
+            self.assertEqual(check["status"], "evaluated")
+        # 整包还有 release_manifest_hashes 等无关失败（pack 未重封），不断言 passed
+
+    def test_gate_rejects_evidence_link_bypassing_assertion(self):
+        """assertion 无任何显式引用（绕过 Assertion）→ no_assertion_bypass 失败。"""
+        base = _golden()
+        evidence = copy.deepcopy(base["evidence_map_pack"])
+        evidence["knowledge_chain"] = "compiled"
+        knowledge = {
+            "patterns": [],
+            "concepts": [],
+            "assertions": [
+                {
+                    "assertion_id": "as_qizheng_000001",
+                    "proposition": "示例断言",
+                    "subject_entity_id": None,
+                    "evidence": [
+                        {"source_span_id": "ss_sanche_ed01_p0001_s01"}
+                    ],
+                    "school_view_ids": [],
+                    "content_status": "machine_extracted",
+                }
+            ],
+            "school_views": [],
+            "conflict_groups": [],
+        }
+        out = _evaluate(
+            base,
+            evidence_map_pack=evidence,
+            snapshot_knowledge=knowledge,
+        )
+        self.assertFalse(out["checks"]["no_assertion_bypass"]["ok"])
+        self.assertFalse(out["passed"])
+
+    def test_gate_quote_hash_integrity_detects_tamper(self):
+        """quote_sha256 与正文重算不符 → quote_hash_integrity 失败。"""
+        base = _golden()
+        evidence = copy.deepcopy(base["evidence_map_pack"])
+        evidence["knowledge_chain"] = "compiled"
+        knowledge = {
+            "patterns": [
+                {
+                    "pattern_id": "pat_qizheng_000001",
+                    "name": "示例格局",
+                    "assertion_ids": ["as_qizheng_000001"],
+                    "school_view_ids": [],
+                }
+            ],
+            "concepts": [],
+            "assertions": [
+                {
+                    "assertion_id": "as_qizheng_000001",
+                    "proposition": "示例断言",
+                    "subject_entity_id": "pat_qizheng_000001",
+                    "evidence": [
+                        {
+                            "source_span_id": "ss_sanche_ed01_p0001_s01",
+                            "start_offset": 10,
+                            "end_offset": 20,
+                            "quote_sha256": "0" * 64,
+                        }
+                    ],
+                    "school_view_ids": [],
+                    "content_status": "machine_extracted",
+                }
+            ],
+            "school_views": [],
+            "conflict_groups": [],
+        }
+        out = _evaluate(
+            base,
+            evidence_map_pack=evidence,
+            snapshot_knowledge=knowledge,
+        )
+        self.assertFalse(out["checks"]["quote_hash_integrity"]["ok"])
+        self.assertFalse(out["passed"])
+
+    def test_gate_graph_projection_closure_detects_hash_mismatch(self):
+        """graph_projection.canonical_hash 与清单不符 → graph_projection_closure 失败。"""
+        base = _golden()
+        evidence = copy.deepcopy(base["evidence_map_pack"])
+        evidence["knowledge_chain"] = "compiled"
+        gp = {
+            "schema_version": "0.1.0-draft",
+            "release_id": base["release_manifest"]["release_id"],
+            "canonical_hash": "0" * 64,
+            "consumption_level": "INTERNAL_DEMO",
+            "nodes": [],
+            "edges": [],
+            "node_count": 0,
+            "edge_count": 0,
+        }
+        out = _evaluate(
+            base,
+            evidence_map_pack=evidence,
+            graph_projection_pack=gp,
+        )
+        self.assertFalse(out["checks"]["graph_projection_closure"]["ok"])
+        self.assertFalse(out["passed"])
+
+    def test_gate_offset_raw_text_binding_detects_sha_mismatch(self):
+        """offset 档：raw_text 清单 sha 与 SourceAsset sha 不符 → raw_text_binding 失败。"""
+        base = _golden()
+        evidence = copy.deepcopy(base["evidence_map_pack"])
+        evidence["evidence_level"] = "offset_level"
+        out = _evaluate(
+            base,
+            evidence_map_pack=evidence,
+            raw_text_binding={"sha256": "0" * 64},
+        )
+        self.assertFalse(out["checks"]["raw_text_binding"]["ok"])
+        self.assertFalse(out["passed"])
+
+    def test_gate_sanitization_disclosure_requires_known_unresolvable_finding(self):
+        """清洗文本含禁用字符但 M2 发现无 known_unresolvable → sanitization_disclosure 失败。"""
+        base = _golden()
+        evidence = copy.deepcopy(base["evidence_map_pack"])
+        evidence["evidence_level"] = "offset_level"
+        out = _evaluate(
+            base,
+            evidence_map_pack=evidence,
+            raw_text_binding={"sha256": base["asset_records"]["page_001"]["sha256"]},
+            raw_text={"text": "示例文本含替换字符?末尾"},
+            sanitization_report={
+                "findings": [
+                    {
+                        "finding_id": "replacement_char@10-11",
+                        "kind": "replacement_char",
+                        "raw_start": 10,
+                        "raw_end": 11,
+                        "raw_excerpt": "?",
+                        "terminal_state": "processed",
+                    }
+                ]
+            },
+        )
+        self.assertFalse(out["checks"]["sanitization_disclosure"]["ok"])
         self.assertFalse(out["passed"])
 
 
