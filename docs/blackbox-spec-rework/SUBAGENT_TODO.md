@@ -619,7 +619,7 @@
 - [x] 8.6-A impl-04 设计草案（`fa3cc54`）+ 主 Agent 裁决与更正（裁定 107，README §11.11）
 - [x] 8.6-ACT08 impl-00 登记（`ff21388`）：`graph_projection_pack`、`evidence_map_pack` offset 变体、M8 检查名闭集与 `not_applicable`、`entry_id_allocation`（验收 `impl-00-interfaces/ACCEPTANCE.md` §5.6）
 - [x] 8.6-K1 impl-04 ACT 09（`fc31716` GraphProjectionPack 纯函数）+ ACT 10（`ce3ddab` `reference_and_hash_only` 与 offset 七段链）（验收 `impl-04-dataset/ACCEPTANCE.md` §5.2）
-- [ ] 8.6-K2 impl-04 ACT 11（知识链前三段 + `ent_` 发号表）+ ACT 12（M8 Gate 闭集与实评）；派单 `~/tmux-agents/runs/prompts/agy-86d.txt`，未开工
+- [x] 8.6-K2 impl-04 ACT 11（`496fbb1` 知识链前三段 + `ent_` 发号表）+ ACT 12（`162250c` M8 Gate 闭集与实评）（验收 `impl-04-dataset/ACCEPTANCE.md` §5.3）
 - [ ] 8.6-K3 impl-04 ACT 13（改读 M7 Snapshot，须待 8.5）+ ACT 14（`m8-span-identity.sh` 电子文本路线）
 - [ ] 8.7 impl-08 orchestrator 登记 m4/m6 与 m3 文本入口；各验收脚本电子文本路线；`run_all.sh` 20.4/20.6/20.8/20.9 按判定输出（P4 独占 ACT）
 - 用户待办：M6 审核表（8.4b 后）；真实 `expert_verified` 签发决定表（裁定 80，不阻断 `INTERNAL_DEMO`）

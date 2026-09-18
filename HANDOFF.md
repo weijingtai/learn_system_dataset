@@ -4,17 +4,18 @@
 刚完成：
 1. 提交 R84c（`e5c960a`，按裁定 108 更正 `m4_candidates.yaml` 偏移 13/15→9/11），`pipeline/review/tests` 转绿（Ran 166 OK），`m6-data-fields.sh` pass=13 fail=0 blocked=2 exit=2，全包回归全绿，8.4 验收通过（`impl-06-review/ACCEPTANCE.md` §5.6）。
 2. 在持久 Ledger `var/ledgers/qianyuan_w8/` 上运行 M6 `open_review`，顺利进入 `awaiting_human`（srun_3009b37a…，26 条队列项），生成审核表模板 `var/ledgers/qianyuan_w8_review/m6_review_decisions_template.yaml`。
+3. 验收 8.6 K2（ACT 11 `496fbb1` + ACT 12 `162250c`）：`dataset_compiler` 162 OK，`check_interfaces.py` 44 PASS (IF44 清空)，`m8-span-identity.sh` pass=7 fail=0 blocked=1 exit=2，`run_all.sh` pass=2 fail=1 blocked=8；`impl-04-dataset/ACCEPTANCE.md` §5.3 记录 ACCEPTED。
 进行到一半的事（精确到文件和章节）：
 1. M6 审核表（`var/ledgers/qianyuan_w8_review/m6_review_decisions_template.yaml`）等待用户逐条填写 verdict/rationale；
-2. M8 K2（ACT 11+12）派单 `~/tmux-agents/runs/prompts/agy-86d.txt` 就绪，待选定执行器派发。
+2. 新增独立 worktree 实施 Prompt as Artifact 资产化迁移（解耦 hardcoded SHA-256，记录 prompt_id/version）。
 下一步（第一件事）：
-1. 用户填写 M6 审核表；
-2. 选定执行器派发 M8 K2（ACT 11 知识链 + ACT 12 Gate）；
-3. 8.5 M7 Snapshot 补字段（`corpus_spans_revision_id`/`evidence_level`，裁定 106 D4）。
+1. 在新独立 worktree（`../learn-system-prompt-asset`）中执行 Prompt as Artifact 资产化迁移；
+2. 运行全量测试回归验证通过后合并回主分支，清理 worktree；
+3. 停下来向用户汇报并请示 Web 应用开发路线。
 已知的坑：
 - 26 条 assertion 均无 `concept_refs`（不推断，裁定 107 Q-M8-01）；若需出 Concept 词条，用户在 M6 审核时须通过 `modified_content` 补显式引用；
 - 2 条 a 路 assertion（命例通则）已被 M4 G4 拒收，不在 M6 队列中；
-- 执行器状态：agy CLI 失效、cmd 周限额到周六 12:13、Union Alpha 已入墓地；mimo（`~/.mimocode/bin/mimo`）或 opencode 免费池可选，派发前须与用户确认。
+- 8.5 M7 Snapshot 补字段需在后续推进。
 
 ## （上一节）G7 W4 收尾：impl-08 与 impl-05 均 ACCEPTED
 

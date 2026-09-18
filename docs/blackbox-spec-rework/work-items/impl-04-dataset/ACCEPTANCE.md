@@ -70,3 +70,16 @@ impl-04（M8 首切片，证据尾链发布包，INTERNAL_DEMO）`ACCEPTED`。§
 - 干净树：dataset_compiler `Ran 143 OK (skipped=32)`（125 → 143，skipped 数不变）；`check_interfaces` `pass=44 fail=0`（IF44 XFAIL 列表未变，符合本轮不改 `gate.py`）；`m8-span-identity.sh` 在干净树因页图不入库如实 BLOCKED，执行方工作树前后一致。
 - 用例审计（AST）：`test_levels.py` 删 0 改 0；`test_packs.py` 删 0，**ACT 10 提交改动了 ACT 09 刚新增的 `test_graph_projection_mirrors_knowledge_data_entities`——删去一行 `assertEqual(pack["node_count"], 4)`，回报未报备**。该字段仍由结构用例 `node_count == 3`、`edge_count == 2` 覆盖，不构成覆盖缺口；因属同组未验收用例，不按第 97 条返工，但记为纪律提醒：**任何断言删除都必须在回报中报备**。
 - **主 Agent 篡改**（临时副本）：`reference_and_hash_only` 下不再置空 `source_span.text` → `test_evidence_map_reference_and_hash_only_nulls_quote_and_text` 转红。执行方三组（边加 `edge_id`、offset 链 8 键、保留 `quote`）亦转红。
+
+### 5.3 W8 8.6 实现组 K2：ACT 11 + ACT 12（2026-09-17，主 Agent 独立验收；执行器 freebuff GLM 5.3 Flash 会话 fb86d）
+
+判定：**ACT 11（`496fbb1`）与 ACT 12（`162250c`）ACCEPTED**。
+
+- ACT 11（`496fbb1`）：`build_knowledge_data_pack` 构建 EvidenceMapPack 前三段（`entry_id`、`assertion_id`、`evidence_link`），双轨不推断（Pattern 携带快照审核裁定 assertion_id，Concept 携带显式引用命名的 assertion，零引用不产 entry 计入 `assertion_without_subject`）；`entry_ids.py` 专用发号器分配/复用 `uuid4().hex`，缺失抛出 `ID_001`；单测用例提升至 `Ran 152 OK`。
+- ACT 12（`162250c`）：`gate.py` 实现登记册 23 项检查闭集，逐项支持证据级别适用性与 `not_applicable` 状态，真实实评知识链与 offset 链检查；IF44 XFAIL 列表清空（`gate.py 已与登记册 23 项检查一致`）；单测用例提升至 `Ran 162 OK`。
+- 验收指标：
+  - `python -m unittest discover -s pipeline/dataset_compiler/tests -t .`：`Ran 162 OK`。
+  - `check_interfaces.py`：`I00-IF SUMMARY pass=44 fail=0`。
+  - `openspec/acceptance/m8-span-identity.sh`：`SUMMARY pass=7 fail=0 blocked=1`。
+  - `openspec/acceptance/run_all.sh`：`SUMMARY pass=2 fail=1 blocked=8`。
+
