@@ -661,6 +661,246 @@ def build_graph_projection_pack(
     }
 
 
+def build_knowledge_data_pack(
+    *,
+    snapshot_knowledge,
+    entry_id_allocation,
+    release_id,
+    consumption_level,
+    technique_id,
+):
+    """编译 KnowledgeDataPack 与知识链前三段（第 107 条 Q-M8-01/Q-M8-02）。
+
+    主体双轨、**不推断**（Q-M8-01）：
+    - Pattern 词条的 ``assertion_ids`` 取 Snapshot 中该 Pattern 已审定的
+      ``assertion_ids``（显式引用）；
+    - Concept 词条取断言上**显式引用**该 Concept 的 ``concept_refs``
+      （Snapshot 中已有的显式字段；无此字段即视为无显式引用，不推断）。
+
+    无主体 assertion 不生成 entry，逐条返回 ``assertion_without_subject``，
+    供 ``known_defects`` 按 INTERFACES §3.8 口径写入；每个 entry 的
+    ``assertion_ids`` 至少 1 条，否则该主体不生成 entry（返回
+    ``subjects_without_entry``）。
+
+    ``entry_id`` 只从传入的 ``entry_id_allocation`` 取（Q-M8-02）：纯函数层
+    禁止随机发号（发号见 ``entry_ids`` 模块）；主体缺号抛 ``SchemaViolation(ID_001)``。
+
+    返回 ``{"pack", "bytes", "sha256", "assertion_without_subject",
+    "subjects_without_entry", "evidence_chains"}``。
+    """
+    if consumption_level not in CONSUMPTION_LEVELS:
+        raise SchemaViolation(
+            "consumption_level 非法: %r" % (consumption_level,), code="SCH_002"
+        )
+    ids.validate("release_id", release_id)
+    if not isinstance(snapshot_knowledge, dict):
+        raise SchemaViolation("snapshot_knowledge 必须为字典", code="SCH_002")
+    if not isinstance(entry_id_allocation, dict):
+        raise SchemaViolation("entry_id_allocation 必须为字典", code="SCH_002")
+
+    # K1：显式引用收集（双轨，不推断）
+    # 轨道一：Pattern 的 assertion_ids（Snapshot 显式字段）
+    pattern_assertions = {}
+    pattern_names = {}
+    for pat in snapshot_knowledge.get("patterns", []):
+        pat_id = pat.get("pattern_id")
+        if pat_id is None:
+            continue
+        ids.validate("pattern_id", pat_id)
+        pattern_names[pat_id] = pat.get("name") or pat_id
+        aids = pat.get("assertion_ids") or []
+        if not isinstance(aids, list):
+            raise SchemaViolation(
+                "pattern.assertion_ids 必须为列表: %s" % pat_id, code="SCH_002"
+            )
+        pattern_assertions.setdefault(pat_id, set()).update(aids)
+
+    # 轨道二：assertion.concept_refs（Snapshot 显式字段；缺字段即无引用）
+    concept_assertions = {}
+    assertion_ids = set()
+    for a in snapshot_knowledge.get("assertions", []):
+        aid = a["assertion_id"]
+        ids.validate("assertion_id", aid)
+        assertion_ids.add(aid)
+        for cid in a.get("concept_refs") or []:
+            # 引用目标必须真实存在（显式引用悬空属数据缺陷，fail-closed）
+            known = any(
+                c.get("concept_id") == cid
+                for c in snapshot_knowledge.get("concepts", [])
+            )
+            if not known:
+                raise MissingReference(
+                    "assertion.concept_refs 悬空: %s -> %s" % (aid, cid),
+                    code="REF_001",
+                )
+            concept_assertions.setdefault(cid, set()).add(aid)
+
+    # K2：主体集合（双轨闭集）与缺号检查（缺号抛错，不得临时生成）。
+    # 零断言主体出不了 entry（不占号），只进 subjects_without_entry。
+    subjects_without_entry = []
+    subjects = {}
+    for pat_id in sorted(pattern_assertions):
+        if pattern_assertions[pat_id]:
+            subjects[pat_id] = sorted(pattern_assertions[pat_id])
+    for cid in sorted(concept_assertions):
+        if concept_assertions[cid]:
+            subjects[cid] = sorted(concept_assertions[cid])
+    subjects_without_entry.extend(
+        sorted(
+            pat_id
+            for pat_id, aids in pattern_assertions.items()
+            if not aids and pat_id not in subjects
+        )
+    )
+
+    missing = sorted(
+        subject for subject in subjects if subject not in entry_id_allocation
+    )
+    if missing:
+        raise SchemaViolation(
+            "entry_id_allocation 缺主体发号（不得临时生成）: %s" % ", ".join(missing),
+            code="ID_001",
+        )
+
+    # K3：逐主体编词条；无主体 assertion 与零断言主体如实返回
+    watermark = (
+        INTERNAL_DEMO_WATERMARK if consumption_level == "INTERNAL_DEMO" else None
+    )
+    entries = []
+    assertion_out = []
+    school_view_ids = []
+    evidence_chains = []
+    assertions_by_id = {
+        a["assertion_id"]: a for a in snapshot_knowledge.get("assertions", [])
+    }
+    for a in snapshot_knowledge.get("assertions", []):
+        assertion_out.append(
+            {
+                "assertion_id": a["assertion_id"],
+                "proposition": a["proposition"],
+                "subject_entity_id": a.get("subject_entity_id"),
+                "status": a["content_status"],
+            }
+        )
+
+    for subject in sorted(subjects):
+        entry_id = entry_id_allocation[subject]
+        ids.validate("entry_id", entry_id)
+        entry_assertion_ids = subjects[subject]
+        if not entry_assertion_ids:
+            subjects_without_entry.append(subject)
+            continue
+        for aid in entry_assertion_ids:
+            if aid not in assertion_ids:
+                raise MissingReference(
+                    "主体 %s 引用悬空断言: %s" % (subject, aid), code="REF_001"
+                )
+        assertion = assertions_by_id[entry_assertion_ids[0]]
+        school_ids = sorted(
+            {
+                sv
+                for aid in entry_assertion_ids
+                for sv in (assertions_by_id[aid].get("school_view_ids") or [])
+            }
+        )
+        entry = {
+            "entry_id": entry_id,
+            "subject_entity_id": subject,
+            "title": pattern_names.get(subject, subject),
+            "assertion_ids": entry_assertion_ids,
+            "school_view_ids": school_ids,
+            "content_status": assertion["content_status"],
+            "mark_binding": None,
+        }
+        entries.append(entry)
+        school_view_ids.extend(sv for sv in school_ids if sv not in school_view_ids)
+        for aid in entry_assertion_ids:
+            a = assertions_by_id[aid]
+            for ev in a.get("evidence") or []:
+                # I-11：Snapshot evidence 的偏移为绝对偏移，逐字透传不加减
+                evidence_chains.append(
+                    {
+                        "entry_id": entry_id,
+                        "assertion_id": aid,
+                        "evidence_link": {
+                            "source_span_id": ev["source_span_id"],
+                            "start_offset": ev["start_offset"],
+                            "end_offset": ev["end_offset"],
+                            "quote_sha256": ev["quote_sha256"],
+                        },
+                    }
+                )
+
+    # 无主体断言：显式引用（pattern 归属）与 concept_refs 均没有 → 不生成 entry
+    assertion_without_subject = []
+    referenced = set()
+    for aids in pattern_assertions.values():
+        referenced.update(aids)
+    for aids in concept_assertions.values():
+        referenced.update(aids)
+    for aid in sorted(assertion_ids - referenced):
+        assertion_without_subject.append(aid)
+
+    pack = {
+        "pack_type": "knowledge_data_pack",
+        "schema_version": SUB_PACK_SCHEMA_VERSION,
+        "release_id": release_id,
+        "technique_id": technique_id,
+        "consumption_level": consumption_level,
+        "watermark": watermark,
+        "entries": entries,
+        "concepts": [
+            {
+                "concept_id": c["concept_id"],
+                "name": c.get("name") or c.get("canonical_name") or c["concept_id"],
+                "basic_imagery": None,
+            }
+            for c in sorted(
+                snapshot_knowledge.get("concepts", []),
+                key=lambda c: c["concept_id"],
+            )
+        ],
+        "assertions": assertion_out,
+        "school_views": [
+            {
+                "school_view_id": sv["school_view_id"],
+                "school_id": sv["school_id"],
+                "subject_entity_id": sv.get("subject_entity_id"),
+                "conflict_group_id": sv.get("conflict_group_id"),
+                "claim_refs": sv.get("claim_refs") or [],
+                "changes_current_judgment": sv["changes_current_judgment"],
+                "content_status": sv["content_status"],
+            }
+            for sv in sorted(
+                snapshot_knowledge.get("school_views", []),
+                key=lambda sv: sv["school_view_id"],
+            )
+        ],
+        "conflict_groups": [
+            {
+                "conflict_group_id": cg["conflict_group_id"],
+                "school_view_ids": cg.get(
+                    "member_school_view_ids", cg.get("school_view_ids", [])
+                ),
+                "first_layer_display": bool(cg.get("first_layer_display")),
+            }
+            for cg in sorted(
+                snapshot_knowledge.get("conflict_groups", []),
+                key=lambda cg: cg["conflict_group_id"],
+            )
+        ],
+    }
+    data = canonical_bytes(pack)
+    return {
+        "pack": pack,
+        "bytes": data,
+        "sha256": sha256_hex(data),
+        "assertion_without_subject": assertion_without_subject,
+        "subjects_without_entry": subjects_without_entry,
+        "evidence_chains": evidence_chains,
+    }
+
+
 def build_evidence_chain(
     *,
     entry_id,

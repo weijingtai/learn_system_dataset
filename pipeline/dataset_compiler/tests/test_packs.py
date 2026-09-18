@@ -11,6 +11,7 @@ import os
 import re
 import struct
 import unittest
+import unittest.mock
 
 import yaml
 
@@ -775,6 +776,291 @@ class OffsetEvidenceAndReferenceOnlyTests(unittest.TestCase):
             # 检查是否有自有 ss_ 正则（除从 ids 导入外）
             for m in re.finditer(r're\.compile\(r?["\'][^"\']*ss_[^"\']*["\']\)', text):
                 self.fail("文件 %s 包含自有 ss_ 正则: %s（第 102 条）" % (fname, m.group(0)))
+
+
+class KnowledgeDataPackTests(unittest.TestCase):
+    """ACT 11：知识链前三段 KnowledgeEntry→Assertion→EvidenceLink（裁决 107 Q-M8-01/Q-M8-02）。"""
+
+    def _snapshot_knowledge(self):
+        """合成 Snapshot knowledge（genesis.py 形状；不引用任何书中文句）。"""
+        return {
+            "technique_id": "qizheng",
+            "patterns": [
+                {
+                    "pattern_id": "pat_qizheng_000001",
+                    "name": "示例格局一",
+                    "assertion_ids": ["as_qizheng_000001"],
+                    "school_view_ids": [],
+                    "recognition_rule_status": "not_captured",
+                    "concept_id": None,
+                },
+            ],
+            "concepts": [
+                {"concept_id": "co_qizheng_000001", "name": "示例概念一", "aliases": []},
+            ],
+            "assertions": [
+                {
+                    "assertion_id": "as_qizheng_000001",
+                    "proposition": "示例断言甲",
+                    "subject_entity_id": "pat_qizheng_000001",
+                    "evidence": [
+                        {
+                            "source_span_id": "ss_synth_ed01_o0000010",
+                            "start_offset": 10,
+                            "end_offset": 20,
+                            "quote_sha256": "0" * 64,
+                        }
+                    ],
+                    "school_view_ids": [],
+                    "content_status": "machine_extracted",
+                },
+                {
+                    "assertion_id": "as_qizheng_000002",
+                    "proposition": "示例断言乙",
+                    "subject_entity_id": None,
+                    "evidence": [
+                        {
+                            "source_span_id": "ss_synth_ed01_o0000020",
+                            "start_offset": 20,
+                            "end_offset": 30,
+                            "quote_sha256": "1" * 64,
+                        }
+                    ],
+                    "school_view_ids": [],
+                    "content_status": "machine_extracted",
+                },
+                {
+                    "assertion_id": "as_qizheng_000003",
+                    "proposition": "示例断言丙",
+                    "subject_entity_id": None,
+                    "concept_refs": ["co_qizheng_000001"],
+                    "evidence": [
+                        {
+                            "source_span_id": "ss_synth_ed01_o0000030",
+                            "start_offset": 30,
+                            "end_offset": 40,
+                            "quote_sha256": "2" * 64,
+                        }
+                    ],
+                    "school_view_ids": [],
+                    "content_status": "machine_extracted",
+                },
+                {
+                    # 有证据共现（evidence 挂在概念命名 span 上）但无任何显式引用 → 不得推断
+                    "assertion_id": "as_qizheng_000004",
+                    "proposition": "示例断言丁",
+                    "subject_entity_id": None,
+                    "evidence": [
+                        {
+                            "source_span_id": "ss_synth_ed01_o0000030",
+                            "start_offset": 30,
+                            "end_offset": 40,
+                            "quote_sha256": "2" * 64,
+                        }
+                    ],
+                    "school_view_ids": [],
+                    "content_status": "machine_extracted",
+                },
+            ],
+            "school_views": [],
+            "conflict_groups": [],
+        }
+
+    def _allocation(self):
+        return {
+            "pat_qizheng_000001": "ent_" + "a" * 32,
+            "co_qizheng_000001": "ent_" + "b" * 32,
+        }
+
+    def test_entry_subjects_dual_track_pattern_and_concept(self):
+        knowledge = self._snapshot_knowledge()
+        res = packs.build_knowledge_data_pack(
+            snapshot_knowledge=knowledge,
+            entry_id_allocation=self._allocation(),
+            release_id="rel_" + "c" * 32,
+            consumption_level="INTERNAL_DEMO",
+            technique_id="qizheng",
+        )
+        pack = res["pack"]
+        subjects = {e["subject_entity_id"] for e in pack["entries"]}
+        self.assertEqual(
+            subjects, {"pat_qizheng_000001", "co_qizheng_000001"}
+        )
+        pat_entry = next(
+            e for e in pack["entries"]
+            if e["subject_entity_id"] == "pat_qizheng_000001"
+        )
+        co_entry = next(
+            e for e in pack["entries"]
+            if e["subject_entity_id"] == "co_qizheng_000001"
+        )
+        self.assertEqual(pat_entry["entry_id"], "ent_" + "a" * 32)
+        self.assertEqual(co_entry["entry_id"], "ent_" + "b" * 32)
+        self.assertEqual(pat_entry["assertion_ids"], ["as_qizheng_000001"])
+        self.assertEqual(co_entry["assertion_ids"], ["as_qizheng_000003"])
+
+    def test_assertion_without_subject_is_reported_not_inferred(self):
+        knowledge = self._snapshot_knowledge()
+        res = packs.build_knowledge_data_pack(
+            snapshot_knowledge=knowledge,
+            entry_id_allocation=self._allocation(),
+            release_id="rel_" + "c" * 32,
+            consumption_level="INTERNAL_DEMO",
+            technique_id="qizheng",
+        )
+        self.assertEqual(
+            res["assertion_without_subject"],
+            ["as_qizheng_000002", "as_qizheng_000004"],
+        )
+        subject_ids = {e["subject_entity_id"] for e in res["pack"]["entries"]}
+        self.assertNotIn("as_qizheng_000002", subject_ids)
+        self.assertNotIn("as_qizheng_000004", subject_ids)
+
+    def test_no_subject_inference_from_evidence_cooccurrence(self):
+        knowledge = self._snapshot_knowledge()
+        # as_qizheng_000004 的证据偏移与 co_qizheng_000001 的断言证据完全共现，
+        # 但无显式引用 → 不得为它生成 entry，也不得并入概念词条。
+        res = packs.build_knowledge_data_pack(
+            snapshot_knowledge=knowledge,
+            entry_id_allocation=self._allocation(),
+            release_id="rel_" + "c" * 32,
+            consumption_level="INTERNAL_DEMO",
+            technique_id="qizheng",
+        )
+        co_entry = next(
+            e for e in res["pack"]["entries"]
+            if e["subject_entity_id"] == "co_qizheng_000001"
+        )
+        self.assertEqual(co_entry["assertion_ids"], ["as_qizheng_000003"])
+        self.assertIn("as_qizheng_000004", res["assertion_without_subject"])
+
+    def test_entry_requires_at_least_one_assertion(self):
+        knowledge = self._snapshot_knowledge()
+        # 无主体的格局（assertion_ids 为空）→ 不生成 entry
+        knowledge["patterns"].append(
+            {
+                "pattern_id": "pat_qizheng_000003",
+                "name": "示例格局三",
+                "assertion_ids": [],
+                "school_view_ids": [],
+                "recognition_rule_status": "not_captured",
+                "concept_id": None,
+            }
+        )
+        res = packs.build_knowledge_data_pack(
+            snapshot_knowledge=knowledge,
+            entry_id_allocation=self._allocation(),
+            release_id="rel_" + "c" * 32,
+            consumption_level="INTERNAL_DEMO",
+            technique_id="qizheng",
+        )
+        subject_ids = {e["subject_entity_id"] for e in res["pack"]["entries"]}
+        self.assertNotIn("pat_qizheng_000003", subject_ids)
+        self.assertIn(
+            "pat_qizheng_000003", res["subjects_without_entry"]
+        )
+        # 发号表里给缺号主体也必须抛错（不得临时生成）
+        with self.assertRaises(SchemaViolation) as ctx:
+            packs.build_knowledge_data_pack(
+                snapshot_knowledge=knowledge,
+                entry_id_allocation={},
+                release_id="rel_" + "c" * 32,
+                consumption_level="INTERNAL_DEMO",
+                technique_id="qizheng",
+            )
+        self.assertEqual(ctx.exception.code, "ID_001")
+
+    def test_pack_builder_never_calls_uuid(self):
+        knowledge = self._snapshot_knowledge()
+        with unittest.mock.patch(
+            "uuid.uuid4", side_effect=AssertionError("纯函数层禁止调用 uuid")
+        ):
+            res = packs.build_knowledge_data_pack(
+                snapshot_knowledge=knowledge,
+                entry_id_allocation=self._allocation(),
+                release_id="rel_" + "c" * 32,
+                consumption_level="INTERNAL_DEMO",
+                technique_id="qizheng",
+            )
+        self.assertTrue(res["pack"]["entries"])
+
+    def test_missing_allocation_raises(self):
+        knowledge = self._snapshot_knowledge()
+        with self.assertRaises(SchemaViolation) as ctx:
+            packs.build_knowledge_data_pack(
+                snapshot_knowledge=knowledge,
+                entry_id_allocation={"pat_qizheng_000001": "ent_" + "a" * 32},
+                release_id="rel_" + "c" * 32,
+                consumption_level="INTERNAL_DEMO",
+                technique_id="qizheng",
+            )
+        self.assertEqual(ctx.exception.code, "ID_001")
+        self.assertIn("co_qizheng_000001", str(ctx.exception))
+
+    def test_allocate_entry_ids_reuses_previous_and_issues_uuid4_for_new(self):
+        from pipeline.dataset_compiler import entry_ids
+
+        previous = {"pat_qizheng_000001": "ent_" + "a" * 32}
+        res = entry_ids.allocate_entry_ids(
+            previous_allocation=previous,
+            subject_entity_ids=["pat_qizheng_000001", "co_qizheng_000001"],
+            release_id="rel_" + "c" * 32,
+        )
+        # 旧号沿用
+        self.assertEqual(res["pat_qizheng_000001"], "ent_" + "a" * 32)
+        # 新号 UUIDv4：ent_ + 32hex，且版本位为 4
+        new_id = res["co_qizheng_000001"]
+        self.assertRegex(new_id, r"^ent_[0-9a-f]{32}$")
+        self.assertEqual(new_id[16], "4")  # uuid4 版本位（ent_ 后第 13 个 hex）
+        # 不修改入参
+        self.assertEqual(previous, {"pat_qizheng_000001": "ent_" + "a" * 32})
+
+    def test_knowledge_data_pack_bytes_deterministic_given_allocation(self):
+        knowledge = self._snapshot_knowledge()
+        kwargs = dict(
+            snapshot_knowledge=knowledge,
+            entry_id_allocation=self._allocation(),
+            release_id="rel_" + "c" * 32,
+            consumption_level="INTERNAL_DEMO",
+            technique_id="qizheng",
+        )
+        first = packs.build_knowledge_data_pack(**kwargs)
+        second = packs.build_knowledge_data_pack(**kwargs)
+        self.assertEqual(first["bytes"], second["bytes"])
+        self.assertEqual(first["sha256"], second["sha256"])
+        # 内部键序确定：entries 按 subject_entity_id 升序
+        subjects = [e["subject_entity_id"] for e in first["pack"]["entries"]]
+        self.assertEqual(subjects, sorted(subjects))
+
+    def test_evidence_link_offsets_absolute_per_i11(self):
+        """EvidenceLink 前三段材料：偏移取 Snapshot evidence 的绝对偏移（I-11）逐字透传。"""
+        knowledge = self._snapshot_knowledge()
+        res = packs.build_knowledge_data_pack(
+            snapshot_knowledge=knowledge,
+            entry_id_allocation=self._allocation(),
+            release_id="rel_" + "c" * 32,
+            consumption_level="INTERNAL_DEMO",
+            technique_id="qizheng",
+        )
+        chains = res["evidence_chains"]
+        self.assertEqual(len(chains), 2)
+        for chain in chains:
+            self.assertEqual(
+                set(chain.keys()), {"entry_id", "assertion_id", "evidence_link"}
+            )
+            link = chain["evidence_link"]
+            # evidence 中的偏移即为绝对偏移，逐字进入 EvidenceLink（不加减）
+            self.assertEqual(
+                (link["start_offset"], link["end_offset"]),
+                (10, 20) if chain["assertion_id"] == "as_qizheng_000001" else (30, 40),
+            )
+            self.assertTrue(chain["evidence_link"]["quote_sha256"])
+            self.assertEqual(
+                link["source_span_id"],
+                "ss_synth_ed01_o0000010"
+                if chain["assertion_id"] == "as_qizheng_000001"
+                else "ss_synth_ed01_o0000030",
+            )
 
 
 class MiscPacksTests(unittest.TestCase):
