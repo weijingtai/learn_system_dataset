@@ -68,7 +68,9 @@ M8 冻结输入第 1 项为 CanonicalKnowledgeSnapshot Revision（`§16:661-662`
     retired_entity_ids [],                              # 创世恒空
     editions [{source_id, work_key, reviewed_edition_package_revision_id,
                reviewed_edition_revision_id, stage_package_id,
-               edition_part_artifact_ids, edition_complete}],
+               edition_part_artifact_ids, edition_complete,
+               evidence_level,                              # W8 8.5：取自 candidate_set.evidence_level；闭集 offset_level|glyphbox_level
+               corpus_spans_revision_id}],                  # W8 8.5：来自本 edition evidence_links；全部一致取该值，全为 None 置 None
     concepts [{concept_id, name, aliases, provenance[{source_id, content_sha256, content_status}]}],
     patterns [{pattern_id, concept_id|null, name, aliases, rules[{rule_key, ast_sha256, source_id}],
                assertion_ids, school_view_ids, recognition_rule_status, provenance[...]}],
@@ -97,6 +99,8 @@ M8 冻结输入第 1 项为 CanonicalKnowledgeSnapshot Revision（`§16:661-662`
 | `canonical_hash` | `meta.canonical_hash` | `canonical_hash = sha256(canonical_json({concepts, patterns, assertions, school_views, conflict_groups}))`（草稿 §3.7） |
 | `release_id` | 由 M8 补齐 | M7 只给 `meta.release_scope_id` |
 | `IdentityMigrationMap` | M7 `identity_delta`（本切片不产出，`DEFERRED`） | 创世无基线，无身份迁移 |
+| M6 证据链质量 | `editions[].evidence_level` | W8 8.5 补：取自 candidate_set；`offset_level` 表示 I-11 绝对偏移，`glyphbox_level` 表示字形框坐标；M8 按此判断 EvidenceLink 坐标语义 |
+| 证据版本溯源 | `editions[].corpus_spans_revision_id` | W8 8.5 补：本 edition 所有 evidence_links 的 corpus_spans 修订号（全部一致则取该值，全为 None 则置 None）；M8 可据此核对证据来源修订 |
 
 `knowledge_sha256 = sha256(canonical_json(knowledge))`；`meta` 含运行随机值，`knowledge` 可与金标逐字节比对（草稿 §5.2）。M7 不合成、不升级内容成熟度：`content_status` 逐来源保留，由 M8 按消费级别过滤（`§16.1:670-678`）。
 

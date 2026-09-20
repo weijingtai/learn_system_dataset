@@ -254,6 +254,29 @@ def assemble_genesis(
         knowledge["id_allocation"] = {}
 
     # 1. editions
+    # D1：取 evidence_level 自 candidate_set（禁止硬编码、禁止默认值兜底）
+    if "evidence_level" not in cset_doc:
+        raise AssemblyRefused(
+            "candidate_set 缺必填字段 evidence_level",
+            code="SCH_001",
+        )
+    ev_level = cset_doc["evidence_level"]
+
+    # D1：corpus_spans_revision_id 来自本 edition 下各 evidence_links
+    # 全部一致 → 取该值；全部为 None → 置 None；出现两个及以上不同值 → 抛错停手
+    link_csrids = [
+        link.get("corpus_spans_revision_id")
+        for link in reviewed_doc.get("evidence_links", [])
+    ]
+    distinct_csrids = set(r for r in link_csrids if r is not None)
+    if len(distinct_csrids) > 1:
+        raise AssemblyRefused(
+            "evidence_links 中出现多个不同的 corpus_spans_revision_id，须停手上报: %s"
+            % sorted(distinct_csrids),
+            code="SCH_002",
+        )
+    corpus_spans_revision_id = distinct_csrids.pop() if distinct_csrids else None
+
     pkg_rev_id = (
         reviewed_edition_package_revision_id
         or reviewed_edition.get("reviewed_edition_package_revision_id")
@@ -281,6 +304,8 @@ def assemble_genesis(
             "stage_package_id": stg_pkg_id,
             "edition_part_artifact_ids": [cset_doc["edition_part_artifact_id"]],
             "edition_complete": False,
+            "evidence_level": ev_level,
+            "corpus_spans_revision_id": corpus_spans_revision_id,
         }
     ]
 
@@ -397,7 +422,30 @@ def assemble_genesis(
         prop_nfc = nfc_key(a["proposition"])
         text_hash = sha256_hex(prop_nfc.encode("utf-8"))
 
+        # D2（ACT impl-07/11）：两路来源都存在时，同一 source_span_id 上区间必须逐字段相等
+        # 严格执行 I-11：第 106 条 D1 已删除的两条静默分支不得复活
         if aid in links_by_entity:
+            links_for_aid = links_by_entity[aid]
+            # 若 M4 候选也有证据，逐条比对同一 source_span_id 的偏移
+            m4_ev_by_span = {ev["source_span_id"]: ev for ev in a.get("evidence", [])}
+            for link in links_for_aid:
+                span_id = link["source_span_id"]
+                if span_id in m4_ev_by_span:
+                    m4_ev = m4_ev_by_span[span_id]
+                    if (link["start_offset"] != m4_ev["start_offset"]
+                            or link["end_offset"] != m4_ev["end_offset"]):
+                        raise AssemblyRefused(
+                            "M6 链与 M4 候选在 source_span_id=%r 上的偏移不一致，"
+                            "M6 链: start_offset=%r end_offset=%r，"
+                            "M4 候选: start_offset=%r end_offset=%r。"
+                            "请确认 I-11 修复是否覆盖所有路径。"
+                            % (
+                                span_id,
+                                link["start_offset"], link["end_offset"],
+                                m4_ev["start_offset"], m4_ev["end_offset"],
+                            ),
+                            code="SCH_002",
+                        )
             ev_list = [
                 {
                     "source_span_id": l["source_span_id"],
@@ -405,7 +453,7 @@ def assemble_genesis(
                     "end_offset": l["end_offset"],
                     "quote_sha256": l["quote_sha256"],
                 }
-                for l in links_by_entity[aid]
+                for l in links_for_aid
             ]
         else:
             ev_list = [

@@ -460,6 +460,24 @@ def validate_snapshot_knowledge(knowledge: dict) -> None:
     start, end = rng_val[0], rng_val[1]
 
     _check_sorted(knowledge.get("editions", []), key_fn=lambda x: x["source_id"], name="editions")
+    # D1（ACT impl-07/11）：editions[] 每项必须含 evidence_level（闭集）和 corpus_spans_revision_id（可为 None）
+    _EVIDENCE_LEVELS = frozenset({"offset_level", "glyphbox_level"})
+    for ed in knowledge.get("editions", []):
+        if "evidence_level" not in ed:
+            raise SchemaViolation(
+                "editions 条目缺必填字段 evidence_level（source_id=%r）" % ed.get("source_id"),
+                code="SCH_001",
+            )
+        if ed["evidence_level"] not in _EVIDENCE_LEVELS:
+            raise SchemaViolation(
+                "editions 条目 evidence_level 非法（须在 %s 内）: %r" % (sorted(_EVIDENCE_LEVELS), ed["evidence_level"]),
+                code="SCH_002",
+            )
+        if "corpus_spans_revision_id" not in ed:
+            raise SchemaViolation(
+                "editions 条目缺必填字段 corpus_spans_revision_id（source_id=%r）" % ed.get("source_id"),
+                code="SCH_001",
+            )
     _check_sorted(knowledge.get("concepts", []), key_fn=lambda x: x["concept_id"], name="concepts")
     _check_sorted(knowledge.get("patterns", []), key_fn=lambda x: x["pattern_id"], name="patterns")
     patterns_ids = [p["pattern_id"] for p in knowledge.get("patterns", [])]

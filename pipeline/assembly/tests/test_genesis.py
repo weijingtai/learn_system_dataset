@@ -284,5 +284,174 @@ class TestGenesis(unittest.TestCase):
         self.assertIsInstance(res["knowledge"]["allocated_pattern_ids"], list)
 
 
+
+# ──────────────────────────────────────────────────────────────────────────────
+# W8 8.5 / ACT impl-07/11 新增用例（D1 editions 补字段，D2 证据偏移统一 I-11）
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+class TestGenesisEditionsEvidenceFields(unittest.TestCase):
+    """D1: editions[] 补 evidence_level / corpus_spans_revision_id。"""
+
+    def _make_inputs_with_csrid(self, csrid="rev_00000000000000000000000000000007"):
+        """构造包含 corpus_spans_revision_id 的标准输入（两路偏移一致）。"""
+        from pipeline.assembly.tests.test_model import make_valid_candidate_set, make_valid_reviewed_edition
+        cset_raw = make_valid_candidate_set()
+        ed_raw = make_valid_reviewed_edition()
+        ed_raw["evidence_links"][0]["corpus_spans_revision_id"] = csrid
+        v_cset = validate_candidate_set(cset_raw)
+        v_ed = validate_reviewed_edition(ed_raw)
+        return v_cset, v_ed
+
+    def test_editions_carry_evidence_level_from_candidate_set(self):
+        """evidence_level 取自 candidate_set，非硬编码。"""
+        from pipeline.assembly.tests.test_model import make_valid_candidate_set, make_valid_reviewed_edition
+        cset_raw = make_valid_candidate_set()
+        cset_raw["evidence_level"] = "glyphbox_level"
+        ed_raw = make_valid_reviewed_edition()
+        v_cset = validate_candidate_set(cset_raw)
+        v_ed = validate_reviewed_edition(ed_raw)
+        prop = propose_genesis(v_cset, v_ed)
+        res = assemble_genesis(v_cset, v_ed, prop["proposals"], id_range={"pattern": [1, 100]})
+        editions = res["knowledge"]["editions"]
+        self.assertEqual(len(editions), 1)
+        self.assertEqual(editions[0]["evidence_level"], "glyphbox_level")
+
+    def test_editions_reject_candidate_set_without_evidence_level(self):
+        """缺字段抛 SchemaViolation SCH_001，非法值抛 SCH_002，不填默认。"""
+        from pipeline.assembly.tests.test_model import make_valid_candidate_set
+        from pipeline.ledger.errors import SchemaViolation
+        # 1. 缺字段 -> SCH_001
+        cset_raw = make_valid_candidate_set()
+        del cset_raw["evidence_level"]
+        with self.assertRaises(SchemaViolation) as ctx:
+            validate_candidate_set(cset_raw)
+        self.assertEqual(ctx.exception.code, "SCH_001")
+
+        # 2. 取值不在闭集内 -> SCH_002
+        cset_bad_val = make_valid_candidate_set()
+        cset_bad_val["evidence_level"] = "invalid_level"
+        with self.assertRaises(SchemaViolation) as ctx:
+            validate_candidate_set(cset_bad_val)
+        self.assertEqual(ctx.exception.code, "SCH_002")
+
+        # 3. assemble_genesis 遇缺字段 candidate_set 同样抛 SCH_001（不静默填默认）
+        ed_raw = make_valid_reviewed_edition()
+        v_ed = validate_reviewed_edition(ed_raw)
+        with self.assertRaises(AssemblyRefused) as ctx:
+            assemble_genesis({"doc": cset_raw}, v_ed, [], id_range={"pattern": [1, 100]})
+        self.assertEqual(ctx.exception.code, "SCH_001")
+
+    def test_editions_carry_corpus_spans_revision_id_when_links_agree(self):
+        """各链一致时取该值。"""
+        v_cset, v_ed = self._make_inputs_with_csrid("rev_00000000000000000000000000000007")
+        prop = propose_genesis(v_cset, v_ed)
+        res = assemble_genesis(v_cset, v_ed, prop["proposals"], id_range={"pattern": [1, 100]})
+        editions = res["knowledge"]["editions"]
+        self.assertEqual(editions[0]["corpus_spans_revision_id"], "rev_00000000000000000000000000000007")
+
+    def test_editions_corpus_spans_revision_id_none_when_links_have_none(self):
+        """全为 None 时置 None，不编造。"""
+        from pipeline.assembly.tests.test_model import make_valid_candidate_set, make_valid_reviewed_edition
+        cset_raw = make_valid_candidate_set()
+        ed_raw = make_valid_reviewed_edition()
+        ed_raw["evidence_links"][0].pop("corpus_spans_revision_id", None)
+        v_cset = validate_candidate_set(cset_raw)
+        v_ed = validate_reviewed_edition(ed_raw)
+        prop = propose_genesis(v_cset, v_ed)
+        res = assemble_genesis(v_cset, v_ed, prop["proposals"], id_range={"pattern": [1, 100]})
+        editions = res["knowledge"]["editions"]
+        self.assertIsNone(editions[0]["corpus_spans_revision_id"])
+
+    def test_editions_raise_on_conflicting_corpus_spans_revision_id(self):
+        """出现两个不同值时抛错停手。"""
+        from pipeline.assembly.tests.test_model import make_valid_candidate_set, make_valid_reviewed_edition
+        cset_raw = make_valid_candidate_set()
+        cset_raw["assertions"].append({
+            "assertion_id": "as_qizheng_000002",
+            "proposition_id": "pr_qizheng_000002",
+            "proposition": "命宫在丑",
+            "relation": "supports",
+            "evidence": [
+                {
+                    "source_span_id": "ss_qizheng_ed01_o0000100",
+                    "start_offset": 100,
+                    "end_offset": 110,
+                    "quote": "命宫在丑",
+                    "quote_sha256": "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
+                }
+            ],
+            "conditions": [], "exceptions": [], "concept_refs": [], "school_ids": [],
+            "layer": "general", "content_status": "machine_extracted",
+            "origin": {"lane": "main", "item_index": 1},
+        })
+        cset_raw["counts"]["assertions"] = 2
+        ed_raw = make_valid_reviewed_edition()
+        ed_raw["approved"].append({
+            "entity_id": "as_qizheng_000002",
+            "kind": "assertion",
+            "artifact_revision_id": "rev_00000000000000000000000000000005",
+            "content_status": "expert_verified",
+            "decision_revision_ids": ["rev_00000000000000000000000000000006"],
+        })
+        ed_raw["evidence_links"][0]["corpus_spans_revision_id"] = "rev_00000000000000000000000000000007"
+        ed_raw["evidence_links"].append({
+            "entity_id": "as_qizheng_000002",
+            "source_span_id": "ss_qizheng_ed01_o0000100",
+            "corpus_spans_revision_id": "rev_00000000000000000000000000000099",
+            "start_offset": 100,
+            "end_offset": 110,
+            "quote_sha256": "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
+        })
+        v_cset = validate_candidate_set(cset_raw)
+        v_ed = validate_reviewed_edition(ed_raw)
+        prop = propose_genesis(v_cset, v_ed)
+        with self.assertRaises(Exception) as ctx:
+            assemble_genesis(v_cset, v_ed, prop["proposals"], id_range={"pattern": [1, 100]})
+        self.assertIn("corpus_spans_revision_id", str(ctx.exception))
+
+
+class TestGenesisEvidenceOffsets(unittest.TestCase):
+    """D2: 证据偏移统一 I-11 绝对偏移。"""
+
+    def test_evidence_offsets_are_absolute_i11(self):
+        """M6 链与 M4 候选两路都在时，区间逐字段相等。"""
+        cset, ed = make_genesis_inputs()
+        prop = propose_genesis(cset, ed)
+        res = assemble_genesis(cset, ed, prop["proposals"], id_range={"pattern": [1, 100]})
+        ev = res["knowledge"]["assertions"][0]["evidence"][0]
+        self.assertEqual(ev["start_offset"], 10)
+        self.assertEqual(ev["end_offset"], 20)
+
+    def test_evidence_offsets_reject_local_offset_masquerading(self):
+        """注入局部偏移冒充绝对偏移 → 拒绝（护栏用例，必须能转红）。"""
+        from pipeline.assembly.tests.test_model import make_valid_candidate_set, make_valid_reviewed_edition
+        cset_raw = make_valid_candidate_set()
+        ed_raw = make_valid_reviewed_edition()
+        # M4 候选 start_offset=10, end_offset=20；M6 链注入不同值（模拟局部偏移）
+        ed_raw["evidence_links"][0]["start_offset"] = 5
+        ed_raw["evidence_links"][0]["end_offset"] = 15
+        v_cset = validate_candidate_set(cset_raw)
+        v_ed = validate_reviewed_edition(ed_raw)
+        prop = propose_genesis(v_cset, v_ed)
+        with self.assertRaises(Exception) as ctx:
+            assemble_genesis(v_cset, v_ed, prop["proposals"], id_range={"pattern": [1, 100]})
+        self.assertIn("offset", str(ctx.exception).lower())
+
+    def test_no_local_offset_guessing_branch(self):
+        """AST 断言 genesis.py 未出现「猜局部/回退整片段」分支的标志性写法。"""
+        import pathlib
+        genesis_path = pathlib.Path(__file__).parent.parent / "genesis.py"
+        source = genesis_path.read_text(encoding="utf-8")
+        forbidden_patterns = [
+            "span.start_offset",
+            "局部偏移猜测",
+            "越界回退整片段",
+        ]
+        for pat in forbidden_patterns:
+            self.assertNotIn(pat, source,
+                msg="genesis.py 中出现了被禁止的局部偏移猜测模式: %r" % pat)
+
+
 if __name__ == "__main__":
     unittest.main()

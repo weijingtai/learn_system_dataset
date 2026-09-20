@@ -431,6 +431,57 @@ class TestModel(unittest.TestCase):
         self.assertEqual(ctx.exception.code, "ID_002")
 
 
+
+# ──────────────────────────────────────────────────────────────────────────────
+# W8 8.5 / ACT impl-07/11 新增用例（D1 validate_snapshot_knowledge 补校验）
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+class TestValidateSnapshotKnowledgeEditionFields(unittest.TestCase):
+    """D1: validate_snapshot_knowledge 对 editions[] 新增字段的校验。"""
+
+    def _make_snapshot_with_edition(self, edition_override=None):
+        """构造含 editions[] 的合法 snapshot knowledge。"""
+        k = make_valid_snapshot_knowledge()
+        ed = {
+            "source_id": "src_qizheng_ed01",
+            "work_key": "qizheng",
+            "reviewed_edition_package_revision_id": "rev_00000000000000000000000000000000",
+            "reviewed_edition_revision_id": "rev_00000000000000000000000000000001",
+            "stage_package_id": "pkg_m6_00000000000000000000000000000000",
+            "edition_part_artifact_ids": ["art_00000000000000000000000000000001"],
+            "edition_complete": False,
+            "evidence_level": "offset_level",
+            "corpus_spans_revision_id": None,
+        }
+        if edition_override:
+            ed.update(edition_override)
+        k["editions"] = [ed]
+        return k
+
+    def test_validate_snapshot_knowledge_requires_edition_evidence_level(self):
+        """缺 evidence_level 判错（SchemaViolation SCH_001）。"""
+        k = self._make_snapshot_with_edition()
+        del k["editions"][0]["evidence_level"]
+        with self.assertRaises(SchemaViolation) as ctx:
+            validate_snapshot_knowledge(k)
+        self.assertEqual(ctx.exception.code, "SCH_001")
+
+    def test_validate_snapshot_knowledge_rejects_bad_evidence_level(self):
+        """闭集外取值判错（SchemaViolation SCH_002）。"""
+        k = self._make_snapshot_with_edition({"evidence_level": "page_level"})
+        with self.assertRaises(SchemaViolation) as ctx:
+            validate_snapshot_knowledge(k)
+        self.assertEqual(ctx.exception.code, "SCH_002")
+
+    def test_validate_snapshot_knowledge_requires_edition_corpus_spans_revision_id(self):
+        """缺键判错，值可为 None（SchemaViolation SCH_001）。"""
+        k = self._make_snapshot_with_edition()
+        del k["editions"][0]["corpus_spans_revision_id"]
+        with self.assertRaises(SchemaViolation) as ctx:
+            validate_snapshot_knowledge(k)
+        self.assertEqual(ctx.exception.code, "SCH_001")
+
+
 if __name__ == "__main__":
     unittest.main()
-

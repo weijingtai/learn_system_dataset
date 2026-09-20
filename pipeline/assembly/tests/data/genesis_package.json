@@ -38,7 +38,7 @@
         "relation": "supports",
         "evidence": [
           {
-            "source_span_id": "ss_qizheng_ed01_p0001_s01",
+            "source_span_id": "ss_qizheng_ed01_o0000010",
             "start_offset": 10,
             "end_offset": 20,
             "quote": "命宫在子",
@@ -92,7 +92,7 @@
         "source_refs": [
           {
             "source_id": "src_qizheng_ed01",
-            "source_span_id": "ss_qizheng_ed01_p0001_s01"
+            "source_span_id": "ss_qizheng_ed01_o0000010"
           }
         ],
         "evidence": [],
@@ -176,7 +176,7 @@
     "evidence_links": [
       {
         "entity_id": "as_qizheng_000001",
-        "source_span_id": "ss_qizheng_ed01_p0001_s01",
+        "source_span_id": "ss_qizheng_ed01_o0000010",
         "start_offset": 10,
         "end_offset": 20,
         "quote_sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
