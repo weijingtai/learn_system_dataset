@@ -1,0 +1,93 @@
+act_id: impl-07/11
+title: W8 8.5 —— Snapshot editions 补 evidence_level/corpus_spans_revision_id、证据偏移统一 I-11、修夹具级别与 ID 形态矛盾
+estimated_minutes: 120
+group: W8
+depends_on: [impl-07/G0-06, impl-06/R84c]
+ruling: 第 106 条 D4（已授权改 impl-07 README §Snapshot 形状与 M8 字段映射表、并更新 genesis 金标）
+scope:
+  write:
+    - pipeline/assembly/genesis.py
+    - pipeline/assembly/model.py
+    - pipeline/assembly/tests/data/genesis_package.json
+    - pipeline/assembly/tests/data/genesis_expected_knowledge.json
+    - pipeline/assembly/tests/test_genesis.py
+    - pipeline/assembly/tests/test_model.py
+    - docs/blackbox-spec-rework/work-items/impl-07-assembly/README.md
+tests_first:
+  - 先写用例（用例名逐字照抄下方 tests 段）并确认全红，再改实现。红→绿的真实输出要贴进回报。
+contract: |
+  D1 editions[] 补两个字段（genesis.py:275-285 构造处，model.py 校验处）
+    evidence_level：
+      取值来源 = candidate_set 文档的 evidence_level（model.py:270 已校验闭集 offset_level|glyphbox_level）
+      禁止硬编码、禁止默认值兜底；candidate_set 缺该字段 → 抛 SchemaViolation(code="SCH_002")，不得静默填默认
+    corpus_spans_revision_id：
+      取值来源 = 本 edition 下各 evidence_links 的 corpus_spans_revision_id（model.py:203-204 已有形态校验）
+      全部一致 → 取该值；出现两个及以上不同值 → 停手上报，不得自行选一个
+      全部为 None → 字段置 None（合法），不得编造
+    model.validate_snapshot_knowledge：editions[] 每项必须含这两个键；evidence_level 取值须在闭集内
+
+  D2 证据偏移统一 I-11 绝对偏移（genesis.py:401-418）
+    I-11 定义：start_offset/end_offset 为相对页块/片段宿主的绝对偏移，
+      即 start_offset = span.start_offset + 局部起点；局部 = 绝对 − span.start_offset
+    现状：证据有两条来源——links_by_entity（M6 evidence_links）与 a["evidence"]（M4 候选）。
+      第 106 条 D1 修复后两条均为绝对偏移，但代码从未断言过这一点，混用可静默发生。
+    要求：
+      1. 两条来源都存在时，同一 (source_span_id) 上的区间必须逐字段相等；不等 → 抛错拒绝，禁止择一静默通过
+      2. 不得新增任何「按局部偏移猜测」或「越界回退整片段」分支（第 106 条 D1 已删除的两条静默分支，不得复活）
+      3. 新增一条具名护栏用例，注入「局部偏移冒充绝对偏移」的证据后必须转红
+
+  D3 修 genesis_package.json 级别与片段 ID 形态自相矛盾
+    现状：:26 evidence_level="offset_level"，但 :41 等处片段 ID 为页码形态 ss_qizheng_ed01_p0001_s01
+    修法（主 Agent 已定方向，不得反向改）：
+      保留 evidence_level="offset_level"，把片段 ID 改为偏移形态 ss_qizheng_ed01_o<7位偏移>
+      理由：W8 全线是电子文本 offset 路线，M6 修复后真实上游产出的就是偏移形态，夹具须与真实上游一致
+      偏移值自洽即可（与该夹具内 start_offset/end_offset 构成合法 I-11 关系），不要求对应任何真实书籍
+    genesis_expected_knowledge.json 金标随之更新
+    **金标每一处改动必须在回报中逐字段列出「改前 → 改后 + 为什么」**（第 106 条 D4 明文要求）
+
+  D4 README 同步（第 106 条 D4 已授权）
+    更新 §Snapshot 形状与 M8 字段映射表，加入 editions[].evidence_level 与 editions[].corpus_spans_revision_id
+    只改这一节，不动其它章节
+tests:
+  test_genesis.py: |
+    - test_editions_carry_evidence_level_from_candidate_set（evidence_level 取自 candidate_set，非硬编码）
+    - test_editions_reject_candidate_set_without_evidence_level（缺字段抛 SchemaViolation SCH_002，不填默认）
+    - test_editions_carry_corpus_spans_revision_id_when_links_agree（各链一致时取该值）
+    - test_editions_corpus_spans_revision_id_none_when_links_have_none（全为 None 时置 None，不编造）
+    - test_editions_raise_on_conflicting_corpus_spans_revision_id（出现两个不同值时抛错停手）
+    - test_evidence_offsets_are_absolute_i11（M6 链与 M4 候选两路都在时，区间逐字段相等）
+    - test_evidence_offsets_reject_local_offset_masquerading（注入局部偏移冒充绝对偏移 → 拒绝；本条是护栏，必须能转红）
+    - test_no_local_offset_guessing_branch（AST 断言 genesis.py 未出现「猜局部/回退整片段」分支的标志性写法）
+  test_model.py: |
+    - test_validate_snapshot_knowledge_requires_edition_evidence_level（缺 evidence_level 判错）
+    - test_validate_snapshot_knowledge_rejects_bad_evidence_level（闭集外取值判错）
+    - test_validate_snapshot_knowledge_requires_edition_corpus_spans_revision_id（缺键判错，值可为 None）
+verify:
+  - export LC_ALL=en_US.UTF-8; .venv/bin/python -m unittest discover -s pipeline/assembly/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"   # OK，用例数 ≥ 107（96 + 11 新增具名用例）
+  - export LC_ALL=en_US.UTF-8; .venv/bin/python -m unittest discover -s pipeline/review/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"    # OK，166 不得减少
+  - export LC_ALL=en_US.UTF-8; .venv/bin/python -m unittest discover -s pipeline/dataset_compiler/tests -t . 2>&1 | grep -E "^(Ran|OK|FAILED)"  # OK，162 不得减少
+  - export LC_ALL=en_US.UTF-8; bash openspec/acceptance/m7-assembler.sh; echo exit=$?   # pass 不得下降；判定变化必须在回报中说明
+  - python3 docs/blackbox-spec-rework/work-items/impl-00-interfaces/check_interfaces.py | tail -1   # pass=44 fail=0
+  - git diff --check
+commit:
+  add:
+    - pipeline/assembly/genesis.py
+    - pipeline/assembly/model.py
+    - pipeline/assembly/tests/data/genesis_package.json
+    - pipeline/assembly/tests/data/genesis_expected_knowledge.json
+    - pipeline/assembly/tests/test_genesis.py
+    - pipeline/assembly/tests/test_model.py
+    - docs/blackbox-spec-rework/work-items/impl-07-assembly/README.md
+  message: "feat(m7): editions carry evidence_level and corpus_spans_revision_id, enforce I-11 absolute offsets (W8 8.5, ruling 106 D4)"
+on_fail: |
+  停止并写「## 待裁决」，不要猜。以下情形一律停手上报：
+  - candidate_set 里根本没有 evidence_level 字段，或其取值不在闭集内
+  - 各 evidence_links 的 corpus_spans_revision_id 出现两个及以上不同值
+  - M6 链与 M4 候选两路证据区间不相等（说明 106 D1 的修复没有覆盖到某条路径）
+  - 需要修改 scope 之外的文件
+  - 既有用例因本次改动转红且你认为该用例本身有问题
+discipline:
+  - 提交前必须全套绿。因待裁决事项导致既有用例红时，**不得提交**，保持工作树未提交并写「## 待裁决」（第 108 条纪律）
+  - 回报只写真实跑过的命令与输出；没跑的写「未跑」。禁止用「将/应当/会」陈述验证结果（第 93 条）
+  - 不得修改 pipeline/corpus/_fixture/qianyuan_ed01_text/expected/ 下任何文件（第 95、101 条）
+  - 不得写 var/ledgers/（持久 Ledger）
