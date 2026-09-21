@@ -1,0 +1,142 @@
+act_id: impl-04/15
+title: run_m8 按路线装配冻结输入与输入契约（现状 step.py:247 KeyError，真书同一断点）
+estimated_minutes: 150
+group: K4
+depends_on: [impl-04/14]
+decisions: [D-W8-15, 裁定 78 D3, 裁定 81, 裁定 102 Q4]
+scope:
+  write:
+    - pipeline/dataset_compiler/inputs.py
+    - pipeline/dataset_compiler/step.py
+    - pipeline/dataset_compiler/tests/test_inputs.py
+    - pipeline/dataset_compiler/tests/test_step.py
+  read_only:
+    - var/                                   # 只许读，绝不许写
+    - pipeline/dataset_compiler/gate.py       # D-W8-13b：一行都不许动
+    - pipeline/dataset_compiler/packs.py      # ACT 14 的成果，本 ACT 只调用不修改
+background: |
+  主 Agent 2026-09-20 实测现状（`pipeline/dataset_compiler/step.py:240-249`）：
+
+    frozen = [
+        inputs["m3_package_revision_id"],
+        inputs["spans_revision_id"],
+        inputs["manifest_revision_id"],
+        inputs["ocr_page_set_revision_id"],      # ← 电子文本路线为 None，会把 None 塞进冻结集
+    ]
+    for page in manifest["edition_part"]["pages"]:
+        frozen.append(inputs["page_revision_ids"][page])    # ← KeyError
+    for page in manifest["edition_part"]["pages"]:
+        frozen.append(inputs["asset_revision_ids"][page])   # ← KeyError
+
+  真书 source_manifest 里 edition_part.pages = ["qianyuan_ed01_text"]（单文件、无页码，
+  但**确实有一个「页单位」**），而 ACT 13a 契约下电子文本路线的
+  page_revision_ids / asset_revision_ids 均为 {} → `KeyError: 'qianyuan_ed01_text'`。
+  该异常发生在 begin_step_run **之前**，故零写入（前一轮执行器在账本副本上实测确认）。
+
+  同一处还有两个连带问题：
+    - `_run_after_begin` 第 6 步用 `inputs["page_revision_ids"].items()` 装 page_docs，
+      电子文本路线为空字典 → page_docs 为 {}，下游按页取用会再次 KeyError
+    - `_validate_input_contract`（step.py:103-130）无条件要求 m3 包的
+      source_manifest / ocr_page_set / ocr_page 三组引用与解析一致；
+      电子文本 m3 包的 input_artifacts 是
+      {cleaned_text_revision, deterministic_patch_set, raw_text, sanitization_report}
+      → 三条校验全部误报 REF_001
+
+  README §11.4:250 已写定电子文本线的输入口径：
+    「若 evidence_level == "offset_level"：分派至电子文本线逻辑，解析 M2 产物
+     （raw_text、cleaned_text_revision、deterministic_patch_set、sanitization_report）
+     与 M1 source_manifest 中的 SourceAsset 元数据。」
+contract: |
+  一、inputs.py 补齐电子文本路线的 M2 产物修订（ACT 13a 未做这一层）
+    resolve_m8_inputs 在 route == "electronic_text" 时，返回字典新增四个键，
+    取值来自 M3 包 manifest.input_artifacts 中对应 artifact_type 的 artifact_revision_id：
+      "raw_text_revision_id"
+      "cleaned_text_revision_id"
+      "deterministic_patch_set_revision_id"
+      "sanitization_report_revision_id"
+    每个都必须**恰好 1 个**引用，否则 REF_001（消息含实际个数）。
+    每个都要 _sealed_revision 校验已封存 + _artifact_type 校验类型，不符 SCH_002。
+    route == "ocr" 时这四个键取 None（**不许省略键**，下游按名取用）。
+    ACT 13a 已有的 14 个键名一个都不许改。
+
+  二、step.py 冻结输入按路线装配（D-W8-15）
+    分派权威 = inputs["route"]（ACT 13a 已产出的键），不许新增环境变量、不许看别处。
+    ocr 路线：现有装配逐字不变。
+    electronic_text 路线：
+      frozen = [m3_package_revision_id, spans_revision_id, manifest_revision_id,
+                raw_text_revision_id, cleaned_text_revision_id,
+                deterministic_patch_set_revision_id, sanitization_report_revision_id]
+      **不含** ocr_page_set_revision_id（它是 None，塞进去会污染冻结集与 input_artifact_ids）
+      **不遍历** edition_part.pages 取页/资产修订
+    硬性：frozen 列表中**不得出现 None**。新增一条断言式校验：装配完成后若含 None →
+      DatasetRefused REF_001，消息指明是哪个键。这条对两条路线都生效。
+
+  三、page_docs 与输入契约按路线分派
+    1) `_run_after_begin` 第 6 步：electronic_text 路线 page_docs = {}（保持空字典，
+       ACT 14 的 offset 变体本就不读它）；ocr 路线逐字不变
+    2) `_validate_input_contract`：把 source_manifest / ocr_page_set / ocr_page 三组引用校验
+       改为按路线分派：
+         ocr 路线：三条逐字不变
+         electronic_text 路线：改为校验第一节那四类 M2 产物引用与解析一致（同样 REF_001），
+           且**不得**出现 ocr_page_set / ocr_page 引用（出现即 REF_001，说明路线判定与实际不符）
+    3) manifest.source_assets 的对账：electronic_text 路线仍要做，但对的是
+       raw_text 修订的 sha256（ACT 14 第三节已定同口径），不是页图
+
+  四、判据：真书账本上 run_m8 至少要越过 begin_step_run
+    本 ACT 的成功判据**不是**「真书上 M8 全绿」——知识链、GraphProjectionPack 等仍可能如实失败。
+    判据是：在真书账本的**副本**上调用 run_m8，不再抛 KeyError，
+    且失败（若失败）是经 `_fail` 封存的正常失败，不是 begin 之前的崩溃。
+    **真书正本一律只读**；副本放 /tmp 或你的临时目录。
+
+  五、不许做的事
+    - 不许动 gate.py（D-W8-13b）、不许动 packs.py（ACT 14 成果）
+    - 不许给电子文本路线伪造 ocr_page_set / ocr_page 修订来「凑齐」既有校验
+    - 不许把 OCR 路线的校验放宽来迁就电子文本路线（两条路线各走各的分支）
+tests_first: |
+  先写测试并确认转红（贴 Red 原文），再改实现。至少八个具名用例：
+    test_resolve_inputs_electronic_text_yields_four_m2_revision_ids
+    test_resolve_inputs_electronic_text_refuses_duplicate_raw_text_reference   # REF_001
+    test_resolve_inputs_ocr_route_m2_keys_are_none_but_present
+    test_frozen_inputs_electronic_text_exclude_page_and_asset_revisions
+    test_frozen_inputs_never_contain_none                                       # 两条路线都覆盖
+    test_input_contract_electronic_text_accepts_m2_references
+    test_input_contract_electronic_text_refuses_ocr_page_reference              # REF_001
+    test_run_m8_electronic_text_passes_begin_step_run                           # 不再 KeyError
+    test_ocr_route_frozen_and_contract_unchanged                                # OCR 回归护栏
+  测试**不得依赖 var/ 存在**（用夹具或临时账本构造）。
+verify: |
+  cd /Users/jingtaiwei/Git/Public/learn_system && export LC_ALL=en_US.UTF-8
+  .venv/bin/python -m unittest discover -s pipeline/dataset_compiler/tests -t . 2>&1 | tail -3
+      # OK；**skipped 数不得增加**（当前仓库树为 0）
+  .venv/bin/python -m unittest discover -s pipeline/assembly/tests -t . 2>&1 | tail -1     # OK 107
+  .venv/bin/python -m unittest discover -s pipeline/review/tests -t . 2>&1 | tail -1       # OK 166
+  .venv/bin/python -m unittest discover -s pipeline/validation/tests -t . 2>&1 | tail -1   # OK 108
+  .venv/bin/python docs/blackbox-spec-rework/work-items/impl-00-interfaces/check_interfaces.py | tail -1   # pass=44 fail=0
+  bash openspec/acceptance/m8-span-identity.sh 2>&1 | tail -1                              # SUMMARY pass=7 fail=0 blocked=1
+  git diff --stat -- pipeline/dataset_compiler/gate.py pipeline/dataset_compiler/packs.py   # 必须无输出
+  # 真书副本实跑（把原文与结论都贴进回报）：
+  #   cp -R var/ledgers/qianyuan_w8 <临时目录>/ledger_copy   # 正本只读
+  #   在副本上 run_m8，记录：是否越过 begin_step_run、若失败失败在哪一步、错误码
+  # 篡改探针（两条，绿→红→改回）：
+  #   P1 把 frozen 的 None 校验去掉，并让 ocr_page_set_revision_id 混入电子文本 frozen
+  #       → test_frozen_inputs_never_contain_none 转红
+  #   P2 把输入契约的路线分派去掉（恒走 OCR 分支）
+  #       → test_input_contract_electronic_text_accepts_m2_references 转红
+  # 探针副本必须 cp -R **整个仓库**（含 ocr/，那里有被 gitignore 的本机页图）；
+  #   只复制 pipeline/ 会让 OCR 档用例静默 skipped，探针出假阴性（R13，2026-09-20 主 Agent 踩过）
+commit:
+  add:
+    - pipeline/dataset_compiler/inputs.py
+    - pipeline/dataset_compiler/step.py
+    - pipeline/dataset_compiler/tests/test_inputs.py
+    - pipeline/dataset_compiler/tests/test_step.py
+    - docs/blackbox-spec-rework/work-items/impl-04-dataset/act/15.yaml
+  message: "feat(m8): assemble frozen inputs and validate the contract per route (W8 8.6-K4, ACT 15)"
+on_fail: |
+  停止并报告，不许提交红的基线。
+  五种情况必须停手写「## 待裁决」而不是自行决定：
+    ① 需要改 gate.py 或 packs.py 才能完成
+    ② ACT 14 落成的包形状与本 ACT 第三节假定不符（以 ACT 14 实际成果为准，立即上报差异）
+    ③ 电子文本 m3 包里四类 M2 产物引用不是「恰好各 1 个」
+    ④ 既有 OCR 用例有任何一条转红，或 skipped 数增加
+    ⑤ 真书副本上 run_m8 仍在 begin_step_run 之前崩溃，且原因不在本 ACT 范围内

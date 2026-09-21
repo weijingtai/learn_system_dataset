@@ -1,0 +1,136 @@
+act_id: impl-04/16
+title: m8-span-identity 验收走电子文本路线（现状宿主校验与夹具装配都只认 OCR）
+estimated_minutes: 170
+group: K4
+depends_on: [impl-04/15]
+decisions: [D-W8-16, 裁定 44, 裁定 95, 裁定 101]
+scope:
+  write:
+    - openspec/acceptance/m8-span-identity.sh
+    - pipeline/dataset_compiler/acceptance.py
+    - pipeline/corpus/_fixture/qianyuan_ed01_text/      # 只许新增 M8 入口料，见第二节
+    - pipeline/dataset_compiler/tests/test_acceptance.py
+  read_only:
+    - var/                                              # 只许读，绝不许写
+    - pipeline/corpus/_fixture/mini_ed01/               # OCR 夹具：一个字节都不许改（裁定 95/101）
+    - pipeline/dataset_compiler/gate.py
+    - pipeline/dataset_compiler/packs.py
+    - pipeline/dataset_compiler/step.py
+background: |
+  主 Agent 2026-09-20 实测现状：
+
+  1) `openspec/acceptance/m8-span-identity.sh`（60 行）无条件做两件事：
+     - `FIXTURE_ASSET_ROOT` 默认指 `ocr/data_work/sanche_pages`（页图）
+     - 调用 `pipeline/corpus/_fixture/mini_ed01/verify.sh` 做宿主校验，**写死 mini_ed01**
+       （注释写明「永远调用仓库内规范脚本，绝不执行副本目录内的 verify 脚本」——
+        这是裁定 44 的成果，**该性质必须保留**）
+     然后 `python -m pipeline.dataset_compiler.acceptance --fixture "$FIXTURE_DIR" --check span_identity`
+
+  2) `acceptance.py::_prepare_ledger`（:80）做 ingest(m1,m2) → `run_m3` → register_source_assets；
+     `main()`（:667）在缺 `manifest.yaml` 时直接 `BLOCKED m8_acceptance 宿主缺失`
+
+  3) 两个夹具的实际内容差得很远：
+     mini_ed01/            expected/ m4/ pages/ source/ tools/ README.md anomalies.yaml
+                           manifest.yaml spans.yaml verify.sh      ← evidence_level: glyphbox_level
+     qianyuan_ed01_text/   expected/ m4/ qianyuan_ed01_text.md source_info.yaml
+                           ← **没有 manifest.yaml、没有 spans.yaml、没有 verify.sh、没有 pages/**
+     也就是说电子文本夹具目前只有 M1/M2 的料，M8 验收入口所需的东西一件都没有。
+
+  4) 文本线的 M3 入口是 `pipeline/corpus_compiler/step_offset.py::run_m3_text`（:346），
+     与 OCR 线的 `step.py::run_m3`（:35）是两个函数。
+
+  真书 source_info.yaml 已有 source_id / work_title / technique_id / rights_status /
+  release_policy / edition_part（pages = ["qianyuan_ed01_text"]）等字段，可作为清单的事实来源。
+contract: |
+  一、D-W8-16（主 Agent 2026-09-20 裁决）
+    裁定三条，避免把验收脚本改成「两套逻辑互相污染」：
+      1. **宿主校验按夹具路线分派，但「只执行仓库内规范脚本」这条性质不许动**（裁定 44）。
+         电子文本夹具用它自己的 `verify.sh`（本 ACT 新增，见第二节），
+         脚本仍从 `$REPO_ROOT/pipeline/corpus/_fixture/<夹具名>/verify.sh` 取，
+         **绝不执行 `$FIXTURE_DIR` 副本目录内的 verify 脚本**。
+      2. **mini_ed01 一个字节都不许改**（裁定 95/101：金标不得修改）。
+         OCR 路线的判定输出必须逐字不变。
+      3. 路线判定权威 = 夹具目录内是否存在 `spans.yaml` 且其 `evidence_level` 取值；
+         **不许**按目录名猜、**不许**新增环境变量指定路线。
+         夹具缺少判定依据时输出 `BLOCKED m8_acceptance 宿主缺失: 无法判定证据级别`，exit 3。
+
+  二、电子文本夹具补齐 M8 入口料（只新增，不改既有文件）
+    在 `pipeline/corpus/_fixture/qianyuan_ed01_text/` 下新增：
+      manifest.yaml   —— 字段取自同目录 source_info.yaml，**逐字沿用**，不许自造字段；
+                         source_assets 条目的 sha256 必须与 qianyuan_ed01_text.md 实际字节的
+                         sha256 相等（自己算，别抄别处）
+      spans.yaml      —— **由 run_m3_text 实跑产出后落盘**，不许手写、不许从真书账本拷贝后改；
+                         顶层须含 evidence_level: offset_level
+      verify.sh       —— 电子文本路线的宿主校验：核对 .md 字节 sha256 与 manifest 一致、
+                         核对 spans.yaml 的 evidence_level 与 span 偏移落在文本范围内；
+                         退出码语义与 mini_ed01/verify.sh 对齐（0 通过 / 非 0 FAIL / 3 宿主缺失）
+                         **不得**要求任何页图
+    新增文件都要在回报里贴出 sha256 与生成命令，便于复算。
+
+  三、acceptance.py 按路线分派
+    `_prepare_ledger`：
+      glyphbox 档：现有 ingest → run_m3 → register_source_assets 逐字不变
+      offset 档：ingest(m1,m2) → **run_m3_text** → 注册文本 SourceAsset（不是页图）
+    `main()`：缺 manifest.yaml 仍 BLOCKED；新增「缺 spans.yaml」同样 BLOCKED（同一口径）。
+    `span_identity` 与 `publication` 两组判定的**判据名不许改**；
+    其中依赖页/字框的子判据在 offset 档输出 `not_applicable`（**不得冒充 pass**，
+    与裁定 107 Q-M8-08 在 Gate 侧的口径一致）。
+
+  四、m8-span-identity.sh
+    只改宿主校验的分派与默认 FIXTURE_ASSET_ROOT 的适用条件；
+    退出码语义（0/1/2/3）、SUMMARY 行格式、`pass_line`/`block_line` 用法一律不动。
+    OCR 路线默认行为逐字不变：`bash openspec/acceptance/m8-span-identity.sh`
+    不带任何环境变量时，输出必须与改前逐字相同。
+
+  五、不许做的事
+    - 不许改 mini_ed01 任何文件（裁定 95/101）
+    - 不许改 gate.py / packs.py / step.py（前三个 ACT 的成果）
+    - 不许让 offset 档的不适用子判据输出 PASS
+    - 不许执行 `$FIXTURE_DIR` 副本目录内的 verify 脚本（裁定 44）
+tests_first: |
+  先写测试并确认转红（贴 Red 原文），再改实现。至少七个具名用例：
+    test_prepare_ledger_dispatches_to_run_m3_text_for_offset_fixture
+    test_prepare_ledger_ocr_fixture_unchanged
+    test_acceptance_blocks_when_fixture_has_no_spans_yaml
+    test_offset_fixture_page_dependent_checks_are_not_applicable    # 不得为 pass
+    test_offset_fixture_span_identity_matches_golden_spans
+    test_route_detected_from_spans_evidence_level_not_dir_name
+    test_electronic_fixture_verify_sh_needs_no_page_assets
+verify: |
+  cd /Users/jingtaiwei/Git/Public/learn_system && export LC_ALL=en_US.UTF-8
+  # OCR 路线逐字不变（改前先存基线再比对）
+  bash openspec/acceptance/m8-span-identity.sh > /tmp/m8-after.txt 2>&1; echo "exit=$?"
+  # 期望：SUMMARY pass=7 fail=0 blocked=1，且与改前基线 diff 为空
+  FIXTURE_DIR=pipeline/corpus/_fixture/qianyuan_ed01_text bash openspec/acceptance/m8-span-identity.sh; echo "exit=$?"
+  # 期望：能跑到判定（不是 BLOCKED 宿主缺失）；页/字框类子判据为 not_applicable
+  bash pipeline/corpus/_fixture/qianyuan_ed01_text/verify.sh; echo "exit=$?"     # 0
+  FIXTURE_ASSET_ROOT=/nonexistent FIXTURE_DIR=pipeline/corpus/_fixture/qianyuan_ed01_text \
+    bash openspec/acceptance/m8-span-identity.sh; echo "exit=$?"                # 电子文本路线不该因缺页图而 BLOCKED
+  .venv/bin/python -m unittest discover -s pipeline/dataset_compiler/tests -t . 2>&1 | tail -3   # OK，skipped 不增加
+  .venv/bin/python -m unittest discover -s pipeline/corpus_compiler/tests -t . 2>&1 | tail -1    # OK 163
+  .venv/bin/python docs/blackbox-spec-rework/work-items/impl-00-interfaces/check_interfaces.py | tail -1   # pass=44 fail=0
+  git status --short pipeline/corpus/_fixture/mini_ed01/        # 必须无输出（金标未动）
+  git diff --stat -- pipeline/dataset_compiler/gate.py pipeline/dataset_compiler/packs.py pipeline/dataset_compiler/step.py   # 无输出
+  # 篡改探针（两条，绿→红→改回）：
+  #   P1 让 offset 档的页相关子判据输出 pass → test_..._are_not_applicable 转红
+  #   P2 把路线判定改成按目录名（dirname 含 "text" 即 offset）→ test_route_detected_from_spans_evidence_level_not_dir_name 转红
+  # 探针副本必须 cp -R 整个仓库（含 ocr/），只复制 pipeline/ 会出假阴性（R13）
+commit:
+  add:
+    - openspec/acceptance/m8-span-identity.sh
+    - pipeline/dataset_compiler/acceptance.py
+    - pipeline/corpus/_fixture/qianyuan_ed01_text/manifest.yaml
+    - pipeline/corpus/_fixture/qianyuan_ed01_text/spans.yaml
+    - pipeline/corpus/_fixture/qianyuan_ed01_text/verify.sh
+    - pipeline/dataset_compiler/tests/test_acceptance.py
+    - docs/blackbox-spec-rework/work-items/impl-04-dataset/act/16.yaml
+  message: "test(m8): run the span-identity acceptance on the electronic-text route (W8 8.6-K4, ACT 16)"
+on_fail: |
+  停止并报告，不许提交红的基线。
+  六种情况必须停手写「## 待裁决」而不是自行决定：
+    ① OCR 路线输出与改前有任何一字不同
+    ② 需要修改 mini_ed01 才能完成（裁定 95/101 禁止）
+    ③ 需要改 gate.py / packs.py / step.py
+    ④ run_m3_text 在该夹具上产不出 spans.yaml，或产出的 evidence_level 不是 offset_level
+    ⑤ 某个子判据在 offset 档既不适用也无法判定，不知该 not_applicable 还是 BLOCKED
+    ⑥ manifest.yaml 所需字段在 source_info.yaml 里找不到对应事实（不许自造）
