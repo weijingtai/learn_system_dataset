@@ -87,7 +87,7 @@ verify: |
       # OK，用例数 = 13a 之后的基数 + 本次新增，一个都不许少
   .venv/bin/python -m unittest discover -s pipeline/assembly/tests -t . 2>&1 | tail -1      # OK 107（8.5 的成果不许碰坏）
   .venv/bin/python -m unittest discover -s pipeline/review/tests -t . 2>&1 | tail -1        # OK 166
-  .venv/bin/python openspec/acceptance/check_interfaces.py | tail -1                        # pass=44 fail=0
+  .venv/bin/python docs/blackbox-spec-rework/work-items/impl-00-interfaces/check_interfaces.py | tail -1   # pass=44 fail=0
   bash openspec/acceptance/m8-span-identity.sh; echo "exit=$?"                              # 与改前一致
   grep -n '"not_evaluated"\|"not_compiled"' pipeline/dataset_compiler/step.py
       # 只允许剩下「无 Snapshot 时」那一条分支里的 not_compiled；把实际剩几处、在哪行写进回报

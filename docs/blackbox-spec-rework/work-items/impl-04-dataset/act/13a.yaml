@@ -68,7 +68,7 @@ verify: |
   .venv/bin/python -m unittest discover -s pipeline/dataset_compiler/tests -t . -v 2>&1 | tail -3
       # 期望：OK，用例数 ≥ 162 + 你新增的数量，一个都不许少
   .venv/bin/python -m unittest discover -s pipeline/corpus_compiler/tests -t . 2>&1 | tail -1   # OK
-  .venv/bin/python openspec/acceptance/check_interfaces.py | tail -1                            # pass=44 fail=0
+  .venv/bin/python docs/blackbox-spec-rework/work-items/impl-00-interfaces/check_interfaces.py | tail -1   # pass=44 fail=0
   bash openspec/acceptance/m8-span-identity.sh; echo "exit=$?"                                  # 与改前一致（exit 2）
   # 篡改探针（自证护栏非空转，结果写进回报）：
   #   把 _detect_route 里 electronic_text 分支的判定改成恒返回 "ocr"，
