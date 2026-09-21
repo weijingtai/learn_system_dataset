@@ -9,8 +9,10 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from pipeline.corpus_compiler.step_offset import run_m3_text
+from pipeline.corpus_compiler.tests.test_step_offset import _setup_m2_ledger
 from pipeline.dataset_compiler.errors import DatasetRefused
-from pipeline.dataset_compiler.inputs import resolve_m8_inputs
+from pipeline.dataset_compiler.inputs import _detect_route, resolve_m8_inputs
 from pipeline.dataset_compiler.tests._ledger_helpers import (
     FIXTURE,
     assets_available,
@@ -96,6 +98,95 @@ class ResolveRefusalTests(ResolveM8InputsBase):
         with self.assertRaises(DatasetRefused) as ctx:
             resolve_m8_inputs(self.service, prepared["edition_part_id"])
         self.assertIn("M8 已封存", str(ctx.exception))
+
+
+class DetectRouteTests(unittest.TestCase):
+    """ACT 13a：路线判定唯一权威 = m3 包 manifest.input_artifacts 的构成。"""
+
+    @staticmethod
+    def _package(*artifact_types):
+        return {
+            "manifest": {
+                "input_artifacts": [
+                    {"artifact_type": artifact_type} for artifact_type in artifact_types
+                ]
+            }
+        }
+
+    def test_detect_route_electronic_text_from_raw_text_reference(self):
+        package = self._package(
+            "raw_text",
+            "cleaned_text_revision",
+            "deterministic_patch_set",
+            "sanitization_report",
+        )
+        self.assertEqual(_detect_route(package), "electronic_text")
+        self.assertEqual(
+            _detect_route(self._package("source_manifest", "ocr_page_set", "ocr_page")),
+            "ocr",
+        )
+
+    def test_detect_route_refuses_ambiguous_input_artifacts(self):
+        with self.assertRaises(DatasetRefused) as ctx:
+            _detect_route(self._package("raw_text", "ocr_page_set"))
+        self.assertEqual(ctx.exception.code, "REF_001")
+        self.assertIn("ocr_page_set", str(ctx.exception))
+        self.assertIn("raw_text", str(ctx.exception))
+
+        with self.assertRaises(DatasetRefused) as ctx2:
+            _detect_route(self._package("cleaned_text_revision"))
+        self.assertEqual(ctx2.exception.code, "REF_001")
+
+
+class ElectronicTextRouteTests(unittest.TestCase):
+    """ACT 13a：电子文本路线在无 OCR 页、无 SourceAsset 的账本上仍须跑通。"""
+
+    def setUp(self):
+        self._tmp = tempfile.mkdtemp(prefix="m8-etext-")
+        self.addCleanup(shutil.rmtree, self._tmp, True)
+        self.edition_part_id = "art_000000000000000000000000000000e1"
+        self.service, self.meta = _setup_m2_ledger(
+            self._tmp, edition_part_id=self.edition_part_id
+        )
+        self.addCleanup(self.service.close)
+        summary = run_m3_text(self.service, self.edition_part_id)
+        self.assertEqual(summary["status"], "succeeded")
+
+    def test_electronic_text_route_yields_no_pages_and_no_assets(self):
+        result = resolve_m8_inputs(self.service, self.edition_part_id)
+        self.assertEqual(result["route"], "electronic_text")
+        self.assertIsNone(result["ocr_page_set_revision_id"])
+        self.assertEqual(result["page_revision_ids"], {})
+        self.assertEqual(result["asset_revision_ids"], {})
+        self.assertIsNone(result["asset_step_run_id"])
+        self.assertIsNotNone(result["manifest_revision_id"])
+        self.assertEqual(result["technique_id"], "qizheng")
+        self.assertEqual(result["source_id"], "src_qianyuan_ed01")
+        # source_manifest 必须与冻结的 raw_text 同属一个 M1 StepRun（唯一权威上游路径）
+        producer_step_run_id = self.service.store.conn.execute(
+            "SELECT step_run_id FROM artifact_revisions WHERE artifact_revision_id=?",
+            (self.meta["raw_rev"],),
+        ).fetchone()[0]
+        expected_manifest_revision_id = self.service.store.conn.execute(
+            "SELECT r.artifact_revision_id FROM artifact_revisions r "
+            "JOIN artifacts a ON a.artifact_id = r.artifact_id "
+            "WHERE a.artifact_type='source_manifest' AND r.step_run_id=? AND r.status='sealed'",
+            (producer_step_run_id,),
+        ).fetchone()[0]
+        self.assertEqual(
+            result["manifest_revision_id"], expected_manifest_revision_id
+        )
+
+
+class OcrRouteRegressionTests(ResolveM8InputsBase):
+    """ACT 13a：OCR 路线既有拒收行为逐字不变。"""
+
+    def test_ocr_route_unchanged_still_requires_pages_and_assets(self):
+        prepared = prepare_m3(self.service)
+        with self.assertRaises(DatasetRefused) as ctx:
+            resolve_m8_inputs(self.service, prepared["edition_part_id"])
+        self.assertIn("SourceAsset 未登记", str(ctx.exception))
+        self.assertEqual(ctx.exception.code, "REF_001")
 
 
 class ResolvePurityTests(ResolveM8InputsBase):

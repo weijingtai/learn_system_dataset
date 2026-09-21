@@ -1,0 +1,87 @@
+act_id: impl-04/13a
+title: M8 输入解析支持电子文本路线（真书无 OCR 页，现状三处硬拒收）
+estimated_minutes: 110
+group: K3
+depends_on: [impl-04/12]
+decisions: [D-W8-13a]
+scope:
+  write:
+    - pipeline/dataset_compiler/inputs.py
+    - pipeline/dataset_compiler/tests/test_inputs.py
+  read_only:
+    - var/                        # 只许读，绝不许写
+background: |
+  主 Agent 2026-09-20 实测真书账本 var/ledgers/qianyuan_w8/ledger.sqlite：
+    - artifact 类型里 **ocr_page = 0、ocr_page_set = 0、source_asset_page = 0**
+    - m3 包 manifest.input_artifacts 只有 4 类：
+      cleaned_text_revision / deterministic_patch_set / raw_text / sanitization_report
+      （**没有 source_manifest 引用**）
+    - 账本里确实存在 source_manifest（art_582426de…）与 technique_profile（art_1dc14726…），
+      只是没被 m3 包引用
+  所以 resolve_m8_inputs 在真书上有三处必然拒收：
+    ① _resolve_pages：len(manifest_revision_ids) != 1        → REF_001
+    ② _resolve_pages：len(ocr_page_set_revision_ids) != 1    → REF_001
+    ③ _resolve_assets：asset_revision_ids 为空「SourceAsset 未登记」 → REF_001
+  本 ACT 只做「按路线分支」，不改任何 OCR 路线既有行为。
+contract: |
+  一、路线判定（唯一权威 = M3 包 manifest.input_artifacts 的构成，不许看别处、不许传参、不许硬编码）
+    新增 _detect_route(package) -> "ocr" | "electronic_text"：
+      types = {a["artifact_type"] for a in package["manifest"]["input_artifacts"]}
+      有 "ocr_page_set"  且无 "raw_text"            → "ocr"
+      有 "raw_text"      且无 "ocr_page_set"        → "electronic_text"
+      其余（两者都有 / 两者都无）→ raise DatasetRefused(code="REF_001")，
+        消息须含实际 types 排序后的列表，便于定位
+    硬性：判定只依据上游事实。**禁止**新增环境变量、禁止新增函数参数由调用方指定路线、
+      禁止按 edition_part_id 前缀猜路线。
+
+  二、electronic_text 路线下的解析规则
+    1) 页相关三个返回键一律为「无」而不是报错：
+       manifest_revision_id 见 3)；ocr_page_set_revision_id = None；page_revision_ids = {}
+    2) 资产：不调用 _resolve_assets。asset_revision_ids = {}、asset_step_run_id = None
+    3) source_manifest 从哪来 —— **这是本 ACT 唯一需要你自己查证的点**：
+       m3 包没有 source_manifest 引用，但账本里有这个 artifact。
+       你必须找出一条**由上游事实可达**的解析路径（候选：M1 Checkpoint 的 completed_tasks、
+       frozen_inputs 表、raw_text 修订的 producer step_run 的 manifest）。
+       要求：路径唯一、可复现、不依赖遍历全表取第一个。
+       **若找不到唯一权威路径，或发现两条都成立且可能不一致 → 立刻停手，写「## 待裁决」，
+       不许自己选一条实现。** 这是 R12「不认退出码只认事实」在解析路径上的应用。
+    4) technique_id / source_id 仍从 source_manifest 内容取，字段名不变
+
+  三、OCR 路线必须逐字不变
+    既有 OCR 用例全部保持原样通过；_resolve_pages / _resolve_assets 的现有拒收码与消息不改。
+    路线分支只在 resolve_m8_inputs 内做，不要把 OCR 逻辑搬来搬去。
+
+  四、返回键
+    resolve_m8_inputs 返回字典**新增一个键** "route"，取值即 _detect_route 结果。
+    其余 13 个键名一个都不许改（step.py 和验收脚本按名取用）。
+tests_first: |
+  先写测试并确认转红，再改实现。至少四个具名用例：
+    test_detect_route_electronic_text_from_raw_text_reference
+    test_detect_route_refuses_ambiguous_input_artifacts          # 两者都有 → REF_001
+    test_electronic_text_route_yields_no_pages_and_no_assets     # 三个页/资产键为空且不抛
+    test_ocr_route_unchanged_still_requires_pages_and_assets     # OCR 路线回归
+  真书账本**只读**用于构造断言事实（sha256/id 可硬编码进测试），
+  但测试**不得**依赖 var/ 存在——若测试需要账本，用夹具或临时账本；
+  真书上的实跑由主 Agent 单独做，不是本 ACT 的 verify 项。
+verify: |
+  cd /Users/jingtaiwei/Git/Public/learn_system && export LC_ALL=en_US.UTF-8
+  .venv/bin/python -m unittest discover -s pipeline/dataset_compiler/tests -t . -v 2>&1 | tail -3
+      # 期望：OK，用例数 ≥ 162 + 你新增的数量，一个都不许少
+  .venv/bin/python -m unittest discover -s pipeline/corpus_compiler/tests -t . 2>&1 | tail -1   # OK
+  .venv/bin/python openspec/acceptance/check_interfaces.py | tail -1                            # pass=44 fail=0
+  bash openspec/acceptance/m8-span-identity.sh; echo "exit=$?"                                  # 与改前一致（exit 2）
+  # 篡改探针（自证护栏非空转，结果写进回报）：
+  #   把 _detect_route 里 electronic_text 分支的判定改成恒返回 "ocr"，
+  #   确认 test_electronic_text_route_yields_no_pages_and_no_assets 转红，然后改回
+commit:
+  add:
+    - pipeline/dataset_compiler/inputs.py
+    - pipeline/dataset_compiler/tests/test_inputs.py
+    - docs/blackbox-spec-rework/work-items/impl-04-dataset/act/13a.yaml
+  message: "feat(m8): resolve inputs per route so electronic-text editions need no OCR pages (W8 8.6-K3, ACT 13a)"
+on_fail: |
+  停止并报告，不许提交红的基线（这条是纪律，2026-09-19 已记过一次）。
+  三种情况必须停手写「## 待裁决」而不是自行决定：
+    ① source_manifest 解析路径不唯一或互相矛盾
+    ② 为了让电子文本路线通过，需要改动 OCR 路线的既有拒收行为
+    ③ 既有 162 个用例里有任何一个转红
