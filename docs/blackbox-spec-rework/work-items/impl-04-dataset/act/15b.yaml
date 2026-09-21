@@ -1,0 +1,91 @@
+act_id: impl-04/15b
+title: compute_known_defects 按证据档分派（现状 offset 档 KeyError 'highlight_level'）
+estimated_minutes: 45
+group: K4
+depends_on: [impl-04/15]
+decisions: [D-W8-15b]
+scope:
+  write:
+    - pipeline/dataset_compiler/packs.py          # D-W8-15b 明文解除「ACT 15 不许碰 packs.py」
+    - pipeline/dataset_compiler/tests/test_packs.py
+  read_only:
+    - var/
+    - pipeline/dataset_compiler/gate.py           # D-W8-13b：一行都不许动
+    - pipeline/dataset_compiler/step.py           # ACT 15 成果，本 ACT 不碰
+background: |
+  执行器在 ACT 15 之后实测并停手上报（回报 `fb-86k4.report.md` §待裁决），主 Agent 已复核属实：
+
+  `pipeline/dataset_compiler/packs.py:542-546`（`compute_known_defects`）：
+
+      line_bbox_ids = [
+          span_id
+          for span_id, entry in evidence_map_pack["entries"].items()
+          if entry["highlight_level"] == "line_bbox"
+      ]
+
+  offset 档 entry 没有 `highlight_level` 键（ACT 14 第二节第 1 条**有意不造**该键），→ `KeyError`。
+  触发点是 `step.py:380` 的 step 9（ReleaseManifest），不在第 8 步 compile 的 try 内，
+  所以被 `run_m8` 的「begin 之后兜底」封存为 `internal`，真书电子文本路线因此到不了 gate。
+
+  gate.py 侧早已按档分派；packs.py 的包编译侧 ACT 14 已补完；**只剩这一处还假定 glyphbox 档**。
+contract: |
+  一、D-W8-15b（主 Agent 2026-09-20 裁决）
+    1. **明文解除**「ACT 15 不许碰 `packs.py`」这一条纪律，仅限本 ACT、仅限 `compute_known_defects`
+       这一个函数。`packs.py` 的其余部分（含 ACT 14 落成的 offset 变体）不许改。
+    2. **不采纳** `entry.get("highlight_level")` 这种「对缺键免疫」的写法。
+       理由：`.get()` 会把 **glyphbox 档里真的丢了 `highlight_level` 键**这种真实缺陷
+       一并吞掉，变成静默通过。缺键在 glyphbox 档**仍须是错**。
+    3. 采用**按档分派**，与本链条一贯口径一致（gate.py 的 `_CHECK_APPLICABILITY`、
+       ACT 14 的包编译、裁定 107 Q-M8-08 都是这个形状）：
+         evidence_level == "glyphbox_level" → 现有 glyph 检查**逐字不变**（仍用 `entry["highlight_level"]`，
+           缺键即 KeyError/SCH_002，不许放宽）
+         evidence_level == "offset_level"   → **跳过**该项检查，不产出 `glyph_text_mismatch`
+    4. offset 档**不新造** code（不要 `highlight_level_not_applicable` 之类）。
+       理由：`known_defects` 是「已知缺陷」清单，把「本档不适用」写进去会污染语义；
+       「不适用」的表达归 Gate 的 `not_applicable`（裁定 107 Q-M8-08），两者不得混用。
+
+  二、分派权威
+    取 `evidence_map_pack["evidence_level"]`（ACT 14 已保证该键在两档都存在且为闭集值）。
+    **禁止**新增环境变量、**禁止**由调用方传参指定档位、**禁止**按 entries 里有没有某个键来猜档。
+    遇到闭集之外的取值 → `SchemaViolation` `SCH_002`，消息含实际取值。
+
+  三、其余 defect 项不动
+    `excluded_page`、`knowledge_chain_not_compiled`、`content_status` 相关各项，
+    两档行为逐字不变；code 闭集与字典序排序规则不变。
+tests_first: |
+  先写测试并确认转红（贴 Red 原文），再改实现。至少四个具名用例：
+    test_known_defects_offset_level_skips_glyph_check          # 不抛 KeyError，且无 glyph_text_mismatch
+    test_known_defects_offset_level_emits_no_new_code          # 不产出任何新 code（闭集未扩大）
+    test_known_defects_glyphbox_missing_highlight_level_still_raises   # 缺键在 glyphbox 档仍须报错
+    test_known_defects_glyphbox_level_unchanged                # OCR 档回归护栏
+  第三条是本 ACT 的核心护栏——它正是用来驳回 `.get()` 那种写法的。
+verify: |
+  cd /Users/jingtaiwei/Git/Public/learn_system && export LC_ALL=en_US.UTF-8
+  .venv/bin/python -m unittest discover -s pipeline/dataset_compiler/tests -t . 2>&1 | tail -3
+      # OK；skipped 数不得增加（当前仓库树为 0）
+  .venv/bin/python -m unittest discover -s pipeline/assembly/tests -t . 2>&1 | tail -1     # OK 107
+  .venv/bin/python -m unittest discover -s pipeline/review/tests -t . 2>&1 | tail -1       # OK 166
+  .venv/bin/python docs/blackbox-spec-rework/work-items/impl-00-interfaces/check_interfaces.py | tail -1   # pass=44 fail=0
+  bash openspec/acceptance/m8-span-identity.sh 2>&1 | tail -1                              # SUMMARY pass=7 fail=0 blocked=1
+  git diff --stat -- pipeline/dataset_compiler/gate.py pipeline/dataset_compiler/step.py    # 必须无输出
+  # 真书副本实跑（正本只读，cp -R 到临时目录）：
+  #   记录 run_m8 是否越过 step 9、失败落在哪一步、错误码；与 ACT 15 回报里的结论对比
+  # 篡改探针（两条，绿→红→改回，结果写进回报）：
+  #   P1 把按档分派改成 entry.get("highlight_level")
+  #       → test_known_defects_glyphbox_missing_highlight_level_still_raises 转红
+  #   P2 让 offset 档也产出 glyph_text_mismatch
+  #       → test_known_defects_offset_level_skips_glyph_check 转红
+  # 探针副本必须 cp -R 整个仓库（含 ocr/），只复制 pipeline/ 会出假阴性（R13）
+commit:
+  add:
+    - pipeline/dataset_compiler/packs.py
+    - pipeline/dataset_compiler/tests/test_packs.py
+    - docs/blackbox-spec-rework/work-items/impl-04-dataset/act/15b.yaml
+  message: "fix(m8): dispatch known-defect glyph checks by evidence level (W8 8.6-K4, ACT 15b)"
+on_fail: |
+  停止并报告，不许提交红的基线。
+  四种情况必须停手写「## 待裁决」：
+    ① 需要改 gate.py 或 step.py 才能完成
+    ② 除 compute_known_defects 外还需改 packs.py 的其它函数
+    ③ 修好之后真书副本上 run_m8 仍到不了 gate，且原因不在本 ACT 范围内
+    ④ 发现 known_defects 的 code 闭集确实需要扩大（那要另立裁定，不许自行加 code）
