@@ -11,11 +11,17 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from pipeline.corpus_compiler.step_offset import run_m3_text
+from pipeline.corpus_compiler.tests.test_step_offset import _setup_m2_ledger
 from pipeline.dataset_compiler import packs
 from pipeline.dataset_compiler.canonical import normalized_sha256
 from pipeline.dataset_compiler.errors import DatasetRefused
-from pipeline.dataset_compiler.inputs import resolve_m8_inputs
-from pipeline.dataset_compiler.step import run_m8
+from pipeline.dataset_compiler.inputs import _check_input_references, resolve_m8_inputs
+from pipeline.dataset_compiler.step import (
+    FAILURE_CHECKS,
+    _assemble_frozen_inputs,
+    run_m8,
+)
 from pipeline.dataset_compiler.tests._ledger_helpers import (
     REPO_ROOT,
     assets_available,
@@ -49,6 +55,48 @@ def _validate_stage_package(package):
         Resource.from_contents(artifact_ref, default_specification=DRAFT202012),
     )
     jsonschema.Draft202012Validator(schema, registry=registry).validate(package)
+
+
+def _m3_package_with(references):
+    """合成最小 m3 包（仅 manifest.input_artifacts，供 _check_input_references 纯校验）。"""
+    return {"manifest": {"input_artifacts": list(references)}}
+
+
+def _etext_m3_package(inputs):
+    """合成电子文本形态 m3 包：只有 M2 四类产物，无 source_manifest/页图。"""
+    return _m3_package_with(
+        [
+            {
+                "artifact_type": artifact_type,
+                "artifact_revision_id": inputs[key],
+            }
+            for key, artifact_type in (
+                ("raw_text_revision_id", "raw_text"),
+                ("cleaned_text_revision_id", "cleaned_text_revision"),
+                ("deterministic_patch_set_revision_id", "deterministic_patch_set"),
+                ("sanitization_report_revision_id", "sanitization_report"),
+            )
+        ]
+    )
+
+
+def _ocr_m3_package(inputs):
+    """合成 OCR 形态 m3 包：source_manifest + ocr_page_set + 逐页 ocr_page。"""
+    references = [
+        {
+            "artifact_type": "source_manifest",
+            "artifact_revision_id": inputs["manifest_revision_id"],
+        },
+        {
+            "artifact_type": "ocr_page_set",
+            "artifact_revision_id": inputs["ocr_page_set_revision_id"],
+        },
+    ]
+    references.extend(
+        {"artifact_type": "ocr_page", "artifact_revision_id": revision_id}
+        for revision_id in inputs["page_revision_ids"].values()
+    )
+    return _m3_package_with(references)
 
 
 def _validation_report_for(service, step_run_id):
@@ -413,6 +461,288 @@ class StepKnowledgeChainTests(StepTestBase):
         )
         self.assertIs(empty["checks"]["chain_closure"]["ok"], False)
         self.assertIs(populated["checks"]["chain_closure"]["ok"], True)
+
+
+class ElectronicTextStepBase(StepTestBase):
+    """ACT 15：电子文本路线（offset 档）的 run_m8 脚手架：无页图、无 SourceAsset。
+
+    与 StepTestBase 不同，本类不建 ``self.service = LedgerService(tmp/ledger)``，而是用
+    ``_setup_m2_ledger``（git 跟踪的 M2 夹具）现造一个电子文本 Ledger，因此不依赖
+    gitignored 的 ``ocr/data_work`` 页图（不引入 skip）。
+    """
+
+    def setUp(self):
+        self._tmp = tempfile.mkdtemp(prefix="m8-step-etext-")
+        self.addCleanup(shutil.rmtree, self._tmp, True)
+        self.edition_part_id = "art_000000000000000000000000000000e1"
+        self.service, self.meta = _setup_m2_ledger(
+            self._tmp, edition_part_id=self.edition_part_id
+        )
+        self.addCleanup(self.service.close)
+        summary = run_m3_text(self.service, self.edition_part_id)
+        self.assertEqual(summary["status"], "succeeded")
+
+    def _run_etext(self):
+        return run_m8(
+            self.service, self.edition_part_id, consumption_level="INTERNAL_DEMO"
+        )
+
+    def _rewrite_object(self, revision_id, mutate):
+        """重写某修订的内容，并同步登记 sha256/size_bytes（保持内容寻址自洽）。
+
+        与 ``_tamper_object``（故意制造哈希不符）相反：本方法让内容与新登记值一致，
+        因此冻结校验照常通过，可用来构造「上游包确实带着某种引用」的事实。
+        """
+        revision = self.service.get_revision(revision_id)
+        document = json.loads(self.service.objects.get(revision["sha256"]).decode("utf-8"))
+        mutate(document)
+        data = json.dumps(document, ensure_ascii=False, sort_keys=True).encode("utf-8")
+        sha256, size_bytes = self.service.objects.put(data)
+        self.service.store.conn.execute(
+            "UPDATE artifact_revisions SET sha256=?, size_bytes=? "
+            "WHERE artifact_revision_id=?",
+            (sha256, size_bytes, revision_id),
+        )
+
+    def _enrich_manifest(self, inputs):
+        """把合成夹具的 M1 清单补齐成真书形状（ACT 16 才补规范夹具 manifest.yaml）。
+
+        ``_setup_m2_ledger`` 的清单是 ``release_policy/rights_status = "synthetic"``、
+        ``source_assets = []``；真书是 ``reference_and_hash_only`` + 一条六键底本资产
+        （``sha256`` = raw_text 修订 sha256，见 ACT 14 背景实样）。不补齐的话，
+        运行会在第 7 步 admission 以「发布策略非法: 'synthetic'」失败，
+        根本走不到契约之后的编译。
+        """
+        raw_text_revision = self.service.get_revision(inputs["raw_text_revision_id"])
+
+        def mutate(manifest):
+            manifest["release_policy"] = "reference_and_hash_only"
+            manifest["rights_status"] = "public_domain"
+            manifest["source_assets"] = [
+                {
+                    "page": "qianyuan_ed01_text",
+                    "path_ref": "qianyuan_ed01_text.md",
+                    "sha256": raw_text_revision["sha256"],
+                    "normalized_sha256": raw_text_revision["sha256"],
+                    "original_encoding": "utf-8",
+                    "size": raw_text_revision["size_bytes"],
+                }
+            ]
+
+        self._rewrite_object(inputs["manifest_revision_id"], mutate)
+
+    def _ready(self):
+        """解析输入 + 把清单补齐成真书形状，返回 inputs。"""
+        inputs = resolve_m8_inputs(self.service, self.edition_part_id)
+        self._enrich_manifest(inputs)
+        return inputs
+
+
+
+class ElectronicTextFrozenInputTests(ElectronicTextStepBase):
+    """ACT 15：电子文本路线冻结 M2 四件，不再遍历页/资产（D-W8-15）。"""
+
+    def test_frozen_inputs_electronic_text_exclude_page_and_asset_revisions(self):
+        inputs = self._ready()
+        result = self._run_etext()
+        frozen = self.service._frozen_input_ids(result["step_run_id"])
+        self.assertEqual(
+            set(frozen),
+            {
+                inputs["m3_package_revision_id"],
+                inputs["spans_revision_id"],
+                inputs["manifest_revision_id"],
+                inputs["raw_text_revision_id"],
+                inputs["cleaned_text_revision_id"],
+                inputs["deterministic_patch_set_revision_id"],
+                inputs["sanitization_report_revision_id"],
+            },
+        )
+        self.assertEqual(len(frozen), 7)
+        self.assertNotIn(None, frozen)
+        # 页/资产路径为空：冻结集里不可能混入 None 或页图修订
+        self.assertIsNone(inputs["ocr_page_set_revision_id"])
+        self.assertEqual(inputs["page_revision_ids"], {})
+        self.assertEqual(inputs["asset_revision_ids"], {})
+
+    def test_run_m8_electronic_text_passes_begin_step_run(self):
+        result = self._run_etext()
+        self.assertIn("step_run_id", result)
+        step_run = self.service.get_step_run(result["step_run_id"])
+        self.assertIsNotNone(step_run)
+        self.assertEqual(step_run["stage"], "m8")
+        self.assertIn(step_run["status"], ("succeeded", "failed"))
+        # 封存失败（而非 begin 之前崩掉）：check 在闭集内
+        if result["status"] == "failed":
+            self.assertIn(result["failed_check"], FAILURE_CHECKS)
+
+    def test_input_contract_electronic_text_accepts_m2_references(self):
+        self._ready()
+        result = self._run_etext()
+        # 契约放行：失败点不在 input_contract，且已过 admission 进入编译（两个子包已封存）
+        self.assertNotEqual(result.get("failed_check"), "input_contract")
+        self.assertEqual(self._artifact_count("source_asset_pack"), 1)
+        self.assertEqual(self._artifact_count("evidence_map_pack"), 1)
+
+    def test_input_contract_electronic_text_refuses_ocr_page_reference(self):
+        inputs = self._ready()
+
+        def mutate(package):
+            package["manifest"]["input_artifacts"].append(
+                {
+                    "artifact_type": "ocr_page",
+                    "artifact_revision_id": "rev_" + "f" * 32,
+                }
+            )
+
+        self._rewrite_object(inputs["m3_package_revision_id"], mutate)
+        result = self._run_etext()
+        self.assertEqual(result["status"], "failed")
+        self.assertEqual(result["failed_check"], "input_contract")
+        self.assertIn("ocr_page", result["reason"])
+        self.assertEqual(self._m8_package_count(), 0)
+
+    def test_input_contract_electronic_text_refuses_raw_text_sha_mismatch(self):
+        """ACT 15 三.3：电子文本清单 source_assets 对账的是 raw_text 修订的 sha256。"""
+        inputs = self._ready()
+
+        def mutate(manifest):
+            manifest["source_assets"][0]["sha256"] = "0" * 64
+
+        self._rewrite_object(inputs["manifest_revision_id"], mutate)
+        result = self._run_etext()
+        self.assertEqual(result["status"], "failed")
+        self.assertEqual(result["failed_check"], "input_contract")
+        self.assertIn("RawText", result["reason"])
+        self.assertEqual(self._m8_package_count(), 0)
+
+
+class FrozenInputAssemblyTests(unittest.TestCase):
+    """ACT 15：冻结输入按路线装配（纯函数，两条路线均不读页图）。"""
+
+    @staticmethod
+    def _revision(seed):
+        return "rev_" + (seed * 32)
+
+    @classmethod
+    def _etext_inputs(cls):
+        return {
+            "route": "electronic_text",
+            "m3_package_revision_id": cls._revision("1"),
+            "spans_revision_id": cls._revision("2"),
+            "manifest_revision_id": cls._revision("3"),
+            "ocr_page_set_revision_id": None,
+            "page_revision_ids": {},
+            "asset_revision_ids": {},
+            "raw_text_revision_id": cls._revision("4"),
+            "cleaned_text_revision_id": cls._revision("5"),
+            "deterministic_patch_set_revision_id": cls._revision("6"),
+            "sanitization_report_revision_id": cls._revision("7"),
+        }
+
+    @classmethod
+    def _ocr_inputs(cls):
+        return {
+            "route": "ocr",
+            "m3_package_revision_id": cls._revision("1"),
+            "spans_revision_id": cls._revision("2"),
+            "manifest_revision_id": cls._revision("3"),
+            "ocr_page_set_revision_id": cls._revision("8"),
+            "page_revision_ids": {
+                "page_001": cls._revision("a"),
+                "page_002": cls._revision("b"),
+            },
+            "asset_revision_ids": {
+                "page_001": cls._revision("c"),
+                "page_002": cls._revision("d"),
+            },
+            "raw_text_revision_id": None,
+            "cleaned_text_revision_id": None,
+            "deterministic_patch_set_revision_id": None,
+            "sanitization_report_revision_id": None,
+        }
+
+    @staticmethod
+    def _manifest():
+        return {"edition_part": {"pages": ["page_001", "page_002"]}}
+
+    def test_frozen_inputs_never_contain_none(self):
+        etext = self._etext_inputs()
+        frozen = _assemble_frozen_inputs(etext, self._manifest())
+        self.assertNotIn(None, frozen)
+        # 电子文本冻结集不许混入 ocr_page_set（其值为 None）
+        self.assertNotIn(etext["ocr_page_set_revision_id"], frozen)
+        self.assertEqual(len(frozen), 7)
+
+        ocr = self._ocr_inputs()
+        frozen = _assemble_frozen_inputs(ocr, self._manifest())
+        self.assertNotIn(None, frozen)
+        self.assertEqual(len(frozen), 8)
+
+        # 必填键为 None → REF_001，消息指明键名
+        broken = self._etext_inputs()
+        broken["raw_text_revision_id"] = None
+        with self.assertRaises(DatasetRefused) as ctx:
+            _assemble_frozen_inputs(broken, self._manifest())
+        self.assertEqual(ctx.exception.code, "REF_001")
+        self.assertIn("raw_text_revision_id", str(ctx.exception))
+
+    def test_ocr_route_frozen_and_contract_unchanged(self):
+        ocr = self._ocr_inputs()
+        frozen = _assemble_frozen_inputs(ocr, self._manifest())
+        self.assertEqual(
+            frozen,
+            [
+                ocr["m3_package_revision_id"],
+                ocr["spans_revision_id"],
+                ocr["manifest_revision_id"],
+                ocr["ocr_page_set_revision_id"],
+                ocr["page_revision_ids"]["page_001"],
+                ocr["page_revision_ids"]["page_002"],
+                ocr["asset_revision_ids"]["page_001"],
+                ocr["asset_revision_ids"]["page_002"],
+            ],
+        )
+        package = _ocr_m3_package(ocr)
+        _check_input_references("ocr", ocr, package)
+        drifted = dict(ocr)
+        drifted["manifest_revision_id"] = self._revision("9")
+        with self.assertRaises(DatasetRefused) as ctx:
+            _check_input_references("ocr", drifted, package)
+        self.assertEqual(ctx.exception.code, "REF_001")
+        self.assertIn("source_manifest", str(ctx.exception))
+        drifted = dict(ocr)
+        drifted["ocr_page_set_revision_id"] = self._revision("9")
+        with self.assertRaises(DatasetRefused) as ctx:
+            _check_input_references("ocr", drifted, package)
+        self.assertEqual(ctx.exception.code, "REF_001")
+        self.assertIn("ocr_page_set", str(ctx.exception))
+        drifted = dict(ocr)
+        drifted["page_revision_ids"] = {"page_001": self._revision("a")}
+        with self.assertRaises(DatasetRefused):
+            _check_input_references("ocr", drifted, package)
+
+    def test_input_contract_electronic_text_accepts_m2_references(self):
+        etext = self._etext_inputs()
+        package = _etext_m3_package(etext)
+        _check_input_references("electronic_text", etext, package)
+        drifted = dict(etext)
+        drifted["cleaned_text_revision_id"] = self._revision("9")
+        with self.assertRaises(DatasetRefused) as ctx:
+            _check_input_references("electronic_text", drifted, package)
+        self.assertEqual(ctx.exception.code, "REF_001")
+        self.assertIn("cleaned_text_revision", str(ctx.exception))
+
+    def test_input_contract_electronic_text_refuses_ocr_page_reference(self):
+        etext = self._etext_inputs()
+        package = _etext_m3_package(etext)
+        package["manifest"]["input_artifacts"].append(
+            {"artifact_type": "ocr_page", "artifact_revision_id": self._revision("f")}
+        )
+        with self.assertRaises(DatasetRefused) as ctx:
+            _check_input_references("electronic_text", etext, package)
+        self.assertEqual(ctx.exception.code, "REF_001")
+        self.assertIn("ocr_page", str(ctx.exception))
 
 
 if __name__ == "__main__":

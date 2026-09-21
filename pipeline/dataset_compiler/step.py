@@ -22,9 +22,9 @@ from pipeline.dataset_compiler import (
 from pipeline.dataset_compiler import gate, levels, packs
 from pipeline.dataset_compiler.canonical import canonical_bytes
 from pipeline.dataset_compiler.errors import DatasetRefused
-from pipeline.dataset_compiler.inputs import resolve_m8_inputs
+from pipeline.dataset_compiler.inputs import _check_input_references, resolve_m8_inputs
 from pipeline.ledger import ids
-from pipeline.ledger.errors import SchemaViolation
+from pipeline.ledger.errors import HashMismatch, SchemaViolation
 
 MIN_APP_VERSION_RE = re.compile(r"^[0-9]+\.[0-9]+\.[0-9]+$")
 
@@ -86,6 +86,46 @@ def _reconciliation(service, frozen):
     return result
 
 
+def _assemble_frozen_inputs(inputs, manifest):
+    """按路线装配冻结输入（D-W8-15）；任一项为 None → ``REF_001``（消息指明键名）。
+
+    分派权威 = ``inputs["route"]``（ACT 13a 产出）。
+    ``ocr`` 路线：m3 包 / spans / 清单 / ocr_page_set + 逐页页修订 + 逐页资产修订（逐字不变）。
+    ``electronic_text`` 路线：m3 包 / spans / 清单 + M2 四类产物；**不含** ocr_page_set
+    （电子文本恒为 None），**不遍历** ``edition_part.pages``。
+    """
+    if inputs["route"] == "ocr":
+        items = [
+            ("m3_package_revision_id", inputs["m3_package_revision_id"]),
+            ("spans_revision_id", inputs["spans_revision_id"]),
+            ("manifest_revision_id", inputs["manifest_revision_id"]),
+            ("ocr_page_set_revision_id", inputs["ocr_page_set_revision_id"]),
+        ]
+        for page in manifest["edition_part"]["pages"]:
+            items.append(("page_revision_ids[%s]" % page, inputs["page_revision_ids"][page]))
+        for page in manifest["edition_part"]["pages"]:
+            items.append(("asset_revision_ids[%s]" % page, inputs["asset_revision_ids"][page]))
+    else:
+        items = [
+            ("m3_package_revision_id", inputs["m3_package_revision_id"]),
+            ("spans_revision_id", inputs["spans_revision_id"]),
+            ("manifest_revision_id", inputs["manifest_revision_id"]),
+            ("raw_text_revision_id", inputs["raw_text_revision_id"]),
+            ("cleaned_text_revision_id", inputs["cleaned_text_revision_id"]),
+            (
+                "deterministic_patch_set_revision_id",
+                inputs["deterministic_patch_set_revision_id"],
+            ),
+            ("sanitization_report_revision_id", inputs["sanitization_report_revision_id"]),
+        ]
+    for key, value in items:
+        if value is None:
+            raise DatasetRefused(
+                "冻结输入 %s 为 None，不得进入冻结集" % key, code="REF_001"
+            )
+    return [value for _, value in items]
+
+
 def _read_and_verify_frozen(service, frozen):
     """一次性读取并校验每个冻结修订的对象字节（sha256 必须与登记值一致）。"""
     frozen_bytes = {}
@@ -101,7 +141,12 @@ def _read_and_verify_frozen(service, frozen):
 
 
 def _validate_input_contract(service, inputs, manifest, spans_doc, m3_package, frozen_bytes):
-    """§17 步骤 6：m3 包、spans、清单与页图的一致性校验，返回 asset_records。"""
+    """§17 步骤 6：m3 包、spans、清单与资产的一致性校验（按路线分派）。
+
+    ``ocr`` 路线：三组引用校验 + 页图 asset_records，逐字不变。
+    ``electronic_text`` 路线（ACT 15 三）：四类 M2 产物引用校验，且
+    ``manifest.source_assets`` 对账的是 **raw_text 修订的 sha256**（不是页图），返回 {}。
+    """
     if m3_package.get("stage") != "m3":
         raise DatasetRefused("m3 包 stage 非法", code="SCH_002")
     if (m3_package.get("validation") or {}).get("passed") is not True:
@@ -112,22 +157,18 @@ def _validate_input_contract(service, inputs, manifest, spans_doc, m3_package, f
     if m3_package["manifest"]["content_sha256"] != spans_sha256:
         raise DatasetRefused("m3 包 content_sha256 与 spans 字节不符", code="SRC_003")
 
-    manifest_refs = []
-    page_set_refs = []
-    page_refs = []
-    for reference in m3_package["manifest"]["input_artifacts"]:
-        if reference["artifact_type"] == "source_manifest":
-            manifest_refs.append(reference["artifact_revision_id"])
-        elif reference["artifact_type"] == "ocr_page_set":
-            page_set_refs.append(reference["artifact_revision_id"])
-        elif reference["artifact_type"] == "ocr_page":
-            page_refs.append(reference["artifact_revision_id"])
-    if manifest_refs != [inputs["manifest_revision_id"]]:
-        raise DatasetRefused("m3 包 source_manifest 引用与解析不一致", code="REF_001")
-    if page_set_refs != [inputs["ocr_page_set_revision_id"]]:
-        raise DatasetRefused("m3 包 ocr_page_set 引用与解析不一致", code="REF_001")
-    if set(page_refs) != set(inputs["page_revision_ids"].values()):
-        raise DatasetRefused("m3 包 ocr_page 引用与解析不一致", code="REF_001")
+    _check_input_references(inputs["route"], inputs, m3_package)
+
+    if inputs["route"] != "ocr":
+        # 电子文本路线无页图；清单 source_assets 对账 raw_text 修订 sha256（ACT 14 三同口径）
+        raw_text_sha256 = service.get_revision(inputs["raw_text_revision_id"])["sha256"]
+        for item in manifest.get("source_assets") or []:
+            if item["sha256"] != raw_text_sha256:
+                raise HashMismatch(
+                    "页 %s 底本哈希与 RawText 修订不符（SRC_003）" % item.get("page"),
+                    code="SRC_003",
+                )
+        return {}
 
     manifest_assets = {item["page"]: item for item in manifest["source_assets"]}
     asset_records = {}
@@ -237,16 +278,7 @@ def run_m8(service, edition_part_id, *, consumption_level, min_app_version=None,
     manifest = yaml.safe_load(
         service.objects.get(manifest_revision["sha256"]).decode("utf-8")
     )
-    frozen = [
-        inputs["m3_package_revision_id"],
-        inputs["spans_revision_id"],
-        inputs["manifest_revision_id"],
-        inputs["ocr_page_set_revision_id"],
-    ]
-    for page in manifest["edition_part"]["pages"]:
-        frozen.append(inputs["page_revision_ids"][page])
-    for page in manifest["edition_part"]["pages"]:
-        frozen.append(inputs["asset_revision_ids"][page])
+    frozen = _assemble_frozen_inputs(inputs, manifest)
 
     step_run_id = service.begin_step_run(
         {
@@ -292,6 +324,11 @@ def _run_after_begin(
         asset_records = _validate_input_contract(
             service, inputs, manifest, spans_doc, m3_package, frozen_bytes
         )
+        # 电子文本路线（ACT 15 三）：资产事实取自 raw_text 修订，不是页图
+        if inputs["route"] == "ocr":
+            raw_text_sha256 = None
+        else:
+            raw_text_sha256 = service.get_revision(inputs["raw_text_revision_id"])["sha256"]
     except Exception as exc:
         return _fail(service, step_run_id, "input_contract", str(exc))
 
@@ -314,7 +351,9 @@ def _run_after_begin(
     checkpoint_revision_ids = []
     try:
         source_asset_pack = packs.build_source_asset_pack(
-            manifest=manifest, asset_records=asset_records
+            manifest=manifest,
+            asset_records=asset_records,
+            raw_text_sha256=raw_text_sha256,
         )
         _, source_asset_pack_revision_id = service.put_artifact(
             step_run_id, "source_asset_pack", source_asset_pack["bytes"],
@@ -502,8 +541,9 @@ def _run_after_begin(
         "spans": len(evidence_map_pack["pack"]["entries"]),
         "pages": len(source_asset_pack["pack"]["pages"]),
         "source_assets": len(source_asset_pack["pack"]["pages"]),
-        "glyph_highlights": evidence_map_pack["highlight_counts"]["glyph"],
-        "line_bbox_highlights": evidence_map_pack["highlight_counts"]["line_bbox"],
+        # offset 档不产出 glyph/line_bbox 高亮（highlight_counts 为 {}）→ 计 0，不用字面量键取用
+        "glyph_highlights": evidence_map_pack["highlight_counts"].get("glyph", 0),
+        "line_bbox_highlights": evidence_map_pack["highlight_counts"].get("line_bbox", 0),
         "packs": 2,
     }
 

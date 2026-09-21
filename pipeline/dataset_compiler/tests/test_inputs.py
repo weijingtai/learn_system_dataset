@@ -388,6 +388,209 @@ class ResolveM7SnapshotTests(unittest.TestCase):
         self.assertEqual(ctx.exception.code, "SCH_002")
 
 
+def seed_source_asset_page_revisions(
+    service, edition_part_id, pages=("page_001", "page_002", "page_003")
+):
+    """只造 SourceAsset 事实（不读页图文件）：按裁定 §9.2-32 supersede 最近 m1 运行。
+
+    供 ACT 15 的 OCR 路线用例使用：``resolve_m8_inputs`` 只读修订号/类型/封存状态，
+    不读页图字节，故无需本机页图（不引入 skip）。
+    """
+    supersede_step_run_id = None
+    for checkpoint in service.list_checkpoints(edition_part_id, "m1"):
+        step_run = service.get_step_run(checkpoint["content"]["step_run_id"])
+        if step_run is not None and step_run["status"] == "succeeded":
+            supersede_step_run_id = checkpoint["content"]["step_run_id"]
+    if supersede_step_run_id is None:
+        raise AssertionError("未找到 succeeded 的 m1 StepRun")
+    processing_run_id = service.get_step_run(supersede_step_run_id)["processing_run_id"]
+    _, config_revision_id = service.put_run_artifact(
+        processing_run_id,
+        "configuration",
+        json.dumps({"stage": "m1", "task": "seed_source_assets"}, sort_keys=True).encode(
+            "utf-8"
+        ),
+        producer_module="test.seed",
+        producer_version="0",
+    )
+    step_run_id = service.supersede_step_run(
+        supersede_step_run_id,
+        {
+            "schema_version": "1.0.0",
+            "processing_run_id": processing_run_id,
+            "step_run_id": ids.new_id("step_run_id"),
+            "input_artifact_ids": [],
+            "technique_profile_id": "qizheng",
+            "configuration_artifact_id": config_revision_id,
+        },
+    )
+    asset_revision_ids = {}
+    output_revision_ids = []
+    for index, page in enumerate(pages):
+        _, revision_id = service.put_artifact(
+            step_run_id,
+            "source_asset_page",
+            b"synthetic-page-" + page.encode("utf-8"),
+            producer_module="test.seed",
+            producer_version="0",
+        )
+        service.seal_revision(revision_id)
+        asset_revision_ids[page] = revision_id
+        output_revision_ids.append(revision_id)
+        remaining = [
+            {"task_id": "source_asset_%s" % later} for later in pages[index + 1:]
+        ]
+        service.write_checkpoint(
+            step_run_id,
+            edition_part_id=edition_part_id,
+            stage="m1",
+            completed_tasks=[
+                {
+                    "task_id": "source_asset_%s" % page,
+                    "artifact_revision_id": revision_id,
+                    "status": "succeeded",
+                    "terminal_state": None,
+                }
+            ],
+            human_decisions=[],
+            pending_queue=remaining,
+            next_pointer=remaining[0] if remaining else None,
+        )
+    status_version = service.get_step_run(step_run_id)["status_version"]
+    service.finish_step_run(
+        step_run_id,
+        {
+            "schema_version": "1.0.0",
+            "processing_run_id": processing_run_id,
+            "step_run_id": step_run_id,
+            "status_version": status_version + 1,
+            "status": "succeeded",
+            "output_artifact_ids": output_revision_ids,
+            "validation_report_ids": [],
+            "log_artifact_ids": [],
+            "failure_artifact_ids": [],
+        },
+    )
+    return asset_revision_ids
+
+
+class ElectronicTextM2InputsTests(unittest.TestCase):
+    """ACT 15：电子文本路线补齐 M2 四类产物修订（README §11.4:250）。"""
+
+    def setUp(self):
+        self._tmp = tempfile.mkdtemp(prefix="m8-etext-m2-")
+        self.addCleanup(shutil.rmtree, self._tmp, True)
+        self.edition_part_id = "art_000000000000000000000000000000e1"
+        self.service, self.meta = _setup_m2_ledger(
+            self._tmp, edition_part_id=self.edition_part_id
+        )
+        self.addCleanup(self.service.close)
+        summary = run_m3_text(self.service, self.edition_part_id)
+        self.assertEqual(summary["status"], "succeeded")
+        self.m3_package_revision_id = summary["package_revision_id"]
+
+    def _tamper_m3_package(self, mutate):
+        """改写 m3 包对象字节（resolve 只读内容，不校验对象哈希）。"""
+        revision = self.service.get_revision(self.m3_package_revision_id)
+        path = self.service.objects.path_for(revision["sha256"])
+        package = json.loads(path.read_text(encoding="utf-8"))
+        mutate(package)
+        path.write_text(
+            json.dumps(package, sort_keys=True, ensure_ascii=False), encoding="utf-8"
+        )
+
+    def test_resolve_inputs_electronic_text_yields_four_m2_revision_ids(self):
+        result = resolve_m8_inputs(self.service, self.edition_part_id)
+        self.assertEqual(result["route"], "electronic_text")
+        self.assertEqual(result["raw_text_revision_id"], self.meta["raw_rev"])
+        self.assertEqual(result["cleaned_text_revision_id"], self.meta["cleaned_rev"])
+        self.assertEqual(
+            result["deterministic_patch_set_revision_id"], self.meta["patch_rev"]
+        )
+        self.assertEqual(
+            result["sanitization_report_revision_id"], self.meta["report_rev"]
+        )
+
+    def test_resolve_inputs_electronic_text_refuses_duplicate_raw_text_reference(self):
+        def mutate(package):
+            references = package["manifest"]["input_artifacts"]
+            duplicate = next(
+                reference
+                for reference in references
+                if reference["artifact_type"] == "raw_text"
+            )
+            references.append(dict(duplicate))
+
+        self._tamper_m3_package(mutate)
+        with self.assertRaises(DatasetRefused) as ctx:
+            resolve_m8_inputs(self.service, self.edition_part_id)
+        self.assertEqual(ctx.exception.code, "REF_001")
+        self.assertIn("raw_text", str(ctx.exception))
+        self.assertIn("2", str(ctx.exception))
+
+    def test_resolve_inputs_electronic_text_refuses_duplicate_m2_reference(self):
+        """四类 M2 产物各必恰 1 个：重复 cleaned_text_revision 同样 REF_001。"""
+
+        def mutate(package):
+            references = package["manifest"]["input_artifacts"]
+            duplicate = next(
+                reference
+                for reference in references
+                if reference["artifact_type"] == "cleaned_text_revision"
+            )
+            references.append(dict(duplicate))
+
+        self._tamper_m3_package(mutate)
+        with self.assertRaises(DatasetRefused) as ctx:
+            resolve_m8_inputs(self.service, self.edition_part_id)
+        self.assertEqual(ctx.exception.code, "REF_001")
+        self.assertIn("cleaned_text_revision", str(ctx.exception))
+
+
+class OcrRouteM2KeysTests(ResolveM8InputsBase):
+    """ACT 15：OCR 路线四个 M2 键取 None 但键必须存在（不许省略）。"""
+
+    def test_resolve_inputs_ocr_route_m2_keys_are_none_but_present(self):
+        prepared = prepare_m3(self.service)
+        edition_part_id = prepared["edition_part_id"]
+        seed_source_asset_page_revisions(self.service, edition_part_id)
+        result = resolve_m8_inputs(self.service, edition_part_id)
+        self.assertEqual(result["route"], "ocr")
+        for key in (
+            "raw_text_revision_id",
+            "cleaned_text_revision_id",
+            "deterministic_patch_set_revision_id",
+            "sanitization_report_revision_id",
+        ):
+            self.assertIn(key, result)
+            self.assertIsNone(result[key])
+        # 既有键一个都不许改
+        for key in (
+            "route",
+            "m3_step_run_id",
+            "m3_package_revision_id",
+            "m3_stage_package_id",
+            "spans_revision_id",
+            "manifest_revision_id",
+            "ocr_page_set_revision_id",
+            "page_revision_ids",
+            "asset_revision_ids",
+            "asset_step_run_id",
+            "technique_id",
+            "source_id",
+            "m3_gate_profile",
+            "excluded_pages",
+            "m7_snapshot_revision_id",
+            "snapshot_knowledge",
+        ):
+            self.assertIn(key, result)
+        self.assertEqual(set(result["page_revision_ids"]), {
+            "page_001",
+            "page_002",
+            "page_003",
+        })
+
+
 class OcrRouteRegressionTests(ResolveM8InputsBase):
     """ACT 13a：OCR 路线既有拒收行为逐字不变。"""
 

@@ -16,6 +16,14 @@ from pipeline.ledger.errors import NotConsumable
 
 _SOURCE_ASSET_PREFIX = "source_asset_"
 
+#: 电子文本路线的 M2 四类产物：返回键名 → m3 包 input_artifacts 的 artifact_type。
+M2_INPUT_ARTIFACT_TYPES = (
+    ("raw_text_revision_id", "raw_text"),
+    ("cleaned_text_revision_id", "cleaned_text_revision"),
+    ("deterministic_patch_set_revision_id", "deterministic_patch_set"),
+    ("sanitization_report_revision_id", "sanitization_report"),
+)
+
 
 def _artifact_type(reader, artifact_revision_id):
     """经只读 SELECT 取修订的 artifact_type。"""
@@ -155,6 +163,35 @@ def _resolve_electronic_source_manifest(reader, package):
     return rows[0][0]
 
 
+def _single_input_reference(package, artifact_type):
+    """从 m3 包取恰好 1 个该类型的修订引用；数量 != 1 → ``REF_001``（消息含实际数）。"""
+    revision_ids = [
+        reference["artifact_revision_id"]
+        for reference in package["manifest"]["input_artifacts"]
+        if reference["artifact_type"] == artifact_type
+    ]
+    if len(revision_ids) != 1:
+        raise DatasetRefused(
+            "m3 包 %s 引用数 != 1: %d" % (artifact_type, len(revision_ids)), code="REF_001"
+        )
+    return revision_ids[0]
+
+
+def _resolve_electronic_m2_revisions(reader, package):
+    """电子文本路线：解析 M2 四类产物修订（各必恰 1 个，均须 sealed 且类型相符）。"""
+    resolved = {}
+    for key, artifact_type in M2_INPUT_ARTIFACT_TYPES:
+        revision_id = _single_input_reference(package, artifact_type)
+        _sealed_revision(reader, revision_id, artifact_type)
+        if _artifact_type(reader, revision_id) != artifact_type:
+            raise DatasetRefused(
+                "%s 修订 artifact_type 非 %s: %s" % (key, artifact_type, revision_id),
+                code="SCH_002",
+            )
+        resolved[key] = revision_id
+    return resolved
+
+
 def _resolve_pages(reader, package):
     """R5：从 m3 包 manifest.input_artifacts 反查清单、页集与各页修订。"""
     manifest_revision_ids = []
@@ -197,6 +234,50 @@ def _resolve_pages(reader, package):
         ocr_page_set_revision_ids[0],
         page_revision_ids,
     )
+
+
+def _check_input_references(route, inputs, m3_package):
+    """§17 步骤 6 的引用一致性校验（按路线分派）；不一致一律 ``REF_001``。
+
+    ``ocr`` 路线：source_manifest / ocr_page_set / ocr_page 三组与解析逐字一致（逐字不变）。
+    ``electronic_text`` 路线：M2 四类产物各恰 1 个且与解析一致；出现
+    ``ocr_page_set`` / ``ocr_page`` 引用即 ``REF_001``（说明路线判定与实际不符）。
+    """
+    if route == "ocr":
+        manifest_refs = []
+        page_set_refs = []
+        page_refs = []
+        for reference in m3_package["manifest"]["input_artifacts"]:
+            if reference["artifact_type"] == "source_manifest":
+                manifest_refs.append(reference["artifact_revision_id"])
+            elif reference["artifact_type"] == "ocr_page_set":
+                page_set_refs.append(reference["artifact_revision_id"])
+            elif reference["artifact_type"] == "ocr_page":
+                page_refs.append(reference["artifact_revision_id"])
+        if manifest_refs != [inputs["manifest_revision_id"]]:
+            raise DatasetRefused("m3 包 source_manifest 引用与解析不一致", code="REF_001")
+        if page_set_refs != [inputs["ocr_page_set_revision_id"]]:
+            raise DatasetRefused("m3 包 ocr_page_set 引用与解析不一致", code="REF_001")
+        if set(page_refs) != set(inputs["page_revision_ids"].values()):
+            raise DatasetRefused("m3 包 ocr_page 引用与解析不一致", code="REF_001")
+        return
+
+    for key, artifact_type in M2_INPUT_ARTIFACT_TYPES:
+        if _single_input_reference(m3_package, artifact_type) != inputs[key]:
+            raise DatasetRefused(
+                "m3 包 %s 引用与解析不一致" % artifact_type, code="REF_001"
+            )
+    forbidden = sorted(
+        {
+            reference["artifact_type"]
+            for reference in m3_package["manifest"]["input_artifacts"]
+            if reference["artifact_type"] in ("ocr_page_set", "ocr_page")
+        }
+    )
+    if forbidden:
+        raise DatasetRefused(
+            "电子文本路线 m3 包不得含 %s 引用" % ", ".join(forbidden), code="REF_001"
+        )
 
 
 def _m7_step_run_id(reader, edition_part_id):
@@ -337,6 +418,7 @@ def resolve_m8_inputs(reader, edition_part_id):
             reader, package
         )
         asset_revision_ids, asset_step_run_id = _resolve_assets(reader, edition_part_id)
+        m2_revisions = {key: None for key, _ in M2_INPUT_ARTIFACT_TYPES}
     else:
         # 电子文本路线：无 OCR 页、无 SourceAsset；source_manifest 由冻结的 raw_text 反查。
         manifest_revision_id = _resolve_electronic_source_manifest(reader, package)
@@ -344,6 +426,7 @@ def resolve_m8_inputs(reader, edition_part_id):
         page_revision_ids = {}
         asset_revision_ids = {}
         asset_step_run_id = None
+        m2_revisions = _resolve_electronic_m2_revisions(reader, package)
 
     # R8：M7 Snapshot（无 M7 → (None, None)，不报错）
     m7_snapshot_revision_id, snapshot_knowledge = _resolve_m7(reader, edition_part_id)
@@ -352,7 +435,7 @@ def resolve_m8_inputs(reader, edition_part_id):
     manifest_revision = _sealed_revision(reader, manifest_revision_id, "source_manifest")
     manifest = yaml.safe_load(reader.objects.get(manifest_revision["sha256"]).decode("utf-8"))
 
-    return {
+    resolved = {
         "route": route,
         "m3_step_run_id": m3_step_run_id,
         "m3_package_revision_id": m3_package_revision_id,
@@ -370,3 +453,6 @@ def resolve_m8_inputs(reader, edition_part_id):
         "m7_snapshot_revision_id": m7_snapshot_revision_id,
         "snapshot_knowledge": snapshot_knowledge,
     }
+    # OCR 路线四键取 None 但键必须存在（下游按名取用，不许省略）
+    resolved.update(m2_revisions)
+    return resolved
