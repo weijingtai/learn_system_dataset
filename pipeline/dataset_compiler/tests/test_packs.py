@@ -819,6 +819,271 @@ class OffsetEvidenceAndReferenceOnlyTests(unittest.TestCase):
                 self.fail("文件 %s 包含自有 ss_ 正则: %s（第 102 条）" % (fname, m.group(0)))
 
 
+# ---- ACT 14：offset 档输入事实（取自真书只读实测形状，硬编码作断言事实，不依赖 var/）----
+_OFFSET_RAW_TEXT_REV = "rev_299e1d31000e44ca91666c6deefb42fb"
+_OFFSET_CLEANED_REV = "rev_cf79eb3b11e5497daa6ac1e36af9a3a8"
+_OFFSET_RAW_TEXT_SHA = (
+    "3f7170cd504e496096bc933ab5ed8805d68fa98625c91c5c09a9e3a61fcecdbb"
+)
+_OFFSET_EDITION_PART = "art_00000000000000000000000000000001"
+_OFFSET_PAGE_UNIT = "qianyuan_ed01_text"
+# 裁定 78 D3：offset 档 SourceAnchor 七键
+_ANCHOR_SEVEN_KEYS = (
+    "cleaned_text_revision_id",
+    "end_offset",
+    "quote_sha256",
+    "raw_end",
+    "raw_start",
+    "raw_text_revision_id",
+    "start_offset",
+)
+# 裁定 78 D3 / README:375：offset 档链段八段（D-W8-14 逐字采用）
+_OFFSET_CHAIN_SEGMENTS = [
+    "KnowledgeEntry",
+    "Assertion",
+    "EvidenceLink",
+    "SourceSpan",
+    "SourceAnchor",
+    "DeterministicPatchSet",
+    "RawText",
+    "SourceAsset",
+]
+# OCR 档 derived_page_images_only 的页条目键集（既有行为，逐字不变）
+_OCR_SOURCE_PAGE_KEYS = (
+    "page",
+    "asset_artifact_revision_id",
+    "sha256",
+    "size",
+    "width",
+    "height",
+)
+
+# 真书前两个 span 的逐字文本与其 quote_sha256（只读实测）
+_OFFSET_SPAN_TEXTS = (
+    ("ss_qianyuan_ed01_o0000478", "\n", 0, 1, 478, 479),
+    (
+        "ss_qianyuan_ed01_o0000479",
+        "[七政四余]乾元秘旨--舒继英    \n",
+        1,
+        21,
+        479,
+        503,
+    ),
+)
+
+
+def _offset_anchor(span_id, text, start, end, raw_start, raw_end, *, extra=None):
+    anchor = {
+        "raw_text_revision_id": _OFFSET_RAW_TEXT_REV,
+        "raw_start": raw_start,
+        "raw_end": raw_end,
+        "cleaned_text_revision_id": _OFFSET_CLEANED_REV,
+        "start_offset": start,
+        "end_offset": end,
+        "quote_sha256": sha256_hex(text.encode("utf-8")),
+    }
+    if extra is not None:
+        anchor[extra] = "额外键"
+    return anchor
+
+
+def _offset_spans_doc(*, drop_anchor_key=None, add_anchor_key=None, tamper_quote=False):
+    spans = []
+    for sequence, (span_id, text, start, end, raw_start, raw_end) in enumerate(
+        _OFFSET_SPAN_TEXTS, start=1
+    ):
+        anchor = _offset_anchor(span_id, text, start, end, raw_start, raw_end)
+        if drop_anchor_key is not None:
+            anchor.pop(drop_anchor_key)
+        if add_anchor_key is not None:
+            anchor[add_anchor_key] = "额外键"
+        quote = sha256_hex(text.encode("utf-8"))
+        if tamper_quote and sequence == 1:
+            quote = sha256_hex(b"tampered")
+        spans.append(
+            {
+                "span_id": span_id,
+                "sequence": sequence,
+                "start_offset": start,
+                "end_offset": end,
+                "text": text,
+                "quote_sha256": quote,
+                "evidence_level": "offset_level",
+                "source_anchor": anchor,
+            }
+        )
+    return {
+        "work": "qianyuan",
+        "source_id": "src_qianyuan_ed01",
+        "edition_part_artifact_id": _OFFSET_EDITION_PART,
+        "evidence_level": "offset_level",
+        "content_status": "machine_extracted",
+        "span_count": len(spans),
+        "spans": spans,
+    }
+
+
+def _offset_manifest():
+    """offset 档清单：字段与真书 source_manifest 同形（含 width/height 为 null 的干扰键）。"""
+    return {
+        "source_id": "src_qianyuan_ed01",
+        "work_title": "乾元秘旨",
+        "technique_id": "qizheng",
+        "rights_status": "站方声明免费下载、未附许可证",
+        "release_policy": "reference_and_hash_only",
+        "content_status": "machine_extracted",
+        "edition_part": {
+            "artifact_id": _OFFSET_EDITION_PART,
+            "label": "乾元秘旨·全篇（单文件，无页码）",
+            "pages": [_OFFSET_PAGE_UNIT],
+        },
+        "source_assets": [
+            {
+                "page": _OFFSET_PAGE_UNIT,
+                "path_ref": "qianyuan_ed01_text.md",
+                "sha256": _OFFSET_RAW_TEXT_SHA,
+                "normalized_sha256": _OFFSET_RAW_TEXT_SHA,
+                "original_encoding": "utf-8",
+                "size": 50451,
+                "object_store": "local",
+                "in_git": False,
+                "width": None,
+                "height": None,
+                "repo_commit": "aa2b70789d153f2542e5f4786265157c7356ab76",
+                "source_site": "github.com/daizhige-org/daizhigev20",
+            }
+        ],
+    }
+
+
+def _offset_source_pack(raw_text_sha256=_OFFSET_RAW_TEXT_SHA, manifest=None):
+    return packs.build_source_asset_pack(
+        manifest=_offset_manifest() if manifest is None else manifest,
+        asset_records={},
+        raw_text_sha256=raw_text_sha256,
+    )
+
+
+def _offset_evidence_pack(spans_doc=None, excluded_pages=None, source_pack=None):
+    """offset 档证据包编译。
+
+    默认传空 source_asset_pack：offset 变体**不读**该包（ACT 14 二.1），
+    传空字典本身就是这条契约的护栏。
+    """
+    return packs.build_evidence_map_pack(
+        spans_doc=_offset_spans_doc() if spans_doc is None else spans_doc,
+        page_docs={},
+        ocr_page_revision_ids={},
+        source_asset_pack={} if source_pack is None else source_pack,
+        excluded_pages={} if excluded_pages is None else excluded_pages,
+        snapshot_knowledge=None,
+    )
+
+
+class OffsetLevelPackVariantTests(unittest.TestCase):
+    """ACT 14：EvidenceMapPack / SourceAssetPack 的 offset 变体（D-W8-14、裁定 78 D3/81/103 D1）。"""
+
+    def test_evidence_map_pack_offset_level_accepts_seven_key_anchor(self):
+        result = _offset_evidence_pack()
+        pack = result["pack"]
+        self.assertEqual(pack["pack_type"], "evidence_map_pack")
+        self.assertEqual(pack["evidence_level"], "offset_level")
+        self.assertEqual(pack["span_count"], 2)
+        self.assertEqual(
+            list(pack["entries"]),
+            ["ss_qianyuan_ed01_o0000478", "ss_qianyuan_ed01_o0000479"],
+        )
+        for span_id, text, start, end, raw_start, raw_end in _OFFSET_SPAN_TEXTS:
+            entry = pack["entries"][span_id]
+            self.assertEqual(sorted(entry["source_anchor"]), sorted(_ANCHOR_SEVEN_KEYS))
+            # I-11：偏移逐字透传，不加不减
+            self.assertEqual(entry["start_offset"], start)
+            self.assertEqual(entry["end_offset"], end)
+            self.assertEqual(entry["source_anchor"]["raw_start"], raw_start)
+            self.assertEqual(entry["source_anchor"]["raw_end"], raw_end)
+            self.assertEqual(entry["text"], text)
+            self.assertEqual(entry["quote_sha256"], sha256_hex(text.encode("utf-8")))
+            # offset 档不得出现字框/页字段
+            for absent in ("page", "line_index", "bbox", "glyphs", "frame"):
+                self.assertNotIn(absent, entry)
+
+    def test_evidence_map_pack_offset_level_refuses_anchor_missing_key(self):
+        for missing in _ANCHOR_SEVEN_KEYS:
+            with self.assertRaises(SchemaViolation) as ctx:
+                _offset_evidence_pack(
+                    spans_doc=_offset_spans_doc(drop_anchor_key=missing)
+                )
+            self.assertEqual(ctx.exception.code, "SCH_002")
+            self.assertIn("ss_qianyuan_ed01_o0000478", str(ctx.exception))
+            self.assertIn(missing, str(ctx.exception))
+
+    def test_evidence_map_pack_offset_level_refuses_anchor_extra_key(self):
+        with self.assertRaises(SchemaViolation) as ctx:
+            _offset_evidence_pack(spans_doc=_offset_spans_doc(add_anchor_key="bbox"))
+        self.assertEqual(ctx.exception.code, "SCH_002")
+        self.assertIn("bbox", str(ctx.exception))
+
+    def test_evidence_map_pack_offset_level_chain_segments_are_the_eight(self):
+        pack = _offset_evidence_pack()["pack"]
+        self.assertEqual(pack["chain_segments"], _OFFSET_CHAIN_SEGMENTS)
+        self.assertEqual(len(pack["chain_segments"]), 8)
+
+    def test_evidence_map_pack_offset_level_page_index_is_empty_dict_not_absent(self):
+        pack = _offset_evidence_pack()["pack"]
+        self.assertIn("page_index", pack)
+        self.assertEqual(pack["page_index"], {})
+
+    def test_evidence_map_pack_offset_level_detects_quote_sha_mismatch(self):
+        with self.assertRaises(HashMismatch) as ctx:
+            _offset_evidence_pack(spans_doc=_offset_spans_doc(tamper_quote=True))
+        self.assertEqual(ctx.exception.code, "SRC_003")
+
+    def test_source_asset_pack_offset_level_binds_raw_text_sha256(self):
+        result = _offset_source_pack()
+        pack = result["pack"]
+        self.assertEqual(pack["pack_type"], "source_asset_pack")
+        self.assertEqual(pack["content_level"], "reference_and_hash_only")
+        self.assertEqual(len(pack["pages"]), 1)
+        entry = pack["pages"][0]
+        self.assertEqual(
+            sorted(entry),
+            [
+                "normalized_sha256",
+                "original_encoding",
+                "page",
+                "path_ref",
+                "sha256",
+                "size",
+            ],
+        )
+        self.assertEqual(entry["page"], _OFFSET_PAGE_UNIT)
+        self.assertEqual(entry["sha256"], _OFFSET_RAW_TEXT_SHA)
+        # 页图几何字段不得以 0/None 占位出现
+        for absent in ("width", "height", "asset_artifact_revision_id"):
+            self.assertNotIn(absent, entry)
+        # raw_text 修订 sha256 与条目不符 → SRC_003
+        with self.assertRaises(HashMismatch) as ctx:
+            _offset_source_pack(raw_text_sha256="0" * 64)
+        self.assertEqual(ctx.exception.code, "SRC_003")
+
+    def test_glyphbox_level_packs_unchanged(self):
+        evidence = _evidence_pack()
+        self.assertEqual(evidence["pack"]["evidence_level"], "glyphbox_level")
+        self.assertEqual(evidence["pack"]["chain_segments"], packs.CHAIN_SEGMENTS)
+        self.assertEqual(evidence["pack"]["chain_segments"], [
+            "SourceSpan",
+            "SourceAnchor",
+            "OcrPage",
+            "SourceAsset",
+        ])
+        self.assertEqual(
+            evidence["sha256"],
+            "b79a7380d79ca8892ae15ad6b4a0034b298765c4240af3c99412153940566fc8",
+        )
+        source = _source_pack()["pack"]
+        self.assertEqual(sorted(source["pages"][0]), sorted(_OCR_SOURCE_PAGE_KEYS))
+
+
 class KnowledgeDataPackTests(unittest.TestCase):
     """ACT 11：知识链前三段 KnowledgeEntry→Assertion→EvidenceLink（裁决 107 Q-M8-01/Q-M8-02）。"""
 

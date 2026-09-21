@@ -30,6 +30,41 @@ INTERNAL_DEMO_WATERMARK = "INTERNAL_DEMO｜机器转录，未经人工校对｜�
 # §16:708-712 的第 4–7 段（SourceSpan→SourceAnchor→OcrPage→SourceAsset）
 CHAIN_SEGMENTS = ["SourceSpan", "SourceAnchor", "OcrPage", "SourceAsset"]
 
+# D-W8-14 + README:375：offset 档链段用**显式八段清单**（不采用统一抽象名）。
+# 依据：README §11.5:375 已写定的清单逐字采用；统一抽象名会让 Gate 无法从包本身
+# 判断该跑 OCR 四项还是 offset 四项，与裁定 107 Q-M8-08 的按档分派冲突。
+OFFSET_CHAIN_SEGMENTS = [
+    "KnowledgeEntry",
+    "Assertion",
+    "EvidenceLink",
+    "SourceSpan",
+    "SourceAnchor",
+    "DeterministicPatchSet",
+    "RawText",
+    "SourceAsset",
+]
+
+# 裁定 78 D3：offset 档 SourceAnchor 七键（多一键、少一键都拒收 SCH_002）
+OFFSET_ANCHOR_KEYS = (
+    "raw_text_revision_id",
+    "raw_start",
+    "raw_end",
+    "cleaned_text_revision_id",
+    "start_offset",
+    "end_offset",
+    "quote_sha256",
+)
+
+# ACT 14 三.1：offset 档 SourceAssetPack 条目字段（逐字沿用清单写法，不产页图几何字段）
+OFFSET_ASSET_KEYS = (
+    "page",
+    "path_ref",
+    "sha256",
+    "normalized_sha256",
+    "original_encoding",
+    "size",
+)
+
 # §17.1:843 四个 task（每个 task 一个 m8 Checkpoint）
 TASKS = ("source_asset_pack", "evidence_map_pack", "release_manifest", "validation_report")
 
@@ -118,8 +153,57 @@ def parse_span_identity(span_id):
     raise InvalidIdentifier("span_id 缺少页号/行序或偏移段: %r" % (span_id,), code="ID_001")
 
 
-def build_source_asset_pack(*, manifest, asset_records):
+def _build_offset_source_asset_pack(*, manifest, raw_text_sha256):
+    """编译 offset 档 SourceAssetPack（ACT 14 三；裁定 81、裁定 103 D1）。
+
+    offset 档的资产事实来自 M1 ``source_manifest.source_assets`` 与 ``RawText`` 修订，
+    **不是**页图修订（真书无任何 ``source_asset_page``）。逐条取
+    ``OFFSET_ASSET_KEYS`` 六字段并校验 ``sha256 == raw_text 修订 sha256``（SRC_003），
+    不产出 width/height 一类页图几何字段（不以 0/None 占位）。
+    """
+    if _SHA256_RE.match(str(raw_text_sha256)) is None:
+        raise SchemaViolation(
+            "RawText 修订 sha256 格式非法: %r" % (raw_text_sha256,), code="SCH_002"
+        )
+    assets = manifest.get("source_assets") or []
+    if not assets:
+        raise MissingReference(
+            "清单 source_assets 为空（offset 档底本资产事实缺失）", code="REF_001"
+        )
+    pages = []
+    for item in assets:
+        missing = [key for key in OFFSET_ASSET_KEYS if key not in item]
+        if missing:
+            raise SchemaViolation(
+                "offset 档 source_assets 条目缺字段 %r（实际键集 %r）"
+                % (missing, sorted(item)),
+                code="SCH_002",
+            )
+        if item["sha256"] != raw_text_sha256:
+            raise HashMismatch(
+                "页 %s 底本哈希与 RawText 修订不符（SRC_003）" % item["page"],
+                code="SRC_003",
+            )
+        pages.append({key: item[key] for key in OFFSET_ASSET_KEYS})
+    pack = {
+        "pack_type": "source_asset_pack",
+        "schema_version": SUB_PACK_SCHEMA_VERSION,
+        "source_id": manifest["source_id"],
+        "edition_part_artifact_id": manifest["edition_part"]["artifact_id"],
+        "content_level": manifest["release_policy"],
+        "rights_status": manifest["rights_status"],
+        "pages": pages,
+    }
+    data = canonical_bytes(pack)
+    return {"pack": pack, "bytes": data, "sha256": sha256_hex(data)}
+
+
+def build_source_asset_pack(*, manifest, asset_records, raw_text_sha256=None):
     """编译 SourceAssetPack（D14、§16:717-723，ACT 10 分派）。
+
+    ``raw_text_sha256``（ACT 14 三）：传入即按 **offset 档**编译——资产事实取自
+    ``manifest.source_assets`` 与 RawText 修订，并校验两者 sha256 逐字相等。
+    缺省 None 时按 OCR 档编译，行为逐字不变。
 
     返回 ``{"pack", "bytes", "sha256"}``。
     """
@@ -129,6 +213,11 @@ def build_source_asset_pack(*, manifest, asset_records):
             "发布策略未实现，需 derived_page_images_only 或 reference_and_hash_only: %r"
             % (policy,),
             code="SCH_002",
+        )
+
+    if raw_text_sha256 is not None:
+        return _build_offset_source_asset_pack(
+            manifest=manifest, raw_text_sha256=raw_text_sha256
         )
 
     page_order = manifest["edition_part"]["pages"]
@@ -234,6 +323,15 @@ def build_evidence_map_pack(
             "span_count 与实际 spans 长度不符: %r != %d"
             % (spans_doc["span_count"], len(spans)),
             code="SCH_002",
+        )
+
+    # E1b（ACT 14 二）：offset 档走独立分支；分派权威 = spans_doc["evidence_level"]
+    if spans_doc["evidence_level"] == "offset_level":
+        return _build_offset_evidence_map_pack(
+            spans_doc=spans_doc,
+            spans=spans,
+            excluded_pages=excluded_pages,
+            knowledge_chain=knowledge_chain,
         )
 
     # E2：资产页表
@@ -348,6 +446,85 @@ def build_evidence_map_pack(
         "span_keys": list(entries),
         "highlight_counts": highlight_counts,
         "glyph_count": glyph_count,
+    }
+
+
+def _build_offset_evidence_map_pack(
+    *, spans_doc, spans, excluded_pages, knowledge_chain
+):
+    """编译 offset 档 EvidenceMapPack（ACT 14 二；裁定 78 D3、81、103 D1）。
+
+    与 glyphbox 档的差别：不读 ``span["page"]`` / ``span["line_index"]``，
+    不读 ``anchor["chars"]`` / ``anchor["bbox"]``，不读 ``page_docs``、
+    不读 ``source_asset_pack["pages"]``；``source_anchor`` 必须恰为裁定 78 D3 七键；
+    ``chain_segments`` 取八段清单；``page_index`` 恒为 ``{}``（键必须存在，不许省略）。
+
+    I-11：偏移逐字透传，不加不减。
+    """
+    if excluded_pages:
+        raise SchemaViolation(
+            "电子文本路线无页概念，excluded_pages 必须为空: %r" % (sorted(excluded_pages),),
+            code="SCH_002",
+        )
+    entries = {}
+    content_status = spans_doc["content_status"]
+    for span in spans:
+        span_id = span["span_id"]
+        ids.validate("source_span_id", span_id)
+        if span_id in entries:
+            raise DuplicateIdentifier("span_id 重复: %s" % span_id, code="ID_002")
+        anchor = span["source_anchor"]
+        if set(anchor) != set(OFFSET_ANCHOR_KEYS):
+            actual = sorted(anchor)
+            missing_keys = [key for key in OFFSET_ANCHOR_KEYS if key not in anchor]
+            extra_keys = [key for key in actual if key not in OFFSET_ANCHOR_KEYS]
+            raise SchemaViolation(
+                "offset 档 SourceAnchor 必须恰为裁定 78 D3 七键: %s 缺 %r 多 %r（实际键集 %r）"
+                % (span_id, missing_keys, extra_keys, actual),
+                code="SCH_002",
+            )
+        if anchor["quote_sha256"] != span["quote_sha256"]:
+            raise HashMismatch(
+                "锚点 quote_sha256 与 span 不符: %s" % span_id, code="SRC_003"
+            )
+        entries[span_id] = {
+            "span_id": span_id,
+            "sequence": span["sequence"],
+            "start_offset": span["start_offset"],
+            "end_offset": span["end_offset"],
+            "text": span["text"],
+            "quote_sha256": quote_sha256(span["text"]),
+            "content_status": content_status,
+            "watermark": content_status.startswith("machine_"),
+            "evidence_level": "offset_level",
+            # 七键逐字透传（I-11），不补造 page/line_index/chars/bbox
+            "source_anchor": {key: anchor[key] for key in OFFSET_ANCHOR_KEYS},
+        }
+    pack = {
+        "pack_type": "evidence_map_pack",
+        "schema_version": SUB_PACK_SCHEMA_VERSION,
+        "source_id": spans_doc["source_id"],
+        "edition_part_artifact_id": spans_doc["edition_part_artifact_id"],
+        "evidence_level": "offset_level",
+        "content_status": content_status,
+        "chain_segments": list(OFFSET_CHAIN_SEGMENTS),
+        "knowledge_chain": knowledge_chain,
+        "span_count": len(entries),
+        "entries": entries,
+        # offset 档不产出页索引；键必须存在（下游按名取用）
+        "page_index": {},
+        "excluded_pages": {},
+    }
+    data = canonical_bytes(pack)
+    return {
+        "pack": pack,
+        "bytes": data,
+        "sha256": sha256_hex(data),
+        "normalized_sha256": normalized_sha256(pack),
+        "span_keys": list(entries),
+        # offset 档无 glyph/line_bbox 高亮概念：不计入任何类别
+        "highlight_counts": {},
+        "glyph_count": 0,
     }
 
 

@@ -44,6 +44,7 @@ ls ocr/data_work/sanche_pages/page_001.png ocr/data_work/sanche_pages/page_002.p
 | 12 | `$TD` 10 条 FAIL/ERROR（闭集 14 项 ≠ 23、`unexpected keyword argument`） | `$TD` OK ≥ 162；`_CHECK_NAMES` 23 项闭集、`not_applicable` ≠ ok ≠ not_evaluated、知识链编译时五项实评、glyphbox 档 OCR 结果逐字不变、IF44 XFAIL 清空 |
 | 13a | `$TD` 整模块 ERROR（`ImportError: cannot import name '_detect_route'`） | `$TD` OK ≥ 166；`route` 键由 M3 包 `input_artifacts` 判定，电子文本路线三页/资产键为空且不抛，OCR 路线既有拒收码与消息逐字不变 |
 | 13 | **未捕获**（新增用例与实现一并落地，回报 §2.1 已如实记「未做」）；实现前事实：`snapshot_knowledge` 在生产路径恒为 None、`step.py` 两处 `knowledge_chain` 为字面量 | `$TD` OK ≥ 175（162 + 13a 4 + 13 9）；有 M7 Snapshot 时取 `gate_report["knowledge_chain"]` 实评、无 M7 时 `not_compiled`，M7 类型不符 → `SCH_002` |
+| 14 | `$TD` 新增 8 条 7 ERROR（offset 档 Span 令 `build_evidence_map_pack` 在 `packs.py:240` 抛 `KeyError: 'pages'`；`build_source_asset_pack` 无 `raw_text_sha256` 形参抛 `TypeError`） | `$TD` OK ≥ 183；offset 档证据包用 D-W8-14 八段链段、`page_index` 恒 `{}`、锚点须恰七键（缺/多 → `SCH_002`）、`quote_sha256` 不符 → `SRC_003`；offset 档资产包绑定 RawText sha256（不符 → `SRC_003`）且不产 width/height；glyphbox 档 sha `b79a7380…` 与四段逐字不变 |
 | K3-R1 | 三条 step 层知识链护栏在**资产缺失副本**上恒 skipped（`OK (skipped=35)`），注入「恒取实评」不红 —— 假绿 | 仓库树 `$TD` OK 175、**0 skipped**，三条护栏 `ok`；同一注入在仓库树转红（`'not_evaluated' != 'not_compiled'`），改回后仍 OK 175。判定「护栏是否真跑」以仓库树为准：`ocr/data_work/sanche_pages` 三页在位（TDD §0 已要求 `wc -l` == 3） |
 
 ## 2. 主 Agent 验收附加判据（执行者不需要跑，但不得让其失败）
