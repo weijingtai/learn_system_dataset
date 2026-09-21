@@ -16,13 +16,13 @@
 
 ---
 
-## 当前状态（2026-09-17）
+## 当前状态（2026-09-20）
 
-刚完成：8.4b（用户 26 条 M6 决定导入、M6 `close` 封存 `succeeded`）与 8.6-K2（ACT 11 `496fbb1`、ACT 12 `162250c`）已验收。**投产评估实测**（2026-09-19）：10 个包测试全绿（ledger 84 / intake 38 / digitization 86 / corpus 163 / semantic 57 / knowledge 149 / validation 108 / review 166 / assembly 96 / dataset 162），`check_interfaces.py` `pass=44 fail=0`，`run_all.sh` `pass=2 fail=1 blocked=8`。**结论：不可投产**——阻断项见下。
+刚完成：**P1 = 8.5 已验收**（`5d255e3`）；**P2 = 8.6-K3 已验收**（`ede8851` ACT 13a 按路线解析输入、`ae15eca` ACT 13 改读 M7 Snapshot、`3ef429f`/`4d7d292` 返工 R1）。主 Agent 独立复跑：dataset 175 OK、assembly 107 OK、review 166 OK、validation 108 OK、knowledge_extraction 149 OK、corpus_compiler 163 OK、ledger 84 OK、intake 38 OK、digitization 86 OK，`check_interfaces` `pass=44 fail=0`，`m8-span-identity.sh` `pass=7 fail=0 blocked=1`，`gate.py` 全程未动。
 
-进行中：**P1 = 8.5** 已派发（ACT `impl-07-assembly/act/11.yaml`，执行器 `agy --model pro`，tmux 会话 `w8-85`，派单 `~/tmux-agents/runs/prompts/agy-85.txt`，回报落点 `~/tmux-agents/runs/agy-85.report.md`）。
+进行中：无派发。**ACT 14 已起草**（`impl-04-dataset/act/14.yaml`，packs 的 offset 变体，含裁定 D-W8-14 解 Q-M8-07），待派 freebuff。
 
-下一步：① 验收 P1（8.5）；② P2 = 8.6-K3（ACT 13 改读 M7 Snapshot、ACT 14 电子文本路线）；③ P3 = 8.7（orchestrator 登记 m4/m6、验收脚本电子文本路线、`run_all.sh` 按真实判定输出）。
+下一步：① 派 ACT 14；② 起草并派 ACT 15（`step.py` 路线分派 + 冻结输入口径，解 `step.py:247` KeyError）；③ 起草并派 ACT 16（`m8-span-identity.sh` 电子文本路线）；④ 主 Agent 跑 M7 真书产出第一份真实 Snapshot（真书账本目前只有 m3/m4/m5/m6 四个 stage package，**M7 从未在真书上跑过**）；⑤ P3 = 8.7。
 
 **投产阻断（三条硬的）**：① M7 完整增量汇编未实现，只做了创世一次 → 加不了第二本书、也做不了第二次修订；② M8 未接 M7 真实 Snapshot（卡在 8.5）；③ 编排层未登记 m4/m6，`run_all.sh` 判定过时（仍报「M4 未实现」），无一键验证手段。
 **投产前必改（质量项，均已查实）**：④ M4 brief 每批 20 条上限两路都顶格截断，改自适应 `上限 = 1.2 × 该批片段数`；⑤ 补回被上限截掉的 5 个 concept 词条（正财/偏财/偏印/正印/劫财，b 路 notes 已逐个点名，不必重跑 M4）；⑥ M5 Gate 增一条扫描 `adapter_notes`，命中「控总数/上限/略去/未逐一登记」即置待处理（该字段目前是无下游消费者的死数据）；⑦ 41 片段清单 `spans_tianguan_qisha.yaml` 全盘无此文件（README 只记 sha256），须从提交件重建入库并标注「与原记录 sha256 未能核对」；⑧ `pipeline/corpus_compiler/tests/test_gate_offset.py::test_gate_offset_does_not_import_compiler_modules` 随发现范围变红（自检用的 `GATE_SOURCE_ENV` 泄漏到真实用例），是测试设施缺陷非产品缺陷。
@@ -91,8 +91,8 @@ bash openspec/acceptance/run_all.sh | tail -1                                   
 - [x] 8.2 M4 offset 支持（`71c913f`）+ 真书宿主与两路提交件（`7838d59`）+ 用户 24 条裁决导入、M4 封存
 - [x] 8.3 M5 offset 档 G1/G2/G3（`2537b75`）+ PUA 对账（`82f7148`）+ 登记表更正（`2db0fcc`）
 - [x] 8.4 M6：R84 `4e16022`、R84b `cb96b94`、R84c `e5c960a`（夹具更正，裁定 108）已验收；`open_review` 已跑至 `awaiting_human`（srun_3009b37a…）并生成审核表模板 `var/ledgers/qianyuan_w8_review/m6_review_decisions_template.yaml`（26 项）
-- [ ] 8.5 M7 Snapshot 补 `evidence_level`/`corpus_spans_revision_id`（裁定 106 D4）
-- [ ] 8.6 M8：ACT 08 `ff21388`、ACT 09 `fc31716`、ACT 10 `ce3ddab` 已验收；K2（ACT 11/12）未开工；ACT 13/14 待 8.5
+- [x] 8.5 M7 Snapshot 补 `evidence_level`/`corpus_spans_revision_id`（裁定 106 D4）：`5d255e3` 已验收（assembly 96→107 OK；两次篡改探针命中）
+- [ ] 8.6 M8：ACT 08 `ff21388`、ACT 09 `fc31716`、ACT 10 `ce3ddab` 已验收；**K2（ACT 11 `496fbb1`、ACT 12 `162250c`）已验收**；**K3（ACT 13a `ede8851`、ACT 13 `ae15eca`、R1 `3ef429f`/`4d7d292`）已验收 2026-09-20**（dataset 162→175 OK，gate.py 全程未动，裁定 D-W8-13a/13b）；K4 = ACT 14（packs offset 变体，已起草待派）→ ACT 15（step.py 路线分派，待起草）→ ACT 16（`m8-span-identity.sh` 电子文本路线，待起草）
 - [ ] 8.7 验收脚本电子文本路线 + orchestrator 登记 m4/m6 + `run_all.sh` 按判定输出
 
 ---

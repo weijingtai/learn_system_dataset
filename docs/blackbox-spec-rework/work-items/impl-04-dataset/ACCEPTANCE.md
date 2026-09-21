@@ -83,3 +83,47 @@ impl-04（M8 首切片，证据尾链发布包，INTERNAL_DEMO）`ACCEPTED`。§
   - `openspec/acceptance/m8-span-identity.sh`：`SUMMARY pass=7 fail=0 blocked=1`。
   - `openspec/acceptance/run_all.sh`：`SUMMARY pass=2 fail=1 blocked=8`。
 
+
+### 5.x W8 8.6-K3（ACT 13a + ACT 13 + 返工 R1）—— `ACCEPTED` 2026-09-20
+
+- 提交：`ede8851`（ACT 13a 按路线解析输入）、`ae15eca`（ACT 13 改读 M7 Snapshot）、`3ef429f`（TDD 阈值行）、`4d7d292`（R1：修 ACT 内 `check_interfaces.py` 路径 + 记录护栏实跑结论）
+- 执行器：freebuff（DeepSeek V4.1 Flash），tmux 会话 `w8-86k3`；回报 `~/tmux-agents/runs/fb-86k3.report.md`、`fb-86k3r.report.md`
+- 裁定：D-W8-13a（路线判定唯一权威 = M3 包 `manifest.input_artifacts` 构成）、**D-W8-13b**（`packs.py` 推导 `knowledge_chain`，`gate.py` 一行不许动，`CHAIN_SEGMENTS` 本组不动）
+
+**主 Agent 独立验收（全部自跑，不采信转述）**
+
+| 项 | 结果 |
+|---|---|
+| `dataset_compiler` | `Ran 175 OK`（162 → 175，+13） |
+| `assembly` | `Ran 107 OK`（8.5 成果未损） |
+| `review` / `validation` | `OK` / `Ran 108 OK` |
+| `check_interfaces.py`（真实路径 `impl-00-interfaces/`） | `I00-IF SUMMARY pass=44 fail=0` |
+| `m8-span-identity.sh` | `SUMMARY pass=7 fail=0 blocked=1` |
+| `git diff 1bc8dd6..HEAD -- pipeline/dataset_compiler/gate.py` | **无输出**（D-W8-13b 遵守） |
+| 篡改探针（主 Agent 重做） | 删掉 `step.py` 的 `snapshot_knowledge is None` 分支 → `StepKnowledgeChainTests` 转红（`- not_evaluated / + not_compiled`），护栏非空转 |
+
+**主 Agent 自身的判断错误（须记录，避免重犯）**
+
+返工项 R1-1 的前提是错的，由执行器实测推翻并被主 Agent 复核确认：
+
+- 主 Agent 做篡改探针时，副本只 `cp -R pipeline openspec docs .venv`，**漏了 `ocr/`**；
+  而 `assets_available()`（`tests/_ledger_helpers.py:23`）要找的 `page_001~003.png` 在
+  `ocr/data_work/sanche_pages/`（`.gitignore` 忽略但本机真实存在）
+- 于是副本里 `StepKnowledgeChainTests` 三条被 `skipUnless` 跳过 → 注入不报错 → 主 Agent 误判「护栏是假的」
+- 实测：**仓库树 skipped=0、三条全 `ok`**；无页图副本 skipped=35。两侧均可复现
+- **教训（R13）**：篡改探针的副本必须能复现原环境（含被 gitignore 的本机资产），
+  否则探针会因环境残缺产生假阴性，反过来诬告实现。副本漏文件比被验的问题更隐蔽
+
+R1-2（补做探针 3）、R1-3（13 条新增用例逐条跳过状态表：10 条永不跳过、3 条带 `skipUnless` 但在仓库树实跑）、
+R1-4（修主 Agent 写错的 `openspec/acceptance/check_interfaces.py` 路径）均已完成。
+
+**遗留（转入 ACT 14/15/16，非本组缺陷）**
+
+执行器在尝试 R1-1 时实测出电子文本路线的两处编译侧阻塞，已成为下一组的输入：
+
+1. `step.py:247` 在 `begin_step_run` 前遍历 `manifest["edition_part"]["pages"]` 取 `page_revision_ids[page]`；
+   电子文本页单位为 `qianyuan_ed01_text` 而 ACT 13a 契约下 `page_revision_ids == {}` → `KeyError`（真书上同一断点）
+2. `packs.build_evidence_map_pack`（`packs.py:250-300`）要求 `span["page"]`、`span["line_index"]`、
+   `anchor["chars"]`、`page_docs[page]`、`source_asset_pack["pages"]` 五者齐备；
+   offset 档 Span 键集为 `{end_offset, evidence_level, quote_sha256, sequence, source_anchor, span_id, start_offset, text}`，
+   `source_anchor` 为第 78 条七键，**无 page/line_index/chars** → `KeyError 'page'`

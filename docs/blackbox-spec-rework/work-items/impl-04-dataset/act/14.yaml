@@ -1,0 +1,127 @@
+act_id: impl-04/14
+title: EvidenceMapPack 与 SourceAssetPack 的 offset 变体（现状 offset 档 Span 直接 KeyError 'page'）
+estimated_minutes: 150
+group: K4
+depends_on: [impl-04/13]
+decisions: [D-W8-14, 裁定 78 D3, 裁定 81, 裁定 103 D1, 裁定 107 Q-M8-08]
+scope:
+  write:
+    - pipeline/dataset_compiler/packs.py
+    - pipeline/dataset_compiler/tests/test_packs.py
+  read_only:
+    - var/                                  # 只许读，绝不许写
+    - pipeline/dataset_compiler/gate.py      # D-W8-13b：一行都不许动
+    - pipeline/dataset_compiler/step.py      # 本 ACT 不碰 step，留给 ACT 15
+background: |
+  主 Agent 2026-09-20 实测（真书账本 var/ledgers/qianyuan_w8/ledger.sqlite，只读）：
+
+  corpus_spans 修订：evidence_level = "offset_level"，span_count = 696。
+  单个 span 的键集**只有**：
+    {end_offset, evidence_level, quote_sha256, sequence, source_anchor, span_id, start_offset, text}
+  source_anchor 的键集（= 裁定 78 D3 七键，逐字相符）：
+    {raw_text_revision_id, raw_start, raw_end, cleaned_text_revision_id, start_offset, end_offset, quote_sha256}
+  实样：
+    {"raw_text_revision_id":"rev_299e1d31000e44ca91666c6deefb42fb","raw_start":478,"raw_end":479,
+     "cleaned_text_revision_id":"rev_cf79eb3b11e5497daa6ac1e36af9a3a8","start_offset":0,"end_offset":1,
+     "quote_sha256":"01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"}
+
+  也就是说 offset 档 Span **没有 page、没有 line_index、没有 anchor.chars、没有 bbox**。
+  而 packs.py:250-300 的 build_evidence_map_pack 无条件要求
+    span["page"]、span["line_index"]、anchor["chars"]、page_docs[page]、source_asset_pack["pages"]
+  五者齐备，所以对 offset 档 Span 直接抛 KeyError 'page'（前一轮执行器绕开 run_m8 直接调用实测到）。
+
+  source_manifest（真书 rev_849e9715…）里，电子文本的「页」与「资产」是这样表达的：
+    edition_part.pages = ["qianyuan_ed01_text"]        # 单文件，无页码，一个「页单位」
+    source_assets = [{page:"qianyuan_ed01_text", path_ref:"qianyuan_ed01_text.md",
+                      sha256:"3f7170cd504e496096bc933ab5ed8805d68fa98625c91c5c09a9e3a61fcecdbb",
+                      normalized_sha256: 同上, original_encoding:"utf-8", size:50451}]
+  账本里 **没有任何 source_asset_page / ocr_page / ocr_page_set artifact**（三者计数均为 0），
+  所以 offset 档的 SourceAsset 事实**只能**来自 source_manifest.source_assets + raw_text 修订，
+  不存在「页图修订」这种东西。
+
+  gate 侧已经按档分派好了（gate.py 的 _CHECK_APPLICABILITY 有 offset 档四项与 not_applicable 机制，
+  ACT 12 已验收），缺的**只是编译侧**。本 ACT 只补编译侧的包，不碰 step.py（那是 ACT 15）。
+contract: |
+  一、D-W8-14（主 Agent 2026-09-20 裁决，解 README §11.7 未决点 Q-M8-07）
+    裁定：offset 档 chain_segments 用 **显式八段清单**，不采用「统一抽象名」方案。
+    依据 impl-04-dataset/README.md:375 已写定的清单，逐字采用：
+      ["KnowledgeEntry","Assertion","EvidenceLink","SourceSpan","SourceAnchor",
+       "DeterministicPatchSet","RawText","SourceAsset"]
+    理由：统一抽象名会让 Gate 无法从包本身判断该跑 OCR 四项还是 offset 四项，
+    与裁定 107 Q-M8-08 的「按档分派」相冲突。
+    glyphbox 档的 CHAIN_SEGMENTS（四段）**逐字不变**。
+
+  二、build_evidence_map_pack 的 offset 变体
+    分派权威 = spans_doc["evidence_level"]（已是闭集校验过的字段，见 packs.py:213）。
+    **禁止**新增环境变量、**禁止**由调用方传字符串指定档位。
+
+    offset 档（evidence_level == "offset_level"）行为：
+      1) 不读 span["page"]、span["line_index"]；不读 anchor["chars"]、anchor["bbox"]；
+         不读 page_docs、不读 source_asset_pack["pages"]
+      2) 逐 span 校验 source_anchor 为裁定 78 D3 的**七键齐备**（多一键少一键都拒收 SCH_002，
+         消息须含 span_id 与实际键集排序后的列表）
+      3) I-11：偏移逐字透传，不加不减（这条已在 packs.py:820 的知识链侧写明，本处同口径）
+      4) 校验 anchor["quote_sha256"] == span["quote_sha256"]，不符 → HashMismatch SRC_003
+      5) chain_segments 取第一节的八段清单
+      6) 包级字段沿用现有名字：pack_type / source_id / edition_part_artifact_id / evidence_level /
+         content_status / chain_segments / knowledge_chain / span_count / excluded_pages 一个都不许改名
+      7) page_index：offset 档**不产出页索引**。该键取 {}（空字典），**不许省略该键**
+         （下游按名取用；省略会变成 KeyError）
+    glyphbox 档行为**逐字不变**：现有 OCR 用例全部原样通过，拒收码与消息不改。
+
+  三、SourceAssetPack 的 offset 变体
+    offset 档的资产事实来自 source_manifest.source_assets（见背景实样），不是页图修订。
+    要求：
+      1) 每个条目取 {page, path_ref, sha256, normalized_sha256, original_encoding, size}，
+         字段名逐字沿用 manifest 里的写法，不许改名、不许自造
+      2) 校验该条目的 sha256 与 raw_text 修订的 sha256 **逐字相等**，不符 → HashMismatch SRC_003
+         （这是 README:521 第 3 项 raw_text_binding 在编译侧的对应约束）
+      3) offset 档**不产出** width/height/bbox 一类页图几何字段；不许填 0 或 None 占位，直接不出现
+      4) glyphbox 档逐字不变
+
+  四、不许做的事
+    - 不许动 gate.py（D-W8-13b）
+    - 不许动 step.py（ACT 15 的范围）；本 ACT 的用例直接调用 packs 函数，不经 run_m8
+    - 不许为了让 offset 档「看起来像 OCR 档」而给 span 补造 page / line_index / chars 字段
+    - 不许推断 concept_refs（裁定 107 Q-M8-01）
+tests_first: |
+  先写测试并确认转红（贴 Red 原文），再改实现。至少八个具名用例：
+    test_evidence_map_pack_offset_level_accepts_seven_key_anchor
+    test_evidence_map_pack_offset_level_refuses_anchor_missing_key        # 七键缺一 → SCH_002
+    test_evidence_map_pack_offset_level_refuses_anchor_extra_key          # 七键多一 → SCH_002
+    test_evidence_map_pack_offset_level_chain_segments_are_the_eight      # D-W8-14 八段逐字
+    test_evidence_map_pack_offset_level_page_index_is_empty_dict_not_absent
+    test_evidence_map_pack_offset_level_detects_quote_sha_mismatch        # SRC_003
+    test_source_asset_pack_offset_level_binds_raw_text_sha256            # 不符 → SRC_003
+    test_glyphbox_level_packs_unchanged                                   # OCR 档回归护栏
+  真书账本**只读**，可把真实 sha256/id 硬编码进测试作断言事实；
+  但测试**不得依赖 var/ 存在**（用夹具或临时账本构造）。
+verify: |
+  cd /Users/jingtaiwei/Git/Public/learn_system && export LC_ALL=en_US.UTF-8
+  .venv/bin/python -m unittest discover -s pipeline/dataset_compiler/tests -t . 2>&1 | tail -3
+      # OK，用例数 = 175 + 新增；**skipped 数不得增加**（当前仓库树为 0）
+  .venv/bin/python -m unittest discover -s pipeline/assembly/tests -t . 2>&1 | tail -1     # OK 107
+  .venv/bin/python -m unittest discover -s pipeline/review/tests -t . 2>&1 | tail -1       # OK 166
+  .venv/bin/python -m unittest discover -s pipeline/validation/tests -t . 2>&1 | tail -1   # OK 108
+  .venv/bin/python docs/blackbox-spec-rework/work-items/impl-00-interfaces/check_interfaces.py | tail -1   # pass=44 fail=0
+  bash openspec/acceptance/m8-span-identity.sh 2>&1 | tail -1                              # SUMMARY pass=7 fail=0 blocked=1
+  git diff --stat -- pipeline/dataset_compiler/gate.py pipeline/dataset_compiler/step.py    # 必须无输出
+  # 篡改探针（两条，绿→红→改回，结果写进回报）：
+  #   P1 把 offset 档的七键校验去掉 → test_..._refuses_anchor_missing_key 转红
+  #   P2 把 chain_segments 的八段改回四段 → test_..._chain_segments_are_the_eight 转红
+  # 探针副本必须用 rsync 或 cp -R 复制**整个仓库**（含 ocr/，那里有被 gitignore 的本机页图），
+  #   只复制 pipeline/ 会让 OCR 档用例静默 skipped，探针出假阴性（2026-09-20 主 Agent 踩过，R13）
+commit:
+  add:
+    - pipeline/dataset_compiler/packs.py
+    - pipeline/dataset_compiler/tests/test_packs.py
+    - docs/blackbox-spec-rework/work-items/impl-04-dataset/act/14.yaml
+  message: "feat(m8): compile offset-level evidence and asset packs from seven-key anchors (W8 8.6-K4, ACT 14)"
+on_fail: |
+  停止并报告，不许提交红的基线。
+  五种情况必须停手写「## 待裁决」而不是自行决定：
+    ① 需要改 gate.py 或 step.py 才能完成
+    ② 真书 Span 或 source_manifest 的实际形状与本 ACT 背景里写的不符（以实测为准，立即上报差异）
+    ③ 既有 OCR 档用例有任何一条转红，或 skipped 数增加
+    ④ 八段清单与 README:375 有出入，或发现第三种 evidence_level
+    ⑤ source_assets 条目的 sha256 与 raw_text 修订 sha256 不相等（那是上游数据问题，不是本 ACT 能修的）
