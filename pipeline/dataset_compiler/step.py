@@ -334,6 +334,7 @@ def _run_after_begin(
             ocr_page_revision_ids=inputs["page_revision_ids"],
             source_asset_pack=source_asset_pack["pack"],
             excluded_pages=inputs["excluded_pages"],
+            snapshot_knowledge=inputs["snapshot_knowledge"],
         )
         _, evidence_map_pack_revision_id = service.put_artifact(
             step_run_id, "evidence_map_pack", evidence_map_pack["bytes"],
@@ -413,7 +414,14 @@ def _run_after_begin(
             "evidence_map_pack": evidence_map_pack["bytes"],
         },
         consumption_level=consumption_level,
+        snapshot_knowledge=inputs["snapshot_knowledge"],
     )
+    # 知识链判定字面：仅由事实推出（D-W8-13b）。无 M7 Snapshot 时链未编译；
+    # 有已解析的 Snapshot 时取 gate 实评结果，不再硬编码字面量。
+    if inputs["snapshot_knowledge"] is None:
+        knowledge_chain_state = "not_compiled"
+    else:
+        knowledge_chain_state = gate_report["knowledge_chain"]
     validation_data = {
         "gate_profile": "m8_first_slice",
         "consumption_level": consumption_level,
@@ -421,7 +429,7 @@ def _run_after_begin(
         "passed": gate_report["passed"],
         "checks": gate_report["checks"],
         "failed_checks": gate_report["failed_checks"],
-        "knowledge_chain": "not_evaluated",
+        "knowledge_chain": knowledge_chain_state,
         "anchor_migration": "not_evaluated",
     }
     _, validation_revision_id = service.put_artifact(
@@ -525,7 +533,7 @@ def _run_after_begin(
             "release_manifest_revision_id": release_manifest_revision_id,
             "publication_package_revision_id": publication_package_revision_id,
             "canonical_hash": release_manifest["canonical_hash"],
-            "knowledge_chain": "not_compiled",
+            "knowledge_chain": knowledge_chain_state,
         },
         "manifest": {
             "schema_version": "1.0.0",

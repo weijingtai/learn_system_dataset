@@ -1,0 +1,113 @@
+act_id: impl-04/13
+title: M8 改读 M7 真实 Snapshot（现状 knowledge_chain 两处硬编码，snapshot_knowledge 无人解析）
+estimated_minutes: 120
+group: K3
+depends_on: [impl-04/13a]
+decisions: [D-W8-13, D-W8-13b, 裁定 106 D4, 裁定 107 Q-M8-01]
+scope:
+  write:
+    - pipeline/dataset_compiler/inputs.py
+    - pipeline/dataset_compiler/step.py
+    - pipeline/dataset_compiler/packs.py
+    - pipeline/dataset_compiler/tests/test_inputs.py
+    - pipeline/dataset_compiler/tests/test_step.py
+    - pipeline/dataset_compiler/tests/test_packs.py
+  read_only:
+    - var/
+    - pipeline/dataset_compiler/gate.py   # D-W8-13b：gate.py 一行都不许动
+background: |
+  主 Agent 2026-09-20 实测现状：
+    - gate.py / packs.py 已经有 snapshot_knowledge 形参并真用它（gate.py:500/545/567/606、
+      packs.py:666 起），但 **inputs.py、step.py、__main__.py 里一次都没出现过这个词**
+      → 也就是说它只在单元测试里被手工传字典，生产路径上永远是 None
+    - step.py:424  validation_data["knowledge_chain"] = "not_evaluated"   ← 硬编码
+    - step.py:528  payload["knowledge_chain"]        = "not_compiled"     ← 硬编码
+  8.5（提交 5d255e3）已让 M7 Snapshot 的 editions[] 带上 evidence_level 与
+  corpus_spans_revision_id，所以现在读它是安全的。
+  ⚠ 真书账本目前 **没有 m7 stage package**（只有 m3/m4/m5/m6），
+  所以真书上的实跑由主 Agent 单独执行，**不是你的 verify 项**。你只用夹具验证。
+contract: |
+  一、解析（inputs.py）
+    resolve_m8_inputs 新增解析 M7 Snapshot，返回键新增两个：
+      "m7_snapshot_revision_id"：M7 Snapshot 的修订 id；无 M7 时为 None
+      "snapshot_knowledge"     ：Snapshot 内容里的 knowledge 段（dict）；无 M7 时为 None
+    解析规则（与既有 _resolve_m3 同风格）：
+      从 reader.list_checkpoints(edition_part_id, "m7") 取 status == "succeeded" 的 StepRun，
+      经其 stage package 拿到 Snapshot 修订；用 _sealed_revision 校验已封存、
+      用 _artifact_type 校验类型，类型不符 → SCH_002
+    **无 M7 时不许报错**：M8 在「M7 尚未运行」的账本上仍须能跑完（现状即如此），
+      两个新键取 None，由第二节决定判定字面。
+    多个 succeeded 的 m7 Checkpoint → 取最新一个；**若无法确定唯一最新（时间戳相同），
+      停手写「## 待裁决」**，不许随便取第一个。
+
+  二、判定字面（step.py）—— 只准由事实推出，不准硬编码
+    删掉 step.py:424 与 step.py:528 的两处字面量，改为按 snapshot_knowledge 是否解析到来取值：
+      snapshot_knowledge is None  → validation_data["knowledge_chain"] = "not_compiled"
+                                     payload["knowledge_chain"]        = "not_compiled"
+      snapshot_knowledge 已解析   → 两处都取 gate 实评结果（见第三节），
+                                     不许再出现 "not_evaluated" / "not_compiled" 字面
+    硬性：这两个键的取值必须能从 snapshot_knowledge 与 gate_report 推出。
+      **任何情况下不许写死字符串再配一个恒真测试。**（这是 8.5 踩过的坑：
+      「禁止硬编码」最容易写出恒绿的假护栏，主 Agent 会做篡改探针复验。）
+
+  三、把 snapshot_knowledge 接到已有下游
+    step.py:399 调用 gate.evaluate_publication 时补传 snapshot_knowledge=inputs["snapshot_knowledge"]。
+    gate.py 现有逻辑已能处理 None（gate.py:502 起「snapshot_knowledge 缺失，无法实评知识链」），
+    **不许改 gate.py / packs.py 一行**——它们已在 ACT 11/12 验收过。
+    若发现必须改才能接通 → 停手写「## 待裁决」。
+
+  四、裁定 107 Q-M8-01 不得动摇
+    26 条真实 assertion 没有 concept_refs，Snapshot 里也不会有。
+    接通后知识链实评结果**可以是「无 Concept 词条」**，这是正确行为，不是缺陷；
+    不许为了让链看起来完整而推断 concept_refs。
+
+  五、D-W8-13b（主 Agent 2026-09-20 裁决，本 ACT 执行依据）
+    裁定：gate.py:157 从 EvidenceMapPack 读 ``knowledge_chain`` 是设计如此（README:182
+    「届时 EvidenceMapPack … ``knowledge_chain`` 改为 ``compiled``」），``packs.py`` 固定写
+    ``not_compiled`` 才是 ACT 11/12 遗留的未完成项。授权改 ``packs.py``（不动 gate.py）：
+      1. ``build_evidence_map_pack`` 新增关键字参数 ``snapshot_knowledge=None``，
+         函数内部自行推导 ``"compiled" if snapshot_knowledge else "not_compiled"``；
+         **禁止**新增名为 ``knowledge_chain`` 的参数让调用方传字符串字面量。
+      2. ``gate.py`` 一行都不许动。
+      3. ``CHAIN_SEGMENTS`` 与 ``chain_segments`` 本 ACT 不许动，仍为四段。
+      4. 篡改探针（加一条）：把该推导改成恒返回 ``"compiled"``，确认
+         ``test_knowledge_chain_not_compiled_without_snapshot``（packs）转红，然后改回。
+tests_first: |
+  先写测试并确认转红，再改实现。至少五个具名用例：
+    test_resolve_m8_inputs_reads_sealed_m7_snapshot_knowledge
+    test_resolve_m8_inputs_yields_none_when_no_m7_checkpoint
+    test_resolve_m8_inputs_refuses_wrong_snapshot_artifact_type      # SCH_002
+    test_knowledge_chain_not_compiled_without_snapshot               # 无 M7 → not_compiled
+    test_knowledge_chain_reflects_gate_result_with_snapshot          # 有 M7 → 取实评，非字面量
+  最后一个用例必须能逮住「把结果写死」这种实现——
+  即改动 Snapshot 内容应当改变该键取值。
+verify: |
+  cd /Users/jingtaiwei/Git/Public/learn_system && export LC_ALL=en_US.UTF-8
+  .venv/bin/python -m unittest discover -s pipeline/dataset_compiler/tests -t . -v 2>&1 | tail -3
+      # OK，用例数 = 13a 之后的基数 + 本次新增，一个都不许少
+  .venv/bin/python -m unittest discover -s pipeline/assembly/tests -t . 2>&1 | tail -1      # OK 107（8.5 的成果不许碰坏）
+  .venv/bin/python -m unittest discover -s pipeline/review/tests -t . 2>&1 | tail -1        # OK 166
+  .venv/bin/python openspec/acceptance/check_interfaces.py | tail -1                        # pass=44 fail=0
+  bash openspec/acceptance/m8-span-identity.sh; echo "exit=$?"                              # 与改前一致
+  grep -n '"not_evaluated"\|"not_compiled"' pipeline/dataset_compiler/step.py
+      # 只允许剩下「无 Snapshot 时」那一条分支里的 not_compiled；把实际剩几处、在哪行写进回报
+  # 篡改探针（自证护栏非空转，结果写进回报）：
+  #   把第二节的取值改成恒返回 gate 实评字符串（无视 snapshot_knowledge 是否为 None），
+  #   确认 test_knowledge_chain_not_compiled_without_snapshot 转红，然后改回
+commit:
+  add:
+    - pipeline/dataset_compiler/inputs.py
+    - pipeline/dataset_compiler/step.py
+    - pipeline/dataset_compiler/packs.py
+    - pipeline/dataset_compiler/tests/test_inputs.py
+    - pipeline/dataset_compiler/tests/test_step.py
+    - pipeline/dataset_compiler/tests/test_packs.py
+    - docs/blackbox-spec-rework/work-items/impl-04-dataset/act/13.yaml
+  message: "feat(m8): read the sealed M7 snapshot so knowledge_chain reports a real verdict (W8 8.6-K3, ACT 13)"
+on_fail: |
+  停止并报告，不许提交红的基线。
+  四种情况必须停手写「## 待裁决」而不是自行决定：
+    ① 需要改 gate.py 或 packs.py 才能接通
+    ② m7 Checkpoint 有多个 succeeded 且无法确定唯一最新
+    ③ 接通后既有用例（dataset 162+ / assembly 107 / review 166）有任何一个转红
+    ④ 为了让知识链「看起来完整」而需要推断 concept_refs（裁定 107 Q-M8-01 禁止）

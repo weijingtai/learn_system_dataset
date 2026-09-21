@@ -93,6 +93,7 @@ def _evidence_pack(
     page_docs=None,
     ocr_revision_ids=None,
     excluded_pages=None,
+    snapshot_knowledge=None,
 ):
     return packs.build_evidence_map_pack(
         spans_doc=spans_doc if spans_doc is not None else _spans_doc(),
@@ -106,6 +107,7 @@ def _evidence_pack(
         excluded_pages=(
             excluded_pages if excluded_pages is not None else EXCLUDED_PAGES
         ),
+        snapshot_knowledge=snapshot_knowledge,
     )
 
 
@@ -341,6 +343,45 @@ class EvidenceMapPackTests(unittest.TestCase):
         )
         self.assertNotEqual(first["bytes"], second["bytes"])
         self.assertEqual(first["normalized_sha256"], second["normalized_sha256"])
+
+
+class EvidenceMapKnowledgeChainFlagTests(unittest.TestCase):
+    """ACT 13 / D-W8-13b：``knowledge_chain`` 由 Snapshot 事实推导（packs 内部，非调用方字面量）。"""
+
+    def test_knowledge_chain_not_compiled_without_snapshot(self):
+        res = _evidence_pack()
+        self.assertEqual(res["pack"]["knowledge_chain"], "not_compiled")
+        # 本切片链段仍为四段，本 ACT 不改（见 D-W8-13b）
+        self.assertEqual(len(res["pack"]["chain_segments"]), 4)
+        self.assertEqual(res["pack"]["chain_segments"], packs.CHAIN_SEGMENTS)
+
+    def test_knowledge_chain_compiled_with_snapshot(self):
+        res = _evidence_pack(
+            snapshot_knowledge={"patterns": [], "assertions": [], "concepts": []}
+        )
+        self.assertEqual(res["pack"]["knowledge_chain"], "compiled")
+        defects = packs.compute_known_defects(
+            evidence_map_pack=res["pack"],
+            m3_gate_profile="structural_only",
+            rights_status=_manifest()["rights_status"],
+        )
+        self.assertNotIn(
+            "knowledge_chain_not_compiled", [item["code"] for item in defects]
+        )
+
+    def test_snapshot_presence_changes_only_the_flag(self):
+        without = _evidence_pack()
+        with_snapshot = _evidence_pack(
+            snapshot_knowledge={"patterns": [], "assertions": [], "concepts": []}
+        )
+        self.assertEqual(without["pack"]["entries"], with_snapshot["pack"]["entries"])
+        self.assertEqual(
+            without["pack"]["chain_segments"], with_snapshot["pack"]["chain_segments"]
+        )
+        self.assertNotEqual(
+            without["pack"]["knowledge_chain"],
+            with_snapshot["pack"]["knowledge_chain"],
+        )
 
 
 class KnownDefectsTests(unittest.TestCase):

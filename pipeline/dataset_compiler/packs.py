@@ -202,13 +202,26 @@ def _check_in_frame(box, frame, span_id):
 
 
 def build_evidence_map_pack(
-    *, spans_doc, page_docs, ocr_page_revision_ids, source_asset_pack, excluded_pages
+    *,
+    spans_doc,
+    page_docs,
+    ocr_page_revision_ids,
+    source_asset_pack,
+    excluded_pages,
+    snapshot_knowledge=None,
 ):
     """编译 EvidenceMapPack：完整 ``span_id`` 为键，只闭合尾链四段。
+
+    ``snapshot_knowledge``（ACT 13，D-W8-13b）：有已解析的 M7 Snapshot
+    knowledge 时，``knowledge_chain`` 推导为 ``"compiled"``，否则为
+    ``"not_compiled"``（README §8 第 3 条：届时 ``knowledge_chain`` 改为
+    ``compiled``）。推导在本函数内部完成，不接受调用方直接传字符串字面量。
+    本切片 ``chain_segments`` 仍为四段，不改。
 
     返回 ``{"pack", "bytes", "sha256", "normalized_sha256", "span_keys",
     "highlight_counts", "glyph_count"}``。
     """
+    knowledge_chain = "compiled" if snapshot_knowledge is not None else "not_compiled"
     # E1：级别与表头计数
     if spans_doc["evidence_level"] not in EVIDENCE_LEVELS:
         raise SchemaViolation(
@@ -320,7 +333,7 @@ def build_evidence_map_pack(
         "evidence_level": spans_doc["evidence_level"],
         "content_status": content_status,
         "chain_segments": CHAIN_SEGMENTS,
-        "knowledge_chain": "not_compiled",
+        "knowledge_chain": knowledge_chain,
         "span_count": len(entries),
         "entries": entries,
         "page_index": page_index,

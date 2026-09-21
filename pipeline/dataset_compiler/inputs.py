@@ -199,6 +199,87 @@ def _resolve_pages(reader, package):
     )
 
 
+def _m7_step_run_id(reader, edition_part_id):
+    """取最新 succeeded 的 m7 StepRun；无 M7 → ``None``。
+
+    多个 succeeded → 取链序最新一个；若最新两个时间戳相同（无法确定唯一最新）
+    → ``REF_001``（不随便取第一个）。
+    """
+    succeeded = []
+    for checkpoint in reader.list_checkpoints(edition_part_id, "m7"):
+        step_run_id = (checkpoint.get("content") or {}).get("step_run_id")
+        if not step_run_id or step_run_id in succeeded:
+            continue
+        step_run = reader.get_step_run(step_run_id)
+        if step_run is not None and step_run["status"] == "succeeded":
+            succeeded.append(step_run_id)
+    if not succeeded:
+        return None
+    if len(succeeded) > 1:
+        newest = reader.get_step_run(succeeded[-1]) or {}
+        previous = reader.get_step_run(succeeded[-2]) or {}
+        if newest.get("created_at") == previous.get("created_at"):
+            raise DatasetRefused(
+                "多个 succeeded 的 m7 且最新时间戳相同，无法确定唯一最新: %s"
+                % ",".join(succeeded),
+                code="REF_001",
+            )
+    return succeeded[-1]
+
+
+def _resolve_m7(reader, edition_part_id):
+    """解析 M7 Snapshot：返回 ``(snapshot_revision_id, snapshot_knowledge)``。
+
+    无 M7 → ``(None, None)``（不报错）。有 M7：取 succeeded StepRun 的 sealed
+    StagePackage，经其 ``manifest.output_artifacts`` 声明的 ``canonical_snapshot``
+    （或经 ``assembly_package.canonical_snapshot_revision_id``）定位 Snapshot 修订；
+    用 ``_sealed_revision`` 校验已封存、用 ``_artifact_type`` 校验类型（不符 → ``SCH_002``）。
+    ``snapshot_knowledge`` 即该修订内容（CanonicalSnapshot 的 knowledge 段本身，扁平字典）。
+    """
+    step_run_id = _m7_step_run_id(reader, edition_part_id)
+    if step_run_id is None:
+        return None, None
+    rows = reader.store.conn.execute(
+        "SELECT r.artifact_revision_id FROM artifact_revisions r "
+        "JOIN artifacts a ON a.artifact_id = r.artifact_id "
+        "WHERE a.artifact_type='stage_package' AND r.step_run_id=? AND r.status='sealed'",
+        (step_run_id,),
+    ).fetchall()
+    if len(rows) != 1:
+        raise DatasetRefused(
+            "m7 StepRun 名下 sealed StagePackage 数量异常: %d" % len(rows), code="REF_001"
+        )
+    package = _read_content(reader, _sealed_revision(reader, rows[0][0], "m7 stage_package"))
+    output_artifacts = (package.get("manifest") or {}).get("output_artifacts") or []
+    snapshot_revision_id = None
+    for reference in output_artifacts:
+        if reference.get("artifact_type") == "canonical_snapshot":
+            snapshot_revision_id = reference.get("artifact_revision_id")
+            break
+    if snapshot_revision_id is None:
+        for reference in output_artifacts:
+            if reference.get("artifact_type") == "assembly_package":
+                assembly_package = _read_content(
+                    reader,
+                    _sealed_revision(
+                        reader, reference["artifact_revision_id"], "assembly_package"
+                    ),
+                )
+                snapshot_revision_id = assembly_package.get(
+                    "canonical_snapshot_revision_id"
+                )
+                break
+    if not snapshot_revision_id:
+        raise DatasetRefused("m7 包未声明 canonical_snapshot 修订", code="REF_001")
+    snapshot_revision = _sealed_revision(reader, snapshot_revision_id, "canonical_snapshot")
+    if _artifact_type(reader, snapshot_revision_id) != "canonical_snapshot":
+        raise DatasetRefused(
+            "Snapshot 修订 artifact_type 非 canonical_snapshot: %s" % snapshot_revision_id,
+            code="SCH_002",
+        )
+    return snapshot_revision_id, _read_content(reader, snapshot_revision)
+
+
 def _resolve_assets(reader, edition_part_id):
     """R6：从 m1 Checkpoint 的 ``source_asset_`` 任务收集页图修订。"""
     asset_revision_ids = {}
@@ -264,6 +345,9 @@ def resolve_m8_inputs(reader, edition_part_id):
         asset_revision_ids = {}
         asset_step_run_id = None
 
+    # R8：M7 Snapshot（无 M7 → (None, None)，不报错）
+    m7_snapshot_revision_id, snapshot_knowledge = _resolve_m7(reader, edition_part_id)
+
     # R7
     manifest_revision = _sealed_revision(reader, manifest_revision_id, "source_manifest")
     manifest = yaml.safe_load(reader.objects.get(manifest_revision["sha256"]).decode("utf-8"))
@@ -283,4 +367,6 @@ def resolve_m8_inputs(reader, edition_part_id):
         "source_id": manifest["source_id"],
         "m3_gate_profile": m3_gate_profile,
         "excluded_pages": excluded_pages,
+        "m7_snapshot_revision_id": m7_snapshot_revision_id,
+        "snapshot_knowledge": snapshot_knowledge,
     }

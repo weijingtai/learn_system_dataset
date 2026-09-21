@@ -22,6 +22,7 @@ from pipeline.dataset_compiler.tests._ledger_helpers import (
     prepare_m8_ready,
     table_counts,
 )
+from pipeline.dataset_compiler.tests.test_inputs import seed_m7_snapshot
 from pipeline.ledger.errors import SchemaViolation
 from pipeline.ledger.service import LedgerService
 
@@ -48,6 +49,17 @@ def _validate_stage_package(package):
         Resource.from_contents(artifact_ref, default_specification=DRAFT202012),
     )
     jsonschema.Draft202012Validator(schema, registry=registry).validate(package)
+
+
+def _validation_report_for(service, step_run_id):
+    """取某 StepRun 名下唯一的 validation_report 修订内容。"""
+    row = service.store.conn.execute(
+        "SELECT r.artifact_revision_id FROM artifact_revisions r "
+        "JOIN artifacts a ON a.artifact_id = r.artifact_id "
+        "WHERE a.artifact_type='validation_report' AND r.step_run_id=?",
+        (step_run_id,),
+    ).fetchone()
+    return _load_pack(service, row[0])
 
 
 class StepTestBase(unittest.TestCase):
@@ -321,6 +333,86 @@ class StepFailureSealingTests(StepTestBase):
             self.assertEqual(self._m8_package_count(), 0)
         finally:
             packs.build_evidence_map_pack = original
+
+
+class StepKnowledgeChainTests(StepTestBase):
+    """ACT 13：knowledge_chain 由 Snapshot 事实推出，不再硬编码字面量（D-W8-13b）。"""
+
+    @unittest.skipUnless(assets_available(), "本机缺三页真实页图")
+    def test_knowledge_chain_not_compiled_without_snapshot(self):
+        self.ready()
+        result = run_m8(
+            self.service, self.edition_part_id, consumption_level="INTERNAL_DEMO"
+        )
+        self.assertEqual(result["status"], "succeeded")
+        report = _validation_report_for(self.service, result["step_run_id"])
+        self.assertEqual(report["knowledge_chain"], "not_compiled")
+        self.assertEqual(
+            report["checks"]["knowledge_chain"]["status"], "not_evaluated"
+        )
+
+    def _validation_report_with_knowledge(self, knowledge):
+        """在独立 Ledger 上跑一次带 M7 Snapshot 的 M8，返回其 validation_report。"""
+        tmp = tempfile.mkdtemp(prefix="m8-kc-")
+        try:
+            service = LedgerService(Path(tmp) / "ledger")
+            try:
+                prepared = prepare_m8_ready(service)
+                seed_m7_snapshot(
+                    service, prepared["edition_part_id"], knowledge=knowledge
+                )
+                result = run_m8(
+                    service,
+                    prepared["edition_part_id"],
+                    consumption_level="INTERNAL_DEMO",
+                )
+                return _validation_report_for(service, result["step_run_id"])
+            finally:
+                service.close()
+        finally:
+            shutil.rmtree(tmp, True)
+
+    @unittest.skipUnless(assets_available(), "本机缺三页真实页图")
+    def test_knowledge_chain_reflects_gate_result_with_snapshot(self):
+        self.ready()
+        seed_m7_snapshot(
+            self.service, self.edition_part_id,
+            knowledge={"patterns": [], "assertions": [], "concepts": []},
+        )
+        result = run_m8(
+            self.service, self.edition_part_id, consumption_level="INTERNAL_DEMO"
+        )
+        # 有 Snapshot → 链转实评；本切片未接 GraphProjectionPack，gate 如实失败
+        self.assertEqual(result["status"], "failed")
+        self.assertEqual(result["failed_check"], "publication_gate")
+        report = _validation_report_for(self.service, result["step_run_id"])
+        # 两处 knowledge_chain 取 gate 实评结果，而非 not_evaluated/not_compiled 字面量
+        self.assertEqual(report["knowledge_chain"], "evaluated")
+        self.assertEqual(report["checks"]["knowledge_chain"]["status"], "evaluated")
+        self.assertEqual(report["checks"]["chain_closure"]["status"], "evaluated")
+
+    @unittest.skipUnless(assets_available(), "本机缺三页真实页图")
+    def test_knowledge_chain_verdict_tracks_snapshot_content(self):
+        """改动 Snapshot 内容必须改变 gate 对知识链的实评（驳回「写死」）。"""
+        empty = self._validation_report_with_knowledge(
+            {"patterns": [], "assertions": [], "concepts": []}
+        )
+        populated = self._validation_report_with_knowledge(
+            {
+                "patterns": [
+                    {
+                        "pattern_id": "pat_qizheng_000001",
+                        "assertion_ids": ["as_qizheng_000001"],
+                    }
+                ],
+                "concepts": [],
+                "assertions": [{"assertion_id": "as_qizheng_000001"}],
+                "school_views": [],
+                "conflict_groups": [],
+            }
+        )
+        self.assertIs(empty["checks"]["chain_closure"]["ok"], False)
+        self.assertIs(populated["checks"]["chain_closure"]["ok"], True)
 
 
 if __name__ == "__main__":

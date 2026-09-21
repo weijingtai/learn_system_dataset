@@ -4,6 +4,7 @@
 解析前后 Ledger 行数不变。
 """
 
+import json
 import shutil
 import tempfile
 import unittest
@@ -21,8 +22,171 @@ from pipeline.dataset_compiler.tests._ledger_helpers import (
     seed_succeeded_m8_checkpoint,
     table_counts,
 )
+from pipeline.ledger import ids
 from pipeline.ledger.fixture_ingest import ingest
 from pipeline.ledger.service import LedgerService
+
+
+def _artifact_id_of(service, revision_id):
+    """按修订号取 artifact_id。"""
+    return service.store.conn.execute(
+        "SELECT artifact_id FROM artifact_revisions WHERE artifact_revision_id=?",
+        (revision_id,),
+    ).fetchone()[0]
+
+
+def seed_m7_snapshot(
+    service,
+    edition_part_id,
+    *,
+    knowledge=None,
+    snapshot_artifact_type="canonical_snapshot",
+):
+    """在临时 Ledger 上登记一个 succeeded 的 m7 StepRun + Snapshot + 包 + Checkpoint。
+
+    供 ACT 13 的 M7 Snapshot 解析测试使用。``snapshot_artifact_type`` 可改成非
+    ``canonical_snapshot`` 以验证类型不符 → ``SCH_002``。
+    """
+    if knowledge is None:
+        knowledge = {
+            "technique_id": "qizheng",
+            "patterns": [],
+            "concepts": [],
+            "assertions": [],
+            "school_views": [],
+            "conflict_groups": [],
+        }
+    processing_run_id = service.create_processing_run(
+        "release_run", edition_part_id, "qizheng"
+    )
+    _, config_revision_id = service.put_run_artifact(
+        processing_run_id,
+        "configuration",
+        json.dumps({"stage": "m7"}, sort_keys=True).encode("utf-8"),
+        producer_module="test.seed",
+        producer_version="0",
+    )
+    step_run_id = service.begin_step_run(
+        {
+            "schema_version": "1.0.0",
+            "processing_run_id": processing_run_id,
+            "step_run_id": ids.new_id("step_run_id"),
+            "input_artifact_ids": [],
+            "technique_profile_id": "qizheng",
+            "configuration_artifact_id": config_revision_id,
+        }
+    )
+    _, snapshot_revision_id = service.put_artifact(
+        step_run_id,
+        snapshot_artifact_type,
+        json.dumps(knowledge, sort_keys=True, ensure_ascii=False).encode("utf-8"),
+        producer_module="test.seed",
+        producer_version="0",
+    )
+    service.seal_revision(snapshot_revision_id)
+    snapshot_artifact_id = _artifact_id_of(service, snapshot_revision_id)
+
+    _, assembly_revision_id = service.put_artifact(
+        step_run_id,
+        "assembly_package",
+        json.dumps(
+            {
+                "schema_version": "0.1.0-draft",
+                "technique_id": "qizheng",
+                "canonical_snapshot_revision_id": snapshot_revision_id,
+                "report": {},
+            },
+            sort_keys=True,
+        ).encode("utf-8"),
+        producer_module="test.seed",
+        producer_version="0",
+    )
+    service.seal_revision(assembly_revision_id)
+    assembly_artifact_id = _artifact_id_of(service, assembly_revision_id)
+
+    def _ref(artifact_id, revision_id, artifact_type):
+        return {
+            "schema_version": "1.0.0",
+            "artifact_kind": "artifact",
+            "artifact_id": artifact_id,
+            "artifact_revision_id": revision_id,
+            "artifact_type": artifact_type,
+        }
+
+    stage_package_id = ids.new_id("stage_package_id", stage="m7")
+    package_revision_id = ids.new_id("artifact_revision_id")
+    package = {
+        "schema_version": "1.0.0",
+        "stage_package_id": stage_package_id,
+        "artifact_revision_id": package_revision_id,
+        "stage": "m7",
+        "status": "draft",
+        "payload": {},
+        "manifest": {
+            "schema_version": "1.0.0",
+            "processing_run_id": processing_run_id,
+            "step_run_id": step_run_id,
+            "input_artifacts": [],
+            "output_artifacts": [
+                _ref(assembly_artifact_id, assembly_revision_id, "assembly_package"),
+            ],
+            "counts": {"assembly_package": 1},
+            "content_sha256": "0" * 64,
+        },
+        "validation": {"passed": True, "report_artifacts": []},
+        "lineage": {"upstream_artifacts": [], "transformations": []},
+        "logs": [],
+        "failures": [],
+    }
+    service.register_stage_package(
+        step_run_id,
+        package,
+        json.dumps(package, sort_keys=True).encode("utf-8"),
+        stage_package_id=stage_package_id,
+        artifact_revision_id=package_revision_id,
+    )
+    service.seal_revision(package_revision_id)
+    service.write_checkpoint(
+        step_run_id,
+        edition_part_id=edition_part_id,
+        stage="m7",
+        completed_tasks=[
+            {
+                "task_id": "seal_snapshot",
+                "artifact_revision_id": package_revision_id,
+                "status": "succeeded",
+                "terminal_state": None,
+            }
+        ],
+        human_decisions=[],
+        pending_queue=[],
+        next_pointer=None,
+    )
+    current_version = service.get_step_run(step_run_id)["status_version"]
+    service.finish_step_run(
+        step_run_id,
+        {
+            "schema_version": "1.0.0",
+            "processing_run_id": processing_run_id,
+            "step_run_id": step_run_id,
+            "status_version": current_version + 1,
+            "status": "succeeded",
+            "output_artifact_ids": [
+                package_revision_id,
+                snapshot_revision_id,
+                assembly_revision_id,
+            ],
+            "validation_report_ids": [],
+            "log_artifact_ids": [],
+            "failure_artifact_ids": [],
+        },
+    )
+    return {
+        "step_run_id": step_run_id,
+        "snapshot_revision_id": snapshot_revision_id,
+        "package_revision_id": package_revision_id,
+        "knowledge": knowledge,
+    }
 
 
 class ResolveM8InputsBase(unittest.TestCase):
@@ -176,6 +340,52 @@ class ElectronicTextRouteTests(unittest.TestCase):
         self.assertEqual(
             result["manifest_revision_id"], expected_manifest_revision_id
         )
+
+
+class ResolveM7SnapshotTests(unittest.TestCase):
+    """ACT 13：M7 Snapshot 解析（无 M7 → None，不报错）。"""
+
+    def setUp(self):
+        self._tmp = tempfile.mkdtemp(prefix="m8-m7-")
+        self.addCleanup(shutil.rmtree, self._tmp, True)
+        self.edition_part_id = "art_000000000000000000000000000000e1"
+        self.service, _ = _setup_m2_ledger(
+            self._tmp, edition_part_id=self.edition_part_id
+        )
+        self.addCleanup(self.service.close)
+        summary = run_m3_text(self.service, self.edition_part_id)
+        self.assertEqual(summary["status"], "succeeded")
+
+    def test_resolve_m8_inputs_reads_sealed_m7_snapshot_knowledge(self):
+        knowledge = {
+            "technique_id": "qizheng",
+            "patterns": [],
+            "concepts": [],
+            "assertions": [],
+            "school_views": [],
+            "conflict_groups": [],
+        }
+        seeded = seed_m7_snapshot(self.service, self.edition_part_id, knowledge=knowledge)
+        result = resolve_m8_inputs(self.service, self.edition_part_id)
+        self.assertEqual(
+            result["m7_snapshot_revision_id"], seeded["snapshot_revision_id"]
+        )
+        self.assertEqual(result["snapshot_knowledge"], knowledge)
+
+    def test_resolve_m8_inputs_yields_none_when_no_m7_checkpoint(self):
+        result = resolve_m8_inputs(self.service, self.edition_part_id)
+        self.assertIsNone(result["m7_snapshot_revision_id"])
+        self.assertIsNone(result["snapshot_knowledge"])
+
+    def test_resolve_m8_inputs_refuses_wrong_snapshot_artifact_type(self):
+        seed_m7_snapshot(
+            self.service,
+            self.edition_part_id,
+            snapshot_artifact_type="validation_report",
+        )
+        with self.assertRaises(DatasetRefused) as ctx:
+            resolve_m8_inputs(self.service, self.edition_part_id)
+        self.assertEqual(ctx.exception.code, "SCH_002")
 
 
 class OcrRouteRegressionTests(ResolveM8InputsBase):
