@@ -1,0 +1,55 @@
+TASK_ID: NC-014-B
+PARENT: NC-014
+STATUS: READY
+REPO: xuan/reading-notes（Windows `D:/Programme/xuan/reading-notes`；macOS `/Users/jingtaiwei/Git/Public/xuan-migration/reading-notes`）
+GOAL: 八端口适配 + 双帧唤醒分派 + 业务通知列表（social NotificationCenterPage 复用、event_count 聚合、W15/W16 静音）+ 导航（content 类→ContentDetailPage、失权→统一占位页、账号切换 scope 分库）；18 个新测试；296 既有测试零变红、analyze 0
+DEPENDS_ON: [NC-014-A]
+ESTIMATE_MINUTES: 55
+WORKLOAD: "adapters 约 480 行（8 adapter + Wiring + 三表 + MuteApi）、.g.dart 生成、router 约 160 行、18 个测试约 720 行、pubspec +2 git 依赖"
+BASELINE_HEAD: 107ec90（开工时 notification 默认分支必须已含 act/01 提交，D-NC014-A 完成为前置）
+SCOPE:
+  READ:
+    - D:/Programme/learn_system/openspec/annotation-community/contracts/community_notification_host.md（§2.2、§3、§4、§5、§6、§7.2、§10）
+    - D:/Programme/learn_system/docs/blackbox-spec-rework/work-items/nc-014/BDD.md（C01～C18）、TDD.md（§3）
+    - D:/Programme/learn_system/openspec/annotation-community/contracts/community_deliveries.md（§6、§7、§15）
+    - D:/Programme/learn_system/openspec/annotation-community/contracts/community_api.md（§13）
+    - D:/Programme/xuan/notification/lib/src/ports/（八端口签名）、lib/src/ack/ack_pipeline.dart、lib/src/receive/receive_pipeline.dart、lib/src/receive/frame_decoder.dart、lib/src/realtime/connection_manager.dart、lib/src/shelf/body_fetch_wake_handler.dart、docs/integration-guide.md（装配链 :129-145 与宿主 fake 注意事项 :314-321）
+    - D:/Programme/xuan/social/lib/social.dart（NotificationCenterPage/SocialNotificationItem 导出 :90-93）、lib/src/notification/notification_center_page.dart、lib/src/notification/social_notification_models.dart
+    - D:/Programme/xuan/reading-notes/lib/src/community/community_api.dart（Bearer 头范式 :103-110）、ports.dart（IdTokenProvider）、content_detail_page.dart（:15-33 构造）、community_database.dart（openScoped 范式，只读不扩）
+    - D:/Programme/xuan/repository-rest-adapter/openapi/openapi.yaml（NotificationBody/NotificationEntry/NotificationPage/NotificationMuteState :3777-3904，只读）
+  WRITE_NEW:
+    - D:/Programme/xuan/reading-notes/pubspec.yaml（只追加 notification 与 social 两个 git 依赖）
+    - D:/Programme/xuan/reading-notes/analysis_options.yaml（只追加 analyzer.errors.secure_pubspec_urls: ignore，D-NC014-12）
+    - D:/Programme/xuan/reading-notes/pubspec.lock（flutter pub get 自动更新）
+    - D:/Programme/xuan/reading-notes/lib/src/notifications/community_notification_adapters.dart（新建：NotifierRemoteConfigSource/LocalPushConfigCache/DriftDeliveryLog/SseRealtimeChannel/NotifierReceiptTransport/NotifierConnectionTokenSource/CommunityBackfillSource/CommunityMessageBodyFetcher、CommunityNotificationWiring、CommunityNotificationDatabase 三表、CommunityNotificationMuteApi）
+    - D:/Programme/xuan/reading-notes/lib/src/notifications/community_notification_adapters.g.dart（build_runner 生成）
+    - D:/Programme/xuan/reading-notes/lib/src/notifications/notification_target_router.dart（新建：NotificationTargetRouter、CommunityUnreadableTargetPage、CommunityNotificationListPage）
+    - D:/Programme/xuan/reading-notes/test/notifications/community_notifications_test.dart（新建，只含 TDD §3 的 18 个测试）
+  FORBIDDEN:
+    - 上表以外任何文件；lib/src/community/ 既有文件（community_database.dart 只读，不扩表）；装配 notification 包遗留页（notification_page.dart/notification_viewmodel.dart/playground_state_widgets.dart）；firebase_messaging 等新插件依赖；在宿主复刻去重/ACK/退避/帧解码；lib/（含生成文件）出现 604800000 字面量（测试 fixture 引用 from-server-coder §6 下发值不算）；改 social 仓与 notification 包 lib/；新 dart 包依赖（notification/social 两个 git 依赖除外）；skip；永真断言；测试内现算参考值；红线词形；git push；learn_system 写入（交付报告除外）
+DEPENDENCY_ALLOWLIST: [仅追加 notification 与 social 两个 git 依赖（url http://192.168.0.165:3000/xuan/notification.git、http://192.168.0.165:3000/xuan/social.git，不写 ref）；其余沿用锁定版本]
+RULES:
+  - "R10 条目映射 deliveryId 空串哨兵、messageId=latest_notification_id；分派点识别空串哨兵走业务 upsert 单事务、不调 AckPipeline、无来源 ACK（D-NC014-03）"
+  - "notifier 域投递（deliveryId 非空）一律委派 ReceivePipeline.handleDelivery 同一管线；C06 失败 fake 分支必须存在且断言 ACK 空、cursor 不推进（TASKS:232）"
+  - "占位页构造无任何失效原因字段，四类失效文案逐字节一致「该内容已不可访问」+ 返回按钮（TASKS:233）；comment 类条目点击暂不路由（契约 §10.1 待裁决 1）"
+  - "R9 notifier_delivery_id 逐字不透明（禁前缀/截断/重算/解码）；404 共用体→正文不可用降级（D-NC014-04）"
+  - "窗口裁剪只消费包内 DedupRetention.fromTiming(timing)；timing.dedupRetention 为 null 时装配停手上报，不编窗口"
+  - "FakeReceiptTransport 存批次副本 List.of(ids) 不存引用（integration-guide.md:314-321）"
+TESTS_FIRST:
+  - "先改 pubspec 跑 flutter pub get（保存依赖缺失原文），再写 18 个测试，运行 VERIFICATION 第 1 条，保存 adapters/router 未建编译错原文作为 Red"
+STEPS:
+  - "pubspec 双依赖 + pub get；建 CommunityNotificationDatabase 三表与 build_runner 生成"
+  - "实现八 adapter、Wiring（handleWakeData 双帧分派 + handleDelivery 分派点 + 装配链五步）、MuteApi，直至 VERIFICATION 全部符合期望"
+  - "实现 NotificationTargetRouter、占位页、列表页（social NotificationCenterPage 复用映射）"
+  - "git add 并提交（单提交）"
+  - "提交后运行 learn_system 守卫 --require-impl client，退出码写入报告"
+VERIFICATION:
+  - "cd D:/Programme/xuan/reading-notes && flutter test test/notifications/community_notifications_test.dart（期望 +18: All tests passed!）"
+  - "cd D:/Programme/xuan/reading-notes && flutter analyze（期望 No issues found!）"
+  - "cd D:/Programme/xuan/reading-notes && flutter test（期望 +314: All tests passed!；296 既有 + 18 新增，既有零变红）"
+  - "git -C D:/Programme/xuan/reading-notes diff-tree -r --name-only 107ec90 HEAD（期望恰 6 文件：pubspec.yaml、pubspec.lock、adapters、adapters.g.dart、router、测试）"
+  - "git -C D:/Programme/xuan/reading-notes diff-tree -r --name-only 107ec90 HEAD -- lib/src/community（期望空输出）"
+  - "cd D:/Programme/learn_system && bash docs/blackbox-spec-rework/reviews/nc014_guard.sh --require-impl client（期望 0）"
+ON_FAIL: "停止并在 DELIVERY_REPORT_CLIENT.md 追加「## 待裁决」+ 输出 NC-014-B 停手待裁决。social NotificationCenterPage/SocialNotificationItem 导出或签名与契约 §6.2 不符、pub 解析冲突、既有 296 之外新增失败、analyze 非 No issues found!、需改白名单外文件（含 comment 类导航被要求扩大），均为停止条件。"
+BASELINE_EXIT_CODES: "开工基线：107ec90，flutter test +296: All tests passed!、flutter analyze No issues found!"
+COMMIT_MESSAGE: "feat(notifications): 通知八端口适配、业务通知列表与回跳导航（NC-014-B）\n\nCo-Authored-By: GLM-5.3-Flash <noreply@z.ai>"

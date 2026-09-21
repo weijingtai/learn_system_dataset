@@ -40,3 +40,9 @@
 **遗留（非阻断）**：`test_community_acl_sweep.py` 模块文档字符串中 Implemented/Unimplemented 两行未按契约 §2.1 ③ 更新（仍写 E4 未实现），不影响断言，留待下次改动该文件时顺带修正。SERVER 线 act/02 交付报告经主 Agent 提醒后补写。
 
 **推送**：四仓已推送 Gitea（REST 与 RULES 各合并远端 AGENTS.md 文档提交后推送：`3f34f0f`、`ca92902`；functions-py `8d22451`；reading-notes `107ec90` 为 Gitea 新仓首推）。
+
+## 跨机器补记（2026-09-12，zcode，Windows 接手机）
+
+- 遗留①核实：`test_community_acl_sweep.py` 的 Implemented/Unimplemented 两行实际已随 `8d22451` 修正（`git show 8d22451` 可见 `- E1, E2, E5` → `+ E1, E2, E4, E5`），上节「仍写 E4 未实现」为验收时表述过时，无需再改。
+- 遗留②闭环：xuan-handbook 接入手册 `integration/social.community-interactions.md` 已按 PROTOCOL §9 补写并推送（xuan-handbook `f88e70b`），条目 `social.community-interactions` 判定 `done`。
+- Windows 适配（用户裁定布局，登记 D-NC012-23）：四仓基线复现——reading-notes `No issues found!` + `+296: All tests passed!`、functions-py 修 CRLF 后复跑全量（守卫 K06 复核）、xuan-server 规则 `129 passed`、REST `+77: All tests passed!`（新增兄弟仓 `repository-contract-kernel`，`tool/validate_openapi` 经 bash 转发、`dart test` 注入 `PYTHON`/`OPENAPI_VALIDATOR`）。守卫脚本路径改写为 `D:\Programme` 布局并提交本仓。

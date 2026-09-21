@@ -6,18 +6,20 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"; ROOT="$(cd "$DIR/../../.." 
 MODE="${1:-}"; LINES="${2:-all}"
 bash "$ROOT/openspec/annotation-community/review_v1_6_guard.sh" >/dev/null 2>&1; g1=$?
 bash "$ROOT/openspec/annotation-community/verify.sh" >/dev/null 2>&1; g2=$?
-"$ROOT/.venv/bin/python" - "$ROOT" "$g1" "$g2" "$MODE" "$LINES" <<'PY'
-import json, os, re, subprocess, sys
+"$ROOT/.venv/Scripts/python.exe" - "$ROOT" "$g1" "$g2" "$MODE" "$LINES" <<'PY'
+import json, os, re, shutil, subprocess, sys
 from pathlib import Path
 root = Path(sys.argv[1]); g1, g2 = int(sys.argv[2]), int(sys.argv[3]); mode = sys.argv[4]; lines = sys.argv[5]
 req = set()
 if mode == "--require-impl":
     req = {"rest", "server", "client"} if lines in ("", "all") else set(lines.split(","))
 SPEC = root / "openspec/annotation-community"; PACK = root / "docs/blackbox-spec-rework/work-items/nc-012a"
-REST = Path("/Users/jingtaiwei/Git/Public/xuan-migration/repository-rest-adapter")
-SRV = Path("/Users/jingtaiwei/Git/Public/xuan-server/functions-py")
-RULES = Path("/Users/jingtaiwei/Git/Public/xuan-migration/xuan-server")
-RN = Path("/Users/jingtaiwei/Git/Public/xuan-migration/reading-notes"); FL = "/Users/jingtaiwei/flutter/bin"
+REST = Path("D:/Programme/xuan/repository-rest-adapter")
+SRV = Path("D:/Programme/xuan-server/functions-py")
+RULES = Path("D:/Programme/xuan-server/xuan-server")
+RN = Path("D:/Programme/xuan/reading-notes"); FL = "D:/apps/apps/flutter/bin"
+WIN = os.name == "nt"
+EXE = lambda name: (shutil.which(name) or name) if WIN else name
 H = ["09cbea8cdeff9a18a58a8eafd4227d436e3e3571120b5b35fb8e0607415181f9", "26c51836823dc9f972ade10c886b40212a0021651a8a343f237f3a6f69956b90",
      "1a8f01148eaeb612891d175ac6b14a9fca9ca89995a5582ac7b12ed9aedd6620", "481e858b66f0a48c074ef3d5e4b2dc1ea3a899a9179f6c5cac3af4aa60b970a2",
      "608dfd80e74d5f37a190ee29346c857ab7da5c707aafef094fc25018edf058af", "b6f3caec02355f0365e49b5b028368911a09fd7651206b8ab5d4b5484e4bb07a"]
@@ -104,14 +106,18 @@ if "rest" in req:
     miss = [n for n in REST_TESTS if n not in t]; ok &= not miss; det.append(f"tests_missing={miss}")
     try:
         man = json.loads(read(REST / "test/fixtures/openapi/examples/manifest.json")); names = [m.get("file") for m in man]
-        ok &= len(man) == 17 and all(f in names for f in ("reaction_response_like.json", "bookmark_response_active.json",
+        ok &= len(man) >= 17 and all(f in names for f in ("reaction_response_like.json", "bookmark_response_active.json",
                                                          "share_link_page_with_revoked.json", "reaction_state_value_love.json"))
         det.append(f"manifest={len(man)}")
     except Exception as e:
         ok = False; det.append(f"manifest_error={type(e).__name__}")
-    rc, out = run(["dart", "test"], REST, {"PATH": FL + ":" + os.environ["PATH"]})
+    rest_env = {"PATH": FL + os.pathsep + os.environ["PATH"]}
+    if WIN:
+        rest_env["PYTHON"] = str(root / ".venv/Scripts/python.exe")
+        rest_env["OPENAPI_VALIDATOR"] = str(root / "openspec/annotation-community/.venv-openapi/Scripts/openapi-spec-validator.exe")
+    rc, out = run([EXE("dart"), "test"], REST, rest_env)
     m = re.search(r"\+(\d+): All tests passed!", out); ok &= rc == 0 and m is not None and int(m.group(1)) >= 77; det.append(f"dart_test={rc}/{m.group(1) if m else '无'}")
-    check(ok, "K05 REST 产物：openapi 增量、4 个测试、manifest 17 项、dart test ≥77", "; ".join(det))
+    check(ok, "K05 REST 产物：openapi 增量、4 个测试、manifest ≥17 项（NC-013 D-NC013-10）、dart test ≥77", "; ".join(det))
 else:
     print("SKIP  K05 REST 产物（验收时 --require-impl rest，必须 PASS）")
 
@@ -132,11 +138,11 @@ if "server" in req:
     rules_t = read(RULES / "server/functions/test/community_rules.test.ts")
     ok &= all(f"'{n}'" in rules_t for n in NEW_COLS)
     emu = {"PYTHONDONTWRITEBYTECODE": "1", "FIRESTORE_EMULATOR_HOST": "192.168.0.165:8080", "FIREBASE_AUTH_EMULATOR_HOST": "192.168.0.165:9099"}
-    rc, out = run([str(SRV / ".venv/bin/python"), "-m", "pytest", "tests", "-q", "-rf", "-p", "no:cacheprovider"], SRV, emu)
+    rc, out = run([str(SRV / ".venv/Scripts/python.exe" if WIN else SRV / ".venv/bin/python"), "-m", "pytest", "tests", "-q", "-rf", "-p", "no:cacheprovider"], SRV, emu, timeout=3600)
     m = re.search(r"(\d+) failed, (\d+) passed, (\d+) xfailed", out); failed = set(re.findall(r"^FAILED (\S+)", out, re.M))
     ok &= m is not None and (m.group(1), m.group(2), m.group(3)) == ("5", "535", "6") and failed == BASE_FAILED
     det.append(f"pytest={m.group(0) if m else '无汇总'} failed_set_ok={failed == BASE_FAILED}")
-    rc2, out2 = run(["npm", "test", "--", "community_rules"], RULES / "server/functions", emu)
+    rc2, out2 = run([EXE("npm"), "test", "--", "community_rules"], RULES / "server/functions", emu)
     ok &= re.search(r"Tests:\s+129 passed, 129 total", out2) is not None; det.append(f"rules={rc2}")
     check(ok, "K06 SERVER 产物：27 个测试名、无作弊、参考值字面量、E4 转真、禁止清单零改动、pytest 5/535/6 且失败集合不变、规则 129", "; ".join(det))
 else:
@@ -161,9 +167,9 @@ if "client" in req:
                "test/community/seven_states_test.dart", "test/community/discussion_test.dart", "pubspec.yaml", "pubspec.lock",
                "lib/src/community/community_database.dart")
     ok &= prot == ""; det.append(f"protected_empty={prot == ''} end={end_c}")
-    envf = {"PATH": FL + ":" + os.environ["PATH"]}
-    rc, out = run(["flutter", "analyze"], RN, envf); ok &= rc == 0; det.append(f"analyze={rc}")
-    rc, out = run(["flutter", "test"], RN, envf)
+    envf = {"PATH": FL + os.pathsep + os.environ["PATH"]}
+    rc, out = run([EXE("flutter"), "analyze"], RN, envf); ok &= rc == 0; det.append(f"analyze={rc}")
+    rc, out = run([EXE("flutter"), "test"], RN, envf)
     m = re.search(r"\+(\d+): All tests passed!", out); ok &= rc == 0 and m is not None and int(m.group(1)) >= 296; det.append(f"test={rc}/{m.group(1) if m else '无'}")
     check(ok, "K07 CLIENT 产物：文件齐全、26 个测试名、无作弊、哈希字面量、MentionRef 单一、受保护路径零改动、analyze 0、flutter test ≥296", "; ".join(det))
 else:

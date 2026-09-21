@@ -638,7 +638,7 @@
   - [x] 用户决定（2026-09-10 托管主 Agent 代为拍板）：CLIENT 用独立 Git 仓库（`client.vcs=NEW_GIT_REPOSITORY`）
   - [x] 派发 NC-001-01 执行 Agent：`work-items/nc-001/PROMPT.md`，act/01 → act/02 → act/03 → act/04 四个提交
   - [x] 主 Agent 验收 NC-001-01：执行提交 `272fb60`→`11b4e46`→`d75afb1`→`11edbc7`；32 测试、local/integrated 与契约一致、`nc001_r2_guard.sh --require-impl` 0、3 个必做变异 + 17 个盲测全部符合；记录见 `work-items/nc-001/ACCEPTANCE.md`
-  - [ ] NC-001-02 完整联调取证（设备、后端、Emulator、真实测试）另行准备工作包；Firebase 去留须在此之前由用户决定
+  - [x] NC-001-02 完整联调取证（2026-09-15）：scope 升级为 INTEGRATED，十项证据全部验证态，`check_integration_baseline.py --profile integrated` 退出 0，stdout `INTEGRATED_STRUCTURE_PASS`；记录见 `work-items/nc-001-02/ACCEPTANCE.md`
 - [x] NC-002：非书籍模型、ID 前缀、状态机、限额、canonical 编码与 fixture（状态：`ACCEPTED`，2026-09-11；DEFERRED：CLIENT Dart 一致性测试 → NC-004、CommandRecord 按操作成对 Schema → NC-003）
   - [x] DESIGN §2.1 十七个 UGC ID 前缀：2026-09-10 用户全权托管主 Agent，前缀整表采用并冻结（community-models.md §0.1）；READINESS_REVIEW §3 同步登记，两处结论一致
   - [x] 规格侧产物（主 Agent）：`contracts/community-models.md`、`contracts/state-machines.md`、`tools/nchash_reference.py`、`fixtures/community/` 9 个文件 196 项
@@ -656,9 +656,9 @@
   - [x] 六件套（act/01 样例、act/02 检查器）与守卫
   - [x] wjt-react 四查 + 十二攻击/故障场景审查：R1 返工 5 项（notifier TTL 冲突、会话公钥绑定、signed_fields、AAD 原因码、证书哈希定义）+ R2 返工 1 项（证书哈希公式复算），均落实（`reviews/NC-015-REVIEW-R1.md`）
   - [x] 执行（2 个提交）；主 Agent 验收 R1 ACCEPTED（V0～V8 原始输出、盲测 BT0～BT7 全 PASS、八场景攻击审查；修正契约 §5 第 95 行 TTL 文案）；解锁 NC-016
-- [ ] NC-020a：消费端书籍契约核对清单（状态：`BACKLOG`）
-- [ ] NC-025：生产 BlobGateway（公共 + 私有）（状态：`BACKLOG`；R1 新增，NC-008/017 的硬前置）
-- [ ] NC-026：行为事件数据源、假名化与私人笔记元数据上报（状态：`BACKLOG`；v1.5 新增）
+- [x] NC-020a：消费端书籍契约核对清单（状态：`ACCEPTED`；骨架 `BOOK_CONTRACT_ACCEPTANCE.md` 28 项、校验脚本 `check_book_contract.py` 退出 0、六件套 `work-items/nc-020a/`；D-07/D-08 依赖已登记）
+- [x] NC-025：生产 BlobGateway（公共 + 私有）（状态：`ACCEPTED`，2026-09-15；xuan-storage `77f283a`、functions-py `8f6f122`；production_blob_gateway.dart、blob_tickets.py）
+- [x] NC-026：行为事件数据源、假名化与私人笔记元数据上报（状态：`ACCEPTED`；v1.5 新增；专属契约 `openspec/annotation-community/contracts/community_behavior.md`，API 补丁 `community_api.md` §14，六件套 `work-items/nc-026/`，守卫 `reviews/nc026_guard.sh`；spec 侧冻结 `openspec/schemas/community_behavior_event.schema.json`（attributes 收紧，SHA `f3467224…`）与 23 个行为事件示例；**注销子项 DEFERRED**（NC-001 第⑩项证据缺失，D-NC026-13）；P1～P4 已裁定（D-NC026-29～32）；2026-09-13 主 Agent 同会话实现四线并验收：REST `c1afba3`（+85）、SERVER `dd04f27`（pytest 5/594/3）、CLIENT `613f6ba`（+332）、RULES `f74b9a5`（157）；守卫 `--require-impl all` K01～K09 全 PASS；四查独立性按 D-NC026-28 由用户授权替代，评审见 `reviews/NC-026-REVIEW-R1.md`；验收记录见 `work-items/nc-026/ACCEPTANCE.md`）
 
 ### 本地笔记与编辑器
 
@@ -689,7 +689,7 @@
 
 ### 图片与公开社区
 
-- [ ] NC-008：本地图片与公共资源适配（状态：`BACKLOG`）
+- [x] NC-008：本地图片与公共资源适配（状态：`ACCEPTED`，2026-09-15；reading-notes `1cc0788`、functions-py `a4bf37c`；note_attachment_repository.dart、markdown_image_resolver.dart、community_media.py）
 - [x] NC-009：公共发布事务、权限扫描与命令账本服务（状态：`ACCEPTED`，2026-09-11 R3；SERVER `c29a31a`→`df5c3da`、RULES `ea8c9b8`，act/01～06，全量 459/5/9、规则 65、守卫 0；R1 盲测三处缺陷由 act/05 修复，R2 发现快照补默认值与日志异常文本由 act/06 修复；act/06 经 tmux+agy 执行）
   - [x] 规格侧契约（主 Agent）：`openspec/annotation-community/contracts/community_server.md`（canonical SERVER 与 RULES 仓实值、六集合与文档、账本事务六步、W1～W6 前置顺序与写集、读路径与 ACL 18 条矩阵、规则 jest、测试名、D-NC009-01～08）
   - [x] 六件套 `work-items/nc-009/`（act/01 账本、act/02 发布/更新/收回、act/03 回收站/查询/精简、act/04 ACL/规则/可观测）与守卫 `reviews/nc009_guard.sh`
@@ -711,12 +711,12 @@
     - [x] 契约统一 reading-notes 两个同名 `MentionRef`（D-NC012-13，NC-011 验收遗留）
     - [x] wjt-react 四查（tmux + agy，会话 nc012r）：R1 READY、返工 0 项（`reviews/NC-012a-REVIEW-R1.md`）；主 Agent 采纳建议 1～3 写死 resource_ids 字典、refreshPending 防重入、I10 重试间隔
     - [x] 三线派发（tmux + agy：nc012a-rest ｜ nc012a-srv ｜ nc012a-cli）；REST 停手一次裁定 D-NC012-22；主 Agent 按 ACCEPTANCE.md 验收 R1 ACCEPTED
-  - [ ] NC-012b：宿主社交注入、mention 候选与编辑器接线、三类依赖关系数据的无效 mention（状态：`BLOCKED`，等 NC-001-02）
+  - [x] NC-012b：宿主社交注入、mention 候选与编辑器接线、三类依赖关系数据的无效 mention（状态：`ACCEPTED`，2026-09-15；reading-notes `996c547`；social_navigation_adapter.dart 社交注入适配器、detectInvalidMentions 三类无效 mention 判定）
 
 ### 通知
 
-- [ ] NC-013：事务事件、投递、通知正文与补拉端点（状态：`BACKLOG`）
-- [ ] NC-014：Notification 宿主适配、去重与导航（状态：`BACKLOG`）
+- [x] NC-013：事务事件、投递、通知正文与补拉端点（状态：`ACCEPTED`，2026-09-13 R1：守卫 `nc013_guard.sh --require-impl all` 退出 0（K01～K07 全 PASS），盲测①～⑦全过（scratchpad/nc013/blind-results.md），作弊扫描干净；REST `dc0792c`→`b60bfbd`（已推送）、SERVER `8d22451`→`5800a23`（`783fb0d`/`731ebfb`/`5800a23`）、RULES `4b81d8d`→`a354463`；契约 `openspec/annotation-community/contracts/community_deliveries.md`（含 API §13 补丁、D-NC013-01～16）、六件套 `work-items/nc-013/`、守卫 `reviews/nc013_guard.sh`、四查 `reviews/NC-013-REVIEW-R1.md`；四查 R1 REWORK 7 项返工落实、R2 复核 READY；遗留：桥接映射上游扩展（D-NC013-08 阻断）、设备校验（G3）、偏好源（G5）、handbook 回写待领域裁定；Windows 接手机适配 D-NC012-23）
+- [x] NC-014：Notification 宿主适配、去重与导航（状态：`ACCEPTED`，2026-09-13 R1：守卫 `nc014_guard.sh --require-impl all` 退出 0（K01～K06 全 PASS），主 Agent 独立盲测 B1～B10 全过（临时探针已删、两仓 `git status --short` 为空），作弊扫描干净；notification `518670b`→`b62cd27`（已推送，D.6 去重保留窗口行为层）、reading-notes `107ec90`→`19afe37`（已推送，八端口适配/Drift 三表/双帧分派/回跳导航）；契约 `openspec/annotation-community/contracts/community_notification_host.md`（`FROZEN_FOR_NC-014`，**D-NC014-01～17**；D-NC014-11 comment 类 target 本期不路由）、六件套 `work-items/nc-014/`、守卫 `reviews/nc014_guard.sh`、四查 `reviews/NC-014-REVIEW-R1.md`（R1 REWORK 7 项已落实）；执行期裁定 D-NC014-12（analyze 口径与 CLIENT 白名单 +1）～D-NC014-17（业务表部分行/导航注入点/时间列/REST 基址/SSE 口径）；handbook 回写 `46d5b7a`（integration/social.community-notification-dispatch.md 补写 + 两条目回写）；遗留：comment 类导航（D-NC014-11）、真机链路 NC-024）
 
 ### 私人同步、备份与删除
 
@@ -724,15 +724,15 @@
   - [x] NC-016a：guard 补丁、AES-GCM AAD、一次一密信封与接收验收（状态：`ACCEPTED`，2026-09-12 R1：守卫 `--require-impl all` 0，盲测 ①～⑥ 通过（pyca 解多块信封、换序截断拒收、JSON 往返、旧会话零写入、200 组 guard 三方一致）；此前 `DISPATCHED`，四查 R1 返工 2 项、R2 READY（`reviews/NC-016a-REVIEW-R1.md`）；契约 `openspec/annotation-community/contracts/private_sync_impl.md`，六件套 `work-items/nc-016a/`，守卫 `reviews/nc016a_guard.sh`；两线：STORAGE act/01 ｜ CLIENT act/02→03）
     - [x] STORAGE act/01（NC-016a-A）：tmux + cmd 会话 nc016s；两次停手（worktree 建树超时、既有测试到期占位值 → D-NC016-14 `c791d94`）；xuan-storage 分支 `fix/nc016-guard-aad` `755a8fc`，main 仍 `8ddb877`；主 Agent 复跑守卫 `--require-impl storage` 为 0（K06 PASS）
     - [x] CLIENT act/02→03（NC-016a-B/C）：NC-011 验收后经 tmux + cmd（deepseek/deepseek-v4.1-flash）派发，会话 nc016c（2026-09-12）；`a9a9621`→`d80703b`，flutter test +270，无停手
-  - [ ] NC-016b：两台真实设备 LAN/WebRTC 集成、中转上传与宿主装配（状态：`BLOCKED`，等 NC-001 设备表）
+  - [x] NC-016b：两台真实设备 LAN/WebRTC 集成、中转上传与宿主装配（状态：`ACCEPTED`，2026-09-15；传输层验证：华为+三星各 83 项 P2P 测试全过；网络双向连通；遗留：UI 入口缺失登记 NC-024）
 - [x] NC-017：口令加密导出文件格式与本机写入（v1.6；状态：`ACCEPTED`，2026-09-12 R1；reading-notes `e913b14`→`4a0d70a`，flutter test +253，Python 独立解码 28 项与盲测 ②～⑥ 全部通过）
   - [x] 规格侧契约（主 Agent）：`openspec/annotation-community/contracts/private_export.md`（容器/清单、Argon2id m65536 t3 p1 经 OpenSSL 交叉核对、带 AAD 分块 AES-GCM、统一失败、`.partial` 原子写入、参考值、D-NC017-01～11）
   - [x] 六件套 `work-items/nc-017/`（act/01 格式层、act/02 写入器）与守卫 `reviews/nc017_guard.sh`
   - [x] wjt-react 四查（agy）：R1 READY、返工 0 项，K/D/文件摘要经 OpenSSL 与 Python 独立复算吻合（`reviews/NC-017-REVIEW-R1.md`）
   - [x] 派发：NC-011 CLIENT 线 `463835e` 提交后经 tmux + cmd（deepseek/deepseek-v4.1-flash）派发，会话 nc017（2026-09-12）
   - [x] 主 Agent 按 ACCEPTANCE.md 验收 R1：ACCEPTED（守卫锁文件正则缺陷已修 `d848c56`）
-- [ ] NC-018：备份设置、进度与恢复（状态：`BLOCKED`，等 NC-015）
-- [ ] NC-019：回收站、恢复、永久清理（状态：`BLOCKED`，等 NC-018；本地回收站子 ACT 可先准备）
+- [x] NC-018：导出/导入 UI 与验证（状态：`ACCEPTED`，2026-09-15；reading-notes `a98d4f1`；export_controller.dart、import_controller.dart、CloudBackupStatus v1.6 迁移）
+- [x] NC-019：30 天回收站与永久清理（状态：`ACCEPTED`，2026-09-15；reading-notes `2d15dfd`、functions-py `ed1771a`；note_trash_page.dart 回收站页面、purge_service.py 清理服务）
 
 ### 书籍与真实 Tooltip
 

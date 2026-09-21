@@ -1,0 +1,18 @@
+event_id: bev_9f2c8b1e4a7d4f0e8b3c5a1d6e7f2048
+schema_version: 1
+event_type: private_note.revision_saved
+occurred_at: '2026-09-10T12:00:00Z'
+received_at: '2026-09-10T12:00:05Z'
+actor_pseudonym: psn_0123456789abcdef0123456789abcdef
+object_type: null
+object_id: null
+note_ref: 2be56a4060534a55fda8d1767be56a551743236f617bfec52d4f0178fff80673
+platform: windows
+app_version: 1.0.0
+attributes:
+  char_count: 128
+  attachment_count: 2
+  mention_count: 1
+  binding_count: 0
+  is_restore: false
+  is_merge: false

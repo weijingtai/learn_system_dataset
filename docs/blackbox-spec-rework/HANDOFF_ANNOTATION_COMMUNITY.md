@@ -1,14 +1,17 @@
 # 注解社区（NC 任务）跨机器交接
 
-更新时间：2026-09-12。本文件随 learn_system 推送到 Gitea，是其他机器接手 NC 任务的唯一入口。下方「接手提示词」一节全文可直接交给新机器上的 AI。
+更新时间：2026-09-14。本文件随 learn_system 推送到 Gitea，是其他机器接手 NC 任务的唯一入口。下方「接手提示词」一节全文可直接交给新机器上的 AI。
 
-## 1. 当前进度（截至 2026-09-12）
+## 1. 当前进度（截至 2026-09-14：NC-013/NC-014/NC-026 全部关单，NC 线暂停交接）
 
 | 状态 | 任务 |
 |---|---|
-| ACCEPTED | NC-002、NC-003、NC-004、NC-005、NC-006、NC-007、NC-009、NC-010、NC-011、NC-012a、NC-015、NC-016a、NC-017；NC-001 的子项 NC-001-01 |
-| BLOCKED | NC-001-02（设备/后端/Emulator 联调取证，Firebase 去留待用户决定）；NC-012b、NC-016b（等 NC-001-02）；NC-020b、NC-021、NC-022、NC-023（等上游书籍交付）；NC-024（等全部） |
-| BACKLOG | NC-008、NC-013、NC-014、NC-018、NC-019、NC-020a、NC-025、NC-026 |
+| ACCEPTED | NC-002、NC-003、NC-004、NC-005、NC-006、NC-007、NC-009、NC-010、NC-011、NC-012a、**NC-013**、**NC-014**、NC-015、NC-016a、NC-017；NC-001 的子项 NC-001-01（NC-013：守卫 all 为 0、盲测①～⑦全过，记录见 `work-items/nc-013/ACCEPTANCE.md` R1；四仓已推送）；NC-014（守卫 all 为 0、盲测 B1～B10 全过，记录见 `work-items/nc-014/ACCEPTANCE.md` R1；notification `b62cd27` + reading-notes `19afe37` 已推送）；**NC-026**（守卫 `--require-impl all` K01～K09 全 PASS、盲测①～⑧全过，记录见 `work-items/nc-026/ACCEPTANCE.md` R1；REST `c1afba3` + SERVER `dd04f27` + CLIENT `613f6ba` + RULES `f74b9a5` 已推送；四查独立性按 D-NC026-28 由用户授权替代） |
+| PREPARING（待四查） | （空。NC-026 已于 2026-09-13 由主 Agent 实现并验收 ACCEPTED） |
+| BLOCKED | NC-001-02（设备/后端/Emulator 联调取证；**用户正自行编写与 Firebase 解耦的新 Account 后端/前端，本组挂起待其落定**）；NC-012b、NC-016b（等 NC-001-02，同步挂起）；NC-025、NC-008（等 NC-001-02 与 Firebase 去留，同步挂起）；NC-020b、NC-021、NC-022、NC-023（等上游书籍交付）；NC-024（等全部） |
+| BACKLOG | NC-026 之外的：NC-018（等用户裁定能否按 NC-016a 交付范围解锁）、NC-019、NC-020a（纯文档，随时可插队） |
+
+待用户裁定事项：①注解社区能力 handbook 领域整体裁定（现有 social.community-interactions、social.community-notification-dispatch 均暂挂 social）；②NC-018 解锁口径；③NC-001-02/Firebase 去留（挂起中）。
 
 权威状态以 `docs/blackbox-spec-rework/SUBAGENT_TODO.md` 的 NC 各行为准。
 
@@ -27,6 +30,8 @@
 
 `/Users/jingtaiwei/Git/Public/xuan-migration` 是容器目录，不是 git 仓库，绝不在其根目录执行 git。
 
+**Windows 布局（2026-09-12 起并行有效，用户裁定，登记为 D-NC012-23）**：仓库改放 `D:\Programme`——`learn_system → D:\Programme\learn_system`；客户端 `reading-notes、repository-rest-adapter、social、notification、xuan-storage（含 .worktrees/nc016-guard-aad）、xuan-handbook、repository-contract-kernel → D:\Programme\xuan\`；服务端 `functions-py → D:\Programme\xuan-server\functions-py`、`xuan-server → D:\Programme\xuan-server\xuan-server`。Flutter 3.44.6 位于 `D:\apps\apps\flutter\bin`。所有仓检出后执行 `git config core.autocrlf false` 并重建工作区（哈希断言与 bash 脚本都依赖 LF）；venv 解释器在 Windows 是 `.venv/Scripts/python.exe`；守卫内 flutter/dart/npm 经 `shutil.which` 解析。`repository-rest-adapter` 依赖同源兄弟目录 `repository-contract-kernel`（Gitea `xuan/repository_contract_kernel.git`），必须克隆到同级目录。
+
 ## 3. 环境
 
 - Flutter `3.44.6`，位于 `/Users/jingtaiwei/flutter/bin`（命令一律带 `PATH=/Users/jingtaiwei/flutter/bin:$PATH`）。
@@ -39,29 +44,32 @@
 
 | 仓库 | 命令 | 期望 |
 |---|---|---|
-| reading-notes | `flutter analyze`；`flutter test` | `No issues found!`；`+296: All tests passed!` |
-| functions-py | `PYTHONDONTWRITEBYTECODE=1 FIRESTORE_EMULATOR_HOST=192.168.0.165:8080 FIREBASE_AUTH_EMULATOR_HOST=192.168.0.165:9099 .venv/bin/python -m pytest tests -q -rf -p no:cacheprovider` | `5 failed, 535 passed, 6 xfailed`；FAILED 恰为 `tests/test_config.py::test_集合名与_ts_逐项一致` 与 `tests/test_registration.py` 的四个既有失败 |
-| xuan-server | `npm test -- community_rules`（`server/functions`，带 Emulator 变量） | `Tests: 129 passed` |
-| repository-rest-adapter | `dart test` | `+77: All tests passed!` |
+| reading-notes | `flutter analyze`；`flutter test` | `No issues found!`；`+332: All tests passed!`（NC-026 后） |
+| functions-py | `PYTHONDONTWRITEBYTECODE=1 FIRESTORE_EMULATOR_HOST=192.168.0.165:8080 FIREBASE_AUTH_EMULATOR_HOST=192.168.0.165:9099 .venv/Scripts/python.exe -m pytest tests -q -rf -p no:cacheprovider`（macOS 用 `.venv/bin/python`） | `5 failed, 594 passed, 3 xfailed`；FAILED 恰为 `tests/test_config.py::test_集合名与_ts_逐项一致` 与 `tests/test_registration.py` 的四个既有失败（5 个既有 FAILED 一律不修） |
+| xuan-server | `npm test -- community_rules`（`server/functions`，带 Emulator 变量） | `Tests: 157 passed` |
+| repository-rest-adapter | `dart test`（Windows 需 `PYTHON` 与 `OPENAPI_VALIDATOR` 环境变量，见 §8） | `+85: All tests passed!`（NC-026 后） |
+| notification 包 | `flutter test` | 194 all passed（文档口径 189 已过时） |
+| learn_system | `bash docs/blackbox-spec-rework/reviews/nc013_guard.sh --require-impl all` | 退出 0（K01～K07 全 PASS；nc012a_guard 保留但 K06 计数时代钉死 5/535/6，K05 manifest 已放宽 ≥17） |
+| learn_system | `bash docs/blackbox-spec-rework/reviews/nc026_guard.sh --require-impl all` | 退出 0（K01～K09 全 PASS） |
 | learn_system | `bash docs/blackbox-spec-rework/reviews/nc012a_guard.sh --require-impl all`（另有 nc011、nc016a、nc017 守卫） | 退出 0 |
 
 ## 5. NC-012a 验收收尾
 
-已于 2026-09-12 验收 `ACCEPTED`（`work-items/nc-012a/ACCEPTANCE.md` 文末验收记录 R1）。遗留两件非阻断事项：① `functions-py/tests/test_community_acl_sweep.py` 文档字符串两行未更新；② xuan-handbook 条目 `social.community-interactions` 的接入手册 `integration/social.community-interactions.md` 尚未编写（按 handbook PROTOCOL §4、§9 补写后才能标 `done`）。
+已于 2026-09-12 验收 `ACCEPTED`（`work-items/nc-012a/ACCEPTANCE.md` 文末验收记录 R1）。两件遗留事项已闭环（2026-09-12，zcode 复核）：① `functions-py/tests/test_community_acl_sweep.py` 文档字符串经核对已在主线提交 `8d22451` 中修正（Implemented/Unimplemented 两行已含 E4），无需再改；② xuan-handbook 条目 `social.community-interactions` 的接入手册已按 PROTOCOL §9 补写并推送（xuan-handbook `f88e70b`），条目已按 §5 判定 `done`。
 
-## 6. 后续顺序建议
+## 6. 后续顺序建议（2026-09-14 更新；NC-013/NC-014/NC-026 全部关单，NC 线暂停）
 
-1. **NC-013**（事务事件、投递、通知正文与补拉端点）：可立即写契约，消费 `comment.created/edited/deleted` 与 `reaction.liked` outbox 事件；mention 事件与拉黑过滤依赖 NC-012b 的部分拆出。
-2. **NC-026**（行为事件与假名化）：前置 NC-002/003/005/009 已满足；「注销」子项等 NC-001 第⑩项证据，其余可做。
-3. **NC-020a**（消费端书籍契约核对清单）：无前置，纯文档。
-4. **NC-014**（通知宿主适配）：NC-013 之后；回跳挂哪一套通知中心由 NC-001 决定，缺证时停手问用户。
-5. **NC-018 / NC-019**：NC-018 依赖 NC-016（16a 已交付、16b 阻塞），开工前先请用户裁定能否按 16a 交付解锁。
-6. **NC-025 / NC-008**：依赖 NC-001-02 与 Firebase 去留决定，先向用户确认。
+1. ~~NC-014~~：**已完成（ACCEPTED）**（notification `b62cd27`、reading-notes `19afe37`，契约 D-NC014-01～17；遗留 comment 类导航 D-NC014-11 与真机链路归 NC-024）。
+2. ~~**NC-026**（行为事件与假名化）~~：**已完成（ACCEPTED）**。用户授权同一会话全权接任主 Agent，规格 + 四线实现 + 验收同会话完成；「注销」子项 DEFERRED（等 NC-001 第⑩项证据，D-NC026-13）。
+3. **NC-020a**（消费端书籍契约核对清单）：无前置，纯文档，可随时插队（主 Agent 可按需下发冷启动 Prompt）。
+4. **NC-018 / NC-019**：开工前请用户裁定能否按 NC-016a 交付范围解锁 NC-018；同仓 reading-notes 已空出（NC-014/NC-026 均已关单）。
+5. **挂起组**（等用户新写的解耦 Account 后端/前端落定后重启）：NC-001-02、NC-012b、NC-016b、NC-025、NC-008。
+6. **NC-020b → 021 → 022 → 023 → 024**：等上游书籍交付，不变。
 
 ## 7. 工作方法（沿用本仓 G0 准出制度，`openspec/subagent-delivery-gate.md`）
 
 1. 主 Agent 为每个任务写专属契约（`openspec/annotation-community/contracts/`）与六件套（`docs/blackbox-spec-rework/work-items/<task>/`：README、BDD、TDD、ACT.yaml + act/*.yaml、ACCEPTANCE、PROMPT）和守卫脚本（`docs/blackbox-spec-rework/reviews/<task>_guard.sh`），范式照抄 `nc-011`、`nc-012a`。
-2. 未参与编写、且不同厂商的审查者按 wjt-react 四查（忠实性、覆盖性、可执行性、独立性）判定 READY；返工不超过 2 轮。
+2. 未参与编写、且不同厂商的审查者按 wjt-react 四查（忠实性、覆盖性、可执行性、独立性）判定 READY；返工不超过 2 轮。Windows 接手机实务：审查者/执行者用平台 subagent（与编写者同平台不同会话，厂商口径已在 NC-013 交付中向用户标注并获默许——用户指示以 subagent 节省成本；如需严格异厂商，由用户指定工具重跑）；subagent 有并发限额且可能被平台中断，策略=同同时刻只跑 1 个 + 指令带「先落盘后长跑」+ 失败退避重试（90s/5min/10min 三档）。
 3. 派发执行者：同时运行不超过 2～3 个；同一仓库严格串行；提示词写明白名单、禁止项、停手条件、进度文件与交付报告路径。
 4. 执行者遇到歧义、参考值对不上、既有测试变红、需改白名单外文件时**停手上报**；主 Agent 裁定后以 `D-<任务>-<编号>` 登记在契约决定表并同步六件套与守卫。
 5. 主 Agent 独立验收，不采信执行方自述：`git diff-tree` 核范围、`<task>_guard.sh --require-impl all`、盲测（临时文件，结束删除并以 `git status --short` 为空证明）、作弊扫描（skip、永真断言、测试内算参考值、真实网络）。
@@ -79,9 +87,13 @@
 - Firestore Emulator 事务锁语义是「写者等待读者」，并发测试用确定性 `Aborted` 注入（见 `community_discussion.md` §8.1），503 以同一 command_id 重试。
 - 命令行工具若有默认短超时，pytest/flutter/npm 一律显式设置不少于 600 秒或后台运行后轮询。
 - 原机器上的 `rtk` 会改写 `git diff/ls/grep` 输出，核对时用 `/usr/bin/git diff-tree`、`/bin/ls`、`/usr/bin/grep`；新机器若无 rtk 可忽略。
+- Windows 机器：检出后先把 `core.autocrlf` 关掉并重建工作区（否则 JSON 哈希断言、bash 守卫与工具脚本全部变红）；REST 契约测试的 `tool/validate_openapi` 在 Windows 经 bash 转发，`dart test` 需要 `PYTHON`（learn_system venv，含 jsonschema）与 `OPENAPI_VALIDATOR`（learn_system `.venv-openapi/Scripts/openapi-spec-validator.exe`）两个环境变量，守卫已内置注入。
+- **服务器过载信号**：192.168.0.165 上 Gitea 与 Emulator 同机。若 Gitea 简单请求 >2s、Emulator 单次写 >1s（对照：正常 0.2s/毫秒级），全量 pytest 会从 23 分钟涨到 60 分钟以上并触发守卫超时——此时先停止验收并向用户报告「整机过载」，不要误判为测试挂起，也不要重试烧时间。守卫 pytest 超时已放宽 3600s（D-NC012-23 系）。
 - xuan-handbook 中 reading-notes 尚无模块领域；已登记 `social.community-interactions`（状态 `landed`，claim 已删除，接入手册待补）。回填其余已交付的注解社区能力前，先请用户决定领域。
 
 ## 9. 接手提示词
+
+> **2026-09-13 增量事实（优先于下文提示词中过时的细节）**：NC-013 已 ACCEPTED（通知投递、正文拉取与补拉端点已上线四仓主干）；NC-014 已 ACCEPTED（notification 包 D.6 去重保留窗口 `b62cd27`、reading-notes 宿主八端口适配/Drift 三表/双帧分派/回跳导航 `19afe37`，均已在主干；契约 `FROZEN_FOR_NC-014` 含 D-NC014-01～17）；**NC-026 已 ACCEPTED**（2026-09-13：REST `c1afba3` +85、SERVER `dd04f27` pytest 5/594/3、CLIENT `613f6ba` +332、RULES `f74b9a5` 157；守卫 `nc026_guard.sh --require-impl all` K01～K09 全 PASS、盲测①～⑧全过；四查独立性按 D-NC026-28 由用户授权替代，评审见 `reviews/NC-026-REVIEW-R1.md`）；Firebase 组（NC-001-02/012b/016b/025/008）与「注销」子项因用户自研解耦 Account 后端而挂起，**该 Account 客户端适配线已由另一台机器的 AI 开工**（handbook claim `account.auth-ports__buffy__20260913.yaml`，分支 `xuan-account feat/account-adaptation` 等 4 个远端分支，未合主干，勿动）；2026-09-14 已完成 20260913 进度普查（handbook `reports/census/20260913__buffy__annotation-community.md`）并停止开发，NC 线冷启动交接。
 
 ---
 

@@ -1,0 +1,48 @@
+TASK_ID: NC-013-A
+PARENT: NC-013
+STATUS: READY
+REPO: xuan/repository-rest-adapter（Windows `D:/Programme/xuan/repository-rest-adapter`；macOS `/Users/jingtaiwei/Git/Public/xuan-migration/repository-rest-adapter`）
+GOAL: OpenAPI 补 R9 通知正文拉取、R10 业务通知补拉、W15/W16 按内容静音与四个 Schema；4 个结构测试与 3 个示例；expectedCatalog 三行与 seventeen ≥17 两处既有断言同步
+DEPENDS_ON: []
+ESTIMATE_MINUTES: 45
+WORKLOAD: "openapi.yaml 约 110 行增量（4 个 schema、3 条新路径、4 个新方法、1 个新 query 参数、2 处错误行、1 处限流行）；4 个 dart 测试约 140 行；3 个示例 JSON 与 manifest 3 项"
+BASELINE_HEAD: dc0792c（3f34f0f = cb686d0 + AGENTS.md 文档提交；dc0792c = validator Windows bash 适配，见 D-NC013-16）
+SCOPE:
+  READ:
+    - D:/Programme/learn_system/openspec/annotation-community/contracts/community_deliveries.md（§6、§9、§10、§15）
+    - D:/Programme/learn_system/openspec/annotation-community/contracts/community_api.md（§2、§3.1、§4.1、§5.3、§6、§13）
+    - D:/Programme/learn_system/docs/blackbox-spec-rework/work-items/nc-013/BDD.md（A01～A04）、TDD.md（§2）
+    - D:/Programme/xuan/repository-rest-adapter/openapi/openapi.yaml（reactions 约第 1362 行、share-links 约第 1488/1529 行、NotificationPage 参照 ShareLinkPage 约第 3800 行附近组件区）
+    - D:/Programme/xuan/repository-rest-adapter/test/community_openapi_contract_test.dart（expectedCatalog 与 seventeen 测试，约第 155～175、1157～1165 行）
+    - D:/Programme/xuan/repository-rest-adapter/tool/check_examples.py
+    - D:/Programme/xuan/repository-rest-adapter/test/fixtures/openapi/examples/manifest.json
+  WRITE_NEW:
+    - D:/Programme/xuan/repository-rest-adapter/openapi/openapi.yaml
+    - D:/Programme/xuan/repository-rest-adapter/test/community_openapi_contract_test.dart（只在末尾追加 4 个 test；另按契约 §10 与 D-NC013-10 只改两处既有断言：expectedCatalog 追加三行、seventeen equals(17) 改 greaterThanOrEqualTo(17)）
+    - D:/Programme/xuan/repository-rest-adapter/test/fixtures/openapi/examples/notification_body_comment.json
+    - D:/Programme/xuan/repository-rest-adapter/test/fixtures/openapi/examples/notification_page_merged.json
+    - D:/Programme/xuan/repository-rest-adapter/test/fixtures/openapi/examples/notification_mute_set.json
+    - D:/Programme/xuan/repository-rest-adapter/test/fixtures/openapi/examples/manifest.json（只在末尾追加 3 项）
+  FORBIDDEN:
+    - 上表以外任何文件；修改或删除既有测试与既有示例（两处授权断言除外）；契约 §10 未列出的路径、方法、组件变化；learn_system 写入（交付报告除外）；新依赖；skip；永真断言；git push；NOTIFIER 仓任何文件
+DEPENDENCY_ALLOWLIST: [沿用仓库锁定版本；Python 用 D:/Programme/learn_system/.venv/Scripts/python.exe（macOS .venv/bin/python）]
+RULES:
+  - "OpenAPI 改动逐字按契约 §10 与 community_api §13；可空写 type 数组，禁用 nullable（D-NC003-13）"
+  - "测试名逐字按 TDD §2；示例内容逐字按 §13.6（notification_id 用 ntf_ 参考字面量）"
+  - "只 git add WRITE_NEW 文件；提交消息按 COMMIT_MESSAGE，末尾空一行加 Co-Authored-By: <执行模型> <厂商域>"
+TESTS_FIRST:
+  - "先追加 4 个测试与 3 个示例、manifest 3 项，运行 VERIFICATION 第 1 条，保存失败原文作为 Red（期望 4 个新测试失败，既有 77 个通过）"
+STEPS:
+  - "按契约 §10/§13 修改 openapi.yaml，直至 VERIFICATION 全部符合期望"
+  - "git add 并提交"
+  - "提交后运行一次 learn_system 守卫 --require-impl rest，退出码写入报告"
+VERIFICATION:
+  - "cd D:/Programme/xuan/repository-rest-adapter && dart test test/community_openapi_contract_test.dart（期望 +81 中本文件全绿；全量见第 2 条）"
+  - "cd D:/Programme/xuan/repository-rest-adapter && dart test（期望 +81: All tests passed!）"
+  - "cd D:/Programme/xuan/repository-rest-adapter && bash tool/validate_openapi openapi/openapi.yaml（Windows 经 bash；macOS 直接 tool/validate_openapi；期望退出 0；OPENAPI_VALIDATOR=D:/Programme/learn_system/openspec/annotation-community/.venv-openapi/Scripts/openapi-spec-validator.exe）"
+  - "cd D:/Programme/xuan/repository-rest-adapter && D:/Programme/learn_system/.venv/Scripts/python.exe tool/check_examples.py（期望退出 0；PYTHON 同 venv）"
+  - "git -C D:/Programme/xuan/repository-rest-adapter diff-tree -r --name-only dc0792c HEAD（期望恰为 WRITE_NEW 的 6 个文件）"
+  - "cd D:/Programme/learn_system && bash docs/blackbox-spec-rework/reviews/nc013_guard.sh --require-impl rest（期望 0）"
+ON_FAIL: "停止并在 DELIVERY_REPORT_REST.md 追加「## 待裁决」；不改契约与既有测试。validate_openapi 报 ENV_BLOCKED、既有测试变红、check_examples 拒收契约示例，均为停止条件。"
+BASELINE_EXIT_CODES: "开工基线：dc0792c，dart test +77（D-NC013-16）"
+COMMIT_MESSAGE: "feat(openapi): 通知正文拉取、补拉与按内容静音端点契约（NC-013-A）"

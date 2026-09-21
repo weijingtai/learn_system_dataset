@@ -1,0 +1,15 @@
+name: NC-001-02
+description: 完整联调取证，将 scope 从 LOCAL_PREPARATION 升级为 INTEGRATED
+steps:
+  - name: 验证 OpenAPI 工具
+    action: 运行 openapi-spec-validator 验证合法和非法 OpenAPI 3.1 文档
+    expected: 合法文档通过，非法文档失败
+  - name: 执行仓库测试
+    action: 运行各仓库测试并收集输出
+    expected: 所有测试 PASSED
+  - name: 更新集成基线
+    action: 将 integration_baseline.json 的 scope 改为 INTEGRATED，填写验证字段
+    expected: check_integration_baseline.py --profile integrated 退出 0
+  - name: 提交推送
+    action: git add, commit, push
+    expected: 变更推送到 Gitea
