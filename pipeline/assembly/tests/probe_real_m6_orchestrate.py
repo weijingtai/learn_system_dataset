@@ -178,7 +178,7 @@ def main():
                 else:
                     seen[proposal["proposal_key"]] = proposal
             unique = [seen[key] for key in sorted(seen)]
-            print("\n== 2b. 去重后继续量（不改变 B 波行为）==")
+            print("\n== 2b. 重号复核与纯函数层计量（ACT 24b 后应为 0 条重号）==")
             print("   提案 %d 条，其中 proposal_key 重号 %d 条 → 去重后 %d 条"
                   % (len(proposals), len(duplicates), len(unique)))
             print("   规则分布: %s"

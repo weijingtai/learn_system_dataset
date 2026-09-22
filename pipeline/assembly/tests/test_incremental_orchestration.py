@@ -245,31 +245,49 @@ class AssembleTest(unittest.TestCase):
             "增量汇编结果必须与全量重算逐字节相同",
         )
         self.assertEqual(inc["result"]["knowledge_sha256"], full["result"]["knowledge_sha256"])
-        # 增量侧不得偷偷全量重建：rebuilt 必须恰等于闭包
-        self.assertEqual(
-            inc["result"]["rebuilt_entity_ids"], inc["report"]["affected_entity_ids"]
+        # 增量侧不得超范围重建（本夹具上 rebuilt 恰等于闭包；等式本身已按 §13.2 不再是判据）
+        self.assertLessEqual(
+            set(inc["result"]["rebuilt_entity_ids"]),
+            set(inc["report"]["affected_entity_ids"]),
         )
         self.assertGreater(inc["report"]["untouched_count"], 0, "增量轮必须有未被重建的对象")
 
-    # ------------------------------------- 具名用例（rebuilt == affected 或拒收）
-    def test_rebuilt_equals_affected_or_refuses(self):
+    # ------------------- 具名用例（rebuilt ⊆ affected；闭包不完整即拒收）
+    # 原名 `test_rebuilt_equals_affected_or_refuses`。§13.2 删掉了等式断言，
+    # 判据改为「闭包健全性」（推导见 `test_incremental_rework.py`），用例名随行为改名。
+    def test_rebuilt_is_subset_of_affected_or_refuses(self):
         manifest = load_manifest()
         base = round1_knowledge(manifest)
         views = [fixture_views(manifest)[1]]
 
         ok = assemble(base, views, [], incremental=True, base_snapshot_revision_id="rev_1")
-        self.assertEqual(
-            ok["result"]["rebuilt_entity_ids"], ok["report"]["affected_entity_ids"]
+        self.assertLessEqual(
+            set(ok["result"]["rebuilt_entity_ids"]),
+            set(ok["report"]["affected_entity_ids"]),
         )
 
-        # 闭包多报一个「不会被重建」的基底号 → 必须拒收，不得静默
-        def lying_closure(*args, **kwargs):
-            return {"affected": ["as_qizheng_900002"], "created": [], "untouched": []}
+        # 闭包漏掉「将会被改动的对象」→ 必须拒收（这正是 §13.2 要防的静默覆盖）
+        def blind_closure(*args, **kwargs):
+            return {"affected": [], "created": [], "untouched": []}
 
-        with mock.patch.object(orchestrate, "affected_closure", lying_closure):
+        with mock.patch.object(orchestrate, "affected_closure", blind_closure):
             with self.assertRaises(AssemblyRefused) as ctx:
                 assemble(base, views, [], incremental=True, base_snapshot_revision_id="rev_1")
-        self.assertIn("重建范围", str(ctx.exception))
+        self.assertIn("闭包不完整", str(ctx.exception))
+        self.assertIn("pat_qizheng_900001", str(ctx.exception))
+
+        # 闭包过宽（多报一个不会被改动的号）→ §13.2 裁定 (b)：不得拒收
+        def wide_closure(*args, **kwargs):
+            return {
+                "affected": sorted(set(ok["report"]["affected_entity_ids"]) | {"as_qizheng_900002"}),
+                "created": [],
+                "untouched": ["as_qizheng_900003"],
+            }
+
+        with mock.patch.object(orchestrate, "affected_closure", wide_closure):
+            wide = assemble(base, views, [], incremental=True, base_snapshot_revision_id="rev_1")
+        self.assertEqual(wide["status"], "complete", "扩张到的对象按原样拷贝，不得拒收")
+        self.assertNotIn("as_qizheng_900002", wide["result"]["rebuilt_entity_ids"])
 
     # ------------------------------------- 具名用例（report 键序逐字）
     def test_report_key_order_is_verbatim(self):

@@ -459,6 +459,73 @@ def carry_forward_proposals(
     return {"dropped": sorted(dropped), "kept": sorted(kept)}
 
 
+# --------------------------------------------------------------------------- 闭包健全性
+def will_modify_entity_ids(
+    base_knowledge: dict,
+    proposals: Sequence[dict],
+    decisions: Sequence[dict],
+) -> List[str]:
+    """从本轮交给 `apply` 的**裁定本身**独立推出「将要改动的基底对象集」（CHARTER §13.2）。
+
+    只读裁定：`subject` / `targets` / `auto_choice` / 人工决定的 `choice` 与
+    `target_entity_ids`；**不调用也不复刻 `apply` 的私有函数**。
+
+    只覆盖四类实体（`patterns` / `concepts` / `assertions` / `school_views`）——
+    因为只有它们会落在 `apply._restore_untouched` 的「原样拷贝」回滚面里
+    （`relations` 与 `conflict_groups` 会被重算/合并，不存在静默覆盖的洞）。
+
+    未决（`human` / `blocked` 且无决定）的提案不交给 `apply`，因此不计入。
+    返回升序的基底对象号。
+    """
+    base = base_knowledge or {}
+    all_ids = _all_ids(_index_base(base))
+    by_decision = {
+        decision["proposal_key"]: decision
+        for decision in decisions
+        if decision.get("proposal_key")
+    }
+    touched: Set[str] = set()
+    for proposal in proposals:
+        decision = by_decision.get(proposal.get("proposal_key"))
+        if decision is not None:
+            choice = decision.get("choice")
+            targets = list(decision.get("target_entity_ids") or proposal.get("targets") or [])
+        elif proposal.get("resolution") == "auto":
+            choice = proposal.get("auto_choice")
+            targets = list(proposal.get("targets") or [])
+        else:
+            continue
+        if not choice:
+            continue
+        if isinstance(choice, str) and choice.startswith("attach:"):
+            touched.add(choice.split(":", 1)[1])
+        elif choice == "accept_alias":
+            touched.update(targets)
+        elif choice == "retire":
+            subject = list(proposal.get("subject") or [])
+            if subject:
+                touched.add(subject[-1])
+        elif choice == "split":
+            touched.update(targets)
+        elif choice in apply_module.COLLATION_KINDS or choice == "accept_alignment":
+            touched.update(targets)
+        # unify / keep_separate 等改的是 conflict_groups：不在回滚面内，故不计入
+    return sorted(entity_id for entity_id in touched if entity_id in all_ids)
+
+
+def closure_soundness_violations(
+    base_knowledge: dict,
+    proposals: Sequence[dict],
+    decisions: Sequence[dict],
+    affected: Iterable[str],
+) -> List[str]:
+    """将要改动的对象里、不在 `affected` 内的那些（升序）。空列表 = 健全。"""
+    affected_set = {str(entity_id) for entity_id in affected}
+    return sorted(
+        set(will_modify_entity_ids(base_knowledge, proposals, decisions)) - affected_set
+    )
+
+
 # --------------------------------------------------------------------------- 编排主体
 def assemble(
     base_knowledge: dict,
@@ -531,12 +598,24 @@ def assemble(
     proposals = final["proposals"]
     closure = affected_closure(base, views, proposals, decisions)
     affected = closure["affected"] if incremental else None
+
+    # CHARTER §13.2 闭包健全性：apply 之前先独立推出「将要改动的对象集」，必须 ⊆ affected。
+    # 闭包漏掉一个其实会被改动的对象时，`apply._restore_untouched` 会拿基底旧版把它静默覆盖——
+    # 这条检查正是那个洞的守卫（等式断言 `rebuilt == affected` 已按 §13.2 删除）。
+    if incremental:
+        missing = closure_soundness_violations(base, proposals, decisions, closure["affected"])
+        if missing:
+            raise AssemblyRefused(
+                "闭包不完整：本轮将要改动的对象不在 affected 内: %s" % missing, code="SCH_002"
+            )
+
     result = apply_module.apply_resolutions(
         base, views, proposals, decisions, affected=affected
     )
-    if incremental and result["rebuilt_entity_ids"] != closure["affected"]:
+    # 廉价健全检查（不是证明）：重建范围不得超出闭包
+    if incremental and not set(result["rebuilt_entity_ids"]) <= set(closure["affected"]):
         raise AssemblyRefused(
-            "重建范围与闭包不一致：rebuilt=%r affected=%r"
+            "重建范围超出闭包：rebuilt=%r affected=%r"
             % (result["rebuilt_entity_ids"], closure["affected"]),
             code="SCH_002",
         )

@@ -336,46 +336,54 @@ def propose_incremental(
             )
 
         # ---------------------------------------------------------- R04 Concept
+        # CHARTER §13.3：先按**主体键**分组，每组只出一条提案。
+        # （同一概念被提及多次时，逐条出提案会产生同键多条，apply 以 ID_002 拒收。）
+        concept_groups: Dict[Tuple[Any, ...], List[dict]] = {}
         for candidate in list(cset.get("new_concept_candidates") or []) + list(
             cset.get("concept_mentions") or []
         ):
-            concept_id = candidate.get("concept_ref") or candidate.get("concept_id")
-            if concept_id and ("concept", concept_id) not in approved and (
-                "concept_mention", concept_id
+            concept_ref = candidate.get("concept_ref") or candidate.get("concept_id")
+            if concept_ref and ("concept", concept_ref) not in approved and (
+                "concept_mention", concept_ref
             ) not in approved:
                 continue
-            subject_kind = "concept"
-            if concept_id and concept_id in {c["concept_id"] for c in base_knowledge.get("concepts") or []}:
+            group_key = ("concept", source_id, concept_ref or candidate.get("surface"))
+            concept_groups.setdefault(group_key, []).append(candidate)
+
+        base_concepts = list(base_knowledge.get("concepts") or [])
+        base_concept_ids = {item["concept_id"] for item in base_concepts}
+        for group_key in sorted(concept_groups, key=lambda item: str(item[2])):
+            members = concept_groups[group_key]
+            merged = _merge_concept_group(group_key, members)
+            concept_id = merged["concept_ref"]
+            label = _r04_branch_label(group_key, merged, members, base_concepts, base_concept_ids)
+            if label == "attach":
                 proposals.append(
                     _proposal(
-                        "merge", "R04", [subject_kind, source_id, concept_id], resolution="auto",
+                        "merge", "R04", list(group_key), resolution="auto",
                         auto_choice="attach:%s" % concept_id, targets=[concept_id],
-                        basis_sha256=_concept_basis(candidate),
+                        basis_sha256=_concept_basis(merged),
                     )
                 )
-            elif any(
-                key in _name_keys(c)
-                for c in base_knowledge.get("concepts") or []
-                for key in _name_keys(candidate)
-            ):
+            elif label == "alias":
+                name_keys = _name_keys(merged)
                 same_name = [
-                    c["concept_id"]
-                    for c in base_knowledge.get("concepts") or []
-                    if _name_keys(candidate) & _name_keys(c)
+                    item["concept_id"]
+                    for item in base_concepts
+                    if name_keys & _name_keys(item)
                 ]
                 proposals.append(
                     _proposal(
-                        "alias", "R04", [subject_kind, source_id, concept_id or candidate.get("surface")],
+                        "alias", "R04", list(group_key),
                         resolution="human", options=["accept_alias", "reject_alias"],
-                        targets=sorted(same_name), basis_sha256=_concept_basis(candidate),
+                        targets=sorted(same_name), basis_sha256=_concept_basis(merged),
                     )
                 )
             else:
                 proposals.append(
                     _proposal(
-                        "merge", "R04", [subject_kind, source_id, concept_id or candidate.get("surface")],
-                        resolution="auto", auto_choice="admit_new",
-                        basis_sha256=_concept_basis(candidate),
+                        "merge", "R04", list(group_key), resolution="auto",
+                        auto_choice="admit_new", basis_sha256=_concept_basis(merged),
                     )
                 )
 
@@ -677,6 +685,66 @@ def _concept_consistent(candidate: dict, target: dict) -> bool:
     if isinstance(declared, str):
         return declared == target.get("concept_id")
     return target.get("concept_id") in set(declared)
+
+
+def _merge_concept_group(group_key: Tuple[Any, ...], members: List[dict]) -> dict:
+    """CHARTER §13.3：把同一主体键下的多个概念候选聚合成一条提案的输入。
+
+    - 名称必须一致（同一概念号下出现不同名称 → ``AssemblyRefused``，message 含「概念名称冲突」）
+    - `aliases` 与规则哈希取并集（排序）
+    - 输出字段与 :func:`_concept_basis` 的口径逐字对齐（单成员时与原实现等价）
+    """
+    identifier = group_key[2]
+    raw_names = [member.get("name") or member.get("surface") for member in members]
+    distinct = sorted({nfc_key(name) for name in raw_names if name})
+    if len(distinct) > 1:
+        raise AssemblyRefused(
+            "概念名称冲突：同一概念 %r 下出现多个名称 %s"
+            % (identifier, sorted({name for name in raw_names if name})),
+            code="SCH_002",
+        )
+    name = distinct[0] if distinct else None
+    return {
+        "concept_ref": identifier,
+        "concept_id": identifier,
+        "name": name,
+        "surface": name,
+        "aliases": sorted({alias for member in members for alias in (member.get("aliases") or [])}),
+        "rules": [
+            {"ast_sha256": digest}
+            for digest in sorted({digest for member in members for digest in _rule_keys(member)})
+        ],
+    }
+
+
+def _r04_branch_label(
+    group_key: Tuple[Any, ...],
+    merged: dict,
+    members: List[dict],
+    base_concepts: List[dict],
+    base_concept_ids: set,
+) -> str:
+    """组内三种分支（已存在于基底 / 同名歧义 / 全新）必须一致，否则停手上报。
+
+    组内各成员单独判定；不一致即 ``AssemblyRefused``（CHARTER §13.3 第 4 条）。
+    """
+    def label_of(candidate: dict) -> str:
+        concept_id = candidate.get("concept_ref") or candidate.get("concept_id")
+        if concept_id and concept_id in base_concept_ids:
+            return "attach"
+        name_keys = _name_keys(candidate)
+        if any(name_keys & _name_keys(item) for item in base_concepts):
+            return "alias"
+        return "admit_new"
+
+    labels = {label_of(member) for member in members}
+    if len(labels) > 1:
+        raise AssemblyRefused(
+            "R04 组内分支判定不一致：概念 %r 的候选分别被判为 %s，须停手上报"
+            % (group_key[2], sorted(labels)),
+            code="SCH_002",
+        )
+    return sorted(labels)[0]
 
 
 def _concept_basis(candidate: dict) -> str:
