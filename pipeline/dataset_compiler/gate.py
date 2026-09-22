@@ -112,6 +112,35 @@ def _ev(ok, detail):
     return {"ok": ok, "status": "evaluated", "detail": detail}
 
 
+def _first_difference(left, right):
+    """两字符串首个不一致的下标；完全相同返回 -1（长度不同取重合末尾）。"""
+    for index in range(min(len(left), len(right))):
+        if left[index] != right[index]:
+            return index
+    if len(left) != len(right):
+        return min(len(left), len(right))
+    return -1
+
+
+def _replay_patches(raw_text, patches):
+    """按 DeterministicPatchSet **独立重放**，重建清洗文本。
+
+    ACT 18（D-W8-18）要求 gate 自己实现重放，**不 import** ``pipeline.digitization``
+    的 ``apply_patches``：照搬被验对象的实现等于自己验自己。
+    逐条按 ``raw_start`` 升序拼接 ``raw[cursor:raw_start]`` + ``replacement``，
+    ``cursor = raw_end``；末尾补 ``raw[cursor:]``。
+    """
+    ordered = sorted(patches, key=lambda patch: patch.get("raw_start", 0))
+    parts = []
+    cursor = 0
+    for patch in ordered:
+        parts.append(raw_text[cursor:patch["raw_start"]])
+        parts.append(patch["replacement"])
+        cursor = patch["raw_end"]
+    parts.append(raw_text[cursor:])
+    return "".join(parts)
+
+
 def evaluate_publication(
     *,
     manifest,
@@ -132,6 +161,8 @@ def evaluate_publication(
     raw_text_binding=None,
     raw_text=None,
     sanitization_report=None,
+    deterministic_patch_set=None,
+    cleaned_text=None,
     checks_override=None,
 ):
     """独立判定 M8 发布物（§16:703-715）。返回见模块 docstring 与 ACT 契约。
@@ -142,6 +173,9 @@ def evaluate_publication(
     - ``raw_text_binding``：``{sha256}``——RawText/SourceAsset 底本哈希（offset 档）；
     - ``raw_text``：``{text}``——原始底本文本（offset 档）；
     - ``sanitization_report``：M2 清洗报告（offset 档）；
+    - ``deterministic_patch_set``：M2 ``DeterministicPatchSet``（offset 档）；
+      **``patch_reversible`` 的权威产物**（ACT 18 / D-W8-18，不是 SanitizationReport）；
+    - ``cleaned_text``：``{text}``——清洗后文本（offset 档，供重放比对）；
     - ``checks_override``：仅用于自检注入（将检查项 ok 强改为 True 必须导致
       passed 翻转失败）。
     """
@@ -688,8 +722,20 @@ def evaluate_publication(
 
     # 20 patch_reversible
     def check_patch_reversible():
-        report = sanitization_report or {}
-        patches = report.get("patches") or []
+        # 权威产物 = DeterministicPatchSet（ACT 18 / D-W8-18），不是 SanitizationReport
+        patches = deterministic_patch_set
+        if patches is None:
+            return _fail("DeterministicPatchSet 缺失，无法实评双向可逆")
+        if not isinstance(patches, list):
+            return _fail("DeterministicPatchSet 非列表: %s" % type(patches).__name__)
+        raw = (raw_text or {}).get("text")
+        if not isinstance(raw, str):
+            return _fail("raw_text.text 缺失，无法重放 DeterministicPatchSet")
+        cleaned = (cleaned_text or {}).get("text")
+        if not isinstance(cleaned, str):
+            return _fail("cleaned_text.text 缺失，无法重放 DeterministicPatchSet")
+
+        # 形状前置校验（ACT 18 一.4 保留；不得单独构成通过条件）
         cursor = None
         for patch in patches:
             raw_start = patch.get("raw_start")
@@ -700,6 +746,10 @@ def evaluate_publication(
                 return _fail("patch 缺偏移字段: %r" % (patch.get("patch_id"),))
             if not (0 <= raw_start <= raw_end) or not (0 <= cleaned_start <= cleaned_end):
                 return _fail("patch 偏移非法: %r" % (patch.get("patch_id"),))
+            if raw_end > len(raw):
+                return _fail(
+                    "patch raw 区间越出 raw_text: %r" % (patch.get("patch_id"),)
+                )
             if cursor is not None and raw_start < cursor:
                 return _fail("patch 区间重叠/乱序: %r" % (patch.get("patch_id"),))
             cursor = raw_end
@@ -711,7 +761,30 @@ def evaluate_publication(
                     "patch cleaned 区间与 replacement 长度不符: %r"
                     % (patch.get("patch_id"),)
                 )
-        return _ok("DeterministicPatchSet 双向映射可逆（%d 条 patch）" % len(patches))
+
+        if not patches:
+            # ACT 18 一.6：0 条 patch 仍可过，但须同时断言 raw == cleaned（堵旧假绿路）
+            if raw != cleaned:
+                return _fail(
+                    "DeterministicPatchSet 0 条 patch，但 raw_text != cleaned_text"
+                    "（首个不一致偏移 %d）" % _first_difference(raw, cleaned)
+                )
+            return _ok(
+                "DeterministicPatchSet 重放可逆（0 条 patch）：raw_text == cleaned_text"
+                "（%d 字符）" % len(raw)
+            )
+
+        # 真重算（ACT 18 一.2）：raw_text + patches 重建清洗文本，与 cleaned_text 逐字节比对
+        rebuilt = _replay_patches(raw, patches)
+        if rebuilt != cleaned:
+            return _fail(
+                "DeterministicPatchSet 重放结果与 cleaned_text 不一致"
+                "（首个不一致偏移 %d）" % _first_difference(rebuilt, cleaned)
+            )
+        return _ok(
+            "DeterministicPatchSet 重放可逆：%d 条 patch，重放文本与 cleaned_text 逐字节一致"
+            % len(patches)
+        )
 
     # 21 raw_text_binding
     def check_raw_text_binding():

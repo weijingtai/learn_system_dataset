@@ -289,10 +289,14 @@ def _check_span_key_unique(loaded, golden):
         return False, "entries 键 != corpus_spans span_id 集合"
     if keys != golden_ids:
         return False, "entries 键 != fixture spans.yaml 金标 span_id 集合"
-    if not (len(entries) == spans_doc["span_count"] == 43):
-        return False, "计数不一致: entries=%d span_count=%s" % (
+    # 计数闸门取自上游事实、两档同一口径：entries 数 == spans_doc 表头 == 该夹具
+    # 自己 spans.yaml 金标的 span_count。**数字一律不写进代码**（hardcoded 常量
+    # 会把 OCR 夹具的片段数当成全局真值，电子文本档必然误判）。
+    if not (len(entries) == spans_doc["span_count"] == golden["span_count"]):
+        return False, "计数不一致: entries=%d span_count=%s golden_span_count=%s" % (
             len(entries),
             spans_doc["span_count"],
+            golden["span_count"],
         )
     return True, "pack_keys=%d" % len(keys)
 

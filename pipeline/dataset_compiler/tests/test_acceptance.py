@@ -318,18 +318,27 @@ class OffsetRouteTests(unittest.TestCase):
             self.assertIn("NOT_APPLICABLE %s" % name, out)
             self.assertNotIn("PASS %s" % name, out)
 
-    def test_offset_fixture_reports_run_failed_not_host_missing(self):
-        """跑到判定而非 BLOCKED 宿主缺失；`run_succeeded` 如实 FAIL。
+    def test_offset_fixture_reaches_verdict_not_host_missing(self):
+        """跑到判定而非 BLOCKED 宿主缺失（本用例的唯一意图）。
 
-        注意：本断言如实记录 **ACT 17 修好 gate/step 之前** 的状态（ACT 16 三 ⚠）。
+        原名 ``test_offset_fixture_reports_run_failed_not_host_missing``，其中
+        「``run_succeeded`` 如实 FAIL」记录的是 **ACT 17/18 之前** 的状态：当时
+        gate/step 的 offset 缺口（尚剩 patch_reversible）让 M8 必失败、StagePackage
+        不产出。ACT 18 修好该缺口后（D-W8-18），电子文本档 M8 首次走通全部判定、
+        ``run_succeeded`` 转 PASS——**原断言已被正当推翻**，随事实更新（第 97 条，
+        主 Agent 2026-09-21 明文批准）。本用例不再断言 run 的成败，只断言
+        「不是宿主缺失 BLOCKED」这个从来没变过的意图。
         """
         code, out = self._run(
             ["--fixture", str(OFFSET_FIXTURE), "--check", "span_identity"]
         )
         self.assertNotIn("BLOCKED m8_acceptance 宿主缺失", out)
-        self.assertIn("FAIL run_succeeded", out)
+        self.assertNotIn("FAIL m8_acceptance 宿主准备失败", out)
         self.assertIn("BLOCKED mentions_mapping", out)
-        self.assertEqual(code, 1)
+        # 跑到判定即契约：有明确结论行（PASS/FAIL/BLOCKED/NOT_APPLICABLE），
+        # 且以 SUMMARY 结尾；退出码即由判定结果决定（0/2 或仍有 FAIL 时的 1）。
+        self.assertIn("SUMMARY pass=", out)
+        self.assertIn(code, (0, 1, 2))
 
     def test_route_detected_from_spans_evidence_level_not_dir_name(self):
         """路线判定取 spans.yaml 的 evidence_level，与目录名无关。"""

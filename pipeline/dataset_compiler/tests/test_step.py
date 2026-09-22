@@ -655,8 +655,36 @@ class GateEvidenceKwargTests(ElectronicTextStepBase):
         )
 
 
+    def test_patch_set_and_cleaned_text_receive_kwargs_from_frozen_inputs(self):
+        """ACT 18：DeterministicPatchSet / CleanedText 作为冻结输入传给 Gate。"""
+        captured = self._spy_gate()
+        inputs = self._ready()
+        self._run_etext()
+
+        self.assertIsInstance(captured.get("deterministic_patch_set"), list)
+        self.assertIsInstance(captured.get("cleaned_text"), dict)
+        self.assertIsInstance(captured["cleaned_text"].get("text"), str)
+
+        # 必须取自冻结输入：字节逐字等于冻结对象（不许现读账本旁路冻结集）
+        patch_sha = self.service.get_revision(
+            inputs["deterministic_patch_set_revision_id"]
+        )["sha256"]
+        self.assertEqual(
+            json.dumps(captured["deterministic_patch_set"], ensure_ascii=False),
+            json.dumps(
+                json.loads(self.service.objects.get(patch_sha).decode("utf-8")),
+                ensure_ascii=False,
+            ),
+        )
+        cleaned_sha = self.service.get_revision(inputs["cleaned_text_revision_id"])["sha256"]
+        self.assertEqual(
+            captured["cleaned_text"]["text"].encode("utf-8"),
+            self.service.objects.get(cleaned_sha),
+        )
+
+
 class OcrRouteGateKwargTests(StepTestBase):
-    """ACT 17 三：OCR 路线三个 offset 档 kwarg 一律 None（gate 侧行为逐字不变）。"""
+    """ACT 17 三 / ACT 18：OCR 路线 offset 档 kwarg 一律 None（gate 侧行为逐字不变）。"""
 
     @unittest.skipUnless(assets_available(), "本机缺三页真实页图")
     def test_ocr_route_kwargs_are_none(self):
@@ -673,7 +701,13 @@ class OcrRouteGateKwargTests(StepTestBase):
         run_m8(self.service, self.edition_part_id, consumption_level="INTERNAL_DEMO")
 
         self.assertTrue(captured, "Gate 未被调用")
-        for name in ("raw_text_binding", "raw_text", "sanitization_report"):
+        for name in (
+            "raw_text_binding",
+            "raw_text",
+            "sanitization_report",
+            "deterministic_patch_set",
+            "cleaned_text",
+        ):
             self.assertIn(name, captured)
             self.assertIsNone(captured[name], msg=name)
 

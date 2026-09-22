@@ -330,9 +330,12 @@ def _run_after_begin(
             gate_raw_text_binding = None
             gate_raw_text = None
             gate_sanitization_report = None
+            gate_deterministic_patch_set = None
+            gate_cleaned_text = None
         else:
-            # ACT 17 三：三个 offset 档 Gate 参数一律取自**冻结字节**（frozen_bytes），
-            # 不现读账本、不旁路冻结集。
+            # ACT 17 三 / ACT 18 一.1：offset 档 Gate 参数一律取自**冻结字节**
+            # （frozen_bytes），不现读账本、不旁路冻结集。patch_reversible 的权威产物是
+            # DeterministicPatchSet，重放还需冻结的 cleaned_text 作为比对对象。
             raw_text_bytes = frozen_bytes[inputs["raw_text_revision_id"]]
             raw_text_sha256 = hashlib.sha256(raw_text_bytes).hexdigest()
             gate_raw_text_binding = {"sha256": raw_text_sha256}
@@ -340,6 +343,14 @@ def _run_after_begin(
             gate_sanitization_report = json.loads(
                 frozen_bytes[inputs["sanitization_report_revision_id"]].decode("utf-8")
             )
+            gate_deterministic_patch_set = json.loads(
+                frozen_bytes[inputs["deterministic_patch_set_revision_id"]].decode(
+                    "utf-8"
+                )
+            )
+            gate_cleaned_text = {
+                "text": frozen_bytes[inputs["cleaned_text_revision_id"]].decode("utf-8")
+            }
     except Exception as exc:
         return _fail(service, step_run_id, "input_contract", str(exc))
 
@@ -468,6 +479,8 @@ def _run_after_begin(
         raw_text_binding=gate_raw_text_binding,
         raw_text=gate_raw_text,
         sanitization_report=gate_sanitization_report,
+        deterministic_patch_set=gate_deterministic_patch_set,
+        cleaned_text=gate_cleaned_text,
     )
     # 知识链判定字面：仅由事实推出（D-W8-13b）。无 M7 Snapshot 时链未编译；
     # 有已解析的 Snapshot 时取 gate 实评结果，不再硬编码字面量。

@@ -313,7 +313,47 @@ def _offset_golden():
         "raw_text_binding": {"sha256": _OFFSET_RAW_SHA},
         "raw_text": {"text": _OFFSET_TEXT},
         "sanitization_report": {"findings": [], "patches": []},
+        # ACT 18：权威产物是 DeterministicPatchSet（不是 SanitizationReport）
+        "deterministic_patch_set": [],
+        "cleaned_text": {"text": _OFFSET_TEXT},
     }
+
+
+# ---- ACT 18：patch_reversible 读 DeterministicPatchSet 并真正重算（D-W8-18）----
+# 合成 patch 集：删 raw[2:3] 的「玄」，再把 raw[3:4] 的「黄」换成「紫」
+_PATCH_SET_RAW = "天地玄黄"
+_PATCH_SET_CLEANED = "天地紫"
+_PATCH_SET = [
+    {
+        "patch_id": "p001",
+        "raw_start": 2,
+        "raw_end": 3,
+        "cleaned_start": 2,
+        "cleaned_end": 2,
+        "action": "delete",
+        "basis": "合成",
+        "replacement": "",
+    },
+    {
+        "patch_id": "p002",
+        "raw_start": 3,
+        "raw_end": 4,
+        "cleaned_start": 2,
+        "cleaned_end": 3,
+        "action": "replace",
+        "basis": "合成",
+        "replacement": "紫",
+    },
+]
+
+
+def _reversibility_golden(patches, cleaned_text, raw_text=_PATCH_SET_RAW):
+    """offset 档金标 + 指定的 DeterministicPatchSet / cleaned_text / raw_text。"""
+    base = _offset_golden()
+    base["deterministic_patch_set"] = copy.deepcopy(patches)
+    base["cleaned_text"] = {"text": cleaned_text}
+    base["raw_text"] = {"text": raw_text}
+    return base
 
 
 # 判定内部异常会被 run() 折成 "<类型>: <detail>"；本表用于识别「异常结论」
@@ -1103,6 +1143,117 @@ class GateClosedSetTests(unittest.TestCase):
         )
         self.assertFalse(out["checks"]["sanitization_disclosure"]["ok"])
         self.assertFalse(out["passed"])
+
+
+class PatchReversibilityTests(unittest.TestCase):
+    """ACT 18（D-W8-18）：patch_reversible 以 DeterministicPatchSet 为权威产物，
+
+    且**必须真正重算**（raw_text + patches 重建清洗文本，与 cleaned_text 逐字节比对），
+    形状检查保留但不得单独构成通过条件。
+    """
+
+    def test_patch_reversible_reads_deterministic_patch_set_not_sanitization_report(self):
+        """报告里的 patches 故意不合规（无 replacement）——读它必 FAIL，读补丁集才 INFO。"""
+        lying_report = {
+            "findings": [],
+            "patches": [
+                {
+                    "patch_id": "patch_001",
+                    "raw_start": 0,
+                    "raw_end": 1,
+                    "cleaned_start": 0,
+                    "cleaned_end": 0,
+                }
+            ],
+        }
+        out = _evaluate(
+            _reversibility_golden(_PATCH_SET, _PATCH_SET_CLEANED),
+            sanitization_report=lying_report,
+        )
+        check = out["checks"]["patch_reversible"]
+        self.assertTrue(check["ok"], msg="不应再读 SanitizationReport: %s" % check["detail"])
+
+        # 反向：只给报告、不给补丁集 → 必须 FAIL（权威产物已改）
+        only_report = _evaluate(
+            _reversibility_golden(None, _PATCH_SET_CLEANED),
+            sanitization_report=lying_report,
+        )
+        self.assertFalse(
+            only_report["checks"]["patch_reversible"]["ok"],
+            msg="SanitizationReport 不得再充当权威产物",
+        )
+
+    def test_patch_reversible_recomputes_and_matches_cleaned_text(self):
+        """真重算：一致则过；形状全对、只有重算能发现的篡改必须 FAIL。"""
+        good = _evaluate(_reversibility_golden(_PATCH_SET, _PATCH_SET_CLEANED))
+        good_check = good["checks"]["patch_reversible"]
+        self.assertTrue(good_check["ok"], msg=good_check["detail"])
+        self.assertIn("重放", good_check["detail"], msg=good_check["detail"])
+
+        # 形状检查全过（偏移有序、区间与 replacement 等长），只有重算能发现 cleaned 不符
+        bad = _evaluate(_reversibility_golden(_PATCH_SET, "天地青"))
+        bad_check = bad["checks"]["patch_reversible"]
+        self.assertFalse(bad_check["ok"], msg="形状一致但重放不符，必须 FAIL")
+        self.assertIn("偏移", bad_check["detail"], msg=bad_check["detail"])
+
+    def test_patch_reversible_detects_tampered_replacement(self):
+        """同长度 replacement 篡改（形状检查放行）→ FAIL 且 detail 给首个不一致偏移。"""
+        tampered = copy.deepcopy(_PATCH_SET)
+        tampered[1]["replacement"] = "青"  # 长度仍是 1，形状检查看不出问题
+        out = _evaluate(_reversibility_golden(tampered, _PATCH_SET_CLEANED))
+        check = out["checks"]["patch_reversible"]
+        self.assertFalse(check["ok"])
+        self.assertIn("偏移", check["detail"], msg=check["detail"])
+        self.assertFalse(out["passed"])
+
+    def test_patch_reversible_empty_patches_requires_raw_equals_cleaned(self):
+        """0 条 patch 仍可过，但必须同时断言 raw_text == cleaned_text（堵旧假绿）。"""
+        ok = _evaluate(_reversibility_golden([], _PATCH_SET_RAW))
+        ok_check = ok["checks"]["patch_reversible"]
+        self.assertTrue(ok_check["ok"], msg=ok_check["detail"])
+        self.assertIn("0 条 patch", ok_check["detail"], msg=ok_check["detail"])
+
+        bad = _evaluate(_reversibility_golden([], "天地玄"))
+        bad_check = bad["checks"]["patch_reversible"]
+        self.assertFalse(bad_check["ok"], msg="0 条 patch 且 raw != cleaned 必须 FAIL")
+        self.assertIn("raw_text", bad_check["detail"], msg=bad_check["detail"])
+        self.assertFalse(bad["passed"])
+
+    def test_patch_reversible_detail_names_the_actual_document(self):
+        """detail 文案必须与实际读取的产物一致（不许再名实不符）。"""
+        detail = _evaluate(
+            _reversibility_golden(_PATCH_SET, _PATCH_SET_CLEANED)
+        )["checks"]["patch_reversible"]["detail"]
+        self.assertIn("DeterministicPatchSet", detail)
+        self.assertNotIn("SanitizationReport", detail)
+
+    def test_gate_does_not_import_digitization_modules(self):
+        """独立实现纪律：gate 不得 import digitization（含 apply_patches）。"""
+        gate_path = os.path.join(_REPO_ROOT, "pipeline", "dataset_compiler", "gate.py")
+        with open(gate_path, encoding="utf-8") as handle:
+            tree = ast.parse(handle.read(), filename=gate_path)
+        modules = []
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                modules.extend(alias.name for alias in node.names)
+            elif isinstance(node, ast.ImportFrom):
+                if node.module:
+                    modules.append(node.module)
+                for alias in node.names:
+                    modules.append(
+                        "%s.%s" % (node.module, alias.name) if node.module else alias.name
+                    )
+        for module in modules:
+            self.assertNotIn(
+                "digitization", module, msg="gate.py 不应 import %r" % module
+            )
+        self.assertNotIn("apply_patches", modules)
+
+    def test_glyphbox_patch_reversible_unchanged(self):
+        """OCR 档该项行为逐字不变：仍为 not_applicable。"""
+        check = _evaluate(_golden())["checks"]["patch_reversible"]
+        self.assertEqual(check["status"], "not_applicable")
+        self.assertIsNone(check["ok"])
 
 
 if __name__ == "__main__":
