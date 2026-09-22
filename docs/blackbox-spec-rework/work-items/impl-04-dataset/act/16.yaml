@@ -72,9 +72,22 @@ contract: |
       glyphbox 档：现有 ingest → run_m3 → register_source_assets 逐字不变
       offset 档：ingest(m1,m2) → **run_m3_text** → 注册文本 SourceAsset（不是页图）
     `main()`：缺 manifest.yaml 仍 BLOCKED；新增「缺 spans.yaml」同样 BLOCKED（同一口径）。
-    `span_identity` 与 `publication` 两组判定的**判据名不许改**；
-    其中依赖页/字框的子判据在 offset 档输出 `not_applicable`（**不得冒充 pass**，
+    `span_identity` 与 `publication` 两组判定的**判据名不许改**。
+    依赖页/字框的子判据在 offset 档输出 `not_applicable`（**不得冒充 pass**，
     与裁定 107 Q-M8-08 在 Gate 侧的口径一致）。
+
+    ⚠ **口径更正（主 Agent 2026-09-21，D-W8-16b）**：本 ACT 初稿第三节隐含
+    「offset 档会有一份 m8 StagePackage 可供逐子判据判定」，**该预设是错的**，
+    与 `act/15.yaml` 第四节「真书上 M8 会如实失败」自相矛盾——是主 Agent 起草失误。
+    实测：offset 档 `run_m8` 落在 `publication_gate`，5 项 FAIL
+    （text_offsets / source_asset_binding / watermark_disclosure /
+      raw_text_binding / sanitization_disclosure），**不产出 m8 StagePackage**。
+    根因全在 `gate.py` 与 `step.py`（声明与实现不一致 + 两个 kwarg 从未传入），
+    已另立 **ACT 17** 专修，不在本 ACT 范围。
+
+    因此本 ACT 的 offset 档预期输出就是「如实失败」：
+      `FAIL run_succeeded` + 页/字框类 `NOT_APPLICABLE` + `BLOCKED mentions_mapping`，
+    **这是正确结果，不是缺陷**。不许为了让它好看而改判据口径、不许改既有约定去凑本 ACT 字面。
 
   四、m8-span-identity.sh
     只改宿主校验的分派与默认 FIXTURE_ASSET_ROOT 的适用条件；
@@ -93,7 +106,7 @@ tests_first: |
     test_prepare_ledger_ocr_fixture_unchanged
     test_acceptance_blocks_when_fixture_has_no_spans_yaml
     test_offset_fixture_page_dependent_checks_are_not_applicable    # 不得为 pass
-    test_offset_fixture_span_identity_matches_golden_spans
+    test_offset_fixture_reports_run_failed_not_host_missing   # 跑到判定而非 BLOCKED 宿主缺失
     test_route_detected_from_spans_evidence_level_not_dir_name
     test_electronic_fixture_verify_sh_needs_no_page_assets
 verify: |
@@ -102,7 +115,8 @@ verify: |
   bash openspec/acceptance/m8-span-identity.sh > /tmp/m8-after.txt 2>&1; echo "exit=$?"
   # 期望：SUMMARY pass=7 fail=0 blocked=1，且与改前基线 diff 为空
   FIXTURE_DIR=pipeline/corpus/_fixture/qianyuan_ed01_text bash openspec/acceptance/m8-span-identity.sh; echo "exit=$?"
-  # 期望：能跑到判定（不是 BLOCKED 宿主缺失）；页/字框类子判据为 not_applicable
+  # 期望：能跑到判定（不是 BLOCKED 宿主缺失）；页/字框类子判据为 NOT_APPLICABLE；
+  #       run_succeeded 为 FAIL（offset 档 M8 如实失败，ACT 17 修好前就该是这样）
   bash pipeline/corpus/_fixture/qianyuan_ed01_text/verify.sh; echo "exit=$?"     # 0
   FIXTURE_ASSET_ROOT=/nonexistent FIXTURE_DIR=pipeline/corpus/_fixture/qianyuan_ed01_text \
     bash openspec/acceptance/m8-span-identity.sh; echo "exit=$?"                # 电子文本路线不该因缺页图而 BLOCKED

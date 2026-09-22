@@ -1,0 +1,148 @@
+act_id: impl-04/17
+title: Gate 与 step 的 offset 档缺口（声明为两档实评、实现只读 OCR 键；两个 kwarg 从未传入）
+estimated_minutes: 160
+group: K4
+depends_on: [impl-04/15b]
+decisions: [D-W8-17, 裁定 103 D1, 裁定 107 Q-M8-08]
+scope:
+  write:
+    - pipeline/dataset_compiler/gate.py            # D-W8-17 明文解除 D-W8-13b 的冻结，见第一节
+    - pipeline/dataset_compiler/step.py
+    - pipeline/dataset_compiler/tests/test_gate.py
+    - pipeline/dataset_compiler/tests/test_step.py
+  read_only:
+    - var/                                          # 只许读，绝不许写
+    - pipeline/dataset_compiler/packs.py            # ACT 14/15b 成果，本 ACT 不改
+    - pipeline/corpus/_fixture/mini_ed01/           # 金标，一字不动（裁定 95/101）
+background: |
+  执行器 2026-09-21 在真书宿主上实跑 M1→M2→M3_text→M8（当前工作树，已含 ACT 15b），
+  主 Agent 已复核该证据。结果：**电子文本路线现在能跑到 Gate 了**（15b 的成果），
+  23 项判定里 5 项 FAIL，`run_m8` 落在 `publication_gate`：
+
+      M3 status: succeeded；spans evidence_level: offset_level；span_count: 696
+      route: electronic_text
+      M8 status: failed  failed_check: publication_gate
+      failed_checks: text_offsets, source_asset_binding, watermark_disclosure,
+                     raw_text_binding, sanitization_disclosure
+
+  逐项成因（全部在 gate.py / step.py，**夹具与验收脚本都修不了**）：
+
+  | FAIL 项 | 直接成因 | 位置 |
+  |---|---|---|
+  | `text_offsets`           | `entry["line_index"]`——offset 档 entry 按 ACT 14 二.1 **有意不造**该键 | `gate.py:222` |
+  | `watermark_disclosure`   | `entry["highlight_level"]`——同上 | `gate.py:455` |
+  | `source_asset_binding`   | `asset_records[page]`——电子文本路线按 ACT 15 契约返回 `{}` | `gate.py:300`、`step.py:171` |
+  | `raw_text_binding`       | `evaluate_publication` 有该形参，**`step.py` 调用点从未传入** | `step.py:439-457`、`gate.py:680` |
+  | `sanitization_disclosure`| 同上，`sanitization_report` / `raw_text` 也未传 | `step.py:439-457`、`gate.py:702` |
+
+  **核心矛盾**：`gate.py` 的 `_CHECK_APPLICABILITY` 把 `text_offsets`、`source_asset_binding`、
+  `watermark_disclosure` 三项声明为 `"both"`（两档都实评），但三者的实现全部只读
+  glyphbox 档专有键。**声明与实现不一致**——这是 ACT 12 遗留的缺陷，不是本轮改坏的。
+contract: |
+  一、D-W8-17（主 Agent 2026-09-21 裁决）
+    **明文解除 D-W8-13b 的「gate.py 一行都不许动」**。
+    解除理由：该冻结立于 2026-09-20，目的是防止执行器为了接通链路而擅改已验收的判定逻辑。
+    现在证据表明 `gate.py` 自身存在「适用性声明与实现不一致」的缺陷，
+    绕开它就只能靠夹具造假或放宽判据——那才是真正该禁止的。**冻结的目的是保判定的诚实，
+    不是保代码不动**；为诚实而改，正是冻结要保护的东西。
+    解除范围仅限本 ACT 列出的五项及其适用性声明，`gate.py` 其余部分不许改。
+
+  二、三项「声明与实现不一致」的处置（按裁定 107 Q-M8-08 的既有形状）
+    对 `text_offsets`、`source_asset_binding`、`watermark_disclosure` 三项，
+    **逐项判断它在 offset 档到底是「不适用」还是「换个键就能实评」**，二选一，不许含糊：
+
+      1) `text_offsets`：offset 档有 `start_offset`/`end_offset` 这类事实，
+         **倾向改为按 offset 键集实评**（校验偏移落在清洗文本范围内、无非法重叠）。
+         若你实测发现该项在 offset 档与 `offset_anchor_continuity` 完全重复，
+         则改为 `not_applicable` 并在回报里给出「重复」的证据（两项断言逐条对照）。
+      2) `watermark_disclosure`：其语义依赖 `highlight_level`（OCR 专有），
+         **倾向 `not_applicable`**。若你发现 offset 档另有水印披露的事实来源，停手上报。
+      3) `source_asset_binding`：offset 档的 SourceAsset 事实在
+         `manifest.source_assets` + `raw_text` 修订 sha256（ACT 14 第三节已定同口径），
+         **倾向改为按该口径实评**，不是 not_applicable。
+
+    硬性：
+      - 每项的 `_CHECK_APPLICABILITY` 声明必须与其实现**严格一致**；
+        本 ACT 之后不得再有「声明 both 却只读单档键」的项。
+      - `not_applicable` **不得冒充 ok**（裁定 107 Q-M8-08）。
+      - glyphbox 档三项行为**逐字不变**。
+      - 你对每一项的二选一结论都要在回报里给出实测依据，不许只写结论。
+
+  三、两个从未传入的 kwarg（step.py）
+    `step.py:439-457` 调用 `gate.evaluate_publication` 时补传：
+      raw_text_binding / raw_text / sanitization_report
+    取值来自 ACT 15 已在 `resolve_m8_inputs` 产出的四个 M2 产物键
+    （`raw_text_revision_id` / `cleaned_text_revision_id` /
+      `deterministic_patch_set_revision_id` / `sanitization_report_revision_id`）。
+    硬性：
+      - **必须取自冻结输入**（`frozen_bytes`），不许现读账本、不许旁路冻结集
+      - ocr 路线这三个参数取 None，gate 侧行为逐字不变
+      - 裁定 103 D1 不得动摇：`sanitization_disclosure` 仍须把禁止字符与
+        `known_unresolvable` 发现逐条对账，**不许因为「文件在了」就判通过**
+
+  四、判据：真书副本上 M8 的失败项应当减少且可解释
+    本 ACT 的成功判据**不是**「真书 M8 全绿」——`knowledge_chain` 未编译、
+    `graph_projection_closure` 等仍会如实不适用或失败（真书至今没跑过 M7）。
+    判据是：
+      - 上述 5 项**不再因 KeyError 或「参数没传」而 FAIL**；
+      - 仍然 FAIL 的项，回报里逐条给出「为什么这是真实缺陷而不是实现缺口」；
+      - 真书正本**一律只读**，实跑在 `cp -R` 的副本上做。
+
+  五、不许做的事
+    - 不许改 `packs.py`（ACT 14/15b 成果）
+    - 不许给 offset 档 entry 补造 `line_index` / `highlight_level` 来迁就现有实现
+    - 不许把判据放宽、不许让不适用项输出 ok
+    - 不许改 `mini_ed01`
+tests_first: |
+  先写测试并确认转红（贴 Red 原文），再改实现。至少九个具名用例：
+    test_check_applicability_matches_implementation_for_every_check   # 总护栏，见下
+    test_text_offsets_offset_level_evaluates_or_is_not_applicable
+    test_source_asset_binding_offset_level_binds_manifest_and_raw_text
+    test_watermark_disclosure_offset_level_is_not_applicable
+    test_raw_text_binding_receives_kwargs_from_frozen_inputs
+    test_sanitization_disclosure_still_reconciles_forbidden_chars     # 裁定 103 D1 护栏
+    test_not_applicable_never_reports_ok
+    test_glyphbox_level_five_checks_unchanged                          # OCR 回归护栏
+    test_ocr_route_kwargs_are_none                                     # ocr 路线三参数为 None
+
+  **第一条是本 ACT 最重要的护栏**：遍历 `_CHECK_APPLICABILITY`，对每一项断言
+  「声明 both 的项在两档都能给出非异常结论」。它正是用来防止本次缺陷再次出现的。
+verify: |
+  cd /Users/jingtaiwei/Git/Public/learn_system && export LC_ALL=en_US.UTF-8
+  .venv/bin/python -m unittest discover -s pipeline/dataset_compiler/tests -t . 2>&1 | tail -3
+      # OK；**skipped 数不得增加**（当前仓库树为 0）
+  .venv/bin/python -m unittest discover -s pipeline/assembly/tests -t . 2>&1 | tail -1     # OK 107
+  .venv/bin/python -m unittest discover -s pipeline/review/tests -t . 2>&1 | tail -1       # OK 166
+  .venv/bin/python -m unittest discover -s pipeline/validation/tests -t . 2>&1 | tail -1   # OK 108
+  .venv/bin/python docs/blackbox-spec-rework/work-items/impl-00-interfaces/check_interfaces.py | tail -1   # pass=44 fail=0
+  bash openspec/acceptance/m8-span-identity.sh 2>&1 | tail -1    # SUMMARY pass=7 fail=0 blocked=1（OCR 逐字不变）
+  git status --short pipeline/corpus/_fixture/mini_ed01/          # 无输出
+  git diff --stat -- pipeline/dataset_compiler/packs.py           # 无输出
+  # 真书副本实跑（正本只读；把 23 项判定的改前/改后逐项对照贴进回报）：
+  #   cp -R var/ledgers/qianyuan_w8 <临时目录>/  然后在副本上 M1→M2→M3_text→M8
+  #   改前基线就是本 ACT background 里那 23 行，逐项比对，说明每一项为什么变/为什么没变
+  # 篡改探针（三条，绿→红→改回，结果写进回报）：
+  #   P1 把某项的 _CHECK_APPLICABILITY 声明改成 both 但实现只读 OCR 键
+  #       → test_check_applicability_matches_implementation_for_every_check 转红
+  #   P2 让 not_applicable 输出 ok=True → test_not_applicable_never_reports_ok 转红
+  #   P3 把 step.py 新传的三个 kwarg 改回不传
+  #       → test_raw_text_binding_receives_kwargs_from_frozen_inputs 转红
+  # 探针副本必须 cp -R 整个仓库（含 ocr/）；只复制 pipeline/ 会出假阴性（R13）
+commit:
+  add:
+    - pipeline/dataset_compiler/gate.py
+    - pipeline/dataset_compiler/step.py
+    - pipeline/dataset_compiler/tests/test_gate.py
+    - pipeline/dataset_compiler/tests/test_step.py
+    - docs/blackbox-spec-rework/work-items/impl-04-dataset/act/17.yaml
+  message: "fix(m8): align gate applicability with implementation and pass offset-level evidence to the gate (W8 8.6-K4, ACT 17)"
+on_fail: |
+  停止并报告，不许提交红的基线。
+  六种情况必须停手写「## 待裁决」而不是自行决定：
+    ① 某项在 offset 档「既不适用也无法实评」，二选一都不成立
+    ② 需要改 packs.py 或夹具才能完成
+    ③ `text_offsets` 与 `offset_anchor_continuity` 是否重复，你判断不了
+    ④ 补传 kwarg 后 `sanitization_disclosure` 仍 FAIL，且你无法判断是真实缺陷还是实现缺口
+    ⑤ glyphbox 档五项有任何一项行为改变
+    ⑥ 发现 `_CHECK_APPLICABILITY` 里还有本 ACT 未列出的「声明与实现不一致」项
+       （**这种情况要报，不要顺手改** —— 可能需要扩大裁定范围）
