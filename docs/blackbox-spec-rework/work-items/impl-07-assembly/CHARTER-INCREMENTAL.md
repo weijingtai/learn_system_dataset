@@ -239,3 +239,61 @@ B 波的 `propose_pairs`（CHARTER §3.1 的独立函数）须对 `collation_key
 实测：`assemble_genesis` 未被传入真实包身份时写占位 `pkg_m6_0000…` / `rev_0000…`。
 **裁定**：B 波接线真实包身份后**必须重建 r1 金标**并在回报中贴出新旧 sha256 对照。
 不得让占位值留在金标里冒充真值。
+
+---
+
+## 9. A 波实测后的追加裁定（2026-09-22）
+
+A 波（`8162585`）交付合格（assembly 117→126 OK，四个冻结模块未动，两项护栏仍 PASS，
+计算路径一字未动、**未偷跑合并**）。它提了四条，逐条裁定：
+
+### 9.1 基底 artifact_type：以登记名 `canonical_snapshot` 为准（我的 ACT 写错了）
+
+ACT 21 contract 二.2 写的 `canonical_knowledge_snapshot` 是**草稿名**，错的。
+实测登记名为 `canonical_snapshot`（`impl-00-interfaces/INTERFACES.md:181`「既有 `canonical_snapshot` 修订」；
+`impl-07-assembly/README.md:113` D-0-3 亦明文「以登记名为准」）。
+**裁定：`canonical_snapshot`**。执行器照登记名实现是对的——
+若照我 ACT 的字面写，M7 自己产出的 Snapshot 永远无法作为基底，功能自相矛盾。
+
+> 这是我第 6 次把没查证的事实写进 ACT（R14）。前五次见 `tasks/dataset-blackbox-line.md` 决定记录与 §2「P2 更正」。
+
+### 9.2 D-02 scope 键：**增量启用、创世不变**（ACT 内部两条硬性确实冲突）
+
+执行器指出 ACT 21 第三节「**每个** ReleaseRun 用 X 作 scope」与「创世路径逐字不变、
+107 个既有用例不许转红」不能同时成立——因为 `BDD.md:G0.8`、
+`acceptance.check_configuration_and_scope`、`test_genesis_ledger` 三处都断言
+`prun.edition_part_id == world["edition_part_id"]`。
+
+**裁定：采纳执行器的处理**——增量（base 非 None）用 X，创世（base 为 None）沿用 `edition_part_id`。
+理由与 D-02 本身一致：D-02 的论据是「ReleaseRun 跨多个 Edition，没有单一 EditionPart」，
+而**创世只有单包单版次，不存在该问题**。全面切换需同步改 BDD + 验收判据 + 2 条用例，
+属跨波改动，**不在本线范围**；若将来要做，另立 ACT 并明示。
+
+### 9.3 增量路径目前「名实不符」——B 波必须收口（本条最要紧）
+
+执行器主动点名了一处中间态：
+
+```
+snapshot 修订 prev_revision_id = <基底>     ← 陈说「有基底」
+knowledge.meta.base_snapshot_revision_id = null   ← 陈说「无基底」
+```
+
+成因：D-03（同 Artifact 续修订）已接线，而合并未接线，增量轮仍由 `assemble_genesis` 算，
+产出的是创世形状。**这不是伪造，是「接了一半」的必然中间态**，但它正是 W8 反复出现的那类形状
+（`patch_reversible` 空转绿、`upstream_m6_real` 名实不符）。
+
+**裁定**：
+1. 承认该中间态在 A 波是**可接受的**（执行器按 `on_fail ②` 没有扩范围到 B 波，处理正确）
+2. **B 波必须收口**：接线合并时同时补 `meta.base_snapshot_revision_id` / `assembly_seq` / `decision_refs`，
+   并按 §8.4 重建 r1 金标
+3. **B 波的 ACT 必须写一条护栏用例**：断言「`prev_revision_id` 非空 ⟺ `meta.base_snapshot_revision_id` 非空」，
+   两者不一致即失败。**这条是本线最重要的名实一致护栏**
+4. E 波的独立增量 Gate 依赖本条——现 `evaluate_genesis` 只适用于创世
+
+### 9.4 改动 1 条既有用例：批准
+
+该用例断言的是「`run_m7` 拒绝 base_snapshot」——正是 ACT 21 明令删除的行为。
+**属「事实变了、用例随之更新」，不是放宽判据**，与 W8 ACT 18 对
+`test_offset_fixture_reports_run_failed_not_host_missing` 的处理同一性质。
+执行器已在回报中报备（第 97 条要求），**批准**。
+
