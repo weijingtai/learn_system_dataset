@@ -1,0 +1,158 @@
+act_id: impl-07/22
+title: B 波 —— 四类提案确定性生成 + propose_pairs 独立配对层 + 名实一致收口
+estimated_minutes: 200
+group: INC-B
+depends_on: [impl-07/21]
+supersedes: [impl-07/03]     # 规则表 R01–R10 逐字沿用该草稿，其余按 CHARTER 校准
+decisions: [D-05, D-06, D-07, CHARTER §3.1, §8.1, §8.2, §8.4, §9.3]
+scope:
+  write:
+    - pipeline/assembly/matcher.py          # 新建：propose_pairs 独立配对层，见第二节
+    - pipeline/assembly/incremental.py      # 新建：提案生成
+    - pipeline/assembly/model.py            # **仅允许新增增量所需类型**，既有定义一行不许改
+    - pipeline/assembly/tests/
+    - pipeline/corpus/_fixture/mini_release01/   # 仅按第六节重建 r1 金标
+  read_only:
+    - var/ledgers/qianyuan_w8/              # 真书正本：只许读，绝不许写
+    - pipeline/assembly/genesis.py          # G0 已验收，一行不许改
+    - pipeline/assembly/canonical.py
+    - pipeline/assembly/gate.py             # E 波范围
+    - pipeline/assembly/inputs.py           # A 波成果，本波只调用不修改
+    - pipeline/corpus/_fixture/mini_ed01/
+    - openspec/
+background: |
+  **先读这三份，顺序不要颠倒**：
+  1. `impl-07-assembly/CHARTER-INCREMENTAL.md` **全文**（派发依据），
+     尤其 §3.1（配对层硬约束）、§8（F 波后四条裁定）、§9（A 波后四条裁定）
+  2. `impl-07-assembly/act/03.yaml` 的 **R01–R10 规则表**（第 26–48 行）——
+     本 ACT **逐字沿用该规则表**，不重抄、不改写；该草稿其余部分按 CHARTER §5 校准后作废
+  3. `impl-07-assembly/act/21.yaml`（A 波，已验收 `8162585`）
+
+  主 Agent 2026-09-22 实测（可复算）：
+
+  - A 波已落地：`inputs.py:18 BASE_SNAPSHOT_ARTIFACT_TYPE = "canonical_snapshot"`、
+    `inputs.py:302 resolve_base_snapshot(...)`；`run_m7` 不再拒绝 base_snapshot
+  - `genesis.py:27 propose_genesis(candidate_set, reviewed_edition)` 是**创世专用纯函数**，
+    本波**不得改它**，增量提案要另起 `incremental.py`
+  - `assembly` 套件当前 **126 用例全绿**；`m7-assembler.sh` `pass=11 fail=0 blocked=5`，
+    其中 `upstream_m6_real` 与 `no_model_calls` **已是 PASS，不许转红**
+  - 真书实测（CHARTER §8.2）：`candidate_set` **无 `collation_units` 键**，
+    26 条断言的 `collation_key` **全为 `null`**
+contract: |
+  一、提案生成（incremental.py，新建）
+    按 `act/03.yaml` 第 26–48 行的 **R01–R10 规则表逐字实现**，产出四类提案
+    Merge / Alias / Conflict / EvidenceRelation，三态 `auto` / `human` / `blocked`。
+    硬性：
+      - `rule_id` **逐字**取规则表里的名字（`R01` `R01b` `R02` `R03a`…`R11b`），不许自造
+      - 提案键按 D-12：`proposal_key = "<kind>:" + sha256(规范 JSON(主体元组))[:32]`，
+        kind ∈ `merge|alias|conflict|evidence`；**不发任何登记 ID 前缀**
+      - D-05：`MergeProposal.relation` 闭集 `{attach, admit_new, merge_entities}`，
+        **禁止静默并入**——任何并入都必须有一条提案留痕
+      - D-06：**名称相等不得自动 attach**（保留同名异义）
+      - 同一输入两次调用，提案集合**逐字节相同**（含排序）
+
+  二、propose_pairs 独立配对层（matcher.py，新建；CHARTER §3.1 硬约束）
+    签名**固定**：`propose_pairs(left_units, right_units) -> list[PairCandidate]`
+    硬性四条，**不可协商**：
+      1. 本波**只允许确定性实现**：精确键相等、共享证据片段、同一已正式对象。
+         **禁止**模糊文本相似度、编辑距离、任何阈值可调的打分
+      2. **不得调用任何模型 API**（规格 §2.10；`m7-assembler.sh` 的 `no_model_calls` 会验）
+      3. `matcher.py` **之外的任何代码不得直接做配对判断**——
+         `incremental.py` 只能调用 `propose_pairs`，不得自己比对
+      4. `PairCandidate` 须预留 `suggestion` 字段（本波恒为 `None`）。
+         将来接入模型建议只换 `matcher.py` 这一个文件，且 `suggestion`
+         **不得进入 Gate 判定、不得影响 ID 发号、不得改变自动裁定结果**
+
+  三、collation_key 为 null 的处置（CHARTER §8.2）
+    真书路径上 `collation_key` 全为 `null`、`collation_units` 键不存在。
+    硬性：
+      - 此时 `propose_pairs` 必须**如实返回「无法配对」**，**不许猜、不许回退到文本比对**
+      - 在 `assembly_report` 里计数（例如 `not_comparable_missing_collation_key`），
+        **不得静默跳过**
+      - R07/R07b/R08/R09 这几条对勘规则在该输入下**不产生提案**，这是正确行为
+
+  四、id_allocation 只按已获批对象取号（CHARTER §8.1）
+    硬性：
+      - `id_allocation` 的最大号**只从进入 Snapshot 的已获批对象**取
+      - 遇到「携带 M4 自发 `pat_` 号但未获批」的候选，必须写入 `assembly_report`
+        （键名 `unapproved_with_self_issued_id`），**不得静默丢弃**
+      - 现状两处口径打架（Snapshot 丢掉它、`id_allocation` 又算上它）的根因就是静默，
+        本波必须消除
+
+  五、名实一致收口（CHARTER §9.3，**本波最重要的一条**）
+    A 波留下一处中间态：`snapshot.prev_revision_id` 有基底，而
+    `knowledge.meta.base_snapshot_revision_id` 为 `null`——**名实不符**。
+    本波必须收口：
+      1. 接线合并时同时补 `meta.base_snapshot_revision_id` / `assembly_seq` / `decision_refs`
+      2. **必写护栏用例** `test_prev_revision_and_meta_base_agree`：
+         断言「`prev_revision_id` 非空 **⟺** `meta.base_snapshot_revision_id` 非空」，
+         两者不一致即失败。**这条是本线最重要的名实一致护栏**
+      3. 篡改探针须证明该护栏非空转（见 verify 段 P3）
+
+  六、重建 r1 金标（CHARTER §8.4）
+    接线真实包身份后，F 波留下的 r1 金标里的占位值
+    （`pkg_m6_0000…` / `rev_0000…`）**必须重建**。
+    硬性：回报中贴出**新旧 sha256 对照**与重建命令；不得让占位值留在金标里冒充真值。
+
+  七、不许做的事
+    - 不许改 `genesis.py` / `canonical.py` / `gate.py` / `inputs.py`
+    - 不许改 `model.py` 的既有定义（只许新增增量所需类型）
+    - 不许调用模型 API、不许做模糊相似度匹配
+    - 不许写 `var/` 真书正本
+    - 不许让 `upstream_m6_real` / `no_model_calls` 转红或转 BLOCKED
+    - 不许改 `mini_ed01`
+tests_first: |
+  先写测试并确认转红（贴 Red 原文），再改实现。至少十个具名用例：
+    test_propose_pairs_is_the_only_matching_site          # 三.3 结构护栏：grep incremental.py 无直接比对
+    test_propose_pairs_deterministic_same_input_same_output
+    test_propose_pairs_returns_not_comparable_when_collation_key_null   # §8.2
+    test_pair_candidate_suggestion_is_none_in_this_wave
+    test_proposal_rule_ids_match_the_rule_table_verbatim  # R01…R11b 逐字
+    test_merge_relation_is_closed_set                     # D-05
+    test_name_equality_does_not_auto_attach               # D-06
+    test_id_allocation_counts_only_approved               # §8.1
+    test_unapproved_self_issued_id_is_reported_not_dropped # §8.1 不得静默
+    test_prev_revision_and_meta_base_agree                # §9.3 **最重要**
+verify: |
+  cd /Users/jingtaiwei/Git/Public/learn_system && export LC_ALL=en_US.UTF-8
+  .venv/bin/python -m unittest discover -s pipeline/assembly/tests -t . 2>&1 | tail -3
+      # OK；**≥126 + 新增，一个都不许少；skipped 不许增加**
+  bash openspec/acceptance/m7-assembler.sh 2>&1 | grep -E "upstream_m6_real|no_model_calls"   # 两行都 PASS
+  bash openspec/acceptance/m7-assembler.sh 2>&1 | tail -1                                      # fail=0
+  bash pipeline/corpus/_fixture/mini_release01/verify.sh; echo "exit=$?"                       # 0
+  for p in dataset_compiler review validation corpus_compiler; do
+    .venv/bin/python -m unittest discover -s pipeline/$p/tests -t . 2>&1 | tail -1; done       # 全 OK
+  git diff --stat -- pipeline/assembly/genesis.py pipeline/assembly/canonical.py pipeline/assembly/gate.py pipeline/assembly/inputs.py
+      # 必须无输出
+  git status --short var/                                                                      # 无输出
+  grep -rn "difflib\|SequenceMatcher\|levenshtein\|similarity\|requests\|httpx\|openai" pipeline/assembly/
+      # 必须无命中（二.1/二.2 护栏）
+  # 真书实跑（副本上，正本只读）：喂真实 m6，记录提案数、not_comparable 计数、
+  #   unapproved_with_self_issued_id 内容；与 F/A 波回报对照
+  # 篡改探针（三条，绿→红→改回，写进回报）：
+  #   P1 在 incremental.py 里直接做一次比对（绕开 propose_pairs）
+  #       → test_propose_pairs_is_the_only_matching_site 转红
+  #   P2 让 collation_key 为 null 时回退到文本相等比对
+  #       → test_propose_pairs_returns_not_comparable_when_collation_key_null 转红
+  #   P3 把 meta.base_snapshot_revision_id 写死为 None（保留 prev_revision_id）
+  #       → test_prev_revision_and_meta_base_agree 转红
+  # 探针副本必须 cp -R 整个仓库（含 ocr/），只复制 pipeline/ 会出假阴性（R13）
+commit:
+  add:
+    - pipeline/assembly/matcher.py
+    - pipeline/assembly/incremental.py
+    - pipeline/assembly/model.py
+    - pipeline/assembly/tests/
+    - pipeline/corpus/_fixture/mini_release01/
+    - docs/blackbox-spec-rework/work-items/impl-07-assembly/act/22.yaml
+  message: "feat(m7): generate incremental proposals behind a deterministic pairing layer (INC-B, ACT 22)"
+on_fail: |
+  停止并报告，不许提交红的基线。
+  七种情况必须停手写「## 待裁决」：
+    ① R01–R10 规则表某条在真书输入下语义不明（贴出该条与实际输入，不要自行解释）
+    ② 不改 `genesis.py` 就无法复用创世的某段逻辑（不要复制粘贴，先问）
+    ③ 名实一致护栏（五.2）与既有用例冲突
+    ④ 重建 r1 金标后 F 波的某条用例转红
+    ⑤ `upstream_m6_real` / `no_model_calls` 任一转红或转 BLOCKED
+    ⑥ 确定性配对在真书上**一条提案都产不出**，且你判断不了是输入缺字段还是规则理解错
+    ⑦ 需要改 `model.py` 的既有定义（不是新增）
