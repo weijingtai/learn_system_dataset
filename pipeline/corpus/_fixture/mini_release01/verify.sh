@@ -1,0 +1,219 @@
+#!/usr/bin/env bash
+# mini_release01 fixture 自校验脚本（act/impl-07/20，INC-F）
+#
+# 用法：bash verify.sh
+# 环境变量：
+#   FIXTURE_DIR   待校验的 fixture 根目录（默认本脚本所在目录）
+#
+# 与 mini_ed01/verify.sh 的差别：**不要求任何页图**（本夹具的版次视图锚定
+# mini_ed01 的 spans.yaml，不锚定页素材），因此不读 FIXTURE_ASSET_ROOT。
+# 退出码语义与 mini_ed01/verify.sh 对齐：
+#   任一 FAIL → 1；无 FAIL 但有 BLOCKED → 3；否则 0（末行 FIXTURE OK）。
+#
+# 检查项（每条打印 PASS/FAIL/BLOCKED 前缀）：
+#   V1 host_files            宿主文件齐备
+#   V2 manifest_sha256       manifest.files[] 每项 sha256 与实际逐字节一致
+#   V3 span_anchor           两版次全部证据链锚定 mini_ed01 金标 span
+#   V4 views_validate        两版次视图过 M7 的 model 校验纯函数
+#   V5 expected_goldens      r1 == 创世引擎现算输出；r2 过 snapshot 校验；knowledge_sha256 一致
+#   V6 no_page_assets        本目录无 png/jpg/jpeg/pdf，且不依赖任何页素材
+set -u
+export LC_ALL=en_US.UTF-8
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../../../.." && pwd)"
+
+FIXTURE_DIR="${FIXTURE_DIR:-$SCRIPT_DIR}"
+if [ ! -d "$FIXTURE_DIR" ]; then
+  echo "FAIL fixture_dir fixture 目录不存在: $FIXTURE_DIR"
+  exit 1
+fi
+FIXTURE_DIR="$(cd "$FIXTURE_DIR" && pwd)"
+
+PY="$REPO_ROOT/.venv/bin/python"
+if [ ! -x "$PY" ]; then
+  echo "BLOCKED_ENV .venv missing"
+  exit 3
+fi
+
+export FIXTURE_DIR REPO_ROOT PYTHONPATH="$REPO_ROOT"
+
+"$PY" - <<'PY'
+import hashlib
+import json
+import os
+import sys
+from pathlib import Path
+
+import yaml
+
+FIX = Path(os.environ["FIXTURE_DIR"])
+REPO = Path(os.environ["REPO_ROOT"])
+MINI_ED01_SPANS = REPO / "pipeline" / "corpus" / "_fixture" / "mini_ed01" / "spans.yaml"
+
+fails = []
+blocked = 0
+
+
+def emit(status, name, detail=""):
+    print(("%s %s %s" % (status, name, detail)).strip())
+
+
+def fail(name, detail):
+    fails.append(name)
+    emit("FAIL", name, detail)
+
+
+def sha256_bytes(data):
+    return hashlib.sha256(data).hexdigest()
+
+
+# ------------------------------------------------------------------ V1 宿主齐备
+required = ["manifest.yaml"]
+for edition in ("ed01", "ed99"):
+    for name in ("candidate_set.json", "reviewed_edition.json", "reviewed_edition_package.json"):
+        required.append("%s/%s" % (edition, name))
+required += ["expected/snapshot_r1.json", "expected/snapshot_r2.json", "expected/snapshot_revisions.yaml"]
+
+missing = [rel for rel in required if not (FIX / rel).is_file()]
+if missing:
+    emit("BLOCKED_ENV", "host_files", "宿主文件缺失: %s" % ", ".join(missing))
+    print("FIXTURE BLOCKED: %d" % len(missing))
+    sys.exit(3)
+emit("PASS", "host_files", "files=%d" % len(required))
+
+manifest = yaml.safe_load((FIX / "manifest.yaml").read_text(encoding="utf-8"))
+spans_doc = yaml.safe_load(MINI_ED01_SPANS.read_text(encoding="utf-8"))
+spans = {s["span_id"]: s for s in spans_doc["spans"]}
+
+# --------------------------------------------------------- V2 manifest 哈希一致
+v2_bad = []
+for item in manifest.get("files", []):
+    raw = (FIX / item["path"]).read_bytes()
+    actual = sha256_bytes(raw)
+    if actual != item["sha256"]:
+        v2_bad.append("%s sha256 %s != 清单 %s" % (item["path"], actual, item["sha256"]))
+if v2_bad:
+    fail("manifest_sha256", "; ".join(v2_bad))
+else:
+    emit("PASS", "manifest_sha256", "files=%d" % len(manifest.get("files", [])))
+
+# ------------------------------------------------------------- V3 证据 span 锚定
+anchor = manifest["span_anchor"]
+anchor_sha = sha256_bytes(MINI_ED01_SPANS.read_bytes())
+v3_bad = []
+if anchor["sha256"] != anchor_sha:
+    v3_bad.append("manifest.span_anchor.sha256 %s != 实际 %s" % (anchor["sha256"], anchor_sha))
+if anchor.get("evidence_level") != spans_doc.get("evidence_level"):
+    v3_bad.append("evidence_level %r != 金标 %r" % (anchor.get("evidence_level"), spans_doc.get("evidence_level")))
+if len(manifest.get("editions", [])) < 2:
+    v3_bad.append("版次数 %d < 2" % len(manifest.get("editions", [])))
+
+link_count = 0
+for edition in manifest["editions"]:
+    cset = json.loads((FIX / edition["views_dir"] / "candidate_set.json").read_text(encoding="utf-8"))
+    reviewed = json.loads((FIX / edition["views_dir"] / "reviewed_edition.json").read_text(encoding="utf-8"))
+    if cset["source_id"] != edition["source_id"]:
+        v3_bad.append("%s candidate_set.source_id 与 manifest 不符" % edition["edition_key"])
+    links = []
+    for a in cset.get("assertions", []):
+        links.extend(a.get("evidence", []))
+    links.extend(reviewed.get("evidence_links", []))
+    for link in links:
+        link_count += 1
+        span = spans.get(link["source_span_id"])
+        if span is None:
+            v3_bad.append("证据 span 未锚定金标: %s" % link["source_span_id"])
+            continue
+        if link["start_offset"] != span["start_offset"] or link["end_offset"] != span["end_offset"]:
+            v3_bad.append("%s 偏移与金标 span 不符" % link["source_span_id"])
+        if link["quote_sha256"] != sha256_bytes(span["text"].encode("utf-8")):
+            v3_bad.append("%s quote_sha256 与金标 span 文本不符" % link["source_span_id"])
+if v3_bad:
+    fail("span_anchor", "; ".join(v3_bad[:3]))
+else:
+    emit("PASS", "span_anchor", "links=%d spans_sha256=%s" % (link_count, anchor_sha[:12]))
+
+# --------------------------------------------------------------- V4 视图过 model
+from pipeline.assembly.model import (  # noqa: E402
+    validate_candidate_set,
+    validate_reviewed_edition,
+    validate_reviewed_package,
+    validate_snapshot_knowledge,
+)
+
+v4_bad = []
+for edition in manifest["editions"]:
+    view = FIX / edition["views_dir"]
+    try:
+        validate_candidate_set(json.loads((view / "candidate_set.json").read_text(encoding="utf-8")))
+        validate_reviewed_edition(json.loads((view / "reviewed_edition.json").read_text(encoding="utf-8")))
+        validate_reviewed_package(json.loads((view / "reviewed_edition_package.json").read_text(encoding="utf-8")))
+    except Exception as exc:  # noqa: BLE001
+        v4_bad.append("%s: %s: %s" % (edition["edition_key"], type(exc).__name__, exc))
+if v4_bad:
+    fail("views_validate", "; ".join(v4_bad))
+else:
+    emit("PASS", "views_validate", "editions=%d" % len(manifest["editions"]))
+
+# ---------------------------------------------------------------- V5 期望产物
+from pipeline.assembly.canonical import canonical_json  # noqa: E402
+from pipeline.assembly.gate import evaluate_genesis  # noqa: E402
+from pipeline.assembly.genesis import assemble_genesis, propose_genesis  # noqa: E402
+
+v5_bad = []
+plan = yaml.safe_load((FIX / manifest["expected"]["snapshot_revisions"]).read_text(encoding="utf-8"))
+for rev in plan["revisions"]:
+    raw = (FIX / rev["knowledge_file"]).read_bytes()
+    if sha256_bytes(raw) != rev["knowledge_sha256"]:
+        v5_bad.append("%s knowledge_sha256 不符" % rev["knowledge_file"])
+
+ed01 = manifest["editions"][0]
+view = FIX / ed01["views_dir"]
+cset = json.loads((view / "candidate_set.json").read_text(encoding="utf-8"))
+reviewed = json.loads((view / "reviewed_edition.json").read_text(encoding="utf-8"))
+prop = propose_genesis(cset, reviewed)
+asm = assemble_genesis(cset, reviewed, prop["proposals"], id_range=manifest["id_range"])
+if asm["knowledge_bytes"] != (FIX / manifest["expected"]["round1"]).read_bytes():
+    v5_bad.append("r1 金标与创世引擎现算输出不一致")
+gate = evaluate_genesis(candidate_set=cset, reviewed_edition=reviewed, knowledge=asm["knowledge"])
+if not gate["passed"]:
+    v5_bad.append("r1 未过创世独立 Gate: %s" % [k for k, v in gate["checks"].items() if not v["passed"]])
+
+r2 = json.loads((FIX / manifest["expected"]["round2"]).read_text(encoding="utf-8"))
+try:
+    validate_snapshot_knowledge(r2)
+except Exception as exc:  # noqa: BLE001
+    v5_bad.append("r2 未过 snapshot 校验: %s: %s" % (type(exc).__name__, exc))
+
+if v5_bad:
+    fail("expected_goldens", "; ".join(v5_bad[:3]))
+else:
+    emit("PASS", "expected_goldens", "rounds=%d" % len(plan["revisions"]))
+
+# ---------------------------------------------------------------- V6 无页素材
+images = [
+    str(p.relative_to(FIX))
+    for p in FIX.rglob("*")
+    if p.is_file() and p.suffix.lower() in (".png", ".jpg", ".jpeg", ".pdf")
+]
+if images:
+    fail("no_page_assets", "本目录出现图像/PDF 文件: %s" % ", ".join(images))
+else:
+    emit("PASS", "no_page_assets", "本夹具不要求任何页图")
+
+# -------------------------------------------------------------------- 退出码
+if fails:
+    print("FIXTURE FAILURES: %d" % len(fails))
+    sys.exit(1)
+if blocked:
+    sys.exit(3)
+print("FIXTURE OK")
+sys.exit(0)
+PY
+
+rc=$?
+if [ "$rc" -eq 0 ]; then
+  exit 0
+fi
+exit "$rc"

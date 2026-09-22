@@ -1,0 +1,25 @@
+note: D-03 采纳 A：每 technique 一个 Snapshot Artifact，每轮写新 rev_，prev_revision_id 指向基底修订。
+revisions:
+- assembly_seq: 1
+  base_snapshot_revision_id: null
+  editions:
+  - src_sanche_ed01
+  knowledge_file: expected/snapshot_r1.json
+  knowledge_sha256: c20c5148d046452fc00f83b3d1633cd81012170fd60c41ebda35c8e3cdfc891c
+  prev_revision_id: null
+  snapshot_revision_id: rev_000000000000000000000000000000f1
+  supersedes_revision_id: null
+- assembly_seq: 2
+  base_snapshot_revision_id: rev_000000000000000000000000000000f1
+  editions:
+  - src_sanche_ed01
+  - src_sanche_ed99
+  knowledge_file: expected/snapshot_r2.json
+  knowledge_sha256: 66a1e2f7534de0b57cb6c7debbfabd32f593f41fd895ef4350ed14f88c8fad25
+  prev_revision_id: rev_000000000000000000000000000000f1
+  snapshot_revision_id: rev_000000000000000000000000000000f2
+  supersedes_revision_id: rev_000000000000000000000000000000f1
+round1_note: r1 由已验收创世引擎（pipeline.assembly.genesis）现算；其 editions[].reviewed_edition_package_revision_id
+  / stage_package_id 仍是引擎当前未接线真实包身份时的占位值，B 波接线真实包身份后须按本生成器重建 r1。
+snapshot_artifact_id: art_000000000000000000000000000000f1
+technique_id: qizheng

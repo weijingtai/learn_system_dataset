@@ -1,0 +1,140 @@
+content_status: machine_extracted
+conventions:
+  non_prefix_markers:
+  - ed99
+  note: ed99 与 9000NN 是约定标识，不是新 ID 前缀；不写入 openspec/id-prefix-registry.md。
+  synthetic_edition_seq: ed99
+  synthetic_object_seq_range:
+  - 900001
+  - 900099
+edition_note: 影宋鈔本（fixture ed99 为合成保留号，非真实第二版次）
+editions:
+- edition_key: ed01
+  edition_part_artifact_id: art_000000000000000000000000000000e1
+  ledger_constants:
+    candidate_package_artifact_id: art_00000000000000000000000000000012
+    candidate_package_revision_id: rev_00000000000000000000000000000012
+    candidate_set_artifact_id: art_00000000000000000000000000000010
+    candidate_set_revision_id: rev_00000000000000000000000000000011
+    m4_step_run_id: srun_00000000000000000000000000000004
+    m6_package_revision_id: rev_000000000000000000000000000000e1
+    m6_stage_package_id: pkg_m6_000000000000000000000000000000e1
+    m6_step_run_id: srun_00000000000000000000000000000006
+    processing_run_id: prun_00000000000000000000000000000001
+    reviewed_edition_artifact_id: art_00000000000000000000000000000013
+    reviewed_edition_package_artifact_id: art_00000000000000000000000000000014
+    reviewed_edition_package_revision_id: rev_00000000000000000000000000000014
+    reviewed_edition_revision_id: rev_00000000000000000000000000000013
+  role: first_edition
+  source_id: src_sanche_ed01
+  validation_package_suffix: b01
+  view_files:
+  - candidate_set.json
+  - reviewed_edition.json
+  - reviewed_edition_package.json
+  views_dir: ed01
+- edition_key: ed99
+  edition_part_artifact_id: art_00000000000000000000000000000099
+  ledger_constants:
+    candidate_package_artifact_id: art_00000000000000000000000000000091
+    candidate_package_revision_id: rev_00000000000000000000000000000091
+    candidate_set_artifact_id: art_00000000000000000000000000000090
+    candidate_set_revision_id: rev_00000000000000000000000000000090
+    m4_step_run_id: srun_00000000000000000000000000000099
+    m6_package_revision_id: rev_00000000000000000000000000000099
+    m6_stage_package_id: pkg_m6_00000000000000000000000000000099
+    m6_step_run_id: srun_00000000000000000000000000000098
+    processing_run_id: prun_00000000000000000000000000000002
+    reviewed_edition_artifact_id: art_00000000000000000000000000000092
+    reviewed_edition_package_artifact_id: art_00000000000000000000000000000093
+    reviewed_edition_package_revision_id: rev_00000000000000000000000000000093
+    reviewed_edition_revision_id: rev_00000000000000000000000000000092
+  role: second_edition_synthetic
+  source_id: src_sanche_ed99
+  validation_package_suffix: b02
+  view_files:
+  - candidate_set.json
+  - reviewed_edition.json
+  - reviewed_edition_package.json
+  views_dir: ed99
+expected:
+  round1: expected/snapshot_r1.json
+  round2: expected/snapshot_r2.json
+  snapshot_revisions: expected/snapshot_revisions.yaml
+files:
+- path: ed01/candidate_set.json
+  role: view_candidate_set
+  sha256: 1b3bb28f3a34a44b80d67c928b939ac098117eca98e63000f8c7734779222c09
+- path: ed01/reviewed_edition.json
+  role: view_reviewed_edition
+  sha256: 8bdeefced37e138cac17ce4b8317b2f15eb0637512ceaa1748706707266da25a
+- path: ed01/reviewed_edition_package.json
+  role: view_reviewed_edition_package
+  sha256: b0abcca36792e8765cac1a793f649a0dff96219ca808f9b4fa969047566a41f6
+- path: ed99/candidate_set.json
+  role: view_candidate_set
+  sha256: 2021edbea64da7e785c4a36a66c1b2f530a025854e2bb2e110792311e69271b6
+- path: ed99/reviewed_edition.json
+  role: view_reviewed_edition
+  sha256: 7b905a768e8282af719dec7769bfaaeb14cc92d07268eae7c253c0e9a194ce78
+- path: ed99/reviewed_edition_package.json
+  role: view_reviewed_edition_package
+  sha256: 34ce249c736412900e26d93234b1dc34adbc1136303776a8a9e24ad4d25dfaa7
+- path: expected/snapshot_r1.json
+  role: expected_snapshot
+  sha256: c20c5148d046452fc00f83b3d1633cd81012170fd60c41ebda35c8e3cdfc891c
+- path: expected/snapshot_r2.json
+  role: expected_snapshot
+  sha256: 66a1e2f7534de0b57cb6c7debbfabd32f593f41fd895ef4350ed14f88c8fad25
+- path: expected/snapshot_revisions.yaml
+  role: expected_snapshot
+  sha256: c1251a486f4ed070d2076b7606c0e70f8fed6184c60e2aa2976416c5a449f9b0
+fixture_id: mini_release01
+id_families_used:
+- art_
+- as_
+- cg_
+- co_
+- pat_
+- pkg_
+- pr_
+- prun_
+- rev_
+- sch_
+- src_
+- srun_
+- ss_
+- sv_
+id_range:
+  pattern:
+  - 900001
+  - 900099
+note: 内容为结构验收宿主，不作知识来源、证据来源或发布输入。
+span_anchor:
+  corpus_spans_revision_id: rev_00000000000000000000000000000a01
+  evidence_level: glyphbox_level
+  note: ed01/ed99 全部证据链锚定 mini_ed01 真实 span（id、偏移、quote_sha256 逐字一致）；本目录不含任何页图。
+  path: ../mini_ed01/spans.yaml
+  sha256: ec6d77b90aa1408d040465babc28a81f59aadf6d6edd9ba8db66ff8ead0b44ef
+synthetic: true
+technique_id: qizheng
+upstream_assumptions:
+- id: A1
+  real_m6_observed: 真书 qianyuan_w8 的 m6 审核结论 26/26 全为 assertion，无 pattern/school_view；候选
+    candidate_set.patterns=2、school_views=0、concept_mentions=0。
+  statement: 第二版次的 M4 视图可携带基底已正式的 pat_ 号（D-04 采纳 A）；M6 审核结论含 pattern/school_view/concept
+    三类（契约允许的 kind 闭集）。
+- id: A2
+  real_m6_observed: 真书 candidate_set 无 collation_units 键，26 条 assertion 的 collation_key
+    全为 null。
+  statement: 每个版次视图声明 collation_units 与 assertion.collation_key（D-07 可比单元 (work_key,
+    collation_key) 的前提）。
+- id: A3
+  real_m6_observed: 真书账本每版次各有自己的 corpus_spans 修订（rev_a163a3e4162c41b48e6829e676b11b01
+    等）。
+  statement: 两个版次共享同一 corpus_spans 修订（同一底本重出，evidence 锚定同一批真实 span）。
+- id: A4
+  real_m6_observed: 真书对象号取自 000001 起的常规号段；两者不冲突（fixture 只进临时 Ledger）。
+  statement: 视图对象号取自 9000NN 保留号段（约定标识，不是新 ID 前缀）。
+work_key: sanche
+work_title: 三辰通載三十卷

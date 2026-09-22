@@ -1,0 +1,163 @@
+{
+  "approved": [
+    {
+      "artifact_revision_id": "rev_00000000000000000000000000000090",
+      "content_status": "machine_extracted",
+      "decision_revision_ids": [
+        "rev_0000000000000000000000000000e001"
+      ],
+      "entity_id": "as_qizheng_900001",
+      "kind": "assertion"
+    },
+    {
+      "artifact_revision_id": "rev_00000000000000000000000000000090",
+      "content_status": "machine_extracted",
+      "decision_revision_ids": [
+        "rev_0000000000000000000000000000e002"
+      ],
+      "entity_id": "as_qizheng_900004",
+      "kind": "assertion"
+    },
+    {
+      "artifact_revision_id": "rev_00000000000000000000000000000090",
+      "content_status": "machine_extracted",
+      "decision_revision_ids": [
+        "rev_0000000000000000000000000000e003"
+      ],
+      "entity_id": "pat_qizheng_900001",
+      "kind": "pattern"
+    },
+    {
+      "artifact_revision_id": "rev_00000000000000000000000000000090",
+      "content_status": "machine_extracted",
+      "decision_revision_ids": [
+        "rev_0000000000000000000000000000e004"
+      ],
+      "entity_id": "co_qizheng_900001",
+      "kind": "concept"
+    },
+    {
+      "artifact_revision_id": "rev_00000000000000000000000000000090",
+      "content_status": "machine_extracted",
+      "decision_revision_ids": [
+        "rev_0000000000000000000000000000e005"
+      ],
+      "entity_id": "sv_00000000000000000000000000000002",
+      "kind": "school_view"
+    }
+  ],
+  "candidate_package_revision_id": "rev_00000000000000000000000000000091",
+  "candidate_set_revision_id": "rev_00000000000000000000000000000090",
+  "correction_request_revision_ids": [],
+  "decisions": [
+    {
+      "carried_from_revision_id": null,
+      "carried_to_revision_id": null,
+      "current_target_revision_id": "rev_00000000000000000000000000000090",
+      "decision_revision_id": "rev_0000000000000000000000000000e001",
+      "decision_type": "review_source_fidelity",
+      "modified_revision_id": null,
+      "queue_item_id": "as_qizheng_900001#review_source_fidelity",
+      "seen_artifact_revision_id": "rev_00000000000000000000000000000090",
+      "standing": "active",
+      "synthetic_fixture": true,
+      "target_entity_id": "as_qizheng_900001",
+      "trigger_correction_request_id": null,
+      "verdict": "accept"
+    },
+    {
+      "carried_from_revision_id": null,
+      "carried_to_revision_id": null,
+      "current_target_revision_id": "rev_00000000000000000000000000000090",
+      "decision_revision_id": "rev_0000000000000000000000000000e002",
+      "decision_type": "review_source_fidelity",
+      "modified_revision_id": null,
+      "queue_item_id": "as_qizheng_900004#review_source_fidelity",
+      "seen_artifact_revision_id": "rev_00000000000000000000000000000090",
+      "standing": "active",
+      "synthetic_fixture": true,
+      "target_entity_id": "as_qizheng_900004",
+      "trigger_correction_request_id": null,
+      "verdict": "accept"
+    },
+    {
+      "carried_from_revision_id": null,
+      "carried_to_revision_id": null,
+      "current_target_revision_id": "rev_00000000000000000000000000000090",
+      "decision_revision_id": "rev_0000000000000000000000000000e003",
+      "decision_type": "review_source_fidelity",
+      "modified_revision_id": null,
+      "queue_item_id": "pat_qizheng_900001#review_source_fidelity",
+      "seen_artifact_revision_id": "rev_00000000000000000000000000000090",
+      "standing": "active",
+      "synthetic_fixture": true,
+      "target_entity_id": "pat_qizheng_900001",
+      "trigger_correction_request_id": null,
+      "verdict": "accept"
+    },
+    {
+      "carried_from_revision_id": null,
+      "carried_to_revision_id": null,
+      "current_target_revision_id": "rev_00000000000000000000000000000090",
+      "decision_revision_id": "rev_0000000000000000000000000000e004",
+      "decision_type": "review_source_fidelity",
+      "modified_revision_id": null,
+      "queue_item_id": "co_qizheng_900001#review_source_fidelity",
+      "seen_artifact_revision_id": "rev_00000000000000000000000000000090",
+      "standing": "active",
+      "synthetic_fixture": true,
+      "target_entity_id": "co_qizheng_900001",
+      "trigger_correction_request_id": null,
+      "verdict": "accept"
+    },
+    {
+      "carried_from_revision_id": null,
+      "carried_to_revision_id": null,
+      "current_target_revision_id": "rev_00000000000000000000000000000090",
+      "decision_revision_id": "rev_0000000000000000000000000000e005",
+      "decision_type": "review_source_fidelity",
+      "modified_revision_id": null,
+      "queue_item_id": "sv_00000000000000000000000000000002#review_source_fidelity",
+      "seen_artifact_revision_id": "rev_00000000000000000000000000000090",
+      "standing": "active",
+      "synthetic_fixture": true,
+      "target_entity_id": "sv_00000000000000000000000000000002",
+      "trigger_correction_request_id": null,
+      "verdict": "accept"
+    }
+  ],
+  "edition_part_artifact_id": "art_00000000000000000000000000000099",
+  "evidence_links": [
+    {
+      "corpus_spans_revision_id": "rev_00000000000000000000000000000a01",
+      "end_offset": 15,
+      "entity_id": "as_qizheng_900001",
+      "quote_sha256": "af49ac1d54e5cbcfec816ba54e2f3edf812bd3fb024e8656c1f3c6abe18172f8",
+      "source_span_id": "ss_sanche_ed01_p0003_s03",
+      "start_offset": 9
+    },
+    {
+      "corpus_spans_revision_id": "rev_00000000000000000000000000000a01",
+      "end_offset": 15,
+      "entity_id": "as_qizheng_900004",
+      "quote_sha256": "af49ac1d54e5cbcfec816ba54e2f3edf812bd3fb024e8656c1f3c6abe18172f8",
+      "source_span_id": "ss_sanche_ed01_p0003_s03",
+      "start_offset": 9
+    }
+  ],
+  "rejected": [],
+  "rework_impact_report_revision_id": null,
+  "schema_version": "0.1.0-draft",
+  "school_views": [
+    {
+      "changes_current_judgment": true,
+      "conflict_group_id": "cg_00000000000000000000000000000001",
+      "school_id": "sch_qizheng_002",
+      "school_view_id": "sv_00000000000000000000000000000002",
+      "subject_entity_id": "as_qizheng_900004"
+    }
+  ],
+  "synthetic": true,
+  "unresolved_count": 0,
+  "validation_package_revision_id": "rev_00000000000000000000000000000b02"
+}

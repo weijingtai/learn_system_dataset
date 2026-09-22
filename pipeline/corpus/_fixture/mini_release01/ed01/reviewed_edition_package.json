@@ -1,0 +1,19 @@
+{
+  "approved_count": 6,
+  "correction_request_revision_ids": [],
+  "decision_count": 6,
+  "decision_revision_ids": [
+    "rev_0000000000000000000000000000d001",
+    "rev_0000000000000000000000000000d002",
+    "rev_0000000000000000000000000000d003",
+    "rev_0000000000000000000000000000d004",
+    "rev_0000000000000000000000000000d005",
+    "rev_0000000000000000000000000000d006"
+  ],
+  "rejected_count": 0,
+  "reviewed_edition_revision_id": "rev_00000000000000000000000000000013",
+  "rework_impact_report_revision_id": null,
+  "schema_version": "0.1.0-draft",
+  "synthetic": true,
+  "unresolved_count": 0
+}
