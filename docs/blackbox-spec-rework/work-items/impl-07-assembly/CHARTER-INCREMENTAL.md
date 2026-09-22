@@ -297,3 +297,31 @@ knowledge.meta.base_snapshot_revision_id = null   ← 陈说「无基底」
 `test_offset_fixture_reports_run_failed_not_host_missing` 的处理同一性质。
 执行器已在回报中报备（第 97 条要求），**批准**。
 
+---
+
+## 10. B 波验收与一条护栏范围问题（2026-09-22）
+
+B 波（`b1013b5`）验收通过：assembly 126→136 OK，四个冻结模块未动，
+两项护栏仍 PASS，禁用库 grep 干净。主 Agent 亲验两条探针：
+
+- **P3**（把 `meta.base_snapshot_revision_id` 写死 None、保留 `prev_revision_id`）
+  → 精确命中 `test_prev_revision_and_meta_base_agree`。**§9.3 的名实一致护栏是真的。**
+- **P1b**（在 `incremental.py` 内直接比对 `collation_key`）
+  → 命中 `test_propose_pairs_is_the_only_matching_site`。
+
+### 10.1 结构护栏的范围偏窄（E 波须补）
+
+主 Agent 第一次注入的是**未被调用**的比对函数，套件**未红**；改成真实比对 `collation_key` 才命中。
+查看实现（`test_incremental_proposals.py:133`）：该护栏用正则只匹配
+`collation_key"] ==` 这一种字面形态。
+
+**结论**：它挡得住「照它设计的那种绕过」，挡不住换个字段的——
+绕开 `propose_pairs` 去比对 `name` / `ast_sha256` / `nfc_key` 都抓不到。
+这不构成 B 波缺陷（死代码不是真实绕过，真实注入也确实命中），但覆盖面须补。
+
+**裁定（写入 E 波要求）**：E 波的独立 Gate 必须以**行为事实**验证
+「配对结果只能来自 `matcher.py`」——例如在 Gate 侧 monkeypatch/探测
+`propose_pairs` 的调用，断言「不经它就产不出配对结果」，
+**而不是靠 grep 源码文本**。行为验证比文本匹配结实，
+这与 W8 ACT 18「独立重算才是独立验证」是同一条原则。
+
