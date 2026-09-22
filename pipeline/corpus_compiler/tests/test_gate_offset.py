@@ -4,13 +4,17 @@ synthetic_fixture: true
 """
 
 import ast
+import contextlib
 import copy
 import hashlib
+import io
 import json
 import os
+import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 import jsonschema
 
@@ -25,6 +29,20 @@ def _gate_source_path():
     """AST 护栏扫描的源文件路径（自检时经环境变量指向临时副本，绝不改动真实源文件）。"""
     override = os.environ.get(GATE_SOURCE_ENV)
     return Path(override) if override else Path(__file__).parent.parent / "gate_offset.py"
+
+
+def _module_copies_of_this_file():
+    """``sys.modules`` 里 ``__file__`` 指向本文件的模块名（排序后，用于范围无关断言）。
+
+    同一文件在进程里只应有一个模块对象；出现两个说明有人按硬编码路径又导入了一份。
+    """
+    target = os.path.abspath(__file__)
+    return sorted(
+        name
+        for name, module in list(sys.modules.items())
+        if getattr(module, "__file__", None)
+        and os.path.abspath(module.__file__) == target
+    )
 
 
 def _create_golden_fixture():
@@ -475,32 +493,32 @@ class TestGateOffsetImportGuard(unittest.TestCase):
         嵌套运行只加载本文件内的 ``TestGateOffset``（含 AST 护栏用例），
         **不得**把 ``TestGateOffsetImportGuard`` 一并载入：那会让本类递归调用自身，
         套件永不终止（护栏仍能检出注入，且不再自噬）。
+
+        Q5（ACT 19）测试设施隔离，三条都是范围无关的前提：
+        1. 模块对象取 ``sys.modules[__name__]``（**当前已导入的那一份**），
+           不得按硬编码绝对路径 ``__import__``：按不同 discover 顶层
+           （``-t .`` → ``pipeline.…``；``-t pipeline`` → ``corpus_compiler.…``）
+           后者会再导入一份副本，同一文件出现两个模块对象，Selfcheck 作用在
+           「另一份」上，结果随发现范围而异。
+        2. 环境变量用 ``mock.patch.dict`` 隔离，异常路径也保证还原。
+        3. 嵌套 runner 的输出导入 ``StringIO``，**不写公共流**：嵌套运行本来就
+           要红（那是它的目的），但它只能体现在返回的 ``result`` 里；写进公共
+           stdout/stderr 会让按输出聚合的复核看到假红。
         """
         source_path = Path(__file__).parent.parent / "gate_offset.py"
+        module = sys.modules[__name__]
         with tempfile.TemporaryDirectory() as tmpdir:
             copied = Path(tmpdir) / "gate_offset.py"
             copied.write_text(
                 text_to_add.rstrip() + "\n" + source_path.read_text(encoding="utf-8"),
                 encoding="utf-8",
             )
-
-            previous = os.environ.get(GATE_SOURCE_ENV)
-            os.environ[GATE_SOURCE_ENV] = str(copied)
-            try:
-                loader = unittest.TestLoader()
-                module = __import__(
-                    "pipeline.corpus_compiler.tests.test_gate_offset", fromlist=["TestGateOffset"]
-                )
-                suite = loader.loadTestsFromTestCase(module.TestGateOffset)
-                runner = unittest.TextTestRunner(verbosity=0)
+            suite = unittest.TestLoader().loadTestsFromTestCase(module.TestGateOffset)
+            with mock.patch.dict(os.environ, {GATE_SOURCE_ENV: str(copied)}):
+                runner = unittest.TextTestRunner(stream=io.StringIO(), verbosity=0)
                 result = runner.run(suite)
-                failed = len(result.failures) + len(result.errors)
-                return failed, result
-            finally:
-                if previous is None:
-                    os.environ.pop(GATE_SOURCE_ENV, None)
-                else:
-                    os.environ[GATE_SOURCE_ENV] = previous
+            failed = len(result.failures) + len(result.errors)
+            return failed, result
 
     def _assert_guard_detected(self, result, injected):
         """断言 AST 护栏用例本身转红（而非仅仅「有东西失败了」）。"""
@@ -552,6 +570,48 @@ class TestGateOffsetImportGuard(unittest.TestCase):
         self.assertGreater(failed, 0, "%s 未被护栏检出" % injected)
         self._assert_guard_detected(result, injected)
         self._assert_real_source_untouched(before, injected)
+
+    # ---- Q5（ACT 19）：测试设施隔离——自检不得污染公共流/模块表/环境 ----
+
+    def test_selfcheck_emits_no_failure_text_to_shared_stream(self):
+        """自检的嵌套运行**本来**就会红（那正是它的目的），但只能体现在 ``result``
+        对象里；写进公共输出（stdout/stderr）会让按 discover 范围聚合输出的复核看到
+        「假红」。本断言对发现范围不敏感。
+        """
+        out, err = io.StringIO(), io.StringIO()
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+            self._inject_and_run("from . import text_compiler")
+        leaked = out.getvalue() + err.getvalue()
+        self.assertNotIn("FAIL:", leaked, "自检把 FAIL 文本泄漏到公共输出:\n%s" % leaked)
+        self.assertNotIn(
+            "FAILED", leaked, "自检把 FAILED 汇总泄漏到公共输出:\n%s" % leaked
+        )
+
+    @classmethod
+    def setUpClass(cls):
+        """在**本类跑任何自检之前**记录本文件的模块对象集合（范围无关断言的基准）。"""
+        cls._module_copies_before_class = _module_copies_of_this_file()
+
+    def test_selfcheck_keeps_single_module_object_for_this_file(self):
+        """自检不得让同一文件在 ``sys.modules`` 里出现第二份模块对象。
+
+        按不同 discover 顶层跑（``-t .`` → ``pipeline.…``；``-t pipeline`` →
+        ``corpus_compiler.…``）模块名不同；若自检按硬编码路径 ``__import__``，
+        在其中一种范围下会再导入一份副本——同一文件两个模块对象，自检作用在
+        「另一份」上，结果随范围而异。此断言在两种范围下都必须成立。
+        """
+        self._inject_and_run("from . import text_compiler")
+        self.assertEqual(
+            _module_copies_of_this_file(),
+            self._module_copies_before_class,
+            "自检导入了本文件的第二份模块副本",
+        )
+
+    def test_selfcheck_restores_gate_source_env(self):
+        """自检结束（含被注入用例转红）后 ``GATE_SOURCE_ENV`` 必须还原。"""
+        before = os.environ.get(GATE_SOURCE_ENV)
+        self._inject_and_run("from . import text_compiler")
+        self.assertEqual(os.environ.get(GATE_SOURCE_ENV), before)
 
 
 if __name__ == "__main__":
