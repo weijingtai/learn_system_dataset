@@ -14,6 +14,7 @@ import json
 from pipeline.ledger import ids
 
 from . import CONSUMPTION_LEVELS, M5_TOOL, M5_TOOL_VERSION
+from . import adapter_notes
 from .context import build_context
 from .findings import gate_summary, level_verdicts, make_report
 from .inputs import resolve_m5_inputs
@@ -181,6 +182,12 @@ def _run_after_begin(
             next_pointer=pending_queue[0] if pending_queue else None,
         )
         checkpoint_revision_ids.append(checkpoint_revision_id)
+
+    # 门禁级检查（W8 ACT 19 Q3，**不在** 14 项 Validator 套件内）：扫描 M4 提交件的
+    # adapter_notes 截断自述。账本里没有 M4 提交件时（夹具与 OCR 档）产出恒为空，
+    # 因而 validators/Checkpoint/冻结输入数不变、既有用例逐字节不受影响；确有提交件
+    # 且命中时产出一条 error 发现，经 gate_summary 变成返工任务、gate.passed 转假。
+    findings.extend(adapter_notes.scan(service, edition_part_id))
 
     verdicts = level_verdicts(findings, task_statuses)
     gate = gate_summary(target_consumption_level, findings, reports)

@@ -63,6 +63,10 @@
         evidence_level_insufficient → SEM_001
         glyphbox_incomplete → SCH_001
         evidence_level_invalid → SCH_002
+        adapter_notes_truncation → None（§5.5 缺口：如实披露项，无错误码；
+            W8 ACT 19 Q3。**门禁级检查，不属下面 14 项 Validator 套件**：由
+            ``adapter_notes.scan`` 在套件之外执行，只在账本确有 M4 提交件时产出
+            发现，故 14 项注册表、Checkpoint 数、冻结输入数与验收行数一概不变）
 """
 
 import importlib
@@ -161,6 +165,9 @@ CHECK_CODES = {
     "evidence_level_insufficient": "SEM_001",
     "glyphbox_incomplete": "SCH_001",
     "evidence_level_invalid": "SCH_002",
+    # 门禁级检查（非 14 项 Validator 套件成员；check 名由
+    # ``adapter_notes.CHECK_NAME`` 提供，取 None：如实披露项无语义吻合码）
+    "adapter_notes_truncation": None,
 }
 
 
