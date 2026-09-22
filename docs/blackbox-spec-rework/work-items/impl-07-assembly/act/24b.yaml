@@ -1,0 +1,110 @@
+act_id: impl-07/24b
+title: D 波返工 —— 闭包健全性检查替换等式断言；R04 按概念分组不再重号
+estimated_minutes: 110
+group: INC-D
+depends_on: [impl-07/24]
+decisions: [CHARTER §13.2, §13.3]
+scope:
+  write:
+    - pipeline/assembly/orchestrate.py         # §13.2
+    - pipeline/assembly/incremental.py         # §13.3，**只许改 R04 那一段**（:338-380 附近）
+    - pipeline/assembly/tests/
+  read_only:
+    - var/ledgers/qianyuan_w8/
+    - pipeline/assembly/apply.py               # 冻结，一行不许改
+    - pipeline/assembly/matcher.py
+    - pipeline/assembly/genesis.py
+    - pipeline/assembly/canonical.py
+    - pipeline/assembly/gate.py
+    - pipeline/assembly/inputs.py
+    - pipeline/corpus/_fixture/mini_ed01/
+background: |
+  先读 `CHARTER-INCREMENTAL.md` §13 全文，这两件的来龙去脉都在里面。
+  ACT 24 的回报在 `/Users/jingtaiwei/tmux-agents/runs/fb-m7-d.report.md`，§6 与 §7 是本 ACT 的起因。
+
+  主 Agent 2026-09-22 实测：
+  - HEAD `93764a5`；`assembly` **163 用例全绿**；`m7-assembler.sh` `pass=11 fail=0 blocked=5`
+  - `apply.py:1597-1605` `_restore_untouched`：把「不在 affected 里、**或**本轮未触及」的基底对象
+    原样拷回——**闭包漏掉被改动的对象时，改动会被基底旧版静默覆盖**
+  - `apply.py:1648-1653` `_rebuilt_ids`：两种情形结果都等于 `touched`
+  - `incremental.py:338-380`：R04 对 `new_concept_candidates + concept_mentions` 逐条出提案，
+    主体键 `[concept, source_id, concept_id 或 surface]`，同一概念多次提及 → 同键多条
+  - `incremental.py:682` `_concept_basis`：哈希 name / aliases / rule_hashes / concept_id，
+    与提及位置无关；但普通提及与带别名的新概念候选可同键不同内容
+  - 真书第二轮（副本上）：10 条提案中 3 条重号，`run_m7` 以 `ID_002` 拒收，`status=failed`
+contract: |
+  一、§13.2 闭包健全性（orchestrate.py）
+    1. 删掉 `rebuilt_entity_ids == closure["affected"]` 的等式断言。
+    2. 新增闭包健全性检查：在调用 `apply` **之前**，从本轮交给 `apply` 的裁定（resolutions）里
+       **独立推出**「本轮将要改动的对象集」，断言它 ⊆ `closure["affected"]`；
+       不满足 → `AssemblyRefused`，message 含「闭包不完整」，并列出漏掉的对象 id（升序）。
+       硬性：推导**不许调用或复刻 `apply` 的私有函数**，只能从裁定本身（subject / targets / auto_choice
+       / 人工决定）读出要动哪些对象。推不出来时**停手上报**，不要猜。
+    3. 保留 `rebuilt ⊆ affected` 检查（廉价健全检查）。
+    4. 保留 ACT 24 新增的监视护栏（传给 `_restore_untouched` 的 affected 必须是闭包集合、不是 None）。
+    5. 扩张到但未被改动的对象：交给 `apply` 原样拷贝，不做任何额外处理。
+
+  二、§13.3 R04 按概念分组（incremental.py，只改 R04）
+    1. 先把 `new_concept_candidates + concept_mentions` **按主体键分组**，每组只出一条提案。
+    2. 组内聚合：`aliases` 取并集（排序）；规则哈希取并集（排序）；
+       名称必须一致——同一 `concept_id` 下出现不同名称 → `AssemblyRefused`，
+       message 含「概念名称冲突」及冲突的 concept_id 与各名称（排序），**不许静默挑一个**。
+    3. `basis_sha256` 按组聚合后的内容计算（仍用 `_concept_basis` 的字段口径）。
+    4. 组内若同时有「已存在于基底」「同名歧义」「全新」三种分支判定不一致 → 停手上报。
+    5. **不许**在 orchestrate 或别处做按 `proposal_key` 的通用去重；
+       `ID_002` 唯一性检查对其余规则**原样保留**。
+    6. 只改 R04。R01–R03、R06–R11b 一字不动；`propose_pairs` 与 `matcher.py` 一字不动。
+
+  三、不许做的事
+    - 不许改 `apply.py`（冻结）
+    - 不许改 R04 以外的任何规则
+    - 不许加通用去重
+    - 不许调用模型、不许用相似度
+    - 不许写 `var/` 真书正本；不许改 `mini_ed01`
+    - 不许让 `upstream_m6_real` / `no_model_calls` 转红
+tests_first: |
+  先写测试并确认转红（贴 Red 原文），再改实现。至少八条具名用例：
+    test_closure_expansion_via_alias_assembles_successfully        # 扩张后 assemble 必须成功，不再拒收
+    test_closure_missing_touched_object_refuses_incomplete         # 闭包漏对象 → 「闭包不完整」
+    test_expanded_untouched_objects_copied_verbatim
+    test_incremental_equals_full_rebuild_with_expansion            # 有扩张时增量仍 ≡ 全量
+    test_r04_one_proposal_per_concept_across_mentions              # 同概念多次提及 → 一条
+    test_r04_aggregates_aliases_and_rule_hashes
+    test_r04_conflicting_names_same_concept_id_refuses
+    test_id_002_still_refuses_duplicate_keys_from_other_rules      # 唯一性检查未被削弱
+  第一条用例必须**经过 assemble**（ACT 24 的 fixpoint 用例只单测了 affected_closure，没经过 assemble）。
+verify: |
+  cd /Users/jingtaiwei/Git/Public/learn_system && export LC_ALL=en_US.UTF-8
+  .venv/bin/python -m unittest discover -s pipeline/assembly/tests -t . 2>&1 | tail -3
+      # OK；≥163 + 新增；skipped 不许增加
+  bash openspec/acceptance/m7-assembler.sh 2>&1 | grep -E "upstream_m6_real|no_model_calls|SUMMARY"
+  for p in dataset_compiler review validation corpus_compiler; do
+    .venv/bin/python -m unittest discover -s pipeline/$p/tests -t . 2>&1 | grep -E "^Ran|^OK|^FAILED" | tail -2; done
+      # corpus_compiler 中间会出现几行 FAIL m3_acceptance（已知的自检子进程噪声），以最后的 OK 为准
+  git diff --stat 93764a5 -- pipeline/assembly/apply.py pipeline/assembly/matcher.py pipeline/assembly/genesis.py pipeline/assembly/canonical.py pipeline/assembly/gate.py pipeline/assembly/inputs.py
+      # 必须无输出
+  git diff 93764a5 -- pipeline/assembly/incremental.py | grep "^@@"
+      # 改动块必须全部落在 R04 段内；把每个 @@ 行贴进回报
+  git status --short var/     # 无输出
+  # 真书第二轮重跑（副本上，用 ACT 24 的 probe_real_m6_orchestrate.py）：
+  #   期望 run_m7 status=succeeded、提案无重号、增量 ≡ 全量；贴原始输出
+  # 篡改探针（三条，绿→红→改回）：
+  #   P1 让闭包健全性检查恒通过 → test_closure_missing_touched_object_refuses_incomplete 转红
+  #   P2 让 R04 回到逐条出提案   → test_r04_one_proposal_per_concept_across_mentions 转红
+  #   P3 在 orchestrate 加按 proposal_key 去重 → test_id_002_still_refuses_duplicate_keys_from_other_rules 转红
+  # 探针副本必须 cp -R 整个仓库（含 ocr/），R13
+commit:
+  add:
+    - pipeline/assembly/orchestrate.py
+    - pipeline/assembly/incremental.py
+    - pipeline/assembly/tests/
+    - docs/blackbox-spec-rework/work-items/impl-07-assembly/act/24b.yaml
+  message: "fix(m7): guard closure soundness and group R04 proposals by concept (INC-D rework, ACT 24b)"
+on_fail: |
+  停止并报告，不许提交红的基线。
+  五种情况必须停手写「## 待裁决」：
+    ① 从裁定里推不出「将要改动的对象集」，只能看 apply 内部才知道
+    ② R04 组内三种分支判定互相矛盾
+    ③ 真书第二轮修完 R04 后仍有别的规则重号
+    ④ 需要改 apply.py 或 R04 以外的规则
+    ⑤ 修完后增量与全量不再等价
