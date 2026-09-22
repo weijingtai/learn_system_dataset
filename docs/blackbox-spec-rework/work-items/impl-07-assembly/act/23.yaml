@@ -1,0 +1,150 @@
+act_id: impl-07/23
+title: C 波 —— 应用裁定 apply_resolutions（发号、对勘集、IdentityDelta）
+estimated_minutes: 200
+group: INC-C
+depends_on: [impl-07/22]
+supersedes: [impl-07/04]     # 规格细节逐字沿用该草稿，冲突处见第一节
+decisions: [D-04, D-05, CHARTER §3.1, §8.1, §8.4, §9.3, §11（本 ACT 新立）]
+scope:
+  write:
+    - pipeline/assembly/apply.py            # 新建：应用裁定
+    - pipeline/assembly/model.py            # 仅允许新增，既有定义不许改
+    - pipeline/assembly/tests/
+    - pipeline/corpus/_fixture/mini_release01/   # 仅在第六节要求时重建金标
+  read_only:
+    - var/ledgers/qianyuan_w8/
+    - pipeline/assembly/genesis.py
+    - pipeline/assembly/canonical.py
+    - pipeline/assembly/gate.py             # E 波范围
+    - pipeline/assembly/inputs.py           # A 波成果
+    - pipeline/assembly/matcher.py          # B 波成果，**一行不许改**
+    - pipeline/assembly/incremental.py      # B 波成果，本波只调用不修改
+    - pipeline/corpus/_fixture/mini_ed01/
+    - openspec/
+background: |
+  **先读**：`CHARTER-INCREMENTAL.md` 全文（尤其 §3.1、§8、§9、§10），
+  再读 `act/04.yaml` **第 20–40 行的规格细节**——本 ACT **逐字沿用**那份规格
+  （发号、merge_entities、split、retire、reject_alias、accept_alias、attach、unify、
+   对勘四类、content_status、返回键、IdentityDelta entry 键序），不重抄、不改写。
+
+  主 Agent 2026-09-22 实测：
+  - B 波已落地 `matcher.py`（7.6K）与 `incremental.py`（32.9K）；`assembly` **136 用例全绿**
+  - `m7-assembler.sh` `pass=11 fail=0 blocked=5`；`upstream_m6_real` 与 `no_model_calls` **PASS**
+  - `incremental.py:34 proposal_key(kind, subject)` 已实现，本波直接用，不得另造
+contract: |
+  一、§11 裁定（主 Agent 2026-09-22，解 C 波与 B 波护栏的冲突）—— **先读这条**
+
+    **冲突事实**：`act/04.yaml` 规定 `variant_reading` 的 detail 用
+    `difflib.SequenceMatcher(...).get_opcodes()` 计算；
+    而 B 波护栏 `test_propose_pairs_is_the_only_matching_site`
+    （`test_incremental_proposals.py:141-152`）用 AST **禁止 `matcher.py` 与
+    `incremental.py` 导入 `difflib`**。两者直接打架。
+
+    **裁定**：
+      1. `difflib.SequenceMatcher.get_opcodes()` **允许**用于**记录**
+         已确立配对的差异细节（`variant_reading.detail.opcodes`）。
+         理由：它是**确定性**的（同输入同输出，可复现），
+         且此处**不做任何配对判断**——配对早已由 `propose_pairs` 确立。
+         CHARTER §4 禁止的是「**模糊文本相似度匹配**」即用相似度**决定谁和谁配对**，
+         与「记录两个已配对文本的差异」是两回事。
+      2. **但只许出现在本波新建的 `apply.py`**，
+         `matcher.py` / `incremental.py` **仍然绝对禁止**（B 波护栏一字不改）。
+      3. **必写护栏** `test_difflib_only_records_never_decides_pairing`：
+         断言 `apply.py` 中 `difflib` 的使用**不影响任何配对/裁定结果**——
+         做法：把 `difflib.SequenceMatcher` 打桩成返回空 opcodes，
+         断言**除 `variant_reading.detail.opcodes` 之外，产物逐字节不变**。
+      4. `apply.py` 仍**禁止**导入 `requests` / `httpx` / `openai` 等网络库。
+
+  二、应用裁定主体（apply.py，新建）
+    按 `act/04.yaml:20-40` 逐字实现，包括但不限于：
+      - `affected=None` 全部重建；`affected=集合` 时**集合外基底对象的规范 JSON 必须原样拷贝**
+        （从 `base_knowledge` 取对象，**不重新构造**）——这条是增量正确性的核心
+      - 发号、`merge_entities`、`split`、`retire`、`reject_alias`、`accept_alias`、
+        `attach`、`unify`、`first_layer_display` 各分支
+      - 对勘四类（alignment / variant_reading / addition / omission）写入 `relations`
+      - `content_status` 只写入 provenance 与 assertions 原值，
+        Pattern/Concept 顶层**不得出现** `content_status` 键
+      - 返回键与 IdentityDelta entry 键序**逐字**按草稿
+    硬性：结果经 `model.validate_snapshot_knowledge` 自检。
+
+  三、发号口径（D-04 + CHARTER §8.1）
+      - 号 = `max(id_allocation["pat_<technique>"], 活对象与 retired 中该命名空间最大号) + 1` 起递增
+      - **但 `id_allocation` 的来源只能是「已获批、进入 Snapshot 的对象」**（§8.1），
+        未获批且携带 M4 自发号的候选**不得计入**，并须写进 `assembly_report`
+        （键 `unapproved_with_self_issued_id`），**不得静默丢弃**
+      - `as_` / `co_` **不由 M7 发号**，只做碰撞检测，冲突即 `ID_002` fail-closed
+
+  四、名实一致收口（CHARTER §9.3，B 波已立，本波不得破坏）
+    本波产出必须继续满足
+    「`prev_revision_id` 非空 ⟺ `meta.base_snapshot_revision_id` 非空」。
+    既有护栏 `test_prev_revision_and_meta_base_agree` **不许改、不许跳过**。
+
+  五、确定性
+    同一输入两次调用，`knowledge_bytes` / `knowledge_sha256` / `identity_delta`
+    **逐字节相同**；所有列表按草稿规定的键升序排序，不得依赖字典插入序。
+
+  六、金标
+    若本波产出使 `mini_release01` 的 r1/r2 金标发生变化，**必须重建并贴出新旧 sha256 对照**
+    （CHARTER §8.4 同口径）。不得让过期金标留在库里。
+
+  七、不许做的事
+    - 不许改 `matcher.py` / `incremental.py` / `genesis.py` / `canonical.py` / `gate.py` / `inputs.py`
+    - 不许改 `model.py` 既有定义（只许新增）
+    - 不许在 `matcher.py` / `incremental.py` 引入 `difflib`（B 波护栏）
+    - 不许调用模型 API；不许用相似度决定配对
+    - 不许写 `var/` 真书正本；不许改 `mini_ed01`
+    - 不许让 `upstream_m6_real` / `no_model_calls` 转红或转 BLOCKED
+tests_first: |
+  先写测试并确认转红（贴 Red 原文），再改实现。至少十条具名用例：
+    test_difflib_only_records_never_decides_pairing        # §11.3 **本波最重要**
+    test_untouched_base_objects_are_copied_verbatim        # affected 集合外原样拷贝
+    test_admit_new_allocates_from_approved_max_only        # §8.1
+    test_unapproved_self_issued_id_reported_not_counted    # §8.1 不得静默
+    test_merge_entities_retires_old_and_rewrites_subjects
+    test_split_allocates_and_retires_with_span_allocation
+    test_as_co_collision_fails_closed                      # ID_002
+    test_identity_delta_entry_key_order_verbatim
+    test_apply_is_deterministic_same_input_same_bytes
+    test_prev_revision_and_meta_base_agree_still_holds     # §9.3 不得破坏
+verify: |
+  cd /Users/jingtaiwei/Git/Public/learn_system && export LC_ALL=en_US.UTF-8
+  .venv/bin/python -m unittest discover -s pipeline/assembly/tests -t . 2>&1 | tail -3
+      # OK；**≥136 + 新增，一个都不许少；skipped 不许增加**
+  bash openspec/acceptance/m7-assembler.sh 2>&1 | grep -E "upstream_m6_real|no_model_calls"   # 两行都 PASS
+  bash openspec/acceptance/m7-assembler.sh 2>&1 | tail -1                                      # fail=0
+  bash pipeline/corpus/_fixture/mini_release01/verify.sh; echo "exit=$?"                       # 0
+  for p in dataset_compiler review validation corpus_compiler; do
+    .venv/bin/python -m unittest discover -s pipeline/$p/tests -t . 2>&1 | tail -1; done       # 全 OK
+  git diff --stat -- pipeline/assembly/matcher.py pipeline/assembly/incremental.py pipeline/assembly/genesis.py pipeline/assembly/canonical.py pipeline/assembly/gate.py pipeline/assembly/inputs.py
+      # 必须无输出
+  .venv/bin/python -c "import ast,sys;t=ast.parse(open('pipeline/assembly/matcher.py').read());print('matcher difflib:', 'difflib' in {a.name.split('.')[0] for n in ast.walk(t) if isinstance(n,ast.Import) for a in n.names})"
+      # 必须 False
+  git status --short var/                                                                      # 无输出
+  # 真书实跑（副本上，正本只读）：喂真实 m6，记录发号结果、unapproved_with_self_issued_id 内容、
+  #   identity_delta 条目数；与 B 波回报对照
+  # 篡改探针（三条，绿→红→改回，写进回报）：
+  #   P1 让 affected 集合外的基底对象也重新构造（而非原样拷贝）
+  #       → test_untouched_base_objects_are_copied_verbatim 转红
+  #   P2 把未获批自发号计入 id_allocation
+  #       → test_admit_new_allocates_from_approved_max_only 转红
+  #   P3 让 difflib 的结果参与一次配对判断
+  #       → test_difflib_only_records_never_decides_pairing 转红
+  # 探针副本必须 cp -R 整个仓库（含 ocr/），只复制 pipeline/ 会出假阴性（R13）
+commit:
+  add:
+    - pipeline/assembly/apply.py
+    - pipeline/assembly/model.py
+    - pipeline/assembly/tests/
+    - pipeline/corpus/_fixture/mini_release01/
+    - docs/blackbox-spec-rework/work-items/impl-07-assembly/act/23.yaml
+  message: "feat(m7): apply resolutions with allocation, collation and identity delta (INC-C, ACT 23)"
+on_fail: |
+  停止并报告，不许提交红的基线。
+  七种情况必须停手写「## 待裁决」：
+    ① `act/04.yaml:20-40` 某条规格在真书输入下语义不明（贴出该条与实际输入）
+    ② §11 的 difflib 例外不足以完成 `variant_reading`（例如需要在 matcher 侧用）
+    ③ `affected` 集合外原样拷贝与某条既有用例冲突
+    ④ 发号口径（§8.1 只按已获批）与 `act/04.yaml` 的「活对象与 retired 最大号」算法矛盾
+    ⑤ `upstream_m6_real` / `no_model_calls` 任一转红或转 BLOCKED
+    ⑥ 需要改 `matcher.py` / `incremental.py` 才能完成
+    ⑦ 重建金标后 F/B 波的某条用例转红
