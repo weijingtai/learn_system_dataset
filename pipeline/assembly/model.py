@@ -2,6 +2,7 @@
 
 import copy
 import re
+from dataclasses import dataclass, field
 
 from pipeline.ledger import ids
 from pipeline.ledger.errors import (
@@ -630,3 +631,45 @@ def _check_sorted(items: list, key_fn, name: str) -> None:
     keys = [key_fn(item) for item in items]
     if keys != sorted(keys):
         raise SchemaViolation("%s 列表未按主键升序排序: %r" % (name, keys), code="SCH_002")
+
+
+# ---------------------------------------------------------------------------
+# 增量汇编新增的闭集与类型（act/impl-07/22 contract 一/二；§8.1）。
+# 本节**只新增**，上方既有定义一字未改。
+# ---------------------------------------------------------------------------
+
+#: D-12：提案键的命名空间（`kind` 只允许这四个）
+PROPOSAL_KINDS = ("merge", "alias", "conflict", "evidence")
+
+#: D-05 采纳 A：并入语义闭集，**禁止静默并入**
+MERGE_RELATIONS = ("attach", "admit_new", "merge_entities")
+
+#: 提案三态 + `decided`（已有合法人工决定）
+PROPOSAL_RESOLUTIONS = ("auto", "human", "blocked", "decided")
+
+#: CHARTER §3.1：配对的全部可用依据（本波只允许这三条确定性依据）
+PAIR_STRATEGIES = ("exact_collation_key", "shared_evidence_span", "same_formal_object")
+
+
+@dataclass(frozen=True)
+class PairCandidate:
+    """配对候选（`:mod:`pipeline.assembly.matcher` 的唯一产出类型）。
+
+    ``suggestion`` 是旁路字段：将来接入模型建议时只填这里，且**不得**进入 Gate 判定、
+    不得影响 ID 发号、不得改变自动裁定结果。本波恒为 ``None``。
+    """
+
+    left_key: str
+    right_key: str
+    strategy: str
+    shared: tuple = field(default_factory=tuple)
+    suggestion: object = None
+
+    def as_dict(self) -> dict:
+        return {
+            "left_key": self.left_key,
+            "right_key": self.right_key,
+            "strategy": self.strategy,
+            "shared": list(self.shared),
+            "suggestion": self.suggestion,
+        }

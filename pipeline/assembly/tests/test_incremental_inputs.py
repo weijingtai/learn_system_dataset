@@ -324,6 +324,12 @@ class IncrementalInputsCase(unittest.TestCase):
 
     # ------------------------------------- 具名用例 7（接受 sealed 基底）
     def test_run_m7_accepts_sealed_base_snapshot(self):
+        """A 波判据：sealed 基底不得再被前置拒绝。
+
+        B 波（ACT 22 §9.3 收口）改了本轮产物：增量轮只出提案（``awaiting_human``）、
+        **不再写创世形状的 Snapshot**——否则会留下「prev 有基底、meta 说没有」的名实不符。
+        这里的断言随之从「写出新修订」改为「接受基底并出提案」。
+        """
         base_art_id, base_rev_id, _ = self.make_snapshot_revision()
         res = run_m7(
             self.service,
@@ -333,15 +339,11 @@ class IncrementalInputsCase(unittest.TestCase):
             base_snapshot_revision_id=base_rev_id,
             id_range=self.id_range,
         )
-        self.assertEqual(res["status"], "succeeded", "sealed 基底必须被接受: %r" % res.get("gate"))
+        self.assertEqual(res["status"], "awaiting_human", "sealed 基底必须被接受并进入提案轮")
+        self.assertIsNone(res["snapshot_revision_id"], "合并属 C 波：本波不得写 Snapshot")
+        self.assertIsNotNone(res["proposals_revision_id"])
 
-        # D-03 A：每 technique 一个 Snapshot Artifact，本轮写新 rev_，prev 指向基底
-        snap_rev = self.service.get_revision(res["snapshot_revision_id"])
-        self.assertNotEqual(res["snapshot_revision_id"], base_rev_id)
-        self.assertEqual(snap_rev["artifact_id"], base_art_id, "增量轮须写同一 Snapshot Artifact 的新修订")
-        self.assertEqual(snap_rev["prev_revision_id"], base_rev_id)
-
-        # 基底进配置修订与 m7 包血缘（冻结输入）
+        # 基底进配置修订与冻结输入
         step = self.service.get_step_run(res["step_run_id"])
         req = json.loads(step["request_json"])
         self.assertIn(base_rev_id, req["input_artifact_ids"])
@@ -350,15 +352,25 @@ class IncrementalInputsCase(unittest.TestCase):
         )
         self.assertEqual(cfg_doc["base_snapshot_revision_id"], base_rev_id)
 
-        row = self.service.store.conn.execute(
-            "SELECT ar.artifact_revision_id FROM artifact_revisions ar "
-            "JOIN stage_packages sp ON ar.artifact_id = sp.artifact_id "
-            "WHERE ar.step_run_id=? AND sp.stage='m7'",
-            (res["step_run_id"],),
+        # 提案集与 assembly_report 已封存，待人工决定写进 Checkpoint
+        prop_rev = self.service.get_revision(res["proposals_revision_id"])
+        self.assertEqual(prop_rev["status"], "sealed")
+        prop_doc = json.loads(self.service.objects.get(prop_rev["sha256"]).decode("utf-8"))
+        self.assertEqual(prop_doc["base_snapshot_revision_id"], base_rev_id)
+        self.assertGreater(len(prop_doc["proposals"]), 0, "ed01 视图上必须能产出提案")
+        scope_row = self.service.store.conn.execute(
+            "SELECT edition_part_id FROM processing_runs WHERE processing_run_id=?",
+            (step["processing_run_id"],),
         ).fetchone()
-        pkg_doc = json.loads(self.service.objects.get(self.service.get_revision(row[0])["sha256"]).decode("utf-8"))
-        lineage_revs = {item["artifact_revision_id"] for item in pkg_doc["lineage"]["upstream_artifacts"]}
-        self.assertIn(base_rev_id, lineage_revs)
+        chain = self.service.list_checkpoints(scope_row[0], "m7")
+        self.assertEqual(chain[-1]["content"]["pending_queue"], res["pending_proposals"])
+
+        # 该 Snapshot Artifact 下只有基底一条修订（本波不写第二条）
+        rows = self.service.store.conn.execute(
+            "SELECT count(*) FROM artifact_revisions WHERE artifact_id=? AND status='sealed'",
+            (base_art_id,),
+        ).fetchone()
+        self.assertEqual(rows[0], 1)
 
     # ------------------------- 具名用例 8（superseded 基底在 begin 之前拒收）
     def test_run_m7_refuses_superseded_base_before_begin(self):
@@ -405,7 +417,9 @@ class IncrementalInputsCase(unittest.TestCase):
             base_snapshot_revision_id=first["snapshot_revision_id"],
             id_range=self.id_range,
         )
-        self.assertEqual(second["status"], "succeeded", "第二个 ReleaseRun 不得撞上「已封存拒绝续写」: %r" % second.get("gate"))
+        self.assertEqual(
+            second["status"], "awaiting_human", "第二个 ReleaseRun 不得撞上「已封存拒绝续写」"
+        )
 
         step2 = self.service.get_step_run(second["step_run_id"])
         prun2 = self.service.store.conn.execute(
@@ -427,21 +441,24 @@ class IncrementalInputsCase(unittest.TestCase):
         self.assertEqual(cfg_rev2["artifact_id"], scope_key)
 
         chain2 = self.service.list_checkpoints(scope_key, "m7")
-        self.assertGreaterEqual(len(chain2), 2, "第二个 Run 须独占自己的 Checkpoint 链")
+        self.assertGreaterEqual(len(chain2), 1, "第二个 Run 须独占自己的 Checkpoint 链")
         self.assertEqual(
             self.service.list_checkpoints(self.ed01["edition_part_artifact_id"], "m7"),
             genesis_chain,
             "第一个 Run 的链不得被覆写",
         )
-
-        # D-03 A：两轮 Snapshot 修订同属一个 Snapshot Artifact
-        snap2 = self.service.get_revision(second["snapshot_revision_id"])
-        self.assertEqual(snap2["prev_revision_id"], first["snapshot_revision_id"])
-        self.assertEqual(
-            snap2["artifact_id"],
-            self.service.get_revision(first["snapshot_revision_id"])["artifact_id"],
-        )
         self.assertNotEqual(second["step_run_id"], first["step_run_id"])
+
+        # §9.3：第二个 Run 不写 Snapshot，因此不存在「prev 有基底而 meta 没有」的修订
+        snapshots = [
+            row[0]
+            for row in self.service.store.conn.execute(
+                "SELECT r.artifact_revision_id FROM artifact_revisions r "
+                "JOIN artifacts a ON a.artifact_id = r.artifact_id "
+                "WHERE a.artifact_type='canonical_snapshot' AND r.status='sealed'"
+            ).fetchall()
+        ]
+        self.assertEqual(snapshots, [first["snapshot_revision_id"]])
 
 
 if __name__ == "__main__":

@@ -7,7 +7,7 @@ import json
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
-from pipeline.assembly import canonical, model
+from pipeline.assembly import canonical, incremental, model
 from pipeline.assembly.errors import AssemblyRefused
 from pipeline.assembly.gate import evaluate_genesis
 from pipeline.assembly.genesis import assemble_genesis, propose_genesis
@@ -57,6 +57,100 @@ def begin_or_supersede(
     if previous is None:
         return service.begin_step_run(request)
     return service.supersede_step_run(previous, request)
+
+
+def _run_incremental_round(
+    service,
+    *,
+    step_run_id: str,
+    scope_key: str,
+    technique_id: str,
+    packages: List[dict],
+    base: dict,
+) -> Dict[str, Any]:
+    """增量提案轮（B 波；CHARTER §9.3 收口，BDD 8.1 的形状）。
+
+    只生成提案并落盘 ``assembly_proposal_set`` / ``assembly_report``，把待人工决定写进
+    Checkpoint 的 ``pending_queue``，然后 ``await_human``。
+
+    **不写 ``canonical_snapshot``**：合并（apply）属 C 波，本波若硬写就只能是
+    「创世形状 + prev 指向基底」的名实不符中间态，正是 §9.3 要求消灭的形状。
+    因此这里宁可不出 Snapshot，也不出一份名实不符的 Snapshot。
+    """
+    views = [
+        {
+            "source_id": package["source_id"],
+            "candidate_set": package["candidate_set"],
+            "reviewed_edition": package["reviewed_edition"],
+        }
+        for package in packages
+    ]
+    proposal_res = incremental.propose_incremental(base["doc"], views, round_no=2)
+
+    prop_doc = {
+        "schema_version": "1.0.0",
+        "technique_id": technique_id,
+        "base_snapshot_revision_id": base["revision_id"],
+        "round": proposal_res["round"],
+        "modes": proposal_res["modes"],
+        "proposals": proposal_res["proposals"],
+        "not_comparable": proposal_res["not_comparable"],
+    }
+    prop_art_id, prop_rev_id = service.put_artifact(
+        step_run_id,
+        "assembly_proposal_set",
+        json.dumps(prop_doc, sort_keys=True, ensure_ascii=False).encode("utf-8"),
+        producer_module=M7_TOOL,
+        producer_version=M7_TOOL_VERSION,
+    )
+    service.seal_revision(prop_rev_id)
+
+    report_doc = {
+        "schema_version": "1.0.0",
+        "technique_id": technique_id,
+        "report": proposal_res["report"],
+    }
+    rep_art_id, rep_rev_id = service.put_artifact(
+        step_run_id,
+        "assembly_report",
+        json.dumps(report_doc, sort_keys=True, ensure_ascii=False).encode("utf-8"),
+        producer_module=M7_TOOL,
+        producer_version=M7_TOOL_VERSION,
+    )
+    service.seal_revision(rep_rev_id)
+
+    pending = [
+        proposal["proposal_key"]
+        for proposal in proposal_res["proposals"]
+        if proposal["resolution"] in ("human", "blocked")
+    ]
+    service.write_checkpoint(
+        step_run_id,
+        edition_part_id=scope_key,
+        stage="m7",
+        completed_tasks=[
+            {
+                "task_id": "propose_r2",
+                "artifact_revision_id": prop_rev_id,
+                "status": "succeeded",
+            }
+        ],
+        human_decisions=[],
+        pending_queue=pending,
+        next_pointer=None,
+    )
+    service.await_human(step_run_id, [prop_rev_id, rep_rev_id])
+
+    return {
+        "status": "awaiting_human",
+        "step_run_id": step_run_id,
+        "snapshot_revision_id": None,
+        "assembly_package_revision_id": None,
+        "validation_report_revision_id": None,
+        "proposals_revision_id": prop_rev_id,
+        "assembly_report_revision_id": rep_rev_id,
+        "pending_proposals": pending,
+    }
 
 
 def run_m7(
@@ -130,6 +224,9 @@ def run_m7(
 
     actual_id_range = id_range if id_range is not None else {"pattern": [1, 10000]}
 
+    # ---- 1.5) 增量轮：提案生成（B 波）----
+    # 见 _run_incremental_round：本波不做合并，因而不写 canonical_snapshot。
+
     # ---- 2) 创建 ProcessingRun（release_run）----
     # D-02 A：增量 ReleaseRun 跨多个 Edition，没有单一 EditionPart，
     # 故以「本 Run 自己的配置 Artifact 身份」为 scope 键（也是 Checkpoint 链键）；
@@ -177,6 +274,17 @@ def run_m7(
         technique_id=technique_id,
     )
 
+    # ---- 4.5) 增量轮到此为止：只出提案，等人工决定（CHARTER §9.3 收口）----
+    if base is not None:
+        return _run_incremental_round(
+            service,
+            step_run_id=step_run_id,
+            scope_key=scope_key,
+            technique_id=technique_id,
+            packages=packages,
+            base=base,
+        )
+
     # ---- 5) 汇编计算 ----
     cset = inputs["candidate_set"]
     ed = inputs["reviewed_edition"]
@@ -221,9 +329,12 @@ def run_m7(
 
     # ---- 7) Gate 通过：写入产物 ----
     # 7.1 canonical_snapshot
-    # D-03 A：每 technique 一个 Snapshot Artifact；增量轮写同一 Artifact 的新修订，prev 指向基底。
-    # 传 prev_revision_id 而不传 artifact_id —— put_artifact 会复用 prev 所属 Artifact
-    # （显式传已存在的 artifact_id 会被 _new_or_explicit 拒为 ID_002）。
+    # D-03 A：每 technique 一个 Snapshot Artifact；合并轮（C 波）写同一 Artifact 的新修订，
+    # prev 指向基底（传 prev_revision_id 而不传 artifact_id —— put_artifact 会复用 prev 所属
+    # Artifact；显式传已存在的 artifact_id 会被 _new_or_explicit 拒为 ID_002）。
+    # 写盘前先过名实一致护栏（CHARTER §9.3）：prev 非空 ⟺ meta.base_snapshot_revision_id 非空。
+    prev_snapshot_revision_id = base["revision_id"] if base is not None else None
+    incremental.assert_prev_meta_agreement(prev_snapshot_revision_id, assembly_res["knowledge"])
     snap_bytes = assembly_res["knowledge_bytes"]
     snap_art_id, snap_rev_id = service.put_artifact(
         step_run_id,
