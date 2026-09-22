@@ -28,7 +28,7 @@
 
 进行中：无派发。执行器 freebuff（DeepSeek V4.1 Flash）会话 `w8-pr` 可复用。
 
-下一步：① 主 Agent 跑 **M7 真书**产出第一份真实 Snapshot（真书账本至今只有 m3/m4/m5/m6，**M7 从未在真书上跑过**）；② 起草并派 8.7（orchestrator 登记 m4/m6、`run_all.sh` 按真实判定输出）；③ **M7 完整增量汇编立项**（最大缺口，至今未拆解）；④ 全书规模化（现仅 4.1%）。
+下一步：① 主 Agent 跑 **M7 真书**产出第一份真实 Snapshot（真书账本至今只有 m3/m4/m5/m6，**M7 从未在真书上跑过**）；② 起草并派 8.7（orchestrator 登记 m4/m6、`run_all.sh` 按真实判定输出）；③ **M7 完整增量汇编：已立项** 2026-09-22（`impl-07-assembly/CHARTER-INCREMENTAL.md`，D-01～D-18 全部裁定，划 A–G 七波，F 波 ACT 已写 `act/20.yaml`，待派）；④ 全书规模化（现仅 4.1%）。
 
 **投产阻断（三条硬的）**：① M7 完整增量汇编未实现，只做了创世一次 → 加不了第二本书、也做不了第二次修订；② M8 未接 M7 真实 Snapshot（卡在 8.5）；③ 编排层未登记 m4/m6，`run_all.sh` 判定过时（仍报「M4 未实现」），无一键验证手段。
 **投产前必改（质量项，均已查实）**：④ M4 brief 每批 20 条上限两路都顶格截断，改自适应 `上限 = 1.2 × 该批片段数`；⑤ 补回被上限截掉的 5 个 concept 词条（正财/偏财/偏印/正印/劫财，b 路 notes 已逐个点名，不必重跑 M4）；⑥ M5 Gate 增一条扫描 `adapter_notes`，命中「控总数/上限/略去/未逐一登记」即置待处理（该字段目前是无下游消费者的死数据）；⑦ 41 片段清单 `spans_tianguan_qisha.yaml` 全盘无此文件（README 只记 sha256），须从提交件重建入库并标注「与原记录 sha256 未能核对」；⑧ `pipeline/corpus_compiler/tests/test_gate_offset.py::test_gate_offset_does_not_import_compiler_modules` 随发现范围变红（自检用的 `GATE_SOURCE_ENV` 泄漏到真实用例），是测试设施缺陷非产品缺陷。

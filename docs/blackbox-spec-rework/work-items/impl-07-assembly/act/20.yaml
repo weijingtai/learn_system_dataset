@@ -1,0 +1,133 @@
+act_id: impl-07/20
+title: F 波 —— mini_release01 金标 fixture + 真书 m6 实跑路径（后续每一波的比对基准）
+estimated_minutes: 180
+group: INC-F
+depends_on: []
+supersedes: [impl-07/00, impl-07/01]    # 原草稿写于 M4–M6 不存在时，见 CHARTER §2 P1
+decisions: [D-02, D-03, D-10（改判，CHARTER §3.2）, D-17, D-18]
+scope:
+  write:
+    - pipeline/corpus/_fixture/mini_release01/          # 新建
+    - pipeline/assembly/fixture_seed.py                 # 既有，只许扩不许重写
+    - pipeline/assembly/tests/
+  read_only:
+    - var/ledgers/qianyuan_w8/                          # 真书正本：**只许读，绝不许写**
+    - pipeline/corpus/_fixture/mini_ed01/               # 金标，一字不动（裁定 95/101）
+    - pipeline/assembly/genesis.py                      # G0 已验收，本波不改
+    - pipeline/assembly/model.py
+    - pipeline/assembly/canonical.py
+    - openspec/                                         # 规格与 schema 不许改
+background: |
+  **先读 `impl-07-assembly/CHARTER-INCREMENTAL.md` 全文**，它是本波的派发依据，
+  与 `README.md` §1–§8 冲突处以 CHARTER 为准。
+
+  主 Agent 2026-09-22 实测（命令与输出如下，可复算）：
+
+  1) `pipeline/assembly/` 已有 11 个模块，**创世汇编已实现并验收**（G0 组，assembly 107 用例全绿）：
+     `__init__ __main__ acceptance canonical errors fixture_seed gate genesis inputs model step`
+     → **本波不得重建任何已存在的模块**，只许扩。
+
+  2) `bash openspec/acceptance/m7-assembler.sh` 当前逐项判定：
+     ```
+     PASS  genesis_snapshot / configuration_and_scope / package_lineage / identity_and_allocation
+     PASS  provenance_and_fidelity / no_silent_fold_and_display / upstream_immutable / checkpoints
+     PASS  closed_set_types / no_model_calls / upstream_m6_real
+     BLOCKED incremental_multi_edition  多 Edition 增量对勘未实现（§15:655）
+     BLOCKED edition_collation          Alignment/VariantReading/Addition/Omission 未实现
+     BLOCKED identity_delta             跨版本身份迁移未实现（§6.3、§16:732）
+     BLOCKED rework_replacement         M6 返工替换未实现（D-14）
+     BLOCKED run_all_20_5               §20.5 未接线（Q29 采纳 C）
+     SUMMARY pass=11 fail=0 blocked=5
+     ```
+     注意 **`upstream_m6_real` 已经 PASS**、**`no_model_calls` 已经 PASS**——
+     这两项是既有护栏，本波**不得使其转红或转 BLOCKED**。
+
+  3) 现有 fixture 只有两个：`pipeline/corpus/_fixture/mini_ed01/`（glyphbox 档）、
+     `qianyuan_ed01_text/`（offset 档，W8 ACT 16 新建）。**没有** `mini_release01`。
+
+  4) 真书账本 `var/ledgers/qianyuan_w8/ledger.sqlite` 有 **m3/m4/m5/m6 四个 stage package**，
+     M6 已 `close` 封存、26 条人工审核决定已导入。**真实上游存在**（CHARTER §2 P1）。
+
+  5) `var/` 被 `.gitignore:16` 整体忽略 —— **测试与验收脚本不得依赖 `var/`**，
+     真书路径只能作为「实跑验证 + 回报证据」，不能作为单元测试的输入。
+contract: |
+  一、mini_release01 金标 fixture（本波主产物）
+    目的：给后续 B/C/D/E 波提供**可重复、可进库**的多版次输入与期望产物。
+    要求：
+      1. 至少含**两个版次**（这是增量汇编的最小可测形状；只有一个版次测不出增量）
+      2. ed01 视图的 Span 引用**锚定 mini_ed01 真实 `spans.yaml`**，
+         以其 sha256 记录在 fixture README 中；**不得复制或改写 mini_ed01 任何文件**
+      3. 期望产物（多版本 `canonical_knowledge_snapshot` 金标）由**脚本生成并落盘**，
+         不许手写；生成命令与产物 sha256 写进回报
+      4. `ed99` 与 `9000NN` 是**约定标识而非新 ID 前缀**——不得写进
+         `openspec/id-prefix-registry.md`，也不得使用任何已登记前缀的形态
+      5. fixture 自带 `verify.sh`，退出码语义与 `mini_ed01/verify.sh` 对齐
+         （0 通过 / 非 0 FAIL / 3 宿主缺失），**不得要求任何页图**
+
+  二、真书实跑路径（CHARTER §3.2 改判，本波必做）
+    在**真书账本副本**上（`cp -R var/ledgers/qianyuan_w8 <临时目录>/`，**正本只读**）：
+      1. 读取真实 m6 stage package，确认能构造出 ReleaseRun 的输入视图
+      2. 把「能/不能接上」的结论连同实际字段差异写进回报——
+         **本波不要求汇编跑通**（增量逻辑要到 B/C/D 波才有），
+         只要求回答：真实 m6 产物的形状与 fixture 假定的形状**差在哪里**
+      3. 若发现真实产物缺少 fixture 假定的字段（例如 `collation_key` / `collation_units`，
+         见 README D-07），**逐条列出**——这直接决定 B 波要不要先补 M4/M6 接口
+    这一节是本波最有价值的产出：W8 全程出现过三次「夹具绿、真书红」
+    （M8 输入解析、gate 适用性声明、patch_reversible），**必须提前把差异摊开**。
+
+  三、ReleaseRun 的 scope 键（D-02 采纳 A）
+    每个 ReleaseRun 先 `new_id("artifact_id")` 得 X，
+    `create_processing_run("release_run", X, technique_id)`，再 `put_run_artifact("configuration", artifact_id=X)`。
+    X 即本次 M7 配置 Artifact 的身份，也是 Checkpoint 链键。**不改 Ledger**。
+    本波只需**验证该方案在真实 Ledger 上可行**（起一个 ReleaseRun 并落一个 Checkpoint），
+    不需要实现完整汇编。
+
+  四、Snapshot 粒度（D-03 采纳 A）
+    每个 technique 一个 Snapshot Artifact（`art_` 稳定），每次汇编写新 `rev_`，
+    `prev_revision_id` 指向基底修订。本波在 fixture 里按此形状构造金标。
+
+  五、Work 标识（D-18）
+    按 README §4 D-18 的推荐项执行；**若该条没有明确推荐或推荐自相矛盾，停手写「## 待裁决」**，
+    不要自行选一种。
+tests_first: |
+  先写测试并确认转红（贴 Red 原文），再建 fixture。至少六个具名用例：
+    test_mini_release01_has_at_least_two_editions
+    test_mini_release01_span_refs_anchor_to_mini_ed01_golden
+    test_mini_release01_verify_sh_needs_no_page_assets
+    test_release_run_scope_key_creates_checkpoint_chain     # D-02 A 可行性
+    test_snapshot_identity_is_stable_per_technique          # D-03 A
+    test_fixture_uses_no_registered_id_prefix               # 一（4）护栏
+  测试**不得依赖 `var/`**（`.gitignore:16`）。真书只在回报里作为实跑证据出现。
+verify: |
+  cd /Users/jingtaiwei/Git/Public/learn_system && export LC_ALL=en_US.UTF-8
+  .venv/bin/python -m unittest discover -s pipeline/assembly/tests -t . 2>&1 | tail -3
+      # OK；**用例数 ≥ 107 + 新增，一个都不许少；skipped 不许增加**
+  bash pipeline/corpus/_fixture/mini_release01/verify.sh; echo "exit=$?"      # 0
+  bash openspec/acceptance/m7-assembler.sh 2>&1 | tail -1
+      # 期望：pass ≥ 11、fail=0；**upstream_m6_real 与 no_model_calls 必须仍为 PASS**
+  git status --short pipeline/corpus/_fixture/mini_ed01/                       # 无输出
+  git status --short var/                                                      # 无输出（真书正本未被写）
+  git diff --stat -- pipeline/assembly/genesis.py pipeline/assembly/model.py pipeline/assembly/canonical.py
+      # 必须无输出（G0 已验收的模块不许改）
+  for p in dataset_compiler review validation corpus_compiler; do
+    .venv/bin/python -m unittest discover -s pipeline/$p/tests -t . 2>&1 | tail -1; done   # 全 OK
+  # 篡改探针（两条，绿→红→改回，写进回报）：
+  #   P1 把 fixture 改成只有一个版次 → test_mini_release01_has_at_least_two_editions 转红
+  #   P2 让 fixture 用一个已登记 ID 前缀 → test_fixture_uses_no_registered_id_prefix 转红
+  # 探针副本必须 cp -R 整个仓库（含 ocr/），只复制 pipeline/ 会出假阴性（R13）
+commit:
+  add:
+    - pipeline/corpus/_fixture/mini_release01/
+    - pipeline/assembly/fixture_seed.py
+    - pipeline/assembly/tests/
+    - docs/blackbox-spec-rework/work-items/impl-07-assembly/act/20.yaml
+  message: "test(m7): add the mini_release01 multi-edition fixture and probe the real m6 upstream (INC-F, ACT 20)"
+on_fail: |
+  停止并报告，不许提交红的基线。
+  六种情况必须停手写「## 待裁决」而不是自行决定：
+    ① 真实 m6 产物缺少 fixture 假定的字段，且你判断不了该改 fixture 还是该补 M4/M6 接口
+    ② D-18 Work 标识没有明确推荐，或推荐自相矛盾
+    ③ 需要改 `genesis.py` / `model.py` / `canonical.py`（G0 已验收）才能完成
+    ④ 需要改 `mini_ed01` 或写 `var/` 真书正本
+    ⑤ `upstream_m6_real` 或 `no_model_calls` 任一从 PASS 转红/转 BLOCKED
+    ⑥ 两个版次的金标产物无法由脚本确定性生成（说明形状设计有问题）
