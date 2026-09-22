@@ -27,6 +27,9 @@
     python3 pipeline/tools/supplement_m4_concept_mentions.py --out /tmp/x.yaml
     python3 pipeline/tools/supplement_m4_concept_mentions.py --check-only
 
+    # 等价写法（两种调用方式的输出一致）：
+    python3 -m pipeline.tools.supplement_m4_concept_mentions
+
 退出码：五条词条全部取到确切出处 → 0；任一条取不到（或点名条不存在）→ 1 且不落盘。
 """
 
@@ -38,7 +41,10 @@ import sys
 
 import yaml
 
-import rebuild_m4_span_list as span_list
+try:  # 按路径执行（文档给的用法）：脚本目录已在 sys.path 上
+    import rebuild_m4_span_list as span_list
+except ImportError:  # 等价写法：python3 -m pipeline.tools.supplement_m4_concept_mentions
+    from pipeline.tools import rebuild_m4_span_list as span_list
 
 REPO = span_list.REPO
 DEFAULT_OUT = os.path.join(

@@ -79,6 +79,9 @@ ss_qianyuan_ed01_o0008844 cleaned[8290,8308) raw[8844,8862) 以乙为劫财，�
 ```bash
 python3 pipeline/tools/supplement_m4_concept_mentions.py              # 落盘
 python3 pipeline/tools/supplement_m4_concept_mentions.py --check-only # 只核对
+
+# 等价写法（两种调用方式输出一致，均已实跑核对）：
+python3 -m pipeline.tools.supplement_m4_concept_mentions --check-only
 ```
 
 实跑输出（逐字）：
