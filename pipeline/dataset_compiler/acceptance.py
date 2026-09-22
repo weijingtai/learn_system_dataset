@@ -8,6 +8,12 @@
 
     python -m pipeline.dataset_compiler.acceptance --fixture <dir> [--check span_identity|publication] [--keep]
 
+路线（D-W8-16 三）按 ``--fixture`` 目录内 ``spans.yaml`` 的 ``evidence_level`` 分派：
+``glyphbox_level`` 走 ``ingest(m1,m2)`` → ``run_m3`` → ``register_source_assets``（逐字不变）；
+``offset_level`` 走 ``run_m1`` → ``run_m2`` → ``run_m3_text``（无页图）。
+不适用当前证据级别的子判据输出 ``NOT_APPLICABLE``（不计入 pass/fail/blocked，
+不得冒充 pass；裁定 107 Q-M8-08）。
+
 退出码：0 全 PASS；1 任一 FAIL 或准备/运行抛异常；2 无 FAIL 有 BLOCKED；3 宿主缺失。
 """
 
@@ -25,14 +31,37 @@ from pathlib import Path
 import yaml
 
 from pipeline.corpus_compiler.step import run_m3
+from pipeline.corpus_compiler.step_offset import run_m3_text
 from pipeline.dataset_compiler.shim.m1_shim_source_assets import register_source_assets
 from pipeline.dataset_compiler.step import run_m8
+from pipeline.digitization.step import run_m2
+from pipeline.intake.source import read_source_files
+from pipeline.intake.step import run_m1
 from pipeline.ledger import fixture_ingest
 from pipeline.ledger.service import LedgerService
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_FIXTURE = REPO_ROOT / "pipeline" / "corpus" / "_fixture" / "mini_ed01"
 DEFAULT_ASSET_ROOT = REPO_ROOT / "ocr" / "data_work" / "sanche_pages"
+
+# 路线枚举（D-W8-16 三）：判定权威 = 夹具目录内 spans.yaml 的 evidence_level 取值。
+ROUTE_GLYPHBOX = "glyphbox_level"
+ROUTE_OFFSET = "offset_level"
+_ROUTES = (ROUTE_GLYPHBOX, ROUTE_OFFSET)
+
+# 裁定 107 Q-M8-08 口径：不适用当前证据级别的子判据输出 not_applicable，不得冒充 pass。
+NOT_APPLICABLE = "NOT_APPLICABLE"
+_OFFSET_NOT_APPLICABLE_DETAIL = "不适用证据级别 offset_level（依赖页/字框）"
+
+# offset 档依赖页/字框、在电子文本路线**不存在对应事实**的子判据。
+_OFFSET_NA_SPAN_CHECKS = (
+    "legacy_collision_exposed",
+    "span_page_binding",
+    "anchor_to_page_image",
+    "glyph_closure",
+    "reverse_index",
+)
+_OFFSET_NA_PUBLICATION_CHECKS = ("coordinate_frame",)
 
 MENTIONS_BLOCKED = (
     "前置缺失: M4 Knowledge Extraction；concept→span mentions 映射未产出；"
@@ -76,13 +105,54 @@ def _read_revision_json(service, revision_id):
         return yaml.safe_load(raw)
 
 
-# ------------------------------------------------------------------ 准备
-def _prepare_ledger(service, fixture_dir, asset_root):
-    """ingest(m1,m2) → run_m3 → register_source_assets，返回 edition_part_id。"""
+# ------------------------------------------------------------------ 路线与准备
+def _detect_route(fixture_dir):
+    """路线判定权威 = 夹具目录内 ``spans.yaml`` 的 ``evidence_level``（D-W8-16 三）。
+
+    不许按目录名猜、不许新增环境变量指定路线。缺 ``spans.yaml`` 或取值不在闭集时
+    返回 ``None``，由调用方按宿主缺失 BLOCKED。
+    """
+    spans_path = Path(fixture_dir) / "spans.yaml"
+    if not spans_path.is_file():
+        return None
+    try:
+        document = yaml.safe_load(spans_path.read_bytes())
+    except Exception:  # noqa: BLE001 - 判定依据读不出即不可判定
+        return None
+    if not isinstance(document, dict):
+        return None
+    level = document.get("evidence_level")
+    return level if level in _ROUTES else None
+
+
+def _prepare_ledger(service, fixture_dir, asset_root, route):
+    """按路线装配宿主，返回 edition_part_id（D-W8-16 一/三）。
+
+    glyphbox 档：``ingest(m1,m2)`` → ``run_m3`` → ``register_source_assets``（逐字不变）。
+    offset 档：M1 入库 → M2 清洗 → ``run_m3_text``；文本 SourceAsset 由 M1 登记
+    （``source_manifest`` + ``raw_text``），**不**走 ``fixture_ingest``、**不**登记页图。
+    """
+    if route == ROUTE_OFFSET:
+        return _prepare_ledger_offset(service, fixture_dir)
     summary = fixture_ingest.ingest(fixture_dir, service, stages=("m1", "m2"))
     edition_part_id = summary["edition_part_id"]
     run_m3(service, edition_part_id)
     register_source_assets(service, edition_part_id, asset_root)
+    return edition_part_id
+
+
+def _prepare_ledger_offset(service, fixture_dir):
+    """电子文本路线：``run_m1`` → ``run_m2`` → ``run_m3_text``（ACT 16 三）。"""
+    source_info = yaml.safe_load((Path(fixture_dir) / "source_info.yaml").read_bytes())
+    edition_part_id = source_info["edition_part"]["artifact_id"]
+    files = read_source_files(str(fixture_dir), source_info["pages"])
+    m1 = run_m1(service, source_info, files, edition_part_id)
+    if m1.get("error"):
+        raise RuntimeError("M1 入库失败: %s" % m1["error"])
+    m2 = run_m2(service, m1["raw_text_revision_ids"][0], source_info, edition_part_id)
+    if m2.get("error"):
+        raise RuntimeError("M2 清洗失败: %s" % m2["error"])
+    run_m3_text(service, edition_part_id)
     return edition_part_id
 
 
@@ -132,12 +202,13 @@ def _discover_inputs(service, edition_part_id, package):
     return spans_revision_id, manifest_revision_id, page_revision_ids, asset_revision_ids
 
 
-def _build_context(service, edition_part_id, fixture_dir, asset_root):
+def _build_context(service, edition_part_id, fixture_dir, asset_root, route):
     step_run_id, package_revision_id, package = _find_m8_package(service, edition_part_id)
     manifest = yaml.safe_load((Path(fixture_dir) / "manifest.yaml").read_bytes())
     spans_golden = yaml.safe_load((Path(fixture_dir) / "spans.yaml").read_bytes())
     return {
         "service": service,
+        "route": route,
         "edition_part_id": edition_part_id,
         "fixture_dir": Path(fixture_dir),
         "asset_root": Path(asset_root),
@@ -498,7 +569,7 @@ def _check_fail_closed_levels(context):
         service = LedgerService(Path(tmp) / "ledger")
         try:
             edition_part_id = _prepare_ledger(
-                service, context["fixture_dir"], context["asset_root"]
+                service, context["fixture_dir"], context["asset_root"], context["route"]
             )
             result = run_m8(service, edition_part_id, consumption_level=level)
             counts = {
@@ -523,7 +594,18 @@ def _check_fail_closed_levels(context):
 
 
 # ------------------------------------------------------------------ 组装结果
+def _route_check_status(name, route, na_checks, fail_detail):
+    """按路线给出子判据状态：offset 档的不适用项 → NOT_APPLICABLE，否则 FAIL。
+
+    裁定 107 Q-M8-08：不适用**不得冒充 pass**，也不得写成 ok。
+    """
+    if route == ROUTE_OFFSET and name in na_checks:
+        return (name, NOT_APPLICABLE, _OFFSET_NOT_APPLICABLE_DETAIL)
+    return (name, "FAIL", fail_detail)
+
+
 def _evaluate_span_identity(context):
+    route = context.get("route")
     service = context["service"]
     results = []
     step_run_id = context["m8_step_run_id"]
@@ -546,7 +628,9 @@ def _evaluate_span_identity(context):
             "glyph_closure",
             "reverse_index",
         ):
-            results.append((name, "FAIL", detail))
+            results.append(
+                _route_check_status(name, route, _OFFSET_NA_SPAN_CHECKS, detail)
+            )
         results.append(("mentions_mapping", "BLOCKED", MENTIONS_BLOCKED))
         return results
 
@@ -565,12 +649,16 @@ def _evaluate_span_identity(context):
         ("reverse_index", lambda: _check_reverse_index(loaded, context["manifest"])),
     ]
     for name, func in checks:
-        results.append(_safe(name, func))
+        if route == ROUTE_OFFSET and name in _OFFSET_NA_SPAN_CHECKS:
+            results.append((name, NOT_APPLICABLE, _OFFSET_NOT_APPLICABLE_DETAIL))
+        else:
+            results.append(_safe(name, func))
     results.append(("mentions_mapping", "BLOCKED", MENTIONS_BLOCKED))
     return results
 
 
 def _evaluate_publication(context):
+    route = context.get("route")
     service = context["service"]
     results = []
     step_run_id = context["m8_step_run_id"]
@@ -593,7 +681,9 @@ def _evaluate_publication(context):
             "consumption_level",
             "watermark_disclosure",
         ):
-            results.append((name, "FAIL", detail))
+            results.append(
+                _route_check_status(name, route, _OFFSET_NA_PUBLICATION_CHECKS, detail)
+            )
         results.append(("fail_closed_levels", "FAIL", detail))
         results.append(("knowledge_chain", "BLOCKED", KNOWLEDGE_CHAIN_BLOCKED))
         return results
@@ -627,7 +717,10 @@ def _evaluate_publication(context):
         ("fail_closed_levels", lambda: _check_fail_closed_levels(context)),
     ]
     for name, func in checks:
-        results.append(_safe(name, func))
+        if route == ROUTE_OFFSET and name in _OFFSET_NA_PUBLICATION_CHECKS:
+            results.append((name, NOT_APPLICABLE, _OFFSET_NOT_APPLICABLE_DETAIL))
+        else:
+            results.append(_safe(name, func))
     results.append(("knowledge_chain", "BLOCKED", KNOWLEDGE_CHAIN_BLOCKED))
     return results
 
@@ -669,26 +762,45 @@ def main(argv=None):
         print("SUMMARY pass=0 fail=0 blocked=1")
         return 3
 
+    route = _detect_route(fixture_dir)
+    if route is None:
+        # D-W8-16 三：夹具缺少判定依据时不可判定，按宿主缺失 BLOCKED。
+        missing_reason = (
+            "无法判定证据级别"
+            if (fixture_dir / "spans.yaml").is_file()
+            else "缺 fixture spans.yaml"
+        )
+        print("BLOCKED m8_acceptance 宿主缺失: %s" % missing_reason)
+        print("SUMMARY pass=0 fail=0 blocked=1")
+        return 3
+
     asset_root = Path(
         os.environ.get("FIXTURE_ASSET_ROOT") or str(DEFAULT_ASSET_ROOT)
     ).resolve()
-    missing = [
-        str(asset_root / ("page_%03d.png" % number))
-        for number in (1, 2, 3)
-        if not (asset_root / ("page_%03d.png" % number)).is_file()
-    ]
-    if missing:
-        print("BLOCKED m8_acceptance BLOCKED_SOURCE_ASSET_MISSING %s" % " ".join(missing))
-        print("SUMMARY pass=0 fail=0 blocked=1")
-        return 3
+    if route == ROUTE_GLYPHBOX:
+        # 页图只对 OCR 路线是宿主前置；电子文本路线不读任何页图（ACT 16 四）。
+        missing = [
+            str(asset_root / ("page_%03d.png" % number))
+            for number in (1, 2, 3)
+            if not (asset_root / ("page_%03d.png" % number)).is_file()
+        ]
+        if missing:
+            print(
+                "BLOCKED m8_acceptance BLOCKED_SOURCE_ASSET_MISSING %s"
+                % " ".join(missing)
+            )
+            print("SUMMARY pass=0 fail=0 blocked=1")
+            return 3
 
     tmp = tempfile.mkdtemp(prefix="m8-acceptance-")
     service = LedgerService(Path(tmp) / "ledger")
     try:
         try:
-            edition_part_id = _prepare_ledger(service, fixture_dir, asset_root)
+            edition_part_id = _prepare_ledger(service, fixture_dir, asset_root, route)
             run_m8(service, edition_part_id, consumption_level="INTERNAL_DEMO")
-            context = _build_context(service, edition_part_id, fixture_dir, asset_root)
+            context = _build_context(
+                service, edition_part_id, fixture_dir, asset_root, route
+            )
         except Exception as exc:  # noqa: BLE001 - 准备/运行异常 → exit 1
             print("FAIL m8_acceptance 宿主准备失败: %s: %s" % (type(exc).__name__, exc))
             print("SUMMARY pass=0 fail=1 blocked=0")
@@ -707,6 +819,9 @@ def main(argv=None):
             elif status == "FAIL":
                 failed += 1
                 print("FAIL %s %s" % (name, detail))
+            elif status == NOT_APPLICABLE:
+                # 不适用当前证据级别：不计入 pass/fail/blocked，不得冒充 pass（裁定 107 Q-M8-08）
+                print("NOT_APPLICABLE %s %s" % (name, detail))
             else:
                 blocked += 1
                 print("BLOCKED %s %s" % (name, detail))

@@ -23,6 +23,18 @@ from pipeline.ledger import fixture_ingest
 
 SHELL = REPO_ROOT / "openspec" / "acceptance" / "m8-span-identity.sh"
 
+# ACT 16：电子文本验收宿主（§11.8 更正后的路径）
+OFFSET_FIXTURE = REPO_ROOT / "pipeline" / "corpus" / "_fixture" / "qianyuan_ed01_text"
+
+# ACT 16 三：offset 档依赖页/字框的子判据（必须 NOT_APPLICABLE，不得冒充 PASS）
+OFFSET_PAGE_DEPENDENT_CHECKS = (
+    "legacy_collision_exposed",
+    "span_page_binding",
+    "anchor_to_page_image",
+    "glyph_closure",
+    "reverse_index",
+)
+
 
 def _last_line(text):
     return text.strip().splitlines()[-1]
@@ -190,6 +202,174 @@ class AcceptanceShellTests(unittest.TestCase):
             self.assertTrue(_first_line(proc.stdout).startswith("FAIL fixture_host"))
         finally:
             shutil.rmtree(tmp, True)
+
+
+class OffsetRouteTests(unittest.TestCase):
+    """ACT 16：验收按夹具路线分派（D-W8-16）。
+
+    offset 档（《乾元秘旨》电子文本宿主）的真值：`run_m8` 因 gate.py / step.py 的
+    offset 缺口如实失败（见 `act/17.yaml`），**不产出 m8 StagePackage**，因此
+    `run_succeeded` 如实 FAIL、依赖页/字框的子判据 NOT_APPLICABLE；
+    这是 ACT 16 三 ⚠ 口径更正后的正确结果，不是缺陷。
+    """
+
+    def _run(self, argv, env=None):
+        buffer = io.StringIO()
+        manager = mock.patch.dict(os.environ, env) if env else contextlib.nullcontext()
+        with manager:
+            with contextlib.redirect_stdout(buffer):
+                code = acceptance.main(argv)
+        return code, buffer.getvalue()
+
+    def test_prepare_ledger_dispatches_to_run_m3_text_for_offset_fixture(self):
+        """offset 档走 M1 → M2 → run_m3_text，不碰 fixture_ingest / run_m3 / 页图登记。"""
+        calls = []
+        service = mock.Mock()
+        with mock.patch.object(
+            acceptance,
+            "run_m1",
+            side_effect=lambda *a, **k: calls.append("m1")
+            or {"raw_text_revision_ids": ["rev_" + "1" * 32]},
+        ), mock.patch.object(
+            acceptance,
+            "run_m2",
+            side_effect=lambda *a, **k: calls.append("m2")
+            or {"cleaned_revision_id": "rev_" + "2" * 32},
+        ), mock.patch.object(
+            acceptance,
+            "run_m3_text",
+            side_effect=lambda *a, **k: calls.append("m3_text")
+            or {"status": "succeeded"},
+        ), mock.patch.object(
+            acceptance,
+            "run_m3",
+            side_effect=AssertionError("offset 档不得调用 OCR 线 run_m3"),
+        ), mock.patch.object(
+            acceptance,
+            "register_source_assets",
+            side_effect=AssertionError("offset 档不得登记页图 SourceAsset"),
+        ):
+            edition_part_id = acceptance._prepare_ledger(
+                service, OFFSET_FIXTURE, None, acceptance.ROUTE_OFFSET
+            )
+        self.assertEqual(calls, ["m1", "m2", "m3_text"])
+        self.assertEqual(
+            edition_part_id, "art_00000000000000000000000000000001"
+        )
+
+    def test_prepare_ledger_ocr_fixture_unchanged(self):
+        """glyphbox 档仍走 ingest → run_m3 → register_source_assets（逐字不变）。
+
+        全程 mock，不依赖本机页图，故**不带** skipUnless（避免资产缺失宿主上静默跳过）。
+        """
+        calls = []
+        service = mock.Mock()
+        with mock.patch.object(
+            acceptance.fixture_ingest,
+            "ingest",
+            side_effect=lambda *a, **k: calls.append("ingest")
+            or {"edition_part_id": "art_000000000000000000000000000000e1"},
+        ) as ingest_mock, mock.patch.object(
+            acceptance,
+            "run_m3",
+            side_effect=lambda *a, **k: calls.append("m3") or {"status": "succeeded"},
+        ), mock.patch.object(
+            acceptance,
+            "register_source_assets",
+            side_effect=lambda *a, **k: calls.append("assets") or {},
+        ), mock.patch.object(
+            acceptance,
+            "run_m3_text",
+            side_effect=AssertionError("glyphbox 档不得调用 run_m3_text"),
+        ), mock.patch.object(
+            acceptance,
+            "run_m1",
+            side_effect=AssertionError("glyphbox 档不得调用 run_m1"),
+        ):
+            edition_part_id = acceptance._prepare_ledger(
+                service, FIXTURE, REPO_ASSET_ROOT, acceptance.ROUTE_GLYPHBOX
+            )
+        self.assertEqual(calls, ["ingest", "m3", "assets"])
+        self.assertEqual(edition_part_id, "art_000000000000000000000000000000e1")
+        ingest_mock.assert_called_once_with(FIXTURE, service, stages=("m1", "m2"))
+
+    def test_acceptance_blocks_when_fixture_has_no_spans_yaml(self):
+        """缺 spans.yaml：与缺 manifest.yaml 同口径 BLOCKED（exit 3）。"""
+        tmp = tempfile.mkdtemp(prefix="m8-acceptance-nospans-")
+        try:
+            shutil.copyfile(
+                OFFSET_FIXTURE / "manifest.yaml", Path(tmp) / "manifest.yaml"
+            )
+            code, out = self._run(["--fixture", tmp])
+            self.assertEqual(code, 3)
+            self.assertEqual(
+                _first_line(out),
+                "BLOCKED m8_acceptance 宿主缺失: 缺 fixture spans.yaml",
+            )
+        finally:
+            shutil.rmtree(tmp, True)
+
+    def test_offset_fixture_page_dependent_checks_are_not_applicable(self):
+        """offset 档依赖页/字框的子判据一律 NOT_APPLICABLE，绝不为 PASS。"""
+        _code, out = self._run(
+            ["--fixture", str(OFFSET_FIXTURE), "--check", "span_identity"]
+        )
+        for name in OFFSET_PAGE_DEPENDENT_CHECKS:
+            self.assertIn("NOT_APPLICABLE %s" % name, out)
+            self.assertNotIn("PASS %s" % name, out)
+
+    def test_offset_fixture_reports_run_failed_not_host_missing(self):
+        """跑到判定而非 BLOCKED 宿主缺失；`run_succeeded` 如实 FAIL。
+
+        注意：本断言如实记录 **ACT 17 修好 gate/step 之前** 的状态（ACT 16 三 ⚠）。
+        """
+        code, out = self._run(
+            ["--fixture", str(OFFSET_FIXTURE), "--check", "span_identity"]
+        )
+        self.assertNotIn("BLOCKED m8_acceptance 宿主缺失", out)
+        self.assertIn("FAIL run_succeeded", out)
+        self.assertIn("BLOCKED mentions_mapping", out)
+        self.assertEqual(code, 1)
+
+    def test_route_detected_from_spans_evidence_level_not_dir_name(self):
+        """路线判定取 spans.yaml 的 evidence_level，与目录名无关。"""
+        tmp = tempfile.mkdtemp(prefix="m8-acceptance-route-")
+        try:
+            # 目录名暗示「text」，但夹具里写的是字框级 → 必须判 glyphbox
+            by_name_text = Path(tmp) / "looks_like_a_text_fixture"
+            # 目录名暗示 OCR 扫描，但夹具里写的是偏移级 → 必须判 offset
+            by_name_scan = Path(tmp) / "mini_ed01_scan_copy"
+            no_hint = Path(tmp) / "whatever"
+            for path in (by_name_text, by_name_scan, no_hint):
+                path.mkdir()
+            (by_name_text / "spans.yaml").write_bytes(b"evidence_level: glyphbox_level\n")
+            (by_name_scan / "spans.yaml").write_bytes(b"evidence_level: offset_level\n")
+            (no_hint / "spans.yaml").write_bytes(b"spans: []\n")
+
+            self.assertEqual(
+                acceptance._detect_route(by_name_text), acceptance.ROUTE_GLYPHBOX
+            )
+            self.assertEqual(
+                acceptance._detect_route(by_name_scan), acceptance.ROUTE_OFFSET
+            )
+            self.assertIsNone(acceptance._detect_route(no_hint))
+            self.assertIsNone(acceptance._detect_route(Path(tmp) / "absent"))
+        finally:
+            shutil.rmtree(tmp, True)
+
+    def test_electronic_fixture_verify_sh_needs_no_page_assets(self):
+        """电子文本 verify.sh 不要求任何页图：FIXTURE_ASSET_ROOT 指不存在处仍 exit 0。"""
+        env = dict(os.environ)
+        env["FIXTURE_ASSET_ROOT"] = "/nonexistent"
+        proc = subprocess.run(
+            ["bash", str(OFFSET_FIXTURE / "verify.sh")],
+            capture_output=True,
+            text=True,
+            cwd=str(REPO_ROOT),
+            env=env,
+        )
+        self.assertEqual(proc.returncode, 0, msg=proc.stdout + proc.stderr)
+        self.assertIn("FIXTURE OK", proc.stdout)
 
 
 if __name__ == "__main__":

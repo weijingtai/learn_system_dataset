@@ -1,0 +1,24 @@
+# 电子文本 M8 入口清单（ACT 16 二）。
+# 字段与值逐字取自同目录 source_info.yaml（M1 来源申报是唯一权威，第 85/95 条），
+# 不新造字段；source_assets 条目取 ACT 14 第三节冻结的 offset 档六键
+# （电子文本不产 width/height 一类页图几何字段）。
+# sha256 = qianyuan_ed01_text.md 磁盘字节的 sha256（自算，见 verify.sh），
+# 与 source_info.yaml:file_sha256、M1 入账后 raw_text 修订 sha256 三方一致。
+source_id: src_qianyuan_ed01
+work_title: 乾元秘旨
+edition_note: 殆知阁 GitHub 仓库 daizhige-org/daizhigev20（data 分支，commit aa2b70789d153f2542e5f4786265157c7356ab76）路径「易藏/术数/乾元秘旨.md」；[清]舒继英撰；全篇单文件、无页码。本地文件名 qianyuan_ed01_text.md（M1 pages 标识符限 ^[a-zA-Z0-9_-]+$，原名含中文不可用作 page id）；文件内容逐字节原样，sha256 与源文件一致。
+technique_id: qizheng
+rights_status: 站方声明免费下载、未附许可证
+release_policy: reference_and_hash_only
+edition_part:
+  artifact_id: art_00000000000000000000000000000001
+  label: 乾元秘旨·全篇（单文件，无页码）
+  pages:
+  - qianyuan_ed01_text
+source_assets:
+- page: qianyuan_ed01_text
+  path_ref: qianyuan_ed01_text.md
+  sha256: "3f7170cd504e496096bc933ab5ed8805d68fa98625c91c5c09a9e3a61fcecdbb"
+  normalized_sha256: "3f7170cd504e496096bc933ab5ed8805d68fa98625c91c5c09a9e3a61fcecdbb"
+  original_encoding: utf-8
+  size: 50451
