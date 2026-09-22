@@ -16,13 +16,19 @@
 
 ---
 
-## 当前状态（2026-09-20）
+## 当前状态（2026-09-22）
 
-刚完成：**P1 = 8.5 已验收**（`5d255e3`）；**P2 = 8.6-K3 已验收**（`ede8851` ACT 13a 按路线解析输入、`ae15eca` ACT 13 改读 M7 Snapshot、`3ef429f`/`4d7d292` 返工 R1）。主 Agent 独立复跑：dataset 175 OK、assembly 107 OK、review 166 OK、validation 108 OK、knowledge_extraction 149 OK、corpus_compiler 163 OK、ledger 84 OK、intake 38 OK、digitization 86 OK，`check_interfaces` `pass=44 fail=0`，`m8-span-identity.sh` `pass=7 fail=0 blocked=1`，`gate.py` 全程未动。
+**里程碑：电子文本路线的 M8 第一次跑通**——夹具上 `run_m8` `status=succeeded`、`failed_check=None`、Gate 23 项全过（主 Agent 独立复核）。这条路一天之内从「连输入都解析不了」走到「全绿」。
 
-进行中：无派发。**ACT 14 已起草**（`impl-04-dataset/act/14.yaml`，packs 的 offset 变体，含裁定 D-W8-14 解 Q-M8-07），待派 freebuff。
+已验收（K4/K5 全部）：`ac3205b` ACT 14（packs offset 变体）、`4ce3367` ACT 15（step 按路线装配冻结输入）、`1451e0f` ACT 15b（known_defects 按档分派）、`d1a35f2` ACT 16（验收走电子文本路线）、`42b83ed` ACT 17（gate 适用性与实现对齐 + 补传 kwargs）、`e9c94f6` ACT 18（patch_reversible 真重算）、ACT 19 五项（`280c0b6` Q1 / `90f649e`+`54ac13f` Q2 / `194bc9f` Q3 / `4e8c3b4` Q4 / `99bc13b` Q5）。
 
-下一步：① 派 ACT 14；② 起草并派 ACT 15（`step.py` 路线分派 + 冻结输入口径，解 `step.py:247` KeyError）；③ 起草并派 ACT 16（`m8-span-identity.sh` 电子文本路线）；④ 主 Agent 跑 M7 真书产出第一份真实 Snapshot（真书账本目前只有 m3/m4/m5/m6 四个 stage package，**M7 从未在真书上跑过**）；⑤ P3 = 8.7。
+主 Agent 独立复跑（2026-09-22）：dataset_compiler **224 OK**（skipped=0）、corpus_compiler 166、assembly 107、review 166、validation 118、knowledge_extraction 149、digitization 86、ledger 84、intake 38、orchestrator 100、contract_registry 45，合计 **1183 全绿**；`check_interfaces` `pass=44 fail=0`；`m8-span-identity.sh` OCR 路线 `pass=7 fail=0 blocked=1` 逐字不变。
+
+**ACT 18 顺带填掉一个历史假绿**：`patch_reversible` 此前读错产物（读 SanitizationReport.patches，而 `replacement` 只在 DeterministicPatchSet 里），且 ACT 17 之前 `step.py` 根本没传该产物 → `patches=[]` 空转 → 恒返回 ok。真书上那句「0 条 patch 可逆」就是这个假绿。现已改为读对产物 + gate 内独立重放 + 与 cleaned_text 逐字节比对；空 patches 时须同时断言 `raw == cleaned`，堵死原路。
+
+进行中：无派发。执行器 freebuff（DeepSeek V4.1 Flash）会话 `w8-pr` 可复用。
+
+下一步：① 主 Agent 跑 **M7 真书**产出第一份真实 Snapshot（真书账本至今只有 m3/m4/m5/m6，**M7 从未在真书上跑过**）；② 起草并派 8.7（orchestrator 登记 m4/m6、`run_all.sh` 按真实判定输出）；③ **M7 完整增量汇编立项**（最大缺口，至今未拆解）；④ 全书规模化（现仅 4.1%）。
 
 **投产阻断（三条硬的）**：① M7 完整增量汇编未实现，只做了创世一次 → 加不了第二本书、也做不了第二次修订；② M8 未接 M7 真实 Snapshot（卡在 8.5）；③ 编排层未登记 m4/m6，`run_all.sh` 判定过时（仍报「M4 未实现」），无一键验证手段。
 **投产前必改（质量项，均已查实）**：④ M4 brief 每批 20 条上限两路都顶格截断，改自适应 `上限 = 1.2 × 该批片段数`；⑤ 补回被上限截掉的 5 个 concept 词条（正财/偏财/偏印/正印/劫财，b 路 notes 已逐个点名，不必重跑 M4）；⑥ M5 Gate 增一条扫描 `adapter_notes`，命中「控总数/上限/略去/未逐一登记」即置待处理（该字段目前是无下游消费者的死数据）；⑦ 41 片段清单 `spans_tianguan_qisha.yaml` 全盘无此文件（README 只记 sha256），须从提交件重建入库并标注「与原记录 sha256 未能核对」；⑧ `pipeline/corpus_compiler/tests/test_gate_offset.py::test_gate_offset_does_not_import_compiler_modules` 随发现范围变红（自检用的 `GATE_SOURCE_ENV` 泄漏到真实用例），是测试设施缺陷非产品缺陷。
@@ -98,6 +104,31 @@ bash openspec/acceptance/run_all.sh | tail -1                                   
 ---
 
 ## 决定记录
+
+**2026-09-21/22 纪律 R14（主 Agent 起草 ACT 的查证义务）**
+
+一天之内被执行器顶回来**四次**，四次都是同一个毛病：**把没亲手跑命令确认过的「事实」写进 ACT**。
+
+| # | 我写的 | 实际 | 后果 |
+|---|---|---|---|
+| 1 | 三条 step 层护栏「恒被 skip、等于假护栏」 | 仓库树 skipped=0，护栏真跑 | 我的探针副本漏了 `ocr/`（页图被 gitignore 但本机存在）→ 假阴性 → **派了一轮无效返工** |
+| 2 | ACT 16「offset 档会有 m8 包可供逐子判据判定」 | 与 ACT 15 §4「M8 会如实失败」自相矛盾 | 必写用例按字面**写不出来** |
+| 3 | ACT 13a/13 verify 段的 `openspec/acceptance/check_interfaces.py` | 该路径**不存在**，真实路径在 `impl-00-interfaces/` | 执行器自己找到才跑通 |
+| 4 | ACT 19 让 Q2/Q4 往 `var/` 落盘**并提交** | `.gitignore:16` 忽略整个 `var/` | 提交不了；若执行器硬改 `.gitignore` 会把运行时账本区拖进库 |
+
+**R14**：ACT 的 `background` 段里每一条「事实」，起草时必须**当场跑命令确认**，
+命令与输出一并写进 background（后续执行器可复算）。凭印象写的事实不得进 ACT。
+尤其是：文件是否存在、路径是否正确、是否被 gitignore、测试是否真的在跑（不是 skipped）。
+
+**R13（2026-09-20，承上）**：篡改探针的副本必须能复现原环境，
+`cp -R`/`rsync -a` **整个仓库**（含被 gitignore 的本机资产如 `ocr/data_work/sanche_pages`），
+只复制 `pipeline/` 会让依赖资产的用例静默 skipped，探针出假阴性、反过来诬告实现。
+
+**反过来要记的**：这四次全靠执行器**停手上报而非硬凑**才没酿成事故。
+第 4 次尤其关键——它没有为了让 `git add` 成功去改 `.gitignore`。
+派单里「遇未知停手，不许自己选一条实现」这条，价值在这四次里兑现了。
+
+
 
 **2026-09-15 裁定 85/86（impl-09 形态唯一权威）**
 同一契约的形态说明只允许有一处权威出处，其余位置一律引用而非复述。
