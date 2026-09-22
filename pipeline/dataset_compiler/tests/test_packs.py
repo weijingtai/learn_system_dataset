@@ -412,6 +412,74 @@ class KnownDefectsTests(unittest.TestCase):
             "ss_sanche_ed01_p0001_s03,ss_sanche_ed01_p0001_s04",
         )
 
+    def test_known_defects_offset_level_skips_glyph_check(self):
+        """offset 档跳过 glyph 检查，不抛 KeyError，且无 glyph_text_mismatch。"""
+        offset_evidence = _offset_evidence_pack()["pack"]
+        self.assertEqual(offset_evidence["evidence_level"], "offset_level")
+        defects = packs.compute_known_defects(
+            evidence_map_pack=offset_evidence,
+            m3_gate_profile="structural_only",
+            rights_status="站方声明免费下载、未附许可证",
+        )
+        codes = [item["code"] for item in defects]
+        self.assertNotIn("glyph_text_mismatch", codes)
+
+    def test_known_defects_offset_level_emits_no_new_code(self):
+        """offset 档不产出任何新 code（闭集未扩大）。"""
+        offset_evidence = _offset_evidence_pack()["pack"]
+        defects = packs.compute_known_defects(
+            evidence_map_pack=offset_evidence,
+            m3_gate_profile="structural_only",
+            rights_status="站方声明免费下载、未附许可证",
+        )
+        codes = [item["code"] for item in defects]
+        allowed_codes = {
+            "excluded_page",
+            "glyph_text_mismatch",
+            "knowledge_chain_not_compiled",
+            "machine_content",
+            "rights_unconfirmed",
+            "semantic_not_evaluated",
+        }
+        for code in codes:
+            self.assertIn(code, allowed_codes)
+
+    def test_known_defects_glyphbox_missing_highlight_level_still_raises(self):
+        """glyphbox 档若丢失 highlight_level 键，仍须报错（驳回 .get() 免疫写法）。"""
+        bad_evidence = copy.deepcopy(_evidence_pack()["pack"])
+        self.assertEqual(bad_evidence["evidence_level"], "glyphbox_level")
+        first_key = next(iter(bad_evidence["entries"]))
+        bad_evidence["entries"][first_key].pop("highlight_level", None)
+        with self.assertRaises(KeyError):
+            packs.compute_known_defects(
+                evidence_map_pack=bad_evidence,
+                m3_gate_profile="structural_only",
+                rights_status=_manifest()["rights_status"],
+            )
+
+    def test_known_defects_glyphbox_level_unchanged(self):
+        """OCR 档回归护栏：证据级别为 glyphbox_level 时行为逐字不变。"""
+        evidence = _evidence_pack()
+        self.assertEqual(evidence["pack"]["evidence_level"], "glyphbox_level")
+        defects = packs.compute_known_defects(
+            evidence_map_pack=evidence["pack"],
+            m3_gate_profile="structural_only",
+            rights_status=_manifest()["rights_status"],
+        )
+        self.assertEqual(
+            [item["code"] for item in defects],
+            [
+                "excluded_page",
+                "glyph_text_mismatch",
+                "knowledge_chain_not_compiled",
+                "machine_content",
+                "rights_unconfirmed",
+                "semantic_not_evaluated",
+            ],
+        )
+        detail = {item["code"]: item["detail"] for item in defects}
+        self.assertEqual(detail["glyph_text_mismatch"], "ss_sanche_ed01_p0001_s03,ss_sanche_ed01_p0001_s04")
+
 
 class ReleaseManifestTests(unittest.TestCase):
     """build_release_manifest 的哈希、排序与 fail-closed。"""

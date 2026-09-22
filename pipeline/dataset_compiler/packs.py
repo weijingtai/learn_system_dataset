@@ -539,15 +539,26 @@ def compute_known_defects(*, evidence_map_pack, m3_gate_profile, rights_status):
         )
         defects.append({"code": "excluded_page", "detail": detail})
 
-    line_bbox_ids = [
-        span_id
-        for span_id, entry in evidence_map_pack["entries"].items()
-        if entry["highlight_level"] == "line_bbox"
-    ]
-    if line_bbox_ids:
-        defects.append(
-            {"code": "glyph_text_mismatch", "detail": ",".join(line_bbox_ids)}
+    evidence_level = evidence_map_pack.get("evidence_level")
+    if evidence_level not in EVIDENCE_LEVELS:
+        raise SchemaViolation(
+            "evidence_map_pack evidence_level 非法: %r（闭集 %r）"
+            % (evidence_level, EVIDENCE_LEVELS),
+            code="SCH_002",
         )
+
+    if evidence_level == "glyphbox_level":
+        line_bbox_ids = [
+            span_id
+            for span_id, entry in evidence_map_pack["entries"].items()
+            if entry["highlight_level"] == "line_bbox"
+        ]
+        if line_bbox_ids:
+            defects.append(
+                {"code": "glyph_text_mismatch", "detail": ",".join(line_bbox_ids)}
+            )
+    elif evidence_level == "offset_level":
+        pass
 
     if evidence_map_pack["knowledge_chain"] != "compiled":
         defects.append(
