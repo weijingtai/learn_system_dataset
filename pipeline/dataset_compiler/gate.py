@@ -58,7 +58,8 @@ _CHECK_APPLICABILITY = {
     "release_manifest_hashes": "both",
     "input_reconciliation": "both",
     "consumption_level": "both",
-    "watermark_disclosure": "both",
+    # ACT 17 二.2：披露清单依赖 highlight_level（OCR 专有）→ 仅字框档实评
+    "watermark_disclosure": "glyphbox",
     "knowledge_chain": "transition",
     "chain_closure": "knowledge",
     "no_assertion_bypass": "knowledge",
@@ -213,17 +214,33 @@ def evaluate_publication(
 
     # 3 text_offsets
     def check_text_offsets():
+        """偏移/文本/quote 与 ``spans_doc`` 对账（ACT 17 二.1：按档分派键集）。
+
+        glyphbox 档：四项（start/end/line_index/text）逐字不变。
+        offset 档：entry 按 ACT 14 二.1 **有意不造** ``line_index``，故比 start/end/text
+        与 ``quote_sha256`` 自洽、``content_status``；偏移合法性与不重叠归
+        ``offset_anchor_continuity``（两项断言不同，实测对照见回报）。
+        """
         entries = evidence_map_pack["entries"]
         by_id = _spans_by_id(spans_doc)
+        glyphbox = evidence_level == "glyphbox_level"
         for key, entry in entries.items():
             span = by_id[key]
-            if (
-                entry["start_offset"] != span["start_offset"]
-                or entry["end_offset"] != span["end_offset"]
-                or entry["line_index"] != span["line_index"]
-                or entry["text"] != span["text"]
-            ):
-                return _fail("offset/line_index/text 与 spans_doc 不符: %s" % key)
+            if glyphbox:
+                if (
+                    entry["start_offset"] != span["start_offset"]
+                    or entry["end_offset"] != span["end_offset"]
+                    or entry["line_index"] != span["line_index"]
+                    or entry["text"] != span["text"]
+                ):
+                    return _fail("offset/line_index/text 与 spans_doc 不符: %s" % key)
+            else:
+                if (
+                    entry["start_offset"] != span["start_offset"]
+                    or entry["end_offset"] != span["end_offset"]
+                    or entry["text"] != span["text"]
+                ):
+                    return _fail("offset/text 与 spans_doc 不符: %s" % key)
             if entry["quote_sha256"] != _sha256(entry["text"].encode("utf-8")):
                 return _fail("quote_sha256 与 text 不符: %s" % key)
             if entry["content_status"] != spans_doc["content_status"]:
@@ -294,6 +311,27 @@ def evaluate_publication(
         if [page["page"] for page in source_asset_pack["pages"]] != page_order:
             return _fail("source_asset_pack 页序与清单页序不符")
         pack_pages = {page["page"]: page for page in source_asset_pack["pages"]}
+        if evidence_level == "offset_level":
+            # ACT 17 二.3：offset 档的 SourceAsset 事实 = manifest.source_assets +
+            # RawText 修订 sha256（ACT 14 三同口径）。本档无页图几何、asset_records 为 {},
+            # entry 亦不带 image_sha256 / source_asset_artifact_revision_id。
+            raw_text_sha256 = (
+                raw_text_binding.get("sha256")
+                if isinstance(raw_text_binding, dict)
+                else None
+            )
+            if not raw_text_sha256:
+                return _fail("offset 档缺 raw_text_binding.sha256，无法绑定底本")
+            for page in page_order:
+                if not (
+                    pack_pages[page]["sha256"]
+                    == assets[page]["sha256"]
+                    == raw_text_sha256
+                ):
+                    return _fail(
+                        "页 %s 底本哈希三方不一致（资产包/清单/RawText）" % page
+                    )
+            return _ok("资产包、清单与 RawText 修订三方绑定一致")
         for page in page_order:
             manifest_asset = assets[page]
             pack_page = pack_pages[page]

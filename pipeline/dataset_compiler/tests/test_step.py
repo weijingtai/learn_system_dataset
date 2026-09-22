@@ -13,7 +13,7 @@ from pathlib import Path
 
 from pipeline.corpus_compiler.step_offset import run_m3_text
 from pipeline.corpus_compiler.tests.test_step_offset import _setup_m2_ledger
-from pipeline.dataset_compiler import packs
+from pipeline.dataset_compiler import gate, packs
 from pipeline.dataset_compiler.canonical import normalized_sha256
 from pipeline.dataset_compiler.errors import DatasetRefused
 from pipeline.dataset_compiler.inputs import _check_input_references, resolve_m8_inputs
@@ -615,6 +615,67 @@ class ElectronicTextFrozenInputTests(ElectronicTextStepBase):
         self.assertEqual(result["failed_check"], "input_contract")
         self.assertIn("RawText", result["reason"])
         self.assertEqual(self._m8_package_count(), 0)
+
+
+class GateEvidenceKwargTests(ElectronicTextStepBase):
+    """ACT 17 三：step.py 必须把三个 offset 档冻结输入传给独立发布 Gate。"""
+
+    def _spy_gate(self):
+        """记录传给 gate.evaluate_publication 的 kwargs，并照常委派原实现。"""
+        captured = {}
+        original = gate.evaluate_publication
+
+        def spy(**kwargs):
+            captured.update(kwargs)
+            return original(**kwargs)
+
+        gate.evaluate_publication = spy
+        self.addCleanup(setattr, gate, "evaluate_publication", original)
+        return captured
+
+    def test_raw_text_binding_receives_kwargs_from_frozen_inputs(self):
+        captured = self._spy_gate()
+        inputs = self._ready()
+        self._run_etext()
+
+        self.assertTrue(captured, "Gate 未被调用")
+        self.assertIsInstance(captured.get("raw_text_binding"), dict)
+        self.assertRegex(captured["raw_text_binding"]["sha256"], r"^[0-9a-f]{64}$")
+        self.assertIsInstance(captured.get("raw_text"), dict)
+        self.assertIsInstance(captured["raw_text"].get("text"), str)
+        self.assertIsInstance(captured.get("sanitization_report"), dict)
+
+        # 必须取自冻结输入：raw_text_binding.sha256 == 冻结 raw_text 修订的 sha256；
+        # raw_text.text 的 UTF-8 字节逐字等于该冻结对象字节（不许现读账本旁路冻结集）。
+        frozen_sha256 = self.service.get_revision(inputs["raw_text_revision_id"])["sha256"]
+        self.assertEqual(captured["raw_text_binding"]["sha256"], frozen_sha256)
+        self.assertEqual(
+            captured["raw_text"]["text"].encode("utf-8"),
+            self.service.objects.get(frozen_sha256),
+        )
+
+
+class OcrRouteGateKwargTests(StepTestBase):
+    """ACT 17 三：OCR 路线三个 offset 档 kwarg 一律 None（gate 侧行为逐字不变）。"""
+
+    @unittest.skipUnless(assets_available(), "本机缺三页真实页图")
+    def test_ocr_route_kwargs_are_none(self):
+        captured = {}
+        original = gate.evaluate_publication
+
+        def spy(**kwargs):
+            captured.update(kwargs)
+            return original(**kwargs)
+
+        gate.evaluate_publication = spy
+        self.addCleanup(setattr, gate, "evaluate_publication", original)
+        self.ready()
+        run_m8(self.service, self.edition_part_id, consumption_level="INTERNAL_DEMO")
+
+        self.assertTrue(captured, "Gate 未被调用")
+        for name in ("raw_text_binding", "raw_text", "sanitization_report"):
+            self.assertIn(name, captured)
+            self.assertIsNone(captured[name], msg=name)
 
 
 class FrozenInputAssemblyTests(unittest.TestCase):

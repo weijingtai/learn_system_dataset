@@ -167,6 +167,326 @@ def _evaluate(base, **overrides):
 
 from pipeline.dataset_compiler.canonical import quote_sha256 as _quote_sha256  # noqa: E402
 
+# ---- ACT 17：offset 档金标（形状取自 ACT 14 的 offset 包；不引用任何书中文句）----
+_OFFSET_PAGE = "qianyuan_ed01_text"
+_OFFSET_RAW_SHA = "a" * 64
+_OFFSET_TEXT = "天地玄黄"
+
+
+def _offset_manifest():
+    """offset 档清单：release_policy 走 reference_and_hash_only，资产为底本六键。"""
+    return {
+        "source_id": "src_qianyuan_ed01",
+        "technique_id": "qizheng",
+        "rights_status": "public_domain",
+        "release_policy": "reference_and_hash_only",
+        "edition_part": {
+            "artifact_id": "art_%032x" % 1,
+            "label": "合成 offset 部件",
+            "pages": [_OFFSET_PAGE],
+        },
+        "source_assets": [
+            {
+                "page": _OFFSET_PAGE,
+                "path_ref": "qianyuan_ed01_text.md",
+                "sha256": _OFFSET_RAW_SHA,
+                "normalized_sha256": _OFFSET_RAW_SHA,
+                "original_encoding": "utf-8",
+                "size": len(_OFFSET_TEXT.encode("utf-8")),
+            }
+        ],
+    }
+
+
+def _offset_spans_doc():
+    """单片段 offset spans_doc（锚点恰为裁定 78 D3 七键）。"""
+    span_id = "ss_qianyuan_ed01_o0000001"
+    return {
+        "work": "qianyuan",
+        "source_id": "src_qianyuan_ed01",
+        "edition_part_artifact_id": "art_%032x" % 1,
+        "evidence_level": "offset_level",
+        "content_status": "machine_extracted",
+        "span_count": 1,
+        "spans": [
+            {
+                "span_id": span_id,
+                "sequence": 1,
+                "start_offset": 0,
+                "end_offset": len(_OFFSET_TEXT),
+                "text": _OFFSET_TEXT,
+                "quote_sha256": _quote_sha256(_OFFSET_TEXT),
+                "evidence_level": "offset_level",
+                "source_anchor": {
+                    "raw_text_revision_id": "rev_%032x" % 11,
+                    "raw_start": 0,
+                    "raw_end": len(_OFFSET_TEXT),
+                    "cleaned_text_revision_id": "rev_%032x" % 12,
+                    "start_offset": 0,
+                    "end_offset": len(_OFFSET_TEXT),
+                    "quote_sha256": _quote_sha256(_OFFSET_TEXT),
+                },
+            }
+        ],
+    }
+
+
+def _offset_golden():
+    """offset 档 Gate 金标：两个子包与 ReleaseManifest 全部按 offset 形状由 packs 实构。"""
+    manifest = _offset_manifest()
+    spans_doc = _offset_spans_doc()
+    source_asset_pack = packs.build_source_asset_pack(
+        manifest=manifest, asset_records={}, raw_text_sha256=_OFFSET_RAW_SHA
+    )
+    evidence_map_pack = packs.build_evidence_map_pack(
+        spans_doc=spans_doc,
+        page_docs={},
+        ocr_page_revision_ids={},
+        source_asset_pack=source_asset_pack["pack"],
+        excluded_pages={},
+    )
+    frozen_inputs = [
+        {
+            "artifact_revision_id": "rev_%032x" % 301,
+            "artifact_type": "stage_package",
+            "sha256": "5" * 64,
+        },
+        {
+            "artifact_revision_id": "rev_%032x" % 302,
+            "artifact_type": "corpus_spans",
+            "sha256": "6" * 64,
+        },
+    ]
+    release_manifest = packs.build_release_manifest(
+        release_id="rel_%032x" % 7,
+        admission=_admission(),
+        release_scope={"edition_part_ids": [manifest["edition_part"]["artifact_id"]]},
+        technique_id="qizheng",
+        packs=[
+            {
+                "pack_type": "source_asset_pack",
+                "artifact_revision_id": "rev_%032x" % 311,
+                "sha256": source_asset_pack["sha256"],
+                "size": len(source_asset_pack["bytes"]),
+            },
+            {
+                "pack_type": "evidence_map_pack",
+                "artifact_revision_id": "rev_%032x" % 312,
+                "sha256": evidence_map_pack["sha256"],
+                "size": len(evidence_map_pack["bytes"]),
+            },
+        ],
+        input_reconciliation=[
+            {
+                "artifact_revision_id": item["artifact_revision_id"],
+                "artifact_type": item["artifact_type"],
+                "sha256": item["sha256"],
+            }
+            for item in frozen_inputs
+        ],
+        schema_versions=_DRAFT_VERSIONS,
+        min_app_version=None,
+        known_defects=packs.compute_known_defects(
+            evidence_map_pack=evidence_map_pack["pack"],
+            m3_gate_profile="structural_only",
+            rights_status=manifest["rights_status"],
+        ),
+        watermark_text=packs.INTERNAL_DEMO_WATERMARK,
+    )
+    return {
+        "manifest": manifest,
+        "spans_doc": spans_doc,
+        "page_docs": {},
+        "ocr_page_revision_ids": {},
+        "asset_records": {},
+        "excluded_pages": {},
+        "m3_gate_profile": "structural_only",
+        "frozen_inputs": frozen_inputs,
+        "source_asset_pack": source_asset_pack["pack"],
+        "evidence_map_pack": evidence_map_pack["pack"],
+        "release_manifest": release_manifest["manifest"],
+        "pack_bytes": {
+            "source_asset_pack": source_asset_pack["bytes"],
+            "evidence_map_pack": evidence_map_pack["bytes"],
+        },
+        "consumption_level": "INTERNAL_DEMO",
+        "raw_text_binding": {"sha256": _OFFSET_RAW_SHA},
+        "raw_text": {"text": _OFFSET_TEXT},
+        "sanitization_report": {"findings": [], "patches": []},
+    }
+
+
+# 判定内部异常会被 run() 折成 "<类型>: <detail>"；本表用于识别「异常结论」
+_EXCEPTION_PREFIXES = (
+    "KeyError",
+    "TypeError",
+    "AttributeError",
+    "IndexError",
+    "NameError",
+    "UnboundLocalError",
+    "ValueError",
+)
+
+
+def _looks_like_exception(detail):
+    return (detail or "").split(":", 1)[0] in _EXCEPTION_PREFIXES
+
+
+class ApplicabilityConsistencyTests(unittest.TestCase):
+    """ACT 17 一/二：`_CHECK_APPLICABILITY` 声明与实现严格一致。
+
+    本类第一条是防「声明 both 却只读单档键」再次出现的总护栏（D-W8-17）。
+    """
+
+    def test_check_applicability_matches_implementation_for_every_check(self):
+        glyphbox = _evaluate(_golden())["checks"]
+        offset = _evaluate(_offset_golden())["checks"]
+        self.assertEqual(set(gate._CHECK_APPLICABILITY), set(gate._CHECK_NAMES))
+        for name, scope in gate._CHECK_APPLICABILITY.items():
+            glyph = glyphbox[name]
+            off = offset[name]
+            if scope == "both":
+                for label, check in (("glyphbox", glyph), ("offset", off)):
+                    self.assertNotEqual(
+                        check.get("status"),
+                        "not_applicable",
+                        msg="%s 声明 both，%s 档却 not_applicable" % (name, label),
+                    )
+                    self.assertFalse(
+                        _looks_like_exception(check.get("detail")),
+                        msg="%s/%s 给出异常结论: %s" % (name, label, check.get("detail")),
+                    )
+            elif scope == "glyphbox":
+                self.assertEqual(
+                    off.get("status"),
+                    "not_applicable",
+                    msg="%s 声明 glyphbox，offset 档却实评了" % name,
+                )
+            elif scope == "offset":
+                self.assertEqual(
+                    glyph.get("status"),
+                    "not_applicable",
+                    msg="%s 声明 offset，glyphbox 档却实评了" % name,
+                )
+            elif scope == "knowledge":
+                self.assertEqual(
+                    off.get("status"),
+                    "not_applicable",
+                    msg="%s 声明 knowledge，知识链未编译时却实评了" % name,
+                )
+            # scope == "transition"（knowledge_chain）恒执行，内部自判 not_evaluated
+
+    def test_text_offsets_offset_level_evaluates_or_is_not_applicable(self):
+        """offset 档 text_offsets 必须实评（非异常、非 not_applicable），且不与
+        offset_anchor_continuity 重复——逐条对照见下。"""
+        out = _evaluate(_offset_golden())
+        check = out["checks"]["text_offsets"]
+        self.assertNotEqual(check.get("status"), "not_applicable")
+        self.assertTrue(check["ok"], msg=check["detail"])
+
+        # 断言逐条对照（判「是否重复」的实测依据）：
+        #   text_offsets            = entry.{start,end,text,quote_sha256,content_status}
+        #                             与 spans_doc 逐条相等 + quote_sha256 自洽
+        #   offset_anchor_continuity= 按 span_id 排序后 0<=start<=end 且不重叠/不倒序
+        # → 篡改 quote_sha256 只让 text_offsets 红，offset_anchor_continuity 不受影响
+        golden = _offset_golden()
+        evidence = copy.deepcopy(golden["evidence_map_pack"])
+        key = next(iter(evidence["entries"]))
+        evidence["entries"][key]["quote_sha256"] = "0" * 64
+        out2 = _evaluate(golden, evidence_map_pack=evidence)
+        self.assertFalse(out2["checks"]["text_offsets"]["ok"])
+        self.assertTrue(out2["checks"]["offset_anchor_continuity"]["ok"])
+
+        # 反向：篡改偏移连续性（把 end 拉过头）只让 offset_anchor_continuity 红
+        evidence2 = copy.deepcopy(golden["evidence_map_pack"])
+        span_key = next(iter(evidence2["entries"]))
+        evidence2["entries"][span_key]["start_offset"] = len(_OFFSET_TEXT) + 5
+        out3 = _evaluate(golden, evidence_map_pack=evidence2)
+        self.assertFalse(out3["checks"]["offset_anchor_continuity"]["ok"])
+
+    def test_source_asset_binding_offset_level_binds_manifest_and_raw_text(self):
+        """offset 档按「资产包 == 清单 == RawText 修订 sha256」三方实评。"""
+        out = _evaluate(_offset_golden())
+        check = out["checks"]["source_asset_binding"]
+        self.assertNotEqual(check.get("status"), "not_applicable")
+        self.assertTrue(check["ok"], msg=check["detail"])
+
+        mismatch = _evaluate(_offset_golden(), raw_text_binding={"sha256": "0" * 64})
+        self.assertFalse(mismatch["checks"]["source_asset_binding"]["ok"])
+
+    def test_watermark_disclosure_offset_level_is_not_applicable(self):
+        """watermark_disclosure 的语义依赖 highlight_level（OCR 专有）→ 声明 glyphbox。"""
+        check = _evaluate(_offset_golden())["checks"]["watermark_disclosure"]
+        self.assertEqual(check.get("status"), "not_applicable")
+        self.assertIsNot(check["ok"], True)
+        self.assertEqual(gate._CHECK_APPLICABILITY["watermark_disclosure"], "glyphbox")
+
+    def test_sanitization_disclosure_still_reconciles_forbidden_chars(self):
+        """裁定 103 D1 不得动摇：报告「在了」不等于通过，禁止字符必须逐条对账。"""
+        uncovered = _evaluate(
+            _offset_golden(),
+            raw_text={"text": _OFFSET_TEXT + "?"},
+            sanitization_report={"findings": [], "patches": []},
+        )
+        self.assertFalse(
+            uncovered["checks"]["sanitization_disclosure"]["ok"],
+            msg="报告在场但禁止字符未对账，仍须失败",
+        )
+
+        covered = _evaluate(
+            _offset_golden(),
+            raw_text={"text": _OFFSET_TEXT + "?"},
+            sanitization_report={
+                "findings": [
+                    {
+                        "finding_id": "f1",
+                        "kind": "replacement_char",
+                        "raw_start": len(_OFFSET_TEXT),
+                        "raw_end": len(_OFFSET_TEXT) + 1,
+                        "terminal_state": "known_unresolvable",
+                    }
+                ],
+                "patches": [],
+            },
+        )
+        self.assertTrue(
+            covered["checks"]["sanitization_disclosure"]["ok"],
+            msg=covered["checks"]["sanitization_disclosure"]["detail"],
+        )
+
+    def test_not_applicable_never_reports_ok(self):
+        """not_applicable 不得冒充 ok：ok 非 True；把它强改成 ok 必令 passed 翻转。"""
+        golden = _offset_golden()
+        out = _evaluate(golden)
+        not_applicable = [
+            name
+            for name, check in out["checks"].items()
+            if check.get("status") == "not_applicable"
+        ]
+        self.assertTrue(not_applicable)
+        for name in not_applicable:
+            self.assertIsNot(out["checks"][name]["ok"], True, msg=name)
+        out2 = _evaluate(
+            golden, checks_override={"watermark_disclosure": {"ok": True}}
+        )
+        self.assertFalse(out2["passed"])
+
+    def test_glyphbox_level_five_checks_unchanged(self):
+        """OCR 档五项逐字不变（三项实评 + 两项仍不适用），ACT 17 的三处改动不得外溢。"""
+        checks = _evaluate(_golden())["checks"]
+        self.assertEqual(
+            checks["text_offsets"]["detail"], "offset、quote_sha256、content_status 与 spans_doc 一致"
+        )
+        self.assertEqual(
+            checks["source_asset_binding"]["detail"], "资产包、清单、记录与 entry 三方绑定一致"
+        )
+        self.assertEqual(checks["watermark_disclosure"]["detail"], "水印与已知缺陷披露完整")
+        for name in ("text_offsets", "source_asset_binding", "watermark_disclosure"):
+            self.assertTrue(checks[name]["ok"], msg=name)
+            self.assertIsNone(checks[name].get("status"))
+        for name in ("raw_text_binding", "sanitization_disclosure"):
+            self.assertEqual(checks[name]["status"], "not_applicable")
+
 
 class GateGoldenTests(unittest.TestCase):
     """金标：14 项实评 ok True + 9 项 not_applicable（ACT 12 闭集扩为 23）；passed True。"""

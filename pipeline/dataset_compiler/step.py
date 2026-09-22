@@ -327,8 +327,19 @@ def _run_after_begin(
         # 电子文本路线（ACT 15 三）：资产事实取自 raw_text 修订，不是页图
         if inputs["route"] == "ocr":
             raw_text_sha256 = None
+            gate_raw_text_binding = None
+            gate_raw_text = None
+            gate_sanitization_report = None
         else:
-            raw_text_sha256 = service.get_revision(inputs["raw_text_revision_id"])["sha256"]
+            # ACT 17 三：三个 offset 档 Gate 参数一律取自**冻结字节**（frozen_bytes），
+            # 不现读账本、不旁路冻结集。
+            raw_text_bytes = frozen_bytes[inputs["raw_text_revision_id"]]
+            raw_text_sha256 = hashlib.sha256(raw_text_bytes).hexdigest()
+            gate_raw_text_binding = {"sha256": raw_text_sha256}
+            gate_raw_text = {"text": raw_text_bytes.decode("utf-8")}
+            gate_sanitization_report = json.loads(
+                frozen_bytes[inputs["sanitization_report_revision_id"]].decode("utf-8")
+            )
     except Exception as exc:
         return _fail(service, step_run_id, "input_contract", str(exc))
 
@@ -454,6 +465,9 @@ def _run_after_begin(
         },
         consumption_level=consumption_level,
         snapshot_knowledge=inputs["snapshot_knowledge"],
+        raw_text_binding=gate_raw_text_binding,
+        raw_text=gate_raw_text,
+        sanitization_report=gate_sanitization_report,
     )
     # 知识链判定字面：仅由事实推出（D-W8-13b）。无 M7 Snapshot 时链未编译；
     # 有已解析的 Snapshot 时取 gate 实评结果，不再硬编码字面量。
