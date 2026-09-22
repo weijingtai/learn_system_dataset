@@ -27,8 +27,26 @@ README §1–§8 起草于 2026-09 上旬，当时 M4/M5/M6 都不存在。今�
 | # | 草稿假定 | 今天的事实（主 Agent 2026-09-22 实测） | 影响 |
 |---|---|---|---|
 | P1 | 「输入不是真实 M4–M6 产物（尚不存在）」（§1.1） | 真书账本 `var/ledgers/qianyuan_w8` 有 **m3/m4/m5/m6 四个 stage package**；M6 已 `close` 封存、26 条审核决定已导入 | **真实上游存在**，不必只靠金标 fixture |
-| P2 | 「`m7-assembler.sh` 固定保留一行 `BLOCKED upstream_m6_real`，只能返回 2」（§1.2） | G0-06 已把该项做成**可转判 PASS** 的路径；当前实跑 `pass=11 fail=0 blocked=5` | D-13 的前提松动，接线条件要重判 |
+| P2 | 「`m7-assembler.sh` 固定保留一行 `BLOCKED upstream_m6_real`，只能返回 2」（§1.2） | 该项**当前显示 PASS，但跑的不是真书** | **见下方「P2 更正」** |
 | P3 | ACT 02「包骨架 + 规范化 + ReviewedEdition 视图」待建 | **g0-01 已建**（`canonical.py` / `model.py` / `genesis.py` / `gate.py` / `inputs.py` 均在库），W8 8.5（act/11）又补了 `evidence_level` / `corpus_spans_revision_id` | ACT 02 **不能照原样派发**，须改为「在既有骨架上扩增量」 |
+
+### P2 更正（主 Agent 2026-09-22，F 波实测后）
+
+**立项时我把 `upstream_m6_real` 的 PASS 当成了「真实上游已接通」，这是错的。**
+
+实测（`pipeline/assembly/acceptance.py:61` `_prepare_with_real_m6`）：该判据用的是
+`pipeline/review/testing/upstream_stub` 的桩数据 + `mini_ed01` 夹具，
+**不是** `var/ledgers/qianyuan_w8` 的真书 m6。**名字叫 real，跑的是桩。**
+
+这与 W8 的 `patch_reversible` 是同一形状的缺陷：**一个判据名声称它在验什么，实际验的是别的东西**。
+判据名不能当证据，必须看它实际跑什么——这是 R14 的直接应用，而我这次又犯了。
+
+**后果与处置**：
+- P2 不成立。真书路径至今**没有**被任何验收判据覆盖
+- **G 波必须新增一条独立判据**，明确以 `var/ledgers/qianyuan_w8` 真书 m6 为输入（副本上跑），
+  与现有 `upstream_m6_real`（桩）**并列而非替换**
+- 现有 `upstream_m6_real` **不得改名或删除**（它验的桩路径本身有价值），
+  但 G 波须在其 detail 里写明「输入为合成桩」，消除名实不符
 
 **结论**：既有 `act/02–10` 是有价值的草稿，但**必须按上述三点重新校准后才能派发**，
 照原样丢给执行器会让它去重建已经存在的东西。校准方式见 §5。
@@ -172,3 +190,52 @@ bash openspec/acceptance/run_all.sh 20.5
 - **R13**：篡改探针副本必须 `cp -R` 整个仓库（含被 gitignore 的 `ocr/`），否则出假阴性
 - 每个 ACT 必须写明停手条件；执行器遇未知**停手上报而非自行选择**——
   W8 期间这条纪律四次避免了事故
+
+---
+
+## 8. F 波实测后的追加裁定（2026-09-22）
+
+F 波（`827fabb`）在真书上探出四件事，逐条裁定：
+
+### 8.1 真书 M6 只批 assertion，不批 pattern → 创世 Gate 在真书上恒红
+
+实测：26/26 审核结论全是 `assertion`；`candidate_set.patterns` 有 2 条
+`pat_qizheng_000001/000002` 但**不在 `approved` 里**；
+而 `id_allocation` 仍按这 2 条未获批 pattern 取号 →
+`evaluate_genesis` 报 `allocation_monotonic: id_allocation[pat_qizheng]=2 != expected max 0`。
+
+**裁定（采纳方向 b，并给出与裁定 64 不冲突的理由）**：
+`id_allocation` **只按「已获批、进入 Snapshot 的对象」取号**。
+
+理由——裁定 64 的「号 = 该技法命名空间历史最大号（**含已退役**）+ 1」，
+其中「已退役」指的是 **M7 发过号之后再退役**的对象；
+而真书这 2 条是 **M4 自发号、从未获批、M7 从未发过号**的候选，两者性质不同。
+按 D-04 A，M4 本就**不该**自发 `pat_` 号（只能携带已正式的号或不带号的 `candidate_key`），
+所以它们的号从一开始就不该占用正式编号空间。
+让未经审核的内容影响正式编号，等于让未审内容获得事实上的身份。
+
+**追加硬约束**：M7 遇到「携带自发 `pat_` 号的未获批候选」必须**如实写入 `assembly_report`**
+（例如 `unapproved_with_self_issued_id`），**不得静默丢弃**。
+现状两处口径不一致（Snapshot 丢掉它、`id_allocation` 又算上它），根因正是静默。
+
+### 8.2 D-07 的 `collation_key` / `collation_units` 在真书路径不存在
+
+实测：`candidate_set` 无 `collation_units` 键；26 条断言的 `collation_key` **全为 `null`**。
+
+**裁定**：B 波**先只做「同一已正式对象 + 共享证据片段」的确定性配对**，
+完整对勘（D-07 的 `(work_key, collation_key)`）**推迟到 M4 接口补齐之后**。
+B 波的 `propose_pairs`（CHARTER §3.1 的独立函数）须对 `collation_key` 为 null 的输入
+**如实返回「无法配对」而不是猜**，并在 `assembly_report` 里计数。
+
+### 8.3 `reviewed_edition.decisions[]` 的规范键集：以真书为准
+
+真书用 `decision_type` + `verdict`，g0 合成宿主用 `choice`。
+**裁定**：以**真书形态为规范**。F 波已把新夹具改成真书同形，正确。
+旧合成宿主 `tests/data/genesis_package.json` 在 G0 已验收范围内，**本轮不动**；
+若 A/B 波发现必须统一才能继续，停手上报，不得顺手改已验收金标。
+
+### 8.4 r1 金标携带占位包身份
+
+实测：`assemble_genesis` 未被传入真实包身份时写占位 `pkg_m6_0000…` / `rev_0000…`。
+**裁定**：B 波接线真实包身份后**必须重建 r1 金标**并在回报中贴出新旧 sha256 对照。
+不得让占位值留在金标里冒充真值。

@@ -1,0 +1,144 @@
+act_id: impl-07/21
+title: A 波 —— 多包输入解析 + 基底 Snapshot 读取 + ReleaseRun scope 键（现状单包、且明文拒绝基底）
+estimated_minutes: 170
+group: INC-A
+depends_on: [impl-07/20]
+supersedes: [impl-07/02]     # 原草稿要建的包骨架已由 g0-01 建成，见 CHARTER §2 P3
+decisions: [D-02, D-03, D-15, D-16, D-17]
+scope:
+  write:
+    - pipeline/assembly/inputs.py
+    - pipeline/assembly/step.py
+    - pipeline/assembly/tests/
+  read_only:
+    - var/ledgers/qianyuan_w8/          # 真书正本：只许读，绝不许写
+    - pipeline/assembly/genesis.py      # G0 已验收，一行不许改
+    - pipeline/assembly/model.py
+    - pipeline/assembly/canonical.py
+    - pipeline/assembly/gate.py         # E 波的范围，本波不碰
+    - pipeline/corpus/_fixture/mini_ed01/
+    - openspec/
+background: |
+  **先读 `impl-07-assembly/CHARTER-INCREMENTAL.md` 全文**（派发依据；与 README §1–§8 冲突以它为准）。
+
+  主 Agent 2026-09-22 实测（命令与输出可复算）：
+
+  1) `pipeline/assembly/inputs.py:50` `resolve_m7_inputs(service, reviewed_package_revision_ids)`
+     **只处理第一个包**，源码里写得很清楚：
+     ```python
+         # G0 创世汇编单 Package 处理
+         m6_rev_id = reviewed_package_revision_ids[0]
+     ```
+     → 多包（多 Edition / 多版次）目前直接被丢弃，不报错也不处理。
+
+  2) `pipeline/assembly/step.py:62` `run_m7(...)` **明文拒绝基底 Snapshot**：
+     ```python
+         if base_snapshot_revision_id is not None:
+             raise AssemblyRefused(
+                 "当前为创世汇编薄切片，base_snapshot 增量汇编推迟至纵切后",
+                 code="SCH_002",
+             )
+     ```
+     → 这一行就是「增量没实现」的物理位置。
+
+  3) `run_m7` 当前以 `edition_part_id` 为 scope；而 ReleaseRun 跨多个 Edition，没有单一 EditionPart
+     （`processing_runs.edition_part_id NOT NULL`，`store.py:81`；Checkpoint 链以
+     (edition_part_id, stage) 为键，已被 succeeded StepRun 封存后拒绝续写，`service.py:1280-1285`）。
+
+  4) `assembly` 套件当前 **107 用例全绿**；`m7-assembler.sh` `pass=11 fail=0 blocked=5`，
+     其中 `upstream_m6_real` 与 `no_model_calls` **已是 PASS**。
+contract: |
+  一、多包输入解析（inputs.py）
+    `resolve_m7_inputs` 改为处理**列表中的全部**包，不再只取 `[0]`：
+      1. 逐包做现有的四项校验（修订存在 / sealed / artifact_type 为 stage_package / stage 为 m6），
+         任一不合格即拒收，**错误消息须指明是第几个包、哪个修订 id**
+      2. 同一 `(source_id, edition_part_ids 集合)` 出现多次 → 按 D-14「替换」处理：
+         **本波只需识别并如实标记**（返回结构里给出 `replaces` 关系），
+         替换的实际继承逻辑在 D 波，**本波不要实现**
+      3. 返回结构保持**向后兼容**：创世路径（单包、无基底）的返回键与取值逐字不变，
+         既有 107 用例一个都不许改
+    硬性：不许按列表顺序赋予任何语义（顺序不得影响结果）；
+      同一输入两次调用返回**逐字节相同**的结构。
+
+  二、基底 Snapshot 读取（step.py + inputs.py）
+    删掉 `step.py` 里那条 `base_snapshot_revision_id is not None` 的拒绝，改为：
+      1. 为 None → 走既有创世路径，**行为逐字不变**
+      2. 非 None → 校验该修订存在、`sealed`、`artifact_type == "canonical_knowledge_snapshot"`，
+         不符各按既有错误码拒收（`REF_001` / `SCH_002`）
+      3. 读出基底 Snapshot 内容供后续波次使用，**本波不做任何合并**——
+         合并是 B/C 波。本波的判据是「能正确读进来并校验」，不是「能合并」
+    硬性：**不许在本波偷跑合并逻辑**；若你发现不写一点合并就没法验证读取，
+      停手写「## 待裁决」，不要自行扩范围。
+
+  三、ReleaseRun scope 键（D-02 采纳 A）
+    每个 ReleaseRun：
+      1. `X = new_id("artifact_id")`
+      2. `create_processing_run("release_run", X, technique_id)`
+      3. `put_run_artifact("configuration", artifact_id=X)`
+    X 即本次 M7 配置 Artifact 的身份，也是 Checkpoint 链键。**不改 Ledger、不改 schema**。
+    硬性：
+      - 每个 ReleaseRun **独占一条 m7 Checkpoint 链**（第二个 Run 不得撞上
+        `service.py:1280` 的「已封存拒绝续写」）
+      - 创世路径仍可用既有方式，**不得因本条改动而让 107 个既有用例任何一个转红**
+      - 若 D-02 A 在真实 Ledger 上走不通（例如 `create_processing_run` 拒绝该形态的 X），
+        **停手写「## 待裁决」并贴出失败原文**，不要改 Ledger、不要换方案
+
+  四、基底修订状态与并发（D-15 采纳 A，本波只做前半）
+    本波只需实现「**begin 之前**的并发拒绝」：若基底修订已是 `superseded`，
+    在 `begin_step_run` 之前拒收（无写入）。
+    `supersede_revision(base, new)` 的调用属封存流程，在 **C 波**，本波不做。
+
+  五、Checkpoint 粒度（D-16 采纳 A）
+    本波只需保证「非人工 task 各一个 Checkpoint」这一半；
+    人工决定的即时落盘在 **D 波**（人审回流）。
+
+  六、不许做的事
+    - 不许改 `genesis.py` / `model.py` / `canonical.py` / `gate.py`
+    - 不许调用任何模型 API、不许做模糊文本相似度匹配（规格 §2.10）
+    - 不许写 `var/` 真书正本
+    - 不许让 `m7-assembler.sh` 的 `upstream_m6_real` 或 `no_model_calls` 转红/转 BLOCKED
+tests_first: |
+  先写测试并确认转红（贴 Red 原文），再改实现。至少八个具名用例：
+    test_resolve_inputs_accepts_multiple_reviewed_packages
+    test_resolve_inputs_rejects_bad_package_naming_its_index      # 消息须含第几个包
+    test_resolve_inputs_order_does_not_affect_result              # 顺序无关
+    test_resolve_inputs_marks_replacement_without_applying_it     # D-14 只标记不实现
+    test_genesis_path_return_shape_unchanged                      # 创世向后兼容护栏
+    test_run_m7_accepts_sealed_base_snapshot
+    test_run_m7_refuses_superseded_base_before_begin              # 无写入
+    test_release_run_scope_key_allows_two_independent_runs        # D-02 A
+verify: |
+  cd /Users/jingtaiwei/Git/Public/learn_system && export LC_ALL=en_US.UTF-8
+  .venv/bin/python -m unittest discover -s pipeline/assembly/tests -t . 2>&1 | tail -3
+      # OK；**≥107 + 新增，一个都不许少；skipped 不许增加**
+  bash openspec/acceptance/m7-assembler.sh 2>&1 | grep -E "upstream_m6_real|no_model_calls"
+      # 两行都必须是 PASS
+  bash openspec/acceptance/m7-assembler.sh 2>&1 | tail -1        # fail=0
+  for p in dataset_compiler review validation corpus_compiler; do
+    .venv/bin/python -m unittest discover -s pipeline/$p/tests -t . 2>&1 | tail -1; done   # 全 OK
+  git diff --stat -- pipeline/assembly/genesis.py pipeline/assembly/model.py pipeline/assembly/canonical.py pipeline/assembly/gate.py
+      # 必须无输出
+  git status --short var/                                         # 无输出
+  # 真书实跑（副本上，正本只读）：把真实 m6 包喂给 resolve_m7_inputs，
+  #   记录能否解析、字段差异；结论与 F 波回报的差异清单对照，写进回报
+  # 篡改探针（三条，绿→红→改回，写进回报）：
+  #   P1 把多包解析改回只取 [0] → test_resolve_inputs_accepts_multiple_reviewed_packages 转红
+  #   P2 让顺序影响结果（按列表序赋权）→ test_resolve_inputs_order_does_not_affect_result 转红
+  #   P3 去掉 superseded 基底的 begin 前拒绝 → test_run_m7_refuses_superseded_base_before_begin 转红
+  # 探针副本必须 cp -R 整个仓库（含 ocr/），只复制 pipeline/ 会出假阴性（R13）
+commit:
+  add:
+    - pipeline/assembly/inputs.py
+    - pipeline/assembly/step.py
+    - pipeline/assembly/tests/
+    - docs/blackbox-spec-rework/work-items/impl-07-assembly/act/21.yaml
+  message: "feat(m7): resolve multiple reviewed packages and read a sealed base snapshot (INC-A, ACT 21)"
+on_fail: |
+  停止并报告，不许提交红的基线。
+  六种情况必须停手写「## 待裁决」：
+    ① D-02 A 的 scope 键方案在真实 Ledger 上走不通（贴失败原文，不要改 Ledger、不要换方案）
+    ② 不写一点合并逻辑就无法验证基底读取（不要自行扩范围到 B 波）
+    ③ 既有 107 个用例有任何一个转红，或创世路径返回结构被迫改变
+    ④ `upstream_m6_real` / `no_model_calls` 任一转红或转 BLOCKED
+    ⑤ 真实 m6 包无法喂给 `resolve_m7_inputs`，且差异不在 F 波已列出的清单内
+    ⑥ 需要改 `genesis.py` / `model.py` / `canonical.py` / `gate.py`
