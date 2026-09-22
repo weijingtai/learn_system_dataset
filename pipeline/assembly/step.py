@@ -11,7 +11,7 @@ from pipeline.assembly import canonical, model
 from pipeline.assembly.errors import AssemblyRefused
 from pipeline.assembly.gate import evaluate_genesis
 from pipeline.assembly.genesis import assemble_genesis, propose_genesis
-from pipeline.assembly.inputs import resolve_m7_inputs
+from pipeline.assembly.inputs import resolve_base_snapshot, resolve_m7_inputs
 from pipeline.ledger import ids
 
 M7_TOOL = "pipeline.assembly"
@@ -69,27 +69,52 @@ def run_m7(
     id_range: Optional[dict] = None,
     _tamper_fn: Optional[Callable[[dict], None]] = None,
 ) -> Dict[str, Any]:
-    """在真实 Ledger 上执行 M7 创世汇编事务。
+    """在真实 Ledger 上执行一次 M7 汇编事务（创世或增量）。
 
     begin 之前前置校验失败抛出 AssemblyRefused，不写 Ledger；
     begin 之后异常一律失败封存并返回 status="failed"。
+
+    - ``base_snapshot_revision_id is None`` → 创世路径，行为与 g0-04 逐字相同
+      （ProcessingRun 的 scope 仍是调用方给的 ``edition_part_id``）。
+    - 非 None → 增量路径（ACT 21 contract 二/三）：先**只读**校验并读出基底 Snapshot，
+      ReleaseRun 改用本 Run 自己的配置 Artifact 身份作 scope 键（D-02 A），
+      新 Snapshot 写成同一 Snapshot Artifact 的新修订并 ``prev`` 指向基底（D-03 A）。
+      **本波不做任何合并**：计算仍由现有创世引擎完成，故产物是创世形状
+      （``meta.base_snapshot_revision_id`` 仍为 null），合并与增量 Gate 属 B/C/E 波。
     """
     # ---- 1) begin 之前的拒绝（无写入）----
+    # 基底 Snapshot：只读校验（superseded 的基底在这里就拒收，D-15 前半）
+    base = None
     if base_snapshot_revision_id is not None:
-        raise AssemblyRefused(
-            "当前为创世汇编薄切片，base_snapshot 增量汇编推迟至纵切后",
-            code="SCH_002",
-        )
+        base = resolve_base_snapshot(service, base_snapshot_revision_id)
 
     # 前置解析（异常直接抛出，无写入）
     inputs = resolve_m7_inputs(service, reviewed_package_revision_ids)
+    packages = inputs["packages"]
+    if len(packages) > 1:
+        # 多包 = 多 Edition / 多版次，合并属 B/C 波、替换继承属 D 波。
+        # 本波只解析与标记，故在此显式拒收，**不静默只取第一个包**。
+        if inputs["replaces"]:
+            raise AssemblyRefused(
+                "多包替换（同一 source_id 与 edition_part_ids 集合出现多次）的继承逻辑属 D 波，"
+                "本波只解析与标记: %d 个包" % len(packages),
+                code="SCH_002",
+            )
+        raise AssemblyRefused(
+            "多包合并（多 Edition / 多版次）属 B/C 波，本波只解析与标记: %d 个包" % len(packages),
+            code="SCH_002",
+        )
 
     # 创世重复检查：该 technique 已有 canonical_snapshot 时拒绝
-    snap_rows = service.store.conn.execute(
-        "SELECT r.artifact_revision_id, r.sha256 FROM artifact_revisions r "
-        "JOIN artifacts a ON a.artifact_id = r.artifact_id "
-        "WHERE a.artifact_type='canonical_snapshot' AND r.status='sealed'"
-    ).fetchall()
+    # （增量路径的定义就是给同一 technique 追加新 Snapshot 修订，不适用本条）
+    if base is not None:
+        snap_rows = []
+    else:
+        snap_rows = service.store.conn.execute(
+            "SELECT r.artifact_revision_id, r.sha256 FROM artifact_revisions r "
+            "JOIN artifacts a ON a.artifact_id = r.artifact_id "
+            "WHERE a.artifact_type='canonical_snapshot' AND r.status='sealed'"
+        ).fetchall()
     for snap_rev_id, sha in snap_rows:
         raw = service.objects.get(sha)
         if raw:
@@ -106,9 +131,13 @@ def run_m7(
     actual_id_range = id_range if id_range is not None else {"pattern": [1, 10000]}
 
     # ---- 2) 创建 ProcessingRun（release_run）----
+    # D-02 A：增量 ReleaseRun 跨多个 Edition，没有单一 EditionPart，
+    # 故以「本 Run 自己的配置 Artifact 身份」为 scope 键（也是 Checkpoint 链键）；
+    # 创世路径沿用调用方给的 edition_part_id（BDD G0.8、acceptance.check_configuration_and_scope）。
+    scope_key = ids.new_id("artifact_id") if base is not None else edition_part_id
     proc_id = service.create_processing_run(
         "release_run",
-        edition_part_id,
+        scope_key,
         technique_id,
     )
 
@@ -118,7 +147,7 @@ def run_m7(
         "task": "assemble",
         "technique_id": technique_id,
         "reviewed_package_revision_ids": reviewed_package_revision_ids,
-        "base_snapshot_revision_id": None,
+        "base_snapshot_revision_id": base_snapshot_revision_id,
         "id_range": actual_id_range,
         "tool": M7_TOOL,
         "tool_version": M7_TOOL_VERSION,
@@ -128,18 +157,22 @@ def run_m7(
         proc_id,
         "configuration",
         cfg_bytes,
+        artifact_id=scope_key if base is not None else None,
         producer_module=M7_TOOL,
         producer_version=M7_TOOL_VERSION,
     )
 
     # ---- 4) 开启或接替 StepRun ----
-    m6_rev_id = inputs["reviewed_package_revision_id"]
+    # 上游冻结输入 = 全部 m6 包（本波已拒多包，故实为 1 个）+ 基底 Snapshot（增量时）
+    frozen_revision_ids = [p["reviewed_package_revision_id"] for p in packages]
+    if base is not None:
+        frozen_revision_ids.append(base["revision_id"])
     step_run_id = begin_or_supersede(
         service,
-        edition_part_id,
+        scope_key,
         "m7",
         cfg_rev_id,
-        input_artifact_ids=[m6_rev_id],
+        input_artifact_ids=frozen_revision_ids,
         processing_run_id=proc_id,
         technique_id=technique_id,
     )
@@ -188,11 +221,15 @@ def run_m7(
 
     # ---- 7) Gate 通过：写入产物 ----
     # 7.1 canonical_snapshot
+    # D-03 A：每 technique 一个 Snapshot Artifact；增量轮写同一 Artifact 的新修订，prev 指向基底。
+    # 传 prev_revision_id 而不传 artifact_id —— put_artifact 会复用 prev 所属 Artifact
+    # （显式传已存在的 artifact_id 会被 _new_or_explicit 拒为 ID_002）。
     snap_bytes = assembly_res["knowledge_bytes"]
     snap_art_id, snap_rev_id = service.put_artifact(
         step_run_id,
         "canonical_snapshot",
         snap_bytes,
+        prev_revision_id=base["revision_id"] if base is not None else None,
         producer_module=M7_TOOL,
         producer_version=M7_TOOL_VERSION,
     )
@@ -240,7 +277,7 @@ def run_m7(
         tool=M7_TOOL,
         tool_version=M7_TOOL_VERSION,
         configuration_revision_id=cfg_rev_id,
-        input_revision_ids=[m6_rev_id],
+        input_revision_ids=frozen_revision_ids,
         output_revision_ids=[snap_rev_id, pkg_rev_id],
         validation_report_revision_id=val_rev_id,
     )
@@ -248,7 +285,27 @@ def run_m7(
     # 7.5 register_stage_package (m7)
     stage_package_id = ids.new_id("stage_package_id", stage="m7")
     m7_pkg_rev_id = ids.new_id("artifact_revision_id")
-    m6_art_id = service.get_revision(m6_rev_id)["artifact_id"]
+    # 血缘输入 = 冻结输入（m6 包 + 增量时的基底 Snapshot）
+    input_entries = [
+        {
+            "schema_version": "1.0.0",
+            "artifact_kind": "artifact",
+            "artifact_id": package["reviewed_package_artifact_id"],
+            "artifact_revision_id": package["reviewed_package_revision_id"],
+            "artifact_type": "stage_package",
+        }
+        for package in packages
+    ]
+    if base is not None:
+        input_entries.append(
+            {
+                "schema_version": "1.0.0",
+                "artifact_kind": "artifact",
+                "artifact_id": base["artifact_id"],
+                "artifact_revision_id": base["revision_id"],
+                "artifact_type": base["artifact_type"],
+            }
+        )
 
     m7_stage_pkg = {
         "schema_version": "1.0.0",
@@ -260,15 +317,7 @@ def run_m7(
             "schema_version": "1.0.0",
             "processing_run_id": proc_id,
             "step_run_id": step_run_id,
-            "input_artifacts": [
-                {
-                    "schema_version": "1.0.0",
-                    "artifact_kind": "artifact",
-                    "artifact_id": m6_art_id,
-                    "artifact_revision_id": m6_rev_id,
-                    "artifact_type": "stage_package",
-                }
-            ],
+            "input_artifacts": list(input_entries),
             "output_artifacts": [
                 {
                     "schema_version": "1.0.0",
@@ -294,15 +343,7 @@ def run_m7(
             ],
         },
         "lineage": {
-            "upstream_artifacts": [
-                {
-                    "schema_version": "1.0.0",
-                    "artifact_kind": "artifact",
-                    "artifact_id": m6_art_id,
-                    "artifact_revision_id": m6_rev_id,
-                    "artifact_type": "stage_package",
-                }
-            ],
+            "upstream_artifacts": list(input_entries),
             "transformations": [],
         },
         "payload": {},
@@ -320,9 +361,10 @@ def run_m7(
     service.seal_revision(m7_pkg_rev_id)
 
     # 7.6 write_checkpoint (propose_r1 → seal_snapshot)
+    # D-16 A 前半：非人工 task 各一个 Checkpoint（人工决定即时落盘属 D 波）
     service.write_checkpoint(
         step_run_id,
-        edition_part_id=edition_part_id,
+        edition_part_id=scope_key,
         stage="m7",
         completed_tasks=[
             {
@@ -337,7 +379,7 @@ def run_m7(
     )
     service.write_checkpoint(
         step_run_id,
-        edition_part_id=edition_part_id,
+        edition_part_id=scope_key,
         stage="m7",
         completed_tasks=[
             {

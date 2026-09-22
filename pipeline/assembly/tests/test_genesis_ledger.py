@@ -138,7 +138,9 @@ class TestGenesisLedger(unittest.TestCase):
         c_steps_0 = self.service.store.conn.execute("SELECT count(*) FROM step_runs").fetchone()[0]
         c_audit_0 = self.service.store.conn.execute("SELECT count(*) FROM audit_log").fetchone()[0]
 
-        # 1. base_snapshot_revision_id 非 None
+        # 1. base_snapshot_revision_id 非 None，且该基底修订不存在
+        #    （act/impl-07/21 起已删掉「纵切后」那条例外拒绝，改为校验基底修订本身；
+        #     拒收仍必须发生在 begin_step_run 之前、零写入）
         with self.assertRaises(AssemblyRefused) as ctx:
             run_m7(
                 self.service,
@@ -147,7 +149,8 @@ class TestGenesisLedger(unittest.TestCase):
                 reviewed_package_revision_ids=[self.m6_pkg_rev_id],
                 base_snapshot_revision_id="rev_00000000000000000000000000000099",
             )
-        self.assertIn("纵切后", str(ctx.exception))
+        self.assertEqual(ctx.exception.code, "REF_001")
+        self.assertIn("基底修订不存在", str(ctx.exception))
 
         # 行数不变
         self.assertEqual(self.service.store.conn.execute("SELECT count(*) FROM artifact_revisions").fetchone()[0], c_revs_0)
