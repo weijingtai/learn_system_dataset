@@ -441,3 +441,19 @@ ACT 24b 提交 `5aa4cd9`。主 Agent 独立复验：
 
 **E 波独立 Gate 必须加一条行为判据**：比对 `apply` **实际改动的对象集**与 `affected`，
 实际改动 ⊄ `affected` 即 FAIL。不许只从裁定推导（那是本波已做的），要看实际发生了什么。
+
+---
+
+## 15. E 波的四处校准（2026-09-22）
+
+正文在 `act/25.yaml` 第一节。起草时实测发现一件要紧的事：
+
+**增量路径现在不过任何 Gate。** `step.py:215` 写的是 `"incremental_gate": "pending_e_wave"`，
+只有创世路径调 `evaluate_genesis`。所以 §14 里真书第二轮的 `status=succeeded`
+**没有经过独立检查**。标注是老实的（写明了等 E 波），不算假绿；但在 E 波落地之前，
+**这个 `succeeded` 不能当作"真书第二轮通过"来引用**。
+
+四处校准：场景改为 r1→r2 与真书第二轮（fixture 里没有草稿说的 s1/s2/s3）；
+`affected_scope_exact` 去掉 rebuilt 等于 affected 的等式（§13.2）；
+为 §14.1 的静默覆盖点名加篡改用例；配对隔离从结果上做行为验证（§10.1）。
+Gate 独立性的禁止导入清单**加上 `orchestrate`**。

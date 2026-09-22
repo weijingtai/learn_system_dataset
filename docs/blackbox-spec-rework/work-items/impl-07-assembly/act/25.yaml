@@ -1,0 +1,138 @@
+act_id: impl-07/25
+title: E 波 —— 独立增量 Gate evaluate_assembly，并接进增量路径（现状增量轮不过任何 Gate）
+estimated_minutes: 180
+group: INC-E
+depends_on: [impl-07/24b]
+supersedes: [impl-07/06]     # 检查清单逐字沿用该草稿，四处校准见第一节
+decisions: [CHARTER §10.1, §13.1, §13.2, §14.1, §15（本 ACT 新立）]
+scope:
+  write:
+    - pipeline/assembly/gate.py              # 新增 evaluate_assembly；既有 evaluate_genesis 与其检查函数不许改行为
+    - pipeline/assembly/step.py              # 只许改增量路径：把 Gate 接进去
+    - pipeline/assembly/tests/
+  read_only:
+    - var/ledgers/qianyuan_w8/
+    - pipeline/assembly/matcher.py
+    - pipeline/assembly/incremental.py
+    - pipeline/assembly/apply.py
+    - pipeline/assembly/orchestrate.py
+    - pipeline/assembly/genesis.py
+    - pipeline/assembly/canonical.py
+    - pipeline/assembly/inputs.py
+    - pipeline/corpus/_fixture/mini_ed01/
+    - pipeline/corpus/_fixture/mini_release01/expected/   # 金标只读
+background: |
+  先读 `CHARTER-INCREMENTAL.md` §10、§13、§14，再读 `act/06.yaml` 的 contract 与 tests 两段
+  ——本 ACT **沿用那份检查清单**（13 项检查名与顺序、篡改矩阵），只做下面四处校准。
+
+  主 Agent 2026-09-22 实测：
+  - HEAD `593aad5`；`assembly` **172 用例全绿**；`m7-assembler.sh` `pass=11 fail=0 blocked=5`
+  - **增量路径现在不过任何 Gate**：`step.py:215` 写的是 `"incremental_gate": "pending_e_wave"`；
+    `step.py` 只在创世路径（:585）调 `evaluate_genesis`。所以真书第二轮的 `status=succeeded`
+    **没有经过独立检查**（标注老实，不算假绿，但必须由本波补上）
+  - `gate.py` 现有：`evaluate_genesis`（:325）+ 9 个 `_check_*` 函数；
+    导入只有 `copy` / `re` / `typing` / `pipeline.assembly.canonical, model` / `pipeline.ledger.ids`
+  - fixture `mini_release01/expected/` 只有 `snapshot_r1.json`（创世）、`snapshot_r2.json`（增量）
+    与 `snapshot_revisions.yaml`——**没有草稿说的 s1/s2/s3 三个场景**
+contract: |
+  一、§15 裁定：四处校准 act/06 草稿
+
+    **校准 1 —— 场景**：草稿的 `test_s1/s2/s3_all_checks_pass` 改为
+      `test_r2_incremental_all_checks_pass`（fixture r1 → r2）+
+      `test_real_book_second_round_all_checks_pass`（真书副本，基底 r1 金标，见第四节）。
+      不许为了凑三个场景去改或新造金标。
+
+    **校准 2 —— affected_scope_exact**：草稿写 `report.affected == 自算闭包 == report.rebuilt`。
+      §13.2 已删掉 rebuilt 等于 affected 的等式（闭包一扩张就不成立）。改为：
+        `report.affected_entity_ids == Gate 自算闭包`（精确相等），且 `report.rebuilt_entity_ids ⊆ 自算闭包`。
+      检查名不改。
+
+    **校准 3 —— 堵 §14.1 的洞（静默覆盖）**：
+      场景：视图候选带着基底里已有的号、内容变了；若闭包漏掉它，`apply` 会用基底旧版把它拷回，
+      视图里的改动就丢了，且不报错。
+      草稿里的 `view_objects_unaltered`（总账里的内容必须等于视图内容）**本来就能抓住这个**——
+      前提是它对照的是**视图**而不是基底。本波须：
+        - 确认 `view_objects_unaltered` 对照视图版本（Assertion 比 `text_sha256`，Pattern/Concept 比 provenance `content_sha256`）
+        - 新增具名篡改用例 `test_tamper_view_change_silently_reverted_to_base`：
+          造一个带基底号、内容已改的视图候选，把总账里它的内容换回基底版 → `view_objects_unaltered` 必须 FAIL
+
+    **校准 4 —— 配对隔离用行为验证（§10.1）**：
+      `collation_comparable_only` 除草稿要求外，追加：总账里**每一条** alias / merge / omission / addition 关系，
+      都必须能由 Gate **独立推出**的确定性配对依据（`collation_key` 相等、共享证据片段、同一正式号）解释；
+      推不出来的关系 → FAIL。这样哪怕有代码绕开 `matcher.py` 按名称相似去配对，Gate 也能从结果上抓到。
+      新增篡改用例 `test_tamper_relation_without_deterministic_basis`。
+
+  二、独立性（沿用草稿并扩充）
+    `gate.py` 只许导入：`canonical`、`model`、`pipeline.ledger.ids`、`pipeline.ledger.states`、标准库。
+    **禁止**导入 `matcher`、`apply`、`incremental`，**以及 D 波新建的 `orchestrate`**。
+    闭包与可比单元必须在 `gate.py` 里独立重算——**照搬被验对象的实现等于自己验自己**（W8 ACT 18 的原则）。
+    `test_gate_does_not_import_assembly_logic` 的禁止清单须包含 `orchestrate`。
+
+  三、接进增量路径（step.py）
+    - 增量轮在写 Snapshot **之前**调用 `evaluate_assembly`；
+    - 不通过 → 失败封存（`status="failed"`，不写 Snapshot，不留跑着的 StepRun），
+      错误里带未通过的检查名与明细；
+    - 通过 → 照常写 Snapshot，并把 Gate 结果写进 report；
+    - 删掉 `"incremental_gate": "pending_e_wave"`，改为真实的 Gate 结果。
+    - 创世路径（`evaluate_genesis`）一行不许改。
+
+  四、真书判据
+    在真书副本上（正本只读），用 ACT 24 的 `probe_real_m6_orchestrate.py` 的做法跑第二轮，
+    贴出 13 项检查逐项结果。**真书第二轮若有检查不过，如实报告，不许放宽检查**——
+    这正是本波要回答的问题：之前那个 `succeeded` 经不经得起独立检查。
+
+  五、不许做的事
+    - 不许改 `evaluate_genesis` 及其检查函数的行为（可以复用，不许改）
+    - 不许为了让检查通过而放宽检查、改金标、改被验模块
+    - 不许在 Gate 里调用模型、用相似度
+    - 不许写 `var/` 真书正本；不许改 `mini_ed01`、`mini_release01/expected/`
+    - 不许让 `upstream_m6_real` / `no_model_calls` 转红
+tests_first: |
+  先写测试并确认转红（贴 Red 原文），再改实现。
+  沿用 `act/06.yaml` 的篡改矩阵全部用例（17 条），按第一节校准改名；另加：
+    test_r2_incremental_all_checks_pass
+    test_real_book_second_round_all_checks_pass        # 需要真书副本；本机无 var/ 时 skip，并在回报里注明
+    test_tamper_view_change_silently_reverted_to_base  # §14.1
+    test_tamper_relation_without_deterministic_basis   # §10.1
+    test_tamper_rebuilt_outside_closure                # 校准 2
+    test_gate_does_not_import_assembly_logic           # 禁止清单含 orchestrate
+    test_incremental_round_fails_closed_on_gate_failure   # 第三节
+    test_incremental_round_report_carries_gate_result     # 第三节，不再是 pending_e_wave
+verify: |
+  cd /Users/jingtaiwei/Git/Public/learn_system && export LC_ALL=en_US.UTF-8
+  .venv/bin/python -m unittest discover -s pipeline/assembly/tests -t . 2>&1 | tail -3
+      # OK；≥172 + 新增；skipped 数写进回报（真书用例在无 var/ 时 skip 是允许的，别的不许新增 skip）
+  .venv/bin/python - <<'PY'
+  import ast; t=ast.parse(open("pipeline/assembly/gate.py").read())
+  mods={(n.module or "") for n in ast.walk(t) if isinstance(n,ast.ImportFrom)}|{a.name for n in ast.walk(t) if isinstance(n,ast.Import) for a in n.names}
+  bad=[m for m in mods if any(x in m for x in ("matcher","apply","incremental","orchestrate"))]; print("gate 违规导入:",bad)
+  PY
+      # 必须输出空列表
+  grep -n "pending_e_wave" pipeline/assembly/step.py        # 必须无输出
+  bash openspec/acceptance/m7-assembler.sh 2>&1 | grep -E "upstream_m6_real|no_model_calls|SUMMARY"
+  for p in dataset_compiler review validation corpus_compiler; do
+    .venv/bin/python -m unittest discover -s pipeline/$p/tests -t . 2>&1 | grep -E "^Ran|^OK|^FAILED" | tail -2; done
+      # corpus_compiler 中间几行 FAIL m3_acceptance 是已知噪声，以最后的 OK 为准
+  git diff --stat 593aad5 -- pipeline/assembly/matcher.py pipeline/assembly/incremental.py pipeline/assembly/apply.py pipeline/assembly/orchestrate.py pipeline/assembly/genesis.py pipeline/assembly/canonical.py pipeline/assembly/inputs.py
+      # 必须无输出
+  git status --short var/                                   # 无输出
+  # 真书第二轮（副本上）：贴 13 项检查逐项结果与总判定
+  # 篡改探针（三条，绿→红→改回，完整仓库副本含 ocr/，R13）：
+  #   P1 让 view_objects_unaltered 改为对照基底而非视图 → test_tamper_view_change_silently_reverted_to_base 转红
+  #   P2 让 step.py 增量路径跳过 Gate                   → test_incremental_round_fails_closed_on_gate_failure 转红
+  #   P3 让 Gate 的闭包直接取 report.affected（不自算） → test_tamper_report_affected_missing_one 转红
+commit:
+  add:
+    - pipeline/assembly/gate.py
+    - pipeline/assembly/step.py
+    - pipeline/assembly/tests/
+    - docs/blackbox-spec-rework/work-items/impl-07-assembly/act/25.yaml
+  message: "feat(m7): independent incremental gate wired into the incremental round (INC-E, ACT 25)"
+on_fail: |
+  停止并报告，不许提交红的基线。
+  五种情况必须停手写「## 待裁决」：
+    ① 真书第二轮有检查不过，且你判断不了是 Gate 写错了还是汇编真有问题
+    ② 要独立重算闭包，却发现只能照搬 orchestrate 的实现（说明规格描述不足以独立实现）
+    ③ fixture r2 金标下有检查不过
+    ④ 需要改 evaluate_genesis 或任何只读模块
+    ⑤ 某条关系既推不出确定性依据、又确实是正确的（说明校准 4 的口径有漏洞）
