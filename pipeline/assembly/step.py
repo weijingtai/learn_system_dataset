@@ -7,12 +7,13 @@ import json
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
-from pipeline.assembly import canonical, incremental, model
+from pipeline.assembly import canonical, incremental, model, orchestrate
 from pipeline.assembly.errors import AssemblyRefused
 from pipeline.assembly.gate import evaluate_genesis
 from pipeline.assembly.genesis import assemble_genesis, propose_genesis
 from pipeline.assembly.inputs import resolve_base_snapshot, resolve_m7_inputs
 from pipeline.ledger import ids
+from pipeline.ledger.errors import LedgerError
 
 M7_TOOL = "pipeline.assembly"
 M7_TOOL_VERSION = "0.1.0-draft"
@@ -65,28 +66,18 @@ def _run_incremental_round(
     step_run_id: str,
     scope_key: str,
     technique_id: str,
-    packages: List[dict],
     base: dict,
+    proposal_res: dict,
+    pending: List[str],
 ) -> Dict[str, Any]:
     """增量提案轮（B 波；CHARTER §9.3 收口，BDD 8.1 的形状）。
 
-    只生成提案并落盘 ``assembly_proposal_set`` / ``assembly_report``，把待人工决定写进
-    Checkpoint 的 ``pending_queue``，然后 ``await_human``。
+    只把**已算出**的提案轮落盘 ``assembly_proposal_set`` / ``assembly_report``，
+    把待人工决定写进 Checkpoint 的 ``pending_queue``，然后 ``await_human``。
 
-    **不写 ``canonical_snapshot``**：合并（apply）属 C 波，本波若硬写就只能是
-    「创世形状 + prev 指向基底」的名实不符中间态，正是 §9.3 要求消灭的形状。
-    因此这里宁可不出 Snapshot，也不出一份名实不符的 Snapshot。
+    D 波之后，走到这里只意味着 `orchestrate.assemble` 报了 ``awaiting_human``
+    （仍有待决/依赖未决提案）；无待决时由 :func:`_finish_incremental` 完成合并。
     """
-    views = [
-        {
-            "source_id": package["source_id"],
-            "candidate_set": package["candidate_set"],
-            "reviewed_edition": package["reviewed_edition"],
-        }
-        for package in packages
-    ]
-    proposal_res = incremental.propose_incremental(base["doc"], views, round_no=2)
-
     prop_doc = {
         "schema_version": "1.0.0",
         "technique_id": technique_id,
@@ -119,11 +110,6 @@ def _run_incremental_round(
     )
     service.seal_revision(rep_rev_id)
 
-    pending = [
-        proposal["proposal_key"]
-        for proposal in proposal_res["proposals"]
-        if proposal["resolution"] in ("human", "blocked")
-    ]
     service.write_checkpoint(
         step_run_id,
         edition_part_id=scope_key,
@@ -153,6 +139,242 @@ def _run_incremental_round(
     }
 
 
+def _finish_incremental(
+    service,
+    *,
+    step_run_id: str,
+    scope_key: str,
+    technique_id: str,
+    base: dict,
+    packages: List[dict],
+    views: List[dict],
+    decisions: List[dict],
+    outcome: Dict[str, Any],
+    proc_id: str,
+    cfg_rev_id: str,
+    frozen_revision_ids: List[str],
+) -> Dict[str, Any]:
+    """增量合并轮收尾：写 Snapshot（prev 指向基底）+ 增量与全量等价自证。
+
+    CHARTER §9.3：写盘前先过名实一致护栏；`meta.base_snapshot_revision_id` 由
+    `orchestrate.assemble` 补齐，与 `prev_revision_id` 一致。
+    """
+    result = outcome["result"]
+    knowledge = result["knowledge"]
+    base_revision_id = base["revision_id"]
+
+    # 五：增量必须等于全量（本波自证；E 波会独立复验）
+    full = orchestrate.assemble(
+        base["doc"],
+        views,
+        decisions,
+        incremental=False,
+        base_snapshot_revision_id=base_revision_id,
+    )
+    equivalent = full["status"] == "complete" and orchestrate.knowledge_equivalent(
+        knowledge, full["result"]["knowledge"]
+    )
+    checks = {
+        "rebuilt_equals_affected": result["rebuilt_entity_ids"]
+        == outcome["report"]["affected_entity_ids"],
+        "incremental_equals_full_rebuild": bool(equivalent),
+    }
+
+    incremental.assert_prev_meta_agreement(base_revision_id, knowledge)
+    snap_art_id, snap_rev_id = service.put_artifact(
+        step_run_id,
+        "canonical_snapshot",
+        result["knowledge_bytes"],
+        prev_revision_id=base_revision_id,
+        producer_module=M7_TOOL,
+        producer_version=M7_TOOL_VERSION,
+    )
+    service.seal_revision(snap_rev_id)
+
+    pkg_doc = {
+        "schema_version": "0.1.0-draft",
+        "technique_id": technique_id,
+        "canonical_snapshot_revision_id": snap_rev_id,
+        "assembly_report": outcome["report"],
+        "identity_delta": result["identity_delta"],
+    }
+    pkg_bytes = json.dumps(pkg_doc, sort_keys=True, ensure_ascii=False).encode("utf-8")
+    pkg_art_id, pkg_rev_id = service.put_artifact(
+        step_run_id,
+        "assembly_package",
+        pkg_bytes,
+        producer_module=M7_TOOL,
+        producer_version=M7_TOOL_VERSION,
+    )
+    service.seal_revision(pkg_rev_id)
+
+    val_doc = {
+        "schema_version": "1.0.0",
+        "passed": bool(all(checks.values())),
+        "checks": checks,
+        "incremental_gate": "pending_e_wave",
+    }
+    val_bytes = json.dumps(val_doc, sort_keys=True, ensure_ascii=False).encode("utf-8")
+    val_art_id, val_rev_id = service.put_artifact(
+        step_run_id,
+        "validation_report",
+        val_bytes,
+        producer_module=M7_TOOL,
+        producer_version=M7_TOOL_VERSION,
+    )
+    service.seal_revision(val_rev_id)
+
+    service.record_transformation(
+        step_run_id,
+        operation="assemble_incremental",
+        tool=M7_TOOL,
+        tool_version=M7_TOOL_VERSION,
+        configuration_revision_id=cfg_rev_id,
+        input_revision_ids=frozen_revision_ids,
+        output_revision_ids=[snap_rev_id, pkg_rev_id],
+        validation_report_revision_id=val_rev_id,
+    )
+
+    if not all(checks.values()):
+        fail_doc = {
+            "schema_version": "1.0.0",
+            "step_run_id": step_run_id,
+            "check_name": "incremental_equivalence",
+            "checks": checks,
+        }
+        fail_bytes = json.dumps(fail_doc, sort_keys=True, ensure_ascii=False).encode("utf-8")
+        fail_art_id, fail_rev_id = service.put_artifact(
+            step_run_id,
+            "failure_report",
+            fail_bytes,
+            producer_module=M7_TOOL,
+            producer_version=M7_TOOL_VERSION,
+        )
+        service.seal_revision(fail_rev_id)
+        service.fail_step_run(step_run_id, [fail_rev_id], reason="incremental equivalence failed")
+        return {
+            "status": "failed",
+            "step_run_id": step_run_id,
+            "snapshot_revision_id": snap_rev_id,
+            "assembly_package_revision_id": pkg_rev_id,
+            "validation_report_revision_id": val_rev_id,
+            "checks": checks,
+        }
+
+    stage_package_id = ids.new_id("stage_package_id", stage="m7")
+    m7_pkg_rev_id = ids.new_id("artifact_revision_id")
+    input_entries = [
+        {
+            "schema_version": "1.0.0",
+            "artifact_kind": "artifact",
+            "artifact_id": package["reviewed_package_artifact_id"],
+            "artifact_revision_id": package["reviewed_package_revision_id"],
+            "artifact_type": "stage_package",
+        }
+        for package in packages
+    ]
+    input_entries.append(
+        {
+            "schema_version": "1.0.0",
+            "artifact_kind": "artifact",
+            "artifact_id": base["artifact_id"],
+            "artifact_revision_id": base_revision_id,
+            "artifact_type": base["artifact_type"],
+        }
+    )
+    m7_stage_pkg = {
+        "schema_version": "1.0.0",
+        "stage_package_id": stage_package_id,
+        "artifact_revision_id": m7_pkg_rev_id,
+        "stage": "m7",
+        "status": "draft",
+        "manifest": {
+            "schema_version": "1.0.0",
+            "processing_run_id": proc_id,
+            "step_run_id": step_run_id,
+            "input_artifacts": list(input_entries),
+            "output_artifacts": [
+                {
+                    "schema_version": "1.0.0",
+                    "artifact_kind": "artifact",
+                    "artifact_id": pkg_art_id,
+                    "artifact_revision_id": pkg_rev_id,
+                    "artifact_type": "assembly_package",
+                }
+            ],
+            "counts": {"assembly_package": 1},
+            "content_sha256": "0" * 64,
+        },
+        "validation": {
+            "passed": True,
+            "report_artifacts": [
+                {
+                    "schema_version": "1.0.0",
+                    "artifact_kind": "artifact",
+                    "artifact_id": val_art_id,
+                    "artifact_revision_id": val_rev_id,
+                    "artifact_type": "validation_report",
+                }
+            ],
+        },
+        "lineage": {"upstream_artifacts": list(input_entries), "transformations": []},
+        "payload": {},
+        "logs": [],
+        "failures": [],
+    }
+    m7_pkg_bytes = json.dumps(m7_stage_pkg, sort_keys=True, ensure_ascii=False).encode("utf-8")
+    service.register_stage_package(
+        step_run_id,
+        m7_stage_pkg,
+        m7_pkg_bytes,
+        stage_package_id=stage_package_id,
+        artifact_revision_id=m7_pkg_rev_id,
+    )
+    service.seal_revision(m7_pkg_rev_id)
+
+    service.write_checkpoint(
+        step_run_id,
+        edition_part_id=scope_key,
+        stage="m7",
+        completed_tasks=[
+            {
+                "task_id": "assemble_incremental",
+                "artifact_revision_id": snap_rev_id,
+                "status": "succeeded",
+            }
+        ],
+        human_decisions=[],
+        pending_queue=[],
+        next_pointer=None,
+    )
+
+    current_version = service.get_step_run(step_run_id)["status_version"]
+    service.finish_step_run(
+        step_run_id,
+        {
+            "schema_version": "1.0.0",
+            "processing_run_id": proc_id,
+            "step_run_id": step_run_id,
+            "status_version": current_version + 1,
+            "status": "succeeded",
+            "output_artifact_ids": [m7_pkg_rev_id, snap_rev_id, pkg_rev_id],
+            "validation_report_ids": [val_rev_id],
+            "log_artifact_ids": [],
+            "failure_artifact_ids": [],
+        },
+    )
+
+    return {
+        "status": "succeeded",
+        "step_run_id": step_run_id,
+        "snapshot_revision_id": snap_rev_id,
+        "assembly_package_revision_id": pkg_rev_id,
+        "validation_report_revision_id": val_rev_id,
+        "base_snapshot_revision_id": base_revision_id,
+        "report": outcome["report"],
+    }
+
+
 def run_m7(
     service,
     edition_part_id: str,
@@ -161,6 +383,7 @@ def run_m7(
     reviewed_package_revision_ids: List[str],
     base_snapshot_revision_id: Optional[str] = None,
     id_range: Optional[dict] = None,
+    decisions: Optional[List[dict]] = None,
     _tamper_fn: Optional[Callable[[dict], None]] = None,
 ) -> Dict[str, Any]:
     """在真实 Ledger 上执行一次 M7 汇编事务（创世或增量）。
@@ -173,8 +396,10 @@ def run_m7(
     - 非 None → 增量路径（ACT 21 contract 二/三）：先**只读**校验并读出基底 Snapshot，
       ReleaseRun 改用本 Run 自己的配置 Artifact 身份作 scope 键（D-02 A），
       新 Snapshot 写成同一 Snapshot Artifact 的新修订并 ``prev`` 指向基底（D-03 A）。
-      **本波不做任何合并**：计算仍由现有创世引擎完成，故产物是创世形状
-      （``meta.base_snapshot_revision_id`` 仍为 null），合并与增量 Gate 属 B/C/E 波。
+      D 波起，增量路径走 :func:`pipeline.assembly.orchestrate.assemble`：
+      有待决 → 只出提案并 ``await_human``；无待决 → 完成合并、写新 Snapshot
+      （``prev`` 与 ``meta.base_snapshot_revision_id`` 同时非空，CHARTER §9.3）。
+      增量 Gate 属 E 波，本波只自证「增量 == 全量」。
     """
     # ---- 1) begin 之前的拒绝（无写入）----
     # 基底 Snapshot：只读校验（superseded 的基底在这里就拒收，D-15 前半）
@@ -186,8 +411,9 @@ def run_m7(
     inputs = resolve_m7_inputs(service, reviewed_package_revision_ids)
     packages = inputs["packages"]
     if len(packages) > 1:
-        # 多包 = 多 Edition / 多版次，合并属 B/C 波、替换继承属 D 波。
-        # 本波只解析与标记，故在此显式拒收，**不静默只取第一个包**。
+        # 多包 = 多 Edition / 多版次同 Run 编排：D 波只接通了**单包**增量
+        # （`resolve_m7_inputs` 已能解析多包，但 apply 的版次合并仍按新 source 追加），
+        # 故在此显式拒收，**不静默只取第一个包**。
         if inputs["replaces"]:
             raise AssemblyRefused(
                 "多包替换（同一 source_id 与 edition_part_ids 集合出现多次）的继承逻辑属 D 波，"
@@ -274,15 +500,77 @@ def run_m7(
         technique_id=technique_id,
     )
 
-    # ---- 4.5) 增量轮到此为止：只出提案，等人工决定（CHARTER §9.3 收口）----
+    # ---- 4.5) 增量路径：走增量编排（D 波，act/impl-07/24）----
     if base is not None:
-        return _run_incremental_round(
+        views = [
+            {
+                "source_id": package["source_id"],
+                "candidate_set": package["candidate_set"],
+                "reviewed_edition": package["reviewed_edition"],
+            }
+            for package in packages
+        ]
+        decisions = list(decisions or [])
+        try:
+            outcome = orchestrate.assemble(
+                base["doc"],
+                views,
+                decisions,
+                incremental=True,
+                base_snapshot_revision_id=base["revision_id"],
+            )
+        except (AssemblyRefused, LedgerError) as exc:
+            # begin 之后异常一律失败封存并返回 status="failed"（不得留下跑着的 StepRun）。
+            # 含 apply 抛出的 SchemaViolation / DuplicateIdentifier / MissingReference，
+            # 例如真书 m6 上 B 波提案重号（C 波回报 §3.4）→ 必须 fail-closed 而不是把异常丢出事务。
+            fail_doc = {
+                "schema_version": "1.0.0",
+                "step_run_id": step_run_id,
+                "check_name": "incremental_orchestration",
+                "error": str(exc),
+                "code": exc.code,
+            }
+            fail_bytes = json.dumps(fail_doc, sort_keys=True, ensure_ascii=False).encode("utf-8")
+            fail_art_id, fail_rev_id = service.put_artifact(
+                step_run_id,
+                "failure_report",
+                fail_bytes,
+                producer_module=M7_TOOL,
+                producer_version=M7_TOOL_VERSION,
+            )
+            service.seal_revision(fail_rev_id)
+            service.fail_step_run(step_run_id, [fail_rev_id], reason="incremental orchestration failed")
+            return {
+                "status": "failed",
+                "step_run_id": step_run_id,
+                "snapshot_revision_id": None,
+                "assembly_package_revision_id": None,
+                "validation_report_revision_id": None,
+                "error": str(exc),
+            }
+        if outcome["status"] == "awaiting_human":
+            return _run_incremental_round(
+                service,
+                step_run_id=step_run_id,
+                scope_key=scope_key,
+                technique_id=technique_id,
+                base=base,
+                proposal_res=outcome["rounds"][-1],
+                pending=outcome["pending"],
+            )
+        return _finish_incremental(
             service,
             step_run_id=step_run_id,
             scope_key=scope_key,
             technique_id=technique_id,
-            packages=packages,
             base=base,
+            packages=packages,
+            views=views,
+            decisions=decisions,
+            outcome=outcome,
+            proc_id=proc_id,
+            cfg_rev_id=cfg_rev_id,
+            frozen_revision_ids=frozen_revision_ids,
         )
 
     # ---- 5) 汇编计算 ----

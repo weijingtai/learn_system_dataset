@@ -424,10 +424,11 @@ class PrevMetaAgreementTest(unittest.TestCase):
             base_snapshot_revision_id=first["snapshot_revision_id"],
             id_range=manifest["id_range"],
         )
-        self.assertEqual(second["status"], "awaiting_human", "增量轮先出提案，等人工决定")
+        # 事实变了（D 波 ACT 24 接通合并）：无待决提案时增量轮直接完成合并
+        self.assertEqual(second["status"], "succeeded", "无待决提案的增量轮必须完成合并")
 
         pairs = snapshot_revision_pairs(service)
-        self.assertGreaterEqual(len(pairs), 1, "至少应有创世那一份 Snapshot")
+        self.assertEqual(len(pairs), 2, "创世与增量轮各一份 Snapshot")
         for pair in pairs:
             with self.subTest(revision=pair["snapshot_revision_id"]):
                 assert_prev_meta_agreement(
