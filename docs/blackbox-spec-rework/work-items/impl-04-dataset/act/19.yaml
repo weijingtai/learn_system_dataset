@@ -1,0 +1,97 @@
+act_id: impl-04/19
+title: 投产前五个质量项打包（M4 上限截断、漏登记词条、死数据 notes、清单缺失、护栏测试泄漏）
+estimated_minutes: 150
+group: K5
+depends_on: []                  # 与 ACT 18 互不依赖，可并行或先后做
+decisions: [D-W8-19, 裁定 95, 裁定 101, 裁定 104, 裁定 107]
+scope:
+  write:
+    - docs/blackbox-spec-rework/work-items/impl-05-knowledge/   # 仅 brief 模板，见 Q1
+    - pipeline/validation/                                      # 仅 Gate 增一条扫描，见 Q3
+    - pipeline/validation/tests/
+    - pipeline/corpus_compiler/tests/test_gate_offset.py        # 仅修测试设施，见 Q5
+    - var/ledgers/qianyuan_w8_review/                           # 仅 Q2/Q4 落盘，见各条
+  read_only:
+    - var/ledgers/qianyuan_w8/                                  # 真书正本账本：**只许读**
+    - pipeline/corpus/_fixture/mini_ed01/                       # 金标，一字不动
+background: |
+  五项都是主 Agent 在 2026-09-19/20 的投产评估中**查实**的缺陷，已记在
+  `tasks/dataset-blackbox-line.md` 的「投产前必改（质量项）」段，编号沿用 ④–⑧。
+  它们互不依赖，可各自独立完成、独立提交。**任何一项卡住，做完其余的，不要整批停。**
+contract: |
+  Q1（原 ④）M4 brief 每批 20 条上限，两路都顶格截断
+    实测：a 路正好 20 条、b 路正好 20 条，b 路 adapter_notes 自述
+      「为控总数略去」「受 20 条上限所限未逐一登记」。
+    734 字 / 41 片段就顶格，说明该上限对论断密集段必然造成漏抽。
+    改：brief 模板里的固定上限改为**自适应** `上限 = ceil(1.2 × 该批片段数)`，
+      并在 brief 里写明「若因上限略去任何候选，必须在 adapter_notes 中逐条点名」。
+    硬性：**只改模板文本**，不重跑 M4（重跑是另一件事，不在本 ACT）。
+
+  Q2（原 ⑤）补回被上限截掉的 5 个 concept 词条
+    b 路 notes 已逐个点名：正财、偏财、偏印、正印、劫财。
+    改：按既有 concept 词条格式补登记到真书 M6 审核产物所在目录，
+      **每条必须带原文出处偏移**（从 `var/ledgers/qianyuan_w8` 只读查证，不许凭空写）。
+    硬性：
+      - 不许推断 `concept_refs`（裁定 107 Q-M8-01）
+      - 补登记件要标注「来源：b 路 adapter_notes 点名 + 主 Agent 2026-09-20 查实」
+      - **不许改真书正本账本 `var/ledgers/qianyuan_w8/`**；补登记落在 review 目录
+
+  Q3（原 ⑥）M5 Gate 增一条扫描 adapter_notes
+    现状：`adapter_notes` 是**无下游消费者的死数据**——抽取员写了「我略去了什么」，没有任何人读。
+    改：M5 Gate 增一条检查，扫描 `adapter_notes`，命中
+      「控总数 / 上限 / 略去 / 未逐一登记」等词即置为**待处理**（不得静默通过）。
+    硬性：
+      - 该项命中时**不得冒充 ok**，按既有三态口径给 `not_applicable` 之外的明确状态
+      - 词表要可配置或集中定义，不许散落在多处硬编码
+      - 既有 M5 用例（validation 108）一个都不许转红
+
+  Q4（原 ⑦）41 片段清单缺失，可复现性缺口
+    现状：M4 提交件 README 记了 `spans_tianguan_qisha.yaml` 的 sha256 `b4240c74…`，
+      但**全盘无此文件**（主 Agent 搜过仓库与 `~/tmux-agents`）。
+    已知可无损重建：证据引用的 37 个 span id ∪ notes 提及的 4 个 = 恰好 41；
+      偏移首尾相接无空洞无重叠，字数合计 734，与 README 吻合。
+    改：从提交件机械重建该清单并落盘入库，
+      **必须标注「与 README 记录的 sha256 未能核对（原文件不存在）」**。
+    硬性：不许伪造成「已核对」；重建脚本或命令要写进回报，便于复算。
+
+  Q5（原 ⑧）护栏测试随发现范围变红
+    现状：`pipeline/corpus_compiler/tests/test_gate_offset.py::test_gate_offset_does_not_import_compiler_modules`
+      自检用的 `GATE_SOURCE_ENV` 会泄漏到真实用例，导致按不同 discover 范围跑时结果不同。
+    改：修**测试设施**（环境变量隔离），不是改产品代码。
+    硬性：
+      - 修完后，单跑该文件、跑 corpus_compiler 全套、跑全仓库 discover，三种范围结果一致
+      - 产品代码一行不许改
+tests_first: |
+  每项各自先红后绿，逐项贴 Red 原文。至少：
+    Q3：test_m5_gate_flags_adapter_notes_truncation / test_m5_gate_adapter_notes_clean_passes
+    Q5：三种 discover 范围下同一用例结果一致（把三次命令与输出都贴出来）
+    Q1/Q2/Q4 以文档与数据产物为主，用「改前/改后」实物对照代替单元测试，
+      但 Q2 的 5 个词条**每条都要贴出其原文偏移与查证命令**。
+verify: |
+  cd /Users/jingtaiwei/Git/Public/learn_system && export LC_ALL=en_US.UTF-8
+  .venv/bin/python -m unittest discover -s pipeline/validation/tests -t . 2>&1 | tail -1     # OK（≥108）
+  .venv/bin/python -m unittest discover -s pipeline/corpus_compiler/tests -t . 2>&1 | tail -1 # OK 163
+  .venv/bin/python -m unittest pipeline.corpus_compiler.tests.test_gate_offset 2>&1 | tail -1 # OK（单跑）
+  .venv/bin/python -m unittest discover -s pipeline -t . 2>&1 | tail -1                       # 全仓库范围，结果须一致
+  .venv/bin/python -m unittest discover -s pipeline/dataset_compiler/tests -t . 2>&1 | tail -3 # OK，skipped=0
+  git status --short var/ledgers/qianyuan_w8/        # **必须无输出**（真书正本未被写）
+  git status --short pipeline/corpus/_fixture/mini_ed01/   # 无输出
+  # 篡改探针（一条，绿→红→改回）：
+  #   把 Q3 的扫描词表清空 → test_m5_gate_flags_adapter_notes_truncation 转红
+  # 探针副本必须 cp -R 整个仓库（含 ocr/）（R13）
+commit: |
+  **分五个提交**，每项一个，互不混合：
+    1. docs(m4): make the per-batch candidate cap adaptive to segment count (W8 Q1)
+    2. data(m6): register the five concept entries dropped by the batch cap (W8 Q2)
+    3. feat(m5): flag adapter_notes truncation instead of passing silently (W8 Q3)
+    4. data(m4): rebuild the missing span list and mark its sha256 unverified (W8 Q4)
+    5. test(m3): isolate the gate self-check env so discovery scope cannot change results (W8 Q5)
+  各含对应 TDD 阈值行；末尾空一行加 `Co-Authored-By: Freebuff <noreply@freebuff.ai>`。
+on_fail: |
+  **单项停手，不要整批停**：某项卡住就跳过它做下一项，最后在回报里列明哪项停、为什么。
+  必须停手写「## 待裁决」的情况：
+    ① Q2 的某个词条在原文里找不到确切出处偏移（不许凭空补）
+    ② Q3 的新检查会让既有 M5 用例转红
+    ③ Q4 重建出的清单不是恰好 41 段、或偏移不连续（说明重建前提错了）
+    ④ 任何一项需要写 `var/ledgers/qianyuan_w8/` 真书正本
+    ⑤ Q5 修完三种范围结果仍不一致

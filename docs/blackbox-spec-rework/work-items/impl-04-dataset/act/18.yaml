@@ -1,0 +1,108 @@
+act_id: impl-04/18
+title: patch_reversible 读对文档并真正验证可逆（现状读错产物，且历来是空转绿）
+estimated_minutes: 130
+group: K5
+depends_on: [impl-04/17]
+decisions: [D-W8-18, 裁定 103 D1]
+scope:
+  write:
+    - pipeline/dataset_compiler/gate.py
+    - pipeline/dataset_compiler/step.py
+    - pipeline/dataset_compiler/inputs.py
+    - pipeline/dataset_compiler/tests/test_gate.py
+    - pipeline/dataset_compiler/tests/test_step.py
+  read_only:
+    - var/
+    - pipeline/dataset_compiler/packs.py
+    - pipeline/digitization/                      # 只读参考，不许改，也不许 import（见第一节 3.）
+    - pipeline/corpus/_fixture/mini_ed01/
+background: |
+  执行器 2026-09-21 诊断（主 Agent 已复核证据，回报 `~/tmux-agents/runs/fb-patchrev.report.md`）：
+
+  1) **gate 读错了产物**。`patch_reversible` 读 `sanitization_report["patches"]`，
+     而 `pipeline/digitization/reporter.py::build_sanitization_report` 按契约**故意不写 `replacement`**：
+       patch_dict = {patch_id, raw_start, raw_end, cleaned_start, cleaned_end, action, basis}
+     带 `replacement` 的是**另一份产物** `deterministic_patch_set`（`digitization/step.py::run_m2`）。
+     而 gate 的 detail 文案写的却是「DeterministicPatchSet 双向映射可逆」——**名实不符**。
+     实测 FAIL detail：`{"ok": false, "detail": "patch 缺 replacement: 'patch_001'"}`
+
+  2) **它历来是空转绿**。ACT 17 之前 `step.py` 从未把 `sanitization_report` 传进 gate
+     → `report={}` → `patches=[]` → 循环空跑 → 返回 ok，detail 恰为「…（0 条 patch）」。
+     主 Agent 此前在真书上看到的 `ok=True / 0 条 patch` 就是这个假绿。
+     **ACT 17 接上线才让它暴露——这不是 ACT 17 引入的缺陷，是它揭开的旧缺陷。**
+
+  3) 三种输入喂同一套算法的对照（执行器实测，夹具账本）：
+       SanitizationReport.patches（77 条，无 replacement） → FAIL 缺 replacement
+       DeterministicPatchSet（77 条，带 replacement）      → OK  （77 条 patch）
+       空 patches                                          → OK  （0 条 patch）← 旧假绿
+     独立重放：`apply_patches(raw_text, deterministic_patch_set) == cleaned_text` → **True**
+     （raw 17735 字 → cleaned 17181 字）。**数据可逆，夹具没坏，是实现读错了地方。**
+
+  4) **更要紧的一条**：即使换成正确产物，现实现也只是**形状检查**
+     （字段齐全 + 区间与 replacement 等长 + raw 序不重叠），
+     **从不重算、也不碰 raw_text / cleaned_text**——并没有验证「双向可逆」这个语义。
+contract: |
+  一、D-W8-18（主 Agent 2026-09-21 裁决）
+    1. `patch_reversible` 的权威产物是 **DeterministicPatchSet**，不是 SanitizationReport。
+       由 `inputs.py` 解析、`step.py` 作为**冻结输入**传入 gate（不许现读账本、不许旁路冻结集）。
+    2. 该检查**必须真正重算**，不得只做形状检查：
+       用 `raw_text` + patches 重建清洗文本，与 `cleaned_text` 逐字节比对（或比 sha256）。
+       不一致 → FAIL，detail 须给出首个不一致的偏移位置。
+    3. **「gate 不得 import 编译模块」这条纪律不变，且正是本裁定的依据**：
+       gate 要在自己内部**独立实现**重放逻辑，不许 `from pipeline.digitization... import apply_patches`。
+       独立重算才是独立验证的本意；照搬被验对象的实现等于自己验自己。
+    4. 形状检查**保留**（作为重算前的前置校验），但不得单独构成通过条件。
+    5. detail 文案必须与实际读取的产物一致——**不许再出现名实不符**。
+    6. 空 patches 仍可通过，但 detail 必须能与「真的重算过」区分开：
+       0 条 patch 时须同时断言 `raw_text == cleaned_text`，不等则 FAIL。
+       **这条专门堵旧假绿那条路。**
+
+  二、ocr 路线
+    glyphbox 档该项行为逐字不变；新参数在 ocr 路线取 None 时行为与改前一致。
+
+  三、裁定 103 D1 不得动摇
+    `sanitization_disclosure` 仍须把禁止字符与 `known_unresolvable` 发现逐条对账，
+    本 ACT 不得削弱它，也不得把两项合并。
+tests_first: |
+  先写测试并确认转红（贴 Red 原文），再改实现。至少七个具名用例：
+    test_patch_reversible_reads_deterministic_patch_set_not_sanitization_report
+    test_patch_reversible_recomputes_and_matches_cleaned_text      # 真重算
+    test_patch_reversible_detects_tampered_replacement             # 改一个 replacement → FAIL 且 detail 给偏移
+    test_patch_reversible_empty_patches_requires_raw_equals_cleaned  # 堵旧假绿
+    test_patch_reversible_detail_names_the_actual_document
+    test_gate_does_not_import_digitization_modules                 # 独立实现纪律护栏
+    test_glyphbox_patch_reversible_unchanged
+verify: |
+  cd /Users/jingtaiwei/Git/Public/learn_system && export LC_ALL=en_US.UTF-8
+  .venv/bin/python -m unittest discover -s pipeline/dataset_compiler/tests -t . 2>&1 | tail -3
+      # OK；**skipped 必须仍为 0**
+  for p in corpus_compiler assembly review validation digitization; do
+    .venv/bin/python -m unittest discover -s pipeline/$p/tests -t . 2>&1 | tail -1; done   # 全 OK
+  .venv/bin/python docs/blackbox-spec-rework/work-items/impl-00-interfaces/check_interfaces.py | tail -1   # pass=44 fail=0
+  bash openspec/acceptance/m8-span-identity.sh 2>&1 | tail -1        # pass=7 fail=0 blocked=1（OCR 逐字不变）
+  FIXTURE_DIR=pipeline/corpus/_fixture/qianyuan_ed01_text bash openspec/acceptance/m8-span-identity.sh 2>&1 | tail -1
+  # 电子文本夹具上跑 M8，贴出 failed_checks 改前/改后对照（改前只剩 patch_reversible 一项）
+  git diff --stat -- pipeline/dataset_compiler/packs.py pipeline/digitization/   # 必须无输出
+  git status --short pipeline/corpus/_fixture/mini_ed01/                          # 无输出
+  # 篡改探针（三条，绿→红→改回，写进回报）：
+  #   P1 把重算去掉只留形状检查 → test_..._recomputes_and_matches_cleaned_text 转红
+  #   P2 空 patches 时不校验 raw==cleaned → test_..._empty_patches_requires_raw_equals_cleaned 转红
+  #   P3 改回读 sanitization_report → test_..._reads_deterministic_patch_set_not_sanitization_report 转红
+  # 探针副本必须 cp -R 整个仓库（含 ocr/），只复制 pipeline/ 会出假阴性（R13）
+commit:
+  add:
+    - pipeline/dataset_compiler/gate.py
+    - pipeline/dataset_compiler/step.py
+    - pipeline/dataset_compiler/inputs.py
+    - pipeline/dataset_compiler/tests/test_gate.py
+    - pipeline/dataset_compiler/tests/test_step.py
+    - docs/blackbox-spec-rework/work-items/impl-04-dataset/act/18.yaml
+  message: "fix(m8): verify patch reversibility by recomputation against the deterministic patch set (W8 8.6-K5, ACT 18)"
+on_fail: |
+  停止并报告，不许提交红的基线。
+  五种情况必须停手写「## 待裁决」：
+    ① 重算结果与 cleaned_text 不一致，且你判断不了是数据问题还是重放语义理解错
+    ② DeterministicPatchSet 不在 m3 包的 input_artifacts 里、解析路径不唯一
+    ③ 不 import digitization 就无法正确重放（说明 patch 语义有隐含约定，需要主 Agent 定）
+    ④ glyphbox 档该项行为被迫改变
+    ⑤ 修好后电子文本路线冒出**新的** FAIL 项（如实报，不要顺手修）
