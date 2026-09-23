@@ -909,3 +909,34 @@ not_comparable（理由 `multiple_assertions_per_unit`），不出任何关系�
   不许带别的字段（现在的实现是把整个单元 dict 塞进去，含 entity_ref / present / text_sha256 等，要改掉）。
 - 排序键 `(source_id, collation_key or "", assertion_id or "")`。
 - **Gate 要独立算出这份列表并逐项比对**（含理由），不只验计数下限。验收判据同样独立算、逐项比。
+
+---
+
+## 29. 轨道 2 追问的三条：返工与多版次基底里的对勘关系（2026-09-22，两条轨道共同遵守）
+
+**Q8 哪些对勘关系本轮重算、方向怎么定 —— 采纳轨道 2 的提议。**
+- 本轮**涉及视图 source** 的对勘关系 = 任一端断言属于视图 source，或 omission 的 `absent_source_id` 是视图 source。
+  这类关系**全部删掉、按本轮角色重算**：对每个「与视图 source 不同、同 work_key」的基底版次，逐对算完整性。
+- 方向一律按 §25.4 本轮角色：视图 = 新版。所以同书返工（ed01r2）时，ed01 与 ed99 之间的关系会**反向**
+  （r2 是 ed99 → ed01，r3 变成 ed01 → ed99），addition / omission 也随之互换表述。这是 §25.4 角色口径的直接后果，接受。
+- **不涉及视图 source** 的关系（基底两个旧版之间的）原样带过来，**必须与基底逐字节相同**，Gate 要验。
+- 被删掉重算的关系记进 `report.dropped_relations`，理由 **`collation_recomputed`**（加入 §22.2 的理由闭集）。§22 的「静默删除一律不许」照旧。
+- 代价（记为已知缺口）：反向后 R07b 提案的主体键变了，**返工时此前的 R07b 人工决定无法沿用，须重新裁决**。
+  关系不在注解锚定白名单里（§16:730），反向不影响锚点。
+
+**Q9 真书基底缺 `collation_units` —— 不给 Gate 开口子，缺字段的基底在入口拒收。**
+- 真书第二轮的基底是 fixture 的 r1 金标（§6 / §24 的做法），轨道 1 会按 §25 重出它，届时带这个字段。真书第二轮判据照旧。
+- 账本里旧引擎封存的真书 r1 Snapshot 确实没有这个字段。**不许把缺字段静默当作空。**
+  引擎在入口先用 `model` 校验基底 knowledge，缺字段 → 拒收（`SchemaViolation`，message 含「基底 Snapshot 缺 collation_units，须先迁移」），
+  根本走不到 Gate。Gate 那条「任一 editions 条目缺字段 → FAIL」保留，作为第二道防线。
+- 旧 Snapshot 的迁移（重新创世或补字段）记为已知缺口，本波不做。
+
+**Q10 两种 distinct_from 怎么区分 —— 采纳。**
+两端都是断言、且 detail 带 `collation_key` 的 distinct_from 才是对勘落点，归 `collation_comparable_only` 管；
+其余（Pattern / Concept 之间的，来自 R10 等）不归它管。引擎落 R07b 拒绝时必须带上 detail.collation_key。
+
+**轨道 2 的推论 —— 确认。**
+- `mode=auto` 的 alignment / variant_reading：两端 subject 非空且相等 + 文本相等 / 不等。
+- `mode=human` 的 alignment / variant_reading（R07b 接受）：两端 subject 必然不同或为 null，**不验 subject**，
+  只验文本（alignment 同 text_sha256、variant 异）、方向、端点与完整性。
+- 对勘 distinct_from 必须 `mode=human`。所有 `mode=human` 的关系必须有对应决定（由 `decisions_consistent` 验）。
