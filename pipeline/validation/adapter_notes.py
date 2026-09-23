@@ -26,7 +26,7 @@
 6. 词表**集中定义**在本模块的 ``TRUNCATION_MARKERS``，可整体覆盖（调用方参数或
    ``M5_ADAPTER_NOTES_MARKERS`` 环境变量），不在别处硬编码。
 
-本模块**只读**：账本经 ``reader.get_revision`` / ``reader.store.conn`` 只读取用，
+本模块**只读**：账本只经 LedgerPort 的只读方法（``get_revision`` / ``describe_revision`` / ``read_object``）取用，
 不写账本、不写提交件、不签发任何东西（人工裁决与 Concept 引用仍只由用户做，P7）。
 """
 
@@ -132,25 +132,18 @@ def findings_from_hits(hits):
 
 
 def _artifact_types(reader, revision_ids):
-    """只读 SELECT：``artifacts.artifact_type``（经 ``artifact_revisions`` join）。"""
-    revision_ids = [rev for rev in revision_ids if rev]
-    if not revision_ids:
-        return {}
-    placeholders = ", ".join("?" * len(revision_ids))
-    rows = reader.store.conn.execute(
-        "SELECT r.artifact_revision_id, a.artifact_type FROM artifact_revisions r "
-        "JOIN artifacts a ON a.artifact_id = r.artifact_id "
-        "WHERE r.artifact_revision_id IN (%s)" % placeholders,
-        tuple(revision_ids),
-    ).fetchall()
-    return {row[0]: row[1] for row in rows}
+    """经 LedgerPort ``describe_revision`` 取 ``artifact_type``；不存在的修订不出现在结果里。"""
+    types = {}
+    for revision_id in revision_ids:
+        info = reader.describe_revision(revision_id) if revision_id else None
+        if info is not None:
+            types[revision_id] = info["artifact_type"]
+    return types
 
 
 def _read_bytes(reader, sha256):
-    reader_read = getattr(reader, "read_object", None)
-    if reader_read is not None:
-        return reader_read(sha256)
-    return reader.objects.get(sha256)
+    # LedgerService 与 LedgerReader 都经 LedgerReadMixin 提供 read_object（TODO.md T03），不再直读对象存储
+    return reader.read_object(sha256)
 
 
 def _read_doc(reader, revision_id):

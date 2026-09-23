@@ -27,24 +27,13 @@ _VALIDATOR_IDS = [validator_id for validator_id, _gate, _func in VALIDATORS]
 
 def _artifact_ref(service, revision_id):
     """构造过 ``artifact_ref.schema.json`` 的引用（stage_package 用包号身份）。"""
-    row = service.store.conn.execute(
-        "SELECT a.artifact_id, a.artifact_type FROM artifacts a "
-        "JOIN artifact_revisions r ON r.artifact_id = a.artifact_id "
-        "WHERE r.artifact_revision_id=?",
-        (revision_id,),
-    ).fetchone()
-    artifact_id, artifact_type = row[0], row[1]
+    info = service.describe_revision(revision_id)
+    artifact_id, artifact_type = info["artifact_id"], info["artifact_type"]
     if artifact_type == "stage_package":
-        package_row = service.store.conn.execute(
-            "SELECT sp.stage_package_id FROM stage_packages sp "
-            "JOIN artifact_revisions r ON r.artifact_id = sp.artifact_id "
-            "WHERE r.artifact_revision_id=?",
-            (revision_id,),
-        ).fetchone()
         return {
             "schema_version": "1.0.0",
             "artifact_kind": "stage_package",
-            "stage_package_id": package_row[0],
+            "stage_package_id": info["stage_package_id"],
             "artifact_revision_id": revision_id,
             "artifact_type": artifact_type,
         }

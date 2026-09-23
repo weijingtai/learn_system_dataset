@@ -55,7 +55,7 @@ _CONTENT_STATUSES = (
 
 def _read_doc(service, revision_id):
     row = service.get_revision(revision_id)
-    return json.loads(service.objects.get(row["sha256"]).decode("utf-8"))
+    return json.loads(service.read_object(row["sha256"]).decode("utf-8"))
 
 
 def _page_block(doc):

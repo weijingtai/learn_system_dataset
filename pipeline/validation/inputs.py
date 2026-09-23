@@ -3,8 +3,8 @@
 上游约束（impl-02 ACCEPTANCE §5.3、§9 第 23 条）：解析上游 StagePackage 时
 只接受所属 StepRun 状态为 ``succeeded`` 的包；非 ``succeeded`` 一律拒绝并抛
 ``ValidationRefused``。本模块只调用 ``LedgerReadMixin`` 公开方法，不做任何
-写入；三类元数据缺口经 ``reader.store.conn`` 只读 SELECT，集中在
-``_m3_step_run`` / ``_artifact_types`` / ``_stage_package_for_stage``。
+写入；三类元数据经 LedgerPort 只读方法（``list_frozen_inputs`` / ``describe_revision`` /
+``list_stage_packages``）取得，集中在 ``_m3_step_run`` / ``_artifact_types`` / ``_stage_package_for_stage``。
 
 **按证据级别分派（R83，第 100 条 D5）**：``corpus_spans`` 顶层
 ``evidence_level`` 为 ``offset_level`` 时走电子文本档——上游是 M1
@@ -42,40 +42,32 @@ _OFFSET_LEVEL = "offset_level"
 
 # ---------------------------------------------------------------- 只读 SELECT
 def _m3_step_run(reader, step_run_id):
-    """只读 SELECT：某 StepRun 在 ``frozen_inputs`` 中登记的冻结修订集合。"""
-    rows = reader.store.conn.execute(
-        "SELECT artifact_revision_id FROM frozen_inputs WHERE step_run_id=?",
-        (step_run_id,),
-    ).fetchall()
-    return {row[0] for row in rows}
+    """经 LedgerPort：某 StepRun 登记的冻结修订集合。"""
+    return set(reader.list_frozen_inputs(step_run_id))
 
 
 def _artifact_types(reader, revision_ids):
-    """只读 SELECT：``artifacts.artifact_type``（经 ``artifact_revisions`` join）。"""
-    revision_ids = [rev for rev in revision_ids if rev]
-    if not revision_ids:
-        return {}
-    placeholders = ",".join("?" * len(revision_ids))
-    rows = reader.store.conn.execute(
-        "SELECT r.artifact_revision_id, a.artifact_type FROM artifact_revisions r "
-        "JOIN artifacts a ON a.artifact_id = r.artifact_id "
-        "WHERE r.artifact_revision_id IN (%s)" % placeholders,
-        tuple(revision_ids),
-    ).fetchall()
-    return {row[0]: row[1] for row in rows}
+    """经 LedgerPort ``describe_revision`` 取 ``artifact_type``；不存在的修订不出现在结果里。"""
+    types = {}
+    for revision_id in revision_ids:
+        info = reader.describe_revision(revision_id) if revision_id else None
+        if info is not None:
+            types[revision_id] = info["artifact_type"]
+    return types
 
 
 def _stage_package_for_stage(reader, stage):
-    """只读 SELECT：某 stage 的全部 StagePackage 及其归属 StepRun 状态。"""
-    rows = reader.store.conn.execute(
-        "SELECT sp.stage_package_id, sp.artifact_id, sp.stage, r.step_run_id, sr.status "
-        "FROM stage_packages sp "
-        "JOIN artifact_revisions r ON r.artifact_id = sp.artifact_id "
-        "JOIN step_runs sr ON sr.step_run_id = r.step_run_id "
-        "WHERE sp.stage=?",
-        (stage,),
-    ).fetchall()
-    return [dict(row) for row in rows]
+    """经 LedgerPort：某 stage 的全部 StagePackage 及其归属 StepRun 状态（键 ``status``）。"""
+    return [
+        {
+            "stage_package_id": row["stage_package_id"],
+            "artifact_id": row["artifact_id"],
+            "stage": row["stage"],
+            "step_run_id": row["step_run_id"],
+            "status": row["step_run_status"],
+        }
+        for row in reader.list_stage_packages(stage)
+    ]
 
 
 def _m1_source_manifest(reader, edition_part_id):
@@ -99,10 +91,8 @@ def _m1_source_manifest(reader, edition_part_id):
 
 
 def _read_bytes(reader, sha256):
-    reader_read = getattr(reader, "read_object", None)
-    if reader_read is not None:
-        return reader_read(sha256)
-    return reader.objects.get(sha256)
+    # LedgerService 与 LedgerReader 都经 LedgerReadMixin 提供 read_object（TODO.md T03），不再直读对象存储
+    return reader.read_object(sha256)
 
 
 def _parse(data):
@@ -197,11 +187,8 @@ def resolve_m5_inputs(reader, edition_part_id):
     if package_revisions:
         m3_package_revision_id = package_revisions[0]
     elif chosen is not None:
-        rows = reader.store.conn.execute(
-            "SELECT artifact_revision_id FROM artifact_revisions WHERE artifact_id=?",
-            (chosen["artifact_id"],),
-        ).fetchall()
-        m3_package_revision_id = rows[0][0] if rows else None
+        rows = reader.list_artifact_revisions(chosen["artifact_id"])
+        m3_package_revision_id = rows[0]["artifact_revision_id"] if rows else None
     else:
         m3_package_revision_id = None
     if m3_package_revision_id is None:

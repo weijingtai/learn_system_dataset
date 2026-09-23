@@ -1,7 +1,6 @@
 """M5 只读上下文：把冻结修订的字节读入并复算 sha256。
 
-``build_context`` 经 ``reader.read_object``（若不可用则退化到
-``reader.objects.get``，以同时支持 ``LedgerReader`` 与 ``LedgerService``）
+``build_context`` 经 LedgerPort 的 ``reader.read_object``（``LedgerReader`` 与 ``LedgerService`` 同名同义）
 读取每个冻结修订的字节并逐个复算 sha256；哈希不符或对象缺失**不抛异常**，
 只把 ``actual_sha256`` / ``doc`` 置为 ``None``，交由 ``g1_frozen_bytes`` 判
 fail-closed。输出键集与 K1 ``fixture_context()`` 完全一致。
@@ -22,10 +21,8 @@ import yaml
 
 
 def _read_bytes(reader, sha256):
-    reader_read = getattr(reader, "read_object", None)
-    if reader_read is not None:
-        return reader_read(sha256)
-    return reader.objects.get(sha256)
+    # LedgerService 与 LedgerReader 都经 LedgerReadMixin 提供 read_object（TODO.md T03），不再直读对象存储
+    return reader.read_object(sha256)
 
 
 def _parse(data):
@@ -42,13 +39,10 @@ def _parse(data):
 
 
 def _revision_meta(reader, revision_id):
-    row = reader.store.conn.execute(
-        "SELECT r.status, a.artifact_type, a.artifact_id FROM artifact_revisions r "
-        "JOIN artifacts a ON a.artifact_id = r.artifact_id "
-        "WHERE r.artifact_revision_id=?",
-        (revision_id,),
-    ).fetchone()
-    return dict(row) if row is not None else {}
+    info = reader.describe_revision(revision_id)
+    if info is None:
+        return {}
+    return {key: info[key] for key in ("status", "artifact_type", "artifact_id")}
 
 
 def build_context(reader, inputs, *, target_consumption_level):

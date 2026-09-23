@@ -10,7 +10,6 @@
 
 import json
 import os
-import types
 import unittest
 
 import yaml
@@ -158,33 +157,16 @@ class TruncationScanTest(unittest.TestCase):
         self.assertEqual(scan_documents([("rev_a", lane_a)]), [], "a 路无截断自述")
 
 
-class _Cursor:
-    def __init__(self, rows):
-        self._rows = rows
-
-    def fetchall(self):
-        return list(self._rows)
-
-
-class _Conn:
-    """只读 SELECT 桩：按 ``artifact_type`` 返回 ``(revision_id, artifact_type)``。"""
-
-    def __init__(self, types_by_revision):
-        self._types = types_by_revision
-
-    def execute(self, _sql, params):
-        wanted = set(params)
-        return _Cursor(
-            [(rev, kind) for rev, kind in self._types.items() if rev in wanted]
-        )
-
-
 class _Reader:
-    """`submission_documents` 所需的最小只读接口桩（不建真账本）。"""
+    """`submission_documents` 所需的最小只读接口桩（不建真账本）。
+
+    TODO.md T03：只提供 LedgerPort 方法，**故意不提供** ``store`` / ``objects``——
+    模块若还绕过端口直读，这里会立即 AttributeError。
+    """
 
     def __init__(self, checkpoints, step_runs, types_by_revision, objects):
-        self.store = types.SimpleNamespace(conn=_Conn(types_by_revision))
-        self.objects = types.SimpleNamespace(get=lambda sha: objects[sha])
+        self._types_by_revision = types_by_revision
+        self._objects = objects
         self._checkpoints = checkpoints
         self._step_runs = step_runs
         self._revision_rows = {"rev_sub_b": {"sha256": "sha_b"}}
@@ -197,6 +179,13 @@ class _Reader:
 
     def get_revision(self, revision_id):
         return self._revision_rows.get(revision_id)
+
+    def describe_revision(self, revision_id):
+        artifact_type = self._types_by_revision.get(revision_id)
+        return None if artifact_type is None else {"artifact_revision_id": revision_id, "artifact_type": artifact_type}
+
+    def read_object(self, sha256):
+        return self._objects[sha256]
 
 
 def _reader(status="succeeded"):
