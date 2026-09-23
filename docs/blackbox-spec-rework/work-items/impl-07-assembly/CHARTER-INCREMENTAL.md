@@ -848,3 +848,55 @@ R07 / R08 / R07b / R09 提案一律带 `targets = [from, to]`（按上表，缺�
 第 2 条改为精确匹配判据名。主 Agent 在干净提交上验证：有账本、无账本两种宿主都全绿（无账本时 skip 1 条）。
 
 **I 波集成时须把 `KNOWN_GAP_BLOCKED` 清空**，期望随之变为 `pass=17 fail=0 blocked=0`、退出码 0。
+
+---
+
+## 28. 轨道 2 提出的七条口径 —— 裁定（2026-09-22，两条轨道都必须遵守）
+
+轨道 2 读完 §25 后提出 7 条待裁决和 2 条假设，都是 §25 没写死的缝。**这些裁定同时约束引擎（ACT 29）与 Gate（ACT 30）**，
+两边口径不一致，合并时 Gate 必然报错。
+
+**Q1 完整性覆盖四类 —— 采纳轨道 2 的读法。**
+新版 present 且有获批断言、旧版声明 present:false → 恰一条 addition；反之 → 恰一条 omission；
+两侧都 present:false、任一侧未声明、同 source、declared_without_assertion → 零条。
+
+**Q2 R07b 裁决后落成什么 —— 统一落成一条关系（改了轨道 2 的提议）。**
+- 提案选项沿用现有 `accept_alignment` / `reject_alignment`。
+- `accept_alignment` → 按文本是否相等，落一条 alignment 或 variant_reading，`resolution.mode=human`。
+- `reject_alignment` → 落一条 **distinct_from**（新版断言 → 旧版断言），`resolution.mode=human`，detail 含 collation_key。
+- 未裁决 → 本轮 `awaiting_human`，不会 succeeded。
+- 这样完整性就统一成：每个可比单元**恰有一条**关系，取值于 {alignment, variant_reading, addition, omission, distinct_from(human)}。
+  理由：落点在 knowledge 里看得见，不必去 decisions 里找；也和 §21/§22 的思路一致（决定都要有看得见的落点）。
+
+**Q3 主体为 null —— 采纳：不算同一正式对象。**
+alignment / variant_reading 要求两端 subject_entity_id **都非空且相等**；任一为 null → 走 R07b 人工。
+
+**Q4 Snapshot 写入一致性 —— 采纳，Gate 要验。**
+- 新 knowledge 里视图 source 那条 `editions[].collation_units` == 视图声明（只取 `{collation_key, present}`，按 collation_key 升序）；
+  其他 source 的条目与基底逐字节相同。
+- **collation_key 为 null 的单元不写入**（无键单元无法比对，写进去只会成为下一轮的噪声）。
+
+**Q5 视图一侧只认 collation_units —— 确认。**
+有 collation_key 但视图没声明该单元的断言 → not_comparable（理由 `view_undeclared`）。
+引擎注意：`matcher.units_of_view`（只读）对这种断言会造一个 present=True 的单元（matcher.py:94-96），
+**引擎不许依赖它的 present**，要在 `incremental` 里对照视图的 `collation_units` 声明来判断。
+
+**Q6 闭包触点 —— 确认 (a)(b)(c)。**
+(a) 视图声明 present:false 的单元 → 基底同 (work_key, collation_key) 的断言入触点；
+(b) 基底 `editions[视图 source].collation_units` 声明过、视图不再声明的 key → 同上；
+(c) present:true 的单元本身不再贡献触点（只经视图断言自己的「同 (work_key, collation_key)」触点进来）。
+**引擎 `orchestrate` 的闭包必须同口径**，否则 `affected_scope_exact` 会报错。
+
+**Q7 not_comparable 计数 —— 从视图声明独立算，写死的 1 删掉。**
+- 单位：本轮视图里每个**不可比单元**计一次。无键断言各自成单元（沿用 matcher 的口径：26 条无键断言 = 26 个）。
+- not_comparable 列表每项带理由，闭集：`missing_collation_key`、`view_undeclared`、`base_undeclared`、
+  `declared_without_assertion`、`multiple_assertions_per_unit`（见下）、`same_source`。
+- §25.9 的 fixture 下应为 2：0004（base_undeclared）+ ed99 的无键单元（missing_collation_key）。
+- 引擎的 `report` 要给出这份带理由的列表；验收判据独立算出同一份，逐项比对。
+
+**假设一：同侧同键多条获批断言 —— 否决「端点取其一」，改为不可比。**
+同一侧、同一 collation_key 下有 >1 条获批断言 → 推不出确定配对，按 §25.2「推不出就不猜」：
+not_comparable（理由 `multiple_assertions_per_unit`），不出任何关系。
+引擎注意：`matcher.units_of_view` 在这种情况下会用最后一条断言**覆盖**前面的（matcher.py:97），必须在 `incremental` 里另行识别。
+
+**假设二：work_key 来源 —— 采纳。** 基底取 `editions[].work_key`；视图取 `canonical.work_key(视图 source)`。
