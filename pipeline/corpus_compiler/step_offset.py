@@ -92,20 +92,15 @@ def _fail(service: LedgerService, step_run_id: str, check: str, detail: str) -> 
 
 def _artifact_ref(service: LedgerService, revision_id: str) -> dict:
     """构造 artifact_ref（形态与 OCR 路线 ``step._artifact_ref`` 逐字一致，第 100 条 D2）。"""
-    row = service.store.conn.execute(
-        "SELECT a.artifact_id, a.artifact_type FROM artifacts a "
-        "JOIN artifact_revisions r ON r.artifact_id = a.artifact_id "
-        "WHERE r.artifact_revision_id=?",
-        (revision_id,),
-    ).fetchone()
-    if row is None:
+    info = service.describe_revision(revision_id)
+    if info is None:
         raise CompileRefused("SCH_001: 制品修订不存在: %s" % revision_id)
     return {
         "schema_version": "1.0.0",
         "artifact_kind": "artifact",
-        "artifact_id": row[0],
+        "artifact_id": info["artifact_id"],
         "artifact_revision_id": revision_id,
-        "artifact_type": row[1],
+        "artifact_type": info["artifact_type"],
     }
 
 
@@ -121,7 +116,7 @@ def _resolve_m1_page_ids(service: LedgerService, edition_part_id: str) -> list:
             revision = service.get_revision(task["artifact_revision_id"])
             if revision is None:
                 continue
-            manifest = yaml.safe_load(service.objects.get(revision["sha256"]).decode("utf-8"))
+            manifest = yaml.safe_load(service.read_object(revision["sha256"]).decode("utf-8"))
             pages = (manifest.get("edition_part") or {}).get("pages") or []
             if len(pages) != 1:
                 raise CompileRefused(
@@ -213,15 +208,11 @@ def resolve_m3_text_inputs(service: LedgerService, edition_part_id: str) -> M3Te
                 break
 
     if not m2_step_run_id:
-        # 尝试从 processing_runs 寻找最近的 step_run
-        row = service.store.conn.execute(
-            "SELECT sr.step_run_id FROM step_runs sr "
-            "JOIN processing_runs pr ON pr.processing_run_id = sr.processing_run_id "
-            "WHERE pr.edition_part_id=? ORDER BY sr.created_at DESC LIMIT 1",
-            (edition_part_id,),
-        ).fetchone()
-        if row:
-            m2_step_run_id = row[0]
+        # 退路：该 EditionPart 最近一次 **m2** StepRun（旧实现取的是最近一次任意阶段，
+        # 会把 M3 自己或别的阶段的运行当成 M2；见 TODO T03 修正）。
+        m2_runs = service.list_step_runs(edition_part_id, stage="m2")
+        if m2_runs:
+            m2_step_run_id = m2_runs[-1]["step_run_id"]
 
     if not m2_step_run_id:
         raise CompileRefused("P5: M2 阶段未成功完成 (未找到 M2 StepRun)")
@@ -235,16 +226,14 @@ def resolve_m3_text_inputs(service: LedgerService, edition_part_id: str) -> M3Te
     technique_id = "qizheng"
 
     # ---- 2. 收集四类产物修订 ----
-    produced_rows = service.store.conn.execute(
-        "SELECT a.artifact_type, r.artifact_revision_id, r.sha256 FROM artifacts a "
-        "JOIN artifact_revisions r ON r.artifact_id = a.artifact_id "
-        "WHERE r.step_run_id=?",
-        (m2_step_run_id,),
-    ).fetchall()
-
+    # 端口按产生顺序返回该 StepRun 的产出修订（原 SQL 无 ORDER BY；同一类型多条时
+    # 现在确定取最后产生的那条）。
     artifacts_by_type: dict[str, tuple[str, str]] = {}
-    for art_type, rev_id, sha256 in produced_rows:
-        artifacts_by_type[art_type] = (rev_id, sha256)
+    for produced in service.list_step_run_revisions(m2_step_run_id):
+        artifacts_by_type[produced["artifact_type"]] = (
+            produced["artifact_revision_id"],
+            produced["sha256"],
+        )
 
     # 查找 raw_text 修订：严格限定在 M2 StepRun 的 input_artifact_ids 中
     req_json = json.loads(m2_step_run["request_json"]) if "request_json" in m2_step_run else {}
@@ -254,19 +243,16 @@ def resolve_m3_text_inputs(service: LedgerService, edition_part_id: str) -> M3Te
     raw_text_rev_id = None
     raw_text_sha256 = None
     for in_id in input_rev_ids:
-        in_row = service.store.conn.execute(
-            "SELECT a.artifact_type, r.sha256 FROM artifacts a "
-            "JOIN artifact_revisions r ON r.artifact_id = a.artifact_id "
-            "WHERE r.artifact_revision_id=?",
-            (in_id,),
-        ).fetchone()
-        if in_row and in_row[0] == "raw_text":
+        in_info = service.describe_revision(in_id)
+        if in_info is None:
+            continue
+        if in_info["artifact_type"] == "raw_text":
             raw_text_rev_id = in_id
-            raw_text_sha256 = in_row[1]
+            raw_text_sha256 = in_info["sha256"]
             break
-        elif in_row and raw_text_rev_id is None:
+        elif raw_text_rev_id is None:
             raw_text_rev_id = in_id
-            raw_text_sha256 = in_row[1]
+            raw_text_sha256 = in_info["sha256"]
 
     if not raw_text_rev_id or not raw_text_sha256:
         raise CompileRefused("SCH_001: 缺失 raw_text 产物")
@@ -284,17 +270,17 @@ def resolve_m3_text_inputs(service: LedgerService, edition_part_id: str) -> M3Te
     report_rev_id, report_sha256 = artifacts_by_type["sanitization_report"]
 
     # ---- 3. 读取并反序列化内容 ----
-    raw_bytes = service.objects.get(raw_text_sha256)
+    raw_bytes = service.read_object(raw_text_sha256)
     if raw_bytes is None:
         raise CompileRefused(f"SCH_001: 无法读取 raw_text 数据: {raw_text_sha256}")
     raw_text = raw_bytes.decode("utf-8")
 
-    cleaned_bytes = service.objects.get(cleaned_sha256)
+    cleaned_bytes = service.read_object(cleaned_sha256)
     if cleaned_bytes is None:
         raise CompileRefused(f"SCH_001: 无法读取 cleaned_text 数据: {cleaned_sha256}")
     cleaned_text = cleaned_bytes.decode("utf-8")
 
-    patch_bytes = service.objects.get(patch_sha256)
+    patch_bytes = service.read_object(patch_sha256)
     if patch_bytes is None:
         raise CompileRefused(f"SCH_001: 无法读取 deterministic_patch_set 数据: {patch_sha256}")
     try:
@@ -302,7 +288,7 @@ def resolve_m3_text_inputs(service: LedgerService, edition_part_id: str) -> M3Te
     except Exception:
         patches = yaml.safe_load(patch_bytes.decode("utf-8"))
 
-    report_bytes = service.objects.get(report_sha256)
+    report_bytes = service.read_object(report_sha256)
     if report_bytes is None:
         raise CompileRefused(f"SCH_001: 无法读取 sanitization_report 数据: {report_sha256}")
     try:
@@ -429,7 +415,7 @@ def run_m3_text(
             if not rev:
                 return _fail(service, step_run_id, "input_contract", f"修订不存在: {rev_id}")
             try:
-                data = service.objects.get(rev["sha256"])
+                data = service.read_object(rev["sha256"])
             except Exception as e:
                 return _fail(service, step_run_id, "input_contract", f"对象内容读取失败: {e}")
             if data is None:

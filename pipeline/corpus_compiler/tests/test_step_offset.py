@@ -70,6 +70,8 @@ def _setup_m2_ledger(
     cleaned_rev_id: str | None = None,
     patch_rev_id: str | None = None,
     report_rev_id: str | None = None,
+    write_m2_checkpoint: bool = True,
+    decoy_stage: str | None = None,
 ) -> tuple[LedgerService, dict]:
     """辅助函数：在临时 Ledger 中构造 M2 前置数据（synthetic_fixture: true）。"""
     service = LedgerService(ledger_dir)
@@ -231,23 +233,24 @@ def _setup_m2_ledger(
     )
 
     if m2_status == "succeeded":
-        # 写入 M2 checkpoint
-        service.write_checkpoint(
-            srun_m2_id,
-            edition_part_id=edition_part_id,
-            stage="m2",
-            completed_tasks=[
-                {
-                    "task_id": "sanitize_text",
-                    "artifact_revision_id": cleaned_rev or report_rev,
-                    "status": "succeeded",
-                    "terminal_state": None,
-                }
-            ],
-            human_decisions=[],
-            pending_queue=[],
-            next_pointer=None,
-        )
+        # 写入 M2 checkpoint（``write_m2_checkpoint=False`` 时省略，用于覆盖「退路」分支）
+        if write_m2_checkpoint:
+            service.write_checkpoint(
+                srun_m2_id,
+                edition_part_id=edition_part_id,
+                stage="m2",
+                completed_tasks=[
+                    {
+                        "task_id": "sanitize_text",
+                        "artifact_revision_id": cleaned_rev or report_rev,
+                        "status": "succeeded",
+                        "terminal_state": None,
+                    }
+                ],
+                human_decisions=[],
+                pending_queue=[],
+                next_pointer=None,
+            )
         service.finish_step_run(
             srun_m2_id,
             {
@@ -266,6 +269,42 @@ def _setup_m2_ledger(
         service.fail_step_run(srun_m2_id, [], "M2 failed in test setup")
     # if m2_status == "running", 保持 begin 后的初始 running 状态，不完成也不写入 checkpoint
 
+    # 可选：在 M2 之后再造一个「别的阶段」的 succeeded 运行（退路分支的诱饵）
+    decoy_step_run_id = None
+    if decoy_stage:
+        _, decoy_cfg_rev = service.put_run_artifact(
+            proc_run_id,
+            "configuration",
+            json.dumps({"stage": decoy_stage}).encode("utf-8"),
+            producer_module="test_setup",
+            producer_version="0.1.0",
+        )
+        decoy_step_run_id = ids.new_id("step_run_id")
+        service.begin_step_run(
+            {
+                "schema_version": "1.0.0",
+                "processing_run_id": proc_run_id,
+                "step_run_id": decoy_step_run_id,
+                "input_artifact_ids": [],
+                "technique_profile_id": technique_id,
+                "configuration_artifact_id": decoy_cfg_rev,
+            }
+        )
+        service.finish_step_run(
+            decoy_step_run_id,
+            {
+                "schema_version": "1.0.0",
+                "processing_run_id": proc_run_id,
+                "step_run_id": decoy_step_run_id,
+                "status_version": 1,
+                "status": "succeeded",
+                "output_artifact_ids": [],
+                "validation_report_ids": [],
+                "log_artifact_ids": [],
+                "failure_artifact_ids": [],
+            },
+        )
+
     meta = {
         "edition_part_id": edition_part_id,
         "raw_rev": raw_rev,
@@ -273,6 +312,7 @@ def _setup_m2_ledger(
         "patch_rev": patch_rev,
         "report_rev": report_rev,
         "srun_m2_id": srun_m2_id,
+        "decoy_step_run_id": decoy_step_run_id,
         "proc_run_id": proc_run_id,
     }
     return service, meta
@@ -360,6 +400,31 @@ class TestStepOffset(unittest.TestCase):
                 resolve_m3_text_inputs(svc, self.edition_part_id)
             self.assertIn("SCH_001", str(ctx.exception))
             svc.close()
+
+    def test_recent_non_m2_run_is_not_mistaken_for_m2(self):
+        """护栏用例（TODO T03 修正）：最近一次运行属于别的阶段时，不得被当成 M2。
+
+        M2 已 succeeded 但未写 m2 Checkpoint（走「无 Checkpoint」退路分支），此后又跑了一次
+        succeeded 的 m4 运行。旧退路按 ``created_at DESC`` 取「最近一次任意阶段」，会把 m4 运行
+        冒充 M2 并因缺 M2 产物报 SCH_001；修正后按 ``stage="m2"`` 过滤，仍解析到真正的 M2。
+        """
+        with tempfile.TemporaryDirectory() as td:
+            svc, meta = _setup_m2_ledger(
+                td,
+                edition_part_id=self.edition_part_id,
+                write_m2_checkpoint=False,
+                decoy_stage="m4",
+            )
+            try:
+                inputs = resolve_m3_text_inputs(svc, self.edition_part_id)
+                self.assertEqual(inputs.m2_step_run_id, meta["srun_m2_id"])
+                self.assertNotEqual(inputs.m2_step_run_id, meta["decoy_step_run_id"])
+                self.assertEqual(inputs.raw_text_revision_id, meta["raw_rev"])
+                self.assertEqual(inputs.cleaned_text_revision_id, meta["cleaned_rev"])
+                self.assertEqual(inputs.patch_set_revision_id, meta["patch_rev"])
+                self.assertEqual(inputs.report_revision_id, meta["report_rev"])
+            finally:
+                svc.close()
 
     def test_run_m3_text_emits_offset_spans_artifact(self):
         """run_m3_text 产出 corpus_spans 制品，evidence_level 为 offset_level。"""

@@ -598,7 +598,7 @@ def _read_queue(service: LedgerService, step_run_id: str) -> dict:
     revision = service.get_revision(queue_rev)
     if revision is None:
         raise SemanticRefused("队列修订不存在: %s" % queue_rev)
-    document = json.loads(service.objects.get(revision["sha256"]).decode("utf-8"))
+    document = json.loads(service.read_object(revision["sha256"]).decode("utf-8"))
     if document.get("schema") != QUEUE_SCHEMA:
         raise SemanticRefused("队列 schema 非 %r" % QUEUE_SCHEMA)
     return document
@@ -627,7 +627,7 @@ def _load_decisions(service: LedgerService, step_run_id: str, edition_part_id: s
             revision = service.get_revision(revision_id)
             if revision is None:
                 raise SemanticRefused("裁决事件修订不存在: %s" % revision_id)
-            document = json.loads(service.objects.get(revision["sha256"]).decode("utf-8"))
+            document = json.loads(service.read_object(revision["sha256"]).decode("utf-8"))
             document["_revision_id"] = revision_id
             decisions[task_id.split(":", 1)[1]] = document
     return decisions

@@ -274,7 +274,7 @@ def _check_electronic_m1_manifest(fixture_dir, state):
     if revision is None or revision.get("status") != "sealed":
         return ("FAIL", "source_manifest 修订未封存: %s" % manifest_rev)
 
-    manifest = yaml.safe_load(state["service"].objects.get(revision["sha256"]).decode("utf-8"))
+    manifest = yaml.safe_load(state["service"].read_object(revision["sha256"]).decode("utf-8"))
     if list(manifest.keys()) != list(_MANIFEST_TOP_KEYS):
         return ("FAIL", "source_manifest 顶层键序不符: %s" % list(manifest.keys()))
 
@@ -380,18 +380,10 @@ def _check_electronic_stage_package(fixture_dir, state):
 
 def _read_step_run_artifact(service, step_run_id, artifact_type):
     """读回某 StepRun 下指定 artifact 类型的对象字节（缺失返回 None）。"""
-    rows = service.store.conn.execute(
-        "SELECT r.artifact_revision_id, r.sha256 FROM artifact_revisions r "
-        "JOIN artifacts a ON r.artifact_id = a.artifact_id "
-        "WHERE r.step_run_id=? AND a.artifact_type=?",
-        (step_run_id, artifact_type),
-    ).fetchall()
-    if not rows:
+    revisions = service.list_step_run_revisions(step_run_id, artifact_type=artifact_type)
+    if not revisions:
         return None
-    revision = service.get_revision(rows[0][0])
-    if revision is None:
-        return None
-    return service.objects.get(revision["sha256"])
+    return service.read_object(revisions[0]["sha256"])
 
 
 def _run_ocr(args):
@@ -480,22 +472,12 @@ def _get_step_data(service, result):
 
 def _get_frozen_inputs(service, step_run_id):
     """获取冻结输入列表。"""
-    rows = service.store.conn.execute(
-        "SELECT artifact_revision_id FROM frozen_inputs WHERE step_run_id=?",
-        (step_run_id,),
-    ).fetchall()
-    return [r["artifact_revision_id"] for r in rows]
+    return list(service.list_frozen_inputs(step_run_id))
 
 
 def _get_step_artifacts(service, step_run_id, artifact_type):
-    """获取 StepRun 的指定类型 artifact。"""
-    rows = service.store.conn.execute(
-        "SELECT r.artifact_revision_id, r.sha256 FROM artifact_revisions r "
-        "JOIN artifacts a ON r.artifact_id = a.artifact_id "
-        "WHERE r.step_run_id=? AND a.artifact_type=?",
-        (step_run_id, artifact_type),
-    ).fetchall()
-    return rows
+    """获取 StepRun 的指定类型 artifact 修订（端口元数据 dict，按产生顺序）。"""
+    return service.list_step_run_revisions(step_run_id, artifact_type=artifact_type)
 
 
 def _get_spans_data(service, step_run_id):
@@ -503,20 +485,18 @@ def _get_spans_data(service, step_run_id):
     spans_rows = _get_step_artifacts(service, step_run_id, "corpus_spans")
     if not spans_rows:
         return None
-    raw = service.objects.get(spans_rows[0][1])
+    raw = service.read_object(spans_rows[0]["sha256"])
     data = yaml.safe_load(raw)
     return data if isinstance(data, list) else data.get("spans", [])
 
 
 def _get_edition_part_id(service, step_run_id):
     """从 processing_runs 获取 edition_part_id。"""
-    row = service.store.conn.execute(
-        "SELECT pr.edition_part_id FROM processing_runs pr "
-        "JOIN step_runs sr ON sr.processing_run_id = pr.processing_run_id "
-        "WHERE sr.step_run_id=?",
-        (step_run_id,),
-    ).fetchone()
-    return row["edition_part_id"] if row else None
+    step_run = service.get_step_run(step_run_id)
+    if step_run is None:
+        return None
+    processing_run = service.get_processing_run(step_run["processing_run_id"])
+    return processing_run["edition_part_id"] if processing_run else None
 
 
 def _check_inputs_frozen(service, summary, result):
@@ -566,20 +546,11 @@ def _check_inputs_frozen(service, summary, result):
             break
         ocr_page_set_rev = None
         if m2_step:
-            for t in service.list_transformations(m2_step):
-                out_ids = service.store.list_transformation_outputs(t["id"])
-                for out_id in out_ids:
-                    row = service.store.conn.execute(
-                        "SELECT a.artifact_type FROM artifacts a "
-                        "JOIN artifact_revisions r ON r.artifact_id = a.artifact_id "
-                        "WHERE r.artifact_revision_id=?",
-                        (out_id,),
-                    ).fetchone()
-                    if row and row[0] == "ocr_page_set":
-                        ocr_page_set_rev = out_id
-                        break
-                if ocr_page_set_rev is not None:
-                    break
+            ocr_revisions = service.list_step_run_revisions(
+                m2_step, artifact_type="ocr_page_set"
+            )
+            if ocr_revisions:
+                ocr_page_set_rev = ocr_revisions[0]["artifact_revision_id"]
 
         expected_frozen = set()
         if manifest_rev:
@@ -744,7 +715,7 @@ def _check_golden_match(service, result, fixture_dir):
         spans_rows = _get_step_artifacts(service, step_run_id, "corpus_spans")
         if not spans_rows:
             return ("FAIL", "golden_match", "找不到 spans 修订")
-        spans_bytes = service.objects.get(spans_rows[0][1])
+        spans_bytes = service.read_object(spans_rows[0]["sha256"])
         golden_bytes = (fixture_dir / "spans.yaml").read_bytes()
         if spans_bytes != golden_bytes:
             return ("FAIL", "golden_match", "corpus_spans != fixture spans.yaml")
@@ -807,7 +778,7 @@ def _check_package_lineage(service, result):
         # 检查配置修订
         config_rows = _get_step_artifacts(service, step_run_id, "configuration")
         if config_rows:
-            config = json.loads(service.objects.get(config_rows[0][1]))
+            config = json.loads(service.read_object(config_rows[0]["sha256"]))
             if config.get("gate_profile") != "structural_only":
                 return ("FAIL", "package_lineage",
                         "gate_profile=%s 期望 structural_only" % config.get("gate_profile"))
@@ -818,7 +789,7 @@ def _check_package_lineage(service, result):
         # 检查校验报告
         vr_rows = _get_step_artifacts(service, step_run_id, "validation_report")
         if vr_rows:
-            vr = json.loads(service.objects.get(vr_rows[0][1]))
+            vr = json.loads(service.read_object(vr_rows[0]["sha256"]))
             if vr.get("semantic") != "not_evaluated":
                 return ("FAIL", "package_lineage",
                         "semantic=%s 期望 not_evaluated" % vr.get("semantic"))

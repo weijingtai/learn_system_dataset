@@ -95,22 +95,16 @@ def resolve_m3_inputs(reader, edition_part_id):
             )
 
     # ---- ocr_page_set_revision_id ----
-    m2_transformations = reader.list_transformations(m2_step_run_id)
-    ocr_page_set_revision_id = None
-    for t in m2_transformations:
-        out_ids = reader.store.list_transformation_outputs(t["id"])
-        for out_id in out_ids:
-            row = reader.store.conn.execute(
-                "SELECT a.artifact_type FROM artifacts a "
-                "JOIN artifact_revisions r ON r.artifact_id = a.artifact_id "
-                "WHERE r.artifact_revision_id=?",
-                (out_id,),
-            ).fetchone()
-            if row and row[0] == "ocr_page_set":
-                ocr_page_set_revision_id = out_id
-                break
-        if ocr_page_set_revision_id is not None:
-            break
+    # 原实现遍历 M2 transformation 的输出再按 artifact_type 过滤；端口方法
+    # ``list_step_run_revisions`` 直接回答同一问题（该 StepRun 产出的指定类型修订，按产生顺序）。
+    ocr_page_set_revisions = reader.list_step_run_revisions(
+        m2_step_run_id, artifact_type="ocr_page_set"
+    )
+    ocr_page_set_revision_id = (
+        ocr_page_set_revisions[0]["artifact_revision_id"]
+        if ocr_page_set_revisions
+        else None
+    )
 
     if ocr_page_set_revision_id is None:
         raise CompileRefused(
@@ -119,7 +113,7 @@ def resolve_m3_inputs(reader, edition_part_id):
 
     # ---- technique_id（从 manifest 内容中读取）----
     manifest_data = yaml.safe_load(
-        reader.objects.get(manifest_rev["sha256"]).decode("utf-8")
+        reader.read_object(manifest_rev["sha256"]).decode("utf-8")
     )
     technique_id = manifest_data.get("technique_id", "")
 

@@ -428,7 +428,7 @@ def _read_manifest_content(service, manifest_revision_id):
     begin 之后一律改用 ``_read_and_verify_frozen`` 产出的已校验字节。
     """
     rev = service.get_revision(manifest_revision_id)
-    return yaml.safe_load(service.objects.get(rev["sha256"]).decode("utf-8"))
+    return yaml.safe_load(service.read_object(rev["sha256"]).decode("utf-8"))
 
 
 def _read_and_verify_frozen(service, frozen):
@@ -443,7 +443,7 @@ def _read_and_verify_frozen(service, frozen):
     frozen_bytes = {}
     for revision_id in frozen:
         rev = service.get_revision(revision_id)
-        data = service.objects.get(rev["sha256"])
+        data = service.read_object(rev["sha256"])
         actual_sha256 = hashlib.sha256(data).hexdigest()
         if actual_sha256 != rev["sha256"]:
             raise HashMismatch(
@@ -528,15 +528,8 @@ def _build_artifacts_map(service, step_run_id, frozen_ids, own_ids):
     all_ids = set(frozen_ids) | set(own_ids)
     artifacts_map = {}
     for rev_id in all_ids:
-        rev = service.get_revision(rev_id)
-        if rev is None:
+        info = service.describe_revision(rev_id)
+        if info is None:
             continue
-        row = service.store.conn.execute(
-            "SELECT a.artifact_id, a.artifact_type FROM artifacts a "
-            "JOIN artifact_revisions r ON r.artifact_id = a.artifact_id "
-            "WHERE r.artifact_revision_id=?",
-            (rev_id,),
-        ).fetchone()
-        if row:
-            artifacts_map[rev_id] = (row["artifact_id"], row["artifact_type"])
+        artifacts_map[rev_id] = (info["artifact_id"], info["artifact_type"])
     return artifacts_map
