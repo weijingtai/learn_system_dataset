@@ -900,3 +900,12 @@ not_comparable（理由 `multiple_assertions_per_unit`），不出任何关系�
 引擎注意：`matcher.units_of_view` 在这种情况下会用最后一条断言**覆盖**前面的（matcher.py:97），必须在 `incremental` 里另行识别。
 
 **假设二：work_key 来源 —— 采纳。** 基底取 `editions[].work_key`；视图取 `canonical.work_key(视图 source)`。
+
+**Q7 补充（轨道 2 追问）：not_comparable 列表放在哪、长什么样。**
+- **列表放在 `edition_collation_set.not_comparable`**（`step.py:88` 已经在传这个字段）；`assembly_report` 只保留
+  `not_comparable_count`，且 `== len(列表)`。`assembly_report` 的键序是锁定的，不新增字段。
+- 每项形状**恰为** `{source_id, collation_key, assertion_id, reason}`：`collation_key` 无键时为 null；
+  `assertion_id` 在无键断言时给号、其余为 null；`source_id` = 发生不可比的那个视图的 source（本轮只有一个视图）。
+  不许带别的字段（现在的实现是把整个单元 dict 塞进去，含 entity_ref / present / text_sha256 等，要改掉）。
+- 排序键 `(source_id, collation_key or "", assertion_id or "")`。
+- **Gate 要独立算出这份列表并逐项比对**（含理由），不只验计数下限。验收判据同样独立算、逐项比。
