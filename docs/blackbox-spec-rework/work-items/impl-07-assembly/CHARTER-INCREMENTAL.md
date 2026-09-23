@@ -505,3 +505,68 @@ ed99 汇入 r1 正是这个场景，**已经做到**，可以如实转 PASS。�
 
 真书路径新增独立判据 `upstream_m6_real_book`（副本上跑、正本只读、无账本时 BLOCKED 不许 PASS）；
 原 `upstream_m6_real` 保留，但 detail 写明「输入为合成桩」，消除名实不符。
+
+---
+
+## 19. G1 波停手：引擎有六处跑不通（2026-09-22）
+
+G1 执行器造 fixture 时发现，ACT 26 要造的场景在 `apply.py`（冻结）里根本跑不出来。
+它写了只读探针 `pipeline/assembly/tests/probe_g_blockers.py`（提交 `1595e73`），**主 Agent 亲自复现 6/6**。
+
+| # | 现象 | 位置 |
+|---|---|---|
+| F1 | **同一本书返工**：只要视图的 `source_id` 已在基底里就拒收，与提案、决定全无关 | `apply.py:468-471` |
+| F2 | 缺文（Omission）：R09 不写 `targets`，`apply` 要求两侧各一条断言，缺侧按定义没有 → 拒收 | `apply.py:1225`、`incremental.py:441-446` |
+| F3 | 增文（Addition）原理上不可达：Snapshot 断言没有承载「旧版声明缺失」的字段；同 source 时还会把缺文错判成增文 | `incremental.py:441` |
+| F4 | 异文（VariantReading）：R08 要求同号异文，`apply` 要求同号同命题，两条约束互斥 | `incremental.py:456`、`apply.py:798` |
+| F5 | 退役：IdentityDelta 的 `proposal_key` 写死成字面量 `"retire"`，不在任何提案集里 → Gate 恒红 | `apply.py:1131` |
+| F6 | 合并（merged）没有任何产出路径：`merge_entities` 显式拒收 | `apply.py:307-314` |
+
+### 19.1 这是怎么漏过去的
+
+C 波在 `apply.py` 留了拒收护栏，注释明写「属 D 波编排」，D、E 两波都没拆。
+197 个用例全绿，是因为**没有一条用例用真实输入把「同书返工」走完全程**——
+相关用例都是手工构造提案驱动的（`test_apply.py:451` 的注释自己就写了）。
+主 Agent 验收 C、D 波时只核对了 ACT 自己的用例，也没抓到。
+
+这是本线第四次「测试绿、真路径不通」（前三次：M8 输入解析、`patch_reversible`、`upstream_m6_real`）。
+
+**立纪律 R15**：每一波的验收，必须至少有一条用例**用真实形状的输入、走完从视图到 Snapshot 的全栈**；
+手工构造提案驱动的单测只能证明函数正确，**不能证明路径可达**。主 Agent 验收时要专门查这一条。
+
+### 19.2 裁定：按「单本书投产是否必需」分两类
+
+**必须修（新开 H 波，`act/28.yaml`，授权改 `apply.py`）**：
+- **F1 同书返工**：这是做增量的首要理由——审核结论改了、同一本书重跑，改动要能传进总账。
+  不修，M6 的任何纠错都无法反映到已汇编的书里。拆掉护栏，让同 `(source_id, edition_part_ids)` 的替换
+  真正走完 `apply`：`editions[]` 合并且不新增条目、继承基底的 `reviewed_edition_*` 身份。
+- **F5 退役键**：`apply._apply_retire` 写 R11 提案的真实 `proposal_key`，删掉字面量 `"retire"`。
+  执行器建议的另一条路（在 Gate 里放行字面量）等于放宽判据，**否决**。
+- **F6 合并**：执行器指出矛盾在于「旧号退役后还要写 `merged_into(旧, 新)` 关系，而关系要求两端都存活」。
+  裁定：**合并只记在 IdentityDelta 里**（`change_type=merged`，`from=旧号`，`to=[新号]`），**不写 `merged_into` 关系**。
+  理由：规格 §16:732 规定身份变化的载体就是 IdentityMigrationMap，关系表不该承载已退役对象。
+
+**降级为已知缺口（另开 I 波，本批不做）**：
+- **F2 / F3 / F4 多版次对勘（缺文、增文、异文）**：只在**同一部书有多个版次**时才需要。
+  现在真实语料是一部书一个版次，不影响单本书投产。F3 还需要给 Snapshot 加字段（改 schema），
+  F4 需要先定异文的正规形状，都不是小修。
+  `m7-assembler.sh` 的 `edition_collation` 判据如实给 BLOCKED，理由写
+  「多版次对勘（缺文/增文/异文）引擎缺口，见 CHARTER §19」，**不许写「未实现」这种笼统说法，也不许判 PASS**。
+  对齐（Alignment）是通的，fixture 覆盖它。
+
+### 19.3 执行器顺带问的两个口径
+
+1. **逐字节比对与随机修订号**：`meta.base_snapshot_revision_id` 在 Ledger 路径上是每轮新发的随机号。
+   裁定：逐字节比对放在**纯函数层**（`orchestrate.assemble`，固定基底号）做；Ledger 层比对
+   「除 `meta` 外逐字节相同，且 `meta.base_snapshot_revision_id` 等于本轮实际基底修订号」。
+   这不是放宽，是检查对的东西：基底号本来就该随轮次变。
+2. **返工场景的决定集**：ed01r2 会带出 R04 别名、R06 冲突两条人工提案。
+   裁定：决定集作为 fixture 数据由 `build_fixture.py` 写出（显式、进版本库），代表一次审核人的选择。
+
+### 19.4 批次重排
+
+- **ACT 26 缩范围**：只做一.1（重建 r2 金标）与二（`report` 记本轮提案键）。
+  一.2 改为只覆盖对齐；一.3（ed01r2）与三（Gate 回到草稿口径）移到 ACT 28。
+- **ACT 28（H 波，新）**：修 F1、F5、F6 → 造 ed01r2 与 r3 金标 → Gate 回到草稿口径。
+- **ACT 27（G2）**：放到 ACT 28 之后；`edition_collation` 按 19.2 如实 BLOCKED。
+- 派发顺序：**26（缩）→ 28 → 27**。

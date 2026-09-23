@@ -2,7 +2,7 @@ act_id: impl-07/26
 title: G1 波 —— 补齐 fixture（重建 r2 金标、新增同书返工场景、对勘四类全覆盖）；report 记本轮提案键
 estimated_minutes: 170
 group: INC-G
-depends_on: [impl-07/25]
+depends_on: [impl-07/25]   # 后续：ACT 28（H 波）接在本 ACT 之后
 decisions: [CHARTER §13.4, §16.1, §17（本 ACT 新立）]
 scope:
   write:
@@ -33,6 +33,14 @@ background: |
   - **没有「同一本书返工」场景**（`act/09` 草稿假设的 `ed01r2` 不存在），所以替换继承与身份迁移在 fixture 上都没被覆盖
   - `report` 不记本轮提案键，导致 E 波的 `identity_delta_contract` 只能退而对照「总账里已落地的键 ∪ 决定 ∪ 沿用」（E 波回报 §8.4）
 contract: |
+  ⚠ 范围更正（主 Agent 2026-09-22，CHARTER §19.4）：G1 实测发现引擎有六处跑不通（§19）。本 ACT 缩为：
+    - 做：一.1 重建 r2 金标；二 report 记本轮提案键 round_proposal_keys
+    - 一.2 改为**只覆盖对齐（Alignment）**；缺文/增文/异文是引擎缺口，属 I 波，本 ACT 不造
+    - 一.3（ed01r2 同书返工）与 三（Gate 回到草稿口径）**移到 ACT 28**，本 ACT 不做
+    tests_first 只做与上述范围对应的用例：
+      test_r2_incremental_matches_rebuilt_gold_byte_for_byte、test_report_records_round_proposal_keys、
+      test_not_comparable_units_have_no_collation_relation
+    比对口径按 §19.3：逐字节比对在纯函数层（固定基底号）做。
   一、§17 裁定：fixture 怎么补（金标一律由实跑产出，不许手写）
     1. **重建 r2 金标**：r1 → ed99 增量实跑，产出物落 `expected/snapshot_r2.json`，覆盖旧文件。
        旧文件与新文件的差异（逐字段）写进回报。

@@ -1,0 +1,123 @@
+act_id: impl-07/28
+title: H 波 —— 打通同书返工（拆 apply 拒收护栏）、退役用真实提案键、合并只记在 IdentityDelta；造 ed01r2 与 r3 金标
+estimated_minutes: 200
+group: INC-H
+depends_on: [impl-07/26]
+decisions: [CHARTER §19（全文）, R15]
+scope:
+  write:
+    - pipeline/assembly/apply.py                        # 本 ACT 明文授权修改，范围见第一节
+    - pipeline/assembly/gate.py                         # 只许改 identity_delta_contract 回到草稿口径
+    - pipeline/corpus/_fixture/mini_release01/          # 只许经 tools/build_fixture.py 生成；金标实跑产出
+    - pipeline/assembly/tests/
+  read_only:
+    - var/ledgers/qianyuan_w8/
+    - pipeline/assembly/matcher.py
+    - pipeline/assembly/incremental.py                  # R08/R09 的问题属 I 波，本波不动
+    - pipeline/assembly/orchestrate.py
+    - pipeline/assembly/genesis.py
+    - pipeline/assembly/canonical.py
+    - pipeline/assembly/inputs.py
+    - pipeline/corpus/_fixture/mini_ed01/
+background: |
+  先读 `CHARTER-INCREMENTAL.md` §19 全文，那里有六处阻塞的实测和裁定。
+  G1 回报在 `/Users/jingtaiwei/tmux-agents/runs/fb-m7-g1.report.md` §2。
+  复现探针：`.venv/bin/python pipeline/assembly/tests/probe_g_blockers.py` → `SUMMARY reproduced=6/6`（主 Agent 已亲自复现）。
+
+  本波修 F1、F5、F6（单本书投产必需）。F2、F3、F4（多版次对勘）属 I 波，**本波不碰**。
+
+  主 Agent 2026-09-22 实测的代码位置：
+  - F1：`apply.py:468-471` `_merge_editions` —— `if source_id in base_state["editions"]: raise AssemblyRefused(...属 D 波编排...)`
+  - F5：`apply.py:1131` —— `target_id, [], "retired", _ENTITY_KINDS[collection], "retire"`，第五个参数是写死的字面量
+  - F6：`apply.py:307-314` —— `merge_entities` 显式 `AssemblyRefused`
+contract: |
+  一、F1 打通同书返工（apply.py）
+    拆掉 `_merge_editions` 里「source_id 已在基底即拒收」的护栏。同 `(source_id, edition_part_ids)` 的视图视为替换：
+      - `editions[]` 里原条目被替换，**不新增条目**
+      - 继承基底该版次的 `reviewed_edition_*` 身份字段（按规格 D-14 识别，不按 `stage_package_id`）
+      - 不同 `edition_part_ids` 的同 source 视图（扩展）：**本波不做**，遇到时拒收并写明
+        「同 source 不同 edition_part_ids 的扩展属后续波次」——不许静默当替换处理
+    被删掉的 Assertion 走既有的 R11 退役；未变对象走 D 波已有的 carried。
+
+  二、F5 退役用真实提案键（apply.py）
+    `_apply_retire` 写入 IdentityDelta 的 `reason_ref.proposal_key` 必须是**触发这次退役的 R11 提案的 `proposal_key`**。
+    删掉字面量 `"retire"`。**不许**在 Gate 里放行字面量（等于放宽判据，已否决）。
+
+  三、F6 合并只记在 IdentityDelta（apply.py）
+    `merge_entities` 获批时：旧号进 `retired_entity_ids`，IdentityDelta 记一条
+    `{change_type: "merged", from_entity_id: 旧号, to_entity_ids: [新号], reason_ref: {kind: "proposal", proposal_key: <该合并提案键>}}`。
+    **不写 `merged_into` 关系**（关系两端必须存活，已退役的旧号不该出现在关系表里）。
+    若现有代码或测试依赖 `merged_into` 关系，把依赖处列进回报，**停手上报**，不要自己改掉别人的依赖。
+
+  四、造 ed01r2 与 r3 金标（fixture，经 build_fixture.py）
+    `ed01r2`：与 ed01 同 `(source_id, edition_part_ids)`，第二份 m6 包。内容：
+      - 删掉 ed01 的一条 Assertion → 应 `retired`
+      - 两个 Concept 经裁定合并 → 应 `merged`
+      - 其余不变 → 应 `carried`
+    ed01r2 会带出 R04 别名、R06 冲突两条人工提案。**决定集作为 fixture 数据由 build_fixture.py 写出**（CHARTER §19.3）。
+    金标：r2 → ed01r2 实跑（纯函数层固定基底号）产出 `expected/snapshot_r3.json`、`expected/identity_delta_r3.json`。
+    `split` 本波不要求；能以最小改动造出就一并覆盖，造不出如实写明。
+
+  五、Gate 的 identity_delta_contract 回到草稿口径（gate.py）
+    每条 delta 的 `reason_ref.proposal_key` 必须出现在 `report.round_proposal_keys` 里（ACT 26 已加该字段）。
+    删掉 E 波的放宽口径（总账已落地的键 ∪ 决定 ∪ 沿用）。`report` 缺该字段 → FAIL，不许静默退回。
+
+  六、比对口径（CHARTER §19.3）
+    逐字节比对金标在纯函数层做（固定基底号）；Ledger 层比「除 meta 外逐字节相同 + meta.base_snapshot_revision_id 等于本轮实际基底修订号」。
+
+  七、R15：必须有一条真实形状输入走完全栈的用例
+    `test_rework_ed01r2_end_to_end_through_run_m7`：在临时 Ledger 上 r1 → ed99 → ed01r2 三轮 `run_m7`，
+    **不手工构造任何提案**，决定来自 fixture 决定集；第三轮 succeeded、增量 Gate 全过、
+    除 meta 外与 `snapshot_r3.json` 相同、identity_delta 与金标相同。
+
+  八、不许做的事
+    - 不许动 `incremental.py`（F2/F3/F4 属 I 波）
+    - 不许为了让返工通过而放宽任何 Gate 检查
+    - 不许手写金标
+    - 不许写 `var/` 真书正本；不许改 `mini_ed01`
+    - 不许调用模型、不许用相似度
+tests_first: |
+  先写测试并确认转红（贴 Red 原文），再改实现。至少八条具名用例：
+    test_rework_same_source_replaces_edition_without_new_entry        # F1
+    test_rework_inherits_base_reviewed_edition_identity               # F1
+    test_extension_with_different_parts_still_refused_with_reason     # F1 边界
+    test_retired_delta_uses_r11_proposal_key                          # F5
+    test_merge_records_delta_merged_and_no_merged_into_relation       # F6
+    test_rework_ed01r2_identity_delta_matches_gold
+    test_identity_delta_reason_ref_must_be_in_round_proposal_keys     # 第五节
+    test_rework_ed01r2_end_to_end_through_run_m7                      # R15
+  另外：`probe_g_blockers.py` 修完后 F1/F5/F6 三项必须变成 NOT REPRODUCED，F2/F3/F4 仍为 REPRODUCED（证明没越界）。
+verify: |
+  cd /Users/jingtaiwei/Git/Public/learn_system && export LC_ALL=en_US.UTF-8
+  .venv/bin/python -m unittest discover -s pipeline/assembly/tests -t . 2>&1 | tail -3     # OK；不许少、不许新增 skip
+  .venv/bin/python pipeline/assembly/tests/probe_g_blockers.py 2>&1 | grep -E "REPRODUCED|SUMMARY"
+      # 期望：F1/F5/F6 不再复现；F2/F3/F4 仍复现
+  grep -n '"retire"' pipeline/assembly/apply.py        # 贴结果；写进 IdentityDelta 的字面量必须已删除
+  bash pipeline/corpus/_fixture/mini_release01/verify.sh; echo "exit=$?"                  # 0
+  bash openspec/acceptance/m7-assembler.sh 2>&1 | grep -E "upstream_m6_real|no_model_calls|SUMMARY"
+  for p in dataset_compiler review validation corpus_compiler; do
+    .venv/bin/python -m unittest discover -s pipeline/$p/tests -t . 2>&1 | grep -E "^Ran|^OK|^FAILED" | tail -2; done
+  git diff --stat HEAD~1 -- pipeline/assembly/incremental.py pipeline/assembly/matcher.py pipeline/assembly/orchestrate.py pipeline/assembly/genesis.py pipeline/assembly/canonical.py pipeline/assembly/inputs.py
+      # 必须无输出（HEAD~1 指 ACT 26 的提交）
+  git status --short var/ pipeline/corpus/_fixture/mini_ed01/     # 无输出
+  # 真书第二轮在副本上重跑，确认没被本波改坏（run_m7 succeeded、增量 Gate 全过）
+  # 篡改探针（三条，完整仓库副本含 ocr/，R13）：
+  #   P1 把 F1 护栏加回去          → test_rework_ed01r2_end_to_end_through_run_m7 转红
+  #   P2 把退役键改回字面量 "retire" → test_retired_delta_uses_r11_proposal_key 转红
+  #   P3 合并时再写一条 merged_into 关系 → test_merge_records_delta_merged_and_no_merged_into_relation 转红
+commit:
+  add:
+    - pipeline/assembly/apply.py
+    - pipeline/assembly/gate.py
+    - pipeline/corpus/_fixture/mini_release01/
+    - pipeline/assembly/tests/
+    - docs/blackbox-spec-rework/work-items/impl-07-assembly/act/28.yaml
+  message: "fix(m7): make same-book rework, retirement keys and merges work end to end (INC-H, ACT 28)"
+on_fail: |
+  停止并报告，不许提交红的基线。
+  五种情况必须停手写「## 待裁决」：
+    ① 拆掉 F1 护栏后，替换的语义在规格里有两种读法
+    ② 有代码或测试依赖 merged_into 关系（第三节）
+    ③ ed01r2 实跑结果与预期（retired / merged / carried）不符，判断不了是 fixture 造错还是引擎有问题
+    ④ 要修 F1/F5/F6 必须动 incremental.py
+    ⑤ 修完后真书第二轮不再通过

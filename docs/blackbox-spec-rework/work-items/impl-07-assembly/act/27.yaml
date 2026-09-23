@@ -2,7 +2,7 @@ act_id: impl-07/27
 title: G2 波 —— m7-assembler 五条写死的 BLOCKED 改为真实判定；新增真书判据；run_all 20.5 按真实退出码接线
 estimated_minutes: 150
 group: INC-G
-depends_on: [impl-07/26]
+depends_on: [impl-07/28]   # 原依赖 26；§19.4 重排为 26 → 28 → 27
 supersedes: [impl-07/09, impl-07/10]    # 判据形状参考 act/09，但以本 ACT 与现状为准
 decisions: [CHARTER §2 P2 更正, §3.3 A′, §13.4, §16, §18（本 ACT 新立）]
 scope:
@@ -42,6 +42,13 @@ background: |
   另：`upstream_m6_real` 显示 PASS，但它的输入是 `pipeline/review/testing/upstream_stub` 的**合成桩**，
   **不是真书**（CHARTER §2 P2 更正，`acceptance.py:61`）。名字叫 real，跑的是桩。
 contract: |
+  ⚠ 口径更正（主 Agent 2026-09-22，CHARTER §19.2）：
+    - edition_collation：对齐是通的，但缺文/增文/异文是引擎缺口（§19 F2/F3/F4，属 I 波）。
+      判据输出 `BLOCKED edition_collation 多版次对勘（缺文/增文/异文）引擎缺口，见 CHARTER §19`；
+      **不许写「未实现」这种笼统说法，也不许判 PASS**。同时在该判据内部仍须验证「对齐关系正确、不可比单元无对勘关系」，
+      这两点不成立就判 FAIL（BLOCKED 只覆盖缺口部分，不能拿来掩盖已实现部分的错误）。
+    - identity_delta、rework_replacement：依赖 ACT 28 造的 ed01r2 与 r3 金标。
+    - 比对口径按 §19.3：纯函数层逐字节；Ledger 层「除 meta 外相同 + meta.base 等于本轮实际基底修订号」。
   一、§18 裁定：五条 BLOCKED 改为真实判定（每条都由实际运行结果决定 PASS / FAIL，不许写死）
     incremental_multi_edition  规格 §15:655 的本意是「新版次加入同一部书时，不等全部版次到齐，来一个汇一个」。
                                判据：r1 → ed99 增量实跑 succeeded、增量 Gate 13 项全过、产出与 ACT 26 重建的
