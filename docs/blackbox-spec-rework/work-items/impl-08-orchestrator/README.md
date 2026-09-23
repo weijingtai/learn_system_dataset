@@ -45,6 +45,9 @@ bash openspec/acceptance/run_all.sh 20.1 20.10
 # 期望：BLOCKED  20.1  前置缺失: M4 Knowledge Extraction；Local Orchestrator 首切片已串联 m1–m3、m5 Gate，m4/m6 未登记生产 Module
 #       BLOCKED  20.10  前置缺失: Contract Registry；m3.corpus_structural、m5.automatic_validation、m8.dataset_compilation 入口直接访问 Ledger 内部（…）
 bash openspec/acceptance/run_all.sh | tail -1   # SUMMARY pass=2 fail=1 blocked=8（条数不变；20.1/20.10 改为计算值）
+# ⚠ 2026-09-23 更新（TODO.md T03）：上面两处「m3/m5/m8 入口直接访问 Ledger 内部」已全部修掉，modules_port_clean 为 PASS；
+#   20.10 现仍 BLOCKED，唯一原因是 other_ports_adapters（ocr/model/index 各不足 2 个 Adapter，TODO.md T03b）。
+#   全量 SUMMARY 以 run_all.sh 实跑为准，不以本段历史文本为准。
 ```
 
 `registered_modules_m1_m6` 判 **BLOCKED** 而非 PASS：EDITION_STAGES 中 m4 无登记非桩 Module（§22.3 要求 §20.1 成立，与本包 P1 裁剪冲突，见 §4.1 N-1）。M4/M6 登记并通过真实链后该项自动转 PASS；**不改脚本，只改登记表**。

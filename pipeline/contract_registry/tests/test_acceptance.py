@@ -42,35 +42,43 @@ def _lines(output):
 class TestContractRegistryAcceptance(unittest.TestCase):
     """覆盖 BDD §9：五项判定、缺陷注入与退出码。"""
 
-    def test_repository_yields_three_pass_two_blocked_exit_2(self):
+    def test_repository_yields_four_pass_one_blocked_exit_2(self):
+        # T03 后 modules_port_clean 转 PASS；other_ports_adapters 仍 BLOCKED（TODO.md T03b）
         code, output = run_acceptance([])
         self.assertEqual(code, 2, output)
         lines = _lines(output)
-        self.assertEqual(lines[-1], "SUMMARY pass=3 fail=0 blocked=2")
+        self.assertEqual(lines[-1], "SUMMARY pass=4 fail=0 blocked=1")
         for name in (
             "l0_schemas_verified",
             "registry_consistent",
             "storage_port_substitutable",
+            "modules_port_clean",
         ):
             self.assertIn("PASS %s" % name, lines)
 
-    def test_modules_port_clean_blocked_lists_three_dirty_modules(self):
+    def test_modules_port_clean_passes_after_t03(self):
+        # TODO.md T03（2026-09-23）：M3 30 处、M5 15 处、M8 18 处走后门全部改为经 LedgerPort
         _code, output = run_acceptance([])
-        line = [
-            item for item in _lines(output) if item.startswith("BLOCKED modules_port_clean")
-        ][0]
-        for module_id in (
-            "m3.corpus_structural",
-            "m5.automatic_validation",
-            "m8.dataset_compilation",
-        ):
-            self.assertIn(module_id, line)
-        for path in (
-            "pipeline/corpus_compiler/",
-            "pipeline/validation/",
-            "pipeline/dataset_compiler/",
-        ):
-            self.assertIn(path, line)
+        self.assertIn("PASS modules_port_clean", _lines(output))
+
+    def test_scanner_still_catches_backdoor_code_and_comments(self):
+        # 上一条改成断言 PASS 后，须另证检测器本身仍灵敏：代码与注释里的 .store / .objects 都要报出
+        from pipeline.contract_registry.acceptance import scan_ledger_internals
+
+        with tempfile.TemporaryDirectory() as tmp:
+            pkg = Path(tmp) / "fake_module"
+            (pkg / "tests").mkdir(parents=True)
+            (pkg / "step.py").write_text(
+                "def f(service):\n"
+                "    return service.store.conn.execute('SELECT 1')\n"
+                "def g(reader, sha):\n"
+                "    # 退回 reader.objects.get\n"
+                "    return reader.read_object(sha)\n",
+                encoding="utf-8",
+            )
+            (pkg / "tests" / "test_x.py").write_text("x.store.conn\n", encoding="utf-8")
+            hits = scan_ledger_internals([pkg])
+        self.assertEqual([line for _path, line in hits], [2, 4], "代码与注释都要命中；tests/ 下不扫")
 
     def test_other_ports_blocked_counts_text(self):
         _code, output = run_acceptance([])
@@ -173,7 +181,7 @@ class TestContractRegistryAcceptance(unittest.TestCase):
         )
         self.assertEqual(result.returncode, 2, result.stderr.decode("utf-8"))
         lines = result.stdout.decode("utf-8").strip().splitlines()
-        self.assertEqual(lines[-1], "SUMMARY pass=3 fail=0 blocked=2")
+        self.assertEqual(lines[-1], "SUMMARY pass=4 fail=0 blocked=1")
 
 
 if __name__ == "__main__":

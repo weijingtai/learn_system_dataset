@@ -460,16 +460,6 @@ def _run_ocr(args):
             shutil.rmtree(tmpdir, True)
 
 
-def _get_step_data(service, result):
-    """获取 StepRun 相关数据。"""
-    step_run_id = result["step_run_id"]
-    frozen_ids = service.list_frozen_inputs(step_run_id)
-    checkpoints = service.list_checkpoints(
-        service.get_step_run(step_run_id)["edition_part_id"], "m3"
-    )
-    return step_run_id, frozen_ids, checkpoints
-
-
 def _get_frozen_inputs(service, step_run_id):
     """获取冻结输入列表。"""
     return list(service.list_frozen_inputs(step_run_id))
