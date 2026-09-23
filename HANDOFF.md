@@ -1,4 +1,29 @@
 # HANDOFF
+更新时间：2026-09-22
+当前分支/worktree：`codex/docs/knowledge-compilation`；`/Users/jingtaiwei/Git/Public/learn_system`
+刚完成：
+1. **M7 增量汇编（impl-07 增量线，F/A/B/C/D/E/G1/H/G2 九波）收口**，总纲与全部裁定见
+   `docs/blackbox-spec-rework/work-items/impl-07-assembly/CHARTER-INCREMENTAL.md`（§1–§24）。
+   - 三条真实路径都有全栈验证：单本书首次汇编（创世）、新书加入（真书第二轮 13 项独立 Gate 全过）、
+     **同一本书改一版**（R15 全栈用例：临时 Ledger 上 r1→ed99→ed01r2 三轮 `run_m7`，不手工构造提案）。
+   - `assembly` **229 OK**；`m7-assembler.sh` `pass=16 fail=0 blocked=1`（原 `pass=11 blocked=5`，五条写死的「未实现」已全部改为实跑判定）；
+     新增真书判据 `upstream_m6_real_book` PASS；`upstream_m6_real` 旁加 NOTE 写明输入为合成桩。
+   - `run_all.sh 20.5` 已接线，按 `m7-assembler.sh` 真实退出码映射，当前为 BLOCKED（唯一原因见下）。
+   - 关键提交：`d80d143`（G1）`79bcbe7`（H）`de1a802`（G2）；验收记录 CHARTER §20、§23、§24。
+进行到一半的事（精确到文件和章节）：
+- 无。M7 这一轮已收口；`PLAN.md:94` 未打勾（判据要求 20.5 PASS，仍被多版次对勘缺口挡住）。
+下一步（第一件事）：
+- 若要让 20.5 变 PASS：另开 **I 波**修多版次对勘（缺文 / 增文 / 异文，CHARTER §19 F2/F3/F4；
+  复现探针 `.venv/bin/python pipeline/assembly/tests/probe_g_blockers.py` 应显示这三项 REPRODUCED）。
+  F3 需给 Snapshot 加字段（改 schema），F4 需先定异文的正规形状——先裁定再派发。
+已知的坑：
+- 已知缺口（CHARTER §23.2）：多版次对勘；Concept 合并（规则表不可达）；同 source 不同 `edition_part_ids` 的扩展（仍拒收）；
+  `_id_allocation` 在最大号被退役时的两难；退役号被第三方引用时 fail-closed，不自动改指。
+- 本线七次「测试绿、真路径不通 / 判据与裁定不同步」，由此立 **R15**：每波验收须有一条真实形状输入走完全栈的用例；
+  新增公开函数须 grep 非测试调用点，只有测试调用的一律视为未接线（CHARTER §19.1、§21.1）。
+- `corpus_compiler` 回归中间几行 `FAIL m3_acceptance` 是已知自检子进程噪声，以最后一行 `OK` 为准。
+
+## （上一节）Web 综合控制台交付（2026-09-18）
 更新时间：2026-09-18
 当前分支/worktree：`codex/docs/knowledge-compilation`；`/Users/jingtaiwei/Git/Public/learn_system`
 刚完成：

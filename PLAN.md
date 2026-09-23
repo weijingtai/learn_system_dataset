@@ -92,6 +92,7 @@ G6 注解社区线各节（「G6 注解社区线」「NC-001 首包补齐」「�
 - [x] Artifact Ledger（§19 L1，首纵切内）：Object Store / Metadata Ledger / Revision / Lineage Graph 按规格 §17 实现；判据 `bash openspec/acceptance/run_all.sh 20.2 20.3` 由 BLOCKED 变 PASS ｜ owner `docs/blackbox-spec-rework/SUBAGENT_TODO.md`（G5 后实现批次）。（已完成：impl-01 `c939575`，`run_all.sh` 20.2/20.3 PASS，2026-09-11）
 - [ ] Local Orchestrator（§19 L2，首纵切后）：EditionRun/ReleaseRun 状态机、阶段 Gate、StageCheckpoint、失效传播按规格 §5 / §6 / §14.1 / §17.1 实现；判据 `bash openspec/acceptance/run_all.sh 20.1` 由 BLOCKED 变 PASS ｜ owner `docs/blackbox-spec-rework/SUBAGENT_TODO.md`。
 - [ ] M7 Incremental Assembly（§19，首纵切后）：可执行 Assembler、跨 Edition 对勘、稳定 Pattern 聚合与提案裁决按规格 §15 实现；判据 `bash openspec/acceptance/run_all.sh 20.5` 由 BLOCKED 变 PASS ｜ owner `knowledge_system/EXECUTION_PLAN.md`。
+  - 进展（2026-09-22）：增量线九波收口（`de1a802`），20.5 已接线、按 `m7-assembler.sh` 真实退出码映射；当前 BLOCKED，唯一原因是多版次对勘（缺文/增文/异文）引擎缺口，待 I 波。见 `impl-07-assembly/CHARTER-INCREMENTAL.md` §24。
 
 ### D. 重复登记收敛
 

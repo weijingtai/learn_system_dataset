@@ -714,3 +714,27 @@ ACT 28 提交 `79bcbe7`（28 个文件）。主 Agent 把该提交单独导出�
 - 同 source 不同 `edition_part_ids` 的扩展（仍拒收并写明）
 - `_id_allocation` 在最大号被退役时的两难（§22.3）
 - 退役号被第三方引用时 fail-closed，不自动改指
+
+---
+
+## 24. G2 波验收与本轮收口（2026-09-22）
+
+ACT 27 提交 `de1a802`。主 Agent 独立复验：
+- `assembly` **229 OK**；其余四包 OK；被验模块与 fixture 相对 `8d43131` 零改动；真书正本 mtime/size 未变
+- `m7-assembler.sh`：`pass=11 blocked=5` → **`pass=16 fail=0 blocked=1`**。唯一 BLOCKED 是 `edition_collation`，
+  理由实指 §19 缺口；其内部仍先验对齐关系与不可比单元，错了判 FAIL（执行器 P4 探针证实）
+- `run_all.sh 20.5` 按真实退出码映射，当前 BLOCKED，与 m7-assembler 退出码 2 一致；改动只在 20.5 段
+- 执行器四条篡改探针全部转红
+
+### 24.1 主 Agent 探针发现一处冗余防线无用例守护（不阻断）
+
+把 `incremental_multi_edition` 判据里「增量 Gate 必须全过」那段检查整个去掉，`test_acceptance` 26 条仍全绿。
+原因：Gate 不过时 `step._finish_incremental` 已把该轮判 `failed`，同一判据前面的「status 必须 succeeded」先抓到了。
+所以这段是**重复的第二道防线**，今天去掉不会放过坏结果；但若将来有人拆掉 `step.py` 的失败封存，这道防线失效也不会被发现。
+记入待办：补一条用例，喂一个 `status=succeeded` 但 Gate 未过的伪造 validation，断言该判据 FAIL。
+
+### 24.2 收口
+
+本轮 M7 增量汇编收口。三条真实路径——创世、新书加入、同一本书改一版——都有全栈验证。
+`PLAN.md:94` **不打勾**：它的判据是 20.5 PASS，仍被多版次对勘缺口（§19 F2/F3/F4）挡住，留给 I 波。
+已知缺口汇总见 §23.2。
