@@ -570,3 +570,13 @@ C 波在 `apply.py` 留了拒收护栏，注释明写「属 D 波编排」，D�
 - **ACT 28（H 波，新）**：修 F1、F5、F6 → 造 ed01r2 与 r3 金标 → Gate 回到草稿口径。
 - **ACT 27（G2）**：放到 ACT 28 之后；`edition_collation` 按 19.2 如实 BLOCKED。
 - 派发顺序：**26（缩）→ 28 → 27**。
+
+---
+
+## 20. G1 波（缩范围后）验收（2026-09-22）
+
+ACT 26 提交 `c7e4084`。主 Agent 把该提交单独导出到临时目录复验（工作树上有 H 波的进行中改动，不在上面测）：
+- `assembly` 197 → **200 OK**；`verify.sh` 通过；`build_fixture.py --check` 重跑生成与盘上金标**逐字节一致**（10 个文件，0 不符）——金标确由实跑产出
+- 七个冻结模块（含 `gate.py`，缩范围后本 ACT 不许动它）相对 `4c020aa` 一行未动
+- r2 金标新旧差异只有三类：新增 `meta`、`editions`（包身份）、`relations`（关系格式），与 ACT 26 on_fail ④ 允许的范围一致
+- 主 Agent 自做探针：把 `report` 的 `round_proposal_keys` 改名 → `test_report_records_round_proposal_keys` 与键序用例**两条转红**
