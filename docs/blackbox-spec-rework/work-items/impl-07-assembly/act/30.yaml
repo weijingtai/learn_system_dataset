@@ -5,7 +5,7 @@ group: INC-I
 depends_on: [impl-07/27]
 parallel_with: [impl-07/29]        # 轨道 1：引擎 + fixture + 金标，在主机器上同时进行
 decisions: [CHARTER §25（全文）, §26（本拆分）, §10.1, R15]
-branch: m7/i-gate                  # 从 gitea 上的 codex/docs/knowledge-compilation 拉出；只推这个分支
+branch: m7/i-gate                  # 从 gitea 上的 m7/i-base 拉出（codex/docs/knowledge-compilation 在 gitea 上受保护）；只推 m7/i-gate
 scope:
   write:
     - pipeline/assembly/gate.py                 # 只许改对勘相关：_asm_check_collation_comparable_only、
@@ -80,7 +80,7 @@ contract: |
     - 不许动 scope.read_only 里的任何文件（轨道 1 正在改它们，动了合并必冲突）
     - 不许为了让旧 fixture 的全栈用例变绿而放宽任何检查
     - 不许用文本相似度、不许调模型
-    - 不许推 codex/docs/knowledge-compilation；只推 m7/i-gate
+    - 只推 m7/i-gate；不许推 m7/i-base 或任何其他分支
 tests_first: |
   先写测试并确认转红（贴 Red 原文），再实现。全部用手工构造的 §25 形状输入。
   test_gate_collation.py 至少：
