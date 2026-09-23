@@ -481,3 +481,27 @@ ACT 25 提交 `48ed44c`。主 Agent 独立复验：
 2. **`identity_delta_contract` 口径被迫放宽**：草稿要求 delta 的 `reason_ref.proposal_key` 必须出现在
    **本轮提案**里，但 `report` 没记本轮提案键，执行器只能退而对照「总账里已落地的键 ∪ 决定 ∪ 沿用」。
    G 波须让 `report` 记下本轮提案键，Gate 改回按草稿口径检查。
+
+---
+
+## 17. G1 波：fixture 怎么补（2026-09-22）
+
+正文在 `act/26.yaml` 第一节。起草时实测：fixture 只有 `ed01`、`ed99` 两个版次，
+**没有「同一本书返工」场景**（`act/09` 草稿假设的 `ed01r2` 不存在），所以替换继承与身份迁移在 fixture 上都没覆盖；
+对勘单元两侧只共有 `sanche-0001`，**产生不了缺文 / 增文**。
+
+裁定：重建过时的 r2 金标；在 ed99 上声明缺失单元以产生缺文，补齐对勘四类；新增 `ed01r2`
+（同 `(source_id, edition_part_ids)`，删一条断言、合并两个概念）覆盖 retired / merged / carried。
+**金标一律由实跑产出，不许手写。** `report` 新增 `round_proposal_keys`，Gate 的 `identity_delta_contract` 回到草稿口径。
+
+## 18. G2 波：写死的 BLOCKED 改为真实判定（2026-09-22）
+
+正文在 `act/27.yaml` 第一节。`m7-assembler.sh` 现有 5 条 BLOCKED 的理由全是「未实现」，
+而 B/C/D/E 四波已经实现了它们——理由写死、与事实不符。`run_all.sh` 20.5 同样写死。
+
+主 Agent 核实规格 §15:655 后定口径：它说的是「新版次加入同一部书时，不等全部版次到齐，来一个汇一个」，
+ed99 汇入 r1 正是这个场景，**已经做到**，可以如实转 PASS。「单个 Run 一次汇多个包」仍在前置拒收，
+但那不是 §15:655 的要求，不算进这条判据。
+
+真书路径新增独立判据 `upstream_m6_real_book`（副本上跑、正本只读、无账本时 BLOCKED 不许 PASS）；
+原 `upstream_m6_real` 保留，但 detail 写明「输入为合成桩」，消除名实不符。

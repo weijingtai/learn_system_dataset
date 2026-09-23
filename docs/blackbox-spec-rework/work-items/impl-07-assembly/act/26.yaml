@@ -1,0 +1,101 @@
+act_id: impl-07/26
+title: G1 波 —— 补齐 fixture（重建 r2 金标、新增同书返工场景、对勘四类全覆盖）；report 记本轮提案键
+estimated_minutes: 170
+group: INC-G
+depends_on: [impl-07/25]
+decisions: [CHARTER §13.4, §16.1, §17（本 ACT 新立）]
+scope:
+  write:
+    - pipeline/corpus/_fixture/mini_release01/          # 只许经 tools/build_fixture.py 生成；金标由实跑产出
+    - pipeline/assembly/orchestrate.py                  # 只许加：report 记本轮提案键
+    - pipeline/assembly/gate.py                         # 只许改 identity_delta_contract 回到草稿口径
+    - pipeline/assembly/tests/
+  read_only:
+    - var/ledgers/qianyuan_w8/
+    - pipeline/assembly/matcher.py
+    - pipeline/assembly/incremental.py
+    - pipeline/assembly/apply.py
+    - pipeline/assembly/genesis.py
+    - pipeline/assembly/canonical.py
+    - pipeline/assembly/inputs.py
+    - pipeline/corpus/_fixture/mini_ed01/
+background: |
+  先读 `CHARTER-INCREMENTAL.md` §13.4、§16、§17。
+
+  主 Agent 2026-09-22 实测：
+  - HEAD `58b327f`；`assembly` **197 用例全绿**
+  - fixture `mini_release01/` 现有：`ed01/`、`ed99/`（各含 candidate_set / reviewed_edition / reviewed_edition_package）、
+    `tools/build_fixture.py`、`expected/snapshot_r1.json`、`expected/snapshot_r2.json`、`expected/snapshot_revisions.yaml`
+  - 对勘单元：ed01 声明 `sanche-0001/0002/0003`（全部 present=true），ed99 声明 `sanche-0001/0004`
+    → 两侧共有只有 0001，**只能产生对齐/异文，产生不了缺文（Omission）/增文（Addition）**
+  - `expected/snapshot_r2.json` **已过时**：无 `meta`，包身份是旧的，关系是旧格式，
+    与现在增量路径的产出不是字节等价的（E 波回报 §2）
+  - **没有「同一本书返工」场景**（`act/09` 草稿假设的 `ed01r2` 不存在），所以替换继承与身份迁移在 fixture 上都没被覆盖
+  - `report` 不记本轮提案键，导致 E 波的 `identity_delta_contract` 只能退而对照「总账里已落地的键 ∪ 决定 ∪ 沿用」（E 波回报 §8.4）
+contract: |
+  一、§17 裁定：fixture 怎么补（金标一律由实跑产出，不许手写）
+    1. **重建 r2 金标**：r1 → ed99 增量实跑，产出物落 `expected/snapshot_r2.json`，覆盖旧文件。
+       旧文件与新文件的差异（逐字段）写进回报。
+    2. **补齐对勘四类**：在 ed99 上**声明** `sanche-0002` 为 `present: false`（产生 Omission），
+       保留 `sanche-0004`（ed01 未声明，须让它产生 Addition——若按规格 ed01 必须声明 0004 为 present=false 才可比，
+       就在 ed01 侧不改、改为在 ed99 侧另加一个两侧都声明的单元；**先读规格 §15 与 README §6 定口径，拿不准停手上报**）；
+       `sanche-0001` 两侧文本略有不同以产生 VariantReading，另加一个两侧文本完全相同的单元产生 Alignment。
+       四类关系**至少各出现一次**，不可比单元上**没有任何**对勘关系。
+    3. **新增同书返工场景 `ed01r2`**：与 ed01 **同一 `(source_id, edition_part_ids)`**，第二份 m6 包。内容上：
+         - 删掉 ed01 的一条 Assertion → 应 `retired`（R11）
+         - 让两个 Concept 被裁定合并 → 应 `merged`
+         - 其余保持不变 → 应走 `carried`（沿用）
+       实跑 r2 → ed01r2，金标落 `expected/snapshot_r3.json` 与 `expected/identity_delta_r3.json`。
+       `split` 若能以最小改动造出就一并覆盖；造不出**如实写明**，不许为了凑齐改检查。
+    4. 所有新增或变更都经 `tools/build_fixture.py` 生成，`verify.sh` 要能校验新文件。
+
+  二、report 记本轮提案键（orchestrate.py，只许新增字段）
+    `report` 新增 `round_proposal_keys`：本次 ReleaseRun 各轮全部提案的 `proposal_key`，升序去重。
+    既有字段与键序一字不动，新字段追加在末尾。
+
+  三、identity_delta_contract 回到草稿口径（gate.py）
+    delta 每条的 `reason_ref.proposal_key` 必须出现在 `report.round_proposal_keys` 里。
+    E 波的退而求其次口径（总账里已落地的键 ∪ 决定 ∪ 沿用）删掉。
+    `report` 缺 `round_proposal_keys` 时判 FAIL，不许静默退回旧口径。
+
+  四、不许做的事
+    - 不许手写金标（一律实跑产出）
+    - 不许为了让新场景通过而改 matcher / incremental / apply / genesis / canonical / inputs
+    - 不许改 `mini_ed01`；不许写 `var/` 真书正本
+    - 不许调用模型、不许用相似度
+tests_first: |
+  先写测试并确认转红（贴 Red 原文），再改实现。至少七条具名用例：
+    test_r2_incremental_matches_rebuilt_gold_byte_for_byte      # 恢复逐字节判据
+    test_collation_all_four_kinds_present
+    test_not_comparable_units_have_no_collation_relation
+    test_rework_ed01r2_identified_as_replacement                # 按 (source_id, edition_part_ids)
+    test_rework_ed01r2_identity_delta_matches_gold              # retired + merged（+ split 若有）
+    test_report_records_round_proposal_keys
+    test_identity_delta_reason_ref_must_be_in_round_proposal_keys   # 回到草稿口径
+verify: |
+  cd /Users/jingtaiwei/Git/Public/learn_system && export LC_ALL=en_US.UTF-8
+  .venv/bin/python -m unittest discover -s pipeline/assembly/tests -t . 2>&1 | tail -3     # OK；≥197 + 新增
+  bash pipeline/corpus/_fixture/mini_release01/verify.sh; echo "exit=$?"                  # 0
+  .venv/bin/python pipeline/corpus/_fixture/mini_release01/tools/build_fixture.py --check 2>&1 | tail -3
+      # 重跑生成与盘上金标逐字节一致（若脚本无 --check，就重跑一遍再 git diff 证明无变化）
+  git diff --stat 58b327f -- pipeline/assembly/matcher.py pipeline/assembly/incremental.py pipeline/assembly/apply.py pipeline/assembly/genesis.py pipeline/assembly/canonical.py pipeline/assembly/inputs.py
+      # 必须无输出
+  git status --short var/ pipeline/corpus/_fixture/mini_ed01/    # 无输出
+  # 篡改探针（两条，完整仓库副本含 ocr/，R13）：
+  #   P1 让 gate 的 identity_delta_contract 忽略 round_proposal_keys → test_identity_delta_reason_ref_must_be_in_round_proposal_keys 转红
+  #   P2 把 ed01r2 的替换识别改按 stage_package_id → test_rework_ed01r2_identified_as_replacement 转红
+commit:
+  add:
+    - pipeline/corpus/_fixture/mini_release01/
+    - pipeline/assembly/orchestrate.py
+    - pipeline/assembly/gate.py
+    - pipeline/assembly/tests/
+    - docs/blackbox-spec-rework/work-items/impl-07-assembly/act/26.yaml
+  message: "test(m7): complete the release fixture with a same-book rework and all four collation kinds (INC-G1, ACT 26)"
+on_fail: |
+  停止并报告，不许提交红的基线。
+  四种情况必须停手写「## 待裁决」：
+    ① Omission / Addition 的可比口径拿不准（规格与 README 对不上）
+    ② ed01r2 实跑结果与预期（retired / merged / carried）不符，且你判断不了是 fixture 造错还是汇编有问题
+    ③ 要让新场景跑通必须改只读模块
+    ④ 重建的 r2 金标与旧金标的差异超出 meta、包身份、关系格式这三类

@@ -1,0 +1,125 @@
+act_id: impl-07/27
+title: G2 波 —— m7-assembler 五条写死的 BLOCKED 改为真实判定；新增真书判据；run_all 20.5 按真实退出码接线
+estimated_minutes: 150
+group: INC-G
+depends_on: [impl-07/26]
+supersedes: [impl-07/09, impl-07/10]    # 判据形状参考 act/09，但以本 ACT 与现状为准
+decisions: [CHARTER §2 P2 更正, §3.3 A′, §13.4, §16, §18（本 ACT 新立）]
+scope:
+  write:
+    - pipeline/assembly/acceptance.py
+    - pipeline/assembly/tests/test_acceptance.py
+    - openspec/acceptance/m7-assembler.sh
+    - openspec/acceptance/run_all.sh          # 只许改 20.5 那一段
+  read_only:
+    - var/ledgers/qianyuan_w8/                # 真书判据只在副本上跑
+    - pipeline/assembly/matcher.py
+    - pipeline/assembly/incremental.py
+    - pipeline/assembly/apply.py
+    - pipeline/assembly/orchestrate.py
+    - pipeline/assembly/gate.py
+    - pipeline/assembly/genesis.py
+    - pipeline/assembly/canonical.py
+    - pipeline/assembly/inputs.py
+    - pipeline/corpus/_fixture/mini_ed01/
+    - pipeline/corpus/_fixture/mini_release01/
+background: |
+  先读 `CHARTER-INCREMENTAL.md` §2（P2 更正）、§3.3、§13.4、§16、§18。本 ACT 在 ACT 26 之后做，依赖它补齐的 fixture。
+
+  主 Agent 2026-09-22 实测 `bash openspec/acceptance/m7-assembler.sh`（ACT 26 之前）：
+    PASS genesis_snapshot / configuration_and_scope / package_lineage / identity_and_allocation /
+         provenance_and_fidelity / no_silent_fold_and_display / upstream_immutable / checkpoints /
+         closed_set_types / no_model_calls / upstream_m6_real
+    BLOCKED incremental_multi_edition 多 Edition 增量对勘未实现（§15:655）
+    BLOCKED edition_collation Alignment/VariantReading/Addition/Omission 未实现
+    BLOCKED identity_delta 跨版本身份迁移未实现（§6.3、§16:732）
+    BLOCKED rework_replacement M6 返工替换未实现（D-14）
+    BLOCKED run_all_20_5 §20.5 未接线（Q29 采纳 C）
+    SUMMARY pass=11 fail=0 blocked=5
+  **这五条 BLOCKED 的理由全是「未实现」，但 B/C/D/E 四波已经实现了它们**——理由写死、与事实不符。
+  `run_all.sh:272-273` 的 20.5 也是写死的：`block_line "$n" "M7 Incremental Assembly" "增量汇编未实现"`。
+
+  另：`upstream_m6_real` 显示 PASS，但它的输入是 `pipeline/review/testing/upstream_stub` 的**合成桩**，
+  **不是真书**（CHARTER §2 P2 更正，`acceptance.py:61`）。名字叫 real，跑的是桩。
+contract: |
+  一、§18 裁定：五条 BLOCKED 改为真实判定（每条都由实际运行结果决定 PASS / FAIL，不许写死）
+    incremental_multi_edition  规格 §15:655 的本意是「新版次加入同一部书时，不等全部版次到齐，来一个汇一个」。
+                               判据：r1 → ed99 增量实跑 succeeded、增量 Gate 13 项全过、产出与 ACT 26 重建的
+                               `snapshot_r2.json` 逐字节相同。（单个 Run 一次汇多个包仍在前置拒收，
+                               这不是 §15:655 的要求，**不计入本判据**，在 detail 里注明即可。）
+    edition_collation          fixture 上四类对勘关系各至少一条；不可比单元上无任何对勘关系；
+                               对勘关系集与 ACT 26 的金标一致。
+    identity_delta             r2 → ed01r2 实跑的 identity_delta 与 `expected/identity_delta_r3.json` 一致；
+                               每条 `reason_ref.proposal_key` 出现在 `report.round_proposal_keys` 里。
+    rework_replacement         ed01r2 按 `(source_id, edition_part_ids)` 被识别为 ed01 的替换；
+                               删掉的 Assertion 被 retired；未变对象走 carried；产出与 `snapshot_r3.json` 逐字节相同。
+    run_all_20_5               检查 `run_all.sh` 的 20.5 段确实调用 `m7-assembler.sh` 并按其退出码映射（见第三节），
+                               而不是写死的一行 `block_line`。
+
+  二、真书判据与桩判据的名实（CHARTER §2 P2 更正）
+    1. `upstream_m6_real` **不许改名、不许删除**，但 detail 里必须写明「输入为合成桩（review/testing/upstream_stub），非真书」。
+    2. **新增一条判据 `upstream_m6_real_book`**：把 `var/ledgers/qianyuan_w8/` 复制到临时目录（正本只读），
+       以 r1 金标为基底跑真书第二轮，要求 `run_m7` succeeded 且增量 Gate 13 项全过。
+       本机没有 `var/ledgers/qianyuan_w8/` 时输出 `BLOCKED upstream_m6_real_book 宿主缺失: 无真书账本`，**不许判 PASS**。
+       跑完核对正本 `ledger.sqlite` 的 mtime/size 未变，变了就 FAIL。
+
+  三、run_all.sh 20.5（CHARTER §3.3 A′）
+    20.5 的判定由 `m7-assembler.sh` 的**真实退出码**决定：0 → PASS；2 → BLOCKED；1 → FAIL；3 → BLOCKED（宿主缺失）。
+    **不许写死任何一种结果。** 只改 20.5 这一段，其余各项一字不动。
+
+  四、退出码与输出格式
+    沿用现有 m7-assembler.sh 的格式与退出码语义（PASS / FAIL / BLOCKED 行 + `SUMMARY` 末行；
+    任一 FAIL → 1；无 FAIL 有 BLOCKED → 2；全 PASS → 0；3 仅限宿主缺失）。
+    判据名与顺序：现有 16 条保持原名原序，`upstream_m6_real_book` 追加在末尾。
+
+  五、不许做的事
+    - 不许改任何被验模块（matcher / incremental / apply / orchestrate / gate / genesis / canonical / inputs）
+    - 不许改 fixture 金标（ACT 26 已产出，本 ACT 只读）
+    - 不许为了全绿把判据写成恒 PASS；不许写 `var/` 真书正本
+    - `run_all.sh` 只许改 20.5
+tests_first: |
+  先写测试并确认转红（贴 Red 原文），再改实现。至少八条具名用例：
+    test_no_verdict_detail_says_not_implemented_when_implemented   # 五条不再写「未实现」
+    test_incremental_multi_edition_judged_from_real_run
+    test_edition_collation_judged_from_real_run
+    test_identity_delta_judged_from_real_run
+    test_rework_replacement_judged_from_real_run
+    test_upstream_m6_real_detail_says_synthetic_stub
+    test_upstream_m6_real_book_blocked_without_ledger              # 无账本时 BLOCKED 不许 PASS
+    test_run_all_20_5_maps_exit_code_not_hardcoded
+verify: |
+  cd /Users/jingtaiwei/Git/Public/learn_system && export LC_ALL=en_US.UTF-8
+  bash openspec/acceptance/m7-assembler.sh; echo "exit=$?"
+      # 贴全文。期望：五条原 BLOCKED 给出真实结论；upstream_m6_real_book 在本机（有 var/）上 PASS；
+      # 若仍有 BLOCKED，每条理由必须是真实原因，不许是「未实现」
+  bash openspec/acceptance/run_all.sh 20.5; echo "exit=$?"
+      # 贴全文。结论必须与上面 m7-assembler.sh 的退出码一致
+  grep -n "未实现" pipeline/assembly/acceptance.py
+      # 贴结果；若有残留，逐条说明为什么它确实还没实现
+  .venv/bin/python -m unittest discover -s pipeline/assembly/tests -t . 2>&1 | tail -3    # OK
+  for p in dataset_compiler review validation corpus_compiler; do
+    .venv/bin/python -m unittest discover -s pipeline/$p/tests -t . 2>&1 | grep -E "^Ran|^OK|^FAILED" | tail -2; done
+      # corpus_compiler 中间几行 FAIL m3_acceptance 是已知噪声，以最后的 OK 为准
+  git diff --stat HEAD~1 -- pipeline/assembly/matcher.py pipeline/assembly/incremental.py pipeline/assembly/apply.py pipeline/assembly/orchestrate.py pipeline/assembly/gate.py pipeline/assembly/genesis.py pipeline/assembly/canonical.py pipeline/assembly/inputs.py
+      # 必须无输出（HEAD~1 指 ACT 26 的提交）
+  git diff --no-color HEAD~1 -- openspec/acceptance/run_all.sh | grep -a "^@@"      # 改动块只在 20.5 段
+  git status --short var/                                                          # 无输出
+  # 篡改探针（三条，完整仓库副本含 ocr/，R13）：
+  #   P1 把 rework_replacement 写死成 PASS           → test_rework_replacement_judged_from_real_run 转红
+  #   P2 把 run_all 20.5 写回固定 block_line         → test_run_all_20_5_maps_exit_code_not_hardcoded 转红
+  #   P3 让 upstream_m6_real_book 在无账本时判 PASS  → test_upstream_m6_real_book_blocked_without_ledger 转红
+commit:
+  add:
+    - pipeline/assembly/acceptance.py
+    - pipeline/assembly/tests/test_acceptance.py
+    - openspec/acceptance/m7-assembler.sh
+    - openspec/acceptance/run_all.sh
+    - docs/blackbox-spec-rework/work-items/impl-07-assembly/act/27.yaml
+  message: "test(m7): judge the incremental verdicts from real runs and wire run_all 20.5 (INC-G2, ACT 27)"
+on_fail: |
+  停止并报告，不许提交红的基线。
+  四种情况必须停手写「## 待裁决」：
+    ① 某条原 BLOCKED 判据在真实运行下 FAIL，且你判断不了是判据写错还是汇编真有问题
+    ② 真书判据 FAIL
+    ③ 要让判据通过必须改被验模块或 fixture 金标
+    ④ run_all.sh 的 20.5 改动会影响其他项
