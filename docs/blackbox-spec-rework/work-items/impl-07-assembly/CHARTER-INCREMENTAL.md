@@ -951,3 +951,27 @@ not_comparable（理由 `multiple_assertions_per_unit`），不出任何关系�
 5. 多个基底版次时：对**至少一个**基底版次可比 → 不列；对所有都不可比 → 列一项，理由取各版次理由中优先级最高的。
 - fixture 口径：ed99 **保留**那条 collation_key=null 的声明、**不含**无键断言 → §25.9 下列表恰 2 项：
   `sanche-0004`（base_undeclared）与 null 声明（missing_collation_key）。真书第二轮：26 条无键断言 → 26 项。
+
+---
+
+## 30. 轨道 2 完成，待集成（2026-09-22）
+
+`m7/i-gate @ b718f71`（基于 `m7/i-base 3408465`）。主 Agent 在独立 worktree 核验：
+- 只改 ACT 30 的 5 个文件，只读清单相对 `53a9107` 零改动；13 项检查名字与顺序不变；gate.py 只导入 canonical、model、ids 与标准库
+- 新用例 39 条全绿；执行器三条探针命中；主 Agent 自做探针（拿掉 §28 Q4 写入一致性检查）→ 5 个子用例转红
+- 17 条预期中的红，执行器以「把旧对勘逻辑换回去即转绿」机械证明归因，全部是旧引擎产出的 editions 缺 collation_units 所致
+- Red 证据：acceptance 一半是先实现后写测试，执行器如实说明并把改前文件取回来跑出 Red——认可
+
+### 30.1 轨道 2 自定的一处口径 —— 采纳，引擎须同步
+
+视图一侧「获批断言」只数 `reviewed_edition.approved` 里 `kind=assertion` 的；**未获批断言不参与单元判定，也不进 not_comparable**。
+与 E 波 `provenance_complete` 只要求已获批对象有落点的口径一致（§16 执行器口径判断 2）。
+
+### 30.2 集成时主 Agent 要处理的
+
+1. `test_acceptance.py`：清空 `KNOWN_GAP_BLOCKED`；`test_edition_collation_judged_from_real_run` 仍断言 BLOCKED 文案，要改为实跑判定。
+2. `report.dropped_relations` 的 `collation_recomputed` 理由目前 Gate 与验收都没验；集成时在 `rework_replacement` 判据的
+   dropped_relations 独立复算里补上这一类。
+3. not_comparable 列表：验收判据现在读纯函数层 `result["collation"]`，因为 Ledger 的 assembly 包里没有这份。
+   集成时核实 `edition_collation_set` 修订里是否带了列表；带了就改读 Ledger，没带就补上（§28 Q7 定的位置）。
+4. 有真书账本的主机上，2 条真书用例（在轨道 2 的 Windows 上是 skip）要实跑：基底是 fixture r1 金标，轨道 1 重出后应带字段。
