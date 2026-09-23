@@ -17,9 +17,11 @@
 进行到一半的事（精确到文件和章节）：
 - 无。M7 已收口，`PLAN.md:94` 已打勾。
 下一步（第一件事）：
-- M7 无必做项。可选：处理 CHARTER §31.5 的已知缺口，其中最影响实用的是 §29 Q9——
-  旧引擎封存的 Snapshot 缺 `collation_units`，要先迁移（重新创世或补字段）才能作为增量基底。
-- 另一台机器上的轨道 2 会话（分支 `m7/i-gate`）已完成使命，可以关闭；Gitea 上的 `m7/i-base`、`m7/i-gate` 两个分支可按需删除。
+- M7 无必做项，已知缺口已逐条定论（CHARTER §32.2，均为「报错停下、不会静默出错」的边界）。
+- 用户下一步：对 learn_system 生产 dataset 的架构、功能、代码做全面盘点。盘点起点：
+  `run_all.sh` 全局 `pass=3 fail=1 blocked=7`（CHARTER §32.1 逐项说明），11 个 pipeline 包全部测试通过。
+- 留给用户决定（CHARTER §32.4）：Gitea 受保护分支是否合入（备份分支 `backup/knowledge-compilation-20260923` 已含全部提交）；
+  废纸篓 3.6GB 探针副本；其他会话留下的未跟踪文件与 `.claude/worktrees/agent-ad7f…`。
 已知的坑：
 - 已知缺口（CHARTER §23.2）：多版次对勘；Concept 合并（规则表不可达）；同 source 不同 `edition_part_ids` 的扩展（仍拒收）；
   `_id_allocation` 在最大号被退役时的两难；退役号被第三方引用时 fail-closed，不自动改指。

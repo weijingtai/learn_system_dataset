@@ -1025,3 +1025,48 @@ Gate 的 `_asm_relation_touches` 按此修正，补 `RelationTouchesViewCase` �
 - 旧引擎封存的 Snapshot 缺 collation_units，须迁移后才能作增量基底（§29 Q9）
 - Concept 合并；同 source 不同 edition_part_ids 的扩展；`_id_allocation` 最大号退役两难；第三方引用退役号不自动改指（§23.2）
 - `incremental_multi_edition` 判据里 Gate 那段是无用例守护的冗余防线（§24.1）
+
+---
+
+## 32. 收尾：已知缺口逐条定论，为全面盘点清场（2026-09-23，用户授权「能拿主意的直接拿主意」）
+
+### 32.1 全局体检
+
+- pipeline 下 **11 个包全部测试通过**：assembly 293、contract_registry 45、corpus_compiler 166、dataset_compiler 224、digitization 86、
+  intake 38、knowledge_extraction 149、ledger 84、orchestrator 100、review 166、validation 118。
+- 体检抓到一处「只跑 M7 相关包发现不了」的连带问题：`contract_registry` 的 `test_full_summary_unchanged` 把 `run_all.sh`
+  全局汇总写死为 `pass=2 blocked=8`，20.5 转 PASS 后它就红了。改为按本机有无真书账本计算（`1366fca`）。
+- `run_all.sh` 全局 `pass=3 fail=1 blocked=7`：
+  - PASS：20.2、20.3、**20.5**
+  - FAIL：20.7——旧格局规则库 `original_text` 全空，**早已记载为预期**（HANDOFF g4-r2 节），与本轮无关
+  - BLOCKED ×7：前置缺失 M4 / M8 / Contract Registry，均属其他模块未完成，如实标注
+
+### 32.2 已知缺口逐条定论
+
+| 缺口 | 定论 | 理由 |
+|---|---|---|
+| §24.1 Gate 冗余防线无用例守护 | **已修**（`1366fca`） | 伪造「status 成功、Gate 未过」断言判 FAIL；拿掉检查即转红 |
+| §29 Q9 旧 Snapshot 缺 collation_units 须迁移 | **关闭，无需处理** | 主 Agent 只读查询真书账本：**不存在任何 M7 Snapshot**（此前真书实跑全在副本上）。无实例可迁；真书首次正式跑 M7 即带新字段；万一遇到旧 Snapshot，引擎入口会拒收并提示迁移 |
+| §29 Q8 返工时 R07b 人工决定须重裁 | **接受为设计后果** | 对勘关系不在注解锚定白名单；R07b 只在同位置主体不一致时出现，返工时重新确认一次是合理的 |
+| Concept 合并不可达（§21④） | **维持现状** | 规则表只有 Pattern 走 R03d；Concept 同名走别名（R04）已能表达；无真实数据需要 |
+| 同 source 不同 edition_part_ids 的扩展（§21 F1 边界） | **维持拒收** | 拒收时写明理由；现有语料一部书一个分册包 |
+| `_id_allocation` 最大号被退役的两难（§22.3） | **维持现状** | 真书当前无 Pattern 获批，不触发；触发时 model 校验会拒收，不会静默出错 |
+| 第三方引用退役号时 fail-closed，不自动改指（§21④、§22.2） | **维持** | 自动改指的规则规格未定义，停手比猜安全 |
+
+以上「维持」项都是**会报错停下、不会静默出错**的边界，不影响现有功能。
+
+### 32.3 现场清理
+
+- 本轮执行器留在 `/tmp` 的整仓副本与探针输出共 3.6GB，**挪入废纸篓** `~/.Trash/learn_system-m7-probe-leftovers-20260923/`（未硬删）；
+  回报里引用的三个复现脚本存到 `~/tmux-agents/runs/scripts/`。
+- Gitea：推备份分支 `backup/knowledge-compilation-20260923`（= `1366fca`，含本地领先受保护分支的全部 306+ 个提交）；
+  核对一致后删除已并入的临时分支 `m7/i-base`、`m7/i-gate`。**受保护分支 `codex/docs/knowledge-compilation` 未动**，是否合入由用户决定。
+- 本机 FreeBuff 会话全部关闭；另一台机器的轨道 2 会话已通知可关。
+- `.gitignore` 加 `.freebuff/`。
+
+### 32.4 留给用户决定的
+
+1. Gitea 受保护分支比本地落后 306+ 个提交（备份分支已有全部内容），是否及如何合入。
+2. 废纸篓里 3.6GB 探针副本，确认后清空。
+3. 仓库里其他会话留下的未跟踪文件（`.claude/`、`.commandcode/`、nc-* 的 DELIVERY_REPORT、`guwen-retrieval-*.md`）与
+   `.claude/worktrees/agent-ad7f…` worktree，不属于本线，未动。
