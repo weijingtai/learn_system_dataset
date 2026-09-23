@@ -14,6 +14,33 @@ from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[3]
 
+#: m7-assembler 全部判据数（ACT 27 起 17 条）。
+TOTAL_VERDICTS = 17
+#: 引擎缺口导致、如实 BLOCKED 的判据；I 波（ACT 29/30）合并后清空。
+KNOWN_GAP_BLOCKED = ("edition_collation",)
+_REAL_LEDGER_DIR = ROOT / "var" / "ledgers" / "qianyuan_w8"
+
+
+def expected_blocked():
+    """按宿主实情算出应 BLOCKED 的判据：已知引擎缺口 + 无真书账本时的真书判据。
+
+    CHARTER §27：不许写死计数——没有真书账本的机器上 upstream_m6_real_book 如实 BLOCKED，
+    计数随之变化；写死 16/1 会让这类机器上的用例误红。
+    """
+    names = set(KNOWN_GAP_BLOCKED)
+    if not _REAL_LEDGER_DIR.is_dir():
+        names.add("upstream_m6_real_book")
+    return names
+
+
+def expected_summary():
+    blocked = len(expected_blocked())
+    return "SUMMARY pass=%d fail=0 blocked=%d" % (TOTAL_VERDICTS - blocked, blocked)
+
+
+def expected_exit_code():
+    return 2 if expected_blocked() else 0
+
 
 class TestAcceptance(unittest.TestCase):
     def test_genesis_acceptance_summary_and_exit_2(self):
@@ -23,10 +50,11 @@ class TestAcceptance(unittest.TestCase):
         with contextlib.redirect_stdout(buf):
             code = acceptance.main([])
         out = buf.getvalue()
-        self.assertEqual(code, 2)
-        self.assertIn("SUMMARY pass=16 fail=0 blocked=1", out)
-        self.assertEqual(out.count("PASS "), 16)
-        self.assertEqual(out.count("BLOCKED "), 1)
+        blocked = len(expected_blocked())
+        self.assertEqual(code, expected_exit_code())
+        self.assertIn(expected_summary(), out)
+        self.assertEqual(out.count("PASS "), TOTAL_VERDICTS - blocked)
+        self.assertEqual(out.count("BLOCKED "), blocked)
         self.assertEqual(out.count("FAIL "), 0)
 
     def test_blocked_lines_exact_text(self):
@@ -37,17 +65,18 @@ class TestAcceptance(unittest.TestCase):
         with contextlib.redirect_stdout(buf):
             code = acceptance.main([])
         out = buf.getvalue()
-        self.assertIn(
-            "BLOCKED edition_collation 多版次对勘（缺文/增文/异文）引擎缺口，见 CHARTER §19",
-            out,
-        )
-        for name in (
-            "incremental_multi_edition",
-            "identity_delta",
-            "rework_replacement",
-            "run_all_20_5",
-            "upstream_m6_real_book",
-        ):
+        if "edition_collation" in KNOWN_GAP_BLOCKED:
+            self.assertIn(
+                "BLOCKED edition_collation 多版次对勘（缺文/增文/异文）引擎缺口，见 CHARTER §19",
+                out,
+            )
+        names = ["incremental_multi_edition", "identity_delta", "rework_replacement", "run_all_20_5"]
+        if _REAL_LEDGER_DIR.is_dir():
+            names.append("upstream_m6_real_book")
+        else:
+            # 无真书账本时必须如实 BLOCKED（宿主缺失），不许 PASS
+            self.assertIn("BLOCKED upstream_m6_real_book 宿主缺失", out)
+        for name in names:
             self.assertNotIn("BLOCKED %s " % name, out, "%s 不得再由写死的理由决定" % name)
         self.assertNotIn("未实现", out)
 
@@ -106,10 +135,10 @@ class TestAcceptance(unittest.TestCase):
             text=True,
         )
         self.assertEqual(
-            proc.returncode, 2, f"stdout: {proc.stdout}\nstderr: {proc.stderr}"
+            proc.returncode, expected_exit_code(), f"stdout: {proc.stdout}\nstderr: {proc.stderr}"
         )
         last_line = proc.stdout.strip().splitlines()[-1]
-        self.assertEqual(last_line, "SUMMARY pass=16 fail=0 blocked=1")
+        self.assertEqual(last_line, expected_summary())
 
     def test_shell_missing_env_exit_3(self):
         tmp_dir = tempfile.mkdtemp(prefix="test_missing_env_")
@@ -160,7 +189,8 @@ class TestAcceptance(unittest.TestCase):
             code = acceptance.main([])
         out = buf.getvalue()
         for line in out.splitlines():
-            if line.startswith("BLOCKED upstream_m6_real"):
+            # 精确匹配判据名：startswith 会误命中 "BLOCKED upstream_m6_real_book"（CHARTER §27）
+            if line.split()[:2] == ["BLOCKED", "upstream_m6_real"]:
                 self.fail("upstream_m6_real should not be BLOCKED")
 
     def test_synthetic_decisions_not_counted_expert_verified(self):
@@ -260,10 +290,10 @@ class TestAcceptance(unittest.TestCase):
             text=True,
         )
         self.assertEqual(
-            proc.returncode, 2, f"stdout: {proc.stdout}\nstderr: {proc.stderr}"
+            proc.returncode, expected_exit_code(), f"stdout: {proc.stdout}\nstderr: {proc.stderr}"
         )
         last_line = proc.stdout.strip().splitlines()[-1]
-        self.assertEqual(last_line, "SUMMARY pass=16 fail=0 blocked=1")
+        self.assertEqual(last_line, expected_summary())
 
     def test_stub_candidate_set_conforms_to_m7_validate(self):
         """桩 seed 后 candidate_set 过 M7 validate_candidate_set，防漂移。"""

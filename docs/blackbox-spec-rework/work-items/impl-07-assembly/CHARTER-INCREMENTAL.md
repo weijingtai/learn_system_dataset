@@ -834,3 +834,17 @@ R07 / R08 / R07b / R09 提案一律带 `targets = [from, to]`（按上表，缺�
 
 **集成由主 Agent 做**：轨道 1 提交后合并 `m7/i-gate`，跑 R15 全栈用例、`m7-assembler.sh`（期望 pass=17 fail=0 blocked=0）、
 `run_all.sh 20.5`（期望 PASS）、真书第二轮与同书返工；有出入就回到 §25 裁定，再分派给对应轨道。
+
+---
+
+## 27. 轨道 2 基线暴露 G2 测试两处缺陷（2026-09-22，主 Agent 已修）
+
+另一台机器（Windows，无真书账本）跑基线，`test_acceptance` 红 5 条。主 Agent 核实：
+1. 四条用例**写死** `SUMMARY pass=16 fail=0 blocked=1`，默认本机有真书账本；没有账本时 `upstream_m6_real_book` 如实 BLOCKED，计数对不上。
+2. `test_upstream_m6_real_blocked_until_impl06_accepted` 用 `startswith("BLOCKED upstream_m6_real")`，**会误命中** `BLOCKED upstream_m6_real_book`。
+   有账本的机器上恰好不出错，所以 G2 验收时没抓到。
+
+修法：期望值改为**按宿主实情算**——`KNOWN_GAP_BLOCKED`（引擎缺口，I 波合并后清空）+ 无账本时的 `upstream_m6_real_book`；
+第 2 条改为精确匹配判据名。主 Agent 在干净提交上验证：有账本、无账本两种宿主都全绿（无账本时 skip 1 条）。
+
+**I 波集成时须把 `KNOWN_GAP_BLOCKED` 清空**，期望随之变为 `pass=17 fail=0 blocked=0`、退出码 0。
