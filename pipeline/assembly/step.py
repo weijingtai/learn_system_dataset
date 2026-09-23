@@ -9,7 +9,7 @@ from typing import Any, Callable, Dict, List, Optional
 
 from pipeline.assembly import canonical, incremental, model, orchestrate
 from pipeline.assembly.errors import AssemblyRefused
-from pipeline.assembly.gate import evaluate_genesis
+from pipeline.assembly.gate import evaluate_assembly, evaluate_genesis
 from pipeline.assembly.genesis import assemble_genesis, propose_genesis
 from pipeline.assembly.inputs import resolve_base_snapshot, resolve_m7_inputs
 from pipeline.ledger import ids
@@ -180,6 +180,53 @@ def _finish_incremental(
         "incremental_equals_full_rebuild": bool(equivalent),
     }
 
+    # 三（ACT 25）：增量轮必须有**独立 Gate**，且在写 Snapshot **之前** 跑——
+    # 不过即失败封存，不写 Snapshot、不留跑着的 StepRun。
+    gate_res = evaluate_assembly(
+        base_knowledge=base["doc"],
+        views=views,
+        decisions=decisions,
+        knowledge=knowledge,
+        identity_delta=result["identity_delta"],
+        collation=result["collation"],
+        report=outcome["report"],
+    )
+    if not gate_res["passed"]:
+        failed_checks = sorted(
+            name for name, check in gate_res["checks"].items() if not check["passed"]
+        )
+        fail_doc = {
+            "schema_version": "1.0.0",
+            "step_run_id": step_run_id,
+            "check_name": "incremental_gate",
+            "failed_checks": failed_checks,
+            "gate": gate_res,
+            "checks": checks,
+        }
+        fail_bytes = json.dumps(fail_doc, sort_keys=True, ensure_ascii=False).encode("utf-8")
+        fail_art_id, fail_rev_id = service.put_artifact(
+            step_run_id,
+            "failure_report",
+            fail_bytes,
+            producer_module=M7_TOOL,
+            producer_version=M7_TOOL_VERSION,
+        )
+        service.seal_revision(fail_rev_id)
+        service.fail_step_run(
+            step_run_id,
+            [fail_rev_id],
+            reason="incremental gate failed: %s" % ",".join(failed_checks),
+        )
+        return {
+            "status": "failed",
+            "step_run_id": step_run_id,
+            "snapshot_revision_id": None,
+            "assembly_package_revision_id": None,
+            "validation_report_revision_id": None,
+            "failed_checks": failed_checks,
+            "gate": gate_res,
+        }
+
     incremental.assert_prev_meta_agreement(base_revision_id, knowledge)
     snap_art_id, snap_rev_id = service.put_artifact(
         step_run_id,
@@ -210,9 +257,9 @@ def _finish_incremental(
 
     val_doc = {
         "schema_version": "1.0.0",
-        "passed": bool(all(checks.values())),
+        "passed": bool(gate_res["passed"] and all(checks.values())),
         "checks": checks,
-        "incremental_gate": "pending_e_wave",
+        "incremental_gate": gate_res,
     }
     val_bytes = json.dumps(val_doc, sort_keys=True, ensure_ascii=False).encode("utf-8")
     val_art_id, val_rev_id = service.put_artifact(
