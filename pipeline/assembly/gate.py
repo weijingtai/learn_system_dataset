@@ -1137,12 +1137,20 @@ def _asm_is_collation_relation(relation: dict, index: Dict[str, Any]) -> bool:
 
 
 def _asm_relation_touches(relation: dict, index: Dict[str, Any], sources: Set[Any]) -> bool:
-    """是否**涉及本轮视图 source**（§29 Q8）：任一端断言属于视图 source，或 omission 的缺侧是视图 source。"""
+    """是否**涉及本轮视图 source**（§29 Q8，§31 更正）：任一端断言属于视图 source，
+    或 addition / omission 的缺侧（absent_source_id）是视图 source。
+
+    §29 Q8 原文只写了 omission，漏了 addition：同书返工时，旧轮「新版有、本书缺」的增文，
+    其缺侧正是本轮视图，必须随本轮重算，不能要求原样保留。
+    """
     for end in (relation.get("from_entity_id"), relation.get("to_entity_id")):
         if end in index["assertions"] and index["assertions"][end].get("source_id") in sources:
             return True
     detail = relation.get("detail") or {}
-    return relation.get("relation_kind") == "omission" and detail.get("absent_source_id") in sources
+    return (
+        relation.get("relation_kind") in ("addition", "omission")
+        and detail.get("absent_source_id") in sources
+    )
 
 
 def _asm_collation_shape(relation: dict, index: Dict[str, Any]) -> str:

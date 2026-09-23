@@ -1,7 +1,11 @@
 # HANDOFF
-更新时间：2026-09-22
+更新时间：2026-09-23
 当前分支/worktree：`codex/docs/knowledge-compilation`；`/Users/jingtaiwei/Git/Public/learn_system`
 刚完成：
+0. **M7 I 波（多版次对勘）完成并集成**：两条轨道并行——引擎在本机（ACT 29，`4a93821`），Gate 与验收判据在另一台机器上独立实现（ACT 30，`b718f71`），
+   合并 `badc65d` 后主 Agent 集成。**`run_all.sh 20.5` 首次 PASS，`m7-assembler.sh` pass=17 fail=0 blocked=0，`PLAN.md:94` 已打勾。**
+   缺文 / 增文 / 异文 / 对齐四类都有真实路径验证；真书第二轮仍零对勘关系、26 项不可比。详见 CHARTER §25–§31。
+   合并时两边独立实现暴露出一处裁定措辞的缝（§29 Q8 漏写 addition），已更正（§31.1）。
 1. **M7 增量汇编（impl-07 增量线，F/A/B/C/D/E/G1/H/G2 九波）收口**，总纲与全部裁定见
    `docs/blackbox-spec-rework/work-items/impl-07-assembly/CHARTER-INCREMENTAL.md`（§1–§24）。
    - 三条真实路径都有全栈验证：单本书首次汇编（创世）、新书加入（真书第二轮 13 项独立 Gate 全过）、
@@ -11,11 +15,11 @@
    - `run_all.sh 20.5` 已接线，按 `m7-assembler.sh` 真实退出码映射，当前为 BLOCKED（唯一原因见下）。
    - 关键提交：`d80d143`（G1）`79bcbe7`（H）`de1a802`（G2）；验收记录 CHARTER §20、§23、§24。
 进行到一半的事（精确到文件和章节）：
-- 无。M7 这一轮已收口；`PLAN.md:94` 未打勾（判据要求 20.5 PASS，仍被多版次对勘缺口挡住）。
+- 无。M7 已收口，`PLAN.md:94` 已打勾。
 下一步（第一件事）：
-- 若要让 20.5 变 PASS：另开 **I 波**修多版次对勘（缺文 / 增文 / 异文，CHARTER §19 F2/F3/F4；
-  复现探针 `.venv/bin/python pipeline/assembly/tests/probe_g_blockers.py` 应显示这三项 REPRODUCED）。
-  F3 需给 Snapshot 加字段（改 schema），F4 需先定异文的正规形状——先裁定再派发。
+- M7 无必做项。可选：处理 CHARTER §31.5 的已知缺口，其中最影响实用的是 §29 Q9——
+  旧引擎封存的 Snapshot 缺 `collation_units`，要先迁移（重新创世或补字段）才能作为增量基底。
+- 另一台机器上的轨道 2 会话（分支 `m7/i-gate`）已完成使命，可以关闭；Gitea 上的 `m7/i-base`、`m7/i-gate` 两个分支可按需删除。
 已知的坑：
 - 已知缺口（CHARTER §23.2）：多版次对勘；Concept 合并（规则表不可达）；同 source 不同 `edition_part_ids` 的扩展（仍拒收）；
   `_id_allocation` 在最大号被退役时的两难；退役号被第三方引用时 fail-closed，不自动改指。

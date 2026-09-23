@@ -975,3 +975,53 @@ not_comparable（理由 `multiple_assertions_per_unit`），不出任何关系�
 3. not_comparable 列表：验收判据现在读纯函数层 `result["collation"]`，因为 Ledger 的 assembly 包里没有这份。
    集成时核实 `edition_collation_set` 修订里是否带了列表；带了就改读 Ledger，没带就补上（§28 Q7 定的位置）。
 4. 有真书账本的主机上，2 条真书用例（在轨道 2 的 Windows 上是 skip）要实跑：基底是 fixture r1 金标，轨道 1 重出后应带字段。
+
+---
+
+## 31. I 波集成与收口（2026-09-23）
+
+轨道 1 `4a93821`（引擎，本机 m7i / m7i2）与轨道 2 `b718f71`（Gate，另一台机器）合并为 `badc65d`，无冲突。
+合并后红 11 条，主 Agent 逐条处理：
+
+### 31.1 两边独立实现在合并时暴露出一处口径缝 —— 缝出在 §29 Q8 的原文
+
+返工轮 Gate 报「不涉及本轮视图的对勘关系必须与基底逐字节相同」。查明：r2 那条增文 `as_qizheng_900007 → null`，
+缺侧 `absent_source_id` 正是本轮返工的 ed01，**明明涉及本轮视图**；但 §29 Q8 原文只写了「omission 的 absent_source_id」，漏了 addition。
+Gate 照字面实现，引擎按常理实现，两边都没错，**是主 Agent 的裁定措辞有缝**。
+这正是拆给两个人独立写的价值：同一人写两边，这条缝会被悄悄抹平，而不会被发现。
+
+更正 §29 Q8：**addition 与 omission 的 `absent_source_id` 是视图 source，都算涉及本轮视图。**
+Gate 的 `_asm_relation_touches` 按此修正，补 `RelationTouchesViewCase` 三条用例（撤回修复即转红）。
+
+### 31.2 集成改动（§30.2 的四项）
+
+1. `test_acceptance.py`：`KNOWN_GAP_BLOCKED` 清空；`test_edition_collation_judged_from_real_run` 改为断言 PASS；
+   `test_shell_never_trusts_copy_verify` 里残留的写死退出码 2 改为按宿主算。
+2. `acceptance.check_rework_replacement`：
+   - 版次条目继承判据原为整条逐字节比对，§25.5 后 `collation_units` 本就要整体换成返工视图的声明，比对必然不等。
+     改为「除 collation_units 外逐字节相同」+「collation_units 等于返工视图声明」——**不是放宽，多验了一件事**。
+   - `dropped_relations` 由「只认 merge_internal」改为从基底独立推出三类理由（优先级 merge_internal → endpoint_retired → collation_recomputed）。
+     r3 实推 5 条（1 / 1 / 3），与引擎实报逐条一致。主 Agent 探针：拿掉 collation_recomputed 分支 → 判据转红。
+3. not_comparable 列表：引擎实际放在 `assembly_proposal_set.not_comparable` 与纯函数层 `result["collation"]`（本仓没有独立的
+   edition_collation_set 修订）；验收判据读纯函数层，与轨道 2 的 Gate 独立算法逐项一致。§28 Q7 写的位置据此更正。
+4. `test_release_fixture` 的 R15 用例：`dropped_relations` 期望改为逐条写明 r2 基底五条关系各自的去向（`attached` 不删）。
+
+### 31.3 结果
+
+- `assembly` **292 OK**；dataset_compiler / review / validation / corpus_compiler / ledger 全 OK
+- **`m7-assembler.sh` `pass=17 fail=0 blocked=0`**；**`run_all.sh 20.5` PASS**（M7 线第一次）
+- `probe_g_blockers.py` 0/6；fixture 重跑逐字节一致；Gate 导入干净；只读文件与真书正本未动
+- 真书第二轮（轨道 1 回报 §12.2）：succeeded、零对勘关系、not_comparable 26 项、增量 Gate 全过
+
+### 31.4 两条轨道的执行器口径判断 —— 认可
+
+- 同书返工时沿用基底号的断言，主体取基底已裁定的主体（轨道 1 §10.3.1）
+- 同一条基底关系同时命中退役与重算，只记 endpoint_retired（轨道 1 §10.3.2）
+- 视图侧只数已获批断言（轨道 2，§30.1）
+
+### 31.5 仍然挂着的已知缺口
+
+- 返工时对勘关系反向，此前的 R07b 人工决定须重裁（§29 Q8）
+- 旧引擎封存的 Snapshot 缺 collation_units，须迁移后才能作增量基底（§29 Q9）
+- Concept 合并；同 source 不同 edition_part_ids 的扩展；`_id_allocation` 最大号退役两难；第三方引用退役号不自动改指（§23.2）
+- `incremental_multi_edition` 判据里 Gate 那段是无用例守护的冗余防线（§24.1）

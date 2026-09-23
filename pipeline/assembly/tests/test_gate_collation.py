@@ -653,3 +653,47 @@ class GateCollationCase(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class RelationTouchesViewCase(unittest.TestCase):
+    """§29 Q8 / §31：哪些对勘关系「涉及本轮视图」，须随本轮删掉重算。"""
+
+    INDEX = {
+        "assertions": {
+            "as_qizheng_000001": {"source_id": "src_sanche_ed01"},
+            "as_qizheng_000007": {"source_id": "src_sanche_ed99"},
+        }
+    }
+
+    def _touches(self, relation, view_source):
+        from pipeline.assembly.gate import _asm_relation_touches
+
+        return _asm_relation_touches(relation, self.INDEX, {view_source})
+
+    def test_addition_whose_absent_side_is_the_view_touches_it(self):
+        # 同书返工 ed01：旧轮「ed99 有、ed01 缺」的增文，缺侧就是本轮视图，必须算涉及
+        addition = {
+            "relation_kind": "addition",
+            "from_entity_id": "as_qizheng_000007",
+            "to_entity_id": None,
+            "detail": {"collation_key": "sanche-0005", "absent_source_id": "src_sanche_ed01"},
+        }
+        self.assertTrue(self._touches(addition, "src_sanche_ed01"))
+
+    def test_omission_whose_absent_side_is_the_view_touches_it(self):
+        omission = {
+            "relation_kind": "omission",
+            "from_entity_id": "as_qizheng_000001",
+            "to_entity_id": None,
+            "detail": {"collation_key": "sanche-0002", "absent_source_id": "src_sanche_ed99"},
+        }
+        self.assertTrue(self._touches(omission, "src_sanche_ed99"))
+
+    def test_relation_between_two_other_editions_does_not_touch_view(self):
+        addition = {
+            "relation_kind": "addition",
+            "from_entity_id": "as_qizheng_000007",
+            "to_entity_id": None,
+            "detail": {"collation_key": "sanche-0005", "absent_source_id": "src_sanche_ed01"},
+        }
+        self.assertFalse(self._touches(addition, "src_sanche_ed50"))

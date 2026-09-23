@@ -16,8 +16,8 @@ ROOT = Path(__file__).resolve().parents[3]
 
 #: m7-assembler 全部判据数（ACT 27 起 17 条）。
 TOTAL_VERDICTS = 17
-#: 引擎缺口导致、如实 BLOCKED 的判据；I 波（ACT 29/30）合并后清空。
-KNOWN_GAP_BLOCKED = ("edition_collation",)
+#: 引擎缺口导致、如实 BLOCKED 的判据。I 波（ACT 29/30）已于集成时清空（CHARTER §31）。
+KNOWN_GAP_BLOCKED = ()
 _REAL_LEDGER_DIR = ROOT / "var" / "ledgers" / "qianyuan_w8"
 
 
@@ -178,7 +178,7 @@ class TestAcceptance(unittest.TestCase):
             env=dict(os.environ, FIXTURE_DIR=str(fake_copy)),
         )
         self.assertNotIn("FAKE_VERIFY_RAN", proc.stdout)
-        self.assertEqual(proc.returncode, 2)
+        self.assertEqual(proc.returncode, expected_exit_code())
 
     def test_upstream_m6_real_blocked_until_impl06_accepted(self):
         """upstream_m6_real 已转为 PASS，验证其不在 BLOCKED 列表中。"""
@@ -410,12 +410,10 @@ class TestAcceptanceIncremental(unittest.TestCase):
 
     # ------------------------------------------------------------ 具名用例 3
     def test_edition_collation_judged_from_real_run(self):
-        """对齐关系正确 + 不可比单元无对勘关系 → 通过；缺文/增文/异文无生产者 → BLOCKED（非 PASS）。"""
+        """I 波后四类对勘关系全部可达：实跑与金标一致 → PASS；不再 BLOCKED（CHARTER §25、§31）。"""
         code, out = run_acceptance_main()
         line = verdict_line(out, "edition_collation")
-        self.assertEqual(line.split()[0], "BLOCKED", line)
-        self.assertIn("缺文/增文/异文", line)
-        self.assertIn("CHARTER §19", line)
+        self.assertEqual(line.split()[0], "PASS", line)
 
         # 负向对照：把对齐关系从金标里删掉，已实现的那半部分必须转红
         tmp = tempfile.mkdtemp(prefix="test_acc_coll_")

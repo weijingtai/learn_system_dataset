@@ -812,10 +812,42 @@ class TestReleaseFixture(unittest.TestCase):
         self.assertEqual(
             len(internal), 1, "前置：基底里恰有一条合并双方之间的关系（夹具的 distinct_from）"
         )
+        # 5) 其余被删的基底关系同样如实记账，每条只记一个理由（§22.2、§29 Q8、§31）。
+        #    r2 基底里的五条关系在 r3（同书返工 ed01）各自的去向，逐条写明：
+        #      distinct_from(900001↔900002) 合并双方之间          → merge_internal
+        #      omission(900002 → null)       端点 900002 被 R11 退役 → endpoint_retired（优先于重算）
+        #      alignment / variant_reading   一端属于 ed01           → collation_recomputed
+        #      addition(ed99 → null)         缺侧 absent_source_id 是 ed01 → collation_recomputed
+        expected_reason = {
+            "distinct_from": "merge_internal",
+            "omission": "endpoint_retired",
+            "alignment": "collation_recomputed",
+            "variant_reading": "collation_recomputed",
+            "addition": "collation_recomputed",
+        }
+        #      attached（Pattern 挂接）不涉及退役、合并与对勘 → 不删，也不得出现在 dropped_relations 里
+        kept = [rel for rel in base_doc["relations"] if rel["relation_kind"] == "attached"]
+        dropped = [rel for rel in base_doc["relations"] if rel["relation_kind"] != "attached"]
+        self.assertEqual(len(kept), 1, "前置：r2 基底恰有一条 attached")
+        self.assertEqual(
+            sorted(rel["relation_kind"] for rel in dropped),
+            sorted(expected_reason),
+            "前置：r2 基底除 attached 外恰为这五类关系各一条（夹具变了就要重新逐条核对去向）",
+        )
         self.assertEqual(
             third["report"]["dropped_relations"],
-            [{"relation_key": internal[0]["relation_key"], "reason": "merge_internal"}],
-            "随合并删除的基底关系必须进 report.dropped_relations",
+            sorted(
+                (
+                    {"relation_key": rel["relation_key"], "reason": expected_reason[rel["relation_kind"]]}
+                    for rel in dropped
+                ),
+                key=lambda row: row["relation_key"],
+            ),
+            "被删的基底关系必须逐条如实进 report.dropped_relations，理由按优先级只记一个",
+        )
+        self.assertIn(
+            {"relation_key": internal[0]["relation_key"], "reason": "merge_internal"},
+            third["report"]["dropped_relations"],
         )
 
 

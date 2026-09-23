@@ -1063,8 +1063,17 @@ def check_rework_replacement(world) -> tuple:
         ed for ed in produced.get("editions") or [] if ed.get("source_id") == ed01["source_id"]
     ]
     if len(base_edition) == 1 and len(now_edition) == 1:
-        if canonical_json(base_edition[0]) != canonical_json(now_edition[0]):
+        # §25.5：同书返工时 collation_units 整体替换为返工视图的声明，其余字段（reviewed_edition_* 身份等）逐字节继承
+        base_rest = {k: v for k, v in base_edition[0].items() if k != "collation_units"}
+        now_rest = {k: v for k, v in now_edition[0].items() if k != "collation_units"}
+        if canonical_json(base_rest) != canonical_json(now_rest):
             failures.append("替换后的版次条目必须继承基底该版次的 reviewed_edition_* 身份字段")
+        wanted_units = _declared_units(_release_view(rework)["candidate_set"])
+        if now_edition[0].get("collation_units") != wanted_units:
+            failures.append(
+                "替换后的版次条目 collation_units 必须整体换成返工视图的声明: 写入 %r / 视图 %r"
+                % (now_edition[0].get("collation_units"), wanted_units)
+            )
         if now_edition[0].get("reviewed_edition_revision_id") == rework["ledger_constants"][
             "reviewed_edition_revision_id"
         ]:
@@ -1116,24 +1125,63 @@ def check_rework_replacement(world) -> tuple:
         failures.append("返工轮的合并必须以 change_type=merged 记进 identity_delta")
     else:
         pair = {merge_entry.get("from_entity_id")} | set(merge_entry.get("to_entity_ids") or [])
-        internal = [
-            rel
-            for rel in base.get("relations") or []
-            if {rel.get("from_entity_id"), rel.get("to_entity_id")} == pair
-        ]
-        expected_dropped = sorted(
-            ({"relation_key": rel["relation_key"], "reason": "merge_internal"} for rel in internal),
-            key=lambda row: row["relation_key"],
+        expected_dropped = _expected_dropped_relations(
+            base, produced, pair, _release_view(rework)["source_id"]
         )
         if sorted(report.get("dropped_relations") or [], key=lambda row: row["relation_key"]) != expected_dropped:
             failures.append(
-                "合并双方之间的基底关系必须如实进 report.dropped_relations: 实报 %r / 独立推出 %r"
+                "被删掉的基底关系必须如实进 report.dropped_relations: 实报 %r / 独立推出 %r"
                 % (report.get("dropped_relations"), expected_dropped)
             )
 
     if failures:
         return ("FAIL", "; ".join(failures[:3]))
     return ("PASS", "")
+
+
+_COLLATION_RELATION_KINDS = ("alignment", "variant_reading", "addition", "omission")
+
+
+def _declared_units(candidate_set: dict) -> list:
+    """视图声明的有键单元，按 §28 Q4 写入 Snapshot 的形状：{collation_key, present}，升序，null 键不写。"""
+    rows = [
+        {"collation_key": unit["collation_key"], "present": bool(unit.get("present", True))}
+        for unit in candidate_set.get("collation_units") or []
+        if unit.get("collation_key")
+    ]
+    return sorted(rows, key=lambda row: row["collation_key"])
+
+
+def _expected_dropped_relations(base: dict, produced: dict, merge_pair: set, view_source: str) -> list:
+    """从基底独立推出本轮应删的关系及理由（§22.2、§29 Q8、§31）。
+
+    每条基底关系只记一个理由，优先级：merge_internal → endpoint_retired → collation_recomputed。
+    """
+    newly_retired = set(produced.get("retired_entity_ids") or []) - set(base.get("retired_entity_ids") or [])
+    source_of = {item["assertion_id"]: item.get("source_id") for item in base.get("assertions") or []}
+    rows = []
+    for rel in base.get("relations") or []:
+        ends = {rel.get("from_entity_id"), rel.get("to_entity_id")}
+        detail = rel.get("detail") or {}
+        kind = rel.get("relation_kind")
+        is_collation = kind in _COLLATION_RELATION_KINDS or (
+            kind == "distinct_from"
+            and detail.get("collation_key")
+            and all(end in source_of for end in ends)
+        )
+        touches_view = any(source_of.get(end) == view_source for end in ends) or (
+            kind in ("addition", "omission") and detail.get("absent_source_id") == view_source
+        )
+        if merge_pair and ends == merge_pair:
+            reason = "merge_internal"
+        elif ends & newly_retired:
+            reason = "endpoint_retired"
+        elif is_collation and touches_view:
+            reason = "collation_recomputed"
+        else:
+            continue
+        rows.append({"relation_key": rel["relation_key"], "reason": reason})
+    return sorted(rows, key=lambda row: row["relation_key"])
 
 
 def check_run_all_20_5(world) -> tuple:
