@@ -19,6 +19,8 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
+import yaml
+
 from pipeline.assembly import fixture_seed
 from pipeline.assembly import orchestrate
 from pipeline.assembly import step as step_module
@@ -31,6 +33,7 @@ from pipeline.assembly.tests.test_incremental_orchestration import (
     load_manifest,
     round1_knowledge,
 )
+from pipeline.assembly.tests.fixture_decisions import decisions_for_round
 from pipeline.ledger.service import LedgerService
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -69,7 +72,8 @@ class IncrementalGateCase(unittest.TestCase):
         manifest = load_manifest()
         cls.base = round1_knowledge(manifest)
         cls.views = [fixture_views(manifest)[1]]
-        cls.decisions = []
+        # 第二版次带一条同名歧义提案（另一个 pat_ 号与基底格局同名）→ 决定集读夹具数据
+        cls.decisions = decisions_for_round(2)
         cls.outcome = orchestrate.assemble(
             cls.base,
             cls.views,
@@ -428,6 +432,115 @@ class IncrementalGateCase(unittest.TestCase):
         self.assertFalse(res2["passed"])
 
 
+class ReworkGateCase(unittest.TestCase):
+    """同书返工轮（r2 → ed01r2，带一条 `merge_entities` 人工决定）在 Gate 上的可判定性。
+
+    ACT 28 / CHARTER §22.1：§21④ 把合并的落点定在 IdentityDelta（不写 `merged_into` 关系），
+    而 E 波的 `decisions_consistent` 原来只在 `relations` / `conflict_groups` 里找决定的落点 ——
+    于是任何合并、拆分决定都**恒不能通过**。授权把 IdentityDelta 计入落点，口径写严：
+      ① merge / split 决定必须恰有一条与之对应的 delta（类型必须对应）；
+      ② 反向：delta 里的每条 merged / split 必须有决定（retired 来自 R11 自动提案，不要求）。
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        manifest = load_manifest()
+        plan = yaml.safe_load(
+            (FIXTURE / manifest["expected"]["snapshot_revisions"]).read_text(encoding="utf-8")
+        )
+        cls.base = load_json(FIXTURE / manifest["expected"]["round2"])
+        cls.base_rev = plan["revisions"][1]["snapshot_revision_id"]
+        rework = manifest["rework"]
+        view_dir = FIXTURE / rework["views_dir"]
+        cls.views = [
+            {
+                "source_id": rework["source_id"],
+                "candidate_set": load_json(view_dir / "candidate_set.json"),
+                "reviewed_edition": load_json(view_dir / "reviewed_edition.json"),
+            }
+        ]
+        cls.decisions = decisions_for_round(3)
+        cls.outcome = orchestrate.assemble(
+            cls.base,
+            cls.views,
+            cls.decisions,
+            incremental=True,
+            base_snapshot_revision_id=cls.base_rev,
+        )
+        assert cls.outcome["status"] == "complete", cls.outcome["status"]
+
+    def evaluate(self, *, decisions=None, identity_delta=None):
+        result = self.outcome["result"]
+        return evaluate_assembly(
+            base_knowledge=self.base,
+            views=self.views,
+            decisions=self.decisions if decisions is None else decisions,
+            knowledge=result["knowledge"],
+            identity_delta=result["identity_delta"] if identity_delta is None else identity_delta,
+            collation=result["collation"],
+            report=self.outcome["report"],
+        )
+
+    def assert_only_check_failed(self, res, name):
+        self.assertFalse(res["checks"][name]["passed"], "检查 %s 未转红：%s" % (name, res["checks"][name]))
+        self.assertFalse(res["passed"], "单点篡改后总体判定必须为 False")
+
+    # ------------------------------------------------------- 具名用例（返工轮全过）
+    def test_rework_round_all_checks_pass(self):
+        res = self.evaluate()
+        failed = {name: c["detail"] for name, c in res["checks"].items() if not c["passed"]}
+        self.assertEqual(failed, {}, "同书返工轮（含 merge_entities 决定）必须 13 项全过：%s" % failed)
+        self.assertTrue(res["passed"])
+
+    # ------------------------------------------------------- 篡改矩阵（CHARTER §22.1）
+    def test_tamper_merge_decision_without_delta(self):
+        """①：决定有，对应的 merged delta 没了 → FAIL。"""
+        delta = copy.deepcopy(self.outcome["result"]["identity_delta"])
+        delta["entries"] = [e for e in delta["entries"] if e["change_type"] != "merged"]
+        res = self.evaluate(identity_delta=delta)
+        self.assert_only_check_failed(res, "decisions_consistent")
+        detail = res["checks"]["decisions_consistent"]["detail"]
+        self.assertIn("merged", detail, "必须点出缺的是哪种 delta: %s" % detail)
+
+    def test_tamper_merged_delta_without_decision(self):
+        """②：无决定却出现一条 merged delta → FAIL（retired 才允许无决定）。"""
+        delta = copy.deepcopy(self.outcome["result"]["identity_delta"])
+        orphan_key = "merge:b25dfbab46aae82540df6a911f52fc89"  # 本轮真实生成过的键（R04 自动 attach）
+        self.assertIn(orphan_key, self.outcome["report"]["round_proposal_keys"])
+        self.assertNotIn(
+            orphan_key,
+            [item["proposal_key"] for item in self.decisions],
+            "前置：这个键上没有人工决定",
+        )
+        delta["entries"].append(
+            {
+                "change_type": "merged",
+                "entity_kind": "pattern",
+                "from_entity_id": "pat_qizheng_900003",
+                "to_entity_ids": ["pat_qizheng_900001"],
+                "reason_ref": {"kind": "proposal", "proposal_key": orphan_key},
+            }
+        )
+        delta["entries"] = sorted(
+            delta["entries"], key=lambda entry: (entry["change_type"], entry["from_entity_id"])
+        )
+        res = self.evaluate(identity_delta=delta)
+        self.assert_only_check_failed(res, "decisions_consistent")
+        detail = res["checks"]["decisions_consistent"]["detail"]
+        self.assertIn(orphan_key, detail, "必须点出没有决定的那条 delta 键: %s" % detail)
+
+    def test_tamper_delta_change_type_mismatches_decision(self):
+        """①：决定的选项与 delta 的 change_type 对不上 → FAIL。"""
+        decisions = copy.deepcopy(self.decisions)
+        for item in decisions:
+            if item["choice"] == "merge_entities":
+                item["choice"] = "split"
+        res = self.evaluate(decisions=decisions)
+        self.assert_only_check_failed(res, "decisions_consistent")
+        detail = res["checks"]["decisions_consistent"]["detail"]
+        self.assertIn("split", detail, "必须点出类型不符: %s" % detail)
+
+
 class IncrementalGateWiringTest(unittest.TestCase):
     """第三节：增量轮在写 Snapshot **之前** 过 Gate；不过即失败封存。"""
 
@@ -453,7 +566,7 @@ class IncrementalGateWiringTest(unittest.TestCase):
         self.assertEqual(first["status"], "succeeded")
         return first
 
-    def _run_second_round(self, base_revision_id):
+    def _run_second_round(self, base_revision_id, decisions=None):
         return run_m7(
             self.service,
             self.ed99["edition_part_artifact_id"],
@@ -463,6 +576,8 @@ class IncrementalGateWiringTest(unittest.TestCase):
             ],
             base_snapshot_revision_id=base_revision_id,
             id_range=self.manifest["id_range"],
+            # 同名歧义（R03b）须人工裁定：决定集是夹具数据，用例不手写
+            decisions=decisions_for_round(2) if decisions is None else decisions,
         )
 
     def _snapshot_revisions(self):

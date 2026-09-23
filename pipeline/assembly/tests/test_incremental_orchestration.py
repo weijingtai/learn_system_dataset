@@ -30,7 +30,9 @@ from pipeline.assembly.orchestrate import (
     view_modes,
 )
 from pipeline.assembly.step import run_m7
+from pipeline.assembly.tests.fixture_decisions import decisions_for_round
 from pipeline.ledger import ids
+from pipeline.ledger.errors import MissingReference
 from pipeline.ledger.service import LedgerService
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -48,6 +50,8 @@ EXPECTED_REPORT_KEYS = (
     "needs_review",
     "not_comparable_count",
     "round_proposal_keys",
+    "dropped_proposal_keys",  # ACT 28（CHARTER §21 ①）：D-14 剔除的提案键
+    "dropped_relations",  # ACT 28（CHARTER §22.2）：随退役/合并删除的基底关系，追加在末尾
 )
 
 
@@ -144,6 +148,21 @@ def make_snapshot_revision(service, technique_id, payload):
     return art_id, rev_id
 
 
+#: 夹具第二版次的人工决定集（同名歧义 R03b → admit_new）：用例不得手写决定
+FIXTURE_DECISIONS_R2 = decisions_for_round(2)
+
+
+def retired_assertion_scope(base, views) -> set:
+    """被 D-14 剔除的 R11 提案指向的断言号（反证用例用，不依赖 assemble 的 report）。"""
+    proposals = incremental.propose_incremental(base, views, round_no=2)["proposals"]
+    dropped = set(carry_forward_proposals(base, views, proposals)["dropped"])
+    return {
+        proposal["subject"][-1]
+        for proposal in proposals
+        if proposal["proposal_key"] in dropped and proposal["rule_id"] == "R11"
+    }
+
+
 def relation(kind, left, right):
     return {
         "relation_key": "x:%s" % abs(hash((kind, left, right))),
@@ -196,7 +215,7 @@ class AffectedClosureTest(unittest.TestCase):
         base = round1_knowledge(manifest)
         views = [fixture_views(manifest)[1]]
         final = incremental.propose_incremental(base, views, round_no=2)["proposals"]
-        closure = affected_closure(base, views, final, [])
+        closure = affected_closure(base, views, final, FIXTURE_DECISIONS_R2)
 
         # 行为事实（不是读源码文本）：「原样拷贝」路径必须真的拿到闭包集合。
         # 否则「增量」可能悄悄退化成全量重建：apply 的 rebuilt = affected ∩ touched
@@ -205,7 +224,7 @@ class AffectedClosureTest(unittest.TestCase):
             apply_module, "_restore_untouched", wraps=apply_module._restore_untouched
         ) as restore_spy:
             result = assemble(
-                base, views, [], incremental=True,
+                base, views, FIXTURE_DECISIONS_R2, incremental=True,
                 base_snapshot_revision_id="rev_000000000000000000000000000000f1",
             )
         self.assertTrue(restore_spy.called, "必须走到「原样拷贝」路径")
@@ -236,8 +255,8 @@ class AssembleTest(unittest.TestCase):
         base = round1_knowledge(manifest)
         views = [fixture_views(manifest)[1]]
 
-        inc = assemble(base, views, [], incremental=True, base_snapshot_revision_id="rev_1")
-        full = assemble(base, views, [], incremental=False, base_snapshot_revision_id="rev_1")
+        inc = assemble(base, views, FIXTURE_DECISIONS_R2, incremental=True, base_snapshot_revision_id="rev_1")
+        full = assemble(base, views, FIXTURE_DECISIONS_R2, incremental=False, base_snapshot_revision_id="rev_1")
 
         self.assertEqual(inc["status"], "complete")
         self.assertEqual(full["status"], "complete")
@@ -261,7 +280,7 @@ class AssembleTest(unittest.TestCase):
         base = round1_knowledge(manifest)
         views = [fixture_views(manifest)[1]]
 
-        ok = assemble(base, views, [], incremental=True, base_snapshot_revision_id="rev_1")
+        ok = assemble(base, views, FIXTURE_DECISIONS_R2, incremental=True, base_snapshot_revision_id="rev_1")
         self.assertLessEqual(
             set(ok["result"]["rebuilt_entity_ids"]),
             set(ok["report"]["affected_entity_ids"]),
@@ -273,7 +292,7 @@ class AssembleTest(unittest.TestCase):
 
         with mock.patch.object(orchestrate, "affected_closure", blind_closure):
             with self.assertRaises(AssemblyRefused) as ctx:
-                assemble(base, views, [], incremental=True, base_snapshot_revision_id="rev_1")
+                assemble(base, views, FIXTURE_DECISIONS_R2, incremental=True, base_snapshot_revision_id="rev_1")
         self.assertIn("闭包不完整", str(ctx.exception))
         self.assertIn("pat_qizheng_900001", str(ctx.exception))
 
@@ -286,7 +305,7 @@ class AssembleTest(unittest.TestCase):
             }
 
         with mock.patch.object(orchestrate, "affected_closure", wide_closure):
-            wide = assemble(base, views, [], incremental=True, base_snapshot_revision_id="rev_1")
+            wide = assemble(base, views, FIXTURE_DECISIONS_R2, incremental=True, base_snapshot_revision_id="rev_1")
         self.assertEqual(wide["status"], "complete", "扩张到的对象按原样拷贝，不得拒收")
         self.assertNotIn("as_qizheng_900002", wide["result"]["rebuilt_entity_ids"])
 
@@ -296,12 +315,14 @@ class AssembleTest(unittest.TestCase):
         manifest = load_manifest()
         base = round1_knowledge(manifest)
         result = assemble(
-            base, [fixture_views(manifest)[1]], [], incremental=True, base_snapshot_revision_id="rev_1"
+            base, [fixture_views(manifest)[1]], FIXTURE_DECISIONS_R2, incremental=True,
+            base_snapshot_revision_id="rev_1",
         )
         self.assertEqual(tuple(result["report"].keys()), EXPECTED_REPORT_KEYS)
+        # 同名歧义（R03b）由夹具决定集裁定 → 该提案计入 blocked_then_resolved
         self.assertEqual(
             result["report"]["proposals_by_resolution"],
-            {"auto": 3, "human": 0, "blocked_then_resolved": 0},
+            {"auto": 4, "human": 0, "blocked_then_resolved": 1},
         )
         self.assertEqual(result["report"]["rounds"], [2])
         # fixture ed99 声明了一个**无 collation_key** 的可比单元（真书 26 条断言全无键的形状），
@@ -318,7 +339,9 @@ class AssembleTest(unittest.TestCase):
         manifest = load_manifest()
         base = round1_knowledge(manifest)
         views = [fixture_views(manifest)[1]]
-        result = assemble(base, views, [], incremental=True, base_snapshot_revision_id="rev_1")
+        result = assemble(
+            base, views, FIXTURE_DECISIONS_R2, incremental=True, base_snapshot_revision_id="rev_1"
+        )
         report = result["report"]
 
         self.assertEqual(tuple(report.keys()), EXPECTED_REPORT_KEYS, "新字段必须追加在末尾")
@@ -490,6 +513,95 @@ class ReplacementInheritanceTest(unittest.TestCase):
         kept2 = carry_forward_proposals(base, [changed], proposals2, modes=modes)["kept"]
         kept_rules2 = {p["rule_id"] for p in proposals2 if p["proposal_key"] in set(kept2)}
         self.assertIn("R01", kept_rules2, "provenance 变化的 pattern 必须照常出提案")
+    # ------------------------------------- 具名用例（CHARTER §21 ①）：接线是真的
+    def test_carry_forward_wired_into_assemble(self):
+        """`assemble` 必须真的调用 D-14 的 `carry_forward_proposals`，而不是只把它摆在那里。
+
+        判据（全部只看 `assemble` 的可见输出）：
+
+        1. 替换版次上未变的 provenance 必须有提案被剔除，键升序进 `report.dropped_proposal_keys`；
+        2. `round_proposal_keys` 仍记**全部生成过**的键（剔除前），但 `apply` 实际收到的
+           是剔除后的那批——用 spy 直接抓 `apply_resolutions` 的入参；
+        3. 被剔除的 R11 键不得在 `identity_delta` 里留下任何痕迹；
+        4. 反证（护栏有效）：把过滤关掉，同一输入立刻把仍在视图里的断言退役。
+        """
+        manifest = load_manifest()
+        base = round1_knowledge(manifest)
+        views = [fixture_views(manifest)[0]]  # ed01 重跑 → replacement
+        self.assertEqual(view_modes(base, views), {"src_sanche_ed01": "replacement"})
+
+        # 本轮天生带一条 R06（冲突组）人工提案：先给出决定，才走得到 apply
+        proposals = incremental.propose_incremental(base, views, round_no=2)["proposals"]
+        human = [item for item in proposals if item["resolution"] == "human"]
+        self.assertTrue(human, "替换版次必须带人工提案（R06）")
+        decisions = [
+            {
+                "proposal_set_revision_id": "rev_0",
+                "proposal_key": item["proposal_key"],
+                "choice": item["options"][0],
+                "target_entity_ids": [],
+                "seen_revision_id": "rev_0",
+                "decision_type": item["decision_type"],
+            }
+            for item in human
+        ]
+
+        captured = {}
+        real_apply = apply_module.apply_resolutions
+
+        def spy(base_knowledge, view_docs, proposals, decisions, **kwargs):
+            captured["keys"] = sorted(p["proposal_key"] for p in proposals)
+            return real_apply(base_knowledge, view_docs, proposals, decisions, **kwargs)
+
+        with mock.patch.object(apply_module, "apply_resolutions", spy):
+            result = assemble(base, views, decisions, incremental=True, base_snapshot_revision_id="rev_1")
+
+        self.assertEqual(result["status"], "complete")
+        report = result["report"]
+        dropped = report["dropped_proposal_keys"]
+        self.assertTrue(dropped, "替换版次上未变的 provenance / 仍有声明的断言必须被剔除")
+        self.assertEqual(dropped, sorted(dropped), "dropped_proposal_keys 必须升序")
+        self.assertLessEqual(set(dropped), set(report["round_proposal_keys"]))
+
+        # 2. 交给 apply 的正是「全部生成过的」−「被剔除的」
+        self.assertEqual(
+            captured["keys"],
+            sorted(set(report["round_proposal_keys"]) - set(dropped)),
+            "apply 必须收到过滤之后的那批裁定",
+        )
+
+        # 3. 剔除的键不得在身份变更（含 R11 退役）里留下痕迹
+        delta_keys = {
+            entry["reason_ref"]["proposal_key"]
+            for entry in result["result"]["identity_delta"]["entries"]
+        }
+        self.assertFalse(
+            delta_keys & set(dropped), "被剔除的提案不得出现在 identity_delta 的 reason_ref 里"
+        )
+        retired = {
+            entry["from_entity_id"]
+            for entry in result["result"]["identity_delta"]["entries"]
+            if entry["change_type"] == "retire"
+        }
+        self.assertFalse(retired, "替换版次不得把仍在视图里的对象退役")
+
+        # 4. 反证：拆掉过滤 → 同一输入立刻把仍在视图里的断言退役，关系端点悬空而 fail-closed。
+        # （证明第 3 条是真判据，不是恒真；“拆护栏不等于修好”的现场就是这个报错。）
+        dangling = sorted(retired_assertion_scope(base, views))
+        self.assertTrue(dangling, "替换版次上必须真的存在「被 R11 误判为删除」的断言")
+
+        def bypass(*args, **kwargs):
+            return {"dropped": [], "kept": []}
+
+        with mock.patch.object(orchestrate, "carry_forward_proposals", bypass):
+            with self.assertRaises(MissingReference) as ctx:
+                assemble(base, views, decisions, incremental=True,
+                         base_snapshot_revision_id="rev_1")
+        self.assertIn("relations 端点", str(ctx.exception))
+        self.assertTrue(
+            any(assertion_id in str(ctx.exception) for assertion_id in dangling),
+            "拒收必须指到被误退役的那个断言：%s" % dangling,
+        )
 
 
 class AwaitingHumanLedgerTest(unittest.TestCase):
@@ -627,8 +739,9 @@ class LedgerAgreementTest(unittest.TestCase):
             reviewed_package_revision_ids=[self.seeded[ed99["edition_key"]]["m6_package_revision_id"]],
             base_snapshot_revision_id=first["snapshot_revision_id"],
             id_range=self.manifest["id_range"],
+            decisions=FIXTURE_DECISIONS_R2,
         )
-        self.assertEqual(second["status"], "succeeded", "无待决提案的增量轮必须直接完成合并")
+        self.assertEqual(second["status"], "succeeded", "待决提案已由夹具决定集裁定，增量轮必须完成合并")
 
         pairs = snapshot_revision_pairs(self.service)
         self.assertEqual(len(pairs), 2)

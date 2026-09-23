@@ -1,0 +1,22 @@
+{
+  "decisions": [
+    {
+      "choice": "admit_new",
+      "decision_type": null,
+      "proposal_key": "merge:de4959d936672bac703b43c7b3c6768a",
+      "proposal_set_revision_id": "rev_00000000000000000000000000000031",
+      "seen_revision_id": "rev_00000000000000000000000000000092",
+      "target_entity_ids": [
+        "pat_qizheng_900001"
+      ]
+    }
+  ],
+  "edition_key": "ed99",
+  "note": "决定由本轮真实提案按 build_fixture.py 的 DECISION_CHOICES 表推出，不是手写期望。",
+  "proposal_set_revision_id": "rev_00000000000000000000000000000031",
+  "round": 2,
+  "schema_version": "0.1.0-draft",
+  "seen_revision_id": "rev_00000000000000000000000000000092",
+  "source_id": "src_sanche_ed99",
+  "synthetic": true
+}

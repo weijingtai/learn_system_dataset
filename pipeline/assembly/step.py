@@ -174,9 +174,14 @@ def _finish_incremental(
     equivalent = full["status"] == "complete" and orchestrate.knowledge_equivalent(
         knowledge, full["result"]["knowledge"]
     )
+    # CHARTER §13.2：`rebuilt == affected` 等式断言已在 D 波删除（闭包一旦真的扩张，
+    # 扩张到的对象本轮不会被重建 → 等式不可满足；不扩张时它又是空转）。
+    # 此处残留的是同一条等式的副本，同源书返工（闭包经冲突组扩张）第一次跑全栈就撞上它。
+    # 按 §13.2 改回「低廉的健全检查」：`rebuilt ⊆ affected`。
     checks = {
-        "rebuilt_equals_affected": result["rebuilt_entity_ids"]
-        == outcome["report"]["affected_entity_ids"],
+        "rebuilt_subset_of_affected": set(result["rebuilt_entity_ids"]).issubset(
+            set(outcome["report"]["affected_entity_ids"])
+        ),
         "incremental_equals_full_rebuild": bool(equivalent),
     }
 

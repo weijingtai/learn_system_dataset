@@ -40,6 +40,8 @@ REPORT_KEYS = (
     "needs_review",
     "not_comparable_count",
     "round_proposal_keys",
+    "dropped_proposal_keys",
+    "dropped_relations",  # ACT 28（CHARTER §22.2）：随退役/合并删除的基底关系，只许追加在末尾
 )
 
 #: 闭包要沿其两端的三种关系（act/05.yaml:31）
@@ -597,21 +599,38 @@ def assemble(
         raise AssemblyRefused("回流未收敛：超过 max_rounds=%d" % max_rounds, code="SCH_001")
 
     proposals = final["proposals"]
+
+    # D-14 替换继承接线（CHARTER §21 ①）：视图里 provenance 未变 / 仍声明着的对象
+    # 本轮**不再产生** merge/alias/conflict 提案（沿用 Snapshot 结果）。不接这一步，
+    # 同书返工时 R11 会把仍在视图里的断言一并退役（`carry_forward_proposals` 是本函数之前
+    # 唯一没被 `assemble` 调用的 D 波产物）。被剔除的键如实进 `report.dropped_proposal_keys`，
+    # 不许静默丢弃。
+    inherited = carry_forward_proposals(base, views, proposals)
+    dropped_keys = set(inherited["dropped"])
+    effective_proposals = [
+        proposal for proposal in proposals if proposal["proposal_key"] not in dropped_keys
+    ]
+
+    # 闭包仍按**本轮生成过的全部提案**算（它描述「这一轮触及了基底的哪些对象」，
+    # 与 `report.round_proposal_keys` 同一口径），交经 `apply` 的只有过滤后的那批。
     closure = affected_closure(base, views, proposals, decisions)
     affected = closure["affected"] if incremental else None
 
     # CHARTER §13.2 闭包健全性：apply 之前先独立推出「将要改动的对象集」，必须 ⊆ affected。
     # 闭包漏掉一个其实会被改动的对象时，`apply._restore_untouched` 会拿基底旧版把它静默覆盖——
     # 这条检查正是那个洞的守卫（等式断言 `rebuilt == affected` 已按 §13.2 删除）。
+    # 按 §21 ①，检查的输入是**过滤之后**交给 apply 的那批裁定。
     if incremental:
-        missing = closure_soundness_violations(base, proposals, decisions, closure["affected"])
+        missing = closure_soundness_violations(
+            base, effective_proposals, decisions, closure["affected"]
+        )
         if missing:
             raise AssemblyRefused(
                 "闭包不完整：本轮将要改动的对象不在 affected 内: %s" % missing, code="SCH_002"
             )
 
     result = apply_module.apply_resolutions(
-        base, views, proposals, decisions, affected=affected
+        base, views, effective_proposals, decisions, affected=affected
     )
     # 廉价健全检查（不是证明）：重建范围不得超出闭包
     if incremental and not set(result["rebuilt_entity_ids"]) <= set(closure["affected"]):
@@ -664,5 +683,8 @@ def assemble(
         "needs_review": carried["needs_review"],
         "not_comparable_count": len(final["not_comparable"]),
         "round_proposal_keys": round_proposal_keys,
+        "dropped_proposal_keys": sorted(dropped_keys),
+        # CHARTER §22.2：随退役/合并删除的基底关系（含理由），由 apply 产出后原样透传
+        "dropped_relations": result["report"]["dropped_relations"],
     }
     return {"status": "complete", "rounds": rounds, "pending": [], "result": result, "report": report}

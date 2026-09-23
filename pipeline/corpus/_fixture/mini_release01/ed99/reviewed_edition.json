@@ -33,6 +33,24 @@
       "decision_revision_ids": [
         "rev_0000000000000000000000000000e004"
       ],
+      "entity_id": "pat_qizheng_900002",
+      "kind": "pattern"
+    },
+    {
+      "artifact_revision_id": "rev_00000000000000000000000000000090",
+      "content_status": "machine_extracted",
+      "decision_revision_ids": [
+        "rev_0000000000000000000000000000e005"
+      ],
+      "entity_id": "pat_qizheng_900003",
+      "kind": "pattern"
+    },
+    {
+      "artifact_revision_id": "rev_00000000000000000000000000000090",
+      "content_status": "machine_extracted",
+      "decision_revision_ids": [
+        "rev_0000000000000000000000000000e006"
+      ],
       "entity_id": "co_qizheng_900001",
       "kind": "concept"
     },
@@ -40,7 +58,7 @@
       "artifact_revision_id": "rev_00000000000000000000000000000090",
       "content_status": "machine_extracted",
       "decision_revision_ids": [
-        "rev_0000000000000000000000000000e005"
+        "rev_0000000000000000000000000000e007"
       ],
       "entity_id": "sv_00000000000000000000000000000002",
       "kind": "school_view"
@@ -102,6 +120,36 @@
       "decision_revision_id": "rev_0000000000000000000000000000e004",
       "decision_type": "review_source_fidelity",
       "modified_revision_id": null,
+      "queue_item_id": "pat_qizheng_900002#review_source_fidelity",
+      "seen_artifact_revision_id": "rev_00000000000000000000000000000090",
+      "standing": "active",
+      "synthetic_fixture": true,
+      "target_entity_id": "pat_qizheng_900002",
+      "trigger_correction_request_id": null,
+      "verdict": "accept"
+    },
+    {
+      "carried_from_revision_id": null,
+      "carried_to_revision_id": null,
+      "current_target_revision_id": "rev_00000000000000000000000000000090",
+      "decision_revision_id": "rev_0000000000000000000000000000e005",
+      "decision_type": "review_source_fidelity",
+      "modified_revision_id": null,
+      "queue_item_id": "pat_qizheng_900003#review_source_fidelity",
+      "seen_artifact_revision_id": "rev_00000000000000000000000000000090",
+      "standing": "active",
+      "synthetic_fixture": true,
+      "target_entity_id": "pat_qizheng_900003",
+      "trigger_correction_request_id": null,
+      "verdict": "accept"
+    },
+    {
+      "carried_from_revision_id": null,
+      "carried_to_revision_id": null,
+      "current_target_revision_id": "rev_00000000000000000000000000000090",
+      "decision_revision_id": "rev_0000000000000000000000000000e006",
+      "decision_type": "review_source_fidelity",
+      "modified_revision_id": null,
       "queue_item_id": "co_qizheng_900001#review_source_fidelity",
       "seen_artifact_revision_id": "rev_00000000000000000000000000000090",
       "standing": "active",
@@ -114,7 +162,7 @@
       "carried_from_revision_id": null,
       "carried_to_revision_id": null,
       "current_target_revision_id": "rev_00000000000000000000000000000090",
-      "decision_revision_id": "rev_0000000000000000000000000000e005",
+      "decision_revision_id": "rev_0000000000000000000000000000e007",
       "decision_type": "review_source_fidelity",
       "modified_revision_id": null,
       "queue_item_id": "sv_00000000000000000000000000000002#review_source_fidelity",

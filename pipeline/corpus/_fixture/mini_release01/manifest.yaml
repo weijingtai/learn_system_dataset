@@ -7,6 +7,16 @@ conventions:
   synthetic_object_seq_range:
   - 900001
   - 900099
+decisions:
+- edition_key: ed99
+  file: ed99/decisions.json
+  round: 2
+  source_id: src_sanche_ed99
+- edition_key: ed01r2
+  file: ed01r2/decisions.json
+  replaces_edition_key: ed01
+  round: 3
+  source_id: src_sanche_ed01
 edition_note: 影宋鈔本（fixture ed99 为合成保留号，非真实第二版次）
 editions:
 - edition_key: ed01
@@ -33,7 +43,8 @@ editions:
   - reviewed_edition.json
   - reviewed_edition_package.json
   views_dir: ed01
-- edition_key: ed99
+- decisions_file: ed99/decisions.json
+  edition_key: ed99
   edition_part_artifact_id: art_00000000000000000000000000000099
   ledger_constants:
     candidate_package_artifact_id: art_00000000000000000000000000000091
@@ -56,10 +67,13 @@ editions:
   - candidate_set.json
   - reviewed_edition.json
   - reviewed_edition_package.json
+  - decisions.json
   views_dir: ed99
 expected:
+  identity_delta_r3: expected/identity_delta_r3.json
   round1: expected/snapshot_r1.json
   round2: expected/snapshot_r2.json
+  round3: expected/snapshot_r3.json
   snapshot_revisions: expected/snapshot_revisions.yaml
 files:
 - path: ed01/candidate_set.json
@@ -71,24 +85,45 @@ files:
 - path: ed01/reviewed_edition_package.json
   role: view_reviewed_edition_package
   sha256: b0abcca36792e8765cac1a793f649a0dff96219ca808f9b4fa969047566a41f6
+- path: ed01r2/candidate_set.json
+  role: view_candidate_set
+  sha256: ce6d5e6d390c3efaa99ba115eed33c1b8ff5da85774e8bda2d46970cc8b02afc
+- path: ed01r2/decisions.json
+  role: rework_decisions
+  sha256: d5b9bd4b3fbb7cd06e48c204f53c9601ac011a9f23231d41a5f1f4ab9b050e82
+- path: ed01r2/reviewed_edition.json
+  role: view_reviewed_edition
+  sha256: 657521841877f81c13819f1113cff57c95594ea653e22125d07256c28df3ebbb
+- path: ed01r2/reviewed_edition_package.json
+  role: view_reviewed_edition_package
+  sha256: fa7cf93c500b074c4155a0d7cac94310ae636cc2895ec920f88143c23216dea4
 - path: ed99/candidate_set.json
   role: view_candidate_set
-  sha256: 39a5ceb621a1294fae02d971b0c32dd044494e0d24ba8ad6a33ed678a6295a75
+  sha256: 49e3bfb7d48824b25be94e1810b3f463cbe4420b7f63e80f49ea7ee769c7506b
+- path: ed99/decisions.json
+  role: rework_decisions
+  sha256: 7ba870a3f388cc54bda0f48aea718914bfc6039ceb01914a9ef11d5adb5c4c89
 - path: ed99/reviewed_edition.json
   role: view_reviewed_edition
-  sha256: 7b905a768e8282af719dec7769bfaaeb14cc92d07268eae7c253c0e9a194ce78
+  sha256: dd397d8c612f55f35dabf10ede59b456224bf936e8579f23ede99f89bb74b0ea
 - path: ed99/reviewed_edition_package.json
   role: view_reviewed_edition_package
-  sha256: 34ce249c736412900e26d93234b1dc34adbc1136303776a8a9e24ad4d25dfaa7
+  sha256: 28f902cc49bdea3d6704364119ed0cc4b7de6513825420c437e7e7bea5534378
+- path: expected/identity_delta_r3.json
+  role: expected_identity_delta
+  sha256: 8d38c4a73afd6892a095f73495297852eeaaf680faaf3d03a5a121893c312817
 - path: expected/snapshot_r1.json
   role: expected_snapshot
   sha256: c20c5148d046452fc00f83b3d1633cd81012170fd60c41ebda35c8e3cdfc891c
 - path: expected/snapshot_r2.json
   role: expected_snapshot
-  sha256: 1f6d1cbfb930a9a483abbb65039a0ab8ca70be097a7624563e374d076f0749e2
+  sha256: f45959afee5f8a96667e1c51be702d24727e6b4badcb19c4e06548e765f76539
+- path: expected/snapshot_r3.json
+  role: expected_snapshot
+  sha256: cb96034fd8e0715b73ee44ef88424de18f3e612c05e1ebafe6b4503b88aaec16
 - path: expected/snapshot_revisions.yaml
   role: expected_snapshot
-  sha256: 58cf25f99a3fa61e883003116c68262f47a89bc533e5ad80e45e11a7a86b373a
+  sha256: 761a0d1b5e3fbc47655d68e1cc4a2943e92089fb918045dca1984adbc84d0221
 fixture_id: mini_release01
 id_families_used:
 - art_
@@ -110,6 +145,34 @@ id_range:
   - 900001
   - 900099
 note: 内容为结构验收宿主，不作知识来源、证据来源或发布输入。
+rework:
+  decisions_file: ed01r2/decisions.json
+  edition_key: ed01r2
+  edition_part_artifact_id: art_000000000000000000000000000000e1
+  ledger_constants:
+    candidate_package_artifact_id: art_00000000000000000000000000000022
+    candidate_package_revision_id: rev_00000000000000000000000000000022
+    candidate_set_artifact_id: art_00000000000000000000000000000020
+    candidate_set_revision_id: rev_00000000000000000000000000000021
+    m4_step_run_id: srun_00000000000000000000000000000007
+    m6_package_revision_id: rev_000000000000000000000000000000e2
+    m6_stage_package_id: pkg_m6_000000000000000000000000000000e2
+    m6_step_run_id: srun_00000000000000000000000000000008
+    processing_run_id: prun_00000000000000000000000000000003
+    reviewed_edition_artifact_id: art_00000000000000000000000000000023
+    reviewed_edition_package_artifact_id: art_00000000000000000000000000000024
+    reviewed_edition_package_revision_id: rev_00000000000000000000000000000024
+    reviewed_edition_revision_id: rev_00000000000000000000000000000023
+  replaces_edition_key: ed01
+  role: first_edition_rework
+  source_id: src_sanche_ed01
+  validation_package_suffix: b03
+  view_files:
+  - candidate_set.json
+  - reviewed_edition.json
+  - reviewed_edition_package.json
+  - decisions.json
+  views_dir: ed01r2
 span_anchor:
   corpus_spans_revision_id: rev_00000000000000000000000000000a01
   evidence_level: glyphbox_level

@@ -13,7 +13,7 @@ import yaml
 
 from pipeline.assembly import apply as apply_module
 from pipeline.assembly import fixture_seed, incremental, orchestrate
-from pipeline.assembly.canonical import content_sha256
+from pipeline.assembly.canonical import canonical_json, content_sha256
 from pipeline.assembly.errors import AssemblyRefused
 from pipeline.assembly.model import empty_snapshot_knowledge
 from pipeline.assembly.orchestrate import (
@@ -22,6 +22,7 @@ from pipeline.assembly.orchestrate import (
     closure_soundness_violations,
     knowledge_equivalent,
 )
+from pipeline.assembly.tests.fixture_decisions import decisions_for_round
 from pipeline.ledger.errors import DuplicateIdentifier
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -46,8 +47,26 @@ def fixture_views(manifest):
     return views
 
 
+def round2_knowledge(manifest):
+    return json.loads((FIXTURE / manifest["expected"]["round2"]).read_text(encoding="utf-8"))
+
+
 def round1_knowledge(manifest):
     return json.loads((FIXTURE / manifest["expected"]["round1"]).read_text(encoding="utf-8"))
+
+
+def load_plan(manifest):
+    return yaml.safe_load((FIXTURE / manifest["expected"]["snapshot_revisions"]).read_text(encoding="utf-8"))
+
+
+def view_of(block):
+    """任一版次块（含 `manifest.rework`）→ 引擎入参形状的视图。"""
+    view_dir = FIXTURE / block["views_dir"]
+    return {
+        "source_id": block["source_id"],
+        "candidate_set": json.loads((view_dir / "candidate_set.json").read_text(encoding="utf-8")),
+        "reviewed_edition": json.loads((view_dir / "reviewed_edition.json").read_text(encoding="utf-8")),
+    }
 
 
 def _relation(kind, left, right, index):
@@ -130,6 +149,8 @@ class ClosureSoundnessTest(unittest.TestCase):
         self.manifest = load_manifest()
         self.base = expanded_base(self.manifest)
         self.views = [fixture_views(self.manifest)[1]]
+        # 第二版次带一条同名歧义提案（另一个 pat_ 号与基底格局同名）→ 决定集读夹具数据
+        self.decisions = decisions_for_round(2)
 
     # ---------------------- 具名用例 1（扩张后 assemble 必须成功）
     def test_closure_expansion_via_alias_assembles_successfully(self):
@@ -146,7 +167,7 @@ class ClosureSoundnessTest(unittest.TestCase):
         )
 
         result = assemble(
-            self.base, self.views, [], incremental=True,
+            self.base, self.views, self.decisions, incremental=True,
             base_snapshot_revision_id="rev_000000000000000000000000000000f1",
         )
         self.assertEqual(result["status"], "complete", "扩张到「不被改动」的对象不得让增量轮拒收")
@@ -166,7 +187,7 @@ class ClosureSoundnessTest(unittest.TestCase):
         with mock.patch.object(orchestrate, "affected_closure", blind_closure):
             with self.assertRaises(AssemblyRefused) as ctx:
                 assemble(
-                    self.base, self.views, [], incremental=True,
+                    self.base, self.views, self.decisions, incremental=True,
                     base_snapshot_revision_id="rev_000000000000000000000000000000f1",
                 )
         message = str(ctx.exception)
@@ -176,7 +197,7 @@ class ClosureSoundnessTest(unittest.TestCase):
     # ---------------------- 具名用例 3（扩张对象原样拷贝）
     def test_expanded_untouched_objects_copied_verbatim(self):
         result = assemble(
-            self.base, self.views, [], incremental=True,
+            self.base, self.views, self.decisions, incremental=True,
             base_snapshot_revision_id="rev_000000000000000000000000000000f1",
         )
         knowledge = result["result"]["knowledge"]
@@ -203,21 +224,22 @@ class ClosureSoundnessTest(unittest.TestCase):
             apply_module, "_restore_untouched", wraps=apply_module._restore_untouched
         ) as spy:
             assemble(
-                self.base, self.views, [], incremental=True,
+                self.base, self.views, self.decisions, incremental=True,
                 base_snapshot_revision_id="rev_000000000000000000000000000000f1",
             )
         self.assertTrue(spy.called)
         self.assertNotEqual(spy.call_args[0][3], None)
         self.assertEqual(spy.call_args[0][3], affected)
 
+
     # ---------------------- 具名用例 4（有扩张时增量仍 ≡ 全量）
     def test_incremental_equals_full_rebuild_with_expansion(self):
         inc = assemble(
-            self.base, self.views, [], incremental=True,
+            self.base, self.views, self.decisions, incremental=True,
             base_snapshot_revision_id="rev_000000000000000000000000000000f1",
         )
         full = assemble(
-            self.base, self.views, [], incremental=False,
+            self.base, self.views, self.decisions, incremental=False,
             base_snapshot_revision_id="rev_000000000000000000000000000000f1",
         )
         self.assertEqual(inc["status"], "complete")
@@ -266,6 +288,203 @@ class ClosureSoundnessTest(unittest.TestCase):
             self.base, proposals, decisions, affected={"pat_qizheng_900001"}
         )
         self.assertEqual(sorted(violations), ["as_qizheng_900002", "co_qizheng_900001"])
+
+
+class ReworkReplacementTest(unittest.TestCase):
+    """ACT 28 一（F1）与四：同书返工 —— 同 `(source_id, edition_part_ids)` 视为**替换**。
+
+    输入全部来自夹具（`ed01r2` 视图 + 第 3 轮决定集），不手工构造任何提案；
+    基底用 `expected/snapshot_revisions.yaml` 里的固定修订号（CHARTER §19.3.1）。
+    """
+
+    SOURCE = "src_sanche_ed01"
+
+    def setUp(self):
+        self.manifest = load_manifest()
+        self.plan = load_plan(self.manifest)
+        self.base = round2_knowledge(self.manifest)
+        self.base_rev = self.plan["revisions"][1]["snapshot_revision_id"]
+        self.view = view_of(self.manifest["rework"])
+        self.decisions = decisions_for_round(3)
+
+    def run_rework(self, base=None, view=None):
+        return assemble(
+            self.base if base is None else base,
+            [self.view if view is None else view],
+            self.decisions,
+            incremental=True,
+            base_snapshot_revision_id=self.base_rev,
+        )
+
+    def _with_real_edition_identity(self, base):
+        """把基底 ed01 条目的 `reviewed_edition_*` 换成真实包身份。
+
+        金标里的该字段是**占位值**（`snapshot_revisions.yaml` 的 `round1_note`：纯函数层
+        未接线真实包身份），占位值与被继承值无法区分，故必须换成 Ledger 上的真实身份
+        才能验「继承」。这里改的是**数据**，不是提案。
+        """
+        constants = self.manifest["editions"][0]["ledger_constants"]
+        patched = copy.deepcopy(base)
+        for edition in patched["editions"]:
+            if edition["source_id"] != self.SOURCE:
+                continue
+            edition["reviewed_edition_package_revision_id"] = constants[
+                "reviewed_edition_package_revision_id"
+            ]
+            edition["reviewed_edition_revision_id"] = constants["reviewed_edition_revision_id"]
+            edition["stage_package_id"] = constants["m6_stage_package_id"]
+        return patched
+
+    # ------------------------------------------------ 具名用例（ACT 28 一 / F1）
+    def test_rework_same_source_replaces_edition_without_new_entry(self):
+        """同 source 返工必须**替换** `editions[]` 原条目，不新增条目，且内容取新视图。"""
+        # 让基底 ed01 条目的 evidence_level 与新视图不同 → 「替换」才有可观测差异
+        base = copy.deepcopy(self.base)
+        for edition in base["editions"]:
+            if edition["source_id"] == self.SOURCE:
+                edition["evidence_level"] = "offset_level"
+        self.assertNotEqual(
+            base["editions"][0]["evidence_level"],
+            self.view["candidate_set"]["evidence_level"],
+            "前置：基底与视图的 evidence_level 必须不同，否则本用例是空转的",
+        )
+
+        res = self.run_rework(base=base)
+        self.assertEqual(res["status"], "complete", "待决=%r" % (res.get("pending"),))
+        editions = res["result"]["knowledge"]["editions"]
+        source_ids = [edition["source_id"] for edition in editions]
+        self.assertEqual(
+            len(editions),
+            len(base["editions"]),
+            "同 (source_id, edition_part_ids) 的返工不得新增版次条目: %r" % (source_ids,),
+        )
+        self.assertEqual(source_ids, sorted(edition["source_id"] for edition in base["editions"]))
+        self.assertEqual(len(source_ids), len(set(source_ids)), "版次 source_id 不得重复")
+
+        reworked = next(edition for edition in editions if edition["source_id"] == self.SOURCE)
+        self.assertEqual(
+            reworked["edition_part_artifact_ids"],
+            [self.view["candidate_set"]["edition_part_artifact_id"]],
+            "替换后的条目必须带新视图的 part 集合",
+        )
+        self.assertEqual(
+            reworked["evidence_level"],
+            self.view["candidate_set"]["evidence_level"],
+            "条目内容必须取新视图，而不是把基底旧值原样留下",
+        )
+        # 未提及的另一版次原样保留
+        untouched = next(edition for edition in editions if edition["source_id"] != self.SOURCE)
+        base_untouched = next(
+            edition for edition in base["editions"] if edition["source_id"] != self.SOURCE
+        )
+        self.assertEqual(untouched, base_untouched, "未返工的版次条目必须原样拷贝")
+
+    def test_rework_inherits_base_reviewed_edition_identity(self):
+        """D-14 / ACT 28 一：替换时**继承基底该版次的 `reviewed_edition_*` 身份字段**。
+
+        识别口径是 part 集合，不是 `stage_package_id`：基底与新视图的 stage_package_id
+        不同也**不得**看成新版次（否则基底身份会随包号漂移）。
+        """
+        base = self._with_real_edition_identity(self.base)
+        constants = self.manifest["editions"][0]["ledger_constants"]
+        self.assertEqual(
+            next(
+                edition for edition in base["editions"] if edition["source_id"] == self.SOURCE
+            )["reviewed_edition_package_revision_id"],
+            constants["reviewed_edition_package_revision_id"],
+            "前置：基底必须带真实包身份",
+        )
+
+        res = self.run_rework(base=base)
+        self.assertEqual(res["status"], "complete", "待决=%r" % (res.get("pending"),))
+        editions = res["result"]["knowledge"]["editions"]
+        self.assertEqual(len(editions), len(base["editions"]), "stage_package_id 变化不得引出新版次")
+        reworked = next(edition for edition in editions if edition["source_id"] == self.SOURCE)
+        for key in ("reviewed_edition_package_revision_id", "reviewed_edition_revision_id"):
+            self.assertEqual(
+                reworked[key],
+                constants[key],
+                "%s 必须继承基底的该版次身份，而不是回落到占位值" % key,
+            )
+
+    def test_extension_with_different_parts_still_refused_with_reason(self):
+        """F1 边界：同 source、**不同** part 集合的扩展本波不做，必须拒收并写明原因。"""
+        extended = view_of(self.manifest["editions"][1])
+        new_part = "art_00000000000000000000000000000098"
+        base_parts = {
+            part
+            for edition in self.base["editions"]
+            for part in edition["edition_part_artifact_ids"]
+        }
+        self.assertNotIn(new_part, base_parts, "前置：换一个基底没用过的 part 号")
+        extended["candidate_set"]["edition_part_artifact_id"] = new_part
+        extended["reviewed_edition"]["edition_part_artifact_id"] = new_part
+
+        with self.assertRaises(AssemblyRefused) as ctx:
+            apply_module.apply_resolutions(self.base, [extended], [], [])
+        message = str(ctx.exception)
+        self.assertIn("同 source 不同 edition_part_ids 的扩展属后续波次", message)
+        self.assertIn(self.manifest["editions"][1]["source_id"], message)
+        self.assertIn(new_part, message, "拒收必须写明实际 part 集合: %s" % message)
+
+    # ------------------------------------------------ 具名用例（ACT 28 四 / R15 前置）
+    def test_rework_ed01r2_identity_delta_matches_gold(self):
+        """`r2 → ed01r2` 的实跑产出必须与 r3 金标逐字节相同（知识 + 身份迁移）。"""
+        golden_knowledge = (FIXTURE / self.manifest["expected"]["round3"]).read_bytes()
+        golden_delta = (FIXTURE / self.manifest["expected"]["identity_delta_r3"]).read_bytes()
+        self.assertEqual(
+            golden_delta, canonical_json(json.loads(golden_delta.decode("utf-8"))),
+            "identity_delta_r3 必须是规范 JSON 字节",
+        )
+
+        res = self.run_rework()
+        self.assertEqual(res["status"], "complete", "待决=%r" % (res.get("pending"),))
+        self.assertEqual(
+            res["result"]["knowledge_bytes"], golden_knowledge,
+            "r3 金标与返工实跑产出不是字节等价的",
+        )
+        self.assertEqual(
+            canonical_json(res["result"]["identity_delta"]), golden_delta,
+            "identity_delta 与金标不一致",
+        )
+
+        entries = res["result"]["identity_delta"]["entries"]
+        self.assertEqual(
+            sorted(entry["change_type"] for entry in entries),
+            ["merged", "retired"],
+            "返工轮必须恰好产生一条 merged、一条 retired",
+        )
+        merged = next(entry for entry in entries if entry["change_type"] == "merged")
+        self.assertEqual(merged["from_entity_id"], "pat_qizheng_900002", "较小的号必须存活（§21 ④）")
+        self.assertEqual(merged["to_entity_ids"], ["pat_qizheng_900001"])
+        # 合并只记 IdentityDelta，不得写 merged_into 关系（关系两端必须存活）
+        self.assertEqual(
+            [rel for rel in res["result"]["knowledge"]["relations"] if rel["relation_kind"] == "merged_into"],
+            [],
+            "已退役的旧号不得出现在关系表里",
+        )
+        # 每条 delta 的理由引用必须是**本轮真实生成过**的提案键（CHARTER §21 ①）
+        round_keys = set(res["report"]["round_proposal_keys"])
+        for entry in entries:
+            self.assertIn(
+                entry["reason_ref"]["proposal_key"], round_keys,
+                "identity_delta 的理由引用必须出现在 report.round_proposal_keys 里",
+            )
+        # §22.2 第 1 种：合并双方彼此之间的基底关系随合并作废，必须删除且**如实记账**
+        pair = {merged["from_entity_id"], merged["to_entity_ids"][0]}
+        internal = [
+            rel
+            for rel in self.base["relations"]
+            if {rel["from_entity_id"], rel["to_entity_id"]} == pair
+        ]
+        self.assertEqual(
+            len(internal), 1, "前置：基底里恰有一条合并双方之间的关系（夹具的 distinct_from）"
+        )
+        self.assertEqual(
+            res["report"]["dropped_relations"],
+            [{"relation_key": internal[0]["relation_key"], "reason": "merge_internal"}],
+            "随合并删除的基底关系必须进 report.dropped_relations（静默删除一律不许）",
+        )
 
 
 class R04GroupingTest(unittest.TestCase):

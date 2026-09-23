@@ -22,6 +22,9 @@ from pipeline.assembly.genesis import assemble_genesis, propose_genesis
 from pipeline.assembly.gate import evaluate_genesis
 from pipeline.assembly.orchestrate import assemble as assemble_incremental
 from pipeline.assembly.orchestrate import knowledge_equivalent
+from pipeline.assembly.tests.fixture_decisions import (
+    decisions_for_round as fixture_decisions_for_round,
+)
 from pipeline.ledger import ids
 from pipeline.ledger.service import LedgerService
 
@@ -452,8 +455,9 @@ class TestReleaseFixture(unittest.TestCase):
             "r2 金标必须是规范 JSON 字节（sort_keys + 紧凑分隔符 + 末尾换行）",
         )
 
+        decisions = fixture_decisions_for_round(2)
         res = assemble_incremental(
-            base, views, [], incremental=True, base_snapshot_revision_id=base_rev
+            base, views, decisions, incremental=True, base_snapshot_revision_id=base_rev
         )
         self.assertEqual(res["status"], "complete", "夹具 ed99 增量轮必须完成合并")
         self.assertEqual(
@@ -462,13 +466,13 @@ class TestReleaseFixture(unittest.TestCase):
 
         # 同一输入再跑一次：逐字节相同（可复现性）
         again = assemble_incremental(
-            base, views, [], incremental=True, base_snapshot_revision_id=base_rev
+            base, views, decisions, incremental=True, base_snapshot_revision_id=base_rev
         )
         self.assertEqual(again["result"]["knowledge_bytes"], golden, "同一输入两次运行字节不同")
 
         # 增量 ≡ 全量重算（CHARTER §6 完成定义）
         full = assemble_incremental(
-            base, views, [], incremental=False, base_snapshot_revision_id=base_rev
+            base, views, decisions, incremental=False, base_snapshot_revision_id=base_rev
         )
         self.assertTrue(
             knowledge_equivalent(res["result"]["knowledge"], full["result"]["knowledge"]),
@@ -506,7 +510,7 @@ class TestReleaseFixture(unittest.TestCase):
         res = assemble_incremental(
             base,
             [views[1]],
-            [],
+            fixture_decisions_for_round(2),
             incremental=True,
             base_snapshot_revision_id=plan["revisions"][0]["snapshot_revision_id"],
         )
@@ -606,6 +610,171 @@ class TestReleaseFixture(unittest.TestCase):
 
         # 上游 M6 包在运行后不可变
         self.assertEqual(service.get_revision(first["m6_package_revision_id"])["status"], "sealed")
+
+    # ---------------------------------------------------------------- 具名用例（ACT 28 七 / R15）
+    def test_rework_ed01r2_end_to_end_through_run_m7(self):
+        """R15：临时 Ledger 上 r1 → ed99 → ed01r2 三轮 `run_m7` 跑完全栈。
+
+        **不手工构造任何提案**：输入全部是灌进 Ledger 的 M4/M6 合成包，决定集读夹具第 2/3 轮
+        （`manifest.decisions[]` → `decisions.json`，由 `build_fixture.py` 从真实提案推出）。
+        第三轮（同书返工）必须 `succeeded`、增量 Gate 全过、
+        产出除 `meta` 外与 `expected/snapshot_r3.json` 逐字节相同，且 identity_delta 与金标相同。
+        """
+        from pipeline.assembly import fixture_seed
+        from pipeline.assembly.step import run_m7
+
+        manifest = load_manifest()
+        plan = load_yaml(FIXTURE / manifest["expected"]["snapshot_revisions"])
+        technique_id = manifest["technique_id"]
+        ed01, ed99, rework = manifest["editions"][0], manifest["editions"][1], manifest["rework"]
+
+        tmp = tempfile.mkdtemp(prefix="m7_rework_e2e_")
+        self.addCleanup(shutil.rmtree, tmp, True)
+        service = LedgerService(Path(tmp) / "ledger")
+        self.addCleanup(service.close)
+
+        seeded = fixture_seed.seed_release_package(service, FIXTURE)["editions"]
+        # 返工版次（同 source_id、同 edition_part_ids，第三次 run_m7 的输入）不在 editions[] 里
+        lc = rework["ledger_constants"]
+        view_dir = FIXTURE / rework["views_dir"]
+        service.create_processing_run(
+            "release_run", rework["edition_part_artifact_id"], technique_id,
+            processing_run_id=lc["processing_run_id"],
+        )
+        rework_seeded = fixture_seed._seed_one_edition(
+            service,
+            technique_id,
+            rework["edition_part_artifact_id"],
+            lc["processing_run_id"],
+            lc,
+            load_json(view_dir / "candidate_set.json"),
+            dict(
+                load_json(view_dir / "reviewed_edition.json"),
+                candidate_set_revision_id=lc["candidate_set_revision_id"],
+                candidate_package_revision_id=lc["candidate_package_revision_id"],
+            ),
+            dict(
+                load_json(view_dir / "reviewed_edition_package.json"),
+                reviewed_edition_revision_id=lc["reviewed_edition_revision_id"],
+            ),
+        )
+
+        def run(edition_part_id, m6_rev, base_rev=None, decisions=None):
+            return run_m7(
+                service,
+                edition_part_id,
+                technique_id=technique_id,
+                reviewed_package_revision_ids=[m6_rev],
+                base_snapshot_revision_id=base_rev,
+                id_range=manifest["id_range"],
+                decisions=decisions,
+            )
+
+        first = run(ed01["edition_part_artifact_id"], seeded[ed01["edition_key"]]["m6_package_revision_id"])
+        self.assertEqual(first["status"], "succeeded", "创世轮必须成功: %r" % (first,))
+        second = run(
+            ed99["edition_part_artifact_id"],
+            seeded[ed99["edition_key"]]["m6_package_revision_id"],
+            first["snapshot_revision_id"],
+            fixture_decisions_for_round(2),
+        )
+        self.assertEqual(second["status"], "succeeded", "第二版次轮必须成功: %r" % (second,))
+        third = run(
+            rework["edition_part_artifact_id"],
+            rework_seeded["m6_package_revision_id"],
+            second["snapshot_revision_id"],
+            fixture_decisions_for_round(3),
+        )
+        self.assertEqual(
+            third["status"], "succeeded",
+            "同书返工轮必须走完全栈: %r" % ({k: v for k, v in third.items() if k != "gate"},),
+        )
+        self.assertEqual(rework_seeded["reviewed_edition_package_revision_id"], lc["reviewed_edition_package_revision_id"])
+
+        # 1) 增量 Gate 全过（E 波独立 Gate，在写 Snapshot 前跑）
+        val_rev = service.get_revision(third["validation_report_revision_id"])
+        val_doc = json.loads(service.objects.get(val_rev["sha256"]).decode("utf-8"))
+        failed = sorted(
+            name for name, check in val_doc["incremental_gate"]["checks"].items() if not check["passed"]
+        )
+        self.assertEqual(failed, [], "增量 Gate 必须全过: %r" % (failed,))
+        self.assertTrue(val_doc["incremental_gate"]["passed"])
+        self.assertTrue(val_doc["passed"], "自证检查也必须全过: %r" % (val_doc["checks"],))
+
+        # 2) 产出除 meta 外与 r3 金标逐字节相同；base_snapshot_revision_id 等于本轮实际基底修订号
+        snap_rev = service.get_revision(third["snapshot_revision_id"])
+        produced = json.loads(service.objects.get(snap_rev["sha256"]).decode("utf-8"))
+        golden = load_json(FIXTURE / manifest["expected"]["round3"])
+        self.assertEqual(
+            produced["meta"]["base_snapshot_revision_id"],
+            second["snapshot_revision_id"],
+            "meta.base_snapshot_revision_id 必须等于本轮实际基底修订号（CHARTER §19.3.1）",
+        )
+        self.assertEqual(
+            snap_rev["prev_revision_id"],
+            second["snapshot_revision_id"],
+            "D-03：同一 Snapshot Artifact 的新修订必须 prev 指向基底",
+        )
+        self.assertEqual(sorted(produced["meta"]), sorted(golden["meta"]), "meta 字段集必须一致")
+        for doc in (produced, golden):
+            doc["meta"] = None
+        self.assertEqual(
+            canonical_json(produced), canonical_json(golden),
+            "返工轮产出除 meta 外必须与 snapshot_r3 金标逐字节相同",
+        )
+
+        # 3) identity_delta：`entries` 与金标逐字节相同
+        #    （§19.3.1：Ledger 层的基底修订号是每轮新发的，因此只有 `base_knowledge_sha256`
+        #     这一个字段允许与纯函数层金标不同 —— 它必须指向**本轮实际基底**的字节）
+        pkg_rev = service.get_revision(third["assembly_package_revision_id"])
+        pkg_doc = json.loads(service.objects.get(pkg_rev["sha256"]).decode("utf-8"))
+        delta = pkg_doc["identity_delta"]
+        base_rev = service.get_revision(second["snapshot_revision_id"])
+        base_bytes = service.objects.get(base_rev["sha256"])
+        golden_delta = load_json(FIXTURE / manifest["expected"]["identity_delta_r3"])
+        self.assertEqual(
+            canonical_json(delta["entries"]),
+            canonical_json(golden_delta["entries"]),
+            "identity_delta.entries 必须与金标逐字节相同",
+        )
+        self.assertEqual(
+            delta["base_knowledge_sha256"],
+            hashlib.sha256(base_bytes).hexdigest(),
+            "base_knowledge_sha256 必须等于本轮实际基底修订的字节哈希",
+        )
+        self.assertEqual(
+            sorted(entry["change_type"] for entry in delta["entries"]),
+            ["merged", "retired"],
+        )
+        self.assertEqual(
+            [rel for rel in produced["relations"] if rel["relation_kind"] == "merged_into"], []
+        )
+        self.assertEqual(
+            produced["retired_entity_ids"],
+            sorted({entry["from_entity_id"] for entry in delta["entries"]}),
+            "已退役号必须恰好是 identity_delta 的 from 端",
+        )
+        # 同书返工后仍只有两个版次（替换不新增条目）
+        self.assertEqual(
+            [edition["source_id"] for edition in produced["editions"]],
+            sorted(edition["source_id"] for edition in manifest["editions"]),
+        )
+        # 4) §22.2 第 1 种：合并双方彼此之间的基底关系被删除，且**如实记账**（不得静默删）
+        base_doc = json.loads(base_bytes.decode("utf-8"))
+        pair = {"pat_qizheng_900001", "pat_qizheng_900002"}
+        internal = [
+            rel
+            for rel in base_doc["relations"]
+            if {rel["from_entity_id"], rel["to_entity_id"]} == pair
+        ]
+        self.assertEqual(
+            len(internal), 1, "前置：基底里恰有一条合并双方之间的关系（夹具的 distinct_from）"
+        )
+        self.assertEqual(
+            third["report"]["dropped_relations"],
+            [{"relation_key": internal[0]["relation_key"], "reason": "merge_internal"}],
+            "随合并删除的基底关系必须进 report.dropped_relations",
+        )
 
 
 if __name__ == "__main__":

@@ -48,8 +48,10 @@ MINI_ED01_SPANS = REPO_ROOT / "pipeline" / "corpus" / "_fixture" / "mini_ed01" /
 MINI_ED01_SPANS_SHA256 = "ec6d77b90aa1408d040465babc28a81f59aadf6d6edd9ba8db66ff8ead0b44ef"
 
 sys.path.insert(0, str(REPO_ROOT))
-from pipeline.assembly import orchestrate  # noqa: E402
-from pipeline.assembly.canonical import sha256_hex  # noqa: E402
+from typing import Any  # noqa: E402
+
+from pipeline.assembly import incremental, orchestrate  # noqa: E402
+from pipeline.assembly.canonical import canonical_json, sha256_hex  # noqa: E402
 from pipeline.assembly.genesis import assemble_genesis, propose_genesis  # noqa: E402
 from pipeline.assembly.gate import evaluate_genesis  # noqa: E402
 from pipeline.ledger import ids  # noqa: E402
@@ -123,10 +125,43 @@ ED99 = {
     },
 }
 
+# 同书返工版次（ed01r2）：与 ed01 **同一 source_id、同一 edition_part** → D-14 替换；
+# 只换包身份（第二份 m6 包），故 ledger_constants 全部新发。
+ED01R2 = {
+    "edition_key": "ed01r2",
+    "source_id": ED01["source_id"],
+    "edition_part_artifact_id": ED01["edition_part_artifact_id"],
+    "role": "first_edition_rework",
+    "validation_package_suffix": "b03",
+    "ledger_constants": {
+        "processing_run_id": const("prun_", "03"),
+        "m4_step_run_id": const("srun_", "07"),
+        "m6_step_run_id": const("srun_", "08"),
+        "candidate_set_artifact_id": const("art_", "20"),
+        "candidate_set_revision_id": const("rev_", "21"),
+        "candidate_package_artifact_id": const("art_", "22"),
+        "candidate_package_revision_id": const("rev_", "22"),
+        "reviewed_edition_artifact_id": const("art_", "23"),
+        "reviewed_edition_revision_id": const("rev_", "23"),
+        "reviewed_edition_package_artifact_id": const("art_", "24"),
+        "reviewed_edition_package_revision_id": const("rev_", "24"),
+        "m6_stage_package_id": const("pkg_m6_", "e2"),
+        "m6_package_revision_id": const("rev_", "e2"),
+    },
+}
+
 CORPUS_SPANS_REVISION_ID = const("rev_", "a01")
 SNAPSHOT_ARTIFACT_ID = const("art_", "f1")
 SNAPSHOT_REVISION_R1 = const("rev_", "f1")
 SNAPSHOT_REVISION_R2 = const("rev_", "f2")
+SNAPSHOT_REVISION_R3 = const("rev_", "f3")
+#: 决定集引用的提案集修订（可读常量；apply 只要求是合法 rev_ 形态）
+PROPOSAL_SET_REVISION = const("rev_", "31")
+#: 带人工决定的版次 → 决定集文件（ed99 出现在 r2；ed01r2 出现在 r3）
+DECISION_FILES = {
+    ED99["edition_key"]: "ed99/decisions.json",
+    ED01R2["edition_key"]: "ed01r2/decisions.json",
+}
 
 SV_1 = const("sv_", "1")
 SV_2 = const("sv_", "2")
@@ -150,6 +185,17 @@ A2 = "as_qizheng_900002"
 A3 = "as_qizheng_900003"
 A_NEW = "as_qizheng_900004"
 PAT = "pat_qizheng_900001"
+# 格局（pattern）号（ed01 保持一号不动，两个同名号只在 r2 才出现）：
+#  900001 —— ed01 的格局（r1 只有这一号）；
+#  900002 —— ed99 的**同题重发号**（R03b 人工裁定 admit_new）→ 同名歧义在 r2 成立；
+#  900003 —— ed99 另见之新题格局（R02 自动 admit_new）：留在号段顶部，使返工轮退役的
+#            不是命名空间最大号（model 冻结口径：id_allocation 不低于 max(活 ∪ 退役 ∪ 补发)）；
+#  900004 —— 返工版次的同题新号（M4 重发）：返工轮 R03d 的触发者。
+PAT_ED01_B = "pat_qizheng_900002"
+PAT_ED99_NEW = "pat_qizheng_900003"
+PAT_REWORK = "pat_qizheng_900004"
+PAT_NAME = "三辰通載貴格"
+PAT_NEW_NAME = "貴格別録"
 CO = "co_qizheng_900001"
 SCH_CLASSIC = "sch_qizheng_001"
 SCH_TIANGONG = "sch_qizheng_002"
@@ -211,6 +257,25 @@ def candidate_pattern(name, assertion_ids, interpretation):
         "content_status": "machine_extracted",
         "origin": {"lane": "main", "item_index": 0},
     }
+
+
+def candidate_pattern_variant(
+    name, assertion_ids, interpretation, *, pattern_id=None, candidate_key=None, aliases=()
+):
+    """格局候选的变体（默认 `candidate_pattern` 一律带 `PAT` 号）。
+
+    - `pattern_id=None` + `candidate_key`：M4 未发号的候选；
+    - `pattern_id=<别的正式号>`：同一版次重发号（R02 自动入账）；
+    - `aliases`：格局别名键（与正式对象的 `aliases` 同一语义；B 波的名称命中按
+      `name`/`surface`/`aliases` 全体取键，见 `incremental._name_keys`）。
+    """
+    item = candidate_pattern(name, assertion_ids, interpretation)
+    item["pattern_id"] = pattern_id
+    if candidate_key:
+        item["candidate_key"] = candidate_key
+    if aliases:
+        item["aliases"] = list(aliases)
+    return item
 
 
 def candidate_school_view(sv_id, school_id, subject_entity_id, source_id, source_span_id):
@@ -356,7 +421,7 @@ def scenario_ed01(spans: dict) -> dict:
     a1 = candidate_assertion(A1, spans[SPAN_SURNAME]["text"], CK_TRANSCRIPT, spans[SPAN_SURNAME], 0, [SCH_CLASSIC])
     a2 = candidate_assertion(A2, spans[SPAN_AUTHOR]["text"], CK_AUTHOR, spans[SPAN_AUTHOR], 1, [])
     a3 = candidate_assertion(A3, spans[SPAN_PATTERN]["text"], CK_PATTERN, spans[SPAN_PATTERN], 2, [])
-    pattern = candidate_pattern("三辰通載貴格", [A1, A3], "卷首目錄所見貴格，機器抽取未經人工複核")
+    pattern = candidate_pattern(PAT_NAME, [A1, A3], "卷首目錄所見貴格，機器抽取未經人工複核")
     sv = candidate_school_view(SV_1, SCH_CLASSIC, A1, ED01["source_id"], SPAN_SURNAME)
     concept = {
         "surface": "三辰",
@@ -392,12 +457,92 @@ def scenario_ed01(spans: dict) -> dict:
     }
 
 
+#: 各轮的人工裁定口径（按 rule_id 写死，出现表外规则即停手上报）
+DECISION_CHOICES = {
+    2: {
+        "R03b": "admit_new",        # 同名重发号：裁定另立一号（r2 才有两个同名 Pattern）
+    },
+    3: {
+        "R03d": "merge_entities",   # 名称命中≥ 2 → 人工合并（CHARTER §21 ④；较小号存活）
+        "R04": "accept_alias",      # 同概念的新 surface → 接受为别名
+        "R06": "unify",             # 视图声明的组就是某基底组的来源组 → 落到基底组号
+    },
+}
+
+
+def scenario_ed01r2(spans: dict) -> dict:
+    """同书返工版次（ACT 28 四）：删一条断言、归并两个格局、其余不变。
+
+    与 ed01 **同 `(source_id, edition_part_ids)`** → D-14 替换；内容改动：
+
+    - **删** `A2`（作者行）：其 `collation_key`（`sanche-0002`）同时不再声明 present，
+      否则 D-14 会把 R11 也当作「仍在视图里」剔除（CHARTER §21 ⑤）→ 应 `retired`；
+    - 格局改为**无正式号的新候选** `cX`，名称为「三辰通載貴格」、别名取 ed99 新格局之题
+      → 名称命中两个基底格局（`pat_qizheng_900001` / `…900002`）→ R03d（人工）；
+    - `A1` / `A3` 原样（保号携带）、证据链与对勘单元照旧，`SV_1` 与 `三辰` 概念提及照旧
+      → 应 `carried`（R11 被 D-14 剔除）；
+    - 概念侧新增一条**未绑号**的 `通載` 候选（与 ed01 同）→ R04 别名（人工）。
+    """
+    a1 = candidate_assertion(A1, spans[SPAN_SURNAME]["text"], CK_TRANSCRIPT, spans[SPAN_SURNAME], 0, [SCH_CLASSIC])
+    a3 = candidate_assertion(A3, spans[SPAN_PATTERN]["text"], CK_PATTERN, spans[SPAN_PATTERN], 2, [])
+    pattern = candidate_pattern_variant(
+        PAT_NAME,
+        [A1, A3],
+        "返工重审：本版次重发之同题格局（名称命中基底两处 → R03d 待裁）",
+        pattern_id=PAT_REWORK,
+    )
+    sv = candidate_school_view(SV_1, SCH_CLASSIC, A1, ED01R2["source_id"], SPAN_SURNAME)
+    concept = {
+        "surface": "三辰",
+        "concept_ref": CO,
+        "evidence": [evidence(spans[SPAN_SURNAME])],
+        "content_status": "machine_extracted",
+        "origin": {"lane": "main", "item_index": 0},
+    }
+    unbound = {
+        "surface": "通載",
+        "technique_id": TECHNIQUE_ID,
+        "evidence": [evidence(spans[SPAN_TITLE])],
+        "content_status": "machine_extracted",
+        "origin": {"lane": "main", "item_index": 1},
+    }
+    return {
+        "collation_units": [
+            {"collation_key": CK_TRANSCRIPT, "present": True},
+            {"collation_key": CK_PATTERN, "present": True},
+            # `sanche-0002`（A2）本次**不再声明**：删断言时同时删该单元的声明
+        ],
+        "assertions": [a1, a3],
+        "patterns": [pattern],
+        "school_views": [sv],
+        "concept_mentions": [concept],
+        "new_concept_candidates": [unbound],
+        "approved": [
+            (A1, "assertion"), (A3, "assertion"),
+            (PAT_REWORK, "pattern"), (CO, "concept"), (SV_1, "school_view"),
+        ],
+        "evidence_link_targets": [(A1, spans[SPAN_SURNAME]), (A3, spans[SPAN_PATTERN])],
+        "decision_suffix": "f",
+    }
+
+
 def scenario_ed99(spans: dict) -> dict:
     # A1 以基底已正式的 as_ 号携带（D-04 A：M4 全局唯一发号，M7 只做碰撞检测），
     # 命题与对齐单元与 ed01 逐字相同 → 并入（attach，保号）并新增一条证据。
     a1 = candidate_assertion(A1, spans[SPAN_SURNAME]["text"], CK_TRANSCRIPT, spans[SPAN_TITLE], 0, [])
     a_new = candidate_assertion(A_NEW, spans[SPAN_TITLE]["text"], CK_TITLE_INDEX, spans[SPAN_TITLE], 1, [SCH_TIANGONG])
     pattern = candidate_pattern("三辰通載貴格", [A1, A_NEW], "第二版次同格局，另添目錄主張")
+    # 版次二**同题另一号**（M4 重发号，名字与基底 r1 的格局逐字相同）→ R03b（人工）：
+    # 裁定 `admit_new` 后 r2 就出现两个同名 Pattern（返工轮的 R03d 前提）。
+    pattern_same_name = candidate_pattern_variant(
+        PAT_NAME, [A_NEW], "第二版次同题重发号，待人工裁定是否并入", pattern_id=PAT_ED01_B
+    )
+    # 版次二另见一条**新题**的格局（名字不命中基底任何格局）→ R02 自动 admit_new（无需人工决定）。
+    # 它使 r2 的格局号段不为单点：返工轮「小号存活、大号退役」时，退役号不是命名空间最大号
+    # （model 冻结口径：id_allocation 不得低于 max(活 ∪ 退役 ∪ 补发)）。
+    pattern_new = candidate_pattern_variant(
+        PAT_NEW_NAME, [A_NEW], "第二版次另立之格局", pattern_id=PAT_ED99_NEW
+    )
     sv = candidate_school_view(SV_2, SCH_TIANGONG, A_NEW, ED99["source_id"], SPAN_TITLE)
     concept = {
         "surface": "通載",
@@ -416,17 +561,103 @@ def scenario_ed99(spans: dict) -> dict:
             {"collation_key": None, "present": True, "note": "unkeyed_position"},
         ],
         "assertions": [a1, a_new],
-        "patterns": [pattern],
+        "patterns": [pattern, pattern_same_name, pattern_new],
         "school_views": [sv],
         "concept_mentions": [concept],
         "new_concept_candidates": [],
         "approved": [
             (A1, "assertion"), (A_NEW, "assertion"),
-            (PAT, "pattern"), (CO, "concept"), (SV_2, "school_view"),
+            (PAT, "pattern"), (PAT_ED01_B, "pattern"), (PAT_ED99_NEW, "pattern"),
+            (CO, "concept"), (SV_2, "school_view"),
         ],
         "evidence_link_targets": [(A1, spans[SPAN_TITLE]), (A_NEW, spans[SPAN_TITLE])],
         "decision_suffix": "e",
     }
+
+
+def canonical_json_bytes(doc: Any) -> bytes:
+    """规范 JSON 字节（与 `apply` / `verify.sh` 同一口径：sort_keys + 紧凑分隔符 + 末尾换行）。"""
+    return canonical_json(doc)
+
+
+def decisions_doc(edition: dict, round_no: int, rows: list, *, replaces: str = None) -> dict:
+    """决定集落盘为**夹具数据**（全栈用例直接读它，不再手写决定）。"""
+    doc = {
+        "schema_version": "0.1.0-draft",
+        "synthetic": True,
+        "round": round_no,
+        "edition_key": edition["edition_key"],
+        "source_id": edition["source_id"],
+        "proposal_set_revision_id": PROPOSAL_SET_REVISION,
+        "seen_revision_id": edition["ledger_constants"]["reviewed_edition_revision_id"],
+        "note": (
+            "决定由本轮真实提案按 build_fixture.py 的 DECISION_CHOICES 表推出，不是手写期望。"
+        ),
+        "decisions": list(rows),
+    }
+    if replaces:
+        doc["replaces_edition_key"] = replaces
+    return doc
+
+
+def round_decisions(base_knowledge: dict, view: dict, round_no: int, choices: dict) -> list:
+    """本轮决定集（fixture 数据）。
+
+    决定**不由人编写**：先让 B 波按真实规则生成本轮提案，再把其中的待决提案按
+    `choices` 逐条给出选择。出现表外规则即停手（抛 ``SystemExit``）——夹具不得静默
+    吞掉任何未预期的人工提案。
+    """
+    edition = ED99 if round_no == 2 else ED01R2
+    proposals = incremental.propose_incremental(base_knowledge, [view], round_no=round_no)["proposals"]
+    decisions = []
+    for proposal in proposals:
+        if proposal["resolution"] != "human":
+            continue
+        rule_id = proposal["rule_id"]
+        if rule_id not in choices:
+            raise SystemExit(
+                "FAIL 第 %d 轮出现未预期的待决提案（%s / %s）：夹具决定集无此口径"
+                % (round_no, rule_id, proposal["proposal_key"])
+            )
+        choice = choices[rule_id]
+        if rule_id in ("R03d", "R03b"):
+            # 并入 / 合并的候选目标就是选择项里的 attach 目标（合并时按号升序传给 apply，
+            # apply 侧的「小号存活」不依赖决定的顺序，见 CHARTER §21 ④）
+            targets = sorted(
+                option.split(":", 1)[1]
+                for option in proposal["options"]
+                if option.startswith("attach:")
+            )
+        else:
+            targets = list(proposal.get("targets") or [])
+        decisions.append(
+            {
+                "proposal_set_revision_id": PROPOSAL_SET_REVISION,
+                "proposal_key": proposal["proposal_key"],
+                "choice": choice,
+                "target_entity_ids": targets,
+                "seen_revision_id": edition["ledger_constants"]["reviewed_edition_revision_id"],
+                "decision_type": proposal.get("decision_type"),
+            }
+        )
+    return decisions
+
+
+def rework_block() -> dict:
+    """manifest 的返工段。
+
+    `ed01r2` 与 `ed01` **同 `source_id`**，而 `editions[]` 要求 source 唯一（别一张表），
+    故返工版次单列在 `rework` 下：它只在第三轮（r3）作为替换视图使用。
+    """
+    block = {key: value for key, value in ED01R2.items()}
+    block["views_dir"] = ED01R2["edition_key"]
+    block["view_files"] = [
+        "candidate_set.json", "reviewed_edition.json", "reviewed_edition_package.json",
+        "decisions.json",
+    ]
+    block["decisions_file"] = "%s/decisions.json" % ED01R2["edition_key"]
+    block["replaces_edition_key"] = ED01["edition_key"]
+    return block
 
 
 def upstream_assumptions() -> list:
@@ -492,6 +723,7 @@ def main(argv=None) -> int:
 
     payload_ed01 = scenario_ed01(spans)
     payload_ed99 = scenario_ed99(spans)
+    payload_ed01r2 = scenario_ed01r2(spans)
 
     ed01_cset = build_candidate_set(ED01, spans, payload_ed01)
     ed01_reviewed = build_reviewed_edition(ED01, payload_ed01)
@@ -499,6 +731,9 @@ def main(argv=None) -> int:
     ed99_cset = build_candidate_set(ED99, spans, payload_ed99)
     ed99_reviewed = build_reviewed_edition(ED99, payload_ed99)
     ed99_package = build_reviewed_edition_package(ED99, payload_ed99)
+    ed01r2_cset = build_candidate_set(ED01R2, spans, payload_ed01r2)
+    ed01r2_reviewed = build_reviewed_edition(ED01R2, payload_ed01r2)
+    ed01r2_package = build_reviewed_edition_package(ED01R2, payload_ed01r2)
 
     # ---- r1：由已验收创世引擎现算（不得手写）
     proposals = propose_genesis(ed01_cset, ed01_reviewed)
@@ -511,16 +746,16 @@ def main(argv=None) -> int:
     r1_bytes = asm["knowledge_bytes"]
 
     # ---- r2：r1 → ed99 增量**实跑**（金标一律由实跑产出；CHARTER §19.3 的固定基底号口径）
+    ed99_view = {
+        "source_id": ED99["source_id"],
+        "candidate_set": ed99_cset,
+        "reviewed_edition": ed99_reviewed,
+    }
+    r2_decisions = round_decisions(asm["knowledge"], ed99_view, 2, DECISION_CHOICES[2])
     r2_run = orchestrate.assemble(
         asm["knowledge"],
-        [
-            {
-                "source_id": ED99["source_id"],
-                "candidate_set": ed99_cset,
-                "reviewed_edition": ed99_reviewed,
-            }
-        ],
-        [],
+        [ed99_view],
+        r2_decisions,
         incremental=True,
         base_snapshot_revision_id=SNAPSHOT_REVISION_R1,
     )
@@ -534,6 +769,48 @@ def main(argv=None) -> int:
     r2_bytes = r2_run["result"]["knowledge_bytes"]
     if r2_knowledge.get("meta", {}).get("base_snapshot_revision_id") != SNAPSHOT_REVISION_R1:
         print("FAIL 增量实跑的 meta.base_snapshot_revision_id 不是固定的 r1 修订号")
+        return 1
+
+    # ---- r3：r2 → ed01r2（同书返工）增量**实跑**（ACT 28 四）
+    rework_view = {
+        "source_id": ED01R2["source_id"],
+        "candidate_set": ed01r2_cset,
+        "reviewed_edition": ed01r2_reviewed,
+    }
+    rework_decision_rows = round_decisions(r2_knowledge, rework_view, 3, DECISION_CHOICES[3])
+    r3_run = orchestrate.assemble(
+        r2_knowledge,
+        [rework_view],
+        rework_decision_rows,
+        incremental=True,
+        base_snapshot_revision_id=SNAPSHOT_REVISION_R2,
+    )
+    if r3_run["status"] != "complete":
+        print(
+            "FAIL 返工轮实跑未完成合并: status=%s pending=%r"
+            % (r3_run["status"], r3_run.get("pending"))
+        )
+        return 1
+    r3_knowledge = r3_run["result"]["knowledge"]
+    r3_bytes = r3_run["result"]["knowledge_bytes"]
+    r3_delta = r3_run["result"]["identity_delta"]
+    if r3_knowledge.get("meta", {}).get("base_snapshot_revision_id") != SNAPSHOT_REVISION_R2:
+        print("FAIL 返工轮实跑的 meta.base_snapshot_revision_id 不是固定的 r2 修订号")
+        return 1
+    if r3_knowledge.get("meta", {}).get("assembly_seq") != 3:
+        print("FAIL 返工轮实跑的 meta.assembly_seq 不是 3")
+        return 1
+    # 三类身份变化必须都在（删断言 → retired / 合并 → merged / 其余不动）
+    changes = sorted(entry["change_type"] for entry in r3_delta["entries"])
+    if changes != ["merged", "retired"]:
+        print("FAIL 返工轮身份变化不符预期（期望 merged+retired，实得 %r）" % (changes,))
+        return 1
+    live_patterns = [item["pattern_id"] for item in r3_knowledge["patterns"]]
+    if live_patterns != sorted([PAT, PAT_ED99_NEW, PAT_REWORK]):
+        print("FAIL 返工轮后存活的格局不是预期的三号: %r" % (live_patterns,))
+        return 1
+    if PAT_ED01_B in live_patterns:
+        print("FAIL 被合并退役的格局仍在总账: %s" % PAT_ED01_B)
         return 1
 
     revisions_plan = {
@@ -566,6 +843,22 @@ def main(argv=None) -> int:
                 "knowledge_sha256": hashlib.sha256(r2_bytes).hexdigest(),
                 "editions": [ED01["source_id"], ED99["source_id"]],
             },
+            {
+                # 同书返工（ed01r2）：同一 source_id，第三次汇编；基底是 r2。
+                # `identity_delta_file` 是同一轮的身份变化金标（逐字节比对）。
+                "assembly_seq": 3,
+                "snapshot_revision_id": SNAPSHOT_REVISION_R3,
+                "base_snapshot_revision_id": SNAPSHOT_REVISION_R2,
+                "prev_revision_id": SNAPSHOT_REVISION_R2,
+                "supersedes_revision_id": SNAPSHOT_REVISION_R2,
+                "knowledge_file": "expected/snapshot_r3.json",
+                "knowledge_sha256": hashlib.sha256(r3_bytes).hexdigest(),
+                "identity_delta_file": "expected/identity_delta_r3.json",
+                "identity_delta_sha256": hashlib.sha256(
+                    canonical_json_bytes(r3_delta)
+                ).hexdigest(),
+                "editions": [ED01["source_id"], ED99["source_id"]],
+            },
         ],
     }
 
@@ -577,8 +870,20 @@ def main(argv=None) -> int:
     generated["ed99/candidate_set.json"] = json.dumps(ed99_cset, ensure_ascii=False, sort_keys=True, indent=2) + "\n"
     generated["ed99/reviewed_edition.json"] = json.dumps(ed99_reviewed, ensure_ascii=False, sort_keys=True, indent=2) + "\n"
     generated["ed99/reviewed_edition_package.json"] = json.dumps(ed99_package, ensure_ascii=False, sort_keys=True, indent=2) + "\n"
+    generated["ed99/decisions.json"] = json.dumps(
+        decisions_doc(ED99, 2, r2_decisions), ensure_ascii=False, sort_keys=True, indent=2
+    ) + "\n"
+    generated["ed01r2/candidate_set.json"] = json.dumps(ed01r2_cset, ensure_ascii=False, sort_keys=True, indent=2) + "\n"
+    generated["ed01r2/reviewed_edition.json"] = json.dumps(ed01r2_reviewed, ensure_ascii=False, sort_keys=True, indent=2) + "\n"
+    generated["ed01r2/reviewed_edition_package.json"] = json.dumps(ed01r2_package, ensure_ascii=False, sort_keys=True, indent=2) + "\n"
+    generated["ed01r2/decisions.json"] = json.dumps(
+        decisions_doc(ED01R2, 3, rework_decision_rows, replaces=ED01["edition_key"]),
+        ensure_ascii=False, sort_keys=True, indent=2,
+    ) + "\n"
     generated["expected/snapshot_r1.json"] = r1_bytes.decode("utf-8")
     generated["expected/snapshot_r2.json"] = r2_bytes.decode("utf-8")
+    generated["expected/snapshot_r3.json"] = r3_bytes.decode("utf-8")
+    generated["expected/identity_delta_r3.json"] = canonical_json_bytes(r3_delta).decode("utf-8")
     generated["expected/snapshot_revisions.yaml"] = yaml.safe_dump(
         revisions_plan, allow_unicode=True, sort_keys=True, default_flow_style=False
     )
@@ -594,7 +899,9 @@ def main(argv=None) -> int:
                 "view_candidate_set" if name.endswith("candidate_set.json")
                 else "view_reviewed_edition" if name.endswith("reviewed_edition.json")
                 else "view_reviewed_edition_package" if name.endswith("reviewed_edition_package.json")
+                else "rework_decisions" if name.endswith("decisions.json")
                 else "expected_snapshot" if name.startswith("expected/snapshot_r")
+                else "expected_identity_delta" if name.startswith("expected/identity_delta")
                 else "expected_snapshot_revisions"
             ),
             "sha256": hashlib.sha256(generated[name].encode("utf-8")).hexdigest(),
@@ -609,6 +916,10 @@ def main(argv=None) -> int:
         block["view_files"] = [
             "candidate_set.json", "reviewed_edition.json", "reviewed_edition_package.json"
         ]
+        if edition["edition_key"] in DECISION_FILES:
+            # 该版次带人工决定集（fixture 数据；全栈用例直接读它，不手写提案/决定）
+            block["view_files"] = block["view_files"] + ["decisions.json"]
+            block["decisions_file"] = DECISION_FILES[edition["edition_key"]]
         editions.append(block)
 
     manifest = {
@@ -637,17 +948,35 @@ def main(argv=None) -> int:
         },
         "id_families_used": ID_FAMILIES_USED,
         "upstream_assumptions": upstream_assumptions(),
+        "decisions": [
+            {
+                "round": 2,
+                "edition_key": ED99["edition_key"],
+                "source_id": ED99["source_id"],
+                "file": DECISION_FILES[ED99["edition_key"]],
+            },
+            {
+                "round": 3,
+                "edition_key": ED01R2["edition_key"],
+                "source_id": ED01R2["source_id"],
+                "replaces_edition_key": ED01["edition_key"],
+                "file": DECISION_FILES[ED01R2["edition_key"]],
+            },
+        ],
+        "rework": rework_block(),
         "expected": {
             "snapshot_revisions": "expected/snapshot_revisions.yaml",
             "round1": "expected/snapshot_r1.json",
             "round2": "expected/snapshot_r2.json",
+            "round3": "expected/snapshot_r3.json",
+            "identity_delta_r3": "expected/identity_delta_r3.json",
         },
         "files": files,
     }
     write_text(out / "manifest.yaml", yaml.safe_dump(manifest, allow_unicode=True, sort_keys=True, default_flow_style=False))
 
     # 常量自检（防呆：任何非法标识都在生成时暴露）
-    for edition in (ED01, ED99):
+    for edition in (ED01, ED99, ED01R2):
         ids.validate("source_id", edition["source_id"])
         ids.validate("artifact_id", edition["edition_part_artifact_id"])
         for key, value in edition["ledger_constants"].items():
@@ -663,6 +992,9 @@ def main(argv=None) -> int:
     ids.validate("artifact_id", SNAPSHOT_ARTIFACT_ID)
     ids.validate("artifact_revision_id", SNAPSHOT_REVISION_R1)
     ids.validate("artifact_revision_id", SNAPSHOT_REVISION_R2)
+    ids.validate("artifact_revision_id", SNAPSHOT_REVISION_R3)
+    for pattern_id in (PAT, PAT_ED01_B, PAT_ED99_NEW, PAT_REWORK):
+        ids.validate("pattern_id", pattern_id)
     ids.validate("artifact_revision_id", CORPUS_SPANS_REVISION_ID)
 
     print("BUILD OK %s" % out)

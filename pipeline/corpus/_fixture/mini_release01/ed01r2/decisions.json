@@ -1,0 +1,42 @@
+{
+  "decisions": [
+    {
+      "choice": "accept_alias",
+      "decision_type": null,
+      "proposal_key": "alias:08fa9ec52c161394beadcd78904a3926",
+      "proposal_set_revision_id": "rev_00000000000000000000000000000031",
+      "seen_revision_id": "rev_00000000000000000000000000000023",
+      "target_entity_ids": [
+        "co_qizheng_900001"
+      ]
+    },
+    {
+      "choice": "unify",
+      "decision_type": "review_school_attribution",
+      "proposal_key": "conflict:8a682a5a85b2cdd0c0e4c4784ce17205",
+      "proposal_set_revision_id": "rev_00000000000000000000000000000031",
+      "seen_revision_id": "rev_00000000000000000000000000000023",
+      "target_entity_ids": []
+    },
+    {
+      "choice": "merge_entities",
+      "decision_type": null,
+      "proposal_key": "merge:c769615b40703a12b46c717cd68d92ed",
+      "proposal_set_revision_id": "rev_00000000000000000000000000000031",
+      "seen_revision_id": "rev_00000000000000000000000000000023",
+      "target_entity_ids": [
+        "pat_qizheng_900001",
+        "pat_qizheng_900002"
+      ]
+    }
+  ],
+  "edition_key": "ed01r2",
+  "note": "决定由本轮真实提案按 build_fixture.py 的 DECISION_CHOICES 表推出，不是手写期望。",
+  "proposal_set_revision_id": "rev_00000000000000000000000000000031",
+  "replaces_edition_key": "ed01",
+  "round": 3,
+  "schema_version": "0.1.0-draft",
+  "seen_revision_id": "rev_00000000000000000000000000000023",
+  "source_id": "src_sanche_ed01",
+  "synthetic": true
+}

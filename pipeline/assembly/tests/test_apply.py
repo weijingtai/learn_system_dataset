@@ -60,6 +60,7 @@ A2 = "as_qizheng_000002"
 A_B = "as_qizheng_000003"
 A_C = "as_qizheng_000004"
 PAT1 = "pat_qizheng_000001"
+PAT_TOP = "pat_qizheng_000003"
 CO1 = "co_qizheng_000001"
 SV1 = const("sv_", "1")
 SV2 = const("sv_", "2")
@@ -466,6 +467,20 @@ def round2_proposals() -> list:
     ]
 
 
+def decided_keys(props) -> list:
+    """被翻成 `resolution="decided"` 的提案键（守测试自身的意图）。"""
+    return [item["proposal_key"] for item in props if item["resolution"] == "decided"]
+
+
+def as_decided(props) -> list:
+    """模拟回流轮次的落地状态：只有**已有合法决定**的提案记为 `decided`（act/03.yaml:26）。"""
+    decided = {item["proposal_key"] for item in round2_decisions(props)}
+    return [
+        dict(item, resolution="decided") if item["proposal_key"] in decided else item
+        for item in props
+    ]
+
+
 def round2_decisions(props=None) -> list:
     """round2 提案集对应的人工决定（accept_alias）。"""
     props = props or round2_proposals()
@@ -651,38 +666,94 @@ class TestApplyResolutions(unittest.TestCase):
         )
 
     # -------------------------------------------------------- merge_entities
-    def test_merge_entities_blocked_by_frozen_relations_endpoint_rule(self):
-        """merge_entities 撞上冻结校验器：先把冲突本身钉死，再钉 apply 的 fail-closed。
+    def merge_fixture(self, *, survivor="pat_qizheng_000001", retired="pat_qizheng_000002"):
+        """两个**未被任何活对象引用**的格局 + 一条 merge_entities 人工提案（ACT 28 三）。
 
-        冲突事实（act/04.yaml:31 vs `model.validate_snapshot_knowledge`）：
-        `merge_entities` 要求旧号进 `retired_entity_ids` 并写 `merged_into(旧, 新)`，
-        而冻结的校验器要求 `relations` 端点必须是**活对象**，两者不可同时成立。
-        本用例不被静默跳过：它逐字钉住两侧，并断言 apply 拒绝时零产出。
-        （ACT 的具名用例 `test_merge_entities_retires_old_and_rewrites_subjects`
-        在当前冻结校验器下无法绿——已改名，见回报 §3.1。）
+        另加一个号更大的活格局：冻结校验器同时要求
+        `id_allocation == max(活 ∪ 补发)` 与 `>= max(活 ∪ 已退役 ∪ 补发)`，
+        两者只有在「退役的不是命名空间最大号」时才同时成立。
         """
-        # (1) spec 形状（旧号 retired + merged_into(旧, 新)）过不了冻结校验器
-        retired = "pat_qizheng_000001"
-        survivor = "pat_qizheng_000003"
-        spec_shaped = {
-            "technique_id": TECH,
-            "id_allocation": {"pat_%s" % TECH: 3},
-            "id_range": {"pat_%s" % TECH: [1, 999999]},
-            "allocated_pattern_ids": [],
-            "retired_entity_ids": [retired],
-            "editions": [],
-            "concepts": [],
-            "patterns": [
-                {
-                    "pattern_id": survivor, "concept_id": None, "name": "合并后格局",
-                    "aliases": [], "rules": [], "assertion_ids": [], "school_view_ids": [],
-                    "recognition_rule_status": "not_captured", "provenance": [],
-                }
-            ],
-            "assertions": [],
-            "school_views": [],
-            "conflict_groups": [],
-            "relations": [
+        base = round1()
+        base["patterns"].append(
+            {
+                "pattern_id": retired,
+                "concept_id": None,
+                "name": "三辰通載貴格（乙）",
+                "aliases": [],
+                "rules": [],
+                "assertion_ids": [],
+                "school_view_ids": [],
+                "recognition_rule_status": "not_captured",
+                "provenance": [
+                    {"source_id": "src_sanche_ed01", "content_sha256": "b" * 64,
+                     "content_status": "machine_extracted"}
+                ],
+            }
+        )
+        base["patterns"].append(
+            {
+                "pattern_id": PAT_TOP,
+                "concept_id": None,
+                "name": "另立格局",
+                "aliases": [],
+                "rules": [],
+                "assertion_ids": [],
+                "school_view_ids": [],
+                "recognition_rule_status": "not_captured",
+                "provenance": [
+                    {"source_id": "src_sanche_ed01", "content_sha256": "d" * 64,
+                     "content_status": "machine_extracted"}
+                ],
+            }
+        )
+        base["patterns"].sort(key=lambda item: item["pattern_id"])
+        base["id_allocation"]["pat_%s" % TECH] = 3
+        # R03d 的主体是**候选**（基底无此号的候选键），两个目标写在 targets 里。
+        merge_prop = proposal(
+            "merge", "R03d", ["pattern", "src_sanche_ed02", "candidate_merge_case"],
+            resolution="human", options=["merge_entities"], targets=[survivor, retired],
+        )
+        props = round2_proposals() + [merge_prop]
+        decisions = round2_decisions(props) + [
+            decision(merge_prop, "merge_entities", targets=[survivor, retired])
+        ]
+        return base, props, decisions
+
+    def test_merge_records_delta_merged_and_no_merged_into_relation(self):
+        """F6（ACT 28 三）：合并时旧号进 retired、身份只记在 IdentityDelta（change_type=merged），
+        **不写** `merged_into` 关系；若同一份知识里硬写上那条关系，冻结校验器以 REF_001 拒收。
+        """
+        survivor, retired = "pat_qizheng_000001", "pat_qizheng_000002"
+        base, props, decisions = self.merge_fixture()
+        result = m7_apply.apply_resolutions(base, [view_ed02()], props, decisions)
+        knowledge = result["knowledge"]
+
+        self.assertIn(retired, knowledge["retired_entity_ids"], "旧号必须进 retired")
+        self.assertNotIn(
+            retired, [item["pattern_id"] for item in knowledge["patterns"]],
+            "退役的旧号不得留在活对象里",
+        )
+        self.assertIn(survivor, [item["pattern_id"] for item in knowledge["patterns"]])
+
+        entries = [e for e in result["identity_delta"]["entries"] if e["change_type"] == "merged"]
+        self.assertEqual(len(entries), 1, "合并必须恰有一条 IdentityDelta")
+        entry = entries[0]
+        self.assertEqual(entry["from_entity_id"], retired)
+        self.assertEqual(entry["to_entity_ids"], [survivor])
+        self.assertEqual(entry["entity_kind"], "pattern")
+        self.assertEqual(entry["reason_ref"]["kind"], "proposal")
+        self.assertTrue(entry["reason_ref"]["proposal_key"])
+
+        self.assertNotIn(
+            "merged_into", [rel["relation_kind"] for rel in knowledge["relations"]],
+            "合并不得写 merged_into 关系（关系两端必须存活）",
+        )
+
+        # 两侧：若硬写一条指向退役号的 merged_into，冻结校验器以 REF_001 拒收（不许写一半）
+        spec_shaped = copy.deepcopy(knowledge)
+        spec_shaped["relations"] = sorted(
+            spec_shaped["relations"]
+            + [
                 {
                     "relation_key": make_key("merged_into", [retired, survivor]),
                     "from_entity_id": retired,
@@ -692,45 +763,144 @@ class TestApplyResolutions(unittest.TestCase):
                     "resolution": {"mode": "human", "proposal_key": "merge:" + "0" * 32},
                 }
             ],
-        }
+            key=lambda rel: rel["relation_key"],
+        )
         with self.assertRaises(MissingReference) as ctx:
             m7_model.validate_snapshot_knowledge(spec_shaped)
         self.assertEqual(getattr(ctx.exception, "code", None), "REF_001")
         self.assertIn(retired, str(ctx.exception))
-        base = round1()
-        base["patterns"].append(
+
+    def test_merge_keeps_smaller_id(self):
+        """合并方向（CHARTER §21 ④）：两个号里**较小的号存活**（to），较大的号退役（from），
+        与决定里 `target_entity_ids` 的列表顺序无关。"""
+        survivor, retired = "pat_qizheng_000001", "pat_qizheng_000002"
+        base, props, decisions = self.merge_fixture(survivor=survivor, retired=retired)
+        # 把决定里的顺序倒过来写，方向必须不变
+        merge_decision = [item for item in decisions if item["choice"] == "merge_entities"][0]
+        merge_decision["target_entity_ids"] = [retired, survivor]
+        result = m7_apply.apply_resolutions(base, [view_ed02()], props, decisions)
+
+        entry = [
+            e for e in result["identity_delta"]["entries"] if e["change_type"] == "merged"
+        ][0]
+        self.assertEqual(entry["from_entity_id"], retired, "较大的号退役")
+        self.assertEqual(entry["to_entity_ids"], [survivor], "较小的号存活")
+
+    def test_merge_of_referenced_id_is_refused(self):
+        """§21 ④：退役号被任何活对象引用 → fail-closed（不自动改指），fixture 选未被引用的格局。"""
+        survivor, retired = "pat_qizheng_000001", "pat_qizheng_000002"
+        base, props, decisions = self.merge_fixture(survivor=survivor, retired=retired)
+        referenced_base = copy.deepcopy(base)
+        referenced_base["school_views"].append(
             {
-                "pattern_id": "pat_qizheng_000002",
-                "concept_id": None,
-                "name": "三辰通載貴格（异名）",
-                "aliases": [],
-                "rules": [],
-                "assertion_ids": [A2],
-                "school_view_ids": [],
-                "recognition_rule_status": "not_captured",
-                "provenance": [
-                    {"source_id": "src_sanche_ed01", "content_sha256": "b" * 64,
-                     "content_status": "machine_extracted"}
-                ],
+                "school_view_id": const("sv_", "9"),
+                "school_id": SCH2,
+                "subject_entity_id": retired,
+                "claim_refs": [retired],
+                "conflict_group_id": None,
+                "changes_current_judgment": True,
+                "source_conflict_group_id": None,
+                "content_status": "machine_extracted",
             }
         )
-        base["patterns"].sort(key=lambda p: p["pattern_id"])
-        base["id_allocation"]["pat_%s" % TECH] = 2
+        referenced_base["school_views"].sort(key=lambda item: item["school_view_id"])
+        with self.assertRaises(AssemblyRefused) as ctx:
+            m7_apply.apply_resolutions(referenced_base, [view_ed02()], props, decisions)
+        self.assertIn(retired, str(ctx.exception))
 
-        merge_prop = proposal(
-            "merge", "R03d", ["pattern", "src_sanche_ed02", "pat_qizheng_000002"],
-            resolution="human", options=["merge_entities"], targets=[PAT1, "pat_qizheng_000002"],
+    def test_merge_requires_two_distinct_targets(self):
+        """merge_entities 的 target_entity_ids 必须恰为两个互异的活号。"""
+        base, props, decisions = self.merge_fixture()
+        merge_decision = [item for item in decisions if item["choice"] == "merge_entities"][0]
+        merge_decision["target_entity_ids"] = ["pat_qizheng_000001"]
+        with self.assertRaises(SchemaViolation):
+            m7_apply.apply_resolutions(base, [view_ed02()], props, decisions)
+
+    # ------------------------------------------- §22.2 基底关系三分类（ACT 28 / CHARTER §22）
+    def _base_relation(self, kind, left, right):
+        return {
+            "relation_key": make_key(kind, [left, right]),
+            "from_entity_id": left,
+            "to_entity_id": right,
+            "relation_kind": kind,
+            "detail": {},
+            "resolution": {"mode": "human", "proposal_key": "merge:" + "0" * 32},
+        }
+
+    def test_merge_internal_relation_dropped_and_reported(self):
+        """§22.2 第 1 种：合并**双方之间**的基底关系随合并作废——删除，且必须记进
+        `report.dropped_relations`（reason=`merge_internal`），不许静默删。"""
+        survivor, retired = "pat_qizheng_000001", "pat_qizheng_000002"
+        base, props, decisions = self.merge_fixture(survivor=survivor, retired=retired)
+        internal = self._base_relation("distinct_from", survivor, retired)
+        base = copy.deepcopy(base)
+        base["relations"] = sorted(
+            base["relations"] + [internal], key=lambda rel: rel["relation_key"]
         )
-        props = round2_proposals() + [merge_prop]
-        decisions = round2_decisions(props) + [
-            decision(merge_prop, "merge_entities", targets=[PAT1, "pat_qizheng_000002"])
-        ]
+
+        result = m7_apply.apply_resolutions(base, [view_ed02()], props, decisions)
+        knowledge = result["knowledge"]
+        self.assertIn(retired, knowledge["retired_entity_ids"])
+        self.assertNotIn(
+            internal["relation_key"],
+            [rel["relation_key"] for rel in knowledge["relations"]],
+            "合并双方彼此之间的关系必须随合并删除（两端已不再都是活对象）",
+        )
+        dropped = result["report"]["dropped_relations"]
+        self.assertEqual(
+            dropped,
+            [{"relation_key": internal["relation_key"], "reason": "merge_internal"}],
+            "内部关系必须记进 report.dropped_relations（不得静默删）",
+        )
+
+    def test_third_party_reference_to_merged_id_refuses(self):
+        """§22.2 第 2 种：**第三方**活对象指向将退役号的关系（基底 ∪ 本轮）→ fail-closed 停手，
+        不自动改指（与 split 同口径）。"""
+        survivor, retired = "pat_qizheng_000001", "pat_qizheng_000002"
+        base, props, decisions = self.merge_fixture(survivor=survivor, retired=retired)
+        third = PAT_TOP  # 活着的第三方格局
+        outside = self._base_relation("distinct_from", third, retired)
+        base = copy.deepcopy(base)
+        base["relations"] = sorted(
+            base["relations"] + [outside], key=lambda rel: rel["relation_key"]
+        )
 
         with self.assertRaises(AssemblyRefused) as ctx:
             m7_apply.apply_resolutions(base, [view_ed02()], props, decisions)
         message = str(ctx.exception)
-        self.assertIn("merge_entities", message)
-        self.assertIn("relations", message)
+        self.assertIn(retired, message)
+        self.assertIn(third, message, "必须点出第三方引用者: %s" % message)
+        self.assertIn(outside["relation_key"], message, "必须点出具体关系键: %s" % message)
+
+    def test_retire_drops_relations_and_reports(self):
+        """§22.2 第 3 种：R11 退役断言时指向它的关系随退役作废——删除、**不停手**、必须记进 report。
+
+        不停手的理由：删掉的断言带着关系是返工的常态，停手等于返工永远跑不通；
+        规格 §16:732 对 retired 本来就是「转为孤儿并记录」。
+        """
+        base = round1()
+        pointing = self._base_relation("distinct_from", A1, A2)
+        base = copy.deepcopy(base)
+        base["relations"] = sorted(
+            base["relations"] + [pointing], key=lambda rel: rel["relation_key"]
+        )
+        prop = retire_proposal(A2)
+        props = round2_proposals() + [prop]
+        result = m7_apply.apply_resolutions(base, [view_ed02()], props, round2_decisions(props))
+
+        self.assertIn(A2, result["knowledge"]["retired_entity_ids"])
+        self.assertNotIn(
+            pointing["relation_key"],
+            [rel["relation_key"] for rel in result["knowledge"]["relations"]],
+            "指向已退役断言的关系必须随退役删除",
+        )
+        dropped = result["report"]["dropped_relations"]
+        self.assertIn(
+            {"relation_key": pointing["relation_key"], "reason": "endpoint_retired"},
+            dropped,
+            "R11 退役删掉的关系必须记进 report.dropped_relations: %r" % (dropped,),
+        )
+        self.assertEqual(dropped, sorted(dropped, key=lambda item: item["relation_key"]), "必须按 relation_key 升序")
 
     # -------------------------------------------------------- split
     def test_split_allocates_and_retires_with_span_allocation(self):
@@ -802,6 +972,35 @@ class TestApplyResolutions(unittest.TestCase):
         with self.assertRaises(AssemblyRefused) as ctx:
             m7_apply.apply_resolutions(base, [view_ed02()], props, decisions)
         self.assertIn("引用", str(ctx.exception))
+
+    # -------------------------------------------------------- F7：回流轮的 decided
+    def test_decided_proposal_with_decision_is_applied(self):
+        """F7（CHARTER §21 ②）：回流轮次按规格把已有合法决定的提案记为 `resolution="decided"`
+        （act/03.yaml:26），apply 必须照常落地——否则任何带人工决定的轮次都跑不到底。
+        """
+        base = round1()
+        props = as_decided(round2_proposals())
+        self.assertEqual(len(decided_keys(props)), 1, "只有已有合法决定的那条被记为 decided")
+        decisions = round2_decisions(props)
+        result = m7_apply.apply_resolutions(base, [view_ed02()], props, decisions)
+        concept = [c for c in result["knowledge"]["concepts"] if c["concept_id"] == CO1][0]
+        self.assertIn("通載", concept["aliases"], "decided 的 accept_alias 必须真的落地")
+
+    def test_decided_proposal_without_decision_refused(self):
+        """`decided` 必须真有一条合法决定对应；找不到决定即 fail-closed（不静默跳过）。
+        另：`auto` 提案带决定仍拒收（原有口径不得因 F7 放宽）。"""
+        base = round1()
+        props = as_decided(round2_proposals())
+        with self.assertRaises(AssemblyRefused) as ctx:
+            m7_apply.apply_resolutions(base, [view_ed02()], props, [])
+        self.assertIn("找不到对应决定", str(ctx.exception))
+
+        auto_proposal = [item for item in props if item["kind"] == "alias"][0]
+        auto_proposal["resolution"] = "auto"
+        auto_proposal["auto_choice"] = "accept_alias"
+        with self.assertRaises(AssemblyRefused) as ctx2:
+            m7_apply.apply_resolutions(base, [view_ed02()], props, round2_decisions(props))
+        self.assertIn("不接受人工决定", str(ctx2.exception))
 
     # -------------------------------------------------------- R11 退役
     def test_retired_delta_uses_r11_proposal_key(self):

@@ -98,7 +98,7 @@
     "concept_mentions": 1,
     "disputes": 0,
     "new_concept_candidates": 0,
-    "patterns": 1,
+    "patterns": 3,
     "rejected": 0,
     "school_views": 1
   },
@@ -122,6 +122,38 @@
         "lane": "main"
       },
       "pattern_id": "pat_qizheng_900001",
+      "recognition_rule_status": "not_captured"
+    },
+    {
+      "assertion_ids": [
+        "as_qizheng_900004"
+      ],
+      "content_status": "machine_extracted",
+      "evidence": [],
+      "interpretation": "第二版次同题重发号，待人工裁定是否并入",
+      "interpretation_status": "captured",
+      "name": "三辰通載貴格",
+      "origin": {
+        "item_index": 0,
+        "lane": "main"
+      },
+      "pattern_id": "pat_qizheng_900002",
+      "recognition_rule_status": "not_captured"
+    },
+    {
+      "assertion_ids": [
+        "as_qizheng_900004"
+      ],
+      "content_status": "machine_extracted",
+      "evidence": [],
+      "interpretation": "第二版次另立之格局",
+      "interpretation_status": "captured",
+      "name": "貴格別録",
+      "origin": {
+        "item_index": 0,
+        "lane": "main"
+      },
+      "pattern_id": "pat_qizheng_900003",
       "recognition_rule_status": "not_captured"
     }
   ],

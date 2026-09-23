@@ -16,10 +16,10 @@
 3. **配对判断一律经 matcher**：本模块只调用 :func:`matcher.unpairable_units` 做
    「无法配对」计数，不自己做任何配对比对。
 
-已知与冻结校验器的冲突（fail-closed，不静默，见回报 §3.1）：
-`merge_entities`（act/04）要求旧号进 `retired_entity_ids` 且写 `merged_into(旧, 新)`，
-而 `model.validate_snapshot_knowledge` 要求 `relations` 端点必须是**活对象**，两者不可同时成立。
-本模块对该决定直接拒收并说明原因，绝不写一半。
+`merge_entities` 的口径（CHARTER §19.2、§21 ④）：旧号进 `retired_entity_ids`，身份变化只记在
+IdentityDelta（`change_type="merged"`），**不写** `merged_into` 关系——
+`model.validate_snapshot_knowledge` 要求 `relations` 端点必须是**活对象**，而已退役的旧号不该出现在关系表里。
+两号合并时**较小的号存活**（`to`），较大的号退役（`from`）；退役号被任何活对象引用即 fail-closed（与 split 同口径）。
 """
 
 import copy
@@ -82,6 +82,10 @@ COLLATION_KINDS = ("alignment", "variant_reading", "addition", "omission")
 #: 需要人工决定的提案状态（human/blocked；blocked 未决即拒收，待依赖解除后重出）
 NEEDS_DECISION = ("human", "blocked")
 
+#: 可接受人工决定的提案状态：`decided` 是回流轮次按规格（act/03.yaml:26）记下的
+#: 「已有合法决定」态，必须与 `human`/`blocked` 同样落地（CHARTER §21 ②）。
+DECIDABLE = ("human", "blocked", "decided")
+
 #: 决定必填键逐字
 DECISION_REQUIRED_FIELDS = (
     "proposal_set_revision_id",
@@ -128,10 +132,10 @@ def validate_decision(proposal: dict, decision: dict) -> None:
     """
     if not isinstance(proposal, dict) or not proposal.get("proposal_key"):
         raise SchemaViolation("proposal 必须是含 proposal_key 的字典", code="SCH_001")
-    if proposal.get("resolution") not in NEEDS_DECISION:
+    if proposal.get("resolution") not in DECIDABLE:
         raise AssemblyRefused(
             "提案 %s 的 resolution=%r 不接受人工决定（只接受 %s）"
-            % (proposal.get("proposal_key"), proposal.get("resolution"), list(NEEDS_DECISION)),
+            % (proposal.get("proposal_key"), proposal.get("resolution"), list(DECIDABLE)),
             code="SCH_002",
         )
     if not isinstance(decision, dict):
@@ -238,6 +242,10 @@ def apply_resolutions(
     new_relations: List[Dict[str, Any]] = []
     identity_entries: List[Dict[str, Any]] = []
     pruned: List[Dict[str, Any]] = []
+    #: 本轮要删的基底关系及其理由（CHARTER §22.2：**静默删除一律不许**）
+    dropped_relations: List[Dict[str, Any]] = []
+    #: 基底关系（供 merge/split 的「基底 ∪ 本轮」引用检查；见 _referencing_relations）
+    base_relations: List[dict] = list(base.get("relations") or [])
 
     # §8.1 号位与「未获批自发号」由 incremental.allocate_ids 统一口径计算；
     # 传**已规约**的视图（candidate_set / reviewed_edition 都是有效文档），
@@ -299,21 +307,40 @@ def apply_resolutions(
             choice, mode = decision["choice"], "human"
         elif proposal.get("resolution") == "auto":
             choice, mode = proposal.get("auto_choice"), "auto"
+        elif proposal.get("resolution") == "decided":
+            raise AssemblyRefused(
+                "提案 %s 的 resolution='decided' 却找不到对应决定：decided 必须真有一条合法决定"
+                % proposal.get("proposal_key"),
+                code="SCH_002",
+            )
         else:
             continue
         if not choice:
             continue
 
         if choice == "merge_entities":
-            raise AssemblyRefused(
-                "merge_entities 被拒收：它要求旧号进 retired_entity_ids 且写 "
-                "merged_into(旧, 新)，而 model.validate_snapshot_knowledge 要求 relations "
-                "端点必须是活对象——两者不可同时成立，须先裁定端点口径（见回报 §3.1）。"
-                "本模块拒绝写一半。",
-                code="SCH_002",
+            _apply_merge(
+                proposal,
+                decision,
+                live,
+                knowledge,
+                identity_entries,
+                touched,
+                retired,
+                extra_relations=base_relations,
             )
+            continue
         if choice == "split":
-            _apply_split(proposal, decision, live, knowledge, identity_entries, touched, retired)
+            _apply_split(
+                proposal,
+                decision,
+                live,
+                knowledge,
+                identity_entries,
+                touched,
+                retired,
+                extra_relations=base_relations,
+            )
             continue
         if choice == "retire":
             target = proposal["subject"][-1] if proposal.get("subject") else None
@@ -347,6 +374,25 @@ def apply_resolutions(
 
     _remove_retired(knowledge, retired)
     _restore_untouched(base, knowledge, base_state, affected_set, touched)
+    # §22.2：删除两种随身份变化作废的基底关系，且必须如实记账（静默删除一律不许）：
+    #   ① 合并双方彼此之间的关系（merge_internal）
+    #   ② 指向已退役号的关系（endpoint_retired，含 R11 退役断言）
+    merge_pairs = [
+        (entry["from_entity_id"], entry["to_entity_ids"][0])
+        for entry in identity_entries
+        if entry["change_type"] == "merged" and entry.get("to_entity_ids")
+    ]
+    for relation in base.get("relations", []):
+        if not _relation_touches(relation, retired):
+            continue
+        dropped_relations.append(
+            {
+                "relation_key": relation["relation_key"],
+                "reason": "merge_internal"
+                if any(_is_merge_internal(relation, pair) for pair in merge_pairs)
+                else "endpoint_retired",
+            }
+        )
     knowledge["relations"] = sorted(
         [rel for rel in copy.deepcopy(base.get("relations", [])) if not _relation_touches(rel, retired)]
         + new_relations,
@@ -394,6 +440,10 @@ def apply_resolutions(
             ),
             "pruned_relations_for_retired": pruned,
             "admit_new_without_object": without_object,
+            # ACT 28 / CHARTER §22.2：随退役或合并删除的基底关系及其理由，按 relation_key 升序
+            "dropped_relations": sorted(
+                dropped_relations, key=lambda item: item["relation_key"]
+            ),
         },
     }
 
@@ -468,41 +518,61 @@ def _live_index(knowledge: dict) -> Dict[str, Dict[str, dict]]:
 
 # --------------------------------------------------------------------------- 版次
 def _merge_editions(base_state: Dict[str, Any], view_docs: Sequence[Dict[str, Any]]) -> List[dict]:
-    """版次合并：新 source 追加；已存在 source（替换/扩展）属 D 波编排，本波 fail-closed。"""
+    """版次合并（D-14 / ACT 28 一）：新 source 追加；同 `(source_id, edition_part_ids)` 视为**替换**。
+
+    - **替换**：`editions[]` 里原条目被替换，**不新增条目**；并按规格继承基底该版次的
+      `reviewed_edition_*` 身份字段（识别口径是 part 集合，不是 `stage_package_id`）
+    - **扩展**（同 source、part 集合不相交）：本波不做，遇则拒收并写明
+    - part 集合**部分重叠**：无法判定，拒收（与 `incremental._classify_modes` 同口径）
+    """
     editions = sorted(
         copy.deepcopy(list(base_state["editions"].values())), key=lambda ed: ed["source_id"]
     )
     for view in view_docs:
         source_id = view["source_id"]
-        if source_id in base_state["editions"]:
+        entry = {
+            "source_id": source_id,
+            "work_key": work_key(source_id),
+            "reviewed_edition_package_revision_id": (
+                view["reviewed_edition"].get("reviewed_edition_package_revision_id")
+                or _PLACEHOLDER_PKG_REV
+            ),
+            "reviewed_edition_revision_id": (
+                view["reviewed_edition"].get("reviewed_edition_revision_id")
+                or _PLACEHOLDER_ED_REV
+            ),
+            "stage_package_id": (
+                view["reviewed_edition"].get("stage_package_id") or _PLACEHOLDER_STAGE_PKG
+            ),
+            "edition_part_artifact_ids": [view["candidate_set"]["edition_part_artifact_id"]],
+            "edition_complete": False,
+            "evidence_level": view["candidate_set"]["evidence_level"],
+            "corpus_spans_revision_id": _corpus_spans_revision_id(view),
+        }
+        previous = base_state["editions"].get(source_id)
+        if previous is None:
+            editions.append(entry)
+            continue
+
+        declared = {view["candidate_set"]["edition_part_artifact_id"]}
+        existing = set(previous.get("edition_part_artifact_ids") or [])
+        if declared != existing and not (declared & existing):
             raise AssemblyRefused(
-                "版次 %s 已在基底里：替换/扩展（affected_closure）属 D 波编排，"
-                "本波只做新版次增量" % source_id,
+                "同 source 不同 edition_part_ids 的扩展属后续波次（本波不做）: %s 基底 %s / 视图 %s"
+                % (source_id, sorted(existing), sorted(declared)),
                 code="SCH_002",
             )
-        editions.append(
-            {
-                "source_id": source_id,
-                "work_key": work_key(source_id),
-                "reviewed_edition_package_revision_id": (
-                    view["reviewed_edition"].get("reviewed_edition_package_revision_id")
-                    or _PLACEHOLDER_PKG_REV
-                ),
-                "reviewed_edition_revision_id": (
-                    view["reviewed_edition"].get("reviewed_edition_revision_id")
-                    or _PLACEHOLDER_ED_REV
-                ),
-                "stage_package_id": (
-                    view["reviewed_edition"].get("stage_package_id") or _PLACEHOLDER_STAGE_PKG
-                ),
-                "edition_part_artifact_ids": [
-                    view["candidate_set"]["edition_part_artifact_id"]
-                ],
-                "edition_complete": False,
-                "evidence_level": view["candidate_set"]["evidence_level"],
-                "corpus_spans_revision_id": _corpus_spans_revision_id(view),
-            }
-        )
+        if declared != existing:
+            raise AssemblyRefused(
+                "版次 %s 的 edition_part_ids 与基底部分重叠，无法判定替换或扩展: %s vs %s"
+                % (source_id, sorted(declared), sorted(existing)),
+                code="SCH_002",
+            )
+        # 替换：继承基底该版次的 reviewed_edition_* 身份字段（不新增条目）
+        for key in ("reviewed_edition_package_revision_id", "reviewed_edition_revision_id"):
+            entry[key] = previous.get(key) or entry[key]
+        editions = [ed for ed in editions if ed["source_id"] != source_id]
+        editions.append(entry)
     editions.sort(key=lambda ed: ed["source_id"])
     return editions
 
@@ -685,7 +755,12 @@ def _build_patterns(
                     "候选携带的 pat_ 号已退役，禁止复活: %s" % pattern_id, code="ID_002"
                 )
             touched.add(pattern_id)
-            _require_trace(proposal_index, source_id, pattern_id, candidate.get("collation_key"))
+            # D-14 替换继承（CHARTER §21 ①）：provenance 未变的对象本轮不再产生 merge 提案
+            # （沿用 Snapshot 结果），也就没有内容并入 → 不要求留痕；内容变了才必须留痕。
+            if _pattern_provenance_changed(existing, source_id, candidate):
+                _require_trace(
+                    proposal_index, source_id, pattern_id, candidate.get("collation_key")
+                )
             existing["assertion_ids"] = sorted(
                 set(existing.get("assertion_ids") or [])
                 | set(_approved_assertion_ids(candidate, view))
@@ -710,6 +785,15 @@ def _build_patterns(
             if key:
                 materialized.add(key)
     return patterns, allocated, distinct_pairs, materialized
+
+
+def _pattern_provenance_changed(existing: dict, source_id: str, candidate: dict) -> bool:
+    """候选内容是否与基底该 source 的 provenance 哈希不同（与 D-14 同一口径）。"""
+    expected = content_sha256(candidate)
+    return not any(
+        row.get("source_id") == source_id and row.get("content_sha256") == expected
+        for row in existing.get("provenance") or []
+    )
 
 
 def _new_pattern(pattern_id: str, source_id: str, candidate: dict, view: Dict[str, Any]) -> dict:
@@ -1027,6 +1111,8 @@ def _apply_split(
     identity_entries: List[Dict[str, Any]],
     touched: Set[str],
     retired: Set[str],
+    *,
+    extra_relations: Sequence[dict] = (),
 ) -> None:
     """split：占位名升序发新号、旧号退役、IdentityDelta 一条 split 携带 span_allocation。"""
     targets = list(decision.get("target_entity_ids") or [])
@@ -1051,7 +1137,7 @@ def _apply_split(
             code="SCH_002",
         )
 
-    referencing = _referenced_by(knowledge, old_id)
+    referencing = _referenced_by(knowledge, old_id, extra_relations)
     if referencing:
         raise AssemblyRefused(
             "split 目标 %s 被 %s 引用；act/04 未规定引用改指规则，停手上报（回报 §3.2）"
@@ -1090,8 +1176,92 @@ def _apply_split(
     touched.add(old_id)
 
 
-def _referenced_by(knowledge: dict, entity_id: str) -> Set[str]:
-    """列出引用了 `entity_id` 的活对象号（split 的引用改指未在规格里规定，须停手）。"""
+def _apply_merge(
+    proposal: dict,
+    decision: dict,
+    live: Dict[str, Any],
+    knowledge: dict,
+    identity_entries: List[Dict[str, Any]],
+    touched: Set[str],
+    retired: Set[str],
+    *,
+    extra_relations: Sequence[dict] = (),
+) -> None:
+    """merge_entities（CHARTER §19.2、§21 ④、§22.2）：两号合并，身份变化只记在 IdentityDelta。
+
+    - 决定的 `target_entity_ids` 必须恰含**两个互异的活号**，且同类
+    - **较小的号存活**（`to`），较大的号退役（`from`）——不依赖决定里的列表顺序
+    - **第三方**活对象/关系指向退役号（基底 ∪ 本轮）→ ``AssemblyRefused``（不自动改指，§22.2 第 2 种）
+    - 合并**双方彼此之间**的关系随合并作废，由调用方在重建关系表时删除并记进
+      `report.dropped_relations`（reason=`merge_internal`，§22.2 第 1 种）
+    - **不写** `merged_into` 关系：关系两端必须存活，已退役的旧号不该进关系表
+    """
+    targets = [str(item) for item in (decision.get("target_entity_ids") or [])]
+    if len(set(targets)) != 2:
+        raise SchemaViolation(
+            "merge_entities 决定的 target_entity_ids 必须恰含两个互异的号: %r" % (targets,),
+            code="SCH_002",
+        )
+    located: Dict[str, Tuple[str, dict]] = {}
+    for target_id in targets:
+        location = _locate(live, target_id)
+        if location is None:
+            raise MissingReference(
+                "merge_entities 目标不在 Snapshot 活对象里: %s" % target_id, code="REF_001"
+            )
+        located[target_id] = location
+    collections = {collection for collection, _item in located.values()}
+    if len(collections) != 1:
+        raise AssemblyRefused(
+            "merge_entities 的两个目标必须同类，实为 %s" % sorted(collections), code="SCH_002"
+        )
+    collection = collections.pop()
+    survivor_id, retired_id = sorted(targets)
+    pair = (retired_id, survivor_id)
+
+    third_party = sorted(_non_relation_referenced_by(knowledge, retired_id))
+    if third_party:
+        raise AssemblyRefused(
+            "merge_entities 的退役号 %s 被第三方活对象 %s 引用；act/04 未规定引用改指规则，"
+            "与 split 同口径停手上报（§21 ④、§22.2）" % (retired_id, third_party),
+            code="SCH_002",
+        )
+    outsiders = [
+        relation
+        for relation in _referencing_relations(knowledge, retired_id, extra_relations)
+        if not _is_merge_internal(relation, pair)
+    ]
+    if outsiders:
+        counterparts = sorted(
+            {
+                endpoint
+                for relation in outsiders
+                for endpoint in (relation.get("from_entity_id"), relation.get("to_entity_id"))
+                if endpoint and endpoint != retired_id
+            }
+        )
+        raise AssemblyRefused(
+            "merge_entities 的退役号 %s 被第三方关系 %s（对端 %s）引用；act/04 未规定引用改指规则，"
+            "与 split 同口径停手上报（§21 ④、§22.2）"
+            % (
+                retired_id,
+                sorted(relation["relation_key"] for relation in outsiders),
+                counterparts,
+            ),
+            code="SCH_002",
+        )
+
+    _retire(retired_id, live, knowledge, retired)
+    identity_entries.append(
+        _identity_entry(
+            retired_id, [survivor_id], "merged", _ENTITY_KINDS[collection], proposal["proposal_key"]
+        )
+    )
+    touched.add(retired_id)
+
+
+def _non_relation_referenced_by(knowledge: dict, entity_id: str) -> Set[str]:
+    """列出以**非关系**方式引用 `entity_id` 的活对象号（school_view / pattern 的成员表）。"""
     referencing: Set[str] = set()
     for sv in knowledge.get("school_views", []):
         if sv.get("subject_entity_id") == entity_id or entity_id in (sv.get("claim_refs") or []):
@@ -1101,10 +1271,42 @@ def _referenced_by(knowledge: dict, entity_id: str) -> Set[str]:
             referencing.add(pattern["pattern_id"])
         if entity_id in (pattern.get("school_view_ids") or []):
             referencing.add(pattern["pattern_id"])
-    for relation in knowledge.get("relations", []):
-        if entity_id in (relation.get("from_entity_id"), relation.get("to_entity_id")):
-            referencing.add(relation["relation_key"])
     return referencing
+
+
+def _referencing_relations(
+    knowledge: dict, entity_id: str, extra_relations: Sequence[dict] = ()
+) -> List[dict]:
+    """列出引用 `entity_id` 的关系，按 `relation_key` 升序去重（CHARTER §22.2 第 2 条）。
+
+    `extra_relations` 是调用方给的「基底 ∪ 本轮已写」的关系。原来只看
+    `knowledge["relations"]`，而增量轮那份列表在逐提案落地期间恒为空
+    （`_template` 把它清空、本轮关系先进 `new_relations`）—— 于是基底关系根本看不见，
+    “退役号被引用即 fail-closed”这道护栏实际上从未生效过。
+    """
+    indexed: Dict[str, dict] = {}
+    for relation in list(extra_relations or []) + list(knowledge.get("relations") or []):
+        if entity_id in (relation.get("from_entity_id"), relation.get("to_entity_id")):
+            indexed[relation["relation_key"]] = relation
+    return [indexed[key] for key in sorted(indexed)]
+
+
+def _referenced_by(
+    knowledge: dict, entity_id: str, extra_relations: Sequence[dict] = ()
+) -> Set[str]:
+    """列出引用了 `entity_id` 的活对象号与关系键（split 的引用改指未在规格里规定，须停手）。"""
+    referencing = _non_relation_referenced_by(knowledge, entity_id)
+    referencing.update(
+        relation["relation_key"]
+        for relation in _referencing_relations(knowledge, entity_id, extra_relations)
+    )
+    return referencing
+
+
+def _is_merge_internal(relation: dict, pair: Tuple[str, str]) -> bool:
+    """关系两端是否都落在**被合并的两个号**内（CHARTER §22.2 第 1 种：随合并作废）。"""
+    endpoints = {relation.get("from_entity_id"), relation.get("to_entity_id")} - {None}
+    return bool(endpoints) and endpoints <= set(pair)
 
 
 def _apply_retire(
@@ -1130,17 +1332,9 @@ def _apply_retire(
     if location is None:
         raise MissingReference("retire 目标不在 Snapshot 活对象里: %s" % target_id, code="REF_001")
     collection, _item = location
-    referencing = [
-        rel
-        for rel in knowledge.get("relations", [])
-        if target_id in (rel.get("from_entity_id"), rel.get("to_entity_id"))
-    ]
-    if referencing:
-        raise AssemblyRefused(
-            "retire 目标 %s 被 %d 条关系引用；relations 端点必须存活（model 口径）"
-            "与退役语义冲突，停手上报（回报 §3.1）" % (target_id, len(referencing)),
-            code="SCH_002",
-        )
+    # CHARTER §22.2 第 3 种：指向被退役断言的关系随退役作废 —— 删除并记进 report，**不停手**
+    # （删掉的断言带着关系是返工的常态，停手等于返工永远跑不通；规格 §16:732 对 retired
+    # 本来就是「转为孤儿并记录」）。删除与记账在关系表重建处统一做，见 apply_resolutions。
     _retire(target_id, live, knowledge, retired)
     identity_entries.append(
         _identity_entry(target_id, [], "retired", _ENTITY_KINDS[collection], proposal_key)
@@ -1471,7 +1665,14 @@ def _index_proposals(
 
 
 def _id_allocation(base: dict, knowledge: dict, technique_id: str, range_key: str) -> Dict[str, int]:
-    """§8.1：`id_allocation[pat_<tech>]` 取「活对象与补发」的最大号（不得低于基座口径）。"""
+    """§8.1：`id_allocation[pat_<tech>]` 取「活对象与补发」的最大号（不得低于基座口径）。
+
+    ⚠ 冻结校验器 `model.validate_snapshot_knowledge` 同时要求
+    `id_allocation == max(活对象 ∪ 补发)` **且** `>= max(活对象 ∪ 已退役 ∪ 补发)`；
+    两者在「命名空间最大号的那个 pattern 被退役」时不可同时成立。
+    本函数按前一条（活对象与补发）取值；后者靠调用方不把最大号退役来满足，
+    属 model.py 冻结口径下的已知约束（见 H 波回报「新发现」节）。
+    """
     numbers = []
     for item in knowledge.get("patterns", []):
         number = _number_of(item.get("pattern_id"), technique_id)

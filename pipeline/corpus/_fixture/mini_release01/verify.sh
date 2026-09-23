@@ -11,11 +11,12 @@
 #   任一 FAIL → 1；无 FAIL 但有 BLOCKED → 3；否则 0（末行 FIXTURE OK）。
 #
 # 检查项（每条打印 PASS/FAIL/BLOCKED 前缀）：
-#   V1 host_files            宿主文件齐备
+#   V1 host_files            宿主文件齐备（含返工版次 ed01r2 与三轮决定集）
 #   V2 manifest_sha256       manifest.files[] 每项 sha256 与实际逐字节一致
-#   V3 span_anchor           两版次全部证据链锚定 mini_ed01 金标 span
-#   V4 views_validate        两版次视图过 M7 的 model 校验纯函数
-#   V5 expected_goldens      r1 == 创世引擎现算输出；r2 过 snapshot 校验；knowledge_sha256 一致
+#   V3 span_anchor           全部版次（含返工）证据链锚定 mini_ed01 金标 span
+#   V4 views_validate        全部版次视图过 M7 的 model 校验纯函数
+#   V5 expected_goldens      r1 == 创世引擎现算输出；r2/r3 == 增量引擎实跑产出（含决定集）；
+#                            identity_delta_r3 与实跑一致；knowledge_sha256 一致
 #   V6 no_page_assets        本目录无 png/jpg/jpeg/pdf，且不依赖任何页素材
 set -u
 export LC_ALL=en_US.UTF-8
@@ -70,10 +71,18 @@ def sha256_bytes(data):
 
 # ------------------------------------------------------------------ V1 宿主齐备
 required = ["manifest.yaml"]
-for edition in ("ed01", "ed99"):
+for edition in ("ed01", "ed99", "ed01r2"):
     for name in ("candidate_set.json", "reviewed_edition.json", "reviewed_edition_package.json"):
         required.append("%s/%s" % (edition, name))
-required += ["expected/snapshot_r1.json", "expected/snapshot_r2.json", "expected/snapshot_revisions.yaml"]
+for edition in ("ed99", "ed01r2"):
+    required.append("%s/decisions.json" % edition)
+required += [
+    "expected/snapshot_r1.json",
+    "expected/snapshot_r2.json",
+    "expected/snapshot_r3.json",
+    "expected/identity_delta_r3.json",
+    "expected/snapshot_revisions.yaml",
+]
 
 missing = [rel for rel in required if not (FIX / rel).is_file()]
 if missing:
@@ -109,8 +118,10 @@ if anchor.get("evidence_level") != spans_doc.get("evidence_level"):
 if len(manifest.get("editions", [])) < 2:
     v3_bad.append("版次数 %d < 2" % len(manifest.get("editions", [])))
 
+# 全部视图块：两版次 + 返工版次（ed01r2 与 ed01 同 source，单列在 manifest.rework）
+view_blocks = list(manifest["editions"]) + [manifest["rework"]]
 link_count = 0
-for edition in manifest["editions"]:
+for edition in view_blocks:
     cset = json.loads((FIX / edition["views_dir"] / "candidate_set.json").read_text(encoding="utf-8"))
     reviewed = json.loads((FIX / edition["views_dir"] / "reviewed_edition.json").read_text(encoding="utf-8"))
     if cset["source_id"] != edition["source_id"]:
@@ -142,8 +153,13 @@ from pipeline.assembly.model import (  # noqa: E402
     validate_snapshot_knowledge,
 )
 
+decisions_by_round = {
+    row["round"]: json.loads((FIX / row["file"]).read_text(encoding="utf-8"))["decisions"]
+    for row in manifest.get("decisions", [])
+}
+
 v4_bad = []
-for edition in manifest["editions"]:
+for edition in view_blocks:
     view = FIX / edition["views_dir"]
     try:
         validate_candidate_set(json.loads((view / "candidate_set.json").read_text(encoding="utf-8")))
@@ -154,7 +170,7 @@ for edition in manifest["editions"]:
 if v4_bad:
     fail("views_validate", "; ".join(v4_bad))
 else:
-    emit("PASS", "views_validate", "editions=%d" % len(manifest["editions"]))
+    emit("PASS", "views_validate", "views=%d" % len(view_blocks))
 
 # ---------------------------------------------------------------- V5 期望产物
 from pipeline.assembly.canonical import canonical_json  # noqa: E402
@@ -190,20 +206,24 @@ except Exception as exc:  # noqa: BLE001
 # r2 金标必须逐字节等于**增量引擎实跑**的产出（ACT 26 一.1；基底号用计划里的固定常量）
 from pipeline.assembly import orchestrate  # noqa: E402
 
+def _view_of(block):
+    view_dir = FIX / block["views_dir"]
+    return {
+        "source_id": block["source_id"],
+        "candidate_set": json.loads((view_dir / "candidate_set.json").read_text(encoding="utf-8")),
+        "reviewed_edition": json.loads((view_dir / "reviewed_edition.json").read_text(encoding="utf-8")),
+    }
+
+
 ed99 = manifest["editions"][1]
-ed99_view_dir = FIX / ed99["views_dir"]
 r1_rev = plan["revisions"][0]["snapshot_revision_id"]
+r2_rev = plan["revisions"][1]["snapshot_revision_id"]
+r3_rev = plan["revisions"][2]["snapshot_revision_id"] if len(plan["revisions"]) > 2 else None
 try:
     run = orchestrate.assemble(
         json.loads((FIX / manifest["expected"]["round1"]).read_text(encoding="utf-8")),
-        [
-            {
-                "source_id": ed99["source_id"],
-                "candidate_set": json.loads((ed99_view_dir / "candidate_set.json").read_text(encoding="utf-8")),
-                "reviewed_edition": json.loads((ed99_view_dir / "reviewed_edition.json").read_text(encoding="utf-8")),
-            }
-        ],
-        [],
+        [_view_of(ed99)],
+        decisions_by_round.get(2, []),
         incremental=True,
         base_snapshot_revision_id=r1_rev,
     )
@@ -220,6 +240,36 @@ else:
     rows = run["result"]["collation"]["not_comparable"] if run["status"] == "complete" else []
     if len(rows) != 1 or rows[0].get("reason") != "missing_collation_key":
         v5_bad.append("collation.not_comparable 与夹具声明不符: %r" % (rows,))
+
+# r3（同书返工）金标必须逐字节等于「r2 → ed01r2」的**增量实跑**产出
+if r3_rev is not None:
+    rework = manifest["rework"]
+    try:
+        run3 = orchestrate.assemble(
+            json.loads((FIX / manifest["expected"]["round2"]).read_text(encoding="utf-8")),
+            [_view_of(rework)],
+            decisions_by_round.get(3, []),
+            incremental=True,
+            base_snapshot_revision_id=r2_rev,
+        )
+    except Exception as exc:  # noqa: BLE001
+        v5_bad.append("r3 返工实跑失败: %s: %s" % (type(exc).__name__, exc))
+    else:
+        if run3["status"] != "complete":
+            v5_bad.append("r3 返工实跑未完成合并: status=%s pending=%r" % (run3["status"], run3.get("pending")))
+        else:
+            r3_raw = (FIX / manifest["expected"]["round3"]).read_bytes()
+            if run3["result"]["knowledge_bytes"] != r3_raw:
+                v5_bad.append("r3 金标与返工实跑产出不是字节等价的")
+            delta_file = FIX / manifest["expected"]["identity_delta_r3"]
+            if canonical_json(run3["result"]["identity_delta"]) != delta_file.read_bytes():
+                v5_bad.append("identity_delta_r3 与返工实跑产出不一致")
+            changes = sorted(e["change_type"] for e in run3["result"]["identity_delta"]["entries"])
+            if changes != ["merged", "retired"]:
+                v5_bad.append("返工轮身份变化不符预期（期望 merged+retired）: %r" % (changes,))
+            for name, value in (("assembly_seq", 3),):
+                if run3["result"]["knowledge"]["meta"].get(name) != value:
+                    v5_bad.append("r3.meta.%s != %r" % (name, value))
 
 if v5_bad:
     fail("expected_goldens", "; ".join(v5_bad[:3]))

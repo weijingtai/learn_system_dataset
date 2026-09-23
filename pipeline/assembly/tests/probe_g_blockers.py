@@ -26,9 +26,15 @@ if str(ROOT) not in sys.path:  # 允许直接 `python pipeline/assembly/tests/pr
 
 from pipeline.assembly import apply as m7_apply  # noqa: E402
 from pipeline.assembly import gate, incremental, orchestrate  # noqa: E402
+from pipeline.assembly.tests import fixture_decisions  # noqa: E402
 
 FIXTURE = ROOT / "pipeline" / "corpus" / "_fixture" / "mini_release01"
 R1_REV = "rev_000000000000000000000000000000f1"  # expected/snapshot_revisions.yaml 的 r1 修订号
+
+#: 第 2 轮（ed99）的决定集：夹具数据，代表一次审核人的选择（CHARTER §19.3.2）。
+#: ed99 自 H 波起多了一条 R03b 同名歧义人工提案，不带上决定集则该轮停在 awaiting_human，
+#: 后面的 F2/F3/F4 就根本走不到各自要复现的那一步——这是**前置准备**，不是被验对象。
+R2_DECISIONS = fixture_decisions.decisions_for_round(2)
 
 FINDINGS = []
 
@@ -55,10 +61,45 @@ def load_r1():
     return json.loads((FIXTURE / "expected" / "snapshot_r1.json").read_text(encoding="utf-8"))
 
 
+def r2_revision_id(manifest):
+    """读 `expected/snapshot_revisions.yaml` 里第 2 轮的修订号（r3 实跑的基底号）。"""
+    plan = yaml.safe_load((FIXTURE / manifest["expected"]["snapshot_revisions"]).read_text(encoding="utf-8"))
+    return plan["revisions"][1]["snapshot_revision_id"]
+
+
+def r3_identity_changes(ed99_view, manifest):
+    """r2 → ed01r2 返工实跑（ACT 28 四场景，决定来自夹具）→ IdentityDelta 的 change_type 列表。
+
+    返回 `(changes, why)`；实跑跑不通时 `changes` 为空而 `why` 带异常。
+    """
+    rework = load_view(manifest["rework"])
+    try:
+        res = orchestrate.assemble(
+            r2_knowledge(ed99_view),
+            [rework],
+            fixture_decisions.decisions_for_round(3),
+            incremental=True,
+            base_snapshot_revision_id=r2_revision_id(manifest),
+        )
+    except Exception as exc:  # noqa: BLE001 - 探针要连异常类型一起打印
+        return [], "r3 实跑未跑通：%s: %s" % (type(exc).__name__, exc)
+    if res["status"] != "complete":
+        return [], "r3 实跑未完成：status=%s pending=%r" % (res["status"], res.get("pending"))
+    entries = res["result"]["identity_delta"]["entries"]
+    return sorted(entry["change_type"] for entry in entries), "r3 实跑成功"
+
+
 def r2_knowledge(ed99_view):
-    """r1 → ed99 增量实跑（ACT 26 一.1 那一次实跑），返回 r2 的 knowledge。"""
+    """r1 → ed99 增量实跑（ACT 26 一.1 那一次实跑），返回 r2 的 knowledge。
+
+    ed99 带一条人工提案，故带上夹具第 2 轮决定集（前置准备，见 R2_DECISIONS 注释）。
+    """
     res = orchestrate.assemble(
-        load_r1(), [ed99_view], [], incremental=True, base_snapshot_revision_id=R1_REV
+        load_r1(),
+        [ed99_view],
+        R2_DECISIONS,
+        incremental=True,
+        base_snapshot_revision_id=R1_REV,
     )
     assert res["status"] == "complete", res
     return res["result"]["knowledge"]
@@ -119,7 +160,7 @@ def main():
     )
     expect_raise(
         lambda: orchestrate.assemble(
-            r1, [omit_view], [], incremental=True, base_snapshot_revision_id=R1_REV
+            r1, [omit_view], R2_DECISIONS, incremental=True, base_snapshot_revision_id=R1_REV
         ),
         "F2_omission_refused_by_apply",
         "对勘配对不唯一",
@@ -154,7 +195,7 @@ def main():
     variant_view["candidate_set"]["assertions"][0]["proposition"] = "三辰通載（異文）"
     expect_raise(
         lambda: orchestrate.assemble(
-            r1, [variant_view], [], incremental=True, base_snapshot_revision_id=R1_REV
+            r1, [variant_view], R2_DECISIONS, incremental=True, base_snapshot_revision_id=R1_REV
         ),
         "F4_variant_reading_refused_by_apply",
         "撞号 fail-closed",
@@ -218,19 +259,16 @@ def main():
     )
 
     print("\n== F6 合并（merged）：CHANGE_TYPES 里有，代码里没有任何产出路径")
-    merged_paths = [
-        "apply._apply_split → 'split'",
-        "apply._apply_retire → 'retired'",
-        "merge_entities → AssemblyRefused（apply.py:307-314）",
-    ]
-    ok = "merged" in m7_apply.CHANGE_TYPES and len(m7_apply.CHANGE_TYPES) == 3
+    changes, why = r3_identity_changes(ed99_view, manifest)
+    ok = "merged" not in changes
     record(
         "F6_merged_change_type_has_no_producer",
         ok,
-        "CHANGE_TYPES=%s；三条可能的产出路径：%s；"
-        "accept_alias 只追加 aliases/provenance，不写 identity_delta 条目。"
-        "ACT 26 一.3 要求 ed01r2 造出「两个 Concept 被裁定合并 → merged」在本波范围内无法实现。"
-        % (list(m7_apply.CHANGE_TYPES), "; ".join(merged_paths)),
+        "CHANGE_TYPES=%s；按夹具真实输入跑 r2 → ed01r2（不手造提案）得到的 identity_delta "
+        "change_type=%s；%s\n"
+        "    本判据必须看**实跑产出**：`\"merged\" in CHANGE_TYPES` 是静态值，有没有产出方都一样，"
+        "拿它当复现条件等于空转（本文件 docstring 也要求每项用真实运行结果说话）。"
+        % (list(m7_apply.CHANGE_TYPES), changes, why),
     )
 
     bad = [tag for tag, ok in FINDINGS if not ok]

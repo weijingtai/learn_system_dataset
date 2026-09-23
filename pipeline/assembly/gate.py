@@ -594,8 +594,10 @@ def _asm_closure(base_knowledge: dict, views: Sequence[dict], decisions: Sequenc
         for unit in cset.get("collation_units") or []:
             contacts |= _asm_collation_contacts(index, unit.get("collation_key"), source_id)
 
-        # 替换：同一来源在基底的 provenance 哈希与视图声明不一致（或被删）
+        # 替换：同一来源在基底的 provenance 哈希与视图声明不一致，**或被删除的对象本身**
+        # （act/05.yaml:20-31 的替换条：被删除对象按其 base 记录计算触点）。
         declared = _asm_view_candidates(view)
+        presence = _asm_declared_presence(view)
         for kind, collection in (("pattern", "patterns"), ("concept", "concepts")):
             for entity_id, item in index[collection].items():
                 if not any(
@@ -604,6 +606,8 @@ def _asm_closure(base_knowledge: dict, views: Sequence[dict], decisions: Sequenc
                     continue
                 candidate = declared[kind].get(entity_id)
                 if candidate is None:
+                    # 本版次不再声明该对象 → 被删除，对象自身入触点
+                    contacts.add(entity_id)
                     continue
                 expected = _asm_view_provenance_hash(kind, candidate)
                 rows = [
@@ -613,6 +617,14 @@ def _asm_closure(base_knowledge: dict, views: Sequence[dict], decisions: Sequenc
                 ]
                 if all(row.get("content_sha256") != expected for row in rows):
                     contacts.add(entity_id)
+        # 断言：本 source 的基底断言，其 collation_key 本轮已不再被该视图声明 → 被删除
+        # （与 `orchestrate` 的替换条同口径；act/05.yaml:23-24）。
+        for assertion_id, assertion in index["assertions"].items():
+            if assertion.get("source_id") != source_id:
+                continue
+            collation_key = assertion.get("collation_key")
+            if collation_key and not presence.get(collation_key, False):
+                contacts.add(assertion_id)
 
     for decision in decisions or []:
         for target in decision.get("target_entity_ids") or []:
@@ -1243,8 +1255,19 @@ def _asm_check_maturity_not_synthesized(views: Sequence[dict], knowledge: dict) 
 
 
 def _asm_check_decisions_consistent(
-    base_knowledge: dict, knowledge: dict, decisions: Sequence[dict]
+    base_knowledge: dict,
+    knowledge: dict,
+    decisions: Sequence[dict],
+    identity_delta: dict,
 ) -> Tuple[bool, str]:
+    """决定唯一，且每条决定都有落点（关系/冲突组的人工裁定 **或** 身份变更记录），
+    反过来「凭空出现的 human 裁定」与「无决定的 merged/split」也一律拒收。
+
+    CHARTER §22.1：§19.2 把合并的落点定在 IdentityDelta（不写 `merged_into` 关系），
+    所以决定的落点必须把 IdentityDelta 算进来 —— 否则任何 merge/split 决定都恒不能通过。
+    这不是放宽：两侧强度都保留，且新口径比旧口径多验「delta 与决定的类型必须对应」。
+    `retired` 来自 R11 自动提案，**不要求**决定（它的 `reason_ref` 由 `identity_delta_contract` 验）。
+    """
     keys = [decision.get("proposal_key") for decision in decisions or []]
     if len(keys) != len(set(keys)):
         return False, "决定的 proposal_key 必须唯一: %r" % (keys,)
@@ -1261,17 +1284,58 @@ def _asm_check_decisions_consistent(
                     out.add(resolution["proposal_key"])
         return out
 
+    # 身份变更记录的落点：按理由引用的提案键归集（只数 merged / split）
+    delta_by_key: Dict[str, List[dict]] = {}
+    for entry in (identity_delta or {}).get("entries") or []:
+        if entry.get("change_type") not in ("merged", "split"):
+            continue
+        reason_ref = entry.get("reason_ref") or {}
+        key = reason_ref.get("proposal_key")
+        if key:
+            delta_by_key.setdefault(key, []).append(entry)
+
+    identity_choices = {"merge_entities": "merged", "split": "split"}
+    identity_keys: Set[str] = set()
+    for decision in decisions or []:
+        expected = identity_choices.get(decision.get("choice"))
+        if expected is None:
+            continue
+        key = decision.get("proposal_key")
+        identity_keys.add(key)
+        matches = delta_by_key.get(key) or []
+        if len(matches) != 1:
+            return False, (
+                "决定 %s（choice=%s）必须恰有一条与之对应的 change_type=%s 的 IdentityDelta，实为 %d 条"
+                % (key, decision.get("choice"), expected, len(matches))
+            )
+        if matches[0].get("change_type") != expected:
+            return False, (
+                "决定 %s（choice=%s）对应的 IdentityDelta change_type=%r，与决定的选项不符（期望 %s）"
+                % (key, decision.get("choice"), matches[0].get("change_type"), expected)
+            )
+    for key in sorted(delta_by_key):
+        if key in identity_keys:
+            continue
+        return False, (
+            "无决定却出现 change_type=%s 的 IdentityDelta（merged/split 只许由人工决定触发）: %s"
+            % (delta_by_key[key][0].get("change_type"), key)
+        )
+
     now_human = human_keys(knowledge)
     base_human = human_keys(base_knowledge)
     decided = {key for key in keys if key}
 
-    not_landed = sorted(decided - now_human)
+    not_landed = sorted(decided - now_human - identity_keys)
     if not_landed:
-        return False, "有决定却没有以 mode=human 落地: %r" % not_landed
+        return False, "有决定却没有以 mode=human 落地（也不是 merge/split 身份变更）: %r" % not_landed
     unexplained = sorted(now_human - decided - base_human)
     if unexplained:
         return False, "总账里的 human 裁定没有对应决定: %r" % unexplained
-    return True, "%d 条决定与 %d 处 human 裁定一一对应" % (len(decided), len(now_human))
+    return True, "%d 条决定与 %d 处 human 裁定 / %d 条身份变更一一对应" % (
+        len(decided),
+        len(now_human),
+        len(identity_keys),
+    )
 
 
 def evaluate_assembly(
@@ -1300,7 +1364,8 @@ def evaluate_assembly(
     10. `first_layer_display` — 每组等于任一成员的 `changes_current_judgment`
     11. `identity_delta_contract` — 变更类型/实体类型/理由引用/分裂配额均符契约
     12. `maturity_not_synthesized` — Pattern/Concept 顶层无 `content_status`，provenance 状态等于视图原值
-    13. `decisions_consistent` — 决定唯一，human 裁定与决定一一对应
+    13. `decisions_consistent` — 决定唯一；落点（human 裁定 / merge·split 身份变更）与决定一一对应
+        （CHARTER §22.1：§19.2 把合并落点改到 IdentityDelta 后，本项必须把 delta 算进来）
 
     `report` 只信 `affected_entity_ids` / `rebuilt_entity_ids` / `carried` / `needs_review`，
     `identity_delta` 与 `collation` 只信其契约字段；闭包与可比单元一律在 :func:`_asm_closure`
@@ -1350,7 +1415,7 @@ def evaluate_assembly(
         _asm_check_maturity_not_synthesized, normalized_views, ledger
     )
     checks["decisions_consistent"] = _run_check(
-        _asm_check_decisions_consistent, base, ledger, normalized_decisions
+        _asm_check_decisions_consistent, base, ledger, normalized_decisions, delta
     )
 
     return {

@@ -32,6 +32,7 @@ from pipeline.assembly.matcher import (
 )
 from pipeline.assembly.model import MERGE_RELATIONS, PROPOSAL_KINDS, PairCandidate
 from pipeline.assembly.step import run_m7
+from pipeline.assembly.tests.fixture_decisions import decisions_for_round
 from pipeline.ledger.service import LedgerService
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -423,9 +424,11 @@ class PrevMetaAgreementTest(unittest.TestCase):
             reviewed_package_revision_ids=[seeded[ed99["edition_key"]]["m6_package_revision_id"]],
             base_snapshot_revision_id=first["snapshot_revision_id"],
             id_range=manifest["id_range"],
+            # 第二版次带一条同名歧义提案（R03b）：决定集是夹具数据
+            decisions=decisions_for_round(2),
         )
-        # 事实变了（D 波 ACT 24 接通合并）：无待决提案时增量轮直接完成合并
-        self.assertEqual(second["status"], "succeeded", "无待决提案的增量轮必须完成合并")
+        # 事实变了（D 波 ACT 24 接通合并）：待决提案由夹具决定集裁定后增量轮完成合并
+        self.assertEqual(second["status"], "succeeded", "待决提案裁定后增量轮必须完成合并")
 
         pairs = snapshot_revision_pairs(service)
         self.assertEqual(len(pairs), 2, "创世与增量轮各一份 Snapshot")

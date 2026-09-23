@@ -16,6 +16,7 @@ from pipeline.assembly import fixture_seed
 from pipeline.assembly.errors import AssemblyRefused
 from pipeline.assembly.inputs import resolve_m7_inputs
 from pipeline.assembly.step import run_m7
+from pipeline.assembly.tests.fixture_decisions import decisions_for_round
 from pipeline.ledger import ids
 from pipeline.ledger.service import LedgerService
 
@@ -429,6 +430,8 @@ class IncrementalInputsCase(unittest.TestCase):
             reviewed_package_revision_ids=[self.ed99_m6_rev()],
             base_snapshot_revision_id=first["snapshot_revision_id"],
             id_range=self.id_range,
+            # 第二版次带一条同名歧义提案（R03b）：决定集是夹具数据
+            decisions=decisions_for_round(2),
         )
         self.assertEqual(
             second["status"], "succeeded", "第二个 ReleaseRun 不得撞上「已封存拒绝续写」"

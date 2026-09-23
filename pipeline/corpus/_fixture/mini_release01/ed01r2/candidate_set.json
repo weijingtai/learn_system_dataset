@@ -1,0 +1,184 @@
+{
+  "assertions": [
+    {
+      "assertion_id": "as_qizheng_900001",
+      "collation_key": "sanche-0001",
+      "concept_refs": [],
+      "conditions": [],
+      "content_status": "machine_extracted",
+      "evidence": [
+        {
+          "end_offset": 4,
+          "quote": "三辰通載",
+          "quote_sha256": "bdcd87dc64353df8dbc1573a6a3463d469d9d8561a26e96c97e134dcc0582564",
+          "source_span_id": "ss_sanche_ed01_p0001_s01",
+          "start_offset": 0,
+          "support_type": "direct"
+        }
+      ],
+      "exceptions": [],
+      "layer": "general",
+      "origin": {
+        "item_index": 0,
+        "lane": "main"
+      },
+      "proposition": "三辰通載",
+      "proposition_id": "pr_qizheng_900001",
+      "relation": "supports",
+      "school_ids": [
+        "sch_qizheng_001"
+      ]
+    },
+    {
+      "assertion_id": "as_qizheng_900003",
+      "collation_key": "sanche-0003",
+      "concept_refs": [],
+      "conditions": [],
+      "content_status": "machine_extracted",
+      "evidence": [
+        {
+          "end_offset": 24,
+          "quote": "貴格之圗",
+          "quote_sha256": "a8f5f3c22a1c06bddb505b89ecee821172c2a067ac854ff3e5d0d10f17837954",
+          "source_span_id": "ss_sanche_ed01_p0003_s05",
+          "start_offset": 20,
+          "support_type": "direct"
+        }
+      ],
+      "exceptions": [],
+      "layer": "general",
+      "origin": {
+        "item_index": 2,
+        "lane": "main"
+      },
+      "proposition": "貴格之圗",
+      "proposition_id": "pr_qizheng_900003",
+      "relation": "supports",
+      "school_ids": []
+    }
+  ],
+  "collation_units": [
+    {
+      "collation_key": "sanche-0001",
+      "present": true
+    },
+    {
+      "collation_key": "sanche-0003",
+      "present": true
+    }
+  ],
+  "concept_mentions": [
+    {
+      "concept_ref": "co_qizheng_900001",
+      "content_status": "machine_extracted",
+      "evidence": [
+        {
+          "end_offset": 4,
+          "quote": "三辰通載",
+          "quote_sha256": "bdcd87dc64353df8dbc1573a6a3463d469d9d8561a26e96c97e134dcc0582564",
+          "source_span_id": "ss_sanche_ed01_p0001_s01",
+          "start_offset": 0,
+          "support_type": "direct"
+        }
+      ],
+      "origin": {
+        "item_index": 0,
+        "lane": "main"
+      },
+      "surface": "三辰"
+    }
+  ],
+  "counts": {
+    "assertions": 2,
+    "concept_mentions": 1,
+    "disputes": 0,
+    "new_concept_candidates": 1,
+    "patterns": 1,
+    "rejected": 0,
+    "school_views": 1
+  },
+  "disputes": [],
+  "edition_part_artifact_id": "art_000000000000000000000000000000e1",
+  "evidence_level": "glyphbox_level",
+  "new_concept_candidates": [
+    {
+      "content_status": "machine_extracted",
+      "evidence": [
+        {
+          "end_offset": 15,
+          "quote": "三辰通載目錄",
+          "quote_sha256": "af49ac1d54e5cbcfec816ba54e2f3edf812bd3fb024e8656c1f3c6abe18172f8",
+          "source_span_id": "ss_sanche_ed01_p0003_s03",
+          "start_offset": 9,
+          "support_type": "direct"
+        }
+      ],
+      "origin": {
+        "item_index": 1,
+        "lane": "main"
+      },
+      "surface": "通載",
+      "technique_id": "qizheng"
+    }
+  ],
+  "patterns": [
+    {
+      "assertion_ids": [
+        "as_qizheng_900001",
+        "as_qizheng_900003"
+      ],
+      "content_status": "machine_extracted",
+      "evidence": [],
+      "interpretation": "返工重审：本版次重发之同题格局（名称命中基底两处 → R03d 待裁）",
+      "interpretation_status": "captured",
+      "name": "三辰通載貴格",
+      "origin": {
+        "item_index": 0,
+        "lane": "main"
+      },
+      "pattern_id": "pat_qizheng_900004",
+      "recognition_rule_status": "not_captured"
+    }
+  ],
+  "rejected": [],
+  "schema_version": "0.1.0-draft",
+  "school_views": [
+    {
+      "changes_current_judgment": true,
+      "claim_refs": [
+        "as_qizheng_900001"
+      ],
+      "conflict_group_id": "cg_00000000000000000000000000000001",
+      "content_status": "machine_extracted",
+      "evidence": [],
+      "origin": {
+        "item_index": 0,
+        "lane": "main"
+      },
+      "school_id": "sch_qizheng_001",
+      "school_view_id": "sv_00000000000000000000000000000001",
+      "source_refs": [
+        {
+          "source_id": "src_sanche_ed01",
+          "source_span_id": "ss_sanche_ed01_p0001_s01"
+        }
+      ],
+      "subject_entity_id": "as_qizheng_900001"
+    }
+  ],
+  "source_channels": {
+    "assertion": {
+      "main": "text"
+    },
+    "concept_mention": {
+      "main": "text"
+    },
+    "pattern": {
+      "main": "text"
+    }
+  },
+  "source_id": "src_sanche_ed01",
+  "span_layer": "structural",
+  "synthetic": true,
+  "technique_id": "qizheng"
+}

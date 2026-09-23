@@ -15,10 +15,22 @@ revisions:
   - src_sanche_ed01
   - src_sanche_ed99
   knowledge_file: expected/snapshot_r2.json
-  knowledge_sha256: 1f6d1cbfb930a9a483abbb65039a0ab8ca70be097a7624563e374d076f0749e2
+  knowledge_sha256: f45959afee5f8a96667e1c51be702d24727e6b4badcb19c4e06548e765f76539
   prev_revision_id: rev_000000000000000000000000000000f1
   snapshot_revision_id: rev_000000000000000000000000000000f2
   supersedes_revision_id: rev_000000000000000000000000000000f1
+- assembly_seq: 3
+  base_snapshot_revision_id: rev_000000000000000000000000000000f2
+  editions:
+  - src_sanche_ed01
+  - src_sanche_ed99
+  identity_delta_file: expected/identity_delta_r3.json
+  identity_delta_sha256: 8d38c4a73afd6892a095f73495297852eeaaf680faaf3d03a5a121893c312817
+  knowledge_file: expected/snapshot_r3.json
+  knowledge_sha256: cb96034fd8e0715b73ee44ef88424de18f3e612c05e1ebafe6b4503b88aaec16
+  prev_revision_id: rev_000000000000000000000000000000f2
+  snapshot_revision_id: rev_000000000000000000000000000000f3
+  supersedes_revision_id: rev_000000000000000000000000000000f2
 round1_note: r1 由已验收创世引擎（pipeline.assembly.genesis）现算；其 editions[].reviewed_edition_package_revision_id
   / stage_package_id 仍是引擎当前未接线真实包身份时的占位值，B 波接线真实包身份后须按本生成器重建 r1。
 snapshot_artifact_id: art_000000000000000000000000000000f1
