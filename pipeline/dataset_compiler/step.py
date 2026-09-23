@@ -54,14 +54,9 @@ def _build_artifacts_map(service, revision_ids):
     """构建 {revision_id: (artifact_id, artifact_type)} 映射。"""
     result = {}
     for revision_id in set(revision_ids):
-        row = service.store.conn.execute(
-            "SELECT a.artifact_id, a.artifact_type FROM artifacts a "
-            "JOIN artifact_revisions r ON r.artifact_id = a.artifact_id "
-            "WHERE r.artifact_revision_id=?",
-            (revision_id,),
-        ).fetchone()
-        if row:
-            result[revision_id] = (row["artifact_id"], row["artifact_type"])
+        info = service.describe_revision(revision_id)
+        if info:
+            result[revision_id] = (info["artifact_id"], info["artifact_type"])
     return result
 
 
@@ -70,12 +65,8 @@ def _reconciliation(service, frozen):
     result = []
     for revision_id in frozen:
         revision = service.get_revision(revision_id)
-        artifact_type = service.store.conn.execute(
-            "SELECT a.artifact_type FROM artifacts a "
-            "JOIN artifact_revisions r ON r.artifact_id = a.artifact_id "
-            "WHERE r.artifact_revision_id=?",
-            (revision_id,),
-        ).fetchone()[0]
+        info = service.describe_revision(revision_id)
+        artifact_type = info["artifact_type"] if info else None
         result.append(
             {
                 "artifact_revision_id": revision_id,
@@ -131,7 +122,7 @@ def _read_and_verify_frozen(service, frozen):
     frozen_bytes = {}
     for revision_id in frozen:
         revision = service.get_revision(revision_id)
-        data = service.objects.get(revision["sha256"])
+        data = service.read_object(revision["sha256"])
         if hashlib.sha256(data).hexdigest() != revision["sha256"]:
             raise DatasetRefused(
                 "冻结修订 %s 对象内容哈希不一致（SRC_003）" % revision_id, code="SRC_003"
@@ -276,7 +267,7 @@ def run_m8(service, edition_part_id, *, consumption_level, min_app_version=None,
     # ---- 5) 冻结输入（按清单页序）与 begin（异常原样外抛）----
     manifest_revision = service.get_revision(inputs["manifest_revision_id"])
     manifest = yaml.safe_load(
-        service.objects.get(manifest_revision["sha256"]).decode("utf-8")
+        service.read_object(manifest_revision["sha256"]).decode("utf-8")
     )
     frozen = _assemble_frozen_inputs(inputs, manifest)
 
