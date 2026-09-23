@@ -457,3 +457,27 @@ ACT 24b 提交 `5aa4cd9`。主 Agent 独立复验：
 `affected_scope_exact` 去掉 rebuilt 等于 affected 的等式（§13.2）；
 为 §14.1 的静默覆盖点名加篡改用例；配对隔离从结果上做行为验证（§10.1）。
 Gate 独立性的禁止导入清单**加上 `orchestrate`**。
+
+---
+
+## 16. E 波验收（2026-09-22）
+
+ACT 25 提交 `48ed44c`。主 Agent 独立复验：
+- `assembly` 172 → **197 OK**；真书用例 `test_real_book_second_round_all_checks_pass` **实际运行（ok，非 skip）**
+- `gate.py` 只导入 `canonical`、`model`、`pipeline.ledger.ids` 与标准库，无 matcher/apply/incremental/orchestrate
+- `pending_e_wave` 已从 `step.py` 删除；七个冻结模块未动；`evaluate_genesis` 行为未改
+- 主 Agent 自做探针：让 `_asm_has_pairing_basis` 恒返回 True → **精确命中** `test_tamper_relation_without_deterministic_basis`
+
+**真书第二轮 13 项独立检查全部通过。** §15 里说"没经过独立检查、不能当通过引用"的那个 `succeeded`，
+现在经得起检查了。执行器动手前先用原型验证了 Gate 能只凭输入独立算出同样的闭包（fixture 与真书都相等），
+没有照搬被验对象的实现。
+
+### 16.1 留给 G 波的两件事
+
+1. **fixture `snapshot_r2.json` 金标已经过时**：它没有 `meta`、包身份是旧的，
+   跟现在增量路径的产出不是字节等价的（§8.4 当时只要求重建 r1）。
+   E 波没改金标、只判"13 项全过"，做法正确。G 波须**重建 r2 金标**（与 r1 同法：由实跑产出、不手写），
+   并恢复"增量产出与金标逐字节相同"这条判据。
+2. **`identity_delta_contract` 口径被迫放宽**：草稿要求 delta 的 `reason_ref.proposal_key` 必须出现在
+   **本轮提案**里，但 `report` 没记本轮提案键，执行器只能退而对照「总账里已落地的键 ∪ 决定 ∪ 沿用」。
+   G 波须让 `report` 记下本轮提案键，Gate 改回按草稿口径检查。
