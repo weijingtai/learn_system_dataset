@@ -91,16 +91,15 @@ tests_first: |
     test_undeclared_on_base_side_is_not_comparable                # 0004 不许出增文
     test_snapshot_editions_record_collation_units                 # §25.5
     test_null_endpoint_only_for_addition_and_omission             # §25.6
-    test_collation_all_four_kinds_end_to_end_through_run_m7       # R15：临时 Ledger，r1→ed99，四类全出，Gate 全过
-  Gate 篡改用例至少三条：自环、null 端点出现在 alignment、增文方向写反 → 各自 FAIL。
+    test_collation_all_four_kinds_end_to_end_through_run_m7       # R15：临时 Ledger，r1→ed99，四类全出（Gate 全过是合并后的集成判据）
+  （Gate 篡改用例归 ACT 30，本 ACT 不写。）
   修完后 probe_g_blockers.py：F2/F3/F4 必须全部 NOT REPRODUCED（若探针的前置准备因 fixture 变化而失效，
   只许改前置准备，不许改断言；改了什么写进回报）。
 verify: |
   cd /Users/jingtaiwei/Git/Public/learn_system && export LC_ALL=en_US.UTF-8
   .venv/bin/python -m unittest discover -s pipeline/assembly/tests -t . 2>&1 | tail -3     # OK；≥229 + 新增；不许新增 skip
   .venv/bin/python pipeline/assembly/tests/probe_g_blockers.py 2>&1 | grep -E "REPRODUCED|SUMMARY"   # 6 项全部 NOT REPRODUCED
-  bash openspec/acceptance/m7-assembler.sh; echo "exit=$?"        # 贴全文；期望 pass=17 fail=0 blocked=0，exit=0
-  bash openspec/acceptance/run_all.sh 20.5; echo "exit=$?"        # 期望 PASS
+  bash openspec/acceptance/m7-assembler.sh; echo "exit=$?"        # 贴全文；合并 ACT 30 之前 edition_collation 仍会 BLOCKED，其余不许退步
   bash pipeline/corpus/_fixture/mini_release01/verify.sh; echo "exit=$?"
   .venv/bin/python pipeline/corpus/_fixture/mini_release01/tools/build_fixture.py --check 2>&1 | tail -2
   for p in dataset_compiler review validation corpus_compiler; do
@@ -108,6 +107,7 @@ verify: |
       # corpus_compiler 中间几行 FAIL m3_acceptance 是已知噪声，以最后一行 OK 为准
   git diff --stat 64f2946 -- pipeline/assembly/matcher.py pipeline/assembly/canonical.py pipeline/assembly/inputs.py pipeline/assembly/step.py openspec/acceptance/run_all.sh openspec/acceptance/m7-assembler.sh pipeline/corpus/_fixture/mini_ed01/
       # 必须无输出
+  git diff --stat 84005f9 -- pipeline/assembly/gate.py pipeline/assembly/acceptance.py   # 必须无输出（归 ACT 30）
   .venv/bin/python -c "import ast;t=ast.parse(open('pipeline/assembly/gate.py').read());m={(n.module or '') for n in ast.walk(t) if isinstance(n,ast.ImportFrom)}|{a.name for n in ast.walk(t) if isinstance(n,ast.Import) for a in n.names};print([x for x in m if any(k in x for k in ('matcher','apply','incremental','orchestrate'))])"
       # 必须输出 []
   git status --short var/                                         # 无输出
@@ -123,9 +123,7 @@ commit:
     - pipeline/assembly/apply.py
     - pipeline/assembly/genesis.py
     - pipeline/assembly/model.py
-    - pipeline/assembly/gate.py
     - pipeline/assembly/orchestrate.py
-    - pipeline/assembly/acceptance.py
     - pipeline/assembly/tests/
     - pipeline/corpus/_fixture/mini_release01/
     - docs/blackbox-spec-rework/work-items/impl-07-assembly/act/29.yaml
