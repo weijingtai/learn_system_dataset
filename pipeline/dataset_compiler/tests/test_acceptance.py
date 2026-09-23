@@ -62,10 +62,13 @@ class AcceptanceMainTests(unittest.TestCase):
         self.assertEqual(_last_line(out), "SUMMARY pass=7 fail=0 blocked=1")
 
     @unittest.skipUnless(assets_available(), "本机缺三页真实页图")
-    def test_publication_eight_pass_one_blocked_exit_2(self):
+    def test_publication_eight_pass_three_blocked_exit_2(self):
+        # T02 新增 graph_projection、identity_migration 两条（供 run_all 20.9 / 20.11 读取）
         code, out = self._run(["--fixture", str(FIXTURE), "--check", "publication"])
         self.assertEqual(code, 2)
-        self.assertEqual(_last_line(out), "SUMMARY pass=8 fail=0 blocked=1")
+        self.assertEqual(_last_line(out), "SUMMARY pass=8 fail=0 blocked=3")
+        blocked = sorted(l.split()[1] for l in out.splitlines() if l.startswith("BLOCKED "))
+        self.assertEqual(blocked, ["graph_projection", "identity_migration", "knowledge_chain"])
 
     @unittest.skipUnless(assets_available(), "本机缺三页真实页图")
     def test_legacy_collision_exposed_numbers_recomputed(self):
@@ -77,22 +80,20 @@ class AcceptanceMainTests(unittest.TestCase):
         )
 
     @unittest.skipUnless(assets_available(), "本机缺三页真实页图")
-    def test_mentions_mapping_blocked_exact_text(self):
+    def test_mentions_mapping_blocked_states_observed_facts(self):
         _, out = self._run(["--fixture", str(FIXTURE), "--check", "span_identity"])
-        self.assertIn(
-            "BLOCKED mentions_mapping 前置缺失: M4 Knowledge Extraction；"
-            "concept→span mentions 映射未产出；SearchIndexPack 未产出（D14-C）",
-            out,
-        )
+        line = next(l for l in out.splitlines() if l.startswith("BLOCKED mentions_mapping "))
+        self.assertIn("实测 evidence_map_pack 无 mentions", line)
+        self.assertIn("search_index_pack", line)
 
     @unittest.skipUnless(assets_available(), "本机缺三页真实页图")
-    def test_knowledge_chain_blocked_exact_text(self):
+    def test_knowledge_chain_blocked_states_observed_facts(self):
+        # TODO.md T02：原先锁的是无条件输出的写死文案；现在理由必须是实测事实
         _, out = self._run(["--fixture", str(FIXTURE), "--check", "publication"])
-        self.assertIn(
-            "BLOCKED knowledge_chain 前置缺失: KnowledgeEntry→Assertion→EvidenceLink；"
-            "knowledge_chain=not_compiled",
-            out,
-        )
+        line = next(l for l in out.splitlines() if l.startswith("BLOCKED knowledge_chain "))
+        self.assertIn("实测 knowledge_chain=not_compiled", line)
+        self.assertIn("不含 M7 Snapshot", line)
+        self.assertIn("evidence_map_pack", line)
 
     @unittest.skipUnless(assets_available(), "本机缺三页真实页图")
     def test_tampered_span_golden_fails(self):

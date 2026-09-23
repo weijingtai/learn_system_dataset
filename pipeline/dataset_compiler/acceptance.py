@@ -63,13 +63,9 @@ _OFFSET_NA_SPAN_CHECKS = (
 )
 _OFFSET_NA_PUBLICATION_CHECKS = ("coordinate_frame",)
 
-MENTIONS_BLOCKED = (
-    "前置缺失: M4 Knowledge Extraction；concept→span mentions 映射未产出；"
-    "SearchIndexPack 未产出（D14-C）"
-)
-KNOWLEDGE_CHAIN_BLOCKED = (
-    "前置缺失: KnowledgeEntry→Assertion→EvidenceLink；knowledge_chain=not_compiled"
-)
+# TODO.md T02（2026-09-23）：以下各判据一律**看 M8 实际产出**再下结论，不许无条件输出 BLOCKED。
+# 子包没产出 → BLOCKED，理由写实测事实；子包产出了但内容校验尚未实现 → FAIL（防止接上函数就自动变绿）。
+_CONTENT_CHECK_PENDING = "已产出 %s，但本判据的内容校验尚未实现（TODO.md %s）——不许按已通过处理"
 
 _SUBPACK_TYPES = (
     "source_asset_pack",
@@ -597,6 +593,68 @@ def _check_fail_closed_levels(context):
     return True, "DEV_SEARCH/PUBLIC_RELEASE 均 admission 失败且无子包修订"
 
 
+# ------------------------------------------------------------------ 产出事实（T02）
+def _m8_output_facts(context):
+    """读出 M8 这次**实际**产出了什么：发布包里的子包、knowledge_chain 状态、是否以 M7 Snapshot 为输入、evidence 里的 mentions。"""
+    service = context["service"]
+    package = context["package"]
+    if package is None:
+        return None
+    payload = package.get("payload") or {}
+    publication = _read_revision_json(service, payload["publication_package_revision_id"])
+    packs = dict(publication.get("packs") or {})
+    evidence = _read_revision_json(service, packs["evidence_map_pack"]) if "evidence_map_pack" in packs else {}
+    input_types = sorted(
+        {ref.get("artifact_type") for ref in (package.get("manifest") or {}).get("input_artifacts") or []}
+        - {None}
+    )
+    return {
+        "packs": packs,
+        "knowledge_chain": payload.get("knowledge_chain"),
+        "input_types": input_types,
+        "mentions": evidence.get("mentions"),
+    }
+
+
+def _check_mentions_mapping(facts):
+    packs = sorted(facts["packs"])
+    if facts["mentions"]:
+        return ("mentions_mapping", "FAIL", _CONTENT_CHECK_PENDING % ("concept→span mentions", "T05a"))
+    if "search_index_pack" in facts["packs"]:
+        return ("mentions_mapping", "FAIL", _CONTENT_CHECK_PENDING % ("search_index_pack", "T05b"))
+    return (
+        "mentions_mapping",
+        "BLOCKED",
+        "实测 evidence_map_pack 无 mentions、发布包无 search_index_pack（发布包子包: %s）；"
+        "M8 未产出 concept→span 映射与 SearchIndexPack（TODO.md T05a/T05b）" % packs,
+    )
+
+
+def _check_knowledge_chain(facts):
+    state = facts["knowledge_chain"]
+    packs = sorted(facts["packs"])
+    has_pack = "knowledge_data_pack" in facts["packs"]
+    if state == "compiled" and not has_pack:
+        return ("knowledge_chain", "FAIL", "knowledge_chain=compiled，但发布包没有 knowledge_data_pack（子包: %s）" % packs)
+    if has_pack:
+        return ("knowledge_chain", "FAIL", _CONTENT_CHECK_PENDING % ("knowledge_data_pack", "T05f/T05c"))
+    has_snapshot = "canonical_snapshot" in facts["input_types"]
+    return (
+        "knowledge_chain",
+        "BLOCKED",
+        "实测 knowledge_chain=%s；M8 输入%s M7 Snapshot（输入类型: %s）；发布包子包: %s；"
+        "run_m8 尚未产出 KnowledgeDataPack（TODO.md T05f）"
+        % (state, "含" if has_snapshot else "不含", facts["input_types"], packs),
+    )
+
+
+def _check_subpack_produced(name, facts, pack_key, todo_id, why_absent):
+    packs = sorted(facts["packs"])
+    if pack_key in facts["packs"]:
+        return (name, "FAIL", _CONTENT_CHECK_PENDING % (pack_key, todo_id))
+    return (name, "BLOCKED", "实测发布包无 %s（子包: %s）；%s（TODO.md %s）" % (pack_key, packs, why_absent, todo_id))
+
+
 # ------------------------------------------------------------------ 组装结果
 def _route_check_status(name, route, na_checks, fail_detail):
     """按路线给出子判据状态：offset 档的不适用项 → NOT_APPLICABLE，否则 FAIL。
@@ -635,7 +693,7 @@ def _evaluate_span_identity(context):
             results.append(
                 _route_check_status(name, route, _OFFSET_NA_SPAN_CHECKS, detail)
             )
-        results.append(("mentions_mapping", "BLOCKED", MENTIONS_BLOCKED))
+        results.append(("mentions_mapping", "FAIL", "m8 StagePackage 缺失，无法核对 mentions: %s" % detail))
         return results
 
     loaded["page_order"] = context["manifest"]["edition_part"]["pages"]
@@ -657,7 +715,8 @@ def _evaluate_span_identity(context):
             results.append((name, NOT_APPLICABLE, _OFFSET_NOT_APPLICABLE_DETAIL))
         else:
             results.append(_safe(name, func))
-    results.append(("mentions_mapping", "BLOCKED", MENTIONS_BLOCKED))
+    facts = _m8_output_facts(context)
+    results.append(_check_mentions_mapping(facts))
     return results
 
 
@@ -689,7 +748,8 @@ def _evaluate_publication(context):
                 _route_check_status(name, route, _OFFSET_NA_PUBLICATION_CHECKS, detail)
             )
         results.append(("fail_closed_levels", "FAIL", detail))
-        results.append(("knowledge_chain", "BLOCKED", KNOWLEDGE_CHAIN_BLOCKED))
+        for name in ("knowledge_chain", "graph_projection", "identity_migration"):
+            results.append((name, "FAIL", "m8 StagePackage 缺失，无法核对: %s" % detail))
         return results
 
     loaded["page_order"] = context["manifest"]["edition_part"]["pages"]
@@ -725,7 +785,20 @@ def _evaluate_publication(context):
             results.append((name, NOT_APPLICABLE, _OFFSET_NOT_APPLICABLE_DETAIL))
         else:
             results.append(_safe(name, func))
-    results.append(("knowledge_chain", "BLOCKED", KNOWLEDGE_CHAIN_BLOCKED))
+    facts = _m8_output_facts(context)
+    results.append(_check_knowledge_chain(facts))
+    results.append(
+        _check_subpack_produced(
+            "graph_projection", facts, "graph_projection_pack", "T05d",
+            "run_m8 尚未产出 GraphProjectionPack",
+        )
+    )
+    results.append(
+        _check_subpack_produced(
+            "identity_migration", facts, "identity_migration_map", "T05e",
+            "本次只编译 1 个 Release，且 run_m8 尚未由 M7 identity_delta 生成 IdentityMigrationMap",
+        )
+    )
     return results
 
 

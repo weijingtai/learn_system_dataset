@@ -63,21 +63,47 @@ accept_check() {   # $1 条目号 $2 python 模块 $3 PASS 说明；其余参数
 #   FAIL    任一条目 FAIL（退出 1）
 #   MISSING 宿主缺失（退出 3：缺 fixture、缺页图、缺 .venv/依赖）
 M8_VERDICT_REASON=""
-m8_verdict() {   # $1 fixture_dir $2 check(span_identity|publication)
-  M8_VERDICT_REASON=""
-  if [ ! -x "$PY" ]; then
-    printf 'MISSING'
-    return 0
+# TODO.md T02（2026-09-23）：20.4 / 20.6 / 20.8 / 20.9 / 20.11 一律由 M8 验收的实际判据行决定，不许写死。
+M8_OUT_span_identity=""
+M8_OUT_publication=""
+m8_prime() {   # $1 check(span_identity|publication)：在当前 shell 里跑一次 M8 验收并缓存（不能在 $(...) 子进程里调，否则缓存丢失）
+  local var="M8_OUT_$1"
+  if [ -z "${!var}" ]; then
+    printf -v "$var" '%s' "$(cd "$REPO_ROOT" && "$PY" -m pipeline.dataset_compiler.acceptance --fixture "$FIXTURE_DIR" --check "$1" 2>&1)"
   fi
-  local out rc
-  out="$(cd "$REPO_ROOT" && "$PY" -m pipeline.dataset_compiler.acceptance --fixture "$1" --check "$2" 2>&1)"
-  rc=$?
-  case "$rc" in
-    0|2) printf 'OK' ;;
-    1) M8_VERDICT_REASON="$(printf '%s\n' "$out" | grep -m1 '^FAIL ' | sed 's/^FAIL //')"
-       printf 'FAIL' ;;
-    *) printf 'MISSING' ;;
+}
+m8_lines() {   # $1 check：打印已缓存的输出（调用前须先 m8_prime）
+  local var="M8_OUT_$1"
+  printf '%s\n' "${!var}"
+}
+m8_item_all() {   # $1 条目号 $2 check $3 说明：整组判据——任一 FAIL→FAIL；否则任一 BLOCKED→BLOCKED（理由取实测行）；否则 PASS
+  local out fails blocks
+  m8_prime "$2"
+  out="$(m8_lines "$2")"
+  fails="$(printf '%s\n' "$out" | grep '^FAIL ' | sed 's/^FAIL //' | paste -sd '；' -)"
+  blocks="$(printf '%s\n' "$out" | grep '^BLOCKED ' | sed 's/^BLOCKED //' | paste -sd '；' -)"
+  if [ -n "$fails" ]; then fail_line "$1" "M8 判定未通过" "$fails"
+  elif [ -n "$blocks" ]; then block_line "$1" "M8 Dataset Compilation" "$blocks"
+  elif printf '%s\n' "$out" | grep -q '^SUMMARY '; then pass_line "$1" "$3"
+  else block_line "$1" "测试宿主匮乏" "M8 验收未输出 SUMMARY"
+  fi
+}
+m8_item_one() {   # $1 条目号 $2 check $3 判据名 $4 PASS 时的说明：只看一条判据行
+  local line
+  m8_prime "$2"
+  line="$(m8_lines "$2" | grep -m1 "^[A-Z_]* $3 ")"
+  case "$line" in
+    "PASS $3 "*) pass_line "$1" "$4" ;;
+    "FAIL $3 "*) fail_line "$1" "M8 判定未通过" "${line#FAIL $3 }" ;;
+    "BLOCKED $3 "*) block_line "$1" "M8 Dataset Compilation" "${line#BLOCKED $3 }" ;;
+    *) block_line "$1" "测试宿主匮乏" "M8 验收未输出判据 $3" ;;
   esac
+}
+m8_host_ok() {   # 20.x 共用的宿主前置：fixture 与 .venv
+  fx
+  if [ "$FX_STATUS" = "MISSING" ]; then block_line "$1" "M3 Corpus Compilation" "fixture 缺失"; return 1; fi
+  if [ "$FX_STATUS" = "FAIL" ]; then fail_line "$1" "统一验收宿主校验未通过" "$FX_REASON"; return 1; fi
+  if [ ! -x "$PY" ]; then block_line "$1" "测试宿主匮乏" ".venv 缺失"; return 1; fi
   return 0
 }
 PY="$REPO_ROOT/.venv/bin/python"
@@ -250,24 +276,8 @@ run_item() {
       esac
       ;;
     20.4)
-      fx
-      if [ "$FX_STATUS" = "MISSING" ]; then
-        block_line "$n" "M3 Corpus Compilation" "fixture 缺失"
-        return 0
-      fi
-      if [ "$FX_STATUS" = "FAIL" ]; then
-        fail_line "$n" "统一验收宿主校验未通过" "$FX_REASON"
-        return 0
-      fi
-      if [ ! -x "$PY" ]; then
-        block_line "$n" "测试宿主匮乏" ".venv 缺失"
-        return 0
-      fi
-      case "$(m8_verdict "$FIXTURE_DIR" span_identity)" in
-        OK) block_line "$n" "M4 Knowledge Extraction" "已判定: m8-span-identity 7 PASS + mentions_mapping BLOCKED；候选/驳回项/正式知识未产出（§20:940）" ;;
-        FAIL) fail_line "$n" "M8 判定未通过" "$M8_VERDICT_REASON" ;;
-        MISSING) block_line "$n" "测试宿主匮乏" "缺 fixture 或本机页图" ;;
-      esac
+      m8_host_ok "$n" || return 0
+      m8_item_all "$n" span_identity "原始数据至发布物的片段级双向追溯全部判据通过（宿主 mini_ed01）"
       ;;
     20.5)
       # CHARTER §3.3 A′：20.5 的结论由 m7-assembler.sh 的**真实退出码**决定——
@@ -293,7 +303,13 @@ run_item() {
         fail_line "$n" "Pattern 补全语义缺失" "$SPEC 中不含 not_captured 语义约定"
         return 0
       fi
-      block_line "$n" "M8 Dataset Compilation" "KnowledgeEntry 编译未实现"
+      m8_host_ok "$n" || return 0
+      m8_prime publication
+      # 前提是 KnowledgeDataPack 真的产出；产出后 not_captured 补全的专项判据尚未实现，不许据此判 PASS
+      case "$(m8_lines publication | grep -m1 '^[A-Z_]* knowledge_chain ')" in
+        "PASS knowledge_chain "*) fail_line "$n" "判据未实现" "KnowledgeDataPack 已产出，但 not_captured 逐项补全的专项判据尚未实现（TODO.md T05c）" ;;
+        *) m8_item_one "$n" publication knowledge_chain "-" ;;
+      esac
       ;;
     20.7)
       if ! command -v sqlite3 >/dev/null 2>&1; then
@@ -326,27 +342,12 @@ run_item() {
       pass_line "$n" "官方 Candidate 准入可用（original_text 非空 ${eligible}/${total}，导入工具存在）"
       ;;
     20.8)
-      fx
-      if [ "$FX_STATUS" = "MISSING" ]; then
-        block_line "$n" "M3 Corpus Compilation" "fixture 缺失"
-        return 0
-      fi
-      if [ "$FX_STATUS" = "FAIL" ]; then
-        fail_line "$n" "统一验收宿主校验未通过" "$FX_REASON"
-        return 0
-      fi
-      if [ ! -x "$PY" ]; then
-        block_line "$n" "测试宿主匮乏" ".venv 缺失"
-        return 0
-      fi
-      case "$(m8_verdict "$FIXTURE_DIR" publication)" in
-        OK) block_line "$n" "M4 Knowledge Extraction" "已判定: publication 8 PASS + knowledge_chain BLOCKED；缺结构化知识（§20:944）" ;;
-        FAIL) fail_line "$n" "M8 判定未通过" "$M8_VERDICT_REASON" ;;
-        MISSING) block_line "$n" "测试宿主匮乏" "缺 fixture 或本机页图" ;;
-      esac
+      m8_host_ok "$n" || return 0
+      m8_item_all "$n" publication "PublicationPackage 含结构化知识与 SourceAssetPack 且全部判据通过（宿主 mini_ed01）"
       ;;
     20.9)
-      block_line "$n" "M8 Dataset Compilation" "GraphProjectionPack 未实现"
+      m8_host_ok "$n" || return 0
+      m8_item_one "$n" publication graph_projection "GraphProjectionPack 与移动端数据同源、往返无损"
       ;;
     20.10)
       if ! bash openspec/schemas/verify.sh >/dev/null 2>&1; then
@@ -357,7 +358,8 @@ run_item() {
       accept_check "$n" pipeline.contract_registry.acceptance "更换 OCR/模型/索引/存储 Adapter 不改变相邻 Module 的 Interface"
       ;;
     20.11)
-      block_line "$n" "M8 Dataset Compilation" "尚无两个 Release 可比，IdentityMigrationMap 未产出"
+      m8_host_ok "$n" || return 0
+      m8_item_one "$n" publication identity_migration "IdentityMigrationMap 产出且注解锚点可迁移率达标"
       ;;
     *)
       fail_line "$n" "未知条目" "run_all.sh 未定义该编号"
