@@ -5,7 +5,7 @@ revisions:
   editions:
   - src_sanche_ed01
   knowledge_file: expected/snapshot_r1.json
-  knowledge_sha256: c20c5148d046452fc00f83b3d1633cd81012170fd60c41ebda35c8e3cdfc891c
+  knowledge_sha256: 9240dc2eb9a06613e1b99040c9174e34fce932baefd540165e0b8109a23d6f92
   prev_revision_id: null
   snapshot_revision_id: rev_000000000000000000000000000000f1
   supersedes_revision_id: null
@@ -15,7 +15,7 @@ revisions:
   - src_sanche_ed01
   - src_sanche_ed99
   knowledge_file: expected/snapshot_r2.json
-  knowledge_sha256: f45959afee5f8a96667e1c51be702d24727e6b4badcb19c4e06548e765f76539
+  knowledge_sha256: a68fbb2ee40fe48f501aa6856690ebf04acefc8946ca1c0d835fe7cf24b7ecb7
   prev_revision_id: rev_000000000000000000000000000000f1
   snapshot_revision_id: rev_000000000000000000000000000000f2
   supersedes_revision_id: rev_000000000000000000000000000000f1
@@ -25,9 +25,9 @@ revisions:
   - src_sanche_ed01
   - src_sanche_ed99
   identity_delta_file: expected/identity_delta_r3.json
-  identity_delta_sha256: 8d38c4a73afd6892a095f73495297852eeaaf680faaf3d03a5a121893c312817
+  identity_delta_sha256: ae9340934aa05a748d01614b6aedd814263c055ceef7f7cf0b79f99abf7ddb56
   knowledge_file: expected/snapshot_r3.json
-  knowledge_sha256: cb96034fd8e0715b73ee44ef88424de18f3e612c05e1ebafe6b4503b88aaec16
+  knowledge_sha256: 373e78747640cdf56345f38dc1fddbff99a972a83bf04f89e41991043c4dd938
   prev_revision_id: rev_000000000000000000000000000000f2
   snapshot_revision_id: rev_000000000000000000000000000000f3
   supersedes_revision_id: rev_000000000000000000000000000000f2

@@ -1,7 +1,7 @@
 {
   "assertions": [
     {
-      "assertion_id": "as_qizheng_900001",
+      "assertion_id": "as_qizheng_900005",
       "collation_key": "sanche-0001",
       "concept_refs": [],
       "conditions": [],
@@ -23,7 +23,61 @@
         "lane": "main"
       },
       "proposition": "三辰通載",
-      "proposition_id": "pr_qizheng_900001",
+      "proposition_id": "pr_qizheng_900005",
+      "relation": "supports",
+      "school_ids": []
+    },
+    {
+      "assertion_id": "as_qizheng_900006",
+      "collation_key": "sanche-0003",
+      "concept_refs": [],
+      "conditions": [],
+      "content_status": "machine_extracted",
+      "evidence": [
+        {
+          "end_offset": 24,
+          "quote": "貴格之圗",
+          "quote_sha256": "a8f5f3c22a1c06bddb505b89ecee821172c2a067ac854ff3e5d0d10f17837954",
+          "source_span_id": "ss_sanche_ed01_p0003_s05",
+          "start_offset": 20,
+          "support_type": "direct"
+        }
+      ],
+      "exceptions": [],
+      "layer": "general",
+      "origin": {
+        "item_index": 1,
+        "lane": "main"
+      },
+      "proposition": "貴格之圖",
+      "proposition_id": "pr_qizheng_900006",
+      "relation": "supports",
+      "school_ids": []
+    },
+    {
+      "assertion_id": "as_qizheng_900007",
+      "collation_key": "sanche-0005",
+      "concept_refs": [],
+      "conditions": [],
+      "content_status": "machine_extracted",
+      "evidence": [
+        {
+          "end_offset": 24,
+          "quote": "貴格之圗",
+          "quote_sha256": "a8f5f3c22a1c06bddb505b89ecee821172c2a067ac854ff3e5d0d10f17837954",
+          "source_span_id": "ss_sanche_ed01_p0003_s05",
+          "start_offset": 20,
+          "support_type": "direct"
+        }
+      ],
+      "exceptions": [],
+      "layer": "general",
+      "origin": {
+        "item_index": 2,
+        "lane": "main"
+      },
+      "proposition": "貴格之圗",
+      "proposition_id": "pr_qizheng_900007",
       "relation": "supports",
       "school_ids": []
     },
@@ -46,7 +100,7 @@
       "exceptions": [],
       "layer": "general",
       "origin": {
-        "item_index": 1,
+        "item_index": 3,
         "lane": "main"
       },
       "proposition": "三辰通載目錄",
@@ -63,7 +117,19 @@
       "present": true
     },
     {
+      "collation_key": "sanche-0002",
+      "present": false
+    },
+    {
+      "collation_key": "sanche-0003",
+      "present": true
+    },
+    {
       "collation_key": "sanche-0004",
+      "present": true
+    },
+    {
+      "collation_key": "sanche-0005",
       "present": true
     },
     {
@@ -94,7 +160,7 @@
     }
   ],
   "counts": {
-    "assertions": 2,
+    "assertions": 4,
     "concept_mentions": 1,
     "disputes": 0,
     "new_concept_candidates": 0,
@@ -109,12 +175,12 @@
   "patterns": [
     {
       "assertion_ids": [
-        "as_qizheng_900001",
-        "as_qizheng_900004"
+        "as_qizheng_900005",
+        "as_qizheng_900006"
       ],
       "content_status": "machine_extracted",
       "evidence": [],
-      "interpretation": "第二版次同格局，另添目錄主張",
+      "interpretation": "第二版次同格局，另添異文與目錄主張",
       "interpretation_status": "captured",
       "name": "三辰通載貴格",
       "origin": {
@@ -142,7 +208,8 @@
     },
     {
       "assertion_ids": [
-        "as_qizheng_900004"
+        "as_qizheng_900004",
+        "as_qizheng_900007"
       ],
       "content_status": "machine_extracted",
       "evidence": [],

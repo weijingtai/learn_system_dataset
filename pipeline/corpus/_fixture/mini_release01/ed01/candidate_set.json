@@ -96,6 +96,10 @@
     {
       "collation_key": "sanche-0003",
       "present": true
+    },
+    {
+      "collation_key": "sanche-0005",
+      "present": false
     }
   ],
   "concept_mentions": [

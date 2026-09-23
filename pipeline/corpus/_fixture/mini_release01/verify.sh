@@ -236,9 +236,25 @@ else:
         v5_bad.append("r2 金标与增量实跑产出不是字节等价的")
     if run["status"] == "complete" and run["result"]["knowledge"]["meta"]["base_snapshot_revision_id"] != r1_rev:
         v5_bad.append("r2.meta.base_snapshot_revision_id 不是计划里的 r1 修订号")
-    # 不可比单元必须如实入册（夹具声明的无 collation_key 单元；不得静默跳过）
+    # 不可比单元必须如实入册（CHARTER §28b / §29 Q11）：形状恰为
+    # {source_id, collation_key, assertion_id, reason}，排序键 (source_id, collation_key or "", assertion_id or "")。
+    # r2 恰 2 项：ed99 的 null 键声明（missing_collation_key）+ ed01 未声明的 sanche-0004（base_undeclared）。
+    expected_rows = [
+        {
+            "source_id": ed99["source_id"],
+            "collation_key": None,
+            "assertion_id": None,
+            "reason": "missing_collation_key",
+        },
+        {
+            "source_id": ed99["source_id"],
+            "collation_key": "sanche-0004",
+            "assertion_id": None,
+            "reason": "base_undeclared",
+        },
+    ]
     rows = run["result"]["collation"]["not_comparable"] if run["status"] == "complete" else []
-    if len(rows) != 1 or rows[0].get("reason") != "missing_collation_key":
+    if rows != expected_rows:
         v5_bad.append("collation.not_comparable 与夹具声明不符: %r" % (rows,))
 
 # r3（同书返工）金标必须逐字节等于「r2 → ed01r2」的**增量实跑**产出

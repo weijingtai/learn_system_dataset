@@ -58,6 +58,8 @@ SPAN_C = "ss_sanche_ed01_p0003_s03"  # 三辰通載目錄
 A1 = "as_qizheng_000001"
 A2 = "as_qizheng_000002"
 A_B = "as_qizheng_000003"
+#: 版次二**自己发号**的对齐断言（CHARTER §25.1：一个 `as_` 号只属于一个版次）
+A_ED2 = "as_qizheng_000101"
 A_C = "as_qizheng_000004"
 PAT1 = "pat_qizheng_000001"
 PAT_TOP = "pat_qizheng_000003"
@@ -308,16 +310,20 @@ def view_ed01() -> dict:
 
 
 def view_ed02() -> dict:
-    """版次二（增量轮）：同名断言（同号同命题、不同证据）、异读断言、格局与概念并入。"""
+    """版次二（增量轮）：**自己发号**的对齐断言、异读断言、格局与概念并入。
+
+    CHARTER §25.1：一个 `as_` 号只属于一个版次——本视图不再沿用基底的 `A1`，
+    而是自己发 `A_ED2`（同单元同文、另外一个号）。
+    """
     source_id = "src_sanche_ed02"
     cset = candidate_set(
         source_id,
         ART_ED2,
         assertions=[
-            assertion(A1, "三辰通載", CK_TRANSCRIPT, SPAN_C, school_ids=[SCH1]),
+            assertion(A_ED2, "三辰通載", CK_TRANSCRIPT, SPAN_C, school_ids=[SCH1]),
             assertion(A_B, "三辰通載目錄", CK_TRANSCRIPT, SPAN_C, school_ids=[SCH2]),
         ],
-        patterns=[pattern("三辰通載貴格", [A1, A_B], pattern_id=PAT1)],
+        patterns=[pattern("三辰通載貴格", [A_ED2, A_B], pattern_id=PAT1)],
         school_views=[school_view(SV2, SCH2, A_B, source_id=source_id)],
         concept_mentions=[concept_mention("通載", CO1)],
         collation_units=[{"collation_key": CK_TRANSCRIPT, "present": True}],
@@ -328,10 +334,10 @@ def view_ed02() -> dict:
         candidate_package_revision_id=CP2,
         validation_package_revision_id=VAL2,
         approved=[
-            (A1, "assertion"), (A_B, "assertion"), (PAT1, "pattern"),
+            (A_ED2, "assertion"), (A_B, "assertion"), (PAT1, "pattern"),
             (CO1, "concept"), (SV2, "school_view"),
         ],
-        links=[(A1, SPAN_C), (A_B, SPAN_C)],
+        links=[(A_ED2, SPAN_C), (A_B, SPAN_C)],
         school_views=[
             {"school_view_id": SV2, "school_id": SCH2, "subject_entity_id": A_B,
              "conflict_group_id": CG1, "changes_current_judgment": True}
@@ -447,9 +453,10 @@ def round1_result(*, meta=None) -> dict:
 def round2_proposals() -> list:
     """自造的增量轮提案集（覆盖 attach / alias / 对勘三类）。
 
-    `R08` 的 `targets` 显式给出配对两侧（基底侧 A1 ↔ 候选侧 A_B）：**配对由提案确立**，
-    apply 不得自己比对。B 波在同号情形下产出 R07b（人工），本用例用构造提案驱动
-    `variant_reading`，目的是验证 §11.3（difflib 只记录、不裁定），见回报 §3.4。
+    `R08` 的 `targets` 显式给出配对两侧（CHARTER §25.6/§25.7：`[新版断言, 旧版断言]`
+    = `[候选侧 A_B, 基底侧 A1]`）：**配对由提案确立**，apply 不得自己比对。
+    本用例用构造提案驱动 `variant_reading`，目的是验证 §11.3（difflib 只记录、不裁定），
+    见回报 §3.4。
     """
     return [
         proposal(
@@ -462,7 +469,7 @@ def round2_proposals() -> list:
         ),
         proposal(
             "evidence", "R08", ["collation", "src_sanche_ed02", CK_TRANSCRIPT, "src_sanche_ed01"],
-            auto_choice="variant_reading", targets=[A1, A_B],
+            auto_choice="variant_reading", targets=[A_B, A1],
         ),
     ]
 
@@ -563,26 +570,31 @@ class TestApplyResolutions(unittest.TestCase):
 
     # -------------------------------------------------------- affected 原样拷贝
     def test_untouched_base_objects_are_copied_verbatim(self):
-        """`affected` 集合外的基底对象必须从基座**原样拷贝**，不得重新构造。"""
-        base = round1()
-        base["patterns"][0]["aliases"] = ["keep-me-marker"]  # 重建必定丢掉的痕迹
-        base_bytes = canonical_json(base["patterns"][0])
+        """`affected` 集合外的基底对象必须从基座**原样拷贝**，不得重新构造。
 
-        result = m7_apply.apply_resolutions(
-            base, [view_ed02()], round2_proposals(), round2_decisions(), affected={A1}
+        本轮的触点：`PAT1`（R01 并入）在内，A1（只被对勘关系引用、没有断言级改动）在外。
+        """
+        base = round1()
+        base["assertions"][0]["probe_marker"] = "keep-me-marker"  # 重建必定丢掉的痕迹
+        base_bytes = canonical_json(
+            [item for item in base["assertions"] if item["assertion_id"] == A1][0]
         )
 
-        patterns = {item["pattern_id"]: item for item in result["knowledge"]["patterns"]}
-        self.assertIn(PAT1, patterns)
+        result = m7_apply.apply_resolutions(
+            base, [view_ed02()], round2_proposals(), round2_decisions(), affected={PAT1}
+        )
+
+        assertions = {item["assertion_id"]: item for item in result["knowledge"]["assertions"]}
+        self.assertIn(A1, assertions)
         self.assertEqual(
-            canonical_json(patterns[PAT1]),
+            canonical_json(assertions[A1]),
             base_bytes,
             "集合外基底对象必须逐字节原样拷贝（含重建不会产生的字段）",
         )
         self.assertNotIn(
-            PAT1, result["rebuilt_entity_ids"], "集合外对象不得计为「已重建」"
+            A1, result["rebuilt_entity_ids"], "集合外对象不得计为「已重建」"
         )
-        self.assertIn(A1, result["rebuilt_entity_ids"], "集合内对象须计为「已重建」")
+        self.assertIn(PAT1, result["rebuilt_entity_ids"], "集合内对象须计为「已重建」")
 
     # -------------------------------------------------------- §8.1 发号
     def test_admit_new_allocates_from_approved_max_only(self):
@@ -941,8 +953,8 @@ class TestApplyResolutions(unittest.TestCase):
         self.assertEqual(entry["entity_kind"], "assertion")
         allocation = entry["span_allocation"]
         self.assertEqual(
-            sorted(allocation), ["as_qizheng_000004", "as_qizheng_000005"],
-            "占位名须按升序替换为新号（在 A_B=000003 之后顺延，不依赖字典插入序）",
+            sorted(allocation), ["as_qizheng_000102", "as_qizheng_000103"],
+            "占位名须按升序替换为新号（在视图已用的 A_ED2=000101 之后顺延，不依赖字典插入序）",
         )
         self.assertEqual(
             [allocation[key] for key in sorted(allocation)], [[SPAN_B], [SPAN_C]]
@@ -966,7 +978,8 @@ class TestApplyResolutions(unittest.TestCase):
         decisions = round2_decisions(props) + [
             decision(
                 split_prop, "split", targets=[A1],
-                span_allocation={"new_a": [SPAN_A], "new_b": [SPAN_C]},
+                # A1 在基底上只有一条证据片段（§25.1 后版次二不再把证据并进 A1）
+                span_allocation={"new_a": [SPAN_A]},
             )
         ]
         with self.assertRaises(AssemblyRefused) as ctx:
@@ -1036,18 +1049,45 @@ class TestApplyResolutions(unittest.TestCase):
 
     # -------------------------------------------------------- as_/co_ 碰撞
     def test_as_co_collision_fails_closed(self):
-        """contract 三：`as_`/`co_` 不由 M7 发号，只做碰撞检测，冲突即 ID_002 fail-closed。"""
+        """contract 三：`as_`/`co_` 不由 M7 发号，只做碰撞检测，冲突即 ID_002 fail-closed。
+
+        两侧：① 跨版次沿用（CHARTER §25.1）—— 别的版次带着基底另一个版次的号一律拒收；
+        ② 同版次同号异命题 —— 同号必须同命题，否则撞号 fail-closed。
+        """
         base = round1()
         clash = view_ed02()
-        # 已正式号 A1 在基底上指向「三辰通載」；候选却用同一个号声称完全不同的命题
+        # ① 跨版次沿用：已正式号 A1 属于基底版次 src_sanche_ed01，本视图不得沿用
         clash["candidate_set"]["assertions"][0] = assertion(
-            A1, "另一件完全不同的事", CK_TRANSCRIPT, SPAN_C
+            A1, "三辰通載", CK_TRANSCRIPT, SPAN_C
         )
         clash["candidate_set"]["assertions"][0]["proposition_id"] = "pr_qizheng_000001"
+        # 格局的成员表与审核结论跟着换号，否则先撞上「pattern.assertion_ids 悬空」
+        # 或因为没获批而根本不进 `_build_assertions`
+        clash["candidate_set"]["patterns"][0]["assertion_ids"] = [A1, A_B]
+        clash["reviewed_edition"]["approved"] = [
+            dict(item, entity_id=A1) if item["entity_id"] == A_ED2 else item
+            for item in clash["reviewed_edition"]["approved"]
+        ]
+        clash["reviewed_edition"]["evidence_links"] = [
+            dict(link, entity_id=A1) if link["entity_id"] == A_ED2 else link
+            for link in clash["reviewed_edition"]["evidence_links"]
+        ]
 
         with self.assertRaises(DuplicateIdentifier) as ctx:
             m7_apply.apply_resolutions(base, [clash], round2_proposals(), round2_decisions())
         self.assertEqual(getattr(ctx.exception, "code", None), "ID_002")
+        self.assertIn("跨版次沿用断言号", str(ctx.exception))
+
+        # ② 同版次同号异命题：A1 在基底上指向「三辰通載」，同版次的候选却声称完全不同的命题
+        same_edition = view_ed01()
+        same_edition["candidate_set"]["assertions"][0] = assertion(
+            A1, "另一件完全不同的事", CK_TRANSCRIPT, SPAN_A
+        )
+        same_edition["candidate_set"]["assertions"][0]["proposition_id"] = "pr_qizheng_000001"
+        with self.assertRaises(DuplicateIdentifier) as ctx2:
+            m7_apply.apply_resolutions(base, [same_edition], [], [])
+        self.assertEqual(getattr(ctx2.exception, "code", None), "ID_002")
+        self.assertIn("撞号 fail-closed", str(ctx2.exception))
 
     # -------------------------------------------------------- IdentityDelta 键序
     def test_identity_delta_entry_key_order_verbatim(self):

@@ -17,6 +17,7 @@ from .canonical import (
 )
 from .errors import AssemblyRefused
 from .model import (
+    declared_collation_units,
     empty_snapshot_knowledge,
     validate_candidate_set,
     validate_reviewed_edition,
@@ -306,6 +307,9 @@ def assemble_genesis(
             "edition_complete": False,
             "evidence_level": ev_level,
             "corpus_spans_revision_id": corpus_spans_revision_id,
+            # CHARTER §25.5：创世时也要记下**本版次声明过哪些可比单元**
+            # （基底一侧的「声明」只从这个字段读，不再从断言推）
+            "collation_units": declared_collation_units(cset_doc),
         }
     ]
 

@@ -3,6 +3,7 @@
 import copy
 import re
 from dataclasses import dataclass, field
+from typing import Dict, List
 
 from pipeline.ledger import ids
 from pipeline.ledger.errors import (
@@ -479,6 +480,44 @@ def validate_snapshot_knowledge(knowledge: dict) -> None:
                 "editions 条目缺必填字段 corpus_spans_revision_id（source_id=%r）" % ed.get("source_id"),
                 code="SCH_001",
             )
+        # CHARTER §25.5：`collation_units` 必填（没声明就是 []），按 `collation_key` 升序。
+        # 基底一侧的「声明过哪些单元」**只从这里读**，不得再从断言推。
+        if "collation_units" not in ed:
+            raise SchemaViolation(
+                "editions 条目缺必填字段 collation_units（source_id=%r）" % ed.get("source_id"),
+                code="SCH_001",
+            )
+        units = ed["collation_units"]
+        if not isinstance(units, list):
+            raise SchemaViolation(
+                "editions 条目 collation_units 必须为列表（source_id=%r）" % ed.get("source_id"),
+                code="SCH_002",
+            )
+        unit_keys = []
+        for unit in units:
+            if not isinstance(unit, dict) or "collation_key" not in unit or "present" not in unit:
+                raise SchemaViolation(
+                    "editions 条目 collation_units 每项必须含 collation_key 与 present"
+                    "（source_id=%r）: %r" % (ed.get("source_id"), unit),
+                    code="SCH_002",
+                )
+            if not unit["collation_key"]:
+                raise SchemaViolation(
+                    "editions 条目 collation_units 的 collation_key 不得为空"
+                    "（未声明就是 []，见 CHARTER §25.5）: %r" % (unit,),
+                    code="SCH_002",
+                )
+            if not isinstance(unit["present"], bool):
+                raise SchemaViolation(
+                    "editions 条目 collation_units 的 present 必须为布尔值: %r" % (unit,),
+                    code="SCH_002",
+                )
+            unit_keys.append(unit["collation_key"])
+        if unit_keys != sorted(unit_keys) or len(unit_keys) != len(set(unit_keys)):
+            raise SchemaViolation(
+                "editions 条目 collation_units 必须按 collation_key 升序且互异: %r" % (unit_keys,),
+                code="SCH_002",
+            )
     _check_sorted(knowledge.get("concepts", []), key_fn=lambda x: x["concept_id"], name="concepts")
     _check_sorted(knowledge.get("patterns", []), key_fn=lambda x: x["pattern_id"], name="patterns")
     patterns_ids = [p["pattern_id"] for p in knowledge.get("patterns", [])]
@@ -601,6 +640,25 @@ def validate_snapshot_knowledge(knowledge: dict) -> None:
 
     # 校验 relations 活对象端点
     for rel in knowledge.get("relations", []):
+        from_id = rel.get("from_entity_id")
+        to_id = rel.get("to_entity_id")
+        # CHARTER §25.1：关系两端相同（自环）一律拒收
+        if from_id is not None and to_id is not None and from_id == to_id:
+            raise SchemaViolation(
+                "关系两端相同（自环）: %s（%s）" % (rel.get("relation_key"), from_id),
+                code="SCH_002",
+            )
+        # CHARTER §25.6：`null` 端点只许出现在 addition / omission
+        if (
+            (from_id is None or to_id is None)
+            and rel.get("relation_kind") in COLLATION_RELATION_KINDS
+            and rel.get("relation_kind") not in COLLATION_NULL_ENDED_KINDS
+        ):
+            raise SchemaViolation(
+                "对勘关系不得有 null 端点（只许 addition / omission）: %s（%s）"
+                % (rel.get("relation_key"), rel.get("relation_kind")),
+                code="SCH_002",
+            )
         for ep in ("from_entity_id", "to_entity_id"):
             val = rel.get(ep)
             if val is not None and val not in all_alive:
@@ -649,6 +707,50 @@ PROPOSAL_RESOLUTIONS = ("auto", "human", "blocked", "decided")
 
 #: CHARTER §3.1：配对的全部可用依据（本波只允许这三条确定性依据）
 PAIR_STRATEGIES = ("exact_collation_key", "shared_evidence_span", "same_formal_object")
+
+#: 对勘四类关系（CHARTER §25.6；`apply.COLLATION_KINDS` 与 `model` 同一处定义，避免两套口径）
+COLLATION_RELATION_KINDS = ("alignment", "variant_reading", "addition", "omission")
+
+#: 允许 `null` 端点的对勘关系（§25.6：其余对勘关系出现 `null` → 拒收）
+COLLATION_NULL_ENDED_KINDS = ("addition", "omission")
+
+
+def require_base_collation_units(base: dict) -> None:
+    """CHARTER §29 Q9：合并前先校验**基底** Snapshot 的 `editions[].collation_units`。
+
+    账本里旧引擎封存的 Snapshot 确实没有这个字段；**不许把缺字段静默当作空**
+    （那会让基底一侧的声明退化成「全部未声明」，把整轮对勘悄悄关掉）。
+    缺字段 → `SchemaViolation`，message 含「基底 Snapshot 缺 collation_units，须先迁移」。
+    """
+    if not isinstance(base, dict):
+        return
+    for edition in base.get("editions") or []:
+        if not isinstance(edition, dict) or "collation_units" in edition:
+            continue
+        raise SchemaViolation(
+            "基底 Snapshot 缺 collation_units，须先迁移（source_id=%r；CHARTER §29 Q9）"
+            % edition.get("source_id"),
+            code="SCH_001",
+        )
+
+
+def declared_collation_units(candidate_set: dict) -> List[dict]:
+    """把视图**声明**的可比单元规约成 `editions[].collation_units`（CHARTER §25.5）。
+
+    - 只取 `collation_key` 非空的声明（没声明就是 `[]`；无键位置不可比，不进这里）；
+    - 每项 `{collation_key, present}`，按 `collation_key` 升序；
+    - `present` 缺省视为 `True`（与 :func:`matcher.units_of_view` 同一默认值）。
+
+    `genesis` 与 `apply._merge_editions` 共用这一个口径，避免两套写法。
+    """
+    presence: Dict[str, bool] = {}
+    for entry in candidate_set.get("collation_units") or []:
+        key = entry.get("collation_key")
+        if key:
+            presence[key] = bool(entry.get("present", True))
+    return [
+        {"collation_key": key, "present": presence[key]} for key in sorted(presence)
+    ]
 
 
 @dataclass(frozen=True)

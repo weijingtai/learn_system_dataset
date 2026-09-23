@@ -6,7 +6,7 @@
       "decision_revision_ids": [
         "rev_0000000000000000000000000000e001"
       ],
-      "entity_id": "as_qizheng_900001",
+      "entity_id": "as_qizheng_900005",
       "kind": "assertion"
     },
     {
@@ -15,7 +15,7 @@
       "decision_revision_ids": [
         "rev_0000000000000000000000000000e002"
       ],
-      "entity_id": "as_qizheng_900004",
+      "entity_id": "as_qizheng_900006",
       "kind": "assertion"
     },
     {
@@ -24,8 +24,8 @@
       "decision_revision_ids": [
         "rev_0000000000000000000000000000e003"
       ],
-      "entity_id": "pat_qizheng_900001",
-      "kind": "pattern"
+      "entity_id": "as_qizheng_900007",
+      "kind": "assertion"
     },
     {
       "artifact_revision_id": "rev_00000000000000000000000000000090",
@@ -33,8 +33,8 @@
       "decision_revision_ids": [
         "rev_0000000000000000000000000000e004"
       ],
-      "entity_id": "pat_qizheng_900002",
-      "kind": "pattern"
+      "entity_id": "as_qizheng_900004",
+      "kind": "assertion"
     },
     {
       "artifact_revision_id": "rev_00000000000000000000000000000090",
@@ -42,7 +42,7 @@
       "decision_revision_ids": [
         "rev_0000000000000000000000000000e005"
       ],
-      "entity_id": "pat_qizheng_900003",
+      "entity_id": "pat_qizheng_900001",
       "kind": "pattern"
     },
     {
@@ -51,6 +51,24 @@
       "decision_revision_ids": [
         "rev_0000000000000000000000000000e006"
       ],
+      "entity_id": "pat_qizheng_900002",
+      "kind": "pattern"
+    },
+    {
+      "artifact_revision_id": "rev_00000000000000000000000000000090",
+      "content_status": "machine_extracted",
+      "decision_revision_ids": [
+        "rev_0000000000000000000000000000e007"
+      ],
+      "entity_id": "pat_qizheng_900003",
+      "kind": "pattern"
+    },
+    {
+      "artifact_revision_id": "rev_00000000000000000000000000000090",
+      "content_status": "machine_extracted",
+      "decision_revision_ids": [
+        "rev_0000000000000000000000000000e008"
+      ],
       "entity_id": "co_qizheng_900001",
       "kind": "concept"
     },
@@ -58,7 +76,7 @@
       "artifact_revision_id": "rev_00000000000000000000000000000090",
       "content_status": "machine_extracted",
       "decision_revision_ids": [
-        "rev_0000000000000000000000000000e007"
+        "rev_0000000000000000000000000000e009"
       ],
       "entity_id": "sv_00000000000000000000000000000002",
       "kind": "school_view"
@@ -75,11 +93,11 @@
       "decision_revision_id": "rev_0000000000000000000000000000e001",
       "decision_type": "review_source_fidelity",
       "modified_revision_id": null,
-      "queue_item_id": "as_qizheng_900001#review_source_fidelity",
+      "queue_item_id": "as_qizheng_900005#review_source_fidelity",
       "seen_artifact_revision_id": "rev_00000000000000000000000000000090",
       "standing": "active",
       "synthetic_fixture": true,
-      "target_entity_id": "as_qizheng_900001",
+      "target_entity_id": "as_qizheng_900005",
       "trigger_correction_request_id": null,
       "verdict": "accept"
     },
@@ -88,6 +106,36 @@
       "carried_to_revision_id": null,
       "current_target_revision_id": "rev_00000000000000000000000000000090",
       "decision_revision_id": "rev_0000000000000000000000000000e002",
+      "decision_type": "review_source_fidelity",
+      "modified_revision_id": null,
+      "queue_item_id": "as_qizheng_900006#review_source_fidelity",
+      "seen_artifact_revision_id": "rev_00000000000000000000000000000090",
+      "standing": "active",
+      "synthetic_fixture": true,
+      "target_entity_id": "as_qizheng_900006",
+      "trigger_correction_request_id": null,
+      "verdict": "accept"
+    },
+    {
+      "carried_from_revision_id": null,
+      "carried_to_revision_id": null,
+      "current_target_revision_id": "rev_00000000000000000000000000000090",
+      "decision_revision_id": "rev_0000000000000000000000000000e003",
+      "decision_type": "review_source_fidelity",
+      "modified_revision_id": null,
+      "queue_item_id": "as_qizheng_900007#review_source_fidelity",
+      "seen_artifact_revision_id": "rev_00000000000000000000000000000090",
+      "standing": "active",
+      "synthetic_fixture": true,
+      "target_entity_id": "as_qizheng_900007",
+      "trigger_correction_request_id": null,
+      "verdict": "accept"
+    },
+    {
+      "carried_from_revision_id": null,
+      "carried_to_revision_id": null,
+      "current_target_revision_id": "rev_00000000000000000000000000000090",
+      "decision_revision_id": "rev_0000000000000000000000000000e004",
       "decision_type": "review_source_fidelity",
       "modified_revision_id": null,
       "queue_item_id": "as_qizheng_900004#review_source_fidelity",
@@ -102,7 +150,7 @@
       "carried_from_revision_id": null,
       "carried_to_revision_id": null,
       "current_target_revision_id": "rev_00000000000000000000000000000090",
-      "decision_revision_id": "rev_0000000000000000000000000000e003",
+      "decision_revision_id": "rev_0000000000000000000000000000e005",
       "decision_type": "review_source_fidelity",
       "modified_revision_id": null,
       "queue_item_id": "pat_qizheng_900001#review_source_fidelity",
@@ -117,7 +165,7 @@
       "carried_from_revision_id": null,
       "carried_to_revision_id": null,
       "current_target_revision_id": "rev_00000000000000000000000000000090",
-      "decision_revision_id": "rev_0000000000000000000000000000e004",
+      "decision_revision_id": "rev_0000000000000000000000000000e006",
       "decision_type": "review_source_fidelity",
       "modified_revision_id": null,
       "queue_item_id": "pat_qizheng_900002#review_source_fidelity",
@@ -132,7 +180,7 @@
       "carried_from_revision_id": null,
       "carried_to_revision_id": null,
       "current_target_revision_id": "rev_00000000000000000000000000000090",
-      "decision_revision_id": "rev_0000000000000000000000000000e005",
+      "decision_revision_id": "rev_0000000000000000000000000000e007",
       "decision_type": "review_source_fidelity",
       "modified_revision_id": null,
       "queue_item_id": "pat_qizheng_900003#review_source_fidelity",
@@ -147,7 +195,7 @@
       "carried_from_revision_id": null,
       "carried_to_revision_id": null,
       "current_target_revision_id": "rev_00000000000000000000000000000090",
-      "decision_revision_id": "rev_0000000000000000000000000000e006",
+      "decision_revision_id": "rev_0000000000000000000000000000e008",
       "decision_type": "review_source_fidelity",
       "modified_revision_id": null,
       "queue_item_id": "co_qizheng_900001#review_source_fidelity",
@@ -162,7 +210,7 @@
       "carried_from_revision_id": null,
       "carried_to_revision_id": null,
       "current_target_revision_id": "rev_00000000000000000000000000000090",
-      "decision_revision_id": "rev_0000000000000000000000000000e007",
+      "decision_revision_id": "rev_0000000000000000000000000000e009",
       "decision_type": "review_source_fidelity",
       "modified_revision_id": null,
       "queue_item_id": "sv_00000000000000000000000000000002#review_source_fidelity",
@@ -179,10 +227,26 @@
     {
       "corpus_spans_revision_id": "rev_00000000000000000000000000000a01",
       "end_offset": 15,
-      "entity_id": "as_qizheng_900001",
+      "entity_id": "as_qizheng_900005",
       "quote_sha256": "af49ac1d54e5cbcfec816ba54e2f3edf812bd3fb024e8656c1f3c6abe18172f8",
       "source_span_id": "ss_sanche_ed01_p0003_s03",
       "start_offset": 9
+    },
+    {
+      "corpus_spans_revision_id": "rev_00000000000000000000000000000a01",
+      "end_offset": 24,
+      "entity_id": "as_qizheng_900006",
+      "quote_sha256": "a8f5f3c22a1c06bddb505b89ecee821172c2a067ac854ff3e5d0d10f17837954",
+      "source_span_id": "ss_sanche_ed01_p0003_s05",
+      "start_offset": 20
+    },
+    {
+      "corpus_spans_revision_id": "rev_00000000000000000000000000000a01",
+      "end_offset": 24,
+      "entity_id": "as_qizheng_900007",
+      "quote_sha256": "a8f5f3c22a1c06bddb505b89ecee821172c2a067ac854ff3e5d0d10f17837954",
+      "source_span_id": "ss_sanche_ed01_p0003_s05",
+      "start_offset": 20
     },
     {
       "corpus_spans_revision_id": "rev_00000000000000000000000000000a01",

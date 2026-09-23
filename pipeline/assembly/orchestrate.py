@@ -103,6 +103,8 @@ def _index_base(base: dict) -> Dict[str, Any]:
     index["conflict_groups"] = {
         item["conflict_group_id"]: item for item in base.get("conflict_groups") or []
     }
+    # CHARTER §25.5：基底一侧「声明过哪些可比单元」只从 editions[].collation_units 读
+    index["editions"] = base.get("editions") or []
     return index
 
 
@@ -118,18 +120,31 @@ def _work_key_or_none(source_id: Optional[str]) -> Optional[str]:
 
 
 def _collation_contacts(index: Dict[str, Any], collation_key: Optional[str], wk: Optional[str]) -> Set[str]:
-    """基底中同 `(work_key, collation_key)` 的 Assertion（精确键相等，不做配对判断）。"""
+    """基底中**声明过**该可比单元的版次里的 Assertion（CHARTER §25.5/§25.8）。
+
+    基底一侧的声明**只从 `editions[].collation_units` 读**，不再从断言反推：
+    - 版次对该键声明 `present == false`（或没声明）→ 基底该侧没有对应对象，贡献空集；
+    - 声明 `present == true` → 该版次 source_id 下同 `collation_key` 的 Assertion 入触点。
+    `wk` 非空时只认同 `work_key` 的版次（`work_key` 缺省按 source_id 推）。
+    """
     if not collation_key:
         return set()
-    out = set()
-    for assertion_id, assertion in index["assertions"].items():
-        if assertion.get("collation_key") != collation_key:
+    out: Set[str] = set()
+    for edition in index["editions"]:
+        units = {unit.get("collation_key"): unit for unit in edition.get("collation_units") or []}
+        unit = units.get(collation_key)
+        if not unit or not unit.get("present"):
             continue
-        if wk is not None:
-            assertion_wk = _work_key_or_none(assertion.get("source_id"))
-            if assertion_wk is not None and assertion_wk != wk:
+        source_id = edition.get("source_id")
+        edition_wk = edition.get("work_key") or _work_key_or_none(source_id)
+        if wk is not None and edition_wk is not None and edition_wk != wk:
+            continue
+        for assertion_id, assertion in index["assertions"].items():
+            if assertion.get("source_id") != source_id:
                 continue
-        out.add(assertion_id)
+            if assertion.get("collation_key") != collation_key:
+                continue
+            out.add(assertion_id)
     return out
 
 
@@ -166,6 +181,19 @@ def _declared_collation_keys(views: Sequence[dict]) -> Dict[str, Set[str]]:
             if unit.get("present")
         }
         out[source_id] = {key for key in keys if key}
+    return out
+
+
+def _declared_collation_keys_all(views: Sequence[dict]) -> Dict[str, Set[str]]:
+    """视图**声明过**的全部键（含 `present:false`），供 CHARTER §28 Q6(b) 比较。"""
+    out: Dict[str, Set[str]] = {}
+    for view in views:
+        source_id, cset, _ = _view_parts(view)
+        out[source_id] = {
+            unit.get("collation_key")
+            for unit in cset.get("collation_units") or []
+            if unit.get("collation_key")
+        }
     return out
 
 
@@ -284,6 +312,30 @@ def affected_closure(
             contacts |= _collation_contacts(
                 index, unit.get("collation_key"), _work_key_or_none(source_id)
             )
+
+    # ---- (c) 视图断言自身的「同 (work_key, collation_key)」触点（CHARTER §28 Q6）：
+    # `present:true` 的单元本身不贡献，但它的断言自带这一条。
+    for view in views:
+        source_id, cset, _ = _view_parts(view)
+        for assertion in cset.get("assertions") or []:
+            contacts |= _collation_contacts(
+                index, assertion.get("collation_key"), _work_key_or_none(source_id)
+            )
+
+    # ---- (b) 基底同 source 版次声明过、视图本轮**不再声明**的 key 的触点（CHARTER §28 Q6）
+    # （a）是视图 `present:false` 的单元；（c）`present:true` 的单元本身不再贡献触点。
+    declared_any = _declared_collation_keys_all(views)
+    for view in views:
+        source_id, _, _ = _view_parts(view)
+        previous = {
+            unit.get("collation_key")
+            for edition in index["editions"]
+            if edition.get("source_id") == source_id
+            for unit in edition.get("collation_units") or []
+            if unit.get("collation_key")
+        }
+        for key in sorted(previous - declared_any.get(source_id, set())):
+            contacts |= _collation_contacts(index, key, _work_key_or_none(source_id))
 
     # ---- 替换：provenance 哈希变化 / 被删除的对象自身
     try:

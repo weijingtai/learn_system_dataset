@@ -37,9 +37,12 @@ from pipeline.assembly.canonical import (
     work_key,
 )
 from pipeline.assembly.errors import AssemblyRefused
-from pipeline.assembly.incremental import allocate_ids
+from pipeline.assembly.incremental import allocate_ids, collation_not_comparable
 from pipeline.assembly.model import (
+    COLLATION_RELATION_KINDS,
+    declared_collation_units,
     empty_snapshot_knowledge,
+    require_base_collation_units,
     validate_candidate_set,
     validate_reviewed_edition,
     validate_snapshot_knowledge,
@@ -76,8 +79,8 @@ IDENTITY_DELTA_ENTRY_FIELDS = (
 #: IdentityDelta 变更类型闭集
 CHANGE_TYPES = ("merged", "split", "retired")
 
-#: 对勘四类（act/04.yaml:38）
-COLLATION_KINDS = ("alignment", "variant_reading", "addition", "omission")
+#: 对勘四类（act/04.yaml:38）；口径与 `model.COLLATION_RELATION_KINDS` 同一处定义（CHARTER §25.6）
+COLLATION_KINDS = COLLATION_RELATION_KINDS
 
 #: 需要人工决定的提案状态（human/blocked；blocked 未决即拒收，待依赖解除后重出）
 NEEDS_DECISION = ("human", "blocked")
@@ -221,6 +224,10 @@ def apply_resolutions(
     - 纯函数、确定性：同一输入两次调用 `knowledge_bytes` 逐字节相同
     """
     base = copy.deepcopy(base_knowledge or {})
+    # CHARTER §29 Q9：合并前先校验**基底** Snapshot 的 `editions[].collation_units`，
+    # 缺字段就拒收（message 含「基底 Snapshot 缺 collation_units，须先迁移」），
+    # 不允许把缺字段静默当作空（那会把整轮对勘悄悄关掉）。
+    require_base_collation_units(base)
     view_docs = [_resolve_view(view) for view in views]
     if not view_docs:
         raise AssemblyRefused("views 不得为空", code="SCH_001")
@@ -358,8 +365,10 @@ def apply_resolutions(
         if choice == "accept_alias":
             new_relations.append(_apply_accept_alias(proposal, view_docs, live))
             continue
-        if choice in COLLATION_KINDS or choice == "accept_alignment":
-            relation = _apply_evidence(proposal, choice, base_state, view_docs, live)
+        if choice in COLLATION_KINDS or choice in ("accept_alignment", "reject_alignment"):
+            relation = _apply_evidence(
+                proposal, choice, base_state, view_docs, live, mode=mode
+            )
             if relation is not None:
                 new_relations.append(relation)
             continue
@@ -393,8 +402,31 @@ def apply_resolutions(
                 else "endpoint_retired",
             }
         )
+    # CHARTER §29 Q8：**涉及视图 source** 的对勘关系本轮一律删掉、按本轮角色重算
+    # （新版 = 本轮视图），删掉的如实记进 `report.dropped_relations`（理由 collation_recomputed，
+    # §22「静默删除一律不许」照旧）。重算后的关系由本轮对勘提案（new_relations）给出。
+    view_sources = {view["source_id"] for view in view_docs}
+    recomputed_keys: Set[str] = set()
+    # 同一条关系同时因退役/合并与重算被删时**只记一条**（先记的那个理由更具体：端点已没了，
+    # 就不是「重算」导致的删除）；`dropped_relations` 因此不含重复 relation_key。
+    already_dropped = {row["relation_key"] for row in dropped_relations}
+    for relation in base.get("relations", []):
+        relation_key = relation["relation_key"]
+        if relation_key in already_dropped:
+            continue
+        if not _collation_touches_view_source(relation, view_sources, base_state):
+            continue
+        recomputed_keys.add(relation_key)
+        already_dropped.add(relation_key)
+        dropped_relations.append(
+            {"relation_key": relation_key, "reason": "collation_recomputed"}
+        )
     knowledge["relations"] = sorted(
-        [rel for rel in copy.deepcopy(base.get("relations", [])) if not _relation_touches(rel, retired)]
+        [
+            rel
+            for rel in copy.deepcopy(base.get("relations", []))
+            if not _relation_touches(rel, retired) and rel["relation_key"] not in recomputed_keys
+        ]
         + new_relations,
         key=lambda rel: rel["relation_key"],
     )
@@ -407,7 +439,8 @@ def apply_resolutions(
     ]
     collation = {
         "relations": collation_relations,
-        "not_comparable": _not_comparable(view_docs),
+        # CHARTER §28b / §29 Q11：不可比清单与本轮提案层**同一口径、同一形状**
+        "not_comparable": collation_not_comparable(base, view_docs),
     }
     identity_delta = {
         "base_knowledge_sha256": sha256_hex(canonical_json(base)),
@@ -548,6 +581,9 @@ def _merge_editions(base_state: Dict[str, Any], view_docs: Sequence[Dict[str, An
             "edition_complete": False,
             "evidence_level": view["candidate_set"]["evidence_level"],
             "corpus_spans_revision_id": _corpus_spans_revision_id(view),
+            # CHARTER §25.5：记下**本版次声明过哪些可比单元**。新 source 追加、
+            # 同书返工整体替换（下面是同一份 entry，故替换时声明自然跟着换）。
+            "collation_units": declared_collation_units(view["candidate_set"]),
         }
         previous = base_state["editions"].get(source_id)
         if previous is None:
@@ -865,6 +901,14 @@ def _build_assertions(
         source_id = view["source_id"]
         technique_id = view["candidate_set"]["technique_id"]
         links_by_entity = _links_by_entity(view["reviewed_edition"])
+        # D-14 替换继承（CHARTER §21 ①）的同一口径：本视图仍声明 present 的单元上、命题未变的
+        # 断言属于**沿用**，本轮根本不该有提案（`orchestrate.carry_forward_proposals` 已把相关
+        # 提案剔除），因而也不要求留痕——否则「不产生提案」与「必须留痕」两规则互相打架。
+        declared_present = {
+            unit.get("collation_key")
+            for unit in view["candidate_set"].get("collation_units") or []
+            if unit.get("present") and unit.get("collation_key")
+        }
         for candidate in view["candidate_set"].get("assertions", []):
             aid = candidate["assertion_id"]
             if aid not in view["approved_index"]:
@@ -888,6 +932,15 @@ def _build_assertions(
                 }
                 continue
 
+            # CHARTER §25.1：一个 `as_` 号只属于一个 `source_id`。视图带着**基底里另一个版次**
+            # 拥有的号 → 拒收（不得把自己的文字并进基底的断言里，那正是「对齐自己连自己」的根源）。
+            # 同 source 的情形（同书返工 / 替换）照旧走下面的碰撞检测与证据合并。
+            if existing.get("source_id") != source_id:
+                raise DuplicateIdentifier(
+                    "跨版次沿用断言号：%s（source=%s）已属于基底版次 %s，视图 %s 不得沿用"
+                    % (aid, source_id, existing.get("source_id"), source_id),
+                    code="ID_002",
+                )
             # as_ 号碰撞检测：同号必须同命题（M4 一个号一个命题）；否则 fail-closed
             if _as_number_of(aid, technique_id) is not None and nfc_key(
                 existing["proposition"]
@@ -902,7 +955,13 @@ def _build_assertions(
                     "候选携带的 as_ 号已退役，禁止复活: %s" % aid, code="ID_002"
                 )
             touched.add(aid)
-            _require_trace(proposal_index, source_id, aid, candidate.get("collation_key"))
+            carried = bool(
+                existing.get("collation_key")
+                and existing["collation_key"] in declared_present
+                and nfc_key(existing["proposition"]) == prop_nfc
+            )
+            if not carried:
+                _require_trace(proposal_index, source_id, aid, candidate.get("collation_key"))
             merged = {_evidence_key(item): item for item in existing.get("evidence") or []}
             for item in evidence:
                 merged.setdefault(_evidence_key(item), item)
@@ -1391,103 +1450,126 @@ def _apply_accept_alias(
 
 
 # --------------------------------------------------------------------------- 对勘
+def _item_text_sha(item: Optional[dict]) -> Optional[str]:
+    """关系的某一端（基底断言或视图候选）的命题 NFC 文本哈希。"""
+    if item is None:
+        return None
+    stored = item.get("text_sha256")
+    if stored:
+        return stored
+    proposition = item.get("proposition")
+    if proposition is None:
+        return None
+    return sha256_hex(nfc_key(proposition).encode("utf-8"))
+
+
 def _apply_evidence(
     proposal: dict,
     choice: str,
     base_state: Dict[str, Any],
     view_docs: Sequence[Dict[str, Any]],
     live: Dict[str, Any],
+    *,
+    mode: str = "auto",
 ) -> Optional[dict]:
-    """对勘四类写入 relations（subject 为较小 source 一侧断言号；缺失侧为 null）。"""
-    relation_kind = "alignment" if choice == "accept_alignment" else choice
-    left, right = _collation_pair(proposal, base_state, view_docs)
-    if relation_kind in ("addition", "omission"):
-        if left is None or right is None:
-            present, absent = (right, left) if left is None else (left, right)
-        else:
-            present = _smaller_source(left, right)
-            absent = right if present is left else left
-        subject_id = present["assertion_id"] if present else None
-        object_id = None
+    """对勘四类写入 relations（方向**只看提案的 `targets` 顺序**，见 CHARTER §25.6/§25.7）。
+
+    `targets = [from, to]`，缺的一侧写 `null`；新版 = 本轮视图、旧版 = 基底。
+    方向不再按 `source_id` 字典序算（那是凭空规则，§25.4）。
+
+    R07b 的人工裁定在这里落点（CHARTER §28 Q2、§29 Q10）：
+    - `accept_alignment` → 按文本是否相等落 `alignment` / `variant_reading`，`mode=human`；
+    - `reject_alignment` → 落 `distinct_from`，`mode=human`，detail 带 `collation_key`。
+    """
+    from_item, to_item = _collation_pair(proposal, base_state, view_docs)
+    if choice == "accept_alignment":
+        same_text = _item_text_sha(from_item) == _item_text_sha(to_item)
+        relation_kind = (
+            "alignment" if (same_text and from_item and to_item) else "variant_reading"
+        )
+    elif choice == "reject_alignment":
+        relation_kind = "distinct_from"
     else:
-        smaller = _smaller_source(left, right)
-        subject_id = smaller["assertion_id"]
-        target = right if smaller is left else left
-        object_id = target["assertion_id"] if target else None
+        relation_kind = choice
+    subject_id = from_item["assertion_id"] if from_item else None
+    object_id = to_item["assertion_id"] if to_item else None
+    subject = proposal.get("subject") or []
+    collation_key = (
+        (from_item or to_item or {}).get("collation_key")
+        or (subject[2] if len(subject) > 2 else None)
+    )
     detail: Dict[str, Any] = {}
     if relation_kind == "variant_reading":
         detail = {
+            "collation_key": collation_key,
             "opcodes": [
                 list(opcode)
                 for opcode in difflib.SequenceMatcher(
                     None,
-                    nfc_key((left or {}).get("proposition") or ""),
-                    nfc_key((right or {}).get("proposition") or ""),
+                    nfc_key((from_item or {}).get("proposition") or ""),
+                    nfc_key((to_item or {}).get("proposition") or ""),
                     autojunk=False,
                 ).get_opcodes()
-            ]
+            ],
         }
-    return _relation_for(relation_kind, subject_id, object_id, detail, proposal["proposal_key"], mode="auto")
+    elif relation_kind in ("addition", "omission"):
+        # §25.6：增文的 `absent_source_id` 是**旧版**（基底），缺文的是**新版**；
+        # 提案 `subject = ["collation", 新版 source, collation_key, 旧版 source]`，两处都在里面。
+        absent = (
+            subject[3] if relation_kind == "addition" and len(subject) > 3 else None
+        )
+        if relation_kind == "omission":
+            absent = subject[1] if len(subject) > 1 else None
+        detail = {"collation_key": collation_key, "absent_source_id": absent}
+    else:
+        # alignment 与对勘 distinct_from：detail 至少带 collation_key（§29 Q10）
+        detail = {"collation_key": collation_key}
+    return _relation_for(
+        relation_kind, subject_id, object_id, detail, proposal["proposal_key"], mode=mode
+    )
 
 
 def _collation_pair(
     proposal: dict, base_state: Dict[str, Any], view_docs: Sequence[Dict[str, Any]]
 ) -> Tuple[Optional[dict], Optional[dict]]:
-    """定位对勘两侧。
+    """定位对勘两侧：**只按提案的 `targets`**（CHARTER §25.7）。
 
-    **配对由提案确立**：优先用 `targets` 里的两个号（基底侧优先取基座对象）；
-    `targets` 不足时按 `subject` 声明的 `collation_key` 取唯一一对，不唯一即停手上报（不许猜）。
+    `targets` 必须是 `[from, to]` 两项（缺的一侧写 `null`）；不再「按 `collation_key`
+    回头去两侧各找一条断言」（那条路正是 F2 缺文永久不可达的原因）。
+    端点既可落在基座，也可落在本轮视图（新版断言只存在于视图里）。
     """
-    targets = [target for target in proposal.get("targets") or []]
-    if len(targets) == 2:
-        resolved = []
-        for target in targets:
-            item = base_state["assertions"].get(target)
-            if item is not None:
-                resolved.append(item)
-                continue
-            found = None
-            for view in view_docs:
-                for candidate in view["candidate_set"].get("assertions", []):
-                    if candidate["assertion_id"] == target:
-                        found = candidate
-                        break
-                if found is not None:
-                    break
-            if found is None:
-                raise MissingReference("对勘目标不在基座也不在视图里: %s" % target, code="REF_001")
-            resolved.append(found)
-        return resolved[0], resolved[1]
-
-    subject = proposal.get("subject") or []
-    collation_key = subject[2] if len(subject) > 2 else None
-    candidates = [
-        item
-        for view in view_docs
-        for item in view["candidate_set"].get("assertions", [])
-        if item.get("collation_key") == collation_key
-    ]
-    base_items = [
-        item
-        for item in base_state["assertions"].values()
-        if item.get("collation_key") == collation_key
-    ]
-    pairs = [(left, right) for left in candidates for right in base_items]
-    if len(pairs) != 1:
+    targets = list(proposal.get("targets") or [])
+    if len(targets) != 2:
         raise AssemblyRefused(
-            "对勘配对不唯一（subject=%r，候选 %d 条 × 基座 %d 条），须停手上报而不是猜"
-            % (subject, len(candidates), len(base_items)),
+            "对勘提案必须带两项 targets=[from, to]（缺的一侧写 null），实际 %r" % (targets,),
             code="SCH_002",
         )
-    return pairs[0]
-
-
-def _smaller_source(left: Optional[dict], right: Optional[dict]) -> Optional[dict]:
-    if left is None:
-        return right
-    if right is None:
-        return left
-    return left if left.get("source_id", "") <= right.get("source_id", "") else right
+    resolved: List[Optional[dict]] = []
+    for target in targets:
+        if target is None:
+            resolved.append(None)
+            continue
+        item = base_state["assertions"].get(target)
+        if item is not None:
+            resolved.append(item)
+            continue
+        found = None
+        for view in view_docs:
+            for candidate in view["candidate_set"].get("assertions", []):
+                if candidate["assertion_id"] == target:
+                    found = candidate
+                    break
+            if found is not None:
+                break
+        if found is None:
+            raise MissingReference("对勘目标不在基座也不在视图里: %s" % target, code="REF_001")
+        resolved.append(found)
+    if resolved[0] is None and resolved[1] is None:
+        raise AssemblyRefused(
+            "对勘提案的两侧都是 null，推不出主体: %s" % (proposal.get("proposal_key"),),
+            code="SCH_002",
+        )
+    return resolved[0], resolved[1]
 
 
 # --------------------------------------------------------------------------- 关系
@@ -1522,6 +1604,31 @@ def _relation_touches(relation: dict, ids_: Set[str]) -> bool:
     return bool(
         ids_ & {relation.get("from_entity_id"), relation.get("to_entity_id")} - {None}
     )
+
+
+def _collation_touches_view_source(
+    relation: dict, view_sources: Set[str], base_state: Dict[str, Any]
+) -> bool:
+    """是否**涉及本轮视图 source** 的对勘关系（CHARTER §29 Q8）。
+
+    判据：任一端断言属于视图 source，或（缺文/增文的）`absent_source_id` 是视图 source。
+    只要四类对勘关系，以及 R07b 拒结落成的 `distinct_from`（两端断言 + `detail.collation_key`，
+    §29 Q10）；其余关系（Pattern/Concept 间的 distinct_from 等）不归这类管。
+    """
+    kind = relation.get("relation_kind")
+    is_collation = kind in COLLATION_KINDS or (
+        kind == "distinct_from"
+        and bool((relation.get("detail") or {}).get("collation_key"))
+    )
+    if not is_collation:
+        return False
+    for endpoint in (relation.get("from_entity_id"), relation.get("to_entity_id")):
+        item = base_state.get("assertions", {}).get(endpoint) if endpoint else None
+        if item is not None and item.get("source_id") in view_sources:
+            return True
+    if (relation.get("detail") or {}).get("absent_source_id") in view_sources:
+        return True
+    return False
 
 
 def _attached_relations(

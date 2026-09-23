@@ -179,11 +179,20 @@ CK_TRANSCRIPT = "sanche-0001"
 CK_AUTHOR = "sanche-0002"
 CK_PATTERN = "sanche-0003"
 CK_TITLE_INDEX = "sanche-0004"
+#: ed01 **只声明缺失**、ed99 有断言且 present 的单元 → 增文（CHARTER §25.9）
+CK_ED01_ABSENT = "sanche-0005"
 
 A1 = "as_qizheng_900001"
 A2 = "as_qizheng_900002"
 A3 = "as_qizheng_900003"
 A_NEW = "as_qizheng_900004"
+# ed99 **自己发号**的三条断言（CHARTER §25.1：一个 as_ 号只属于一个版次）：
+#   900005 —— 0001，与 ed01 的 A1 同主体同文 → 对齐
+#   900006 —— 0003，与 ed01 的 A3 同主体异文 → 异文
+#   900007 —— 0005，ed01 声明 present:false → 增文
+A_E_TRANSCRIPT = "as_qizheng_900005"
+A_E_VARIANT = "as_qizheng_900006"
+A_E_ADDED = "as_qizheng_900007"
 PAT = "pat_qizheng_900001"
 # 格局（pattern）号（ed01 保持一号不动，两个同名号只在 r2 才出现）：
 #  900001 —— ed01 的格局（r1 只有这一号）；
@@ -442,6 +451,8 @@ def scenario_ed01(spans: dict) -> dict:
             {"collation_key": CK_TRANSCRIPT, "present": True},
             {"collation_key": CK_AUTHOR, "present": True},
             {"collation_key": CK_PATTERN, "present": True},
+            # §25.9：ed01 声明 0005 **present:false**（旧版声明缺失 → ed99 的 0005 断言是增文）
+            {"collation_key": CK_ED01_ABSENT, "present": False},
         ],
         "assertions": [a1, a2, a3],
         "patterns": [pattern],
@@ -527,11 +538,19 @@ def scenario_ed01r2(spans: dict) -> dict:
 
 
 def scenario_ed99(spans: dict) -> dict:
-    # A1 以基底已正式的 as_ 号携带（D-04 A：M4 全局唯一发号，M7 只做碰撞检测），
-    # 命题与对齐单元与 ed01 逐字相同 → 并入（attach，保号）并新增一条证据。
-    a1 = candidate_assertion(A1, spans[SPAN_SURNAME]["text"], CK_TRANSCRIPT, spans[SPAN_TITLE], 0, [])
-    a_new = candidate_assertion(A_NEW, spans[SPAN_TITLE]["text"], CK_TITLE_INDEX, spans[SPAN_TITLE], 1, [SCH_TIANGONG])
-    pattern = candidate_pattern("三辰通載貴格", [A1, A_NEW], "第二版次同格局，另添目錄主張")
+    """第二版次（ed99）：四类对勘关系的载体（CHARTER §25.9）。
+
+    - 0001：**自己发号** `A_E_TRANSCRIPT`，同主体（PAT）同文 → 对齐
+    - 0003：**自己发号** `A_E_VARIANT`，同主体（PAT）异文 → 异文
+    - 0002：声明 present:false（无断言）→ 缺文
+    - 0005：有断言且 present，而 ed01 声明 present:false → 增文
+    - 0004：有断言，而 ed01 **未声明**该单元 → `not_comparable`（不许出增文）
+    """
+    a1 = candidate_assertion(A_E_TRANSCRIPT, spans[SPAN_SURNAME]["text"], CK_TRANSCRIPT, spans[SPAN_TITLE], 0, [])
+    a_variant = candidate_assertion(A_E_VARIANT, "貴格之圖", CK_PATTERN, spans[SPAN_PATTERN], 1, [])
+    a_added = candidate_assertion(A_E_ADDED, "貴格之圗", CK_ED01_ABSENT, spans[SPAN_PATTERN], 2, [])
+    a_new = candidate_assertion(A_NEW, spans[SPAN_TITLE]["text"], CK_TITLE_INDEX, spans[SPAN_TITLE], 3, [SCH_TIANGONG])
+    pattern = candidate_pattern("三辰通載貴格", [A_E_TRANSCRIPT, A_E_VARIANT], "第二版次同格局，另添異文與目錄主張")
     # 版次二**同题另一号**（M4 重发号，名字与基底 r1 的格局逐字相同）→ R03b（人工）：
     # 裁定 `admit_new` 后 r2 就出现两个同名 Pattern（返工轮的 R03d 前提）。
     pattern_same_name = candidate_pattern_variant(
@@ -541,7 +560,7 @@ def scenario_ed99(spans: dict) -> dict:
     # 它使 r2 的格局号段不为单点：返工轮「小号存活、大号退役」时，退役号不是命名空间最大号
     # （model 冻结口径：id_allocation 不得低于 max(活 ∪ 退役 ∪ 补发)）。
     pattern_new = candidate_pattern_variant(
-        PAT_NEW_NAME, [A_NEW], "第二版次另立之格局", pattern_id=PAT_ED99_NEW
+        PAT_NEW_NAME, [A_NEW, A_E_ADDED], "第二版次另立之格局", pattern_id=PAT_ED99_NEW
     )
     sv = candidate_school_view(SV_2, SCH_TIANGONG, A_NEW, ED99["source_id"], SPAN_TITLE)
     concept = {
@@ -554,23 +573,31 @@ def scenario_ed99(spans: dict) -> dict:
     return {
         "collation_units": [
             {"collation_key": CK_TRANSCRIPT, "present": True},
+            # §25.9：ed99 声明 0002 **present:false**（视图无断言）→ 缺文
+            {"collation_key": CK_AUTHOR, "present": False},
+            {"collation_key": CK_PATTERN, "present": True},
             {"collation_key": CK_TITLE_INDEX, "present": True},
+            {"collation_key": CK_ED01_ABSENT, "present": True},
             # 声明了一个**位置但无 collation_key** 的单元：真书 26 条断言全部无键
             # （CHARTER §8.2），它必须如实进 `collation.not_comparable`、且上面不得
             # 出现任何对勘关系。声明名 `sanche-unkeyed` 只作可读标注，不进任何配对。
             {"collation_key": None, "present": True, "note": "unkeyed_position"},
         ],
-        "assertions": [a1, a_new],
+        "assertions": [a1, a_variant, a_added, a_new],
         "patterns": [pattern, pattern_same_name, pattern_new],
         "school_views": [sv],
         "concept_mentions": [concept],
         "new_concept_candidates": [],
         "approved": [
-            (A1, "assertion"), (A_NEW, "assertion"),
+            (A_E_TRANSCRIPT, "assertion"), (A_E_VARIANT, "assertion"),
+            (A_E_ADDED, "assertion"), (A_NEW, "assertion"),
             (PAT, "pattern"), (PAT_ED01_B, "pattern"), (PAT_ED99_NEW, "pattern"),
             (CO, "concept"), (SV_2, "school_view"),
         ],
-        "evidence_link_targets": [(A1, spans[SPAN_TITLE]), (A_NEW, spans[SPAN_TITLE])],
+        "evidence_link_targets": [
+            (A_E_TRANSCRIPT, spans[SPAN_TITLE]), (A_E_VARIANT, spans[SPAN_PATTERN]),
+            (A_E_ADDED, spans[SPAN_PATTERN]), (A_NEW, spans[SPAN_TITLE]),
+        ],
         "decision_suffix": "e",
     }
 

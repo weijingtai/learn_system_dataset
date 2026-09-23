@@ -10,10 +10,31 @@
 
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
-from pipeline.assembly.canonical import canonical_json, content_sha256, nfc_key, sha256_hex
+from pipeline.assembly.canonical import canonical_json, content_sha256, nfc_key, sha256_hex, work_key
 from pipeline.assembly.errors import AssemblyRefused
-from pipeline.assembly.matcher import propose_pairs, units_of_view, unpairable_units
+from pipeline.assembly.matcher import (
+    NOT_COMPARABLE_MISSING_COLLATION_KEY,
+    propose_pairs,
+    units_of_view,
+)
 from pipeline.assembly.model import MERGE_RELATIONS, PROPOSAL_KINDS
+
+#: ``not_comparable`` 的理由闭集（CHARTER §25.5、§28 Q5/假设一、§28b；
+#: `missing_collation_key` 见 :mod:`matcher`）
+NOT_COMPARABLE_BASE_UNDECLARED = "base_undeclared"
+NOT_COMPARABLE_DECLARED_WITHOUT_ASSERTION = "declared_without_assertion"
+NOT_COMPARABLE_VIEW_UNDECLARED = "view_undeclared"
+NOT_COMPARABLE_SAME_SOURCE = "same_source"
+NOT_COMPARABLE_MULTIPLE = "multiple_assertions_per_unit"
+
+#: 有键单元的理由优先级（CHARTER §29 Q11 第 3 条，逐字：先命中者胜）
+NOT_COMPARABLE_PRIORITY = (
+    NOT_COMPARABLE_VIEW_UNDECLARED,
+    NOT_COMPARABLE_SAME_SOURCE,
+    NOT_COMPARABLE_BASE_UNDECLARED,
+    NOT_COMPARABLE_MULTIPLE,
+    NOT_COMPARABLE_DECLARED_WITHOUT_ASSERTION,
+)
 
 #: act/03.yaml:26-49 的规则名，**逐字**
 RULE_IDS = (
@@ -277,6 +298,9 @@ def propose_incremental(
     proposals: List[Dict[str, Any]] = []
     not_comparable: List[Dict[str, Any]] = []
     missing_collation = 0
+    base_undeclared = 0
+    declared_without_assertion = 0
+    base_entity_ids = _base_entity_ids(base_knowledge)
 
     # 本批候选（用于 R03f/R03g 的批内交集判断）
     batch = _batch_candidates(views)
@@ -414,56 +438,96 @@ def propose_incremental(
             )
 
         # ---------------------------------------------------------- R07/R07b/R08/R09
-        others = [v for v in views if _view_parts(v)[0] != source_id]
-        base_units = _base_units(base_knowledge, source_id)
-        left_units = units_of_view(cset, reviewed)
-        right_units = base_units + [
-            unit for other in others for unit in units_of_view(*_view_parts(other)[1:])
-        ]
-        for unit in unpairable_units(left_units):
-            missing_collation += 1
-            not_comparable.append(dict(unit, source_id=source_id))
-        for pair in propose_pairs(left_units, right_units):
-            if pair.strategy != "exact_collation_key":
-                continue
-            left = _unit_by_key(left_units, pair.left_key)
-            right = _unit_by_key(right_units, pair.right_key)
-            if left is None or right is None:
-                continue
-            left_present = bool(left.get("present", True))
-            right_present = bool(right.get("present", True))
-            if not left_present and not right_present:
-                continue
-            if not left_present or not right_present:
-                declared = source_id if left_present else right.get("source_id")
-                absent = right.get("source_id") if left_present else source_id
-                larger, smaller = sorted([declared, absent])[1], sorted([declared, absent])[0]
-                choice = "addition" if declared == larger else "omission"
-                proposals.append(
-                    _proposal(
-                        "evidence", "R09", ["collation", source_id, left["collation_key"], right.get("source_id")],
-                        resolution="auto", auto_choice=choice,
+        # CHARTER §25.2–§25.7、§28 Q3/Q5/假设一、§29 Q8/Q11：对勘在**本轮视图**与基底里
+        # **其他**版次之间做（同 source 不比，§25.3），按**主体**（`subject_entity_id`）判可比，
+        # 方向按角色（新版 = 本轮视图、旧版 = 基底，§25.4），提案一律带 `targets = [from, to]`。
+        #
+        # 同书返工轮（mode == "replacement"）**也要**算：§29 Q8 要求「涉及视图 source 的对勘
+        # 关系全部删掉、按本轮角色重算」，故这里照常算，只是**同 source 的版次不参与**。
+        if mode in ("new", "replacement"):
+            outcomes, rows, counts = _collation_analysis(
+                base_knowledge, cset, reviewed, source_id, approved
+            )
+            not_comparable.extend(rows)
+            missing_collation += counts.get(NOT_COMPARABLE_MISSING_COLLATION_KEY, 0)
+            base_undeclared += counts.get(NOT_COMPARABLE_BASE_UNDECLARED, 0)
+            declared_without_assertion += counts.get(
+                NOT_COMPARABLE_DECLARED_WITHOUT_ASSERTION, 0
+            )
+            view_subjects = _view_subjects(cset)
+            # §25.1：视图沿用基底号时（同书返工保号携带），该断言的主体早已在基底裁定，
+            # 以基底主体为准；否则同书返工里保号携带的断言会被错判成「主体不同 → R07b」。
+            carried_subjects = {
+                assertion.get("assertion_id"): assertion.get("subject_entity_id")
+                for assertion in base_knowledge.get("assertions") or []
+            }
+            for outcome in outcomes:
+                key = outcome["collation_key"]
+                view_side, base_side = outcome["view"], outcome["base"]
+                subject = ["collation", source_id, key, base_side["source_id"]]
+                if not view_side["present"] or not base_side["present"]:
+                    # §25.4：增文 = 新版 present、旧版声明 present:false；缺文反之
+                    present_side = view_side if view_side["present"] else base_side
+                    present_assertion = present_side["assertion"]
+                    if present_assertion is None:
+                        # 声明了 present 却没有断言：已进 not_comparable，不出关系
+                        continue
+                    proposals.append(
+                        _proposal(
+                            "evidence", "R09", subject, resolution="auto",
+                            auto_choice="addition" if view_side["present"] else "omission",
+                            targets=[present_assertion["assertion_id"], None],
+                        )
                     )
+                    continue
+                view_assertion = view_side["assertion"]
+                base_assertion = base_side["assertion"]
+                if view_assertion is None or base_assertion is None:
+                    continue
+                targets = [view_assertion["assertion_id"], base_assertion["assertion_id"]]
+                view_subject = carried_subjects.get(
+                    view_assertion["assertion_id"],
+                    view_subjects.get(view_assertion["assertion_id"]),
                 )
-                continue
-            same_entity = left.get("entity_ref") == right.get("entity_ref")
-            same_text = left.get("text_sha256") == right.get("text_sha256")
-            subject = ["collation", source_id, left["collation_key"], right.get("source_id")]
-            if same_entity and same_text:
-                proposals.append(
-                    _proposal("evidence", "R07", subject, resolution="auto", auto_choice="alignment")
+                base_subject = base_assertion.get("subject_entity_id")
+                if not view_subject or not base_subject:
+                    # §28 Q3：任一主体为 null → 不算同一正式对象 → R07b 人工
+                    proposals.append(_collation_conflict(subject, targets))
+                    continue
+                if view_subject != base_subject:
+                    if view_subject in base_entity_ids:
+                        # §25.2：主体裁决到**不同**正式对象 → R07b 人工
+                        proposals.append(_collation_conflict(subject, targets))
+                        continue
+                    # 主体本身还在等人工裁决 → 对勘提案 depends_on 那条提案，不许猜
+                    dependency = proposal_key("merge", ["pattern", source_id, view_subject])
+                    pending = any(
+                        item["proposal_key"] == dependency
+                        and item["resolution"] in ("human", "blocked")
+                        for item in proposals
+                    )
+                    if not pending:
+                        raise AssemblyRefused(
+                            "对勘单元 %s 的主体 %r 尚待裁决且推不出确定对应（无对应人工提案），"
+                            "须停手上报" % (key, view_subject),
+                            code="SCH_002",
+                        )
+                    proposals.append(
+                        _proposal(
+                            "evidence", "R07", subject, resolution="blocked",
+                            targets=targets, depends_on=[dependency],
+                        )
+                    )
+                    continue
+                same_text = _assertion_text_sha(view_assertion) == base_assertion.get(
+                    "text_sha256"
                 )
-            elif same_entity:
-                proposals.append(
-                    _proposal("evidence", "R08", subject, resolution="auto", auto_choice="variant_reading")
-                )
-            else:
                 proposals.append(
                     _proposal(
-                        "conflict", "R07b", subject, resolution="human",
-                        options=["accept_alignment", "reject_alignment"],
-                        decision_type="review_edition_collation",
-                        targets=[t for t in (left.get("entity_ref"), right.get("entity_ref")) if t],
+                        "evidence", "R07" if same_text else "R08", subject,
+                        resolution="auto",
+                        auto_choice="alignment" if same_text else "variant_reading",
+                        targets=targets,
                     )
                 )
 
@@ -479,9 +543,13 @@ def propose_incremental(
         "round": round_no,
         "modes": modes,
         "not_comparable_missing_collation_key": missing_collation,
+        "not_comparable_base_undeclared": base_undeclared,
+        "not_comparable_declared_without_assertion": declared_without_assertion,
         "base_editions_without_views": sorted(set(base_editions) - set(source_ids)),
         **allocation,
     }
+    # CHARTER §28b：清单排序键固定为 `(source_id, collation_key or "", assertion_id or "")`
+    not_comparable.sort(key=_not_comparable_sort_key)
     return {
         "round": round_no,
         "modes": modes,
@@ -792,33 +860,351 @@ def _conflict_members(base_knowledge: dict, conflict_group_id: str) -> set:
     return set()
 
 
-def _base_units(base_knowledge: dict, source_id: str) -> List[dict]:
-    """基底一侧的可比单元（来自 Snapshot 的 assertions，含 collation_key 与 text_sha256）。"""
+def _work_key_or_none(source_id: Optional[str]) -> Optional[str]:
+    try:
+        return work_key(source_id) if source_id else None
+    except Exception:  # noqa: BLE001 - 算不出 work_key 就不拿它当前提
+        return None
+
+
+def _view_subjects(cset: dict) -> Dict[str, str]:
+    """视图里每条断言声明的**主体**（`assertion_id → 主体引用`）。
+
+    口径与 `apply._link_subjects` 一致：主体来自 `patterns[].assertion_ids` 指向的格局
+    （正式 `pat_` 号或未发号的 `candidate_key`）；同一断言落在多个格局下时取**较小**的引用。
+    视图不声明的断言不在表内（主体推不出 → 对勘层停手上报，见 §25.2）。
+    """
+    collected: Dict[str, List[str]] = {}
+    for pattern in cset.get("patterns") or []:
+        ref = pattern.get("pattern_id") or pattern.get("candidate_key")
+        if not ref:
+            continue
+        for assertion_id in pattern.get("assertion_ids") or []:
+            if assertion_id:
+                collected.setdefault(assertion_id, []).append(ref)
+    return {assertion_id: min(refs) for assertion_id, refs in collected.items()}
+
+
+def _assertion_text_sha(assertion: dict) -> Optional[str]:
+    """断言命题的 NFC 文本哈希（与 `matcher.make_unit` 同一口径：逐字相等，不是相似度）。"""
+    proposition = assertion.get("proposition")
+    if proposition is None:
+        return None
+    return sha256_hex(nfc_key(proposition).encode("utf-8"))
+
+
+def _collation_conflict(subject: Sequence[Any], targets: Sequence[str]) -> dict:
+    """R07b：主体裁决不到同一正式对象 → 人工裁定（§25.2）。
+
+    选项沿用现有闭集（`apply` 按 CHARTER §28 Q2 把裁定落成关系：
+    `accept_alignment` → alignment / variant_reading；`reject_alignment` → distinct_from）。
+    """
+    return _proposal(
+        "conflict", "R07b", list(subject), resolution="human",
+        options=["accept_alignment", "reject_alignment"],
+        decision_type="review_edition_collation",
+        targets=list(targets),
+    )
+
+
+def _base_units(base_knowledge: dict, view_source_id: Optional[str]) -> List[dict]:
+    """基底一侧的可比单元（CHARTER §25.5、§28 假设一）。
+
+    **声明只从 `editions[].collation_units` 读**，不再从断言推（旧写法把每条有键的断言都
+    当成 present:true，这正是增文永远出不来的根源 F3）。
+    同 `source_id` 的版次不参与（§25.3），不同 `work_key` 的版次不参与（§25.2 的可比前提）。
+
+    声明了 present 却没有获批断言的单元也要返回（`entity_ref` 为 None），由规则层如实记进
+    `not_comparable`（理由 `declared_without_assertion`）。同键多条断言**不再拒收**，
+    而是标记 `ambiguous`（§28 假设一：推不出确定配对 → `multiple_assertions_per_unit`）。
+    """
     from pipeline.assembly.matcher import make_unit
 
-    units = []
+    wk = _work_key_or_none(view_source_id)
+    by_source: Dict[Any, Dict[Any, List[dict]]] = {}
     for assertion in base_knowledge.get("assertions") or []:
-        units.append(
-            make_unit(
-                assertion.get("source_id") or source_id,
-                collation_key=assertion.get("collation_key"),
-                entity_ref=assertion.get("assertion_id"),
-                text_sha256=assertion.get("text_sha256"),
+        by_source.setdefault(assertion.get("source_id"), {}).setdefault(
+            assertion.get("collation_key"), []
+        ).append(assertion)
+
+    units: List[dict] = []
+    for edition in base_knowledge.get("editions") or []:
+        source_id = edition.get("source_id")
+        if source_id == view_source_id:
+            continue
+        other_wk = _work_key_or_none(source_id)
+        if wk is not None and other_wk is not None and other_wk != wk:
+            continue
+        for declared in edition.get("collation_units") or []:
+            key = declared.get("collation_key")
+            if not key:
+                continue
+            present = bool(declared.get("present", True))
+            rows = by_source.get(source_id, {}).get(key) or []
+            unique = rows[0] if len(rows) == 1 else None
+            unit = make_unit(
+                source_id,
+                collation_key=key,
+                present=present,
+                entity_ref=unique.get("assertion_id") if unique else None,
+                text_sha256=unique.get("text_sha256") if unique else None,
                 evidence_span_ids=[
-                    ev.get("source_span_id") for ev in assertion.get("evidence") or []
+                    ev.get("source_span_id") for ev in (unique or {}).get("evidence") or []
                 ],
             )
-        )
+            # `make_unit`（matcher，只读）不带主体字段，这里按已声明字段补上
+            unit["subject_entity_id"] = unique.get("subject_entity_id") if unique else None
+            unit["ambiguous"] = len(rows) > 1
+            units.append(unit)
     return units
 
 
-def _unit_by_key(units: Sequence[dict], key: str):
-    from pipeline.assembly.matcher import unit_key
+def _not_comparable_sort_key(row: dict) -> tuple:
+    """CHARTER §28b：`(source_id, collation_key or "", assertion_id or "")`。"""
+    return (
+        row.get("source_id") or "",
+        row.get("collation_key") or "",
+        row.get("assertion_id") or "",
+    )
 
-    for unit in units:
-        if unit_key(unit) == key:
-            return unit
-    return None
+
+def _pick_not_comparable_reason(reasons: set) -> str:
+    """CHARTER §29 Q11 第 3 条：按固定优先级取第一个命中的理由。"""
+    for reason in NOT_COMPARABLE_PRIORITY:
+        if reason in reasons:
+            return reason
+    return NOT_COMPARABLE_BASE_UNDECLARED
+
+
+def _collation_analysis(
+    base_knowledge: dict,
+    cset: dict,
+    reviewed: dict,
+    view_source_id: str,
+    approved: dict,
+) -> Tuple[List[dict], List[dict], Dict[str, int]]:
+    """一个视图的对勘分析（CHARTER §25.2–§25.7、§28 Q3/Q5/假设一、§29 Q11）。
+
+    返回 ``(outcomes, not_comparable_rows, counts)``：
+
+    - `outcomes`：**可比**单元的配对（每个「视图键 × 基底版次」一项），供规则层造提案；
+    - `not_comparable_rows`：不可比清单，形状**恰为**
+      ``{source_id, collation_key, assertion_id, reason}``（§28b / §29 Q11）；
+    - `counts`：按理由计数（供 `report` 的三个既有键）。
+
+    可比性判断只经 `matcher.propose_pairs`（CHARTER §3.1：配对判断的唯一落点）；
+    本函数只**读声明、算理由**，不自己比对 `collation_key`。
+    """
+    from pipeline.assembly.matcher import propose_pairs, unit_key
+
+    declared: Dict[str, bool] = {}
+    null_declarations = 0
+    for entry in cset.get("collation_units") or []:
+        key = entry.get("collation_key")
+        if key:
+            declared[key] = bool(entry.get("present", True))
+        else:
+            null_declarations += 1
+
+    view_assertions: Dict[str, List[dict]] = {}
+    keyless_ids: List[str] = []
+    approved_assertions: List[dict] = []
+    for assertion in cset.get("assertions") or []:
+        aid = assertion.get("assertion_id")
+        # CHARTER §30.1：只数 `reviewed_edition.approved` 里 `kind=assertion` 的；
+        # 未获批断言不参与单元判定，也不进 not_comparable。
+        if ("assertion", aid) not in approved:
+            continue
+        approved_assertions.append(assertion)
+        key = assertion.get("collation_key")
+        if key:
+            view_assertions.setdefault(key, []).append(assertion)
+        else:
+            keyless_ids.append(aid)
+
+    editions: List[dict] = []
+    for edition in base_knowledge.get("editions") or []:
+        declarations: Dict[str, bool] = {}
+        for entry in edition.get("collation_units") or []:
+            key = entry.get("collation_key")
+            if key:
+                declarations[key] = bool(entry.get("present", True))
+        editions.append(
+            {"source_id": edition.get("source_id"), "declared": declarations, "by_key": {}}
+        )
+    by_source = {edition["source_id"]: edition for edition in editions}
+    for assertion in base_knowledge.get("assertions") or []:
+        edition = by_source.get(assertion.get("source_id"))
+        if edition is None:
+            continue
+        key = assertion.get("collation_key")
+        if key:
+            edition["by_key"].setdefault(key, []).append(assertion)
+
+    wk = _work_key_or_none(view_source_id)
+    peers: List[dict] = []
+    own: List[dict] = []
+    for edition in editions:
+        if edition["source_id"] == view_source_id:
+            own.append(edition)
+            continue
+        other_wk = _work_key_or_none(edition["source_id"])
+        if wk is not None and other_wk is not None and other_wk != wk:
+            continue
+        peers.append(edition)
+
+    outcomes: List[dict] = []
+    rows: List[dict] = []
+    counts: Dict[str, int] = {}
+
+    def add_row(key: Optional[str], reason: str) -> None:
+        rows.append(
+            {
+                "source_id": view_source_id,
+                "collation_key": key,
+                "assertion_id": None,
+                "reason": reason,
+            }
+        )
+        counts[reason] = counts.get(reason, 0) + 1
+
+    view_only = dict(cset)
+    view_only["assertions"] = approved_assertions
+    left_units = units_of_view(view_only, reviewed)
+    base_units = _base_units(base_knowledge, view_source_id)
+    base_by_unit_key = {unit_key(unit): unit for unit in base_units}
+    # 只取「按声明键配对」（`exact_collation_key`）的候选；同键自比一律不算（§25.3）。
+    paired: Dict[str, List[dict]] = {}
+    for pair in propose_pairs(left_units, base_units):
+        if pair.strategy != "exact_collation_key":
+            continue
+        right = base_by_unit_key.get(pair.right_key)
+        if right is None:
+            continue
+        paired.setdefault(pair.left_key, []).append(right)
+
+    for unit in left_units:
+        key = unit.get("collation_key")
+        if not key:
+            continue
+        # 配对判断只经 matcher（CHARTER §3.1）：这里只消费它给出的候选，不自己比对键。
+        paired_sources = {
+            right.get("source_id") for right in paired.get(unit_key(unit)) or []
+        }
+        reasons = set()
+        # §28 Q5：视图有键但**自己没声明**该单元 → view_undeclared（最高优先级）
+        if key not in declared:
+            reasons.add(NOT_COMPARABLE_VIEW_UNDECLARED)
+        if len(view_assertions.get(key) or []) > 1:
+            # §28 假设一：同侧同键 >1 条获批断言 → 推不出确定配对
+            reasons.add(NOT_COMPARABLE_MULTIPLE)
+        if declared.get(key) and not view_assertions.get(key):
+            reasons.add(NOT_COMPARABLE_DECLARED_WITHOUT_ASSERTION)
+        own_declares = any(key in edition["declared"] for edition in own)
+        peer_declaring = [edition for edition in peers if key in edition["declared"]]
+        if own_declares and not peer_declaring:
+            # §25.3：唯一能对上的是**自己这个版次** → 不比自己
+            reasons.add(NOT_COMPARABLE_SAME_SOURCE)
+        if peers and any(key not in edition["declared"] for edition in peers):
+            reasons.add(NOT_COMPARABLE_BASE_UNDECLARED)
+        if editions and not own_declares and not peer_declaring:
+            reasons.add(NOT_COMPARABLE_BASE_UNDECLARED)
+
+        comparable: List[dict] = []
+        if NOT_COMPARABLE_VIEW_UNDECLARED not in reasons and NOT_COMPARABLE_MULTIPLE not in reasons:
+            if key in declared:
+                view_present = declared[key]
+                view_assertion = (view_assertions.get(key) or [None])[0]
+                if view_present and view_assertion is None:
+                    reasons.add(NOT_COMPARABLE_DECLARED_WITHOUT_ASSERTION)
+                else:
+                    for edition in peer_declaring:
+                        if edition["source_id"] not in paired_sources:
+                            reasons.add(NOT_COMPARABLE_BASE_UNDECLARED)
+                            continue
+                        assertions = edition["by_key"].get(key) or []
+                        if len(assertions) > 1:
+                            # §28 假设一：基底侧同键多条
+                            reasons.add(NOT_COMPARABLE_MULTIPLE)
+                            continue
+                        base_present = edition["declared"][key]
+                        base_assertion = assertions[0] if assertions else None
+                        if base_present and base_assertion is None:
+                            # §25.5：声明了 present 却没有获批断言
+                            reasons.add(NOT_COMPARABLE_DECLARED_WITHOUT_ASSERTION)
+                            continue
+                        comparable.append(
+                            {
+                                "collation_key": key,
+                                "view": {
+                                    "source_id": view_source_id,
+                                    "present": view_present,
+                                    "assertion": view_assertion,
+                                },
+                                "base": {
+                                    "source_id": edition["source_id"],
+                                    "present": base_present,
+                                    "assertion": base_assertion,
+                                },
+                            }
+                        )
+        if comparable:
+            outcomes.extend(comparable)
+        else:
+            # §29 Q11 第 5 条：对所有基底版次都不可比 → 列一项，取优先级最高的理由。
+            # 一个版次都没有时按 Gate 独立算法的同一口径落到 `base_undeclared`。
+            add_row(
+                key,
+                _pick_not_comparable_reason(reasons)
+                if reasons
+                else NOT_COMPARABLE_BASE_UNDECLARED,
+            )
+
+    # §29 Q11 第 1 条：无键的两种都计，理由都是 missing_collation_key
+    for aid in keyless_ids:
+        rows.append(
+            {
+                "source_id": view_source_id,
+                "collation_key": None,
+                "assertion_id": aid,
+                "reason": NOT_COMPARABLE_MISSING_COLLATION_KEY,
+            }
+        )
+        counts[NOT_COMPARABLE_MISSING_COLLATION_KEY] = (
+            counts.get(NOT_COMPARABLE_MISSING_COLLATION_KEY, 0) + 1
+        )
+    for _ in range(null_declarations):
+        rows.append(
+            {
+                "source_id": view_source_id,
+                "collation_key": None,
+                "assertion_id": None,
+                "reason": NOT_COMPARABLE_MISSING_COLLATION_KEY,
+            }
+        )
+        counts[NOT_COMPARABLE_MISSING_COLLATION_KEY] = (
+            counts.get(NOT_COMPARABLE_MISSING_COLLATION_KEY, 0) + 1
+        )
+
+    rows.sort(key=_not_comparable_sort_key)
+    outcomes.sort(key=lambda item: (item["base"]["source_id"], item["collation_key"]))
+    return outcomes, rows, counts
+
+
+def collation_not_comparable(base_knowledge: dict, views: Sequence[dict]) -> List[dict]:
+    """`not_comparable` 清单（CHARTER §28b / §29 Q11）——视图侧独立算，形状固定。
+
+    `incremental.propose_incremental` 与本模块外（`apply` 的 `collation` 契约字段）共用
+    这一个口径，避免两套写法漂移。"""
+    rows: List[dict] = []
+    for view in views:
+        source_id, cset, reviewed = _view_parts(view)
+        _, view_rows, _ = _collation_analysis(
+            base_knowledge, cset, reviewed, source_id, _approved_index(reviewed)
+        )
+        rows.extend(view_rows)
+    rows.sort(key=_not_comparable_sort_key)
+    return rows
 
 
 def _replacement_proposals(base_knowledge: dict, source_id: str, technique_id: str) -> List[Dict[str, Any]]:

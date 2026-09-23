@@ -78,7 +78,7 @@ expected:
 files:
 - path: ed01/candidate_set.json
   role: view_candidate_set
-  sha256: 1b3bb28f3a34a44b80d67c928b939ac098117eca98e63000f8c7734779222c09
+  sha256: cddb13b951b96b1312587b73277fa455e055cfc451f7de28a07e5ba81ba365a6
 - path: ed01/reviewed_edition.json
   role: view_reviewed_edition
   sha256: 8bdeefced37e138cac17ce4b8317b2f15eb0637512ceaa1748706707266da25a
@@ -99,31 +99,31 @@ files:
   sha256: fa7cf93c500b074c4155a0d7cac94310ae636cc2895ec920f88143c23216dea4
 - path: ed99/candidate_set.json
   role: view_candidate_set
-  sha256: 49e3bfb7d48824b25be94e1810b3f463cbe4420b7f63e80f49ea7ee769c7506b
+  sha256: 6fcbbd77f370509f3154493f32c0c23de9d402ed4cee22c4f7dfbf3318feb24a
 - path: ed99/decisions.json
   role: rework_decisions
   sha256: 7ba870a3f388cc54bda0f48aea718914bfc6039ceb01914a9ef11d5adb5c4c89
 - path: ed99/reviewed_edition.json
   role: view_reviewed_edition
-  sha256: dd397d8c612f55f35dabf10ede59b456224bf936e8579f23ede99f89bb74b0ea
+  sha256: 2590567978267990a1280b9a49eaff8c8f6daf3fb49710763647efb21d0592fa
 - path: ed99/reviewed_edition_package.json
   role: view_reviewed_edition_package
-  sha256: 28f902cc49bdea3d6704364119ed0cc4b7de6513825420c437e7e7bea5534378
+  sha256: e0e4ba6fd39eb0b10581ccd6b5a7bc553808fbaedaac8b1eff903592ee4579a9
 - path: expected/identity_delta_r3.json
   role: expected_identity_delta
-  sha256: 8d38c4a73afd6892a095f73495297852eeaaf680faaf3d03a5a121893c312817
+  sha256: ae9340934aa05a748d01614b6aedd814263c055ceef7f7cf0b79f99abf7ddb56
 - path: expected/snapshot_r1.json
   role: expected_snapshot
-  sha256: c20c5148d046452fc00f83b3d1633cd81012170fd60c41ebda35c8e3cdfc891c
+  sha256: 9240dc2eb9a06613e1b99040c9174e34fce932baefd540165e0b8109a23d6f92
 - path: expected/snapshot_r2.json
   role: expected_snapshot
-  sha256: f45959afee5f8a96667e1c51be702d24727e6b4badcb19c4e06548e765f76539
+  sha256: a68fbb2ee40fe48f501aa6856690ebf04acefc8946ca1c0d835fe7cf24b7ecb7
 - path: expected/snapshot_r3.json
   role: expected_snapshot
-  sha256: cb96034fd8e0715b73ee44ef88424de18f3e612c05e1ebafe6b4503b88aaec16
+  sha256: 373e78747640cdf56345f38dc1fddbff99a972a83bf04f89e41991043c4dd938
 - path: expected/snapshot_revisions.yaml
   role: expected_snapshot
-  sha256: 761a0d1b5e3fbc47655d68e1cc4a2943e92089fb918045dca1984adbc84d0221
+  sha256: 2baae956d73bf3538c18dee4d4602425d111965a043b42ed74bf1499a3550af5
 fixture_id: mini_release01
 id_families_used:
 - art_

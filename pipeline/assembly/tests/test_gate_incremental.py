@@ -43,6 +43,9 @@ REAL_LEDGER = ROOT / "var" / "ledgers" / "qianyuan_w8"
 #: 合法 `rev_` 号（只当基底占位；不进任何账本正本）
 BASE_REV = "rev_000000000000000000000000000000f1"
 
+#: ACT 29（§25.9）之后，基底里唯一**不在闭包内**的对象是这条流派视图（r2 的三条断言都进了对勘触点）
+UNTOUCHED_BASE_ID = "sv_00000000000000000000000000000001"
+
 EXPECTED_CHECKS = (
     "schema_and_ids",
     "identity_preserved",
@@ -221,17 +224,21 @@ class IncrementalGateCase(unittest.TestCase):
         self.assert_only_check_failed(res, "view_objects_unaltered")
 
     def test_tamper_assertion_text_sha(self):
+        # ACT 29（§25.1）：断言号不再跨版次沿用——`as_qizheng_900001` 属 ed01，ed99 的视图建的是 900005。
+        # 篡改对象改成**本轮视图新建的断言**（断言意图不变：改视图对象 → view_objects_unaltered 转红）。
         def tweak(knowledge):
-            assertion = [a for a in knowledge["assertions"] if a["assertion_id"] == "as_qizheng_900001"][0]
+            assertion = [a for a in knowledge["assertions"] if a["assertion_id"] == "as_qizheng_900005"][0]
             assertion["text_sha256"] = "0" * 64
 
         res = self.evaluate_tampered(tweak)
         self.assert_only_check_failed(res, "view_objects_unaltered")
 
     def test_tamper_untouched_entity_bytes(self):
+        # ACT 29（§25.9）：ed99 现在声明 `sanche-0002` 缺文，`as_qizheng_900002` 因此**落在闭包内**
+        # （omission 的旧版端点）。闭包外的基底对象只剩流派视图——改它（断言意图不变）。
         def tweak(knowledge):
-            assertion = [a for a in knowledge["assertions"] if a["assertion_id"] == "as_qizheng_900002"][0]
-            assertion["proposition"] = "被改过的未受影响对象"  # 该号在闭包之外
+            school_view = [s for s in knowledge["school_views"] if s["school_view_id"] == UNTOUCHED_BASE_ID][0]
+            school_view["changes_current_judgment"] = False  # 该号在闭包之外
 
         res = self.evaluate_tampered(tweak)
         self.assert_only_check_failed(res, "untouched_byte_identical")
@@ -245,25 +252,29 @@ class IncrementalGateCase(unittest.TestCase):
         self.assert_only_check_failed(res, "affected_scope_exact")
 
     def test_tamper_report_affected_extra_one(self):
+        # ACT 29：`as_qizheng_900002` 现在在闭包内，改多它不再改变等式 → 换成闭包外号（意图不变）
         report = copy.deepcopy(self.outcome["report"])
         report["affected_entity_ids"] = sorted(
-            list(report["affected_entity_ids"]) + ["as_qizheng_900002"]
+            list(report["affected_entity_ids"]) + [UNTOUCHED_BASE_ID]
         )
         res = self.evaluate(report=report)
         self.assert_only_check_failed(res, "affected_scope_exact")
 
     def test_tamper_rebuilt_outside_closure(self):
+        # ACT 29：同上——多出的号必须真的在闭包外
         report = copy.deepcopy(self.outcome["report"])
         report["rebuilt_entity_ids"] = sorted(
-            list(report["rebuilt_entity_ids"]) + ["as_qizheng_900002"]
+            list(report["rebuilt_entity_ids"]) + [UNTOUCHED_BASE_ID]
         )
         res = self.evaluate(report=report)
         self.assert_only_check_failed(res, "affected_scope_exact")
 
     def test_tamper_omission_on_undeclared_unit(self):
         def tweak(knowledge):
-            # `sanche-0001` 两侧都声明 present，把它记成 omission 就是无依据的对勘关系
-            knowledge["relations"][0]["relation_kind"] = "omission"
+            # `sanche-0001` 两侧都声明 present，把它记成 omission 就是无依据的对勘关系。
+            # ACT 29：r2 的关系表里第一条已是 addition；**按 kind 取**对齐关系（不再按下标 0）。
+            alignment = [rel for rel in knowledge["relations"] if rel["relation_kind"] == "alignment"][0]
+            alignment["relation_kind"] = "omission"
 
         res = self.evaluate_tampered(tweak)
         self.assert_only_check_failed(res, "collation_comparable_only")

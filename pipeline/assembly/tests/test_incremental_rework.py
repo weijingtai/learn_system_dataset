@@ -480,10 +480,20 @@ class ReworkReplacementTest(unittest.TestCase):
         self.assertEqual(
             len(internal), 1, "前置：基底里恰有一条合并双方之间的关系（夹具的 distinct_from）"
         )
+        dropped = res["report"]["dropped_relations"]
         self.assertEqual(
-            res["report"]["dropped_relations"],
+            [row for row in dropped if row["reason"] == "merge_internal"],
             [{"relation_key": internal[0]["relation_key"], "reason": "merge_internal"}],
             "随合并删除的基底关系必须进 report.dropped_relations（静默删除一律不许）",
+        )
+        # §22.2 第 2 种 + §25.6：r2 的**缺文**关系 `from=as_qizheng_900002`（旧版端点），
+        # 该断言在本轮被删（退役）→ 关系随端点退役一并删除，且必须如实记账。
+        omission = [rel for rel in self.base["relations"] if rel["relation_kind"] == "omission"]
+        self.assertEqual(len(omission), 1, "前置：r2 基底里恰有一条缺文关系")
+        self.assertEqual(
+            [row for row in dropped if row["reason"] == "endpoint_retired"],
+            [{"relation_key": omission[0]["relation_key"], "reason": "endpoint_retired"}],
+            "指向被删断言的基底关系必须删除并如实记账",
         )
 
 

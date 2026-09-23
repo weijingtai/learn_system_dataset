@@ -517,52 +517,94 @@ class TestReleaseFixture(unittest.TestCase):
         knowledge = res["result"]["knowledge"]
         collation = res["result"]["collation"]
 
-        # 1. 不可比单元如实入册（夹具恰有 1 个「声明了位置但无 collation_key」的单元）
+        # 1. 不可比清单（CHARTER §28b / §29 Q11）：形状固定为
+        #    {source_id, collation_key, assertion_id, reason}，按固定键排序，恰 2 项。
         rows = collation["not_comparable"]
-        self.assertEqual(len(rows), 1, "夹具恰有 1 个无 collation_key 的可比单元: %r" % rows)
-        self.assertEqual(rows[0]["reason"], "missing_collation_key")
-        self.assertIsNone(rows[0]["collation_key"])
+        self.assertEqual(
+            rows,
+            [
+                {
+                    "source_id": ed99["source_id"],
+                    "collation_key": None,
+                    "assertion_id": None,
+                    "reason": "missing_collation_key",
+                },
+                {
+                    "source_id": ed99["source_id"],
+                    "collation_key": "sanche-0004",
+                    "assertion_id": None,
+                    "reason": "base_undeclared",
+                },
+            ],
+            "不可比清单必须是 §28b 的固定形状与排序（不许带 entity_ref/present 等别的字段）",
+        )
+        self.assertEqual(
+            res["report"]["not_comparable_count"],
+            len(rows),
+            "assembly_report.not_comparable_count 必须 == len(清单)",
+        )
 
-        # 2. 对勘关系必须落在两侧都声明 present 的键上
+        # 2. 四类各一条，且每条都落在**该类型允许**的单元上（CHARTER §25.6）
         both_sides = declared[ed01["source_id"]] & declared[ed99["source_id"]]
-        self.assertIn("sanche-0001", both_sides, "夹具的对齐单元必须两侧都声明")
+        ed01_only = declared[ed01["source_id"]] - declared[ed99["source_id"]]
+        ed99_only = declared[ed99["source_id"]] - declared[ed01["source_id"]]
+        self.assertIn("sanche-0001", both_sides, "夹具的对齐单元必须两侧都声明 present")
         relations = [
             rel for rel in knowledge["relations"] if rel["relation_kind"] in COLLATION_KINDS
         ]
         self.assertEqual(
-            [rel["relation_kind"] for rel in relations],
-            ["alignment"],
-            "§19.2：本波只覆盖对齐，其余三类是 I 波缺口，不得悄悄冒出",
+            sorted({rel["relation_kind"] for rel in relations}),
+            sorted(COLLATION_KINDS),
+            "I 波起四类对勘关系必须全部实跑产出",
         )
+        self.assertEqual(len(relations), len(COLLATION_KINDS), "四类各恰一条")
         by_assertion = {item["assertion_id"]: item for item in knowledge["assertions"]}
-        for rel in relations:
-            endpoints = [
-                entity_id
-                for entity_id in (rel.get("from_entity_id"), rel.get("to_entity_id"))
-                if entity_id
-            ]
-            keys = {
-                by_assertion[entity_id].get("collation_key")
-                for entity_id in endpoints
-                if entity_id in by_assertion
-            }
-            self.assertTrue(keys, "对勘关系两端必须落在断言上: %r" % rel)
-            self.assertTrue(
-                keys <= both_sides,
-                "对勘关系 %s 落在不是「两侧都声明 present」的单元上: %r" % (rel["relation_key"], keys),
-            )
+        sources = {item["assertion_id"]: item.get("source_id") for item in knowledge["assertions"]}
 
-        # 3. 反向：只有 ed01 声明的键上不得出现任何对勘关系（否则就是臆造缺文）
-        undeclared = declared[ed01["source_id"]] - declared[ed99["source_id"]]
-        self.assertTrue(undeclared, "夹具必须有「一侧未声明」的键，否则本判据是空转的")
-        for rel in relations:
-            endpoints = [rel.get("from_entity_id"), rel.get("to_entity_id")]
-            keys = {
+        def keys_of(rel):
+            return {
                 by_assertion[entity_id].get("collation_key")
-                for entity_id in endpoints
+                for entity_id in (rel.get("from_entity_id"), rel.get("to_entity_id"))
                 if entity_id in by_assertion
             }
-            self.assertFalse(keys & undeclared, "未声明的单元上出现了对勘关系: %r" % rel)
+
+        for rel in relations:
+            keys = keys_of(rel)
+            self.assertTrue(keys, "对勘关系必须落在断言上: %r" % rel)
+            kind = rel["relation_kind"]
+            if kind in ("alignment", "variant_reading"):
+                self.assertTrue(
+                    keys <= both_sides,
+                    "%s 必须落在两侧都声明 present 的单元上: %r" % (kind, keys),
+                )
+                self.assertNotEqual(sources[rel["from_entity_id"]], ed01["source_id"],
+                                    "%s 的 from 必须是新版（ed99）断言" % kind)
+                self.assertEqual(sources[rel["to_entity_id"]], ed01["source_id"],
+                                 "%s 的 to 必须是旧版（ed01）断言" % kind)
+            else:
+                # 增文/缺文：一端为 null，单元只被一侧声明（§25.6）
+                self.assertIsNone(rel["to_entity_id"], "%s 的缺侧必须是 null" % kind)
+                allowed = ed99_only if kind == "addition" else ed01_only
+                self.assertTrue(keys <= allowed, "%s 的单元必须只被一侧声明: %r" % (kind, keys))
+                absent = ed01["source_id"] if kind == "addition" else ed99["source_id"]
+                self.assertEqual(rel["detail"].get("absent_source_id"), absent)
+
+        # 3. 反向：只被一侧声明的键上不得出现 alignment / variant（两侧 must 都 present）
+        one_side = ed01_only | ed99_only
+        self.assertTrue(one_side, "夹具必须有「一侧未声明 present」的键，否则本判据是空转的")
+        for rel in relations:
+            if rel["relation_kind"] in ("alignment", "variant_reading"):
+                self.assertFalse(keys_of(rel) & one_side, "未声明 present 的单元上出现了对勘关系: %r" % rel)
+
+        # 4. §25.9：基底**未声明**的单元（sanche-0004，只有 ed99 有断言）上不得出任何对勘关系
+        self.assertIn("sanche-0004", declared[ed99["source_id"]], "前置：ed99 声明了 0004")
+        self.assertNotIn("sanche-0004", declared[ed01["source_id"]], "前置：ed01 未声明 0004")
+        covered = set()
+        for rel in relations:
+            covered |= keys_of(rel)
+        self.assertNotIn(
+            "sanche-0004", covered, "基底未声明的单元不得出任何对勘关系（尤其不许出增文）"
+        )
 
     def test_release_fixture_round2_passes_snapshot_validation(self):
         manifest = load_manifest()

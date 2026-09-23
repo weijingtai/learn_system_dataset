@@ -234,17 +234,23 @@ class AffectedClosureTest(unittest.TestCase):
             "传给 apply 的 affected 必须恰是闭包集合（不得为 None）",
         )
 
-        self.assertIn("as_qizheng_900002", closure["untouched"])
-        self.assertNotIn("as_qizheng_900002", closure["affected"])
+        # CHARTER §25.6：A2 是本轮**缺文**关系（`from=as_qizheng_900002`）的旧版端点，
+        # 必须落在闭包内（否则关系端点悬空）；它本身没有断言级改动（不在 touched 里），
+        # 所以仍然走「原样拷贝」而不是重建。
+        self.assertIn("as_qizheng_900002", closure["affected"])
+        self.assertNotIn("as_qizheng_900002", result["result"]["rebuilt_entity_ids"])
+        self.assertTrue(closure["untouched"], "构造样本必须仍有闭包外的基底对象")
         by_id = {a["assertion_id"]: a for a in result["result"]["knowledge"]["assertions"]}
         self.assertEqual(
             by_id["as_qizheng_900002"],
             {a["assertion_id"]: a for a in base["assertions"]}["as_qizheng_900002"],
             "affected 之外的基底对象必须从基座原样拷贝",
         )
-        self.assertEqual(result["result"]["rebuilt_entity_ids"], closure["affected"])
-        for entity_id in result["result"]["rebuilt_entity_ids"]:
-            self.assertIn(entity_id, closure["affected"])
+        # §13.2：等式断言 `rebuilt == affected` 已删，留存的不变量是 rebuilt ⊆ affected
+        self.assertTrue(set(result["result"]["rebuilt_entity_ids"]) <= set(closure["affected"]))
+        self.assertTrue(
+            result["result"]["rebuilt_entity_ids"], "受影响对象里必须真的有被重建的（判据非空转）"
+        )
         self.assertEqual(result["report"]["untouched_count"], len(closure["untouched"]))
 
 
@@ -322,12 +328,13 @@ class AssembleTest(unittest.TestCase):
         # 同名歧义（R03b）由夹具决定集裁定 → 该提案计入 blocked_then_resolved
         self.assertEqual(
             result["report"]["proposals_by_resolution"],
-            {"auto": 4, "human": 0, "blocked_then_resolved": 1},
+            {"auto": 7, "human": 0, "blocked_then_resolved": 1},
         )
         self.assertEqual(result["report"]["rounds"], [2])
-        # fixture ed99 声明了一个**无 collation_key** 的可比单元（真书 26 条断言全无键的形状），
-        # 它如实进 not_comparable，不得静默压成 0。
-        self.assertEqual(result["report"]["not_comparable_count"], 1)
+        # not_comparable 必须如实入册（不得静默压成 0），本夹具恰有两个：
+        #   ① ed99 声明了一个**无 collation_key** 的可比单元（真书 26 条断言全无键的形状）；
+        #   ② `sanche-0004`——ed99 有断言，而 ed01 **未声明**该单元（CHARTER §25.5/§25.9）。
+        self.assertEqual(result["report"]["not_comparable_count"], 2)
 
     # ------------------------------------- 具名用例（ACT 26 二：report 记本轮提案键）
     def test_report_records_round_proposal_keys(self):
@@ -585,23 +592,35 @@ class ReplacementInheritanceTest(unittest.TestCase):
         }
         self.assertFalse(retired, "替换版次不得把仍在视图里的对象退役")
 
-        # 4. 反证：拆掉过滤 → 同一输入立刻把仍在视图里的断言退役，关系端点悬空而 fail-closed。
-        # （证明第 3 条是真判据，不是恒真；“拆护栏不等于修好”的现场就是这个报错。）
+        # 4. 反证：拆掉过滤 → 同一输入立刻把仍在视图里声明的断言退役（静默折叠）。
+        #    旧口径下这还会让「同 source 自配」的对勘关系端点悬空而 fail-closed（MissingReference）；
+        #    CHARTER §25.3 之后同 source 不再配对，故本波的可观察破坏是「仍在视图里的断言被退役」
+        #    ——判据仍然不许是空的。
         dangling = sorted(retired_assertion_scope(base, views))
         self.assertTrue(dangling, "替换版次上必须真的存在「被 R11 误判为删除」的断言")
+        kept_live = {a["assertion_id"] for a in result["result"]["knowledge"]["assertions"]}
+        self.assertTrue(
+            set(dangling) <= kept_live,
+            "接上 D-14 过滤后，仍在视图里声明的断言必须存活：%s" % dangling,
+        )
 
         def bypass(*args, **kwargs):
             return {"dropped": [], "kept": []}
 
         with mock.patch.object(orchestrate, "carry_forward_proposals", bypass):
-            with self.assertRaises(MissingReference) as ctx:
-                assemble(base, views, decisions, incremental=True,
-                         base_snapshot_revision_id="rev_1")
-        self.assertIn("relations 端点", str(ctx.exception))
-        self.assertTrue(
-            any(assertion_id in str(ctx.exception) for assertion_id in dangling),
-            "拒收必须指到被误退役的那个断言：%s" % dangling,
+            broken = assemble(
+                base, views, decisions, incremental=True, base_snapshot_revision_id="rev_1"
+            )
+        self.assertEqual(broken["status"], "complete")
+        broken_knowledge = broken["result"]["knowledge"]
+        broken_live = {a["assertion_id"] for a in broken_knowledge["assertions"]}
+        self.assertFalse(
+            broken_live & set(dangling),
+            "拆掉护栏后，仍在视图里声明的断言必须真的被退役——否则第 1/3 条判据在空转：%s"
+            % dangling,
         )
+        for assertion_id in dangling:
+            self.assertIn(assertion_id, broken_knowledge["retired_entity_ids"])
 
 
 class AwaitingHumanLedgerTest(unittest.TestCase):
