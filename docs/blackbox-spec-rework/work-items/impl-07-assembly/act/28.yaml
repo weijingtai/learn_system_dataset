@@ -56,12 +56,13 @@ contract: |
     `merge_entities` 获批时：旧号进 `retired_entity_ids`，IdentityDelta 记一条
     `{change_type: "merged", from_entity_id: 旧号, to_entity_ids: [新号], reason_ref: {kind: "proposal", proposal_key: <该合并提案键>}}`。
     **不写 `merged_into` 关系**（关系两端必须存活，已退役的旧号不该出现在关系表里）。
-    若现有代码或测试依赖 `merged_into` 关系，把依赖处列进回报，**停手上报**，不要自己改掉别人的依赖。
+    依赖处已查明（仅 test_apply.py:654 与 apply.py:19-23 说明），§21 ③ 已授权改写，不必再停手。
+    其余新发现的依赖仍须停手上报。
 
   四、造 ed01r2 与 r3 金标（fixture，经 build_fixture.py）
     `ed01r2`：与 ed01 同 `(source_id, edition_part_ids)`，第二份 m6 包。内容：
       - 删掉 ed01 的一条 Assertion → 应 `retired`
-      - 两个 Concept 经裁定合并 → 应 `merged`
+      - 两个 Pattern 经 R03d 裁定合并 → 应 `merged`（§21 ④；原写 Concept，规则表不可达）
       - 其余不变 → 应 `carried`
     ed01r2 会带出 R04 别名、R06 冲突两条人工提案。**决定集作为 fixture 数据由 build_fixture.py 写出**（CHARTER §19.3）。
     金标：r2 → ed01r2 实跑（纯函数层固定基底号）产出 `expected/snapshot_r3.json`、`expected/identity_delta_r3.json`。
@@ -106,8 +107,8 @@ verify: |
   bash openspec/acceptance/m7-assembler.sh 2>&1 | grep -E "upstream_m6_real|no_model_calls|SUMMARY"
   for p in dataset_compiler review validation corpus_compiler; do
     .venv/bin/python -m unittest discover -s pipeline/$p/tests -t . 2>&1 | grep -E "^Ran|^OK|^FAILED" | tail -2; done
-  git diff --stat HEAD~1 -- pipeline/assembly/incremental.py pipeline/assembly/matcher.py pipeline/assembly/orchestrate.py pipeline/assembly/genesis.py pipeline/assembly/canonical.py pipeline/assembly/inputs.py
-      # 必须无输出（HEAD~1 指 ACT 26 的提交）
+  git diff --stat 6455c44 -- pipeline/assembly/incremental.py pipeline/assembly/matcher.py pipeline/assembly/genesis.py pipeline/assembly/canonical.py pipeline/assembly/inputs.py
+      # 必须无输出（orchestrate.py 已按 §21 ① 授权，不在此列；其改动须限于接线与 report 字段）
   git status --short var/ pipeline/corpus/_fixture/mini_ed01/     # 无输出
   # 真书第二轮在副本上重跑，确认没被本波改坏（run_m7 succeeded、增量 Gate 全过）
   # 篡改探针（三条，完整仓库副本含 ocr/，R13）：
@@ -118,6 +119,7 @@ commit:
   add:
     - pipeline/assembly/apply.py
     - pipeline/assembly/gate.py
+    - pipeline/assembly/orchestrate.py
     - pipeline/corpus/_fixture/mini_release01/
     - pipeline/assembly/tests/
     - docs/blackbox-spec-rework/work-items/impl-07-assembly/act/28.yaml
