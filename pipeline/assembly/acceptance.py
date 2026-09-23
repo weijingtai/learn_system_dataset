@@ -1,18 +1,26 @@
-"""M7 创世汇编验收（spec §19.0 判据）：十七项判定（11 PASS + 5 BLOCKED）。
+"""M7 汇编验收（spec §19.0 判据）：十七项判定，每条都由**实际运行结果**决定。
 
-本模块不 import ``genesis``；判定只读 Ledger 与 tests/data 金标，不信任
-``run_m7`` 返回的 Gate 报告与结果对象。
-真实 M6 上游路径经 upstream_stub 驱动（第 83 条）。
+本模块不 import ``genesis``；判定只读 Ledger 与夹具金标，不信任 ``run_m7`` 返回的 Gate 报告。
+
+- ``upstream_m6_real``：真实 M6 **注入路径**（输入是合成桩，见 ``NOTE`` 行）。
+- ``incremental_multi_edition`` / ``edition_collation`` / ``identity_delta`` / ``rework_replacement``：
+  在临时 Ledger 上**实跑** mini_release01 的 r1 → ed99 → ed01r2 三轮（决定集来自夹具数据），
+  再按 CHARTER §19.3 比对：纯函数层逐字节；Ledger 层「除 ``meta`` 外相同 + ``meta`` 指向本轮实际基底」。
+- ``run_all_20_5``：验证 ``run_all.sh`` 的 20.5 段确实按 ``m7-assembler.sh`` 的退出码映射。
+- ``upstream_m6_real_book``：在 ``var/ledgers/qianyuan_w8`` 的**副本**上跑真书第二轮，正本只读。
 """
 
 import argparse
 import ast
+import hashlib
 import json
 import re
 import shutil
 import sys
 import tempfile
 from pathlib import Path
+
+import yaml
 
 try:
     import jsonschema
@@ -34,28 +42,226 @@ DATA_DIR = Path(__file__).resolve().parent / "tests" / "data"
 GENESIS_PACKAGE_PATH = DATA_DIR / "genesis_package.json"
 GOLDEN_KNOWLEDGE_PATH = DATA_DIR / "genesis_expected_knowledge.json"
 
-BLOCKED_CHECKS = (
-    (
-        "incremental_multi_edition",
-        "多 Edition 增量对勘未实现（§15:655）",
-    ),
-    (
-        "edition_collation",
-        "Alignment/VariantReading/Addition/Omission 未实现",
-    ),
-    (
-        "identity_delta",
-        "跨版本身份迁移未实现（§6.3、§16:732）",
-    ),
-    (
-        "rework_replacement",
-        "M6 返工替换未实现（D-14）",
-    ),
-    (
-        "run_all_20_5",
-        "§20.5 未接线（Q29 采纳 C）",
-    ),
+RELEASE_FIXTURE = REPO_ROOT / "pipeline" / "corpus" / "_fixture" / "mini_release01"
+REAL_LEDGER_DIR = REPO_ROOT / "var" / "ledgers" / "qianyuan_w8"
+RUN_ALL_SCRIPT = REPO_ROOT / "openspec" / "acceptance" / "run_all.sh"
+M7_SHELL_SCRIPT = REPO_ROOT / "openspec" / "acceptance" / "m7-assembler.sh"
+
+#: 对勘四类（``apply.COLLATION_KINDS`` 的独立副本：判据不 import 被验模块的行为常量）
+COLLATION_KINDS = ("alignment", "variant_reading", "addition", "omission")
+
+#: 缺文/增文/异文无生产者时的真实理由（CHARTER §19.2 口径更正）
+EDITION_COLLATION_GAP = "多版次对勘（缺文/增文/异文）引擎缺口，见 CHARTER §19"
+
+#: ``upstream_m6_real`` 的输入是合成桩（CHARTER §2 P2 更正），判据名不改但必须如实写明
+UPSTREAM_M6_REAL_NOTE = (
+    "输入为合成桩（pipeline/review/testing/upstream_stub 的 mini_ed01），非真书；"
+    "真书判定见 upstream_m6_real_book"
 )
+
+
+def _load_json(path: Path) -> dict:
+    return json.loads(Path(path).read_text(encoding="utf-8"))
+
+
+def _release_manifest() -> dict:
+    return yaml.safe_load((RELEASE_FIXTURE / "manifest.yaml").read_text(encoding="utf-8"))
+
+
+def _release_decisions(round_no: int) -> list:
+    """读夹具登记的第 ``round_no`` 轮决定集（`build_fixture.py` 从真实提案推出）。"""
+    rows = [row for row in _release_manifest().get("decisions") or [] if row.get("round") == round_no]
+    if not rows:
+        raise RuntimeError("夹具未登记第 %d 轮的决定集" % round_no)
+    return _load_json(RELEASE_FIXTURE / rows[0]["file"])["decisions"]
+
+
+def _release_view(edition: dict) -> dict:
+    views = RELEASE_FIXTURE / edition["views_dir"]
+    return {
+        "source_id": edition["source_id"],
+        "candidate_set": _load_json(views / "candidate_set.json"),
+        "reviewed_edition": _load_json(views / "reviewed_edition.json"),
+    }
+
+
+def _declared_present_keys(candidate_set: dict) -> set:
+    """视图**声明**为 present 的可比单元键（独立重算，不看引擎中间量）。"""
+    keys = set()
+    for unit in candidate_set.get("collation_units") or []:
+        if unit.get("collation_key") and unit.get("present", True):
+            keys.add(unit["collation_key"])
+    for assertion in candidate_set.get("assertions") or []:
+        if assertion.get("collation_key"):
+            keys.add(assertion["collation_key"])
+    return keys
+
+
+def _prepare_release_rounds(tmp_root: Path) -> dict:
+    """在临时 Ledger 上把 mini_release01 的三轮**实跑**一遗。
+
+    决定集全部来自夹具数据，**不手工构造任何提案**。同时算纯函数层 r2/r3
+    （基底号用 `expected/snapshot_revisions.yaml` 的固定常量），以便按 §19.3 逐字节比对。
+    返回的 dict 里带 ``service``，由调用方负责关闭。
+    """
+    from pipeline.assembly import fixture_seed
+    from pipeline.assembly.orchestrate import assemble as assemble_incremental
+
+    manifest = _release_manifest()
+    technique_id = manifest["technique_id"]
+    plan = yaml.safe_load(
+        (RELEASE_FIXTURE / manifest["expected"]["snapshot_revisions"]).read_text(encoding="utf-8")
+    )
+    ed01, ed99, rework = manifest["editions"][0], manifest["editions"][1], manifest["rework"]
+
+    service = LedgerService(tmp_root / "release_ledger")
+    try:
+        seeded = fixture_seed.seed_release_package(service, RELEASE_FIXTURE)["editions"]
+        # 返工版次（同 source_id、同 edition_part_ids）不在 editions[] 里，单独播种
+        lc = rework["ledger_constants"]
+        rework_views = RELEASE_FIXTURE / rework["views_dir"]
+        service.create_processing_run(
+            "release_run",
+            rework["edition_part_artifact_id"],
+            technique_id,
+            processing_run_id=lc["processing_run_id"],
+        )
+        rework_seeded = fixture_seed._seed_one_edition(
+            service,
+            technique_id,
+            rework["edition_part_artifact_id"],
+            lc["processing_run_id"],
+            lc,
+            _load_json(rework_views / "candidate_set.json"),
+            dict(
+                _load_json(rework_views / "reviewed_edition.json"),
+                candidate_set_revision_id=lc["candidate_set_revision_id"],
+                candidate_package_revision_id=lc["candidate_package_revision_id"],
+            ),
+            dict(
+                _load_json(rework_views / "reviewed_edition_package.json"),
+                reviewed_edition_revision_id=lc["reviewed_edition_revision_id"],
+            ),
+        )
+
+        def _run(edition_part_id, m6_rev, base_rev=None, decisions=None):
+            return run_m7(
+                service,
+                edition_part_id,
+                technique_id=technique_id,
+                reviewed_package_revision_ids=[m6_rev],
+                base_snapshot_revision_id=base_rev,
+                id_range=manifest["id_range"],
+                decisions=decisions,
+            )
+
+        m6_revisions = {
+            "ed01": seeded[ed01["edition_key"]]["m6_package_revision_id"],
+            "ed99": seeded[ed99["edition_key"]]["m6_package_revision_id"],
+            "ed01r2": rework_seeded["m6_package_revision_id"],
+        }
+        runs = {}
+        runs["r1"] = _run(ed01["edition_part_artifact_id"], m6_revisions["ed01"])
+        runs["r2"] = _run(
+            ed99["edition_part_artifact_id"],
+            m6_revisions["ed99"],
+            runs["r1"].get("snapshot_revision_id"),
+            _release_decisions(2),
+        )
+        runs["r3"] = _run(
+            rework["edition_part_artifact_id"],
+            m6_revisions["ed01r2"],
+            runs["r2"].get("snapshot_revision_id"),
+            _release_decisions(3),
+        )
+
+        def _revision_bytes(revision_id):
+            if not revision_id:
+                return None
+            revision = service.get_revision(revision_id)
+            return service.objects.get(revision["sha256"])
+
+        def _revision_doc(revision_id):
+            raw = _revision_bytes(revision_id)
+            return json.loads(raw.decode("utf-8")) if raw is not None else None
+
+        snapshots = {
+            key: _revision_doc(run.get("snapshot_revision_id")) for key, run in runs.items()
+        }
+        snapshot_bytes = {
+            key: _revision_bytes(run.get("snapshot_revision_id")) for key, run in runs.items()
+        }
+        validations = {
+            key: _revision_doc(run.get("validation_report_revision_id")) for key, run in runs.items()
+        }
+        packages = {
+            key: _revision_doc(run.get("assembly_package_revision_id")) for key, run in runs.items()
+        }
+
+        pure = {
+            "r2": assemble_incremental(
+                _load_json(RELEASE_FIXTURE / manifest["expected"]["round1"]),
+                [_release_view(ed99)],
+                _release_decisions(2),
+                incremental=True,
+                base_snapshot_revision_id=plan["revisions"][0]["snapshot_revision_id"],
+            ),
+            "r3": assemble_incremental(
+                _load_json(RELEASE_FIXTURE / manifest["expected"]["round2"]),
+                [_release_view(rework)],
+                _release_decisions(3),
+                incremental=True,
+                base_snapshot_revision_id=plan["revisions"][1]["snapshot_revision_id"],
+            ),
+        }
+        goldens = {
+            "r2": (RELEASE_FIXTURE / manifest["expected"]["round2"]).read_bytes(),
+            "r3": (RELEASE_FIXTURE / manifest["expected"]["round3"]).read_bytes(),
+        }
+    except Exception:
+        service.close()
+        raise
+
+    return {
+        "service": service,
+        "manifest": manifest,
+        "plan": plan,
+        "runs": runs,
+        "m6_revisions": m6_revisions,
+        "snapshots": snapshots,
+        "snapshot_bytes": snapshot_bytes,
+        "validations": validations,
+        "packages": packages,
+        "pure": pure,
+        "goldens": goldens,
+    }
+
+
+def _require_release(world) -> dict:
+    if world.get("release") is None:
+        raise RuntimeError("夹具实跑准备失败: %s" % world.get("release_error"))
+    return world["release"]
+
+
+def _golden_doc(manifest: dict, key: str) -> dict:
+    return _load_json(RELEASE_FIXTURE / manifest["expected"][key])
+
+
+def _meta_excluded_mismatch(produced: dict, golden: dict, base_rev, label: str) -> list:
+    """§19.3 的 Ledger 层口径：除 `meta` 外逐字节相同 + `meta` 指向本轮实际基底。"""
+    failures = []
+    if sorted(produced.get("meta") or {}) != sorted(golden.get("meta") or {}):
+        failures.append("%s: meta 字段集与金标不一致" % label)
+    left = {k: v for k, v in produced.items() if k != "meta"}
+    right = {k: v for k, v in golden.items() if k != "meta"}
+    if canonical_json(left) != canonical_json(right):
+        failures.append("%s: 除 meta 外产出与金标不是逐字节相同" % label)
+    got = (produced.get("meta") or {}).get("base_snapshot_revision_id")
+    if base_rev is not None and got != base_rev:
+        failures.append(
+            "%s: meta.base_snapshot_revision_id=%r != 本轮实际基底 %r" % (label, got, base_rev)
+        )
+    return failures
 
 
 def _prepare_with_real_m6():
@@ -543,6 +749,510 @@ def check_upstream_m6_real(world) -> list[str]:
     return errors
 
 
+# --------------------------------------------- 增量/对勘/返工四条的实跑判定（ACT 27）
+def check_incremental_multi_edition(world) -> tuple:
+    """§15:655：新版次加入同一部书，来一个汇一个——r1 → ed99 增量实跑必须全过。"""
+    release = _require_release(world)
+    manifest = release["manifest"]
+    failures = []
+
+    status = release["runs"]["r2"].get("status")
+    if status != "succeeded":
+        failures.append("ed99 增量轮 status=%r（期望 succeeded）" % status)
+
+    validation = release["validations"]["r2"]
+    if validation is None:
+        failures.append("ed99 增量轮未产出 validation_report")
+    else:
+        gate = validation.get("incremental_gate") or {}
+        bad = sorted(
+            name for name, check in (gate.get("checks") or {}).items() if not check.get("passed")
+        )
+        if not gate.get("passed") or bad:
+            failures.append("增量 Gate 未全过: %r" % (bad or gate))
+
+    if release["pure"]["r2"]["result"]["knowledge_bytes"] != release["goldens"]["r2"]:
+        failures.append("纯函数层增量产出与 snapshot_r2.json 不是逐字节相同")
+
+    produced = release["snapshots"]["r2"]
+    if produced is None:
+        failures.append("ed99 增量轮未写出 Snapshot")
+    else:
+        failures.extend(
+            _meta_excluded_mismatch(
+                produced,
+                _golden_doc(manifest, "round2"),
+                release["runs"]["r1"].get("snapshot_revision_id"),
+                "r2",
+            )
+        )
+
+    if failures:
+        return ("FAIL", "; ".join(failures[:3]))
+    note = (
+        "本判据只覆盖「同一 EditionPart 逐版次汇入」；单个 Run 一次汇多个 M6 包不是 §15:655 的要求，"
+        "不计入本判据（现口径：%s）" % _multi_package_observed(release)
+    )
+    return ("PASS", note)
+
+
+def _multi_package_observed(release: dict) -> str:
+    """如实描述现口径（**不据此判定**）：一次 Run 汇两个 M6 包会怎样。
+
+    `resolve_m7_inputs` 已能解析多包；拒收发生在 `run_m7` 的 begin 之前（无写入）。
+    """
+    manifest = release["manifest"]
+    try:
+        run_m7(
+            release["service"],
+            manifest["editions"][0]["edition_part_artifact_id"],
+            technique_id=manifest["technique_id"],
+            reviewed_package_revision_ids=[
+                release["m6_revisions"]["ed01"],
+                release["m6_revisions"]["ed99"],
+            ],
+            id_range=manifest["id_range"],
+        )
+        return "本机实测：一次 Run 确实汇进了多个包"
+    except Exception as exc:  # noqa: BLE001 - 只记录行为，不据此判定
+        return "本机实测：仍在前置拒收（%s，code=%s）：%s" % (
+            type(exc).__name__,
+            getattr(exc, "code", None),
+            str(exc)[:80],
+        )
+
+
+def check_edition_collation(world) -> tuple:
+    """多版次对勘：已实现的（对齐关系正确、不可比单元无对勘关系）真验；
+    缺文/增文/异文无生产者 → BLOCKED（理由必须实指缺口，不许写「未实现」也不许 PASS）。
+    """
+    release = _require_release(world)
+    manifest = release["manifest"]
+    failures = []
+
+    produced = release["snapshots"]["r2"] or {}
+    golden = _golden_doc(manifest, "round2")
+
+    def _signature(document: dict) -> list:
+        keys = {
+            item["assertion_id"]: item.get("collation_key")
+            for item in document.get("assertions") or []
+        }
+        rows = []
+        for rel in document.get("relations") or []:
+            if rel.get("relation_kind") not in COLLATION_KINDS:
+                continue
+            ends = tuple(
+                sorted(
+                    key
+                    for key in (keys.get(rel.get("from_entity_id")), keys.get(rel.get("to_entity_id")))
+                    if key
+                )
+            )
+            rows.append((rel["relation_kind"], ends))
+        return sorted(rows)
+
+    if _signature(produced) != _signature(golden):
+        failures.append(
+            "对勘关系集与 r2 金标不一致: 实跑 %r / 金标 %r"
+            % (_signature(produced), _signature(golden))
+        )
+
+    ed01, ed99 = manifest["editions"][0], manifest["editions"][1]
+    declared = {
+        ed["source_id"]: _declared_present_keys(_release_view(ed)["candidate_set"])
+        for ed in (ed01, ed99)
+    }
+    both_sides = declared[ed01["source_id"]] & declared[ed99["source_id"]]
+    one_side_only = declared[ed01["source_id"]] ^ declared[ed99["source_id"]]
+    if not one_side_only:
+        failures.append("夹具必须有「一侧未声明」的单元，否则「不可比单元上无对勘关系」是空转的")
+    keys = {
+        item["assertion_id"]: item.get("collation_key")
+        for item in produced.get("assertions") or []
+    }
+    for rel in produced.get("relations") or []:
+        if rel.get("relation_kind") not in COLLATION_KINDS:
+            continue
+        ends = {
+            keys.get(rel.get("from_entity_id")),
+            keys.get(rel.get("to_entity_id")),
+        } - {None}
+        if not ends:
+            failures.append("对勘关系两端必须落在断言上: %r" % rel.get("relation_key"))
+            continue
+        if not ends <= both_sides:
+            failures.append(
+                "对勘关系 %s 落在不是「两侧都声明 present」的单元上: %r"
+                % (rel.get("relation_key"), sorted(ends))
+            )
+
+    report = (release["packages"]["r2"] or {}).get("assembly_report") or {}
+    if report.get("not_comparable_count") != 1:
+        failures.append(
+            "不可比单元必须如实入册（夹具恰有 1 个无 collation_key 的单元），实际 report=%r"
+            % report.get("not_comparable_count")
+        )
+
+    if failures:
+        return ("FAIL", "; ".join(failures[:3]))
+    kinds = sorted(
+        {
+            rel["relation_kind"]
+            for rel in produced.get("relations") or []
+            if rel.get("relation_kind") in COLLATION_KINDS
+        }
+    )
+    missing = [kind for kind in COLLATION_KINDS if kind not in kinds]
+    if missing:
+        return ("BLOCKED", EDITION_COLLATION_GAP)
+    return ("PASS", "")
+
+
+def check_identity_delta(world) -> tuple:
+    """跨版本身份迁移：r2 → ed01r2 实跑的 identity_delta 与金标一致，理由引用都指向本轮提案键。"""
+    release = _require_release(world)
+    manifest = release["manifest"]
+    failures = []
+
+    package = release["packages"]["r3"]
+    if package is None:
+        return ("FAIL", "返工轮未产出 assembly_package（identity_delta 无处可查）")
+
+    delta = package.get("identity_delta") or {}
+    golden = _golden_doc(manifest, "identity_delta_r3")
+    if canonical_json(delta.get("entries") or []) != canonical_json(golden["entries"]):
+        failures.append(
+            "identity_delta.entries 与金标不一致: %r" % json.dumps(delta.get("entries"), ensure_ascii=False)
+        )
+
+    base_rev = release["runs"]["r2"].get("snapshot_revision_id")
+    base_bytes = release["snapshot_bytes"]["r2"]
+    if base_bytes is None or delta.get("base_knowledge_sha256") != hashlib.sha256(base_bytes).hexdigest():
+        failures.append("base_knowledge_sha256 不等于本轮实际基底修订的字节哈希")
+    if base_rev is None:
+        failures.append("r2 未产出 Snapshot，返工轮没有基底")
+
+    round_keys = set((release["runs"]["r3"].get("report") or {}).get("round_proposal_keys") or [])
+    if not round_keys:
+        failures.append("r3 report 缺 round_proposal_keys（无法校验理由引用）")
+    for entry in delta.get("entries") or []:
+        key = (entry.get("reason_ref") or {}).get("proposal_key")
+        if key not in round_keys:
+            failures.append(
+                "%s 的 reason_ref.proposal_key=%r 不在本轮 round_proposal_keys 里"
+                % (entry.get("change_type"), key)
+            )
+    if sorted(entry.get("change_type") for entry in delta.get("entries") or []) != [
+        "merged",
+        "retired",
+    ]:
+        failures.append("本夹具的变更类型应为 merged + retired")
+
+    if failures:
+        return ("FAIL", "; ".join(failures[:3]))
+    return ("PASS", "")
+
+
+def check_rework_replacement(world) -> tuple:
+    """D-14 返工替换：ed01r2 被识别为 ed01 的替换、退役/沿用/产出与金标一致。"""
+    release = _require_release(world)
+    manifest = release["manifest"]
+    ed01, rework = manifest["editions"][0], manifest["rework"]
+    failures = []
+
+    if (
+        rework["source_id"] != ed01["source_id"]
+        or rework["edition_part_artifact_id"] != ed01["edition_part_artifact_id"]
+    ):
+        failures.append("夹具前置不成立：ed01r2 与 ed01 不是同一 (source_id, edition_part_ids)")
+
+    produced = release["snapshots"]["r3"]
+    if produced is None:
+        return ("FAIL", "返工轮未写出 Snapshot")
+    golden = _golden_doc(manifest, "round3")
+    failures.extend(
+        _meta_excluded_mismatch(
+            produced, golden, release["runs"]["r2"].get("snapshot_revision_id"), "r3"
+        )
+    )
+
+    sources = [ed.get("source_id") for ed in produced.get("editions") or []]
+    if sources != sorted(ed["source_id"] for ed in manifest["editions"]):
+        failures.append("替换轮后 editions 不是「两个版次各一条」（替换不得新增条目）: %r" % (sources,))
+
+    base = release["snapshots"]["r2"] or {}
+    base_edition = [
+        ed for ed in base.get("editions") or [] if ed.get("source_id") == ed01["source_id"]
+    ]
+    now_edition = [
+        ed for ed in produced.get("editions") or [] if ed.get("source_id") == ed01["source_id"]
+    ]
+    if len(base_edition) == 1 and len(now_edition) == 1:
+        if canonical_json(base_edition[0]) != canonical_json(now_edition[0]):
+            failures.append("替换后的版次条目必须继承基底该版次的 reviewed_edition_* 身份字段")
+        if now_edition[0].get("reviewed_edition_revision_id") == rework["ledger_constants"][
+            "reviewed_edition_revision_id"
+        ]:
+            failures.append("替换不得把本轮新包的修订号当成该版次的身份（D-14：按基底身份识别）")
+    else:
+        failures.append("基底/产出里 src_sanche_ed01 的版次条目不是恰好一条")
+
+    delta = (release["packages"]["r3"] or {}).get("identity_delta") or {}
+    entries = delta.get("entries") or []
+    retired = [entry for entry in entries if entry.get("change_type") == "retired"]
+    if not retired:
+        failures.append("返工删掉的断言必须以 change_type=retired 记进 identity_delta")
+    if sorted(produced.get("retired_entity_ids") or []) != sorted(
+        entry.get("from_entity_id") for entry in entries
+    ):
+        failures.append(
+            "retired_entity_ids 必须恰好是 identity_delta 的 from 端: %r"
+            % (produced.get("retired_entity_ids"),)
+        )
+    declared_before = _declared_present_keys(_release_view(ed01)["candidate_set"])
+    declared_after = _declared_present_keys(_release_view(rework)["candidate_set"])
+    removed = declared_before - declared_after
+    if not removed:
+        failures.append("夹具必须在返工视图里删掉至少一个可比单元（否则本判据空转）")
+    by_key = {
+        item.get("collation_key"): item["assertion_id"]
+        for item in (base.get("assertions") or [])
+        if item.get("collation_key")
+    }
+    for entry in retired:
+        if entry.get("entity_kind") != "assertion":
+            continue
+        if by_key.get(next(iter(removed), None)) != entry.get("from_entity_id"):
+            failures.append(
+                "退役的断言必须是「基底声明过、返工视图不再声明」的那条: %r" % (entry.get("from_entity_id"),)
+            )
+
+    if [rel for rel in produced.get("relations") or [] if rel.get("relation_kind") == "merged_into"]:
+        failures.append("合并不得写成 merged_into 关系（关系两端必须存活）")
+
+    report = release["runs"]["r3"].get("report") or {}
+    if not report.get("carried"):
+        failures.append("未变对象必须走 carried（report.carried 为空）")
+
+    merge_entry = next(
+        (entry for entry in entries if entry.get("change_type") == "merged"), None
+    )
+    if merge_entry is None:
+        failures.append("返工轮的合并必须以 change_type=merged 记进 identity_delta")
+    else:
+        pair = {merge_entry.get("from_entity_id")} | set(merge_entry.get("to_entity_ids") or [])
+        internal = [
+            rel
+            for rel in base.get("relations") or []
+            if {rel.get("from_entity_id"), rel.get("to_entity_id")} == pair
+        ]
+        expected_dropped = sorted(
+            ({"relation_key": rel["relation_key"], "reason": "merge_internal"} for rel in internal),
+            key=lambda row: row["relation_key"],
+        )
+        if sorted(report.get("dropped_relations") or [], key=lambda row: row["relation_key"]) != expected_dropped:
+            failures.append(
+                "合并双方之间的基底关系必须如实进 report.dropped_relations: 实报 %r / 独立推出 %r"
+                % (report.get("dropped_relations"), expected_dropped)
+            )
+
+    if failures:
+        return ("FAIL", "; ".join(failures[:3]))
+    return ("PASS", "")
+
+
+def check_run_all_20_5(world) -> tuple:
+    """§20.5 的判定必须由 m7-assembler.sh 的真实退出码决定（0/1/2/3 → PASS/FAIL/BLOCKED/BLOCKED）。"""
+    failures = []
+    if not RUN_ALL_SCRIPT.exists():
+        return ("FAIL", "run_all.sh 缺失: %s" % RUN_ALL_SCRIPT)
+
+    block = _run_all_20_5_block()
+    if "m7-assembler.sh" not in block:
+        failures.append("run_all.sh 的 20.5 段未调用 m7-assembler.sh（写死的判定）")
+
+    observed = {}
+    for exit_code, expected in ((0, "PASS"), (1, "FAIL"), (2, "BLOCKED"), (3, "BLOCKED")):
+        line = _probe_20_5_mapping(exit_code)
+        observed[exit_code] = line.split()[0] if line.split() else line
+        if not line.startswith(expected):
+            failures.append(
+                "m7-assembler.sh 退出码 %d 应映射为 %s，实际: %s" % (exit_code, expected, line)
+            )
+
+    if failures:
+        return ("FAIL", "; ".join(failures[:3]))
+    return (
+        "PASS",
+        "退出码映射 %s" % json.dumps({str(k): v for k, v in observed.items()}),
+    )
+
+
+def _run_all_20_5_block() -> str:
+    text = RUN_ALL_SCRIPT.read_text(encoding="utf-8")
+    start = text.find("\n    20.5)")
+    if start < 0:
+        raise RuntimeError("run_all.sh 未找到 20.5 段")
+    end = text.find("\n    ;;", start)
+    return text[start:end]
+
+
+def _probe_20_5_mapping(exit_code: int) -> str:
+    """把**真实**的 run_all.sh 放进假仓库，用一个按 `exit_code` 退出的 m7-assembler.sh 桩驱动它。"""
+    import subprocess
+
+    tmp = Path(tempfile.mkdtemp(prefix="m7_acc_20_5_"))
+    try:
+        acc_dir = tmp / "openspec" / "acceptance"
+        acc_dir.mkdir(parents=True)
+        (acc_dir / "run_all.sh").write_text(
+            RUN_ALL_SCRIPT.read_text(encoding="utf-8"), encoding="utf-8"
+        )
+        stub = acc_dir / "m7-assembler.sh"
+        stub.write_text(
+            "#!/usr/bin/env bash\n"
+            "echo 'BLOCKED stub_check 桩判定'\n"
+            "echo 'SUMMARY pass=0 fail=0 blocked=1'\n"
+            "exit %d\n" % exit_code,
+            encoding="utf-8",
+        )
+        stub.chmod(0o755)
+        proc = subprocess.run(
+            ["bash", str(acc_dir / "run_all.sh"), "20.5"],
+            cwd=str(tmp),
+            capture_output=True,
+            text=True,
+        )
+        for line in proc.stdout.splitlines():
+            if line.startswith(("PASS  ", "FAIL  ", "BLOCKED  ")) and "20.5" in line:
+                return line
+        return "<20.5 无输出>"
+    finally:
+        shutil.rmtree(tmp, True)
+
+
+def check_upstream_m6_real_book(world) -> tuple:
+    """真书判据：在 `var/ledgers/qianyuan_w8` 的**副本**上以 r1 金标为基底跑真书第二轮。
+
+    宿主要求：无账本时 BLOCKED（不许判 PASS）；跑完核对正本 `ledger.sqlite` 的 mtime/size 未变。
+    """
+    from pipeline.assembly.inputs import resolve_m7_inputs
+
+    ledger_file = REAL_LEDGER_DIR / "ledger.sqlite"
+    if not ledger_file.exists():
+        return ("BLOCKED", "宿主缺失: 无真书账本（%s）" % REAL_LEDGER_DIR)
+
+    before = ledger_file.stat()
+    before_mark = (before.st_mtime_ns, before.st_size)
+    base_bytes = (RELEASE_FIXTURE / "expected" / "snapshot_r1.json").read_bytes()
+    failures = []
+    tmp_root = Path(tempfile.mkdtemp(prefix="m7_acc_real_book_"))
+    work = tmp_root / REAL_LEDGER_DIR.name
+    try:
+        shutil.copytree(REAL_LEDGER_DIR, work)
+        service = LedgerService(work)
+        try:
+            m6_rev = _newest_sealed_m6_revision(service)
+            if m6_rev is None:
+                return ("BLOCKED", "宿主缺失: 真书账本里没有 sealed 的 m6 StagePackage")
+            inputs = resolve_m7_inputs(service, [m6_rev])
+            technique_id = inputs["technique_id"]
+            base_rev = _seal_base_snapshot(service, base_bytes, technique_id)
+            res = run_m7(
+                service,
+                inputs["candidate_set"].get("source_id"),
+                technique_id=technique_id,
+                reviewed_package_revision_ids=[m6_rev],
+                base_snapshot_revision_id=base_rev,
+                id_range={"pattern": [1, 10000]},
+            )
+            if res.get("status") != "succeeded":
+                failures.append(
+                    "真书第二轮 status=%r（期望 succeeded）" % res.get("status")
+                )
+            validation = _revision_doc(service, res.get("validation_report_revision_id"))
+            gate = (validation or {}).get("incremental_gate") or {}
+            bad = sorted(
+                name for name, check in (gate.get("checks") or {}).items() if not check.get("passed")
+            )
+            if not gate.get("passed") or bad:
+                failures.append("真书第二轮增量 Gate 未全过: %r" % (bad or gate.get("detail")))
+        finally:
+            service.close()
+    finally:
+        shutil.rmtree(tmp_root, True)
+
+    after = ledger_file.stat()
+    if (after.st_mtime_ns, after.st_size) != before_mark:
+        failures.append("真书正本 ledger.sqlite 被动过（mtime/size 已变）")
+
+    if failures:
+        return ("FAIL", "; ".join(failures[:3]))
+    return ("PASS", "真书第二轮 succeeded 且增量 Gate 全过（正本只读已核）")
+
+
+def _newest_sealed_m6_revision(service):
+    rows = service.store.conn.execute(
+        "SELECT r.artifact_revision_id FROM stage_packages sp "
+        "JOIN artifact_revisions r ON r.artifact_id = sp.artifact_id "
+        "WHERE sp.stage='m6' AND r.status='sealed' ORDER BY r.created_at DESC, r.rowid DESC"
+    ).fetchall()
+    return rows[0][0] if rows else None
+
+
+def _seal_base_snapshot(service, gold_bytes: bytes, technique_id: str) -> str:
+    """把 r1 金标作为 sealed `canonical_snapshot` 灌进副本 Ledger，返回其修订号。"""
+    from pipeline.ledger import ids
+
+    processing_run_id = service.create_processing_run(
+        "release_run", ids.new_id("artifact_id"), technique_id
+    )
+    _, config_rev = service.put_run_artifact(
+        processing_run_id,
+        "configuration",
+        json.dumps({"stage": "m7", "acceptance": "upstream_m6_real_book"}, sort_keys=True).encode(
+            "utf-8"
+        ),
+        producer_module="pipeline.assembly.acceptance",
+        producer_version="0.1.0-draft",
+    )
+    step_run_id = service.begin_step_run(
+        {
+            "schema_version": "1.0.0",
+            "step_run_id": ids.new_id("step_run_id"),
+            "processing_run_id": processing_run_id,
+            "input_artifact_ids": [],
+            "technique_profile_id": technique_id,
+            "configuration_artifact_id": config_rev,
+        }
+    )
+    _, revision_id = service.put_artifact(
+        step_run_id,
+        "canonical_snapshot",
+        gold_bytes,
+        producer_module="pipeline.assembly.acceptance",
+        producer_version="0.1.0-draft",
+    )
+    service.seal_revision(revision_id)
+    return revision_id
+
+
+def _revision_doc(service, revision_id):
+    if not revision_id:
+        return None
+    revision = service.get_revision(revision_id)
+    return json.loads(service.objects.get(revision["sha256"]).decode("utf-8"))
+
+
+def check_upstream_m6_real_with_note(world) -> tuple:
+    """``upstream_m6_real`` 判据名不改，但必须如实写明输入是合成桩（CHARTER §2 P2 更正）。"""
+    errors = check_upstream_m6_real(world)
+    if errors:
+        return ("FAIL", "; ".join(str(e) for e in errors[:3]))
+    return ("PASS", UPSTREAM_M6_REAL_NOTE)
+
+
 COMPUTED_CHECKS = (
     ("genesis_snapshot", check_genesis_snapshot),
     ("configuration_and_scope", check_configuration_and_scope),
@@ -554,8 +1264,28 @@ COMPUTED_CHECKS = (
     ("checkpoints", check_checkpoints),
     ("closed_set_types", check_closed_set_types),
     ("no_model_calls", check_no_model_calls),
-    ("upstream_m6_real", check_upstream_m6_real),
+    ("upstream_m6_real", check_upstream_m6_real_with_note),
+    ("incremental_multi_edition", check_incremental_multi_edition),
+    ("edition_collation", check_edition_collation),
+    ("identity_delta", check_identity_delta),
+    ("rework_replacement", check_rework_replacement),
+    ("run_all_20_5", check_run_all_20_5),
+    ("upstream_m6_real_book", check_upstream_m6_real_book),
 )
+
+
+def _verdict_of(func, world) -> tuple:
+    """兼容两种口径：返回 `(status, detail)`，或旧的「errors 列表」。"""
+    try:
+        verdict = func(world)
+    except Exception as exc:  # noqa: BLE001 - 判据内部的任何异常都算 FAIL
+        return ("FAIL", "%s: %s" % (type(exc).__name__, exc))
+    if isinstance(verdict, list):
+        if not verdict:
+            return ("PASS", "")
+        return ("FAIL", "; ".join(str(item) for item in verdict[:3]))
+    status, detail = verdict[0], verdict[1] if len(verdict) > 1 else ""
+    return (status, detail)
 
 
 def main(argv=None):
@@ -579,27 +1309,33 @@ def main(argv=None):
         passed = 0
         failed = 0
         blocked = 0
-
+        release = None
         try:
-            for name, func in COMPUTED_CHECKS:
-                try:
-                    errs = func(world)
-                except Exception as exc:
-                    errs = ["%s: %s" % (type(exc).__name__, exc)]
+            # 夹具三轮实跑只准备一次，六条判定共用（准备失败时逐条 FAIL，不静默降级）
+            try:
+                release = _prepare_release_rounds(tmp_dir)
+                world["release"] = release
+            except Exception as exc:  # noqa: BLE001
+                world["release"] = None
+                world["release_error"] = "%s: %s" % (type(exc).__name__, exc)
 
-                if errs:
-                    failed += 1
-                    print("FAIL %s %s" % (name, "; ".join(str(e) for e in errs[:3])))
-                else:
+            for name, func in COMPUTED_CHECKS:
+                status, detail = _verdict_of(func, world)
+                if status == "PASS":
                     passed += 1
                     print("PASS %s" % name)
-
-            for name, desc in BLOCKED_CHECKS:
-                blocked += 1
-                print("BLOCKED %s %s" % (name, desc))
-
+                    if detail:
+                        print("NOTE %s %s" % (name, detail))
+                elif status == "BLOCKED":
+                    blocked += 1
+                    print("BLOCKED %s %s" % (name, detail))
+                else:
+                    failed += 1
+                    print("FAIL %s %s" % (name, detail))
         finally:
             service.close()
+            if release is not None:
+                release["service"].close()
 
         print("SUMMARY pass=%d fail=%d blocked=%d" % (passed, failed, blocked))
         if failed:

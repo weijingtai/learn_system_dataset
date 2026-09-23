@@ -2,6 +2,7 @@
 
 import contextlib
 import io
+import json
 import os
 import shutil
 import subprocess
@@ -23,27 +24,32 @@ class TestAcceptance(unittest.TestCase):
             code = acceptance.main([])
         out = buf.getvalue()
         self.assertEqual(code, 2)
-        self.assertIn("SUMMARY pass=11 fail=0 blocked=5", out)
-        self.assertEqual(out.count("PASS "), 11)
-        self.assertEqual(out.count("BLOCKED "), 5)
+        self.assertIn("SUMMARY pass=16 fail=0 blocked=1", out)
+        self.assertEqual(out.count("PASS "), 16)
+        self.assertEqual(out.count("BLOCKED "), 1)
         self.assertEqual(out.count("FAIL "), 0)
 
     def test_blocked_lines_exact_text(self):
+        """五条原 BLOCKED 已成真实判定；唯一仍 BLOCKED 的是引擎缺口那条，理由不得笼统。"""
         from pipeline.assembly import acceptance
 
         buf = io.StringIO()
         with contextlib.redirect_stdout(buf):
             code = acceptance.main([])
         out = buf.getvalue()
-        expected_blocked = [
-            ("incremental_multi_edition", "多 Edition 增量对勘未实现（§15:655）"),
-            ("edition_collation", "Alignment/VariantReading/Addition/Omission 未实现"),
-            ("identity_delta", "跨版本身份迁移未实现（§6.3、§16:732）"),
-            ("rework_replacement", "M6 返工替换未实现（D-14）"),
-            ("run_all_20_5", "§20.5 未接线（Q29 采纳 C）"),
-        ]
-        for name, desc in expected_blocked:
-            self.assertIn(f"BLOCKED {name} {desc}", out)
+        self.assertIn(
+            "BLOCKED edition_collation 多版次对勘（缺文/增文/异文）引擎缺口，见 CHARTER §19",
+            out,
+        )
+        for name in (
+            "incremental_multi_edition",
+            "identity_delta",
+            "rework_replacement",
+            "run_all_20_5",
+            "upstream_m6_real_book",
+        ):
+            self.assertNotIn("BLOCKED %s " % name, out, "%s 不得再由写死的理由决定" % name)
+        self.assertNotIn("未实现", out)
 
     def test_acceptance_does_not_import_genesis_for_judgement(self):
         import ast
@@ -103,7 +109,7 @@ class TestAcceptance(unittest.TestCase):
             proc.returncode, 2, f"stdout: {proc.stdout}\nstderr: {proc.stderr}"
         )
         last_line = proc.stdout.strip().splitlines()[-1]
-        self.assertEqual(last_line, "SUMMARY pass=11 fail=0 blocked=5")
+        self.assertEqual(last_line, "SUMMARY pass=16 fail=0 blocked=1")
 
     def test_shell_missing_env_exit_3(self):
         tmp_dir = tempfile.mkdtemp(prefix="test_missing_env_")
@@ -245,7 +251,7 @@ class TestAcceptance(unittest.TestCase):
             "m6_decisions must be marked synthetic_fixture: true",
         )
 
-    def test_shell_summary_pass_11_fail_0_blocked_5(self):
+    def test_shell_summary_pass_16_fail_0_blocked_1(self):
         shell_script = ROOT / "openspec" / "acceptance" / "m7-assembler.sh"
         proc = subprocess.run(
             ["bash", str(shell_script)],
@@ -257,7 +263,7 @@ class TestAcceptance(unittest.TestCase):
             proc.returncode, 2, f"stdout: {proc.stdout}\nstderr: {proc.stderr}"
         )
         last_line = proc.stdout.strip().splitlines()[-1]
-        self.assertEqual(last_line, "SUMMARY pass=11 fail=0 blocked=5")
+        self.assertEqual(last_line, "SUMMARY pass=16 fail=0 blocked=1")
 
     def test_stub_candidate_set_conforms_to_m7_validate(self):
         """桩 seed 后 candidate_set 过 M7 validate_candidate_set，防漂移。"""
@@ -278,6 +284,226 @@ class TestAcceptance(unittest.TestCase):
         cset_rev = service.get_revision(seed["candidate_set_revision_id"])
         cset_doc = json.loads(service.objects.get(cset_rev["sha256"]).decode())
         validate_candidate_set(cset_doc)
+
+
+#: G2 波（ACT 27）五条原写死 BLOCKED 的判据名
+G2_FIVE = (
+    "incremental_multi_edition",
+    "edition_collation",
+    "identity_delta",
+    "rework_replacement",
+    "run_all_20_5",
+)
+
+RELEASE_FIXTURE = ROOT / "pipeline" / "corpus" / "_fixture" / "mini_release01"
+REAL_LEDGER = ROOT / "var" / "ledgers" / "qianyuan_w8"
+
+
+def run_acceptance_main():
+    from pipeline.assembly import acceptance
+
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf):
+        code = acceptance.main([])
+    return code, buf.getvalue()
+
+
+def verdict_line(out, name):
+    for line in out.splitlines():
+        parts = line.split()
+        if parts[:2] and parts[0] in ("PASS", "FAIL", "BLOCKED") and len(parts) > 1:
+            if parts[1] == name:
+                return line
+    return None
+
+
+def tampered_release_fixture(tmp_dir, rel_path, mutate):
+    """把 mini_release01 整份拷到临时目录并改坏其中一个金标（负向对照用）。"""
+    target = Path(tmp_dir) / "mini_release01"
+    shutil.copytree(RELEASE_FIXTURE, target)
+    path = target / rel_path
+    doc = json.loads(path.read_text(encoding="utf-8"))
+    mutate(doc)
+    path.write_text(json.dumps(doc, ensure_ascii=False, sort_keys=True) + "\n", encoding="utf-8")
+    return target
+
+
+def clone_run_all_with_stub(tmp_dir, m7_exit_code):
+    """在假仓库里放**真实**的 run_all.sh 与一个按给定退出码退出的 m7-assembler.sh 桩。"""
+    acc_dir = Path(tmp_dir) / "openspec" / "acceptance"
+    acc_dir.mkdir(parents=True)
+    real = (ROOT / "openspec" / "acceptance" / "run_all.sh").read_text(encoding="utf-8")
+    (acc_dir / "run_all.sh").write_text(real, encoding="utf-8")
+    stub = acc_dir / "m7-assembler.sh"
+    stub.write_text(
+        "#!/usr/bin/env bash\necho 'BLOCKED stub_check 桩判定'\necho 'SUMMARY pass=0 fail=0 blocked=1'\nexit %d\n"
+        % m7_exit_code,
+        encoding="utf-8",
+    )
+    stub.chmod(0o755)
+    return acc_dir / "run_all.sh"
+
+
+class TestAcceptanceIncremental(unittest.TestCase):
+    """ACT 27（G2）：五条写死的 BLOCKED 改为真实判定 + 真书判据 + run_all 20.5 接线。"""
+
+    # ------------------------------------------------------------ 具名用例 1
+    def test_no_verdict_detail_says_not_implemented_when_implemented(self):
+        """五条判据都已实现，输出里不得再出现「未实现」这种笼统理由。"""
+        code, out = run_acceptance_main()
+        for name in G2_FIVE:
+            line = verdict_line(out, name)
+            self.assertIsNotNone(line, "%s 必须有一条判定行" % name)
+            self.assertNotIn("未实现", line, "%s 的理由不得是笼统的「未实现」" % name)
+        self.assertNotIn("未实现", out)
+        self.assertEqual(verdict_line(out, "upstream_m6_real").split()[0], "PASS")
+
+    # ------------------------------------------------------------ 具名用例 2
+    def test_incremental_multi_edition_judged_from_real_run(self):
+        """r1 → ed99 增量实跑：succeeded + 增量 Gate 全过 + 产出与 r2 金标（逐字节/除 meta）相同。"""
+        code, out = run_acceptance_main()
+        self.assertEqual(verdict_line(out, "incremental_multi_edition").split()[0], "PASS")
+
+        # 负向对照：金标被改坏，本判据必须转红（写死 PASS 会被这一条抓住）
+        tmp = tempfile.mkdtemp(prefix="test_acc_inc_")
+        self.addCleanup(shutil.rmtree, tmp, True)
+        fake = tampered_release_fixture(
+            tmp, "expected/snapshot_r2.json", lambda doc: doc.__setitem__("tampered", True)
+        )
+        from pipeline.assembly import acceptance
+
+        with mock.patch.object(acceptance, "RELEASE_FIXTURE", fake):
+            code2, out2 = run_acceptance_main()
+        line = verdict_line(out2, "incremental_multi_edition")
+        self.assertEqual(line.split()[0], "FAIL", line)
+        self.assertEqual(code2, 1)
+
+    # ------------------------------------------------------------ 具名用例 3
+    def test_edition_collation_judged_from_real_run(self):
+        """对齐关系正确 + 不可比单元无对勘关系 → 通过；缺文/增文/异文无生产者 → BLOCKED（非 PASS）。"""
+        code, out = run_acceptance_main()
+        line = verdict_line(out, "edition_collation")
+        self.assertEqual(line.split()[0], "BLOCKED", line)
+        self.assertIn("缺文/增文/异文", line)
+        self.assertIn("CHARTER §19", line)
+
+        # 负向对照：把对齐关系从金标里删掉，已实现的那半部分必须转红
+        tmp = tempfile.mkdtemp(prefix="test_acc_coll_")
+        self.addCleanup(shutil.rmtree, tmp, True)
+
+        def drop_alignment(doc):
+            doc["relations"] = [
+                rel for rel in doc["relations"] if rel["relation_kind"] != "alignment"
+            ]
+
+        fake = tampered_release_fixture(tmp, "expected/snapshot_r2.json", drop_alignment)
+        from pipeline.assembly import acceptance
+
+        with mock.patch.object(acceptance, "RELEASE_FIXTURE", fake):
+            code2, out2 = run_acceptance_main()
+        line2 = verdict_line(out2, "edition_collation")
+        self.assertEqual(line2.split()[0], "FAIL", line2)
+
+    # ------------------------------------------------------------ 具名用例 4
+    def test_identity_delta_judged_from_real_run(self):
+        """r2 → ed01r2 实跑的 identity_delta 与金标一致，且每条理由引用都在本轮提案键里。"""
+        code, out = run_acceptance_main()
+        self.assertEqual(verdict_line(out, "identity_delta").split()[0], "PASS")
+
+        tmp = tempfile.mkdtemp(prefix="test_acc_delta_")
+        self.addCleanup(shutil.rmtree, tmp, True)
+        fake = tampered_release_fixture(
+            tmp,
+            "expected/identity_delta_r3.json",
+            lambda doc: doc["entries"][0].__setitem__("change_type", "split"),
+        )
+        from pipeline.assembly import acceptance
+
+        with mock.patch.object(acceptance, "RELEASE_FIXTURE", fake):
+            code2, out2 = run_acceptance_main()
+        line = verdict_line(out2, "identity_delta")
+        self.assertEqual(line.split()[0], "FAIL", line)
+
+    # ------------------------------------------------------------ 具名用例 5
+    def test_rework_replacement_judged_from_real_run(self):
+        """ed01r2 按 (source_id, edition_part_ids) 识别为替换；退役/沿用/产出都与金标一致。"""
+        code, out = run_acceptance_main()
+        self.assertEqual(verdict_line(out, "rework_replacement").split()[0], "PASS")
+
+        tmp = tempfile.mkdtemp(prefix="test_acc_rework_")
+        self.addCleanup(shutil.rmtree, tmp, True)
+        fake = tampered_release_fixture(
+            tmp, "expected/snapshot_r3.json", lambda doc: doc.__setitem__("tampered", True)
+        )
+        from pipeline.assembly import acceptance
+
+        with mock.patch.object(acceptance, "RELEASE_FIXTURE", fake):
+            code2, out2 = run_acceptance_main()
+        line = verdict_line(out2, "rework_replacement")
+        self.assertEqual(line.split()[0], "FAIL", line)
+
+    # ------------------------------------------------------------ 具名用例 6
+    def test_upstream_m6_real_detail_says_synthetic_stub(self):
+        """upstream_m6_real 的名字不改，但 detail 必须写明输入是合成桩、非真书。"""
+        code, out = run_acceptance_main()
+        note = [
+            line for line in out.splitlines() if line.startswith("NOTE upstream_m6_real ")
+        ]
+        self.assertEqual(len(note), 1, "必须恰有一条 upstream_m6_real 的 NOTE 行")
+        for token in ("合成桩", "upstream_stub", "非真书"):
+            self.assertIn(token, note[0])
+
+    # ------------------------------------------------------------ 具名用例 7
+    def test_upstream_m6_real_book_blocked_without_ledger(self):
+        """无真书账本时必须是 BLOCKED（不许判 PASS），且理由写明宿主缺失。"""
+        from pipeline.assembly import acceptance
+
+        missing = Path(tempfile.mkdtemp(prefix="test_acc_noledger_")) / "absent"
+        self.addCleanup(shutil.rmtree, missing.parent, True)
+        with mock.patch.object(acceptance, "REAL_LEDGER_DIR", missing):
+            code, out = run_acceptance_main()
+        line = verdict_line(out, "upstream_m6_real_book")
+        self.assertIsNotNone(line)
+        self.assertTrue(line.startswith("BLOCKED "), line)
+        self.assertIn("宿主缺失", line)
+        self.assertIn("无真书账本", line)
+        self.assertNotEqual(verdict_line(out, "upstream_m6_real_book").split()[0], "PASS")
+
+    # ------------------------------------------------------------ 具名用例 8
+    def test_run_all_20_5_maps_exit_code_not_hardcoded(self):
+        """run_all.sh 的 20.5 必须按 m7-assembler.sh 的真实退出码映射，不许写死。"""
+        expectations = {0: "PASS", 1: "FAIL", 2: "BLOCKED", 3: "BLOCKED"}
+        for rc, expected in expectations.items():
+            tmp = tempfile.mkdtemp(prefix="test_acc_runall_")
+            self.addCleanup(shutil.rmtree, tmp, True)
+            script = clone_run_all_with_stub(tmp, rc)
+            proc = subprocess.run(
+                ["bash", str(script), "20.5"],
+                cwd=tmp,
+                capture_output=True,
+                text=True,
+            )
+            line = [
+                l for l in proc.stdout.splitlines()
+                if l.startswith(("PASS  ", "FAIL  ", "BLOCKED  ")) and "20.5" in l
+            ]
+            self.assertEqual(len(line), 1, proc.stdout)
+            self.assertTrue(
+                line[0].startswith(expected),
+                "m7-assembler 退出码 %d 必须映射为 %s，实际: %s" % (rc, expected, line[0]),
+            )
+
+    # ------------------------------------------------------------ 真书账本存在时的完整判定
+    def test_upstream_m6_real_book_passes_on_this_host(self):
+        """本机有 var/ledgers/qianyuan_w8 时，真书第二轮必须 succeeded 且增量 Gate 全过。"""
+        if not (REAL_LEDGER / "ledger.sqlite").exists():
+            self.skipTest("本机无真书账本")
+        code, out = run_acceptance_main()
+        line = verdict_line(out, "upstream_m6_real_book")
+        self.assertTrue(line.startswith("PASS "), line)
+        # 正本只读：判据自己会核对 mtime/size，这里再独立核一遍
+        stat = (REAL_LEDGER / "ledger.sqlite").stat()
+        self.assertGreater(stat.st_size, 0)
 
 
 if __name__ == "__main__":

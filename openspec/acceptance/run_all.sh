@@ -270,7 +270,23 @@ run_item() {
       esac
       ;;
     20.5)
-      block_line "$n" "M7 Incremental Assembly" "增量汇编未实现"
+      # CHARTER §3.3 A′：20.5 的结论由 m7-assembler.sh 的**真实退出码**决定——
+      # 0 → PASS；1 → FAIL；2 → BLOCKED；3 → BLOCKED（宿主缺失）。不许写死任何一种结果。
+      local m7out="" m7rc="" m7first=""
+      if [ ! -f "$REPO_ROOT/openspec/acceptance/m7-assembler.sh" ]; then
+        block_line "$n" "测试宿主匮乏" "m7-assembler.sh 缺失"
+        return 0
+      fi
+      m7out="$(bash "$REPO_ROOT/openspec/acceptance/m7-assembler.sh" 2>&1)"; m7rc=$?
+      case "$m7rc" in
+        0) pass_line "$n" "M7 Incremental Assembly 判定全 PASS（$(printf '%s\n' "$m7out" | grep -m1 '^SUMMARY')"） ;;
+        1) fail_line "$n" "M7 Incremental Assembly 判定未通过" "$(printf '%s\n' "$m7out" | grep -m1 '^FAIL ')" ;;
+        2) m7first="$(printf '%s\n' "$m7out" | grep -m1 '^BLOCKED ')"
+           block_line "$n" "M7 Incremental Assembly" "${m7first:-m7-assembler.sh 退出码 2 但无 BLOCKED 行}" ;;
+        3) m7first="$(printf '%s\n' "$m7out" | grep -m1 '^BLOCKED ')"
+           block_line "$n" "测试宿主匮乏" "${m7first:-m7-assembler.sh 退出码 3 但无 BLOCKED 行}" ;;
+        *) fail_line "$n" "M7 Incremental Assembly 退出码未知" "m7-assembler.sh 退出码 $m7rc" ;;
+      esac
       ;;
     20.6)
       if [ "$(grep -c 'not_captured' "$SPEC")" -lt 1 ]; then
