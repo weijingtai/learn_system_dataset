@@ -403,6 +403,15 @@ _ASM_CLOSURE_RELATION_KINDS = ("alias_of", "distinct_from", "merged_into")
 _ASM_COLLATION_KINDS = ("alignment", "variant_reading", "addition", "omission")
 _ASM_PAIRING_RELATION_KINDS = ("alias_of", "merged_into")
 _ASM_CHANGE_TYPES = ("migrated", "merged", "split", "retired")
+#: not_comparable 理由闭集；有键单元按此顺序取第一个命中的（CHARTER §28 Q7、§29 Q11）
+_ASM_NOT_COMPARABLE_REASONS = (
+    "view_undeclared",
+    "same_source",
+    "base_undeclared",
+    "multiple_assertions_per_unit",
+    "declared_without_assertion",
+    "missing_collation_key",
+)
 _ASM_ENTITY_KINDS = ("pattern", "concept", "assertion")
 
 
@@ -532,18 +541,26 @@ def _asm_approved(view: dict) -> Set[Tuple[str, str]]:
 
 
 def _asm_declared_presence(view: dict) -> Dict[str, bool]:
-    """视图**声明**的可比单元（present 取自声明本身，不重算）。"""
+    """视图**声明**的可比单元：只读视图 `collation_units`（CHARTER §28 Q5）。
+
+    有 collation_key 却没声明单元的断言**不算声明**（它是 `view_undeclared`）；null 键声明不入表。
+    """
     cset = view.get("candidate_set") or {}
     out: Dict[str, bool] = {}
     for entry in cset.get("collation_units") or []:
         key = entry.get("collation_key")
         if key:
             out[key] = bool(entry.get("present", True))
-    for assertion in cset.get("assertions") or []:
-        key = assertion.get("collation_key")
-        if key:
-            out.setdefault(key, True)
     return out
+
+
+def _asm_edition_units(edition: dict) -> Dict[str, bool]:
+    """Snapshot 里某版次**声明过**的可比单元：只读 `editions[].collation_units`（§25.5），不从断言推。"""
+    return {
+        entry.get("collation_key"): bool(entry.get("present"))
+        for entry in edition.get("collation_units") or []
+        if entry.get("collation_key")
+    }
 
 
 def _asm_closure(base_knowledge: dict, views: Sequence[dict], decisions: Sequence[dict]) -> Dict[str, List[str]]:
@@ -591,13 +608,23 @@ def _asm_closure(base_knowledge: dict, views: Sequence[dict], decisions: Sequenc
             for key in (school_view.get("school_view_id"), school_view.get("subject_entity_id")):
                 if key in alive:
                     contacts.add(key)
-        for unit in cset.get("collation_units") or []:
-            contacts |= _asm_collation_contacts(index, unit.get("collation_key"), source_id)
+        # 对勘单元触点（README §6:533，CHARTER §28 Q6）：只有声明 present:false 的单元、
+        # 与基底为本 source 声明过而视图不再声明的单元，才让基底该位置的断言入触点；
+        # present:true 的单元本身不贡献（它的断言已在上面按「同 (work_key, collation_key)」入触点）。
+        presence = _asm_declared_presence(view)
+        for key, present in presence.items():
+            if not present:
+                contacts |= _asm_collation_contacts(index, key, source_id)
+        for edition in base.get("editions") or []:
+            if edition.get("source_id") != source_id:
+                continue
+            for key in _asm_edition_units(edition):
+                if key not in presence:
+                    contacts |= _asm_collation_contacts(index, key, source_id)
 
         # 替换：同一来源在基底的 provenance 哈希与视图声明不一致，**或被删除的对象本身**
         # （act/05.yaml:20-31 的替换条：被删除对象按其 base 记录计算触点）。
         declared = _asm_view_candidates(view)
-        presence = _asm_declared_presence(view)
         for kind, collection in (("pattern", "patterns"), ("concept", "concepts")):
             for entity_id, item in index[collection].items():
                 if not any(
@@ -996,73 +1023,345 @@ def _asm_has_pairing_basis(index: Dict[str, Any], endpoints: Sequence[str]) -> b
     return False
 
 
+def _asm_not_comparable_row(source_id: Any, key: Any, assertion_id: Any, reason: str) -> dict:
+    return {
+        "assertion_id": assertion_id,
+        "collation_key": key,
+        "reason": reason,
+        "source_id": source_id,
+    }
+
+
+def _asm_not_comparable_sort_key(row: dict) -> Tuple[str, str, str]:
+    return (
+        str(row.get("source_id") or ""),
+        str(row.get("collation_key") or ""),
+        str(row.get("assertion_id") or ""),
+    )
+
+
+def _asm_collation_plan(base_knowledge: dict, view: dict) -> Tuple[Dict[Tuple[str, str], dict], List[dict]]:
+    """对本轮视图**独立重算**对勘单元（CHARTER §25.2–25.5、§28、§29）。
+
+    视图 = 新版；与视图 source 不同、同 work_key 的每个基底版次 = 旧版，逐对算。
+    声明只读视图 `collation_units` 与基底 `editions[].collation_units`；获批断言在视图一侧取
+    `reviewed_edition.approved`，在基底一侧取基底 knowledge 的断言。
+
+    返回 ``(expected, not_comparable)``：
+    ``expected[(旧版 source, collation_key)] = {"kind": "pair"|"addition"|"omission", "new": 号|None, "old": 号|None}``；
+    两侧都声明 present:false 的单元不出现。``not_comparable`` 按 §29 Q11 口径（已排序）。
+    """
+    source_id = view.get("source_id")
+    work = _asm_work_key(source_id)
+    declared = _asm_declared_presence(view)
+    approved = _asm_approved(view)
+    rows: List[dict] = []
+
+    new_by_key: Dict[str, List[str]] = {}
+    for assertion in (view.get("candidate_set") or {}).get("assertions") or []:
+        assertion_id = assertion.get("assertion_id")
+        if not assertion_id or ("assertion", assertion_id) not in approved:
+            continue
+        key = assertion.get("collation_key")
+        if key:
+            new_by_key.setdefault(key, []).append(assertion_id)
+        else:
+            rows.append(_asm_not_comparable_row(source_id, None, assertion_id, "missing_collation_key"))
+    for entry in (view.get("candidate_set") or {}).get("collation_units") or []:
+        if not entry.get("collation_key"):
+            rows.append(_asm_not_comparable_row(source_id, None, None, "missing_collation_key"))
+
+    old_by_source: Dict[Any, Dict[str, List[str]]] = {}
+    for assertion in (base_knowledge or {}).get("assertions") or []:
+        if assertion.get("collation_key"):
+            old_by_source.setdefault(assertion.get("source_id"), {}).setdefault(
+                assertion["collation_key"], []
+            ).append(assertion.get("assertion_id"))
+    editions = [
+        edition
+        for edition in (base_knowledge or {}).get("editions") or []
+        if (edition.get("work_key") or _asm_work_key(edition.get("source_id"))) == work
+    ]
+
+    expected: Dict[Tuple[str, str], dict] = {}
+    for key in sorted(set(declared) | set(new_by_key)):
+        if key not in declared:
+            rows.append(_asm_not_comparable_row(source_id, key, None, "view_undeclared"))
+            continue
+        new_present = declared[key]
+        new_ids = new_by_key.get(key) or []
+        reasons: List[str] = []
+        comparable = False
+        for edition in editions:
+            base_source = edition.get("source_id")
+            if base_source == source_id:
+                reasons.append("same_source")
+                continue
+            old_units = _asm_edition_units(edition)
+            if key not in old_units:
+                reasons.append("base_undeclared")
+                continue
+            old_present = old_units[key]
+            old_ids = old_by_source.get(base_source, {}).get(key) or []
+            if len(new_ids) > 1 or len(old_ids) > 1:
+                reasons.append("multiple_assertions_per_unit")
+                continue
+            if (new_present and not new_ids) or (old_present and not old_ids):
+                reasons.append("declared_without_assertion")
+                continue
+            if new_present and old_present:
+                expected[(base_source, key)] = {"kind": "pair", "new": new_ids[0], "old": old_ids[0]}
+            elif new_present:
+                expected[(base_source, key)] = {"kind": "addition", "new": new_ids[0], "old": None}
+            elif old_present:
+                expected[(base_source, key)] = {"kind": "omission", "new": None, "old": old_ids[0]}
+            comparable = True
+        # 对至少一个基底版次可比 → 不列；对所有都不可比 → 列一项，取优先级最高的理由（§29 Q11 第 5 条）
+        if not comparable:
+            reason = min(reasons or ["base_undeclared"], key=_ASM_NOT_COMPARABLE_REASONS.index)
+            rows.append(_asm_not_comparable_row(source_id, key, None, reason))
+    return expected, sorted(rows, key=_asm_not_comparable_sort_key)
+
+
+def _asm_is_collation_relation(relation: dict, index: Dict[str, Any]) -> bool:
+    """四类对勘关系，外加 R07b 拒绝落成的 distinct_from（两端都是断言且 detail 带 collation_key，§29 Q10）。"""
+    kind = relation.get("relation_kind")
+    if kind in _ASM_COLLATION_KINDS:
+        return True
+    if kind != "distinct_from":
+        return False
+    ends = (relation.get("from_entity_id"), relation.get("to_entity_id"))
+    return all(end in index["assertions"] for end in ends) and bool(
+        (relation.get("detail") or {}).get("collation_key")
+    )
+
+
+def _asm_relation_touches(relation: dict, index: Dict[str, Any], sources: Set[Any]) -> bool:
+    """是否**涉及本轮视图 source**（§29 Q8）：任一端断言属于视图 source，或 omission 的缺侧是视图 source。"""
+    for end in (relation.get("from_entity_id"), relation.get("to_entity_id")):
+        if end in index["assertions"] and index["assertions"][end].get("source_id") in sources:
+            return True
+    detail = relation.get("detail") or {}
+    return relation.get("relation_kind") == "omission" and detail.get("absent_source_id") in sources
+
+
+def _asm_collation_shape(relation: dict, index: Dict[str, Any]) -> str:
+    """与本轮视图无关、任何对勘关系都须满足的形状（§25.1、§25.3、§25.6）；返回失败理由，空串表示通过。"""
+    kind = relation.get("relation_kind")
+    name = "%s %s" % (kind, relation.get("relation_key"))
+    left, right = relation.get("from_entity_id"), relation.get("to_entity_id")
+    if kind in ("addition", "omission"):
+        if left is None or right is not None:
+            return "%s 方向不符 §25.6：from 必须是断言、to 必须为 null（实为 %r → %r）" % (name, left, right)
+    elif left is None or right is None:
+        return "%s 出现 null 端点（null 端点只许出现在 addition / omission）" % name
+    if left == right:
+        return "%s 是自环（两端同为 %s）" % (name, left)
+    for end in (left, right):
+        if end is not None and end not in index["assertions"]:
+            return "%s 的端点 %s 不是总账里的断言" % (name, end)
+    left_source = index["assertions"][left].get("source_id")
+    if right is not None and left_source == index["assertions"][right].get("source_id"):
+        return "%s 两端同属一个版次 %s（同一版次不跟自己比，§25.3）" % (name, left_source)
+    if kind in ("addition", "omission"):
+        absent = (relation.get("detail") or {}).get("absent_source_id")
+        if not absent or absent == left_source:
+            return "%s 的 absent_source_id=%r 必须是另一个版次（from 属于 %s）" % (name, absent, left_source)
+    return ""
+
+
+def _asm_check_collation_relation(
+    relation: dict,
+    index: Dict[str, Any],
+    view_source: Any,
+    base_sources: Set[Any],
+    expected: Dict[Tuple[str, str], dict],
+) -> Tuple[Optional[Tuple[str, str]], str]:
+    """逐条核一条涉及视图的对勘关系；返回 (所落单元, 失败理由)，理由为空串表示通过。"""
+    kind = relation.get("relation_kind")
+    name = "%s %s" % (kind, relation.get("relation_key"))
+    left, right = relation.get("from_entity_id"), relation.get("to_entity_id")
+    detail = relation.get("detail") or {}
+
+    reason = _asm_collation_shape(relation, index)
+    if reason:
+        return None, reason
+    source_of = {end: index["assertions"][end].get("source_id") for end in (left, right) if end}
+
+    if kind == "addition":
+        if source_of[left] != view_source:
+            return None, "%s 方向不符 §25.6：from 必须是新版（%s）断言，实为 %s" % (
+                name, view_source, source_of[left],
+            )
+    elif kind == "omission":
+        if source_of[left] == view_source:
+            return None, "%s 方向不符 §25.6：from 必须是旧版断言，实为新版 %s 的" % (name, view_source)
+    elif source_of[left] != view_source or source_of[right] == view_source:
+        return None, "%s 方向不符 §25.6：from 须为新版（%s）断言、to 须为旧版断言，实为 %s → %s" % (
+            name, view_source, source_of[left], source_of[right],
+        )
+
+    key = detail.get("collation_key")
+    keys = {index["assertions"][end].get("collation_key") for end in (left, right) if end}
+    if not key or keys != {key}:
+        return None, "%s 的 detail.collation_key=%r 与端点断言的 collation_key %r 不一致" % (
+            name, key, sorted(k or "" for k in keys),
+        )
+
+    if kind == "addition":
+        base_source = detail.get("absent_source_id")
+        if base_source == view_source or base_source not in base_sources:
+            return None, "%s 的 absent_source_id=%r 不是旧版版次" % (name, base_source)
+    elif kind == "omission":
+        base_source = source_of[left]
+        if detail.get("absent_source_id") != view_source:
+            return None, "%s 的 absent_source_id=%r 应为新版 %s" % (
+                name, detail.get("absent_source_id"), view_source,
+            )
+    else:
+        base_source = source_of[right]
+
+    unit_id = (base_source, key)
+    unit = expected.get(unit_id)
+    if unit is None:
+        return None, "%s 落在不可比单元上（%s@%s：任一侧未声明 / 同 source / 声明 present 无获批断言 / 同侧多条断言）" % (
+            name, key, base_source,
+        )
+    wanted = {"pair": ("alignment", "variant_reading", "distinct_from")}.get(unit["kind"], (unit["kind"],))
+    if kind not in wanted:
+        return None, "%s 与推出的单元类型不符：%s@%s 应为 %s" % (name, key, base_source, "/".join(wanted))
+    if unit["kind"] == "omission":
+        if left != unit["old"]:
+            return None, "%s 的 from=%s 不是旧版在该位置的断言 %s" % (name, left, unit["old"])
+        return unit_id, ""
+    if left != unit["new"] or (unit["kind"] == "pair" and right != unit["old"]):
+        return None, "%s 的端点 %r → %r 与推出的断言 %r → %r 不符" % (
+            name, left, right, unit["new"], unit["old"],
+        )
+    if unit["kind"] == "addition":
+        return unit_id, ""
+
+    mode = (relation.get("resolution") or {}).get("mode")
+    if kind == "distinct_from":
+        if mode != "human":
+            return None, "%s 是 R07b 拒绝的落点，必须 resolution.mode=human（实为 %r）" % (name, mode)
+        return unit_id, ""
+    if mode != "human":
+        subjects = [index["assertions"][end].get("subject_entity_id") for end in (left, right)]
+        if subjects[0] is None or subjects[0] != subjects[1]:
+            return None, "%s（auto）两端 subject_entity_id 须非空且相等，实为 %r（不同或为 null 应走 R07b）" % (
+                name, subjects,
+            )
+    same_text = (
+        index["assertions"][left].get("text_sha256") == index["assertions"][right].get("text_sha256")
+    )
+    if kind == "alignment" and not same_text:
+        return None, "%s 两端 text_sha256 不同，应为 variant_reading" % name
+    if kind == "variant_reading" and same_text:
+        return None, "%s 两端 text_sha256 相同，应为 alignment" % name
+    return unit_id, ""
+
+
 def _asm_check_collation_comparable_only(
     base_knowledge: dict, views: Sequence[dict], knowledge: dict, collation: dict
 ) -> Tuple[bool, str]:
-    index = _asm_index(knowledge or {})
-    base_index = _asm_index(base_knowledge or {})
+    """多版次对勘按 CHARTER §25 / §28 / §29 **独立重算**后逐条核对，另保留并入类关系的配对依据检查。"""
+    base = base_knowledge or {}
+    ledger = knowledge or {}
+    index = _asm_index(ledger)
+    base_index = _asm_index(base)
 
-    # Gate 独立重算可比单元：视图声明的 present 单元、基底已有的 collation_key
-    base_keys = {
-        item.get("collation_key")
-        for item in (base_knowledge or {}).get("assertions") or []
-        if item.get("collation_key")
-    }
-    view_present: Set[str] = set()
-    view_all: Set[str] = set()
-    not_comparable_ids: Set[str] = set()
+    # 1. 版次声明只从 editions[].collation_units 读：缺字段不许静默当空（§25.5，§29 Q9）
+    for label, document in (("基底", base), ("新 knowledge", ledger)):
+        for edition in document.get("editions") or []:
+            if "collation_units" not in edition:
+                return False, "%s editions[%s] 缺 collation_units 字段（不得当作空）" % (
+                    label, edition.get("source_id"),
+                )
+
+    # 2. Snapshot 如实记下视图声明；其余版次条目与基底逐字节相同（§28 Q4）
+    view_sources = {view.get("source_id") for view in views}
+    base_editions = {edition.get("source_id"): edition for edition in base.get("editions") or []}
+    now_editions = {edition.get("source_id"): edition for edition in ledger.get("editions") or []}
     for view in views:
-        for key, present in _asm_declared_presence(view).items():
-            view_all.add(key)
-            if present:
-                view_present.add(key)
-        for assertion in (view.get("candidate_set") or {}).get("assertions") or []:
-            if not assertion.get("collation_key") and assertion.get("assertion_id"):
-                not_comparable_ids.add(assertion["assertion_id"])
-    both_sides = base_keys & view_present
-
-    for relation in (knowledge or {}).get("relations") or []:
-        kind = relation.get("relation_kind")
-        if kind not in _ASM_COLLATION_KINDS and kind not in _ASM_PAIRING_RELATION_KINDS:
+        wanted = [
+            {"collation_key": key, "present": present}
+            for key, present in sorted(_asm_declared_presence(view).items())
+        ]
+        written = (now_editions.get(view.get("source_id")) or {}).get("collation_units")
+        if written != wanted:
+            return False, "新 knowledge 的 editions[%s].collation_units 与视图声明不一致: 写入 %r / 视图 %r" % (
+                view.get("source_id"), written, wanted,
+            )
+    for source_id, edition in base_editions.items():
+        if source_id in view_sources:
             continue
+        if canonical.canonical_json(now_editions.get(source_id)) != canonical.canonical_json(edition):
+            return False, "editions[%s] 不是本轮视图的版次，必须与基底逐字节相同" % source_id
+
+    # 3. 独立重算可比单元与 not_comparable 清单（§28 Q7、§29 Q11），清单逐项比对（含理由与字段集）
+    plans = {view.get("source_id"): _asm_collation_plan(base, view) for view in views}
+    expected_rows = sorted(
+        (row for _, rows in plans.values() for row in rows), key=_asm_not_comparable_sort_key
+    )
+    reported_rows = list((collation or {}).get("not_comparable") or [])
+    if reported_rows != expected_rows:
+        return False, "edition_collation_set.not_comparable 与 Gate 独立推出的清单不一致: 实报 %r / 推出 %r" % (
+            reported_rows, expected_rows,
+        )
+
+    # 4. 任何对勘关系都须满足的形状；不涉及本轮视图的原样带过来，必须与基底逐字节相同（§29 Q8）
+    for relation in ledger.get("relations") or []:
+        if _asm_is_collation_relation(relation, index):
+            reason = _asm_collation_shape(relation, index)
+            if reason:
+                return False, reason
+
+    def carried(document: dict, document_index: Dict[str, Any]) -> List[str]:
+        return sorted(
+            canonical.canonical_json(relation)
+            for relation in document.get("relations") or []
+            if _asm_is_collation_relation(relation, document_index)
+            and not _asm_relation_touches(relation, document_index, view_sources)
+        )
+
+    if carried(ledger, index) != carried(base, base_index):
+        return False, "不涉及本轮视图的对勘关系必须与基底逐字节相同（不许改写也不许静默删掉）"
+
+    # 5. 涉及视图的对勘关系逐条核（§25.6、§28、§29），并数每个单元的落点
+    counts: Dict[Tuple[Any, Tuple[str, str]], int] = {}
+    for relation in ledger.get("relations") or []:
+        kind = relation.get("relation_kind")
+        if _asm_is_collation_relation(relation, index):
+            touched = [
+                source_id
+                for source_id in sorted(view_sources, key=str)
+                if _asm_relation_touches(relation, index, {source_id})
+            ]
+            if not touched:
+                continue  # 带过来的关系，第 4 步已验
+            view_source = touched[0]
+            expected, _ = plans[view_source]
+            base_sources = {
+                edition.get("source_id")
+                for edition in base.get("editions") or []
+                if edition.get("source_id") != view_source
+            }
+            unit_id, reason = _asm_check_collation_relation(
+                relation, index, view_source, base_sources, expected
+            )
+            if reason:
+                return False, reason
+            counts[(view_source, unit_id)] = counts.get((view_source, unit_id), 0) + 1
+            continue
+        if kind not in _ASM_PAIRING_RELATION_KINDS:
+            continue
+        # alias_of / merged_into：并入类关系也要有确定性依据（校准 4，§10.1）
         endpoints = [
             entity_id
             for entity_id in (relation.get("from_entity_id"), relation.get("to_entity_id"))
             if entity_id
         ]
-        if kind in _ASM_COLLATION_KINDS and set(endpoints) & not_comparable_ids:
-            return False, "not_comparable 单元上出现对勘关系 %s: %r" % (
-                relation.get("relation_key"),
-                sorted(set(endpoints) & not_comparable_ids),
-            )
-        if kind in ("alignment", "variant_reading"):
-            if not _asm_has_pairing_basis(index, endpoints):
-                return False, "对勘关系 %s 推不出确定性配对依据: %r" % (
-                    relation.get("relation_key"),
-                    endpoints,
-                )
-            continue
-        if kind in ("addition", "omission"):
-            key = next(
-                (
-                    index["assertions"][entity_id].get("collation_key")
-                    for entity_id in endpoints
-                    if entity_id in index["assertions"]
-                ),
-                None,
-            )
-            if not key or key not in view_all:
-                return False, "%s 落在本轮视图未声明的单元（collation_key=%r；视图声明 %r）" % (
-                    kind,
-                    key,
-                    sorted(view_all),
-                )
-            if kind == "omission" and key in both_sides:
-                return False, "omission %s 的单元两侧都声明 present（不是缺项）" % relation.get(
-                    "relation_key"
-                )
-            continue
-        # alias_of / merged_into：并入类关系也要有确定性依据（校准 4，§10.1）
         if not _asm_has_pairing_basis(index, endpoints):
             return False, "%s 关系 %s 推不出确定性配对依据: %r" % (
                 kind,
@@ -1070,23 +1369,22 @@ def _asm_check_collation_comparable_only(
                 endpoints,
             )
 
-    not_comparable = [
-        row for row in (collation or {}).get("not_comparable") or [] if isinstance(row, dict)
-    ]
-    # not_comparable 单元不得被任何对勘关系引用（上面的循环已逐条比对）；
-    # 这里只核「计数如实」，不得静默压住无法配对的单元。
-    declared_uncollatable = 0
-    for view in views:
-        for assertion in (view.get("candidate_set") or {}).get("assertions") or []:
-            if not assertion.get("collation_key"):
-                declared_uncollatable += 1
-    if declared_uncollatable and len(not_comparable) < declared_uncollatable:
-        return False, "视图有 %d 个无 collation_key 的断言，collation.not_comparable 只记了 %d 条（不得静默跳过）" % (
-            declared_uncollatable,
-            len(not_comparable),
-        )
-    return True, "对勘/并入关系均可由确定性依据解释；%d 个 not_comparable 单元无对勘关系" % len(
-        not_comparable
+    # 6. 完整性（反向）：每个可比单元恰一条关系，防止引擎静默漏掉对勘（§28 Q1/Q2）
+    total = 0
+    for view_source, (expected, _) in sorted(plans.items(), key=lambda item: str(item[0])):
+        for unit_id, unit in sorted(expected.items()):
+            total += 1
+            got = counts.get((view_source, unit_id), 0)
+            if got != 1:
+                wanted = {"pair": "alignment/variant_reading/distinct_from(human)"}.get(
+                    unit["kind"], unit["kind"]
+                )
+                return False, "完整性：单元 %s@%s（新版 %s）应恰有一条 %s 关系，实有 %d 条" % (
+                    unit_id[1], unit_id[0], view_source, wanted, got,
+                )
+    return True, "对勘关系按 §25/§28/§29 独立重算全部吻合：%d 个可比单元各恰一条关系；not_comparable %d 项逐项一致" % (
+        total,
+        len(expected_rows),
     )
 
 
@@ -1359,7 +1657,8 @@ def evaluate_assembly(
     5. `view_objects_unaltered` — 对照**视图**版本逐字节比对（§14.1 静默覆盖的探测器）
     6. `untouched_byte_identical` — Gate **自算闭包**之外的对象规范字节不变
     7. `affected_scope_exact` — `report.affected == 自算闭包`、`rebuilt ⊆ 闭包`、实际改动 ⊆ 闭包
-    8. `collation_comparable_only` — 对勘/并入关系都能由确定性依据解释（§10.1）
+    8. `collation_comparable_only` — 对勘按 CHARTER §25/§28/§29 从版次声明独立重算：关系两端、方向、
+       四类内容条件、不可比单元零关系、可比单元恰一条（完整性）、not_comparable 清单逐项；并入关系有确定性依据（§10.1）
     9. `no_silent_fold` — 流派视图不被静默折叠，基底冲突组成员不减少
     10. `first_layer_display` — 每组等于任一成员的 `changes_current_judgment`
     11. `identity_delta_contract` — 变更类型/实体类型/理由引用/分裂配额均符契约
