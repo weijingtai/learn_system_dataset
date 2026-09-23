@@ -50,9 +50,6 @@ M7_SHELL_SCRIPT = REPO_ROOT / "openspec" / "acceptance" / "m7-assembler.sh"
 #: 对勘四类（``apply.COLLATION_KINDS`` 的独立副本：判据不 import 被验模块的行为常量）
 COLLATION_KINDS = ("alignment", "variant_reading", "addition", "omission")
 
-#: 缺文/增文/异文无生产者时的真实理由（CHARTER §19.2 口径更正）
-EDITION_COLLATION_GAP = "多版次对勘（缺文/增文/异文）引擎缺口，见 CHARTER §19"
-
 #: ``upstream_m6_real`` 的输入是合成桩（CHARTER §2 P2 更正），判据名不改但必须如实写明
 UPSTREAM_M6_REAL_NOTE = (
     "输入为合成桩（pipeline/review/testing/upstream_stub 的 mini_ed01），非真书；"
@@ -822,90 +819,167 @@ def _multi_package_observed(release: dict) -> str:
         )
 
 
+def _collation_signature(document: dict) -> list:
+    """对勘关系签名 (kind, from, to, detail.collation_key)，含 R07b 拒绝落成的 distinct_from（CHARTER §29 Q10）。"""
+    assertion_ids = {item.get("assertion_id") for item in document.get("assertions") or []}
+    rows = []
+    for rel in document.get("relations") or []:
+        kind = rel.get("relation_kind")
+        key = (rel.get("detail") or {}).get("collation_key")
+        ends = (rel.get("from_entity_id"), rel.get("to_entity_id"))
+        if kind in COLLATION_KINDS or (
+            kind == "distinct_from" and key and all(end in assertion_ids for end in ends)
+        ):
+            rows.append((kind,) + ends + (key,))
+    return sorted(rows, key=lambda row: tuple(str(part) for part in row))
+
+
+def _collation_expected(old_view: dict, new_view: dict) -> tuple:
+    """只凭夹具两份视图的**声明**独立推出可比单元与 not_comparable 清单（§25.5、§28 Q7、§29 Q11）。
+
+    旧版 = 基底版次（ed01），新版 = 本轮视图（ed99）。返回 ``(units, rows)``：
+    ``units[collation_key] = (kind, 新版断言号, 旧版断言号)``，kind ∈ pair / addition / omission；
+    ``rows`` 为已排序的 not_comparable 清单，每项恰 ``{source_id, collation_key, assertion_id, reason}``。
+    """
+
+    def declared(view: dict) -> dict:
+        return {
+            unit["collation_key"]: bool(unit.get("present", True))
+            for unit in view["candidate_set"].get("collation_units") or []
+            if unit.get("collation_key")
+        }
+
+    def approved_by_key(view: dict) -> tuple:
+        approved = {
+            item.get("entity_id")
+            for item in view["reviewed_edition"].get("approved") or []
+            if item.get("kind") == "assertion"
+        }
+        keyed, keyless = {}, []
+        for item in view["candidate_set"].get("assertions") or []:
+            if item.get("assertion_id") not in approved:
+                continue
+            if item.get("collation_key"):
+                keyed.setdefault(item["collation_key"], []).append(item["assertion_id"])
+            else:
+                keyless.append(item["assertion_id"])
+        return keyed, keyless
+
+    new_source, old_source = new_view["source_id"], old_view["source_id"]
+    new_declared, old_declared = declared(new_view), declared(old_view)
+    new_ids, keyless = approved_by_key(new_view)
+    old_ids, _ = approved_by_key(old_view)
+
+    def row(key, assertion_id, reason):
+        return {
+            "source_id": new_source,
+            "collation_key": key,
+            "assertion_id": assertion_id,
+            "reason": reason,
+        }
+
+    rows = [row(None, assertion_id, "missing_collation_key") for assertion_id in keyless]
+    rows += [
+        row(None, None, "missing_collation_key")
+        for unit in new_view["candidate_set"].get("collation_units") or []
+        if not unit.get("collation_key")
+    ]
+    units = {}
+    for key in sorted(set(new_declared) | set(new_ids)):
+        new, old = new_ids.get(key) or [], old_ids.get(key) or []
+        if key not in new_declared:
+            rows.append(row(key, None, "view_undeclared"))
+        elif new_source == old_source:
+            rows.append(row(key, None, "same_source"))
+        elif key not in old_declared:
+            rows.append(row(key, None, "base_undeclared"))
+        elif len(new) > 1 or len(old) > 1:
+            rows.append(row(key, None, "multiple_assertions_per_unit"))
+        elif (new_declared[key] and not new) or (old_declared[key] and not old):
+            rows.append(row(key, None, "declared_without_assertion"))
+        elif new_declared[key] and old_declared[key]:
+            units[key] = ("pair", new[0], old[0])
+        elif new_declared[key]:
+            units[key] = ("addition", new[0], None)
+        elif old_declared[key]:
+            units[key] = ("omission", None, old[0])
+    rows.sort(key=lambda r: (r["source_id"], r["collation_key"] or "", r["assertion_id"] or ""))
+    return units, rows
+
+
+def _judge_edition_collation(
+    *, produced: dict, golden: dict, old_view: dict, new_view: dict, reported_rows, reported_count
+) -> list:
+    """edition_collation 的判定本体（纯函数）：返回失败项列表，空列表即 PASS。"""
+    failures = []
+    got, want = _collation_signature(produced), _collation_signature(golden)
+    if got != want:
+        failures.append("对勘关系集与 r2 金标不一致: 实跑 %r / 金标 %r" % (got, want))
+    missing = [kind for kind in COLLATION_KINDS if kind not in {row[0] for row in got}]
+    if missing:
+        failures.append("四类对勘关系须各至少一条，实跑缺 %r" % missing)
+
+    units, rows = _collation_expected(old_view, new_view)
+    if not any(r["reason"] in ("base_undeclared", "view_undeclared") for r in rows):
+        failures.append("夹具必须有「一侧未声明」的单元，否则「不可比单元上无对勘关系」是空转的")
+    assertions = {item.get("assertion_id"): item for item in produced.get("assertions") or []}
+    for kind, left, right, key in got:
+        unit = units.get(key)
+        if unit is None:
+            failures.append("对勘关系 %s %s→%s 落在不可比单元 %r 上" % (kind, left, right, key))
+            continue
+        if kind != "alignment":
+            continue
+        # 对齐关系正确性：新版 → 旧版在该位置各自的断言（不许自环、不许同版次），文本相同
+        ends = (assertions.get(left) or {}, assertions.get(right) or {})
+        if (
+            left == right
+            or unit[0] != "pair"
+            or (left, right) != unit[1:]
+            or ends[0].get("source_id") != new_view["source_id"]
+            or ends[1].get("source_id") != old_view["source_id"]
+            or not ends[0].get("text_sha256")
+            or ends[0].get("text_sha256") != ends[1].get("text_sha256")
+        ):
+            failures.append(
+                "对齐关系 %s→%s@%s 不正确：须是新版 → 旧版在该位置各自的断言且文本相同（推出 %r）"
+                % (left, right, key, unit)
+            )
+
+    if reported_rows != rows:
+        failures.append(
+            "not_comparable 清单与夹具声明独立推出的不一致: 实报 %r / 推出 %r" % (reported_rows, rows)
+        )
+    if reported_count != len(rows):
+        failures.append(
+            "not_comparable_count=%r 与夹具声明推出的 %d 项不一致" % (reported_count, len(rows))
+        )
+    return failures
+
+
 def check_edition_collation(world) -> tuple:
-    """多版次对勘：已实现的（对齐关系正确、不可比单元无对勘关系）真验；
-    缺文/增文/异文无生产者 → BLOCKED（理由必须实指缺口，不许写「未实现」也不许 PASS）。
+    """多版次对勘（CHARTER §25.9、§28、§29）：读 r1 → ed99 实跑产出的 knowledge，按夹具声明独立判定。
+
+    四类关系各至少一条；对勘关系集与 r2 金标一致；不可比单元上无对勘关系；对齐关系正确；
+    not_comparable 清单逐项（含理由）与计数都等于从夹具两份视图声明独立推出的那份。
+    任何一项不成立 → FAIL 并写明哪一项；不再有 BLOCKED。清单取纯函数层的 ``collation``
+    （即 ``edition_collation_set``），计数取 Ledger 里 r2 的 ``assembly_report``。
     """
     release = _require_release(world)
     manifest = release["manifest"]
-    failures = []
-
-    produced = release["snapshots"]["r2"] or {}
-    golden = _golden_doc(manifest, "round2")
-
-    def _signature(document: dict) -> list:
-        keys = {
-            item["assertion_id"]: item.get("collation_key")
-            for item in document.get("assertions") or []
-        }
-        rows = []
-        for rel in document.get("relations") or []:
-            if rel.get("relation_kind") not in COLLATION_KINDS:
-                continue
-            ends = tuple(
-                sorted(
-                    key
-                    for key in (keys.get(rel.get("from_entity_id")), keys.get(rel.get("to_entity_id")))
-                    if key
-                )
-            )
-            rows.append((rel["relation_kind"], ends))
-        return sorted(rows)
-
-    if _signature(produced) != _signature(golden):
-        failures.append(
-            "对勘关系集与 r2 金标不一致: 实跑 %r / 金标 %r"
-            % (_signature(produced), _signature(golden))
-        )
-
     ed01, ed99 = manifest["editions"][0], manifest["editions"][1]
-    declared = {
-        ed["source_id"]: _declared_present_keys(_release_view(ed)["candidate_set"])
-        for ed in (ed01, ed99)
-    }
-    both_sides = declared[ed01["source_id"]] & declared[ed99["source_id"]]
-    one_side_only = declared[ed01["source_id"]] ^ declared[ed99["source_id"]]
-    if not one_side_only:
-        failures.append("夹具必须有「一侧未声明」的单元，否则「不可比单元上无对勘关系」是空转的")
-    keys = {
-        item["assertion_id"]: item.get("collation_key")
-        for item in produced.get("assertions") or []
-    }
-    for rel in produced.get("relations") or []:
-        if rel.get("relation_kind") not in COLLATION_KINDS:
-            continue
-        ends = {
-            keys.get(rel.get("from_entity_id")),
-            keys.get(rel.get("to_entity_id")),
-        } - {None}
-        if not ends:
-            failures.append("对勘关系两端必须落在断言上: %r" % rel.get("relation_key"))
-            continue
-        if not ends <= both_sides:
-            failures.append(
-                "对勘关系 %s 落在不是「两侧都声明 present」的单元上: %r"
-                % (rel.get("relation_key"), sorted(ends))
-            )
-
     report = (release["packages"]["r2"] or {}).get("assembly_report") or {}
-    if report.get("not_comparable_count") != 1:
-        failures.append(
-            "不可比单元必须如实入册（夹具恰有 1 个无 collation_key 的单元），实际 report=%r"
-            % report.get("not_comparable_count")
-        )
-
+    collation = ((release["pure"]["r2"] or {}).get("result") or {}).get("collation") or {}
+    failures = _judge_edition_collation(
+        produced=release["snapshots"]["r2"] or {},
+        golden=_golden_doc(manifest, "round2"),
+        old_view=_release_view(ed01),
+        new_view=_release_view(ed99),
+        reported_rows=collation.get("not_comparable"),
+        reported_count=report.get("not_comparable_count"),
+    )
     if failures:
         return ("FAIL", "; ".join(failures[:3]))
-    kinds = sorted(
-        {
-            rel["relation_kind"]
-            for rel in produced.get("relations") or []
-            if rel.get("relation_kind") in COLLATION_KINDS
-        }
-    )
-    missing = [kind for kind in COLLATION_KINDS if kind not in kinds]
-    if missing:
-        return ("BLOCKED", EDITION_COLLATION_GAP)
     return ("PASS", "")
 
 
