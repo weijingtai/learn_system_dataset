@@ -1,0 +1,135 @@
+act_id: impl-07/29
+title: I 波 —— 多版次对勘：断言号属于版次、按主体比对、Snapshot 记住各版次声明、提案带明确 targets、四类关系全部可达
+estimated_minutes: 260
+group: INC-I
+depends_on: [impl-07/27]
+decisions: [CHARTER §19 F2/F3/F4, §25（全文）, R15]
+scope:
+  write:
+    - pipeline/assembly/incremental.py      # 只许改 R07/R07b/R08/R09 段与 _base_units（及其专用辅助函数）
+    - pipeline/assembly/apply.py            # _collation_pair 只按 targets；_merge_editions 记 collation_units；跨版次沿用断言号拒收
+    - pipeline/assembly/genesis.py          # 创世时记 editions[].collation_units
+    - pipeline/assembly/model.py            # editions[].collation_units 必填校验；自环拒收；null 端点只许 addition/omission
+    - pipeline/assembly/gate.py             # 只许改对勘相关检查（collation_comparable_only、配对依据）
+    - pipeline/assembly/orchestrate.py      # 只许改闭包里对勘单元的触点来源（改读 editions[].collation_units），其余不动
+    - pipeline/assembly/acceptance.py       # 只许改 edition_collation 判据
+    - pipeline/assembly/tests/
+    - pipeline/corpus/_fixture/mini_release01/   # 只许经 tools/build_fixture.py 生成；金标实跑产出
+  read_only:
+    - var/ledgers/qianyuan_w8/
+    - pipeline/assembly/matcher.py          # 需要改就停手上报
+    - pipeline/assembly/canonical.py
+    - pipeline/assembly/inputs.py
+    - pipeline/assembly/step.py
+    - pipeline/corpus/_fixture/mini_ed01/
+    - openspec/acceptance/run_all.sh
+    - openspec/acceptance/m7-assembler.sh
+background: |
+  先读 `CHARTER-INCREMENTAL.md` §19（F2/F3/F4 实测）与 §25（本波全部口径）全文。
+  规格依据：`README.md` §6 第 330 行（可比单元口径）、第 523–526 行（R07/R07b/R08/R09 规则表）；
+  规格 `openspec/learn-system-blackbox-architecture.md` §15:655（不覆盖旧版本）。
+
+  主 Agent 2026-09-22 实测（HEAD 64f2946，assembly 229 OK，m7-assembler pass=16 fail=0 blocked=1）：
+  - r2 金标唯一的对齐关系是自环 `alignment as_qizheng_900001 -> as_qizheng_900001`：ed99 视图沿用了 ed01 的断言号
+  - `incremental.py` R07/R08 用 `entity_ref`（= 断言号）相等判断可比；规格要的是主体（subject_entity_id）
+  - `_base_units` 把**所有**基底断言（含同 source）都当作 present:true 的单元；Snapshot `editions[]` 没有 collation_units 字段
+  - R09 用 `sorted([declared, absent])` 的 source_id 字典序决定增文/缺文方向；R09 提案不带 targets
+  - `apply._collation_pair` 在 targets 不足 2 个时按 collation_key 去两侧各找一条断言——缺侧必然 0 条 → 拒收（F2）
+  - `model.py:604-607` 关系端点为 None 时跳过校验（`attached` 已在用）
+  - M8（`dataset_compiler/inputs.py`）只按修订号定位 Snapshot，不解析 `editions[]` 字段
+  - 复现探针：`.venv/bin/python pipeline/assembly/tests/probe_g_blockers.py` 当前 F2/F3/F4 REPRODUCED
+contract: |
+  全部按 CHARTER §25 实现。要点复述（有出入以 §25 为准）：
+
+  一、断言号属于一个版次（§25.1）
+    视图带着基底另一版次拥有的 as_ 号 → DuplicateIdentifier，message 含「跨版次沿用断言号」。
+    关系自环 → model 拒收。
+
+  二、R07/R08/R07b 比主体（§25.2）
+    前提：同 work_key、同 collation_key、不同 source_id、两侧都声明 present。
+    两侧 subject_entity_id 裁决到同一正式对象：NFC 文本相等 → R07；不等 → R08（detail 带 difflib opcodes）；
+    主体不同 → R07b 人工；主体尚待人工裁决 → depends_on 那条提案。推不出确定对应 → 停手上报。
+
+  三、同 source 不配对（§25.3）；方向按角色（§25.4）：新版 = 本轮视图，旧版 = 基底。删掉按 source_id 字典序定方向。
+
+  四、Snapshot editions[].collation_units（§25.5）
+    必填，按 collation_key 升序，未声明为 []；创世与合并时写入，同书返工整体替换。
+    基底一侧声明只从这里读。未声明 → not_comparable；声明 present 但无获批断言 → not_comparable（declared_without_assertion）。
+
+  五、关系两端（§25.6 表）；null 端点只许 addition / omission。
+
+  六、提案带 targets = [from, to]（§25.7）；apply._collation_pair 只按 targets 落关系，删掉回头搜索路径。
+
+  七、Gate 独立跟上（§25.8），不许导入被验模块。
+
+  八、fixture（§25.9）：ed01 加声明 0005 present:false；ed99 的 0001 自己发号；按 §25.9 造出四类各一；
+      0004 必须 not_comparable。r1/r2/r3 金标由 build_fixture.py 实跑重出。
+
+  九、acceptance.py 的 edition_collation 改为实跑判定（四类各 ≥1、与金标一致、不可比单元无关系），不再 BLOCKED。
+
+  十、不许做的事
+    - 不许用文本相似度、不许调模型（§4 与 README :330「M7 不做文本相似度」）
+    - 不许改 matcher.py（要改就停手上报）、不许改 step.py / run_all.sh / m7-assembler.sh
+    - 不许为了让新关系通过而放宽 Gate
+    - 不许手写金标；不许写 var/ 真书正本；不许改 mini_ed01
+tests_first: |
+  先写测试并确认转红（贴 Red 原文），再实现。至少十二条具名用例：
+    test_view_reusing_other_edition_assertion_id_refused         # §25.1
+    test_self_loop_relation_refused                               # §25.1
+    test_alignment_links_two_editions_assertions                  # §25.2，两个不同的号
+    test_variant_reading_same_subject_different_text              # §25.2，F4
+    test_collation_subject_mismatch_goes_human                    # R07b
+    test_same_source_units_never_paired                           # §25.3，F3 的同 source 半边
+    test_addition_when_base_declared_absent                       # §25.4/25.5，F3
+    test_omission_when_view_declares_absent                       # §25.6，F2
+    test_undeclared_on_base_side_is_not_comparable                # 0004 不许出增文
+    test_snapshot_editions_record_collation_units                 # §25.5
+    test_null_endpoint_only_for_addition_and_omission             # §25.6
+    test_collation_all_four_kinds_end_to_end_through_run_m7       # R15：临时 Ledger，r1→ed99，四类全出，Gate 全过
+  Gate 篡改用例至少三条：自环、null 端点出现在 alignment、增文方向写反 → 各自 FAIL。
+  修完后 probe_g_blockers.py：F2/F3/F4 必须全部 NOT REPRODUCED（若探针的前置准备因 fixture 变化而失效，
+  只许改前置准备，不许改断言；改了什么写进回报）。
+verify: |
+  cd /Users/jingtaiwei/Git/Public/learn_system && export LC_ALL=en_US.UTF-8
+  .venv/bin/python -m unittest discover -s pipeline/assembly/tests -t . 2>&1 | tail -3     # OK；≥229 + 新增；不许新增 skip
+  .venv/bin/python pipeline/assembly/tests/probe_g_blockers.py 2>&1 | grep -E "REPRODUCED|SUMMARY"   # 6 项全部 NOT REPRODUCED
+  bash openspec/acceptance/m7-assembler.sh; echo "exit=$?"        # 贴全文；期望 pass=17 fail=0 blocked=0，exit=0
+  bash openspec/acceptance/run_all.sh 20.5; echo "exit=$?"        # 期望 PASS
+  bash pipeline/corpus/_fixture/mini_release01/verify.sh; echo "exit=$?"
+  .venv/bin/python pipeline/corpus/_fixture/mini_release01/tools/build_fixture.py --check 2>&1 | tail -2
+  for p in dataset_compiler review validation corpus_compiler; do
+    .venv/bin/python -m unittest discover -s pipeline/$p/tests -t . 2>&1 | grep -E "^Ran|^OK|^FAILED" | tail -2; done
+      # corpus_compiler 中间几行 FAIL m3_acceptance 是已知噪声，以最后一行 OK 为准
+  git diff --stat 64f2946 -- pipeline/assembly/matcher.py pipeline/assembly/canonical.py pipeline/assembly/inputs.py pipeline/assembly/step.py openspec/acceptance/run_all.sh openspec/acceptance/m7-assembler.sh pipeline/corpus/_fixture/mini_ed01/
+      # 必须无输出
+  .venv/bin/python -c "import ast;t=ast.parse(open('pipeline/assembly/gate.py').read());m={(n.module or '') for n in ast.walk(t) if isinstance(n,ast.ImportFrom)}|{a.name for n in ast.walk(t) if isinstance(n,ast.Import) for a in n.names};print([x for x in m if any(k in x for k in ('matcher','apply','incremental','orchestrate'))])"
+      # 必须输出 []
+  git status --short var/                                         # 无输出
+  # 真书第二轮在副本上重跑：run_m7 succeeded、增量 Gate 全过、零对勘关系、全部 not_comparable；正本 mtime/size 未变
+  # 篡改探针（四条，完整仓库 cp -R 含 ocr/，R13）：
+  #   P1 R07/R08 改回比断言号            → test_variant_reading_same_subject_different_text 转红
+  #   P2 R09 方向改回按 source_id 字典序 → test_addition_when_base_declared_absent 或 test_omission_when_view_declares_absent 转红
+  #   P3 基底声明改回从断言推            → test_undeclared_on_base_side_is_not_comparable 转红
+  #   P4 apply._collation_pair 恢复回头搜索路径并忽略 targets → 至少一条用例转红
+commit:
+  add:
+    - pipeline/assembly/incremental.py
+    - pipeline/assembly/apply.py
+    - pipeline/assembly/genesis.py
+    - pipeline/assembly/model.py
+    - pipeline/assembly/gate.py
+    - pipeline/assembly/orchestrate.py
+    - pipeline/assembly/acceptance.py
+    - pipeline/assembly/tests/
+    - pipeline/corpus/_fixture/mini_release01/
+    - docs/blackbox-spec-rework/work-items/impl-07-assembly/act/29.yaml
+  message: "feat(m7): multi-edition collation with per-edition assertions and declared units (INC-I, ACT 29)"
+on_fail: |
+  停止并报告，不许提交红的基线。
+  六种情况必须停手写「## 待裁决」：
+    ① 需要改 matcher.py、step.py 或 run_all.sh / m7-assembler.sh
+    ② 主体对应推不出确定结果（§25.2）
+    ③ 真书第二轮不再通过，或出现了对勘关系
+    ④ 某条 §25 口径与规格原文对不上
+    ⑤ 同书返工（r2 → ed01r2）在新口径下不再通过
+    ⑥ 要让四类关系全出必须放宽 Gate

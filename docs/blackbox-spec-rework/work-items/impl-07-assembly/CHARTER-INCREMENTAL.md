@@ -738,3 +738,81 @@ ACT 27 提交 `de1a802`。主 Agent 独立复验：
 本轮 M7 增量汇编收口。三条真实路径——创世、新书加入、同一本书改一版——都有全栈验证。
 `PLAN.md:94` **不打勾**：它的判据是 20.5 PASS，仍被多版次对勘缺口（§19 F2/F3/F4）挡住，留给 I 波。
 已知缺口汇总见 §23.2。
+
+---
+
+## 25. I 波：多版次对勘的口径（2026-09-22，用户指令开 I 波）
+
+起草前主 Agent 实测，除 §19 的 F2/F3/F4 外，还有一个更根本的问题。
+
+### 25.0 现在的「对齐」是自己连自己
+
+r2 金标里唯一那条对齐关系是 `alignment as_qizheng_900001 -> as_qizheng_900001`。
+原因：fixture 的 ed99 视图**沿用了 ed01 那条断言的号**，于是 ed99 这一版在 sanche-0001 位置上的文字
+没有作为 ed99 自己的断言留下来，被并进了 ed01 那一条。规格 §15:655 要求「不覆盖旧版本」，
+对齐应当连接**两个版次各自的断言**。F4（异文撞号）也是同一根源：代码用「两侧断言号相同」判断可比，
+规格 README §6:523-525 要的是「两侧**主体**裁决到同一正式对象」。
+
+### 25.1 断言号属于一个版次
+
+- 一个 `as_` 号只属于一个 `source_id`。视图带着**基底里另一个版次**拥有的 `as_` 号 → 拒收（`DuplicateIdentifier`，message 含「跨版次沿用断言号」）。
+- 关系两端相同（自环）→ `model` 拒收（`SchemaViolation`）。
+- fixture 的 ed99 改为给自己的断言发自己的号。
+
+### 25.2 R07 / R08 / R07b 比主体，不比断言号
+
+- 可比的前提：同 `work_key`、同 `collation_key`、**不同 `source_id`**、两侧都声明 `present`。
+- 两侧断言的 `subject_entity_id` 裁决到同一正式对象：文本（NFC 逐字）相等 → R07 对齐；不等 → R08 异文（detail 带 difflib opcodes）。
+- 主体裁决到不同对象 → R07b 人工。
+- 主体本身还在等人工裁决 → 对勘提案 `depends_on` 那条提案，不许猜。推不出确定的主体对应 → 停手上报。
+
+### 25.3 同一个版次不跟自己比
+
+同 `source_id` 的单元**一律不配对**（同书返工由 D-14 的替换继承处理，不是对勘）。
+这修掉了 F3 里「同书返工时缺文被错标成增文」的问题。
+
+### 25.4 「新版 / 旧版」按角色定，不按 source_id 排序
+
+- 新版 = 本轮加入的视图，旧版 = 基底里的版次。增文 = 新版 present、旧版声明 present:false；缺文反之。
+- 删掉现在按 `source_id` 字典序决定方向的写法（那是凭空规则）。
+- 同一 Run 汇多个包仍在前置拒收（§18），所以不存在「两个新版之间比」。
+
+### 25.5 Snapshot 记住每个版次声明过哪些单元（修 F3）
+
+- `editions[]` 每项新增**必填**字段 `collation_units: [{collation_key, present}]`（按 `collation_key` 升序；没声明就是 `[]`）。
+  创世与后续版次合并时写入；同书返工时整体替换。
+- 基底一侧的「声明」**只从这个字段读**，不再从断言推（现在把每条有键的断言都当成 present:true，这正是 F3 的根源）。
+- 基底一侧没声明 → `not_comparable`。声明了 present 却没有获批断言 → `not_comparable`，理由 `declared_without_assertion`，计数，不出关系。
+- 主 Agent 核实：M8 只用 Snapshot 修订号定位，不解析 `editions[]` 字段，加字段不影响下游。
+
+### 25.6 关系的两端
+
+| 关系 | from | to | detail |
+|---|---|---|---|
+| alignment | 新版断言 | 旧版断言 | `collation_key` |
+| variant_reading | 新版断言 | 旧版断言 | `collation_key`、opcodes |
+| addition | 新版断言 | `null` | `collation_key`、`absent_source_id`（旧版） |
+| omission | 旧版断言 | `null` | `collation_key`、`absent_source_id`（新版） |
+
+`model` 已允许端点为 `null`（`attached` 已在用）；但 **`null` 端点只许出现在 addition / omission**，别的对勘关系出现 `null` → 拒收。
+
+### 25.7 提案带明确的 targets（修 F2）
+
+R07 / R08 / R07b / R09 提案一律带 `targets = [from, to]`（按上表，缺的一侧写 `null`）。
+`apply._collation_pair` **只按 targets 落关系**，删掉「按 collation_key 回头去两侧各找一条断言」的路径。
+
+### 25.8 Gate 独立跟上
+
+`collation_comparable_only` 与配对依据检查改为从视图与基底 `editions[].collation_units` **独立重算**；
+检查 `null` 端点只在 addition / omission、无自环、四类关系的方向与上表一致。仍然不许导入被验模块。
+
+### 25.9 fixture 与判据
+
+- ed01 声明 0001 / 0002 / 0003 present，**另声明 0005 present:false**。
+- ed99：0001 自己发号、同主体同文 → 对齐；0003 同主体异文 → 异文；0002 声明 present:false → 缺文；
+  0005 有断言且 present → 增文；0004 ed01 未声明 → `not_comparable`（**不许出增文**）。
+- r1 / r2 / r3 金标全部由 `build_fixture.py` 实跑重出。
+- `m7-assembler.sh` 的 `edition_collation` 由 BLOCKED 改为实跑判定：四类各至少一条、与金标一致、不可比单元无关系。
+  期望最终 `pass=17 fail=0 blocked=0`，`run_all.sh 20.5` 随之 PASS。
+- R15：临时 Ledger 上 r1 → ed99 `run_m7`，四类关系全部产出且增量 Gate 全过；r1 → ed99 → ed01r2 仍然通过。
+- 真书第二轮（`collation_key` 全为 null）必须仍然通过：全部 `not_comparable`，零对勘关系。
