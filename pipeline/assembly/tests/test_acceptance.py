@@ -536,3 +536,37 @@ class TestAcceptanceIncremental(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestIncrementalGateGuard(unittest.TestCase):
+    """CHARTER §24.1：incremental_multi_edition 里「增量 Gate 必须全过」原是无用例守护的冗余防线。
+
+    今天 Gate 不过时 step 已把该轮判 failed，前面的 status 检查会先抓到；但若将来有人拆掉
+    step 的失败封存，这道防线失效也无人察觉。这里伪造「status 仍 succeeded、Gate 却未过」，
+    断言判据自己也能抓到。
+    """
+
+    def test_gate_failure_is_caught_even_if_status_says_succeeded(self):
+        from pipeline.assembly import acceptance
+
+        tmp = Path(tempfile.mkdtemp(prefix="test_gate_guard_"))
+        self.addCleanup(shutil.rmtree, tmp, True)
+        release = acceptance._prepare_release_rounds(tmp)
+
+        verdict, _ = acceptance.check_incremental_multi_edition({"release": release})
+        self.assertEqual(verdict, "PASS", "正向对照：真实实跑数据必须判 PASS")
+
+        # release 里带着 Ledger 连接，不能整体深拷贝；只浅拷贝被篡改的那一路
+        self.assertEqual(release["runs"]["r2"].get("status"), "succeeded")
+        forged = dict(release)
+        forged["validations"] = dict(release["validations"])
+        forged["validations"]["r2"] = dict(
+            release["validations"]["r2"],
+            incremental_gate={
+                "passed": False,
+                "checks": {"collation_comparable_only": {"passed": False, "detail": "伪造的未通过"}},
+            },
+        )
+        verdict, detail = acceptance.check_incremental_multi_edition({"release": forged})
+        self.assertEqual(verdict, "FAIL", detail)
+        self.assertIn("增量 Gate 未全过", detail)

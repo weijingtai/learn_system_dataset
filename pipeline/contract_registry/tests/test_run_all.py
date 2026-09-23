@@ -60,9 +60,16 @@ class TestRunAll(unittest.TestCase):
         )
 
     def test_full_summary_unchanged(self):
+        # 20.5 自 M7 I 波集成（64c091e）起由 m7-assembler.sh 的真实退出码决定：
+        # 本机有真书账本时全 PASS；没有账本时真书判据如实 BLOCKED，20.5 随之 BLOCKED。
+        # 其余十项的结论不随宿主变化，仍按原快照锁定。
+        has_real_ledger = (REPO_ROOT / "var" / "ledgers" / "qianyuan_w8").is_dir()
+        expected = (
+            "SUMMARY pass=3 fail=1 blocked=7" if has_real_ledger else "SUMMARY pass=2 fail=1 blocked=8"
+        )
         result = _run()
         lines = result.stdout.decode("utf-8").strip().splitlines()
-        self.assertEqual(lines[-1], "SUMMARY pass=2 fail=1 blocked=8")
+        self.assertEqual(lines[-1], expected)
         self.assertEqual(result.returncode, 1)
 
     def test_accept_check_fail_path(self):

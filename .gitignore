@@ -25,3 +25,6 @@ __pycache__/
 node_modules/
 dist/
 *.tsbuildinfo
+
+# FreeBuff 执行器在仓库根目录建的工作目录（本地状态，不进 Git）
+.freebuff/
