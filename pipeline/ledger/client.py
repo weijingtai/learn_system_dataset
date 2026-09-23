@@ -451,3 +451,38 @@ class LedgerClient:
     def read_object(self, sha256):
         """见 ``LedgerReader.read_object``。"""
         return self._call("read_object", {"sha256": sha256})
+
+    def describe_revision(self, artifact_revision_id):
+        """见 ``LedgerReader.describe_revision``。"""
+        return self._call("describe_revision", {"artifact_revision_id": artifact_revision_id})
+
+    def list_step_run_revisions(self, step_run_id, artifact_type=None, status=None):
+        """见 ``LedgerReader.list_step_run_revisions``。"""
+        return self._call(
+            "list_step_run_revisions",
+            {"step_run_id": step_run_id, "artifact_type": artifact_type, "status": status},
+        )
+
+    def list_artifact_revisions(self, artifact_id):
+        """见 ``LedgerReader.list_artifact_revisions``。"""
+        return self._call("list_artifact_revisions", {"artifact_id": artifact_id})
+
+    def list_frozen_inputs(self, step_run_id):
+        """见 ``LedgerReader.list_frozen_inputs``。"""
+        return self._call("list_frozen_inputs", {"step_run_id": step_run_id})
+
+    def get_processing_run(self, processing_run_id):
+        """见 ``LedgerReader.get_processing_run``。"""
+        return self._call("get_processing_run", {"processing_run_id": processing_run_id})
+
+    def list_step_runs(self, edition_part_id, stage=None):
+        """见 ``LedgerReader.list_step_runs``。"""
+        return self._call("list_step_runs", {"edition_part_id": edition_part_id, "stage": stage})
+
+    def list_stage_packages(self, stage):
+        """见 ``LedgerReader.list_stage_packages``。"""
+        return self._call("list_stage_packages", {"stage": stage})
+
+    def count_artifacts(self, artifact_type):
+        """见 ``LedgerReader.count_artifacts``。"""
+        return self._call("count_artifacts", {"artifact_type": artifact_type})

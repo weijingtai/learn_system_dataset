@@ -448,6 +448,93 @@ class MetadataStore:
                 % (step_run_id, from_status, expected_status_version)
             )
 
+    # ---- 只读元数据查询（TODO.md T03：模块经 LedgerPort 调用，不再自己写 SQL） ----
+
+    _DESCRIBE_SELECT = (
+        "SELECT r.artifact_revision_id, r.artifact_id, a.artifact_type, r.sha256, r.status, "
+        "r.step_run_id, r.processing_run_id, r.created_at, sp.stage_package_id "
+        "FROM artifact_revisions r JOIN artifacts a ON a.artifact_id = r.artifact_id "
+        "LEFT JOIN stage_packages sp ON sp.artifact_id = r.artifact_id "
+    )
+
+    def describe_revision(self, artifact_revision_id):
+        """修订的元数据（含 artifact_type；stage_package 另带 stage_package_id），或 ``None``。"""
+        row = self.conn.execute(
+            self._DESCRIBE_SELECT + "WHERE r.artifact_revision_id=?", (artifact_revision_id,)
+        ).fetchone()
+        return _as_dict(row)
+
+    def list_step_run_revisions(self, step_run_id, artifact_type=None, status=None):
+        """某 StepRun 产出的修订元数据，可按类型、状态筛选；按产生顺序。"""
+        sql = self._DESCRIBE_SELECT + "WHERE r.step_run_id=?"
+        params = [step_run_id]
+        if artifact_type is not None:
+            sql += " AND a.artifact_type=?"
+            params.append(artifact_type)
+        if status is not None:
+            sql += " AND r.status=?"
+            params.append(status)
+        sql += " ORDER BY r.created_at, r.rowid"
+        return [dict(row) for row in self.conn.execute(sql, tuple(params)).fetchall()]
+
+    def list_artifact_revisions(self, artifact_id):
+        """某 Artifact 的全部修订元数据；按产生顺序。"""
+        rows = self.conn.execute(
+            self._DESCRIBE_SELECT + "WHERE r.artifact_id=? ORDER BY r.created_at, r.rowid",
+            (artifact_id,),
+        ).fetchall()
+        return [dict(row) for row in rows]
+
+    def list_frozen_inputs(self, step_run_id):
+        """某 StepRun 冻结的输入修订号，升序。"""
+        rows = self.conn.execute(
+            "SELECT artifact_revision_id FROM frozen_inputs WHERE step_run_id=? "
+            "ORDER BY artifact_revision_id",
+            (step_run_id,),
+        ).fetchall()
+        return [row[0] for row in rows]
+
+    def get_processing_run(self, processing_run_id):
+        """按 ProcessingRun 号返回 dict，或 ``None``。"""
+        row = self.conn.execute(
+            "SELECT * FROM processing_runs WHERE processing_run_id=?", (processing_run_id,)
+        ).fetchone()
+        return _as_dict(row)
+
+    def list_step_runs(self, edition_part_id, stage=None):
+        """某 EditionPart 的 StepRun（可按 stage 筛选）；按创建顺序（旧→新）。"""
+        sql = (
+            "SELECT sr.* FROM step_runs sr "
+            "JOIN processing_runs pr ON pr.processing_run_id = sr.processing_run_id "
+            "WHERE pr.edition_part_id=?"
+        )
+        params = [edition_part_id]
+        if stage is not None:
+            sql += " AND sr.stage=?"
+            params.append(stage)
+        sql += " ORDER BY sr.created_at, sr.rowid"
+        return [dict(row) for row in self.conn.execute(sql, tuple(params)).fetchall()]
+
+    def list_stage_packages(self, stage):
+        """某 stage 的全部 StagePackage 修订，附归属 StepRun 状态。"""
+        rows = self.conn.execute(
+            "SELECT sp.stage_package_id, sp.artifact_id, sp.stage, r.artifact_revision_id, "
+            "r.step_run_id, sr.status AS step_run_status "
+            "FROM stage_packages sp "
+            "JOIN artifact_revisions r ON r.artifact_id = sp.artifact_id "
+            "JOIN step_runs sr ON sr.step_run_id = r.step_run_id "
+            "WHERE sp.stage=? ORDER BY r.created_at, r.rowid",
+            (stage,),
+        ).fetchall()
+        return [dict(row) for row in rows]
+
+    def count_artifacts(self, artifact_type):
+        """某类型的 Artifact 数。"""
+        row = self.conn.execute(
+            "SELECT COUNT(*) FROM artifacts WHERE artifact_type=?", (artifact_type,)
+        ).fetchone()
+        return int(row[0])
+
     def get_step_run(self, step_run_id):
         """按运行号返回 dict，或 ``None``。"""
         row = self.conn.execute(

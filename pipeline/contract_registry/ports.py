@@ -43,6 +43,15 @@ LEDGER_PORT_METHODS = (
     "run_status",
     "stage_progress",
     "read_object",
+    # TODO.md T03：加工模块原先直接写 SQL 查询的元数据，改由端口提供
+    "describe_revision",
+    "list_step_run_revisions",
+    "list_artifact_revisions",
+    "list_frozen_inputs",
+    "get_processing_run",
+    "list_step_runs",
+    "list_stage_packages",
+    "count_artifacts",
 )
 
 # 直连委托给 LedgerService 的方法（read_object 走 objects.get，单独实现）

@@ -154,6 +154,44 @@ class LedgerReadMixin:
             for row in self.store.list_checkpoints(edition_part_id, stage)
         ]
 
+    def read_object(self, sha256):
+        """按 SHA-256 读取对象字节（``LedgerService`` 与 ``LedgerReader`` 共用；加工模块不许直接触达 ``.objects``）。"""
+        return self.objects.get(sha256)
+
+    # ---- 只读元数据查询（TODO.md T03）：加工模块经 LedgerPort 调用，不许再触达 .store / .objects ----
+    def describe_revision(self, artifact_revision_id):
+        """修订元数据：artifact_revision_id、artifact_id、artifact_type、sha256、status、step_run_id、
+        processing_run_id、created_at、stage_package_id（非 stage_package 为 None）；不存在返回 ``None``。"""
+        return self.store.describe_revision(artifact_revision_id)
+
+    def list_step_run_revisions(self, step_run_id, artifact_type=None, status=None):
+        """某 StepRun 产出的修订元数据（形状同 ``describe_revision``），可按类型、状态筛选。"""
+        return self.store.list_step_run_revisions(step_run_id, artifact_type, status)
+
+    def list_artifact_revisions(self, artifact_id):
+        """某 Artifact 的全部修订元数据（形状同 ``describe_revision``），按产生顺序。"""
+        return self.store.list_artifact_revisions(artifact_id)
+
+    def list_frozen_inputs(self, step_run_id):
+        """某 StepRun 冻结的输入修订号，升序。"""
+        return self.store.list_frozen_inputs(step_run_id)
+
+    def get_processing_run(self, processing_run_id):
+        """按 ProcessingRun 号返回 dict（含 edition_part_id），或 ``None``。"""
+        return self.store.get_processing_run(processing_run_id)
+
+    def list_step_runs(self, edition_part_id, stage=None):
+        """某 EditionPart 的 StepRun（可按 stage 筛选），旧→新。"""
+        return self.store.list_step_runs(edition_part_id, stage)
+
+    def list_stage_packages(self, stage):
+        """某 stage 的全部 StagePackage 修订，附 step_run_id 与 step_run_status。"""
+        return self.store.list_stage_packages(stage)
+
+    def count_artifacts(self, artifact_type):
+        """某类型的 Artifact 数。"""
+        return self.store.count_artifacts(artifact_type)
+
     def run_status(self, processing_run_id):
         """聚合某 ProcessingRun 的运行状态（§17）。"""
         return _run_status(self.store, processing_run_id)
@@ -1603,6 +1641,3 @@ class LedgerReader(LedgerReadMixin):
         self.close()
         return False
 
-    def read_object(self, sha256):
-        """按 SHA-256 读取对象字节。"""
-        return self.objects.get(sha256)
