@@ -28,7 +28,7 @@ from pipeline.assembly import incremental as incremental_module
 from pipeline.assembly.canonical import canonical_json, content_sha256, sha256_hex, work_key
 from pipeline.assembly.errors import AssemblyRefused
 
-#: `report` 键序**逐字**（act/05.yaml:36）
+#: `report` 键序**逐字**（act/05.yaml:36；`round_proposal_keys` 为 ACT 26 二新增，只许追加在末尾）
 REPORT_KEYS = (
     "affected_entity_ids",
     "rebuilt_entity_ids",
@@ -39,6 +39,7 @@ REPORT_KEYS = (
     "carried",
     "needs_review",
     "not_comparable_count",
+    "round_proposal_keys",
 )
 
 #: 闭包要沿其两端的三种关系（act/05.yaml:31）
@@ -642,6 +643,16 @@ def assemble(
             proposal_counts["blocked_then_resolved"] += 1
     carried = carry_forward(base, views, proposals)
 
+    # ACT 26 二：本轮（含回流各轮）全部提案键，升序去重。
+    # 这是 `gate.identity_delta_contract` 回到草稿口径的唯一依据（CHARTER §16.1 第 2 条）。
+    round_proposal_keys = sorted(
+        {
+            proposal["proposal_key"]
+            for proposals_res in rounds
+            for proposal in proposals_res["proposals"]
+        }
+    )
+
     report = {
         "affected_entity_ids": closure["affected"] if incremental else None,
         "rebuilt_entity_ids": result["rebuilt_entity_ids"],
@@ -652,5 +663,6 @@ def assemble(
         "carried": carried["carried"],
         "needs_review": carried["needs_review"],
         "not_comparable_count": len(final["not_comparable"]),
+        "round_proposal_keys": round_proposal_keys,
     }
     return {"status": "complete", "rounds": rounds, "pending": [], "result": result, "report": report}

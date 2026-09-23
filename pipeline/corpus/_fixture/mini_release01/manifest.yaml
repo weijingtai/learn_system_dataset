@@ -73,7 +73,7 @@ files:
   sha256: b0abcca36792e8765cac1a793f649a0dff96219ca808f9b4fa969047566a41f6
 - path: ed99/candidate_set.json
   role: view_candidate_set
-  sha256: 2021edbea64da7e785c4a36a66c1b2f530a025854e2bb2e110792311e69271b6
+  sha256: 39a5ceb621a1294fae02d971b0c32dd044494e0d24ba8ad6a33ed678a6295a75
 - path: ed99/reviewed_edition.json
   role: view_reviewed_edition
   sha256: 7b905a768e8282af719dec7769bfaaeb14cc92d07268eae7c253c0e9a194ce78
@@ -85,10 +85,10 @@ files:
   sha256: c20c5148d046452fc00f83b3d1633cd81012170fd60c41ebda35c8e3cdfc891c
 - path: expected/snapshot_r2.json
   role: expected_snapshot
-  sha256: 66a1e2f7534de0b57cb6c7debbfabd32f593f41fd895ef4350ed14f88c8fad25
+  sha256: 1f6d1cbfb930a9a483abbb65039a0ab8ca70be097a7624563e374d076f0749e2
 - path: expected/snapshot_revisions.yaml
   role: expected_snapshot
-  sha256: c1251a486f4ed070d2076b7606c0e70f8fed6184c60e2aa2976416c5a449f9b0
+  sha256: 58cf25f99a3fa61e883003116c68262f47a89bc533e5ad80e45e11a7a86b373a
 fixture_id: mini_release01
 id_families_used:
 - art_

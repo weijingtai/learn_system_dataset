@@ -36,7 +36,7 @@ from pipeline.ledger.service import LedgerService
 ROOT = Path(__file__).resolve().parents[3]
 FIXTURE = ROOT / "pipeline" / "corpus" / "_fixture" / "mini_release01"
 
-#: report 键序逐字（act/05.yaml:36）
+#: report 键序逐字（act/05.yaml:36 + ACT 26 二：新字段只许追加在末尾）
 EXPECTED_REPORT_KEYS = (
     "affected_entity_ids",
     "rebuilt_entity_ids",
@@ -47,6 +47,7 @@ EXPECTED_REPORT_KEYS = (
     "carried",
     "needs_review",
     "not_comparable_count",
+    "round_proposal_keys",
 )
 
 
@@ -303,7 +304,41 @@ class AssembleTest(unittest.TestCase):
             {"auto": 3, "human": 0, "blocked_then_resolved": 0},
         )
         self.assertEqual(result["report"]["rounds"], [2])
-        self.assertEqual(result["report"]["not_comparable_count"], 0)
+        # fixture ed99 声明了一个**无 collation_key** 的可比单元（真书 26 条断言全无键的形状），
+        # 它如实进 not_comparable，不得静默压成 0。
+        self.assertEqual(result["report"]["not_comparable_count"], 1)
+
+    # ------------------------------------- 具名用例（ACT 26 二：report 记本轮提案键）
+    def test_report_records_round_proposal_keys(self):
+        """`report.round_proposal_keys` = 本次 ReleaseRun **各轮**全部提案键，升序去重。
+
+        该字段是 `gate.identity_delta_contract` 回到草稿口径的依据（ACT 26 二/三），
+        因此必须真的覆盖每一轮的提案（含回流后重出的轮次），不能只记最后一轮。
+        """
+        manifest = load_manifest()
+        base = round1_knowledge(manifest)
+        views = [fixture_views(manifest)[1]]
+        result = assemble(base, views, [], incremental=True, base_snapshot_revision_id="rev_1")
+        report = result["report"]
+
+        self.assertEqual(tuple(report.keys()), EXPECTED_REPORT_KEYS, "新字段必须追加在末尾")
+        keys = report["round_proposal_keys"]
+        self.assertEqual(keys, sorted(set(keys)), "必须升序去重")
+        self.assertTrue(keys, "本轮不得为空（夹具上至少有 R07/R01/R04 三条）")
+
+        every = sorted(
+            {
+                proposal["proposal_key"]
+                for proposals_res in result["rounds"]
+                for proposal in proposals_res["proposals"]
+            }
+        )
+        self.assertEqual(keys, every, "各轮全部提案键都要在册（不得只记最后一轮）")
+        for proposal_key in keys:
+            self.assertIn(proposal_key, every)
+
+        # 与既有字段自洽：本轮全部提案的裁定计数之和等于提案键数
+        self.assertGreaterEqual(len(keys), sum(report["proposals_by_resolution"].values()))
 
     # ------------------------------------- 具名用例（有待决 → awaiting_human）
     def test_awaiting_human_lists_pending_keys_sorted(self):

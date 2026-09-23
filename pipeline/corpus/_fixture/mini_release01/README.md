@@ -47,7 +47,7 @@ mini_release01/
 ├── ed01/{candidate_set,reviewed_edition,reviewed_edition_package}.json
 ├── ed99/{candidate_set,reviewed_edition,reviewed_edition_package}.json
 ├── expected/snapshot_r1.json             创世轮金标（= 已验收创世引擎现算输出）
-├── expected/snapshot_r2.json             增量轮金标（场景表逐项字面量）
+├── expected/snapshot_r2.json             增量轮金标（= 增量引擎实跑产出，固定基底号）
 ├── expected/snapshot_revisions.yaml      D-03 身份计划：一个 Snapshot Artifact、每轮新 rev_
 ├── tools/build_fixture.py                确定性生成器（唯一输入路径）
 ├── tools/probe_real_m6.py                真书 m6 实跑探针（只读正本，跑在副本上）
@@ -57,17 +57,22 @@ mini_release01/
 ## 4. 两版次与场景
 
 `ed01`（`src_sanche_ed01`，版次一）是"基准轮"；`ed99`（`src_sanche_ed99`，合成保留号）
-是"第二版次/新修订轮"。第二轮要覆盖的增量语义：
+是"第二版次/新修订轮"。第二轮要覆盖的增量语义（下表右列全部是**实跑结果**，不是手写期望）：
 
-| 场景 | ed99 视图里的载体 | r2 金标里的期望 |
+| 场景 | ed99 视图里的载体 | r2 金标里的实测结果 |
 |---|---|---|
 | `attach`（保号并入，只增证据） | `as_qizheng_900001`（命题与对齐单元与 ed01 逐字相同，另添一条证据 span） | `as_qizheng_900001` 保号，`evidence[]` 增为 2 条，`source_id` 仍为首见版次 `src_sanche_ed01` |
-| `admit_new`（新主张入账） | `as_qizheng_900004`（命题 `三辰通載目錄`，新的对齐单元） | 新 `assertion`，`source_id=src_sanche_ed99`，挂到既有 `pat_qizheng_900001` |
+| 对齐（`alignment`） | `sanche-0001` 两侧都声明 `present: true`、同号同文本 | `relations[]` 恰一条 `alignment`（`from_entity_id == to_entity_id == as_qizheng_900001`，带引擎给的 `proposal_key`） |
+| `admit_new`（新主张入账） | `as_qizheng_900004`（命题 `三辰通載目錄`，对齐单元 `sanche-0004`） | 新 `assertion`，`source_id=src_sanche_ed99`，挂到既有 `pat_qizheng_900001` |
 | 别名并入 | `concept_mentions[].surface = 通載`（同一 `co_qizheng_900001`） | `concepts[0].aliases = ["通載"]`，`provenance[]` 增至 2 条 |
-| 格局关联增长 | `pat_qizheng_900001`（**携带基底已正式的 pat_ 号**，断言集含新主张） | `patterns[0].assertion_ids` 增为 3 个，`provenance[]` 增至 2 条 |
-| 未静默折叠 | `as_qizheng_900004` 与 `as_qizheng_900001` 文本近乎相同（`三辰通載目錄` vs `三辰通載`） | `relations[]` 记一条 `distinct_from`（`make_key("distinct_from", …)`），二者**不得**合并 |
+| 格局关联增长 | `pat_qizheng_900001`（**携带基底已正式的 pat_ 号**，断言集含新主张） | `patterns[0].assertion_ids` 增为 3 个，`provenance[]` 增至 2 条，`relations[]` 增一条 `attached`（`to_entity_id = null`） |
+| 不可比单元（真书形状） | ed99 声明的**无 `collation_key`** 单元 | 进 `collation.not_comparable`（`reason = missing_collation_key`），上面**不产生任何**对勘关系 |
 | 冲突组增长 | `sv_…0002`（`sch_qizheng_002`，同 `cg_…0001`） | `conflict_groups[0].member_school_view_ids` 增为 2 个，`first_layer_display = true` |
-| 版次并入 | `editions[]` 两个条目 | 按 `source_id` 升序，两条 `editions` |
+| 版次并入 | `editions[]` 两个条目 | 按 `source_id` 升序，两条 `editions`；包身份为引擎占位值（见 §8.4） |
+| 未静默折叠 | `as_qizheng_900004` 与 `as_qizheng_900001` 文本近乎相同（`三辰通載目錄` vs `三辰通載`） | 二者**都留在总账**（未合并）；引擎当前**不写** `distinct_from`（见 §8.5） |
+| 增量轮元数据 | —— | `meta{base_snapshot_revision_id, assembly_seq: 2, decision_refs: []}` |
+
+对勘四类中**只覆盖对齐**：缺文/增文/异文是引擎缺口（CHARTER §19.2，另开 I 波），本夹具**不造**。
 
 约定：**可比单元 = `(work_key, collation_key)`**（D-07），`work_key = sanche`，
 对齐键形态为 `sanche-000N`（连字符形态，**不是**任何 ID 前缀）。
@@ -86,25 +91,30 @@ export LC_ALL=en_US.UTF-8
 | `ed01/candidate_set.json` | `1b3bb28f3a34a44b80d67c928b939ac098117eca98e63000f8c7734779222c09` |
 | `ed01/reviewed_edition.json` | `8bdeefced37e138cac17ce4b8317b2f15eb0637512ceaa1748706707266da25a` |
 | `ed01/reviewed_edition_package.json` | `b0abcca36792e8765cac1a793f649a0dff96219ca808f9b4fa969047566a41f6` |
-| `ed99/candidate_set.json` | `2021edbea64da7e785c4a36a66c1b2f530a025854e2bb2e110792311e69271b6` |
+| `ed99/candidate_set.json` | `39a5ceb621a1294fae02d971b0c32dd044494e0d24ba8ad6a33ed678a6295a75` |
 | `ed99/reviewed_edition.json` | `7b905a768e8282af719dec7769bfaaeb14cc92d07268eae7c253c0e9a194ce78` |
 | `ed99/reviewed_edition_package.json` | `34ce249c736412900e26d93234b1dc34adbc1136303776a8a9e24ad4d25dfaa7` |
 | `expected/snapshot_r1.json` | `c20c5148d046452fc00f83b3d1633cd81012170fd60c41ebda35c8e3cdfc891c` |
-| `expected/snapshot_r2.json` | `66a1e2f7534de0b57cb6c7debbfabd32f593f41fd895ef4350ed14f88c8fad25` |
-| `expected/snapshot_revisions.yaml` | `c1251a486f4ed070d2076b7606c0e70f8fed6184c60e2aa2976416c5a449f9b0` |
-| `manifest.yaml` | `69f248a9f1483cafeb802fb9406e25f302f9a05706932bb56a1f733ff82f1b6c` |
+| `expected/snapshot_r2.json` | `1f6d1cbfb930a9a483abbb65039a0ab8ca70be097a7624563e374d076f0749e2` |
+| `expected/snapshot_revisions.yaml` | `58cf25f99a3fa61e883003116c68262f47a89bc533e5ad80e45e11a7a86b373a` |
+| `manifest.yaml` | `af06dd5a395cf02a9ab45f18a3013c6976ef87b1f59b87ae3035da23326aecfa` |
 
 - `snapshot_r1.json`（`knowledge_sha256 = c20c5148…c891c`）由**已验收创世引擎**
   （`pipeline.assembly.genesis.propose_genesis` + `assemble_genesis`）在 `ed01` 视图上现算，
   生成器还会先跑一遍创世独立 Gate，**Gate 不过就拒绝生成**。它逐字节等于
   `run_m7` 在写入该夹具的临时 Ledger 上封存的 Snapshot（见 `test_release_fixture_seeds_into_temp_ledger_and_runs_genesis`）。
-- `snapshot_r2.json`（`knowledge_sha256 = 66a1e2f7…8fad25`）由生成器内的**场景表逐项字面量**写出
-  （D-10 采纳 A：不得实现通用增量汇编算法），只用 `canonical_json` / `sha256` 现算哈希；
-  写入即过 `validate_snapshot_knowledge`。
+- `snapshot_r2.json`（`knowledge_sha256 = 1f6d1cbf…0749e2`）由**增量引擎实跑**产出
+  （ACT 26 一.1、CHARTER §19.3）：生成器调 `orchestrate.assemble(r1 金标, [ed99 视图], [], incremental=True,
+  base_snapshot_revision_id=<计划里的 r1 修订号>)`，取返回的 `knowledge_bytes`。基底号是固定常量，
+  故逐字节可复现（`--check` 即验这一点；Ledger 路径上基底号每轮新发，那里只比「除 `meta` 外相同」）。
 
 **重放比对**（生成器无时间戳/绝对路径/随机值）：
 
 ```bash
+# 重跑生成并与盘上金标逐字节比对（推荐；不写盘上任何文件）
+.venv/bin/python pipeline/corpus/_fixture/mini_release01/tools/build_fixture.py --check   # 期望末行 CHECK OK
+
+# 或手写重放
 .venv/bin/python pipeline/corpus/_fixture/mini_release01/tools/build_fixture.py --out /tmp/mini_release01_rebuild
 diff -r --exclude=tools --exclude=README.md --exclude=verify.sh \
   /tmp/mini_release01_rebuild pipeline/corpus/_fixture/mini_release01   # 期望无输出
@@ -154,16 +164,18 @@ run_m7(status=failed)  Gate FAIL allocation_monotonic: id_allocation[pat_qizheng
 1. **`attach` 的落点**：断言无 `provenance` 列表，故 `attach` 对断言表现为
    `evidence[]` 增长 + 保持首见 `source_id`；对 `concept`/`pattern` 表现为
    `provenance[]` 增长 + `aliases[]`/`assertion_ids` 合并。**保号**（不换 `entity_id`）。
-2. **未静默折叠**：本轮只用 `relations[].distinct_from` 记录"近同文本未合并"；
-   `Alignment` / `VariantReading` / `Addition` / `Omission` 属 `edition_collation_set`
-   （D-07、B/D 波），本波**不预置**。`relations[].resolution` 只写 `{"mode": "auto"}`，
-   `proposal_key` 属 `assembly_proposal_set`（B 波），本波不预置键格式。
+2. **对勘四类只覆盖对齐**：`Alignment` 由实跑产出；`VariantReading` / `Addition` / `Omission`
+   是引擎缺口（CHARTER §19.2），本夹具**不预置、也不期望**。`relations[].resolution` 里的
+   `proposal_key` 由引擎写入（提案键格式属 B 波），不是本夹具预置的格式。
 3. **`editions[].edition_complete` 恒 `false`**：单 Part 输入（D-17 采纳 A）。
-4. **r1 金标的包身份是占位值**：现有引擎在 `assemble_genesis` 未收到包身份参数时写入
-   `rev_00000000000000000000000000000000` / `pkg_m6_00000000000000000000000000000000`。
-   这是已验收引擎的当前行为（不是本夹具的假定）；B 波接线真实包身份后，**必须按
-   §5 命令重建 r1 并同步哈希**。r2 金标按 `manifest.editions[].ledger_constants`
-   写入真实约定常量。
+4. **r1 与 r2 的包身份都是占位值**：引擎在 `assemble_genesis` / `assemble` 未收到包身份参数时
+   写入 `rev_00000000000000000000000000000000` / `rev_00000000000000000000000000000001` /
+   `pkg_m6_00000000000000000000000000000000`。这是已验收引擎的当前行为（不是本夹具的假定）；
+   接线真实包身份后，**必须按 §5 命令重建两份金标并同步哈希**。
+
+5. **旧手写 r2 里的 `distinct_from` 不再出现**：`as_qizheng_900004`（`三辰通載目錄`）与
+   `as_qizheng_900001`（`三辰通載`）文本近乎相同，实跑下**两者都留在总账且不产关系**——
+   旧金标那条 `distinct_from` 是手写期望，不是引擎行为（差异清单见 G 波回报）。
 
 ## 9. 自校验
 
@@ -177,7 +189,7 @@ bash pipeline/corpus/_fixture/mini_release01/verify.sh; echo "exit=$?"
 | `V2 manifest_sha256` | `manifest.files[]` 每项 sha256 与实际逐字节一致 |
 | `V3 span_anchor` | 两版次全部证据链锚定 mini_ed01 金标 span（id / 偏移 / quote_sha256），锚定哈希一致，版次数 ≥ 2 |
 | `V4 views_validate` | 两版次视图过 M7 的 `validate_candidate_set` / `validate_reviewed_edition` / `validate_reviewed_package` |
-| `V5 expected_goldens` | r1 逐字节等于创世引擎现算输出且过创世 Gate；r2 过 `validate_snapshot_knowledge`；`knowledge_sha256` 与文件一致 |
+| `V5 expected_goldens` | r1 逐字节等于创世引擎现算输出且过创世 Gate；**r2 逐字节等于增量引擎实跑产出**；r2 过 `validate_snapshot_knowledge`；`collation.not_comparable` 与夹具声明一致；`knowledge_sha256` 与文件一致 |
 | `V6 no_page_assets` | 本目录无图像/PDF，不依赖任何页素材 |
 
 退出码：任一 `FAIL` → 1；无 `FAIL` 但有 `BLOCKED` → 3（`.venv` 缺失即 `BLOCKED_ENV`）；否则 0。

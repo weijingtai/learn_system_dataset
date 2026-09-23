@@ -65,6 +65,11 @@
     {
       "collation_key": "sanche-0004",
       "present": true
+    },
+    {
+      "collation_key": null,
+      "note": "unkeyed_position",
+      "present": true
     }
   ],
   "concept_mentions": [

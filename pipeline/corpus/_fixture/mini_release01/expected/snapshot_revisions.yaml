@@ -15,7 +15,7 @@ revisions:
   - src_sanche_ed01
   - src_sanche_ed99
   knowledge_file: expected/snapshot_r2.json
-  knowledge_sha256: 66a1e2f7534de0b57cb6c7debbfabd32f593f41fd895ef4350ed14f88c8fad25
+  knowledge_sha256: 1f6d1cbfb930a9a483abbb65039a0ab8ca70be097a7624563e374d076f0749e2
   prev_revision_id: rev_000000000000000000000000000000f1
   snapshot_revision_id: rev_000000000000000000000000000000f2
   supersedes_revision_id: rev_000000000000000000000000000000f1

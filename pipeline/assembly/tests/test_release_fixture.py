@@ -20,8 +20,13 @@ from pipeline.assembly import model as m7_model
 from pipeline.assembly.canonical import canonical_json
 from pipeline.assembly.genesis import assemble_genesis, propose_genesis
 from pipeline.assembly.gate import evaluate_genesis
+from pipeline.assembly.orchestrate import assemble as assemble_incremental
+from pipeline.assembly.orchestrate import knowledge_equivalent
 from pipeline.ledger import ids
 from pipeline.ledger.service import LedgerService
+
+#: 对勘四类（apply.COLLATION_KINDS 的独立副本：判据不 import 被验模块的行为常量）
+COLLATION_KINDS = ("alignment", "variant_reading", "addition", "omission")
 
 ROOT = Path(__file__).resolve().parents[3]
 FIXTURE = ROOT / "pipeline" / "corpus" / "_fixture" / "mini_release01"
@@ -101,6 +106,18 @@ def load_json(path):
 
 def load_manifest():
     return load_yaml(FIXTURE / "manifest.yaml")
+
+
+def declared_present_keys(candidate_set):
+    """视图**声明**为 present 的可比单元键（独立重算，不读引擎中间量）。"""
+    keys = set()
+    for unit in candidate_set.get("collation_units") or []:
+        if unit.get("collation_key") and unit.get("present", True):
+            keys.add(unit["collation_key"])
+    for assertion in candidate_set.get("assertions") or []:
+        if assertion.get("collation_key"):
+            keys.add(assertion["collation_key"])
+    return keys
 
 
 def iter_id_values(node, key=None):
@@ -406,6 +423,142 @@ class TestReleaseFixture(unittest.TestCase):
         gate = evaluate_genesis(candidate_set=cset, reviewed_edition=reviewed, knowledge=asm["knowledge"])
         failed = {k: v["detail"] for k, v in gate["checks"].items() if not v["passed"]}
         self.assertEqual(failed, {}, "r1 金标未通过创世独立 Gate: %s" % failed)
+
+    # ---------------------------------------------------------------- 具名用例（ACT 26 一.1）
+    def test_r2_incremental_matches_rebuilt_gold_byte_for_byte(self):
+        """r2 金标必须与增量**实跑**逐字节相同（CHARTER §19.3：逐字节比对放纯函数层）。
+
+        基底号用 `expected/snapshot_revisions.yaml` 里的固定常量（纯函数层可以钉死）；
+        Ledger 路径上基底号是每轮新发的，那里只比「除 `meta` 外相同」。
+        """
+        manifest = load_manifest()
+        ed99 = manifest["editions"][1]
+        view_dir = FIXTURE / ed99["views_dir"]
+        views = [
+            {
+                "source_id": ed99["source_id"],
+                "candidate_set": load_json(view_dir / "candidate_set.json"),
+                "reviewed_edition": load_json(view_dir / "reviewed_edition.json"),
+            }
+        ]
+        base = load_json(FIXTURE / manifest["expected"]["round1"])
+        plan = load_yaml(FIXTURE / manifest["expected"]["snapshot_revisions"])
+        base_rev = plan["revisions"][0]["snapshot_revision_id"]
+
+        golden = (FIXTURE / manifest["expected"]["round2"]).read_bytes()
+        self.assertEqual(
+            golden,
+            canonical_json(json.loads(golden.decode("utf-8"))),
+            "r2 金标必须是规范 JSON 字节（sort_keys + 紧凑分隔符 + 末尾换行）",
+        )
+
+        res = assemble_incremental(
+            base, views, [], incremental=True, base_snapshot_revision_id=base_rev
+        )
+        self.assertEqual(res["status"], "complete", "夹具 ed99 增量轮必须完成合并")
+        self.assertEqual(
+            res["result"]["knowledge_bytes"], golden, "r2 金标与增量实跑产出不是字节等价的"
+        )
+
+        # 同一输入再跑一次：逐字节相同（可复现性）
+        again = assemble_incremental(
+            base, views, [], incremental=True, base_snapshot_revision_id=base_rev
+        )
+        self.assertEqual(again["result"]["knowledge_bytes"], golden, "同一输入两次运行字节不同")
+
+        # 增量 ≡ 全量重算（CHARTER §6 完成定义）
+        full = assemble_incremental(
+            base, views, [], incremental=False, base_snapshot_revision_id=base_rev
+        )
+        self.assertTrue(
+            knowledge_equivalent(res["result"]["knowledge"], full["result"]["knowledge"]),
+            "增量汇编结果必须与全量重算逐字节相同",
+        )
+
+    # ---------------------------------------------------------------- 具名用例（ACT 26 一.2）
+    def test_not_comparable_units_have_no_collation_relation(self):
+        """对勘只许落在**两侧都声明 present** 的可比单元上（README §6）。
+
+        §19.2 把缺文/增文/异文降为 I 波缺口，本波只覆盖对齐；但「不可比单元上不得
+        出现任何对勘关系」这条仍要真验：
+          1. 无 `collation_key` 的单元必须如实计进 `collation.not_comparable`（不得静默跳过）；
+          2. 每条对勘关系两端的断言键必须落在「两侧都声明 present」的键集里；
+          3. 反向：只被一侧声明的键（ed01 的 `sanche-0002/0003`，ed99 未声明）上不得出现对勘关系。
+        """
+        manifest = load_manifest()
+        ed01, ed99 = manifest["editions"]
+        views = []
+        declared = {}
+        for edition in (ed01, ed99):
+            view_dir = FIXTURE / edition["views_dir"]
+            cset = load_json(view_dir / "candidate_set.json")
+            declared[edition["source_id"]] = declared_present_keys(cset)
+            views.append(
+                {
+                    "source_id": edition["source_id"],
+                    "candidate_set": cset,
+                    "reviewed_edition": load_json(view_dir / "reviewed_edition.json"),
+                }
+            )
+        base = load_json(FIXTURE / manifest["expected"]["round1"])
+        plan = load_yaml(FIXTURE / manifest["expected"]["snapshot_revisions"])
+
+        res = assemble_incremental(
+            base,
+            [views[1]],
+            [],
+            incremental=True,
+            base_snapshot_revision_id=plan["revisions"][0]["snapshot_revision_id"],
+        )
+        knowledge = res["result"]["knowledge"]
+        collation = res["result"]["collation"]
+
+        # 1. 不可比单元如实入册（夹具恰有 1 个「声明了位置但无 collation_key」的单元）
+        rows = collation["not_comparable"]
+        self.assertEqual(len(rows), 1, "夹具恰有 1 个无 collation_key 的可比单元: %r" % rows)
+        self.assertEqual(rows[0]["reason"], "missing_collation_key")
+        self.assertIsNone(rows[0]["collation_key"])
+
+        # 2. 对勘关系必须落在两侧都声明 present 的键上
+        both_sides = declared[ed01["source_id"]] & declared[ed99["source_id"]]
+        self.assertIn("sanche-0001", both_sides, "夹具的对齐单元必须两侧都声明")
+        relations = [
+            rel for rel in knowledge["relations"] if rel["relation_kind"] in COLLATION_KINDS
+        ]
+        self.assertEqual(
+            [rel["relation_kind"] for rel in relations],
+            ["alignment"],
+            "§19.2：本波只覆盖对齐，其余三类是 I 波缺口，不得悄悄冒出",
+        )
+        by_assertion = {item["assertion_id"]: item for item in knowledge["assertions"]}
+        for rel in relations:
+            endpoints = [
+                entity_id
+                for entity_id in (rel.get("from_entity_id"), rel.get("to_entity_id"))
+                if entity_id
+            ]
+            keys = {
+                by_assertion[entity_id].get("collation_key")
+                for entity_id in endpoints
+                if entity_id in by_assertion
+            }
+            self.assertTrue(keys, "对勘关系两端必须落在断言上: %r" % rel)
+            self.assertTrue(
+                keys <= both_sides,
+                "对勘关系 %s 落在不是「两侧都声明 present」的单元上: %r" % (rel["relation_key"], keys),
+            )
+
+        # 3. 反向：只有 ed01 声明的键上不得出现任何对勘关系（否则就是臆造缺文）
+        undeclared = declared[ed01["source_id"]] - declared[ed99["source_id"]]
+        self.assertTrue(undeclared, "夹具必须有「一侧未声明」的键，否则本判据是空转的")
+        for rel in relations:
+            endpoints = [rel.get("from_entity_id"), rel.get("to_entity_id")]
+            keys = {
+                by_assertion[entity_id].get("collation_key")
+                for entity_id in endpoints
+                if entity_id in by_assertion
+            }
+            self.assertFalse(keys & undeclared, "未声明的单元上出现了对勘关系: %r" % rel)
 
     def test_release_fixture_round2_passes_snapshot_validation(self):
         manifest = load_manifest()

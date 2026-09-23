@@ -180,16 +180,50 @@ gate = evaluate_genesis(candidate_set=cset, reviewed_edition=reviewed, knowledge
 if not gate["passed"]:
     v5_bad.append("r1 未过创世独立 Gate: %s" % [k for k, v in gate["checks"].items() if not v["passed"]])
 
-r2 = json.loads((FIX / manifest["expected"]["round2"]).read_text(encoding="utf-8"))
+r2_raw = (FIX / manifest["expected"]["round2"]).read_bytes()
+r2 = json.loads(r2_raw.decode("utf-8"))
 try:
     validate_snapshot_knowledge(r2)
 except Exception as exc:  # noqa: BLE001
     v5_bad.append("r2 未过 snapshot 校验: %s: %s" % (type(exc).__name__, exc))
 
+# r2 金标必须逐字节等于**增量引擎实跑**的产出（ACT 26 一.1；基底号用计划里的固定常量）
+from pipeline.assembly import orchestrate  # noqa: E402
+
+ed99 = manifest["editions"][1]
+ed99_view_dir = FIX / ed99["views_dir"]
+r1_rev = plan["revisions"][0]["snapshot_revision_id"]
+try:
+    run = orchestrate.assemble(
+        json.loads((FIX / manifest["expected"]["round1"]).read_text(encoding="utf-8")),
+        [
+            {
+                "source_id": ed99["source_id"],
+                "candidate_set": json.loads((ed99_view_dir / "candidate_set.json").read_text(encoding="utf-8")),
+                "reviewed_edition": json.loads((ed99_view_dir / "reviewed_edition.json").read_text(encoding="utf-8")),
+            }
+        ],
+        [],
+        incremental=True,
+        base_snapshot_revision_id=r1_rev,
+    )
+except Exception as exc:  # noqa: BLE001
+    v5_bad.append("r2 增量实跑失败: %s: %s" % (type(exc).__name__, exc))
+else:
+    if run["status"] != "complete":
+        v5_bad.append("r2 增量实跑未完成合并: status=%s" % run["status"])
+    elif run["result"]["knowledge_bytes"] != r2_raw:
+        v5_bad.append("r2 金标与增量实跑产出不是字节等价的")
+    if run["status"] == "complete" and run["result"]["knowledge"]["meta"]["base_snapshot_revision_id"] != r1_rev:
+        v5_bad.append("r2.meta.base_snapshot_revision_id 不是计划里的 r1 修订号")
+    # 不可比单元必须如实入册（夹具声明的无 collation_key 单元；不得静默跳过）
+    rows = run["result"]["collation"]["not_comparable"] if run["status"] == "complete" else []
+    if len(rows) != 1 or rows[0].get("reason") != "missing_collation_key":
+        v5_bad.append("collation.not_comparable 与夹具声明不符: %r" % (rows,))
+
 if v5_bad:
     fail("expected_goldens", "; ".join(v5_bad[:3]))
-else:
-    emit("PASS", "expected_goldens", "rounds=%d" % len(plan["revisions"]))
+else:        emit("PASS", "expected_goldens", "rounds=%d r2=实跑产出" % len(plan["revisions"]))
 
 # ---------------------------------------------------------------- V6 无页素材
 images = [

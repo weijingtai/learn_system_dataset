@@ -13,11 +13,14 @@
    不写绝对路径、不使用随机值。同一输入两次运行逐字节相同。
 2. 两版次视图的 Span 引用**锚定 mini_ed01 真实 spans**（真实 span_id、真实偏移、
    `quote_sha256 = sha256(span.text)`），不复制、不改写 mini_ed01 任何文件。
-3. 期望产物（多版本 Snapshot 金标）：
+3. 期望产物（多版本 Snapshot 金标）——**一律由实跑产出，不许手写**（CHARTER §17、§19.3）：
    - `expected/snapshot_r1.json`：由**已验收创世引擎**（`pipeline.assembly.genesis`）
      在本文件的 ed01 视图上现算，逐字节等于该引擎的 `knowledge_bytes`；
-   - `expected/snapshot_r2.json`：由本文件内的**场景表逐项字面量**写出
-     （D-10 采纳 A：不得实现通用增量汇编算法）。
+   - `expected/snapshot_r2.json`：由**增量引擎实跑**产出——
+     `orchestrate.assemble(r1 金标, [ed99 视图], [], incremental=True, base_snapshot_revision_id=r1 修订号)`
+     的 `knowledge_bytes`（基底号用 `expected/snapshot_revisions.yaml` 的固定常量，
+     故逐字节可复现；Ledger 路径上基底号每轮不同，那里只比「除 `meta` 外相同」）。
+   - `--check`：重新生成到临时目录并与盘上金标逐字节比对，不改盘上文件。
 4. `manifest.yaml` 的 `files[]` 只登记本生成器产出的文件（不含自身、README.md、
    verify.sh），避免 mini_ed01 README §6 第 2 条记录的哈希环。
 5. `ed99` 与 `9000NN` 是**约定标识**，不是新 ID 前缀（不进
@@ -32,6 +35,8 @@ from pathlib import Path
 
 import yaml
 
+import tempfile  # noqa: E402
+
 REPO_ROOT = Path(__file__).resolve().parents[5]
 if not (REPO_ROOT / "openspec").is_dir():  # pragma: no cover - 防呆
     raise SystemExit("无法定位仓库根目录（自 %s 上溯 5 层）" % Path(__file__).resolve())
@@ -43,7 +48,8 @@ MINI_ED01_SPANS = REPO_ROOT / "pipeline" / "corpus" / "_fixture" / "mini_ed01" /
 MINI_ED01_SPANS_SHA256 = "ec6d77b90aa1408d040465babc28a81f59aadf6d6edd9ba8db66ff8ead0b44ef"
 
 sys.path.insert(0, str(REPO_ROOT))
-from pipeline.assembly.canonical import canonical_json, content_sha256, make_key, nfc_key, sha256_hex  # noqa: E402
+from pipeline.assembly import orchestrate  # noqa: E402
+from pipeline.assembly.canonical import sha256_hex  # noqa: E402
 from pipeline.assembly.genesis import assemble_genesis, propose_genesis  # noqa: E402
 from pipeline.assembly.gate import evaluate_genesis  # noqa: E402
 from pipeline.ledger import ids  # noqa: E402
@@ -404,6 +410,10 @@ def scenario_ed99(spans: dict) -> dict:
         "collation_units": [
             {"collation_key": CK_TRANSCRIPT, "present": True},
             {"collation_key": CK_TITLE_INDEX, "present": True},
+            # 声明了一个**位置但无 collation_key** 的单元：真书 26 条断言全部无键
+            # （CHARTER §8.2），它必须如实进 `collation.not_comparable`、且上面不得
+            # 出现任何对勘关系。声明名 `sanche-unkeyed` 只作可读标注，不进任何配对。
+            {"collation_key": None, "present": True, "note": "unkeyed_position"},
         ],
         "assertions": [a1, a_new],
         "patterns": [pattern],
@@ -416,184 +426,6 @@ def scenario_ed99(spans: dict) -> dict:
         ],
         "evidence_link_targets": [(A1, spans[SPAN_TITLE]), (A_NEW, spans[SPAN_TITLE])],
         "decision_suffix": "e",
-    }
-
-
-def scenario_r2(spans: dict, ed01_payload: dict, ed99_payload: dict) -> dict:
-    """增量轮（第二轮）金标：逐项字面量（D-10 采纳 A，不实现通用算法）。"""
-    ed01_cset_pattern = ed01_payload["patterns"][0]
-    ed99_cset_pattern = ed99_payload["patterns"][0]
-
-    def assertion(assertion_id, subject, source_id, proposition, collation_key, spans_used, sv_ids):
-        prop_nfc = nfc_key(proposition)
-        # Snapshot 的 evidence 形状与创世引擎一致：只保留 source_span_id / 偏移 / quote_sha256
-        evs = sorted(
-            (
-                {
-                    "source_span_id": spans[span_id]["span_id"],
-                    "start_offset": spans[span_id]["start_offset"],
-                    "end_offset": spans[span_id]["end_offset"],
-                    "quote_sha256": sha256_hex(spans[span_id]["text"].encode("utf-8")),
-                }
-                for span_id in spans_used
-            ),
-            key=lambda x: (x["source_span_id"], x["start_offset"], x["end_offset"]),
-        )
-        return {
-            "assertion_id": assertion_id,
-            "subject_entity_id": subject,
-            "source_id": source_id,
-            "proposition": prop_nfc,
-            "collation_key": collation_key,
-            "text_sha256": sha256_hex(prop_nfc.encode("utf-8")),
-            "source_span_ids": sorted({ev["source_span_id"] for ev in evs}),
-            "evidence": evs,
-            "school_view_ids": sv_ids,
-            "content_status": "machine_extracted",
-        }
-
-    editions = [
-        {
-            "source_id": ED01["source_id"],
-            "work_key": WORK_KEY,
-            "reviewed_edition_package_revision_id": ED01["ledger_constants"]["reviewed_edition_package_revision_id"],
-            "reviewed_edition_revision_id": ED01["ledger_constants"]["reviewed_edition_revision_id"],
-            "stage_package_id": ED01["ledger_constants"]["m6_stage_package_id"],
-            "edition_part_artifact_ids": [ED01["edition_part_artifact_id"]],
-            "edition_complete": False,
-            "evidence_level": "glyphbox_level",
-            "corpus_spans_revision_id": CORPUS_SPANS_REVISION_ID,
-        },
-        {
-            "source_id": ED99["source_id"],
-            "work_key": WORK_KEY,
-            "reviewed_edition_package_revision_id": ED99["ledger_constants"]["reviewed_edition_package_revision_id"],
-            "reviewed_edition_revision_id": ED99["ledger_constants"]["reviewed_edition_revision_id"],
-            "stage_package_id": ED99["ledger_constants"]["m6_stage_package_id"],
-            "edition_part_artifact_ids": [ED99["edition_part_artifact_id"]],
-            "edition_complete": False,
-            "evidence_level": "glyphbox_level",
-            "corpus_spans_revision_id": CORPUS_SPANS_REVISION_ID,
-        },
-    ]
-
-    concepts = [
-        {
-            "concept_id": CO,
-            "name": "三辰",
-            "aliases": ["通載"],
-            "provenance": [
-                {
-                    "source_id": ED01["source_id"],
-                    "content_sha256": content_sha256({"name": "三辰", "aliases": []}),
-                    "content_status": "machine_extracted",
-                },
-                {
-                    "source_id": ED99["source_id"],
-                    "content_sha256": content_sha256({"name": "通載", "aliases": []}),
-                    "content_status": "machine_extracted",
-                },
-            ],
-        }
-    ]
-
-    patterns = [
-        {
-            "pattern_id": PAT,
-            "concept_id": None,
-            "name": "三辰通載貴格",
-            "aliases": [],
-            "rules": [],
-            "assertion_ids": sorted([A1, A3, A_NEW]),
-            "school_view_ids": [],
-            "recognition_rule_status": "not_captured",
-            "provenance": [
-                {
-                    "source_id": ED01["source_id"],
-                    "content_sha256": content_sha256(ed01_cset_pattern),
-                    "content_status": "machine_extracted",
-                },
-                {
-                    "source_id": ED99["source_id"],
-                    "content_sha256": content_sha256(ed99_cset_pattern),
-                    "content_status": "machine_extracted",
-                },
-            ],
-        }
-    ]
-
-    assertions = [
-        assertion(A1, PAT, ED01["source_id"], spans[SPAN_SURNAME]["text"], CK_TRANSCRIPT,
-                  [SPAN_SURNAME, SPAN_TITLE], [SV_1]),
-        assertion(A2, None, ED01["source_id"], spans[SPAN_AUTHOR]["text"], CK_AUTHOR,
-                  [SPAN_AUTHOR], []),
-        assertion(A3, PAT, ED01["source_id"], spans[SPAN_PATTERN]["text"], CK_PATTERN,
-                  [SPAN_PATTERN], []),
-        assertion(A_NEW, PAT, ED99["source_id"], spans[SPAN_TITLE]["text"], CK_TITLE_INDEX,
-                  [SPAN_TITLE], [SV_2]),
-    ]
-    assertions.sort(key=lambda a: a["assertion_id"])
-
-    school_views = [
-        {
-            "school_view_id": SV_1,
-            "school_id": SCH_CLASSIC,
-            "subject_entity_id": A1,
-            "conflict_group_id": CG_1,
-            "source_conflict_group_id": CG_1,
-            "claim_refs": [A1],
-            "changes_current_judgment": True,
-            "content_status": "machine_extracted",
-        },
-        {
-            "school_view_id": SV_2,
-            "school_id": SCH_TIANGONG,
-            "subject_entity_id": A_NEW,
-            "conflict_group_id": CG_1,
-            "source_conflict_group_id": CG_1,
-            "claim_refs": [A_NEW],
-            "changes_current_judgment": True,
-            "content_status": "machine_extracted",
-        },
-    ]
-    school_views.sort(key=lambda s: s["school_view_id"])
-
-    conflict_groups = [
-        {
-            "conflict_group_id": CG_1,
-            "member_school_view_ids": [SV_1, SV_2],
-            "first_layer_display": True,
-            "resolutions": [],
-        }
-    ]
-
-    relations = [
-        {
-            "relation_key": make_key("distinct_from", [A1, A_NEW]),
-            "from_entity_id": A_NEW,
-            "to_entity_id": A1,
-            "relation_kind": "distinct_from",
-            "detail": {
-                "reason": "near_identical_text_not_folded",
-                "collation_keys": [CK_TRANSCRIPT, CK_TITLE_INDEX],
-            },
-            "resolution": {"mode": "auto"},
-        }
-    ]
-
-    return {
-        "technique_id": TECHNIQUE_ID,
-        "id_allocation": {"pat_%s" % TECHNIQUE_ID: int(PAT.split("_")[-1])},
-        "id_range": {"pat_%s" % TECHNIQUE_ID: list(SYNTHETIC_OBJECT_RANGE)},
-        "allocated_pattern_ids": [],
-        "retired_entity_ids": [],
-        "editions": editions,
-        "concepts": concepts,
-        "patterns": patterns,
-        "assertions": assertions,
-        "school_views": school_views,
-        "conflict_groups": conflict_groups,
-        "relations": relations,
     }
 
 
@@ -630,8 +462,18 @@ def write_text(path: Path, text: str) -> None:
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(prog="build_fixture")
     parser.add_argument("--out", default=str(FIXTURE_DIR), help="输出目录（默认原地）")
+    parser.add_argument(
+        "--check",
+        action="store_true",
+        help="重跑生成到临时目录并与盘上金标逐字节比对（不写盘上任何文件）",
+    )
     args = parser.parse_args(argv)
-    out = Path(args.out).resolve()
+    check_root = None
+    if args.check:
+        check_root = Path(tempfile.mkdtemp(prefix="mini_release01_check_"))
+        out = check_root
+    else:
+        out = Path(args.out).resolve()
 
     spans_raw = MINI_ED01_SPANS.read_bytes()
     actual_sha = hashlib.sha256(spans_raw).hexdigest()
@@ -668,11 +510,31 @@ def main(argv=None) -> int:
         return 1
     r1_bytes = asm["knowledge_bytes"]
 
-    # ---- r2：场景表逐项字面量 + 规范化哈希
-    r2_knowledge = scenario_r2(spans, payload_ed01, payload_ed99)
-    from pipeline.assembly.model import validate_snapshot_knowledge
-    validate_snapshot_knowledge(r2_knowledge)
-    r2_bytes = canonical_json(r2_knowledge)
+    # ---- r2：r1 → ed99 增量**实跑**（金标一律由实跑产出；CHARTER §19.3 的固定基底号口径）
+    r2_run = orchestrate.assemble(
+        asm["knowledge"],
+        [
+            {
+                "source_id": ED99["source_id"],
+                "candidate_set": ed99_cset,
+                "reviewed_edition": ed99_reviewed,
+            }
+        ],
+        [],
+        incremental=True,
+        base_snapshot_revision_id=SNAPSHOT_REVISION_R1,
+    )
+    if r2_run["status"] != "complete":
+        print(
+            "FAIL 增量实跑未完成合并: status=%s pending=%r"
+            % (r2_run["status"], r2_run.get("pending"))
+        )
+        return 1
+    r2_knowledge = r2_run["result"]["knowledge"]
+    r2_bytes = r2_run["result"]["knowledge_bytes"]
+    if r2_knowledge.get("meta", {}).get("base_snapshot_revision_id") != SNAPSHOT_REVISION_R1:
+        print("FAIL 增量实跑的 meta.base_snapshot_revision_id 不是固定的 r1 修订号")
+        return 1
 
     revisions_plan = {
         "technique_id": TECHNIQUE_ID,
@@ -808,6 +670,30 @@ def main(argv=None) -> int:
         print("  %s  %s" % (item["sha256"], item["path"]))
     print("  r1 knowledge_sha256=%s" % revisions_plan["revisions"][0]["knowledge_sha256"])
     print("  r2 knowledge_sha256=%s" % revisions_plan["revisions"][1]["knowledge_sha256"])
+    if check_root is not None:
+        return _compare_with_fixture(check_root)
+    return 0
+
+
+def _compare_with_fixture(tmp: Path) -> int:
+    """把重跑产物与盘上金标逐字节比对（`--check`；只读盘上文件，不写任何文件）。"""
+    regenerated = sorted(
+        path.relative_to(tmp).as_posix() for path in tmp.rglob("*") if path.is_file()
+    )
+    bad = []
+    for name in regenerated:
+        on_disk = FIXTURE_DIR / name
+        if not on_disk.is_file():
+            bad.append("%s 盘上缺失" % name)
+        elif on_disk.read_bytes() != (tmp / name).read_bytes():
+            bad.append("%s 与盘上金标逐字节不同" % name)
+    print("CHECK files=%d mismatched=%d" % (len(regenerated), len(bad)))
+    for item in bad[:5]:
+        print("  FAIL %s" % item)
+    if bad:
+        print("CHECK FAILED: 重跑生成与盘上金标不一致（先跑不带 --check 的生成）")
+        return 1
+    print("CHECK OK: 重跑生成与盘上金标逐字节一致")
     return 0
 
 
