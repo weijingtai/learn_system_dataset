@@ -631,3 +631,55 @@ D 波写了 `orchestrate.carry_forward_proposals`（D-14 替换继承：视图�
 ### 21.3 顺序不变
 
 H 波继续（接线 → F7 → 拆 F1 护栏 → F6 → 造 ed01r2 与 r3 金标 → R15 全栈用例），然后 G2。
+
+---
+
+## 22. H 波第二次停手：两条裁定（2026-09-22）
+
+第二会话把 H 波推到了只差一步：用例 208 → 213，F1/F5/F6 在探针上不再复现、F2/F3/F4 仍然复现（没越界），
+r3 金标重跑逐字节一致，真书第二轮没被改坏。**唯一的红是 R15 全栈用例**：
+同书返工那一轮在纯函数层成功、与 r3 金标逐字节相同，到 Ledger 层却被 Gate 的 `decisions_consistent` 拒了。
+执行器没有自己去改 Gate，停手上报——按 ACT 28 第八节的禁令，这是对的。
+
+### 22.1 A：`decisions_consistent` 看不见身份变更记录 —— 授权修 Gate
+
+根因：§21④ 把合并的落点定在 IdentityDelta、不写 `merged_into` 关系；
+可 E 波的 `_asm_check_decisions_consistent` 只在 `relations` 与 `conflict_groups` 里找「决定的落点」，
+签名里根本没有 identity_delta。所以**任何合并、拆分决定都恒不能通过**。
+这是**第六次**「判据写在裁定之前、裁定改了判据没跟上」——这次的裁定是主 Agent 自己下的。
+
+这**不是放宽**：检查强度两侧都保留，只是把裁定指定的载体补进来。授权改 `gate.py`，口径写严：
+1. 决定的落点新增 IdentityDelta：一条 `merge_entities` 决定，**必须**恰有一条 `change_type=merged`、
+   `reason_ref.proposal_key` 等于该决定提案键的 delta；`split` 决定对应 `change_type=split`。选项与类型对不上 → FAIL。
+2. 反向：IdentityDelta 里每条 `merged` / `split` 都必须对应一条决定；没有决定就出现 → FAIL。
+   `retired` 来自 R11 自动提案，不要求决定（沿用 `identity_delta_contract` 已验的提案键）。
+3. 新增篡改用例：`test_tamper_merge_decision_without_delta`、`test_tamper_merged_delta_without_decision`、
+   `test_tamper_delta_change_type_mismatches_decision`。
+
+### 22.2 B：基底关系被静默删掉 —— 分三种情况
+
+执行器查明：`_referenced_by` 只看本轮已写入的关系，看不见基底里的关系；最后重建关系表时，
+指向退役号的基底关系被**静默删掉**。它这次删的是被合并的两个 Pattern 之间的 `distinct_from`，删对了；
+但同一条路径也会静默删掉第三方对象的引用，那就是断链。
+
+裁定（三个选项都不完全对）：
+1. **合并双方彼此之间的关系**（两端都在 `{from, to}` 内）：随合并作废，删除，**记进 report**。
+2. **第三方活对象指向将退役号的关系**（基底 ∪ 本轮）：按 §21④ **fail-closed 停手**，不自动改指。
+   `_referenced_by` 改为同时看基底关系。
+3. **R11 退役断言时指向它的关系**：随退役作废，删除，**记进 report**。
+   （这里不停手：删掉的断言带着关系是返工的常态，停手等于返工永远跑不通。
+   规格 §16:732 对 retired 本来就是「转为孤儿并记录」。）
+- `apply` 的 report 新增 `dropped_relations`：`[{relation_key, reason: "merge_internal" | "endpoint_retired"}]`，按 `relation_key` 升序；
+  `orchestrate` 的 report 透传这个字段。**静默删除一律不许。**
+- 本 fixture 的两个合并目标之间只有那条 `distinct_from`，归第 1 种；`pat_qizheng_900001` 是存活方，
+  它身上的 `attached` 不受影响——**fixture 不必重选**。若按新口径实跑发现须重选，停手上报。
+- 新增用例：`test_merge_internal_relation_dropped_and_reported`、`test_third_party_reference_to_merged_id_refuses`、
+  `test_retire_drops_relations_and_reports`。
+
+### 22.3 其余
+
+- Red 证据：实现已在上一会话落盘，无法再先红后绿，执行器改用整仓副本加回护栏来重现转红——**认可**。
+- `_id_allocation` 在「最大号被退役」时的两难：记入已知缺口（真书当前无 Pattern 获批，不触发）。
+- r2 金标因 ed99 加了两个 Pattern 而变了四个字段，执行器已逐项说明——**认可**。
+- 授权范围：`gate.py`（仅 `_asm_check_decisions_consistent` 及其在 `evaluate_assembly` 里的调用）、
+  `apply.py`（`_referenced_by` 与 report 字段）、`orchestrate.py`（透传 report 字段）。其余不变。

@@ -7,7 +7,7 @@ decisions: [CHARTER §19（全文）, R15]
 scope:
   write:
     - pipeline/assembly/apply.py                        # 本 ACT 明文授权修改，范围见第一节
-    - pipeline/assembly/gate.py                         # 只许改 identity_delta_contract 回到草稿口径
+    - pipeline/assembly/gate.py                         # identity_delta_contract 回到草稿口径；§22 追加：decisions_consistent 计入 IdentityDelta
     - pipeline/assembly/orchestrate.py                  # CHARTER §21 ①追加授权：只限接线 carry_forward_proposals 与 report 字段
     - pipeline/corpus/_fixture/mini_release01/          # 只许经 tools/build_fixture.py 生成；金标实跑产出
     - pipeline/assembly/tests/
@@ -38,6 +38,13 @@ contract: |
     ③ 授权改写 test_apply.py:654 为两侧用例；apply.py:19-23 说明同步
     ④ 合并改为两个 Pattern 经 R03d 合并；较小号存活；退役号被引用即 fail-closed
     ⑤ 删断言时同时删该单元的 collation_units 声明
+  ⚠ 第二次追加裁定（CHARTER §22）：
+    A 授权改 gate._asm_check_decisions_consistent：决定落点计入 IdentityDelta（类型须对应，反向也查）
+    B 基底关系：合并双方之间 → 删除并记 report；第三方引用退役号 → fail-closed；R11 退役断言的关系 → 删除并记 report
+      apply/orchestrate 的 report 新增 dropped_relations；静默删除一律不许
+    新增用例：test_tamper_merge_decision_without_delta、test_tamper_merged_delta_without_decision、
+              test_tamper_delta_change_type_mismatches_decision、test_merge_internal_relation_dropped_and_reported、
+              test_third_party_reference_to_merged_id_refuses、test_retire_drops_relations_and_reports
     新增具名用例：test_carry_forward_wired_into_assemble、test_decided_proposal_with_decision_is_applied、
                   test_decided_proposal_without_decision_refused、test_merge_keeps_smaller_id
   一、F1 打通同书返工（apply.py）
