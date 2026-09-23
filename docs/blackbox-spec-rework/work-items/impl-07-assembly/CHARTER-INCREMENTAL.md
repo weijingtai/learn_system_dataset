@@ -683,3 +683,34 @@ r3 金标重跑逐字节一致，真书第二轮没被改坏。**唯一的红是
 - r2 金标因 ed99 加了两个 Pattern 而变了四个字段，执行器已逐项说明——**认可**。
 - 授权范围：`gate.py`（仅 `_asm_check_decisions_consistent` 及其在 `evaluate_assembly` 里的调用）、
   `apply.py`（`_referenced_by` 与 report 字段）、`orchestrate.py`（透传 report 字段）。其余不变。
+
+---
+
+## 23. H 波验收（2026-09-22）
+
+ACT 28 提交 `79bcbe7`（28 个文件）。主 Agent 把该提交单独导出复验（工作树上有 G2 的进行中改动）：
+- `assembly` 200 → **220 OK**，无新增 skip
+- **R15 全栈用例 `test_rework_ed01r2_end_to_end_through_run_m7` 通过**：临时 Ledger 上 r1 → ed99 → ed01r2 三轮 `run_m7`，
+  不手工构造任何提案。**「同一本书改一版」第一次在真实路径上走通。**
+- `probe_g_blockers.py`：F1/F5/F6 不再复现，F2/F3/F4 仍复现——修了该修的，没碰 I 波的
+- fixture 重跑生成与金标逐字节一致；`verify.sh` 通过；只读模块（incremental/matcher/genesis/canonical/inputs）一行未动
+- §21.1 的新验收动作：`carry_forward_proposals` 在非测试代码里有调用点（`orchestrate.py:608`）。
+  主 Agent 自做探针拆掉这处接线 → **7 条用例转红，含 R15**。这条接线现在由真实路径用例守着。
+
+### 23.1 两处授权外改动 —— 认可
+
+1. `step.py` 残留的 `rebuilt == affected` 等式：§13.2 早已明令删除，D 波漏改这份副本。执行器主动上报，认可。
+2. `gate._asm_closure` 补上规格替换条的另半句（被删除的对象本身入闭包）：**执行器起初没上报**，
+   主 Agent 从 diff 里发现后要求补报。补报说明是按规格独立写的、没调用被验模块；
+   去掉该规则 → `test_rework_round_all_checks_pass` 转红。内容正确，认可。
+   这是第七次同类问题：**Gate 的独立实现漏了规格的一半**，此前没有返工场景，一直没暴露。
+
+**给执行器的纪律补充**：改动 Gate（独立检查）的任何计算口径，无论多"显然正确"，都必须在回报里单列上报。
+
+### 23.2 已知缺口（汇总）
+
+- 多版次对勘：缺文 / 增文 / 异文（§19 F2/F3/F4）→ I 波
+- Concept 合并（§21④，规则表不可达）
+- 同 source 不同 `edition_part_ids` 的扩展（仍拒收并写明）
+- `_id_allocation` 在最大号被退役时的两难（§22.3）
+- 退役号被第三方引用时 fail-closed，不自动改指
