@@ -89,7 +89,7 @@ def _canonical_bytes(obj):
 
 def _read_revision_bytes(service, revision_id):
     revision = service.get_revision(revision_id)
-    return service.objects.get(revision["sha256"])
+    return service.read_object(revision["sha256"])
 
 
 def _read_revision_json(service, revision_id):
@@ -159,16 +159,14 @@ def _find_m8_package(service, edition_part_id):
         step_run_id = checkpoint["content"]["step_run_id"]
     if step_run_id is None:
         return None, None, None
-    rows = service.store.conn.execute(
-        "SELECT r.artifact_revision_id FROM artifact_revisions r "
-        "JOIN artifacts a ON a.artifact_id = r.artifact_id "
-        "WHERE a.artifact_type='stage_package' AND r.step_run_id=? AND r.status='sealed'",
-        (step_run_id,),
-    ).fetchall()
+    rows = service.list_step_run_revisions(
+        step_run_id, artifact_type="stage_package", status="sealed"
+    )
     if not rows:
         return step_run_id, None, None
-    package = _read_revision_json(service, rows[0][0])
-    return step_run_id, rows[0][0], package
+    package_revision_id = rows[0]["artifact_revision_id"]
+    package = _read_revision_json(service, package_revision_id)
+    return step_run_id, package_revision_id, package
 
 
 def _discover_inputs(service, edition_part_id, package):
@@ -226,15 +224,12 @@ def _m3_gate_profile(service, edition_part_id):
             step_run_id = checkpoint["content"]["step_run_id"]
     if step_run_id is None:
         return None
-    rows = service.store.conn.execute(
-        "SELECT r.artifact_revision_id FROM artifact_revisions r "
-        "JOIN artifacts a ON a.artifact_id = r.artifact_id "
-        "WHERE a.artifact_type='stage_package' AND r.step_run_id=? AND r.status='sealed'",
-        (step_run_id,),
-    ).fetchall()
+    rows = service.list_step_run_revisions(
+        step_run_id, artifact_type="stage_package", status="sealed"
+    )
     if not rows:
         return None
-    package = _read_revision_json(service, rows[0][0])
+    package = _read_revision_json(service, rows[0]["artifact_revision_id"])
     return (package.get("payload") or {}).get("gate_profile")
 
 
@@ -573,10 +568,7 @@ def _check_fail_closed_levels(context):
             )
             result = run_m8(service, edition_part_id, consumption_level=level)
             counts = {
-                artifact_type: service.store.conn.execute(
-                    "SELECT COUNT(*) FROM artifacts WHERE artifact_type=?",
-                    (artifact_type,),
-                ).fetchone()[0]
+                artifact_type: service.count_artifacts(artifact_type)
                 for artifact_type in _SUBPACK_TYPES
             }
             ok = (

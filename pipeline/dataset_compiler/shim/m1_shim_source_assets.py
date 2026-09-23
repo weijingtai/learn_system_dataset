@@ -40,14 +40,9 @@ class SourceAssetMissing(DatasetRefused):
 
 
 def _artifact_type(service, artifact_revision_id):
-    """经只读 SELECT 取修订的 artifact_type。"""
-    row = service.store.conn.execute(
-        "SELECT a.artifact_type FROM artifacts a "
-        "JOIN artifact_revisions r ON r.artifact_id = a.artifact_id "
-        "WHERE r.artifact_revision_id=?",
-        (artifact_revision_id,),
-    ).fetchone()
-    return None if row is None else row[0]
+    """经 LedgerPort describe_revision 取修订的 artifact_type。"""
+    info = service.describe_revision(artifact_revision_id)
+    return None if info is None else info["artifact_type"]
 
 
 def _resolve_manifest(service, edition_part_id):
@@ -257,7 +252,7 @@ def register_source_assets(service, edition_part_id, asset_root):
         raise DatasetRefused("SourceAsset 已登记: %s" % registered_task)
 
     # P3：清单字节与解析
-    manifest_bytes = service.objects.get(manifest_revision["sha256"])
+    manifest_bytes = service.read_object(manifest_revision["sha256"])
     if hashlib.sha256(manifest_bytes).hexdigest() != manifest_revision["sha256"]:
         raise HashMismatch("清单对象哈希不一致（SRC_003）", code="SRC_003")
     manifest = yaml.safe_load(manifest_bytes.decode("utf-8"))

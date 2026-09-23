@@ -2,9 +2,8 @@
 
 沿 M3 StagePackage 的 ``manifest.input_artifacts`` 反查 M1 清单与 M2 页修订，
 页图来自薄 M1 登记进 Ledger 的 ``source_asset_page`` 修订（裁定 §9.2-32：以接替后
-的 m1 运行为准）。只调用 ``LedgerReadMixin`` 公开方法；查 artifact_type 与
-stage_package 修订允许经 ``reader.store.conn`` 只读 SELECT（先例 impl-02
-``act/03.yaml:17``）。本函数不做任何写入。
+的 m1 运行为准）。只调用 ``LedgerPort``（``LedgerReadMixin``）公开方法。
+本函数不做任何写入。
 """
 
 import json
@@ -26,14 +25,9 @@ M2_INPUT_ARTIFACT_TYPES = (
 
 
 def _artifact_type(reader, artifact_revision_id):
-    """经只读 SELECT 取修订的 artifact_type。"""
-    row = reader.store.conn.execute(
-        "SELECT a.artifact_type FROM artifacts a "
-        "JOIN artifact_revisions r ON r.artifact_id = a.artifact_id "
-        "WHERE r.artifact_revision_id=?",
-        (artifact_revision_id,),
-    ).fetchone()
-    return None if row is None else row[0]
+    """经 LedgerPort describe_revision 取修订的 artifact_type。"""
+    info = reader.describe_revision(artifact_revision_id)
+    return None if info is None else info["artifact_type"]
 
 
 def _sealed_revision(reader, artifact_revision_id, label):
@@ -50,7 +44,7 @@ def _sealed_revision(reader, artifact_revision_id, label):
 
 def _read_content(reader, revision):
     """读取修订内容对象：优先 JSON，回退 YAML（fixture_ingest 灌入的包为 YAML）。"""
-    raw = reader.objects.get(revision["sha256"]).decode("utf-8")
+    raw = reader.read_object(revision["sha256"]).decode("utf-8")
     try:
         return json.loads(raw)
     except ValueError:
@@ -78,17 +72,14 @@ def _resolve_m3(reader, edition_part_id):
         raise DatasetRefused("多个 M3 成功运行: %s" % ",".join(succeeded))
     m3_step_run_id = succeeded[0]
 
-    rows = reader.store.conn.execute(
-        "SELECT r.artifact_revision_id FROM artifact_revisions r "
-        "JOIN artifacts a ON a.artifact_id = r.artifact_id "
-        "WHERE a.artifact_type='stage_package' AND r.step_run_id=? AND r.status='sealed'",
-        (m3_step_run_id,),
-    ).fetchall()
+    rows = reader.list_step_run_revisions(
+        m3_step_run_id, artifact_type="stage_package", status="sealed"
+    )
     if len(rows) != 1:
         raise DatasetRefused(
             "m3 StepRun 名下 sealed StagePackage 数量异常: %d" % len(rows), code="REF_001"
         )
-    m3_package_revision_id = rows[0][0]
+    m3_package_revision_id = rows[0]["artifact_revision_id"]
     revision = _sealed_revision(reader, m3_package_revision_id, "m3 stage_package")
     package = _read_content(reader, revision)
     if package.get("stage") != "m3" or (package.get("validation") or {}).get("passed") is not True:
@@ -141,26 +132,20 @@ def _resolve_electronic_source_manifest(reader, package):
             code="REF_001",
         )
     raw_text_revision_id = raw_text_revision_ids[0]
-    row = reader.store.conn.execute(
-        "SELECT step_run_id FROM artifact_revisions WHERE artifact_revision_id=?",
-        (raw_text_revision_id,),
-    ).fetchone()
-    if row is None or not row[0]:
+    raw_text_info = reader.describe_revision(raw_text_revision_id)
+    if raw_text_info is None or not raw_text_info["step_run_id"]:
         raise DatasetRefused(
             "raw_text 修订无 producer StepRun: %s" % raw_text_revision_id, code="REF_001"
         )
-    rows = reader.store.conn.execute(
-        "SELECT r.artifact_revision_id FROM artifact_revisions r "
-        "JOIN artifacts a ON a.artifact_id = r.artifact_id "
-        "WHERE a.artifact_type='source_manifest' AND r.step_run_id=? AND r.status='sealed'",
-        (row[0],),
-    ).fetchall()
+    rows = reader.list_step_run_revisions(
+        raw_text_info["step_run_id"], artifact_type="source_manifest", status="sealed"
+    )
     if len(rows) != 1:
         raise DatasetRefused(
             "raw_text producer StepRun 名下 sealed source_manifest 数量异常: %d" % len(rows),
             code="REF_001",
         )
-    return rows[0][0]
+    return rows[0]["artifact_revision_id"]
 
 
 def _single_input_reference(package, artifact_type):
@@ -320,17 +305,16 @@ def _resolve_m7(reader, edition_part_id):
     step_run_id = _m7_step_run_id(reader, edition_part_id)
     if step_run_id is None:
         return None, None
-    rows = reader.store.conn.execute(
-        "SELECT r.artifact_revision_id FROM artifact_revisions r "
-        "JOIN artifacts a ON a.artifact_id = r.artifact_id "
-        "WHERE a.artifact_type='stage_package' AND r.step_run_id=? AND r.status='sealed'",
-        (step_run_id,),
-    ).fetchall()
+    rows = reader.list_step_run_revisions(
+        step_run_id, artifact_type="stage_package", status="sealed"
+    )
     if len(rows) != 1:
         raise DatasetRefused(
             "m7 StepRun 名下 sealed StagePackage 数量异常: %d" % len(rows), code="REF_001"
         )
-    package = _read_content(reader, _sealed_revision(reader, rows[0][0], "m7 stage_package"))
+    package = _read_content(
+        reader, _sealed_revision(reader, rows[0]["artifact_revision_id"], "m7 stage_package")
+    )
     output_artifacts = (package.get("manifest") or {}).get("output_artifacts") or []
     snapshot_revision_id = None
     for reference in output_artifacts:
@@ -433,7 +417,7 @@ def resolve_m8_inputs(reader, edition_part_id):
 
     # R7
     manifest_revision = _sealed_revision(reader, manifest_revision_id, "source_manifest")
-    manifest = yaml.safe_load(reader.objects.get(manifest_revision["sha256"]).decode("utf-8"))
+    manifest = yaml.safe_load(reader.read_object(manifest_revision["sha256"]).decode("utf-8"))
 
     resolved = {
         "route": route,
