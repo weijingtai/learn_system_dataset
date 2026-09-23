@@ -940,3 +940,14 @@ not_comparable（理由 `multiple_assertions_per_unit`），不出任何关系�
 - `mode=human` 的 alignment / variant_reading（R07b 接受）：两端 subject 必然不同或为 null，**不验 subject**，
   只验文本（alignment 同 text_sha256、variant 异）、方向、端点与完整性。
 - 对勘 distinct_from 必须 `mode=human`。所有 `mode=human` 的关系必须有对应决定（由 `decisions_consistent` 验）。
+
+**Q11 not_comparable 列表列哪些单元 —— 采纳轨道 2 的五条，定死如下。**
+1. 无键的两种都计，理由都是 `missing_collation_key`：每条**无键断言**一项（assertion_id 给号）；
+   视图 collation_units 里每条 **collation_key=null 的声明**一项（assertion_id=null）。
+2. 只列**视图一侧出现的**单元（视图声明的键 ∪ 视图断言的键 ∪ 无键项）；基底声明了、视图既没声明也没断言的键不列。
+3. 有键单元的理由按优先级取第一个命中的：`view_undeclared` → `same_source` → `base_undeclared`
+   → `multiple_assertions_per_unit` → `declared_without_assertion`。
+4. 两侧都声明 present:false → 不是不可比，不列、零关系；视图 present:false 而基底未声明 → 列，`base_undeclared`。
+5. 多个基底版次时：对**至少一个**基底版次可比 → 不列；对所有都不可比 → 列一项，理由取各版次理由中优先级最高的。
+- fixture 口径：ed99 **保留**那条 collation_key=null 的声明、**不含**无键断言 → §25.9 下列表恰 2 项：
+  `sanche-0004`（base_undeclared）与 null 声明（missing_collation_key）。真书第二轮：26 条无键断言 → 26 项。
