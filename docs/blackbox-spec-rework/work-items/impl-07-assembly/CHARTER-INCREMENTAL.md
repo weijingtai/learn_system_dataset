@@ -816,3 +816,21 @@ R07 / R08 / R07b / R09 提案一律带 `targets = [from, to]`（按上表，缺�
   期望最终 `pass=17 fail=0 blocked=0`，`run_all.sh 20.5` 随之 PASS。
 - R15：临时 Ledger 上 r1 → ed99 `run_m7`，四类关系全部产出且增量 Gate 全过；r1 → ed99 → ed01r2 仍然通过。
 - 真书第二轮（`collation_key` 全为 null）必须仍然通过：全部 `not_comparable`，零对勘关系。
+
+---
+
+## 26. I 波拆成两条并行轨道（2026-09-22，用户指令）
+
+- **轨道 1（ACT 29，本机 `m7i`）**：引擎——model / genesis / apply / incremental / orchestrate，外加 fixture、金标、引擎侧用例。
+- **轨道 2（ACT 30，另一台机器，分支 `m7/i-gate`）**：Gate 的对勘检查与 `acceptance.py` 的 `edition_collation` 判据，
+  照 §25 **从头独立实现**，用手工构造的 §25 形状输入测试。
+
+拆的理由不只是省时间（约一个会话）：Gate 本来就要求不照搬被验对象。这条线第七次问题正是 Gate 的独立闭包漏了半句规格，
+而它与被验代码出自同一会话。让另一个执行器只凭 §25 写 Gate，两边对口径的理解若有出入，会在合并时暴露——这本身是一次交叉验证。
+
+两条轨道的文件**不相交**（ACT 29 已把 gate.py / acceptance.py 改为只读，ACT 30 把引擎与 fixture 全列为只读）。
+过渡期两边各自都会有「预期中的红」：轨道 1 的全栈用例经过旧 Gate；轨道 2 的全栈用例跑的是旧 fixture。
+两边都须逐条列出，不许为此放宽检查或越界改对方的文件。
+
+**集成由主 Agent 做**：轨道 1 提交后合并 `m7/i-gate`，跑 R15 全栈用例、`m7-assembler.sh`（期望 pass=17 fail=0 blocked=0）、
+`run_all.sh 20.5`（期望 PASS）、真书第二轮与同书返工；有出入就回到 §25 裁定，再分派给对应轨道。

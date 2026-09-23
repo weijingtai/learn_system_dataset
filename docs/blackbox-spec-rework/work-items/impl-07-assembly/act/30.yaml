@@ -1,0 +1,141 @@
+act_id: impl-07/30
+title: I 波并行轨道 2 —— Gate 对勘检查与验收判据按 CHARTER §25 独立实现（另一台机器，独立分支）
+estimated_minutes: 120
+group: INC-I
+depends_on: [impl-07/27]
+parallel_with: [impl-07/29]        # 轨道 1：引擎 + fixture + 金标，在主机器上同时进行
+decisions: [CHARTER §25（全文）, §26（本拆分）, §10.1, R15]
+branch: m7/i-gate                  # 从 gitea 上的 codex/docs/knowledge-compilation 拉出；只推这个分支
+scope:
+  write:
+    - pipeline/assembly/gate.py                 # 只许改对勘相关：_asm_check_collation_comparable_only、
+                                                #   _asm_has_pairing_basis、_asm_declared_presence、_asm_collation_contacts、
+                                                #   _asm_closure 里对勘单元触点的来源；可新增私有辅助函数
+    - pipeline/assembly/acceptance.py           # 只许改 check_edition_collation 及其私有辅助函数
+    - pipeline/assembly/tests/test_gate_collation.py        # 新建
+    - pipeline/assembly/tests/test_acceptance_collation.py  # 新建
+  read_only:                                    # 这些归轨道 1，一行都不许动，否则合并必冲突
+    - pipeline/assembly/model.py
+    - pipeline/assembly/genesis.py
+    - pipeline/assembly/apply.py
+    - pipeline/assembly/incremental.py
+    - pipeline/assembly/orchestrate.py
+    - pipeline/assembly/matcher.py
+    - pipeline/assembly/step.py
+    - pipeline/assembly/canonical.py
+    - pipeline/assembly/inputs.py
+    - pipeline/corpus/_fixture/                 # fixture 与金标由轨道 1 重出
+    - openspec/acceptance/
+    - 其余所有既有测试文件
+background: |
+  这是 learn_system 仓库 M7 增量汇编的「多版次对勘」（I 波）的一半。另一半（轨道 1）正在另一台机器上改引擎。
+  你负责的这一半是**独立检查**：Gate 与验收判据必须照规格从头写，**不许参照、导入或复刻引擎的实现**——
+  Gate 与被验引擎出自不同的人，是这次拆分的主要目的（CHARTER §26）。
+
+  必读（按顺序）：
+    1. `docs/blackbox-spec-rework/work-items/impl-07-assembly/CHARTER-INCREMENTAL.md` 的 **§25 全文**（本波全部口径）与 §26
+    2. 同目录 `README.md` §6 第 330 行（可比单元口径）、第 469–472 行（Snapshot 形状）、第 523–526 行（R07/R07b/R08/R09 规则表）、第 533 行（闭包触点）
+    3. `pipeline/assembly/gate.py` 现状：`ASSEMBLY_CHECK_ORDER`（13 项）、`_asm_check_collation_comparable_only`（:999 附近）、
+       `_asm_has_pairing_basis`（:973）、`_asm_declared_presence`（:534）、`_asm_collation_contacts`（:459）
+    4. `pipeline/assembly/acceptance.py` 的 `check_edition_collation`（:825 附近，现在输出 BLOCKED）
+
+  主 Agent 2026-09-22 实测（分叉点即 gitea 上本分支的 HEAD）：assembly 229 OK；`m7-assembler.sh` pass=16 fail=0 blocked=1，
+  唯一 BLOCKED 是 edition_collation。gate.py 现在只导入 canonical、model、pipeline.ledger.ids 与标准库。
+
+  **你拿到的 fixture 与金标是旧口径的**（r2 里那条对齐是自环 `as_qizheng_900001 -> as_qizheng_900001`，
+  Snapshot 的 `editions[]` 还没有 `collation_units` 字段）。轨道 1 会按 §25 重出。所以：
+    - 你的新测试一律**手工构造** §25 形状的 Snapshot knowledge / 视图来驱动，不依赖 fixture 金标
+    - 分支上走 fixture 的既有全栈用例，在新 Gate 下**预期会红**（因为 fixture 还是旧口径）——见 on_fail
+contract: |
+  一、Gate 对勘检查按 §25 独立重写（13 项检查的**名字与顺序不许变**，新判断都放进 collation_comparable_only 内部）
+    输入仍是 evaluate_assembly 已有的参数（base_knowledge、views、decisions、knowledge、identity_delta、report 等）。
+    1. 各版次声明只从 `editions[].collation_units` 读（基底与新 knowledge 都有这个字段）；视图一侧从视图的
+       `collation_units` 读。任一 editions 条目缺 `collation_units` 字段 → FAIL（不许静默当作空）。
+    2. 可比 = 同 work_key、同 collation_key、**不同 source_id**、两侧都声明 present、两侧都有获批断言。
+    3. 每条对勘关系（alignment / variant_reading / addition / omission）逐条核：
+         - 两端方向符合 §25.6 表：alignment / variant_reading 的 from 是新版（本轮视图 source）断言、to 是旧版（基底 source）断言；
+           addition 的 from 是新版断言、to 为 null；omission 的 from 是旧版断言、to 为 null
+         - `null` 端点只许出现在 addition / omission；两端相同（自环）→ FAIL
+         - alignment：两端断言 subject_entity_id 相同，且 text_sha256 相同
+         - variant_reading：subject_entity_id 相同，且 text_sha256 不同
+         - addition：该 collation_key 在旧版 editions[].collation_units 里声明 present:false，新版声明 present
+         - omission：该 collation_key 在新版声明 present:false，旧版声明 present 且有断言
+         - 两端 source_id 相同 → FAIL（同一版次不跟自己比，§25.3）
+         - detail 至少含 collation_key；addition / omission 还须含 absent_source_id 且与上面推出的一致
+    4. 不可比单元（任一侧未声明、或同 source、或声明 present 却无获批断言）上**不得**有任何对勘关系
+    5. **完整性（反向）**：每个可比单元都必须恰有一条对应的对勘关系或一条 R07b 人工冲突的落点；
+       可比却什么都没有 → FAIL（防止引擎静默漏掉对勘）。R07b 待人工时本轮不会 succeeded，按现有 decisions_consistent 口径处理。
+    6. `_asm_closure` 里对勘单元的触点来源同样改读 `editions[].collation_units`（README §6:533：
+       声明 present:false 或被撤销声明的单元 → 基底该位置的断言入触点）。
+    7. 独立性：gate.py 不许导入 matcher / apply / incremental / orchestrate / genesis；不许复制它们的代码。
+       只许用 canonical、model、pipeline.ledger.ids、pipeline.ledger.states 与标准库。
+
+  二、acceptance.py 的 check_edition_collation 改为实跑判定（不再输出 BLOCKED）
+    - 读 r1 → ed99 那一轮实跑产出的 knowledge：四类关系**各至少一条**；关系集合（按 kind、两端、collation_key 的签名）与
+      `expected/snapshot_r2.json` 金标一致；不可比单元上无对勘关系；not_comparable 计数与夹具声明一致
+    - 任何一项不成立 → FAIL，写明哪一项
+    - 保留现有的「对齐关系正确性」内部检查思路（ACT 27 的 P4 探针依赖它）
+
+  三、不许做的事
+    - 不许动 scope.read_only 里的任何文件（轨道 1 正在改它们，动了合并必冲突）
+    - 不许为了让旧 fixture 的全栈用例变绿而放宽任何检查
+    - 不许用文本相似度、不许调模型
+    - 不许推 codex/docs/knowledge-compilation；只推 m7/i-gate
+tests_first: |
+  先写测试并确认转红（贴 Red 原文），再实现。全部用手工构造的 §25 形状输入。
+  test_gate_collation.py 至少：
+    test_well_formed_four_kinds_pass                     # 四类各一、形状全对 → collation_comparable_only 通过
+    test_tamper_self_loop
+    test_tamper_null_endpoint_on_alignment
+    test_tamper_addition_direction_reversed
+    test_tamper_omission_but_view_actually_present
+    test_tamper_alignment_with_different_subjects
+    test_tamper_alignment_with_different_text
+    test_tamper_variant_reading_with_same_text
+    test_tamper_same_source_pair
+    test_tamper_relation_on_unit_undeclared_by_base      # 旧版没声明 → 不可比，出了增文就 FAIL
+    test_tamper_comparable_unit_without_any_relation     # 完整性
+    test_tamper_edition_missing_collation_units_field
+    test_tamper_absent_source_id_wrong
+    test_closure_contacts_read_declared_units
+    test_gate_does_not_import_engine_modules             # 禁止清单含 genesis
+  test_acceptance_collation.py 至少：
+    test_edition_collation_pass_when_four_kinds_match_gold
+    test_edition_collation_fail_when_a_kind_missing
+    test_edition_collation_fail_when_relation_set_differs_from_gold
+    test_edition_collation_never_blocked
+  每条篡改用例都要断言：该检查 passed=False，且 evaluate_assembly 总体 passed=False。
+verify: |
+  cd <仓库根> && export LC_ALL=en_US.UTF-8
+  .venv/bin/python -m unittest pipeline.assembly.tests.test_gate_collation pipeline.assembly.tests.test_acceptance_collation -v 2>&1 | tail -5
+      # 全绿
+  .venv/bin/python -m unittest discover -s pipeline/assembly/tests -t . 2>&1 | grep -E "^(FAIL|ERROR):|^Ran|^OK|^FAILED"
+      # 贴全文。预期会有既有全栈用例红（旧 fixture），逐条列出：用例名、哪项 Gate 检查、失败明细前 200 字，
+      # 并说明为什么它是「fixture 仍为旧口径」导致的，而不是新 Gate 写错了
+  git diff --stat <分叉点> -- pipeline/assembly/model.py pipeline/assembly/genesis.py pipeline/assembly/apply.py pipeline/assembly/incremental.py pipeline/assembly/orchestrate.py pipeline/assembly/matcher.py pipeline/assembly/step.py pipeline/assembly/canonical.py pipeline/assembly/inputs.py pipeline/corpus/_fixture/ openspec/acceptance/
+      # 必须无输出
+  .venv/bin/python -c "import ast;t=ast.parse(open('pipeline/assembly/gate.py').read());m={(n.module or '') for n in ast.walk(t) if isinstance(n,ast.ImportFrom)}|{a.name for n in ast.walk(t) if isinstance(n,ast.Import) for a in n.names};print([x for x in m if any(k in x for k in ('matcher','apply','incremental','orchestrate','genesis'))])"
+      # 必须输出 []
+  # 篡改探针（三条，在仓库副本上做，绿→红→改回）：
+  #   P1 去掉自环检查                → test_tamper_self_loop 转红
+  #   P2 去掉完整性（反向）检查      → test_tamper_comparable_unit_without_any_relation 转红
+  #   P3 基底声明改回从断言推        → test_tamper_relation_on_unit_undeclared_by_base 转红
+commit:
+  branch: m7/i-gate
+  add:
+    - pipeline/assembly/gate.py
+    - pipeline/assembly/acceptance.py
+    - pipeline/assembly/tests/test_gate_collation.py
+    - pipeline/assembly/tests/test_acceptance_collation.py
+    - docs/blackbox-spec-rework/work-items/impl-07-assembly/reports/i-gate.report.md
+  message: "feat(m7): independent gate and acceptance for multi-edition collation (INC-I track 2, ACT 30)"
+  note: |
+    本分支允许存在「只因 fixture 仍为旧口径」而红的既有全栈用例，须在提交信息与回报里逐条列出。
+    新增的两个测试文件必须全绿。合并与集成由主 Agent 在轨道 1 完成后做。
+on_fail: |
+  停手并通过 SendMessage 告诉主 Agent（同时写进回报文件的「## 待裁决」一节并推送）。必须停手的情况：
+    ① §25 某条口径你读出两种意思，或与规格原文对不上
+    ② 要实现某条检查，必须读引擎内部才知道怎么判（说明规格描述不足以独立实现）
+    ③ 需要改 read_only 里的文件
+    ④ 13 项检查的名字或顺序必须变
+    ⑤ 既有用例红了，但原因不是「fixture 仍为旧口径」

@@ -10,13 +10,13 @@ scope:
     - pipeline/assembly/apply.py            # _collation_pair 只按 targets；_merge_editions 记 collation_units；跨版次沿用断言号拒收
     - pipeline/assembly/genesis.py          # 创世时记 editions[].collation_units
     - pipeline/assembly/model.py            # editions[].collation_units 必填校验；自环拒收；null 端点只许 addition/omission
-    - pipeline/assembly/gate.py             # 只许改对勘相关检查（collation_comparable_only、配对依据）
     - pipeline/assembly/orchestrate.py      # 只许改闭包里对勘单元的触点来源（改读 editions[].collation_units），其余不动
-    - pipeline/assembly/acceptance.py       # 只许改 edition_collation 判据
     - pipeline/assembly/tests/
     - pipeline/corpus/_fixture/mini_release01/   # 只许经 tools/build_fixture.py 生成；金标实跑产出
   read_only:
     - var/ledgers/qianyuan_w8/
+    - pipeline/assembly/gate.py             # §26：归并行轨道 2（ACT 30，另一台机器）
+    - pipeline/assembly/acceptance.py       # §26：同上
     - pipeline/assembly/matcher.py          # 需要改就停手上报
     - pipeline/assembly/canonical.py
     - pipeline/assembly/inputs.py
@@ -39,6 +39,12 @@ background: |
   - M8（`dataset_compiler/inputs.py`）只按修订号定位 Snapshot，不解析 `editions[]` 字段
   - 复现探针：`.venv/bin/python pipeline/assembly/tests/probe_g_blockers.py` 当前 F2/F3/F4 REPRODUCED
 contract: |
+  ⚠ 范围变更（主 Agent 2026-09-22，CHARTER §26）：本 ACT 拆为两条并行轨道。
+    本 ACT = 轨道 1：引擎（model / genesis / apply / incremental / orchestrate）+ fixture + 金标 + 引擎侧用例。
+    下文第七（Gate）、第九（acceptance.py）两节**移交 ACT 30**，本 ACT 不做，gate.py / acceptance.py 只读。
+    走 run_m7 的全栈用例会经过旧 Gate，可能因旧 Gate 不认识 §25 新形状而红——这是预期：
+    逐条列出（用例、Gate 检查项、明细），其余全绿即可提交；不许改 gate.py。
+    Gate 分支合并后由主 Agent 做集成验证（R15 全栈用例、m7-assembler pass=17、run_all 20.5 PASS）。
   全部按 CHARTER §25 实现。要点复述（有出入以 §25 为准）：
 
   一、断言号属于一个版次（§25.1）
