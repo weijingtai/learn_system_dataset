@@ -8,13 +8,13 @@ scope:
   write:
     - pipeline/assembly/apply.py                        # 本 ACT 明文授权修改，范围见第一节
     - pipeline/assembly/gate.py                         # 只许改 identity_delta_contract 回到草稿口径
+    - pipeline/assembly/orchestrate.py                  # CHARTER §21 ①追加授权：只限接线 carry_forward_proposals 与 report 字段
     - pipeline/corpus/_fixture/mini_release01/          # 只许经 tools/build_fixture.py 生成；金标实跑产出
     - pipeline/assembly/tests/
   read_only:
     - var/ledgers/qianyuan_w8/
     - pipeline/assembly/matcher.py
     - pipeline/assembly/incremental.py                  # R08/R09 的问题属 I 波，本波不动
-    - pipeline/assembly/orchestrate.py
     - pipeline/assembly/genesis.py
     - pipeline/assembly/canonical.py
     - pipeline/assembly/inputs.py
@@ -31,6 +31,15 @@ background: |
   - F5：`apply.py:1131` —— `target_id, [], "retired", _ENTITY_KINDS[collection], "retire"`，第五个参数是写死的字面量
   - F6：`apply.py:307-314` —— `merge_entities` 显式 `AssemblyRefused`
 contract: |
+  ⚠ 追加裁定（主 Agent 2026-09-22，CHARTER §21，第一次停手后）：
+    ① 在 orchestrate.assemble 里接上 carry_forward_proposals；report 新增 dropped_proposal_keys；
+       round_proposal_keys 仍记全部生成过的键；闭包健全性检查作用在过滤之后的裁定上
+    ② apply.validate_decision 接受 decided，但必须有合法决定对应（F7）
+    ③ 授权改写 test_apply.py:654 为两侧用例；apply.py:19-23 说明同步
+    ④ 合并改为两个 Pattern 经 R03d 合并；较小号存活；退役号被引用即 fail-closed
+    ⑤ 删断言时同时删该单元的 collation_units 声明
+    新增具名用例：test_carry_forward_wired_into_assemble、test_decided_proposal_with_decision_is_applied、
+                  test_decided_proposal_without_decision_refused、test_merge_keeps_smaller_id
   一、F1 打通同书返工（apply.py）
     拆掉 `_merge_editions` 里「source_id 已在基底即拒收」的护栏。同 `(source_id, edition_part_ids)` 的视图视为替换：
       - `editions[]` 里原条目被替换，**不新增条目**

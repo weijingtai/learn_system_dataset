@@ -580,3 +580,54 @@ ACT 26 提交 `c7e4084`。主 Agent 把该提交单独导出到临时目录复�
 - 七个冻结模块（含 `gate.py`，缩范围后本 ACT 不许动它）相对 `4c020aa` 一行未动
 - r2 金标新旧差异只有三类：新增 `meta`、`editions`（包身份）、`relations`（关系格式），与 ACT 26 on_fail ④ 允许的范围一致
 - 主 Agent 自做探针：把 `report` 的 `round_proposal_keys` 改名 → `test_report_records_round_proposal_keys` 与键序用例**两条转红**
+
+---
+
+## 21. H 波第一次停手：五条裁定（2026-09-22）
+
+H 波部分落地 `51334db`：F5 退役键改用真实提案键、Gate 的 `identity_delta_contract` 回到草稿口径，
+`assembly` 200 → 202 OK，`probe_g_blockers.py` F5 转为不复现、其余照旧（没越界）。
+执行器没有改任何文件，只用 monkeypatch 模拟「护栏已拆」，把 r2 → ed01r2 实际走了一遍，
+逐层挖出后面挡着的问题。主 Agent 核实了三条关键说法，都属实。
+
+### 21.1 第五次「函数有、用例绿、真路径没接线」
+
+D 波写了 `orchestrate.carry_forward_proposals`（D-14 替换继承：视图仍声明的对象不得被 R11 退役），
+还有一条通过的用例钉住口径（`test_incremental_orchestration.py:478`）。
+**但全仓库只有测试在调它，`assemble` 里一次都没调。** 主 Agent 验收 D 波时没抓到。
+后果：同书返工时 R11 把**所有**同 source 的断言都退役，连仍在视图里的也不放过。
+
+同一类问题第五次出现，R15 已经立了，这里补一句**验收动作**：
+**主 Agent 验收任何新增的公开函数，必须 `grep` 它在非测试代码里的调用点；只有测试调用的，一律当作未接线。**
+
+### 21.2 裁定
+
+**① R11 过度退役 —— 取 (a)：在 `orchestrate.assemble` 里接上 `carry_forward_proposals`。本波授权修改 `orchestrate.py`（只限接线与 report 字段）。**
+- (b)（在 `incremental` 里再判一次）否决：会出现两套规则。
+- `report.round_proposal_keys` 仍记**本轮生成过的全部提案键**（被过滤的也记，它们确实生成过）。
+- `report` 新增 `dropped_proposal_keys`：被 `carry_forward_proposals` 剔除的提案键，升序。**不许静默丢弃。**
+- 闭包健全性检查（§13.2）必须作用在**过滤之后**交给 `apply` 的那批裁定上。
+
+**② F7「decided」被拒收 —— 在 `apply.validate_decision` 那一侧收口（`apply.py`，授权范围内）。**
+- `"decided"` 是规格口径（`act/03.yaml:26`：已有合法决定的提案），`incremental` 那边不改。
+- `validate_decision` 接受 `{human, blocked, decided}`；但 `decided` **必须**真的有一条合法决定对应，
+  决定的 choice 仍须在提案 options 内。`decided` 却找不到决定 → 拒收。`auto` 带决定 → 仍拒收。
+
+**③ 既有用例依赖 `merged_into` —— 授权改写 `test_apply.py:654` 这一条。**
+改成两侧：「合并只记 IdentityDelta、不写关系 → 通过」「若写了 `merged_into` 指向退役号 → REF_001 拒收」。
+`apply.py:19-23` 的模块说明同步改为新口径。关系种类常量里的 `merged_into` 保留（不删死分支，免得牵动 canonical/gate）。
+
+**④ 合并的对象与方向**
+- 取 (i)：fixture 改为**两个 Pattern 经 R03d 裁定合并**（`entity_kind=pattern`）。Concept 合并不做，记入已知缺口；
+  给 R04 加合并分支（ii）要动 `incremental.py`，否决。
+- **方向**：两个号里**较小的号存活**（`to`），较大的号退役（`from`）。理由：较早分配的号更可能已被注解锚定，
+  保留它对 §16:732 的锚点可迁移率最友好；且规则确定、不依赖决定里的列表顺序。
+- **引用处理**：与 `split` 同口径——退役号若被任何活对象引用（`_referenced_by` 非空），**fail-closed 停手**，
+  不自动改指。fixture 选两个未被引用的 Pattern；选不出就停手上报。
+
+**⑤ 删断言时 —— 同时删掉该单元的 `collation_units` 声明。**
+视图声明的是「本版包含哪些单元」，审核人删了这条断言，本版就不再声明它。
+
+### 21.3 顺序不变
+
+H 波继续（接线 → F7 → 拆 F1 护栏 → F6 → 造 ed01r2 与 r3 金标 → R15 全栈用例），然后 G2。
