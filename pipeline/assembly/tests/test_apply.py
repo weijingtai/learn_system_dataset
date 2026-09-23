@@ -803,6 +803,38 @@ class TestApplyResolutions(unittest.TestCase):
             m7_apply.apply_resolutions(base, [view_ed02()], props, decisions)
         self.assertIn("引用", str(ctx.exception))
 
+    # -------------------------------------------------------- R11 退役
+    def test_retired_delta_uses_r11_proposal_key(self):
+        """F5（ACT 28 contract 二）：退役写进 IdentityDelta 的 `proposal_key` 必须是
+        **触发这次退役的 R11 提案键**，不得写死成字面量 `"retire"`——字面量不在任何提案集里，
+        Gate 的 `identity_delta_contract`（回到草稿口径后按本轮提案键判）会恒红。
+        """
+        base = round1()
+        prop = retire_proposal(A2)
+        props = round2_proposals() + [prop]
+        result = m7_apply.apply_resolutions(base, [view_ed02()], props, round2_decisions(props))
+
+        self.assertIn(A2, result["knowledge"]["retired_entity_ids"], "退役目标必须进 retired")
+        entries = [e for e in result["identity_delta"]["entries"] if e["change_type"] == "retired"]
+        self.assertEqual(len(entries), 1, "本轮恰一条 retired 增量")
+        entry = entries[0]
+        self.assertEqual(entry["from_entity_id"], A2)
+        self.assertEqual(entry["to_entity_ids"], [])
+        self.assertEqual(entry["entity_kind"], "assertion")
+        self.assertEqual(
+            entry["reason_ref"],
+            {"kind": "proposal", "proposal_key": prop["proposal_key"]},
+            "退役的理由引用必须是触发它的那条 R11 提案键",
+        )
+        self.assertNotEqual(
+            entry["reason_ref"]["proposal_key"], "retire", "不得再写死字面量 'retire'"
+        )
+        self.assertIn(
+            entry["reason_ref"]["proposal_key"],
+            {item["proposal_key"] for item in props},
+            "理由引用必须落在本轮提案集内（否则 Gate 按草稿口径必红）",
+        )
+
     # -------------------------------------------------------- as_/co_ 碰撞
     def test_as_co_collision_fails_closed(self):
         """contract 三：`as_`/`co_` 不由 M7 发号，只做碰撞检测，冲突即 ID_002 fail-closed。"""

@@ -335,6 +335,54 @@ class IncrementalGateCase(unittest.TestCase):
         res = self.evaluate(identity_delta=delta)
         self.assert_only_check_failed(res, "identity_delta_contract")
 
+    # ------------------------------------------------- ACT 28 五（回到草稿口径）
+    def test_identity_delta_reason_ref_must_be_in_round_proposal_keys(self):
+        """delta 每条的 `reason_ref.proposal_key` 必须出现在 `report.round_proposal_keys` 里。
+
+        E 波的放宽口径（总账里已落地的键 ∪ 决定 ∪ 沿用）已按 CHARTER §16.1 第二条删掉：
+        只在别处出现、不在本轮提案集里的键必须判 FAIL；`report` 缺该字段同样 FAIL，
+        **不许静默退回旧口径**。
+        """
+        # 这个键只在「别处」（report.carried，即 E 波放宽口径里的「沿用」）出现，
+        # 不在本轮提案集里 → 新口径必须判 FAIL
+        landed = "conflict:0123456789abcdef0123456789abcdef"
+        report = copy.deepcopy(self.outcome["report"])
+        self.assertNotIn(landed, report["round_proposal_keys"])
+        report["carried"] = sorted(list(report["carried"]) + [landed])
+
+        def delta_with(key):
+            return {
+                "entries": [
+                    {
+                        "from_entity_id": "as_qizheng_900002",
+                        "to_entity_ids": [],
+                        "change_type": "retired",
+                        "entity_kind": "assertion",
+                        "reason_ref": {"kind": "proposal", "proposal_key": key},
+                    }
+                ]
+            }
+
+        # (1) 不在本轮提案集里的键 → FAIL
+        res = self.evaluate(identity_delta=delta_with(landed), report=report)
+        self.assert_only_check_failed(res, "identity_delta_contract")
+        self.assertIn("不在本轮提案集内", res["checks"]["identity_delta_contract"]["detail"])
+
+        # (2) report 缺 round_proposal_keys → FAIL（不静默退回）
+        stripped = {key: value for key, value in report.items() if key != "round_proposal_keys"}
+        res2 = self.evaluate(identity_delta=delta_with(landed), report=stripped)
+        self.assert_only_check_failed(res2, "identity_delta_contract")
+        self.assertIn("round_proposal_keys", res2["checks"]["identity_delta_contract"]["detail"])
+
+        # (3) 本轮真有的提案键 → 该条检查通过
+        res3 = self.evaluate(
+            identity_delta=delta_with(sorted(report["round_proposal_keys"])[0]), report=report
+        )
+        self.assertTrue(
+            res3["checks"]["identity_delta_contract"]["passed"],
+            res3["checks"]["identity_delta_contract"]["detail"],
+        )
+
     def test_tamper_synthesized_pattern_status(self):
         def tweak(knowledge):
             knowledge["patterns"][0]["content_status"] = "machine_extracted"

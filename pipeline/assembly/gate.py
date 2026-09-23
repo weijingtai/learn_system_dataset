@@ -1124,22 +1124,13 @@ def _asm_check_identity_delta_contract(
         return False, "identity_delta.entries 缺失"
     index = _asm_index(knowledge or {})
 
-    allowed_keys = set()
-    for relation in (knowledge or {}).get("relations") or []:
-        key = (relation.get("resolution") or {}).get("proposal_key")
-        if key:
-            allowed_keys.add(key)
-    for group in (knowledge or {}).get("conflict_groups") or []:
-        for resolution in group.get("resolutions") or []:
-            key = (resolution or {}).get("proposal_key")
-            if key:
-                allowed_keys.add(key)
-    for decision in decisions or []:
-        if decision.get("proposal_key"):
-            allowed_keys.add(decision["proposal_key"])
-    for key in ((report or {}).get("carried") or []) + ((report or {}).get("needs_review") or []):
-        if key:
-            allowed_keys.add(key)
+    # 草稿口径（CHARTER §16.1 第二条）：只认**本轮提案键**。
+    # E 波退而求其次的放宽口径（总账里已落地的键 ∪ 决定 ∪ 沿用）已删掉；
+    # `report` 缺 `round_proposal_keys` 时判 FAIL，不许静默退回旧口径。
+    round_keys = (report or {}).get("round_proposal_keys")
+    if round_keys is None:
+        return False, "report 缺 round_proposal_keys：identity_delta 契约须以本轮提案集为准"
+    allowed_keys = {key for key in round_keys if key}
 
     for entry in entries:
         change_type = entry.get("change_type")

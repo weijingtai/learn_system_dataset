@@ -317,7 +317,16 @@ def apply_resolutions(
             continue
         if choice == "retire":
             target = proposal["subject"][-1] if proposal.get("subject") else None
-            _apply_retire(target, live, knowledge, identity_entries, touched, retired, pruned)
+            _apply_retire(
+                target,
+                live,
+                knowledge,
+                identity_entries,
+                touched,
+                retired,
+                pruned,
+                proposal_key=proposal["proposal_key"],
+            )
             continue
         if choice == "accept_alias":
             new_relations.append(_apply_accept_alias(proposal, view_docs, live))
@@ -1106,8 +1115,15 @@ def _apply_retire(
     touched: Set[str],
     retired: Set[str],
     pruned: List[Dict[str, Any]],
+    *,
+    proposal_key: str,
 ) -> None:
-    """R11 auto / R11b human：对象移除、号进 retired、IdentityDelta 一条 retired。"""
+    """R11 auto / R11b human：对象移除、号进 retired、IdentityDelta 一条 retired。
+
+    `proposal_key` 必须是**触发这次退役的那条提案**的键（F5，ACT 28 contract 二）：
+    写死字面量会让 IdentityDelta 的理由引用落在任何提案集之外，
+    而 `gate.identity_delta_contract` 按草稿口径只认本轮提案键。
+    """
     if not target_id:
         raise SchemaViolation("retire 提案缺目标号", code="SCH_002")
     location = _locate(live, target_id)
@@ -1127,9 +1143,7 @@ def _apply_retire(
         )
     _retire(target_id, live, knowledge, retired)
     identity_entries.append(
-        _identity_entry(
-            target_id, [], "retired", _ENTITY_KINDS[collection], "retire"
-        )
+        _identity_entry(target_id, [], "retired", _ENTITY_KINDS[collection], proposal_key)
     )
     touched.add(target_id)
 
