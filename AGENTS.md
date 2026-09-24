@@ -5,7 +5,10 @@
 - 目标：沉淀术数文献知识编译、模型协作、质量门槛与 APP 接入规范。
 - 当前技术形态：Markdown 设计文档；后续计划加入 YAML/JSON Schema、示例任务包和确定性校验器。
 - 启动命令：暂无应用运行时。
-- 测试命令：暂无自动化测试；文档变更至少执行 `git diff --check`、结构扫描和占位符扫描。
+- 环境：`bash tools/jules_setup.sh`（Python 3.14 + `.venv/`）；跑测试前 `export LC_ALL=C.UTF-8`（macOS 用 `en_US.UTF-8`）。
+- 测试命令：`pipeline/` 下 11 个包各自 `.venv/bin/python -m unittest discover -s pipeline/<包>/tests -t .`；文档变更另执行 `git diff --check`。
+- **接手先读 `docs/handoff/CLOUD-HANDOFF.md`（2026-09-23 本线移交云端的现状与前因后果）。**
+- **待办唯一入口是仓库根 `TODO.md`**，一次做一条。云端执行者（如 Jules）的任务书在 `docs/jules/`，按任务书执行，回报写在同目录。
 
 ## Git 安全铁律
 
