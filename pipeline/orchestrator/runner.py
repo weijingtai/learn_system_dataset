@@ -152,16 +152,93 @@ def execute_step(port, binding, request, context):
     return finalize_outcome(port, request, outcome)
 
 
+# 入口需要运行输入时由描述符声明（TODO T04A 裁决 2/3）
+RUN_INPUTS_KEY = "receives_run_inputs"
+
+
+def _awaiting_pending_queue(port, step_run_id):
+    """最近一次 ``await_human`` 事件里的待处理队列修订号。"""
+    for event in reversed(port.list_step_run_events(step_run_id)):
+        if event.get("event_type") == "await_human":
+            payload = json.loads(event.get("payload_json") or "{}")
+            return list(payload.get("pending_queue") or [])
+    return []
+
+
+def legacy_step_result(port, step, *, resume_token=None):
+    """从 Ledger 事实重建 legacy StepRun 的 StepResult（succeeded/failed/awaiting_human）。
+
+    ``resume_token`` 只可能是入口当次返回的明文；本函数不写任何地方（裁决 3 硬约束）。
+    """
+    step_run_id = step["step_run_id"]
+    status = step["status"]
+    if status == "succeeded":
+        result = json.loads(step["result_json"])
+    elif status == "failed":
+        failure_ids = []
+        for event in port.list_step_run_events(step_run_id):
+            if event.get("event_type") == "failure":
+                payload = json.loads(event.get("payload_json") or "{}")
+                failure_ids = list(payload.get("failure_revision_ids") or [])
+        result = {
+            "schema_version": "1.0.0",
+            "processing_run_id": step["processing_run_id"],
+            "step_run_id": step_run_id,
+            "status": "failed",
+            "status_version": step["status_version"],
+            "output_artifact_ids": [],
+            "validation_report_ids": [],
+            "log_artifact_ids": [],
+            "failure_artifact_ids": failure_ids,
+        }
+    elif status == "awaiting_human":
+        pending_queue = _awaiting_pending_queue(port, step_run_id)
+        if not isinstance(resume_token, str) or len(resume_token) < 32:
+            raise OrchestratorRefused(
+                "legacy 入口停在 awaiting_human 但未返回 resume_token: %s" % step_run_id
+            )
+        if not pending_queue:
+            raise OrchestratorRefused(
+                "legacy 入口停在 awaiting_human 但待处理队列为空: %s" % step_run_id
+            )
+        result = {
+            "schema_version": "1.0.0",
+            "processing_run_id": step["processing_run_id"],
+            "step_run_id": step_run_id,
+            "status": "awaiting_human",
+            "status_version": step["status_version"],
+            "output_artifact_ids": [],
+            "validation_report_ids": [],
+            "log_artifact_ids": [],
+            "failure_artifact_ids": [],
+            "resume_token": resume_token,
+            "pending_queue_artifact_ids": pending_queue,
+        }
+    else:
+        raise OrchestratorRefused(
+            "legacy 入口 StepRun 状态不可接受: %s" % status
+        )
+    _validate_step_result(result)
+    return result
+
+
 def run_legacy(port, binding, handle):
-    """调用 ``legacy_self_driving`` 入口，并从 Ledger 重建 StepResult。"""
+    """调用 ``legacy_self_driving`` 入口，并从 Ledger 重建 StepResult。
+
+    入口可在同一 StepRun 上停成 ``awaiting_human``（M4 分歧、M6 审核）；此时重建的
+    StepResult 带入口当次返回的 ``resume_token``（只经内存交给调用方，不落盘）。
+    """
     try:
         service = port.unwrap()
     except NotImplementedError:
         raise OrchestratorRefused("legacy_self_driving 需要直连 Ledger Adapter")
 
+    entry_kwargs = dict(binding.entry_kwargs)
+    if binding.descriptor.get(RUN_INPUTS_KEY) is True:
+        entry_kwargs["run_inputs"] = handle.get("run_inputs")
     try:
         summary = binding.target(
-            service, handle["edition_part_id"], **binding.entry_kwargs
+            service, handle["edition_part_id"], **entry_kwargs
         )
     except Exception as exc:  # noqa: BLE001 - 入口承诺 begin 之前零写入
         raise OrchestratorRefused(
@@ -183,31 +260,9 @@ def run_legacy(port, binding, handle):
             )
         processing_run_id = handle["processing_run_id"]
 
-    if step["status"] == "succeeded":
-        result = json.loads(step["result_json"])
-    elif step["status"] == "failed":
-        failure_ids = []
-        for event in port.list_step_run_events(step_run_id):
-            if event.get("event_type") == "failure":
-                payload = json.loads(event.get("payload_json") or "{}")
-                failure_ids = list(payload.get("failure_revision_ids") or [])
-        result = {
-            "schema_version": "1.0.0",
-            "processing_run_id": step["processing_run_id"],
-            "step_run_id": step_run_id,
-            "status": "failed",
-            "status_version": step["status_version"],
-            "output_artifact_ids": [],
-            "validation_report_ids": [],
-            "log_artifact_ids": [],
-            "failure_artifact_ids": failure_ids,
-        }
-    else:
-        raise OrchestratorRefused(
-            "legacy 入口 StepRun 状态不可接受: %s" % step["status"]
-        )
-
-    _validate_step_result(result)
+    result = legacy_step_result(
+        port, step, resume_token=summary.get("resume_token")
+    )
     return {
         "step_run_id": step_run_id,
         "processing_run_id": processing_run_id,

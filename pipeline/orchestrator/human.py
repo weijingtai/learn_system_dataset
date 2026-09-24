@@ -14,8 +14,8 @@ from pipeline.ledger import ids
 from . import EDITION_STAGES
 from .errors import OrchestratorRefused
 from .gate import effective_step_runs
-from .module import StepContext, bind_module
-from .runner import execute_step
+from .module import StepContext, bind_module, resolve_entry
+from .runner import execute_step, legacy_step_result
 
 
 def _original_request(port, step_run_id):
@@ -93,14 +93,45 @@ def record_human_event(
     )
 
 
+def _legacy_resume_entry(descriptor, stage):
+    """解析 legacy 绑定的恢复入口（描述符 ``resume_entry``，TODO T04A 裁决 3）。"""
+    entry = descriptor.get("resume_entry")
+    if not isinstance(entry, str) or ":" not in entry:
+        raise OrchestratorRefused(
+            "阶段 %s 的 legacy 绑定需要描述符声明 resume_entry" % stage
+        )
+    return resolve_entry(entry, descriptor.get("module_id"))
+
+
 def resume(port, registry, handle, step_run_id, resume_token, *, modules=None):
-    """消费 token 并以 ``mode="resumed"`` 再次执行该 StepRun。"""
-    port.resume(step_run_id, resume_token)
+    """消费 token 并续跑该 StepRun。
+
+    - ``step_request`` 绑定：Orchestrator 消费 token 后以 ``mode="resumed"`` 再执行；
+    - ``legacy_self_driving`` 绑定：调用描述符声明的 ``resume_entry``（入口自己消费 token，
+      如 ``resume_m4`` / ``close_review``），随后从 Ledger 重建 StepResult。
+
+    ``resume_token`` 只经入参与返回值在内存里流转，绝不写进 Ledger 或任何文件。
+    """
     step = port.get_step_run(step_run_id)
     descriptor = _descriptor_for_step(registry, step)
-    binding = _require_step_request(
-        bind_module(descriptor, modules=modules), step["stage"]
-    )
+    binding = bind_module(descriptor, modules=modules)
+    if binding.binding == "legacy_self_driving":
+        entry = _legacy_resume_entry(descriptor, step["stage"])
+        try:
+            service = port.unwrap()
+        except NotImplementedError:
+            raise OrchestratorRefused("legacy 恢复需要直连 Ledger Adapter")
+        try:
+            entry(service, step_run_id, resume_token)
+        except Exception as exc:  # noqa: BLE001 - 恢复入口异常统一转为拒绝
+            raise OrchestratorRefused(
+                "legacy 恢复入口异常（%s: %s）" % (type(exc).__name__, exc)
+            )
+        return legacy_step_result(port, port.get_step_run(step_run_id))
+
+    port.resume(step_run_id, resume_token)
+    step = port.get_step_run(step_run_id)
+    _require_step_request(binding, step["stage"])
     context = StepContext(
         mode="resumed",
         edition_part_id=handle["edition_part_id"],
