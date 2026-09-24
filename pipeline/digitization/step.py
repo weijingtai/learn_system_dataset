@@ -46,13 +46,13 @@ def _fail(
 
 def _read_revision_bytes(service: LedgerService, revision_id: str) -> bytes:
     """从 Ledger 读取修订的对象字节。"""
-    rev = service.store.get_revision(revision_id)
+    rev = service.get_revision(revision_id)
     if rev is None:
         raise DigitizationRefused(f"raw_text 修订不存在: {revision_id}", code="SCH_003")
     sha256 = rev.get("sha256")
     if not sha256:
         raise DigitizationRefused(f"raw_text 修订缺失 sha256: {revision_id}", code="SCH_003")
-    data = service.objects.get(sha256)
+    data = service.read_object(sha256)
     if data is None:
         raise DigitizationRefused(f"raw_text 对象数据缺失: {sha256}", code="SCH_003")
     return data
@@ -112,13 +112,8 @@ def run_m2(
 
     # ---- 2. 创建或复用 ProcessingRun 并写入配置 ----
     technique_id = source_info.get("technique_id", "default_tech")
-    row = service.store.conn.execute(
-        "SELECT processing_run_id FROM processing_runs WHERE edition_part_id=? AND kind='edition_run' ORDER BY created_at DESC LIMIT 1",
-        (edition_part_id,),
-    ).fetchone()
-    if row is not None:
-        processing_run_id = row[0]
-    else:
+    processing_run_id = service.latest_processing_run(edition_part_id, "edition_run")
+    if processing_run_id is None:
         processing_run_id = service.create_processing_run(
             "edition_run", edition_part_id, technique_id
         )

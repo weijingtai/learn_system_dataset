@@ -151,9 +151,9 @@ def _run_m1m2_on_temp_ledger(fixture_dir: Path) -> tuple[dict | None, list[dict]
             facts: dict | None = None
             if "report_revision_id" in m2:
                 raw_rev = service.get_revision(raw_rev_id)
-                raw_text = service.objects.get(raw_rev["sha256"]).decode("utf-8")
+                raw_text = service.read_object(raw_rev["sha256"]).decode("utf-8")
                 report = json.loads(
-                    service.objects.get(
+                    service.read_object(
                         service.get_revision(m2["report_revision_id"])["sha256"]
                     ).decode("utf-8")
                 )

@@ -111,6 +111,17 @@ class TestStep(unittest.TestCase):
         self.assertIsNotNone(step)
         self.assertEqual(step["status"], "succeeded")
 
+    def test_run_m2_reuses_latest_edition_run(self):
+        """synthetic_fixture: true，M2 复用该 EditionPart 最近的 edition_run，不另建（TODO T03c 改端口后的行为护栏）。"""
+        latest = self.service.create_processing_run(
+            "edition_run", self.edition_part_id, self.source_info["technique_id"]
+        )
+        self.service.create_processing_run(
+            "release_run", self.edition_part_id, self.source_info["technique_id"]
+        )
+        res = run_m2(self.service, self.raw_text_rev_id, self.source_info, self.edition_part_id)
+        self.assertEqual(self.service.get_step_run(res["step_run_id"])["processing_run_id"], latest)
+
     def test_run_m2_gate_failure(self):
         """synthetic_fixture: true，deferred findings → gate_result.passed=False, failed_check="m2_gate"。"""
         # 模拟 cleaner 产生 deferred finding
