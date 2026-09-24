@@ -556,16 +556,15 @@ def _resolve_rerun_inputs(service, edition_part_id: str) -> dict:
             code="REF_001",
         )
 
-    m5_sp_rows = service.store.conn.execute(
-        "SELECT sp.stage_package_id, r.artifact_revision_id FROM stage_packages sp "
-        "JOIN artifact_revisions r ON r.artifact_id = sp.artifact_id "
-        "JOIN step_runs sr ON sr.step_run_id = r.step_run_id "
-        "WHERE sp.stage='m5' AND r.step_run_id=? AND sr.status='succeeded'",
-        (m5_step_run_id,),
-    ).fetchall()
+    # 经端口列 m5 StagePackage：原查询按 stage='m5' + 该 StepRun + succeeded 取第一行修订
+    m5_sp_rows = [
+        row
+        for row in service.list_stage_packages("m5")
+        if row["step_run_id"] == m5_step_run_id and row["step_run_status"] == "succeeded"
+    ]
     if not m5_sp_rows:
         raise ReviewRefused("未找到 M5 StagePackage 记录", code="REF_001")
-    m5_stage_package_doc = _read_doc(service, m5_sp_rows[0][1])
+    m5_stage_package_doc = _read_doc(service, m5_sp_rows[0]["artifact_revision_id"])
     if (
         not isinstance(m5_stage_package_doc, dict)
         or m5_stage_package_doc.get("validation", {}).get("passed") is not True

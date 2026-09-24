@@ -546,3 +546,25 @@ class LedgerClient:
             params["artifact_id"] = artifact_id
         return self._call("get_stage_package", params)
 
+    # —— T03c M6 新增 ——
+    def list_step_run_checkpoints(self, step_run_id):
+        """见 ``LedgerReader.list_step_run_checkpoints``。"""
+        return self._call("list_step_run_checkpoints", {"step_run_id": step_run_id})
+
+    # —— T03c M6-acceptance 新增 ——
+    def list_stage_checkpoint_step_runs(self, stage):
+        """见 ``LedgerReader.list_stage_checkpoint_step_runs``。"""
+        return self._call("list_stage_checkpoint_step_runs", {"stage": stage})
+
+    def first_sealed_event_created_at(self, artifact_revision_id):
+        """见 ``LedgerReader.first_sealed_event_created_at``。"""
+        return self._call(
+            "first_sealed_event_created_at",
+            {"artifact_revision_id": artifact_revision_id},
+        )
+
+    def count_checkpoints_by_rework_report(self, revision_id):
+        """见 ``LedgerReader.count_checkpoints_by_rework_report``。"""
+        return self._call(
+            "count_checkpoints_by_rework_report", {"revision_id": revision_id}
+        )

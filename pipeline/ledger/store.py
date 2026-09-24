@@ -575,6 +575,45 @@ class MetadataStore:
         sql += " ORDER BY rowid"
         return [dict(row) for row in self.conn.execute(sql, params).fetchall()]
 
+    # —— T03c M6 新增 ——
+    def list_step_run_checkpoints(self, step_run_id):
+        """某 StepRun 的全部 StageCheckpoint 元数据行，按写入顺序（rowid）；只读登记列，不读对象内容。"""
+        rows = self.conn.execute(
+            "SELECT artifact_revision_id, artifact_id, edition_part_id, stage, step_run_id, "
+            "prev_checkpoint_revision_id, rework_impact_report_revision_id, actor_ref, created_at "
+            "FROM stage_checkpoints WHERE step_run_id=? ORDER BY rowid",
+            (step_run_id,),
+        ).fetchall()
+        return [dict(row) for row in rows]
+
+    # —— T03c M6-acceptance 新增 ——
+    def list_stage_checkpoint_step_runs(self, stage):
+        """某 stage 的全部 StageCheckpoint 所属 StepRun 号（去重），按首次写入顺序（rowid）。"""
+        rows = self.conn.execute(
+            "SELECT DISTINCT step_run_id FROM stage_checkpoints WHERE stage=?",
+            (stage,),
+        ).fetchall()
+        return [row[0] for row in rows]
+
+    def first_sealed_event_created_at(self, artifact_revision_id):
+        """某修订最早的 ``to_status='sealed'`` 状态事件时间；没有则 ``None``。"""
+        row = self.conn.execute(
+            "SELECT created_at FROM revision_status_events "
+            "WHERE artifact_revision_id=? AND to_status='sealed' "
+            "ORDER BY created_at LIMIT 1",
+            (artifact_revision_id,),
+        ).fetchone()
+        return row[0] if row is not None else None
+
+    def count_checkpoints_by_rework_report(self, revision_id):
+        """引用某 ReworkImpactReport 修订的 StageCheckpoint 条数。"""
+        row = self.conn.execute(
+            "SELECT count(*) FROM stage_checkpoints "
+            "WHERE rework_impact_report_revision_id=?",
+            (revision_id,),
+        ).fetchone()
+        return int(row[0])
+
     def list_step_runs(self, edition_part_id, stage=None):
         """某 EditionPart 的 StepRun（可按 stage 筛选）；按创建顺序（旧→新）。"""
         sql = (

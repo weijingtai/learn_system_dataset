@@ -62,6 +62,12 @@ LEDGER_PORT_METHODS = (
     "list_transformation_human_events",
     # —— T03c M7 新增 ——
     "get_stage_package",
+    # —— T03c M6 新增 ——
+    "list_step_run_checkpoints",
+    # —— T03c M6-acceptance 新增 ——
+    "list_stage_checkpoint_step_runs",
+    "first_sealed_event_created_at",
+    "count_checkpoints_by_rework_report",
 )
 
 # 直连委托给 LedgerService 的方法（read_object 走 objects.get，单独实现）

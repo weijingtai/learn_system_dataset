@@ -18,10 +18,55 @@ from pipeline.review.inputs import (
 
 
 def _read_bytes(reader, sha256):
-    read = getattr(reader, "read_object", None)
-    if read is not None:
-        return read(sha256)
-    return reader.objects.get(sha256)
+    return reader.read_object(sha256)
+
+
+def _edition_part_id_of(service, step_run_id):
+    """本 StepRun 最近一个 Checkpoint 的 EditionPart 号；没有 Checkpoint 则 ``None``。"""
+    rows = service.list_step_run_checkpoints(step_run_id)
+    return rows[-1]["edition_part_id"] if rows else None
+
+
+def _rework_impact_report_revision_id(service, step_run_id):
+    """本 StepRun 最近一个带 ReworkImpactReport 的 Checkpoint 的报告修订号，没有则 ``None``。"""
+    for row in reversed(service.list_step_run_checkpoints(step_run_id)):
+        if row["rework_impact_report_revision_id"] is not None:
+            return row["rework_impact_report_revision_id"]
+    return None
+
+
+def _review_queue_revision(service, step_run_id):
+    """本运行的 review_queue 修订号：先看本运行产出，再看冻结输入（恢复路径）；没有则 ``None``。
+
+    两段查询原来都没有 ``ORDER BY``，``EXPLAIN QUERY PLAN`` 显示主循环分别是
+    ``SCAN artifact_revisions``（写入顺序 = rowid）与 ``SEARCH frozen_inputs (step_run_id=?)``
+    （复合主键内按 ``artifact_revision_id`` 升序）；这里分别按同样顺序逐行取第一个命中。
+    """
+    for row in service.list_revisions(artifact_type="review_queue", step_run_ids=[step_run_id]):
+        return row["artifact_revision_id"]
+    for revision_id in service.list_frozen_inputs(step_run_id):
+        info = service.describe_revision(revision_id)
+        if info is not None and info["artifact_type"] == "review_queue":
+            return revision_id
+    return None
+
+
+def _modified_by_entity_id(service, step_run_id):
+    """本运行已封存 ``reviewed_candidate`` 的 ``{entity_id: 修订号}``。
+
+    原查询无 ``ORDER BY``，实测 ``SCAN artifact_revisions``＝写入顺序（rowid），
+    故用 ``list_revisions``（``ORDER BY r.rowid``），重复 entity_id 时同样是后写者胜。
+    """
+    by_eid = {}
+    for row in service.list_revisions(
+        artifact_type="reviewed_candidate", step_run_ids=[step_run_id]
+    ):
+        doc = _read_doc(service, row["artifact_revision_id"])
+        if doc:
+            entity_id = doc.get("assertion_id") or doc.get("school_view_id")
+            if entity_id:
+                by_eid[entity_id] = row["artifact_revision_id"]
+    return by_eid
 
 
 def _fail(service, step_run_id, check, detail):
@@ -101,15 +146,9 @@ def _prior_reviewed_edition(service, step):
 
 def _rework_context(service, step_run_id, queue):
     """复审上下文（第 69/74 条）：报告、carried 队列项、完整队列、新候选集与 spans。"""
-    row = service.store.conn.execute(
-        "SELECT rework_impact_report_revision_id FROM stage_checkpoints "
-        "WHERE step_run_id=? AND rework_impact_report_revision_id IS NOT NULL "
-        "ORDER BY rowid DESC LIMIT 1",
-        (step_run_id,),
-    ).fetchone()
-    if row is None:
+    report_revision_id = _rework_impact_report_revision_id(service, step_run_id)
+    if report_revision_id is None:
         raise ReviewRefused("复审运行未引用 ReworkImpactReport", code="REF_001")
-    report_revision_id = row[0]
     report = _read_doc(service, report_revision_id) or {}
 
     step = service.get_step_run(step_run_id)
@@ -411,32 +450,12 @@ def record_decision(
         service._check_token(step, resume_token)
 
     # 查 edition_part_id
-    cp_row = service.store.conn.execute(
-        "SELECT edition_part_id FROM stage_checkpoints WHERE step_run_id=? ORDER BY rowid DESC LIMIT 1",
-        (step_run_id,),
-    ).fetchone()
-    edition_part_id = cp_row[0] if cp_row else None
+    edition_part_id = _edition_part_id_of(service, step_run_id)
 
     # 读取本运行的 review_queue
-    queue_row = service.store.conn.execute(
-        "SELECT r.artifact_revision_id FROM artifact_revisions r "
-        "JOIN artifacts a ON a.artifact_id = r.artifact_id "
-        "WHERE a.artifact_type = 'review_queue' AND r.step_run_id = ?",
-        (step_run_id,),
-    ).fetchone()
-    if not queue_row:
-        # Check input artifacts if recovered
-        queue_row = service.store.conn.execute(
-            "SELECT r.artifact_revision_id FROM frozen_inputs f "
-            "JOIN artifact_revisions r ON r.artifact_revision_id = f.artifact_revision_id "
-            "JOIN artifacts a ON a.artifact_id = r.artifact_id "
-            "WHERE a.artifact_type = 'review_queue' AND f.step_run_id = ?",
-            (step_run_id,),
-        ).fetchone()
-
-    if not queue_row:
+    queue_revision_id = _review_queue_revision(service, step_run_id)
+    if queue_revision_id is None:
         raise ReviewRefused("找不到本运行的 review_queue 修订", code="REF_001")
-    queue_revision_id = queue_row[0]
     queue = _read_doc(service, queue_revision_id) or []
 
     queue_item = None
@@ -522,11 +541,11 @@ def record_decision(
     if prior_checkpoint and prior_checkpoint["step_run_id"] != step_run_id:
         inherited_decisions = list(prior_checkpoint["content"].get("human_decisions", []))
 
-    cur_events = service.store.conn.execute(
-        "SELECT event_revision_id FROM human_events WHERE step_run_id=? AND decision_type IS NOT NULL ORDER BY rowid ASC",
-        (step_run_id,),
-    ).fetchall()
-    cur_decision_revs = [r[0] for r in cur_events]
+    cur_decision_revs = [
+        row["event_revision_id"]
+        for row in service.list_human_events(step_run_id)
+        if row["decision_type"] is not None
+    ]
 
     all_decision_revs = list(inherited_decisions)
     for rev in cur_decision_revs:
@@ -534,19 +553,7 @@ def record_decision(
             all_decision_revs.append(rev)
 
     # Map target_entity_id -> modified_candidate_revision_id
-    mod_by_eid = {}
-    mod_rows = service.store.conn.execute(
-        "SELECT r.artifact_revision_id FROM artifacts a "
-        "JOIN artifact_revisions r ON r.artifact_id = a.artifact_id "
-        "WHERE a.artifact_type = 'reviewed_candidate' AND r.step_run_id = ?",
-        (step_run_id,),
-    ).fetchall()
-    for m_row in mod_rows:
-        m_doc = _read_doc(service, m_row[0])
-        if m_doc:
-            m_eid = m_doc.get("assertion_id") or m_doc.get("school_view_id")
-            if m_eid:
-                mod_by_eid[m_eid] = m_row[0]
+    mod_by_eid = _modified_by_entity_id(service, step_run_id)
 
     # 重建 decision_entry（第 75 条：冻结输入里的继承决定与本运行决定一并 fold）
     mode = _review_mode(service, step)
@@ -630,12 +637,7 @@ def record_decision(
 
     if mode == "rework":
         cur_all = [
-            r[0]
-            for r in service.store.conn.execute(
-                "SELECT event_revision_id FROM human_events WHERE step_run_id=? "
-                "ORDER BY rowid ASC",
-                (step_run_id,),
-            ).fetchall()
+            row["event_revision_id"] for row in service.list_human_events(step_run_id)
         ]
         checkpoint_human_decisions = (
             list(rework_ctx["carried_decision_revision_ids"]) + cur_all
@@ -679,12 +681,13 @@ def recover_review(service, edition_part_id: str, *, reason: str) -> dict:
     old_queue_rev = old_checkpoint["content"]["completed_tasks"][0]["artifact_revision_id"]
 
     # 获取旧运行全部 sealed human_event（包括 correction_request，用于冻结输入）
-    old_events = service.store.conn.execute(
-        "SELECT event_revision_id, decision_type FROM human_events WHERE step_run_id=? ORDER BY rowid ASC",
-        (old_step_run_id,),
-    ).fetchall()
-    old_event_revs = [r[0] for r in old_events]
-    old_decision_revs = [r[0] for r in old_events if r[1] is not None]
+    old_events = service.list_human_events(old_step_run_id)
+    old_event_revs = [row["event_revision_id"] for row in old_events]
+    old_decision_revs = [
+        row["event_revision_id"]
+        for row in old_events
+        if row["decision_type"] is not None
+    ]
 
     old_frozen = list(old_req.get("input_artifact_ids") or [])
     new_frozen = []
@@ -708,19 +711,7 @@ def recover_review(service, edition_part_id: str, *, reason: str) -> dict:
 
     queue = _read_doc(service, old_queue_rev) or []
     entries = []
-    mod_by_eid = {}
-    mod_rows = service.store.conn.execute(
-        "SELECT r.artifact_revision_id FROM artifacts a "
-        "JOIN artifact_revisions r ON r.artifact_id = a.artifact_id "
-        "WHERE a.artifact_type = 'reviewed_candidate' AND r.step_run_id = ?",
-        (old_step_run_id,),
-    ).fetchall()
-    for m_row in mod_rows:
-        m_doc = _read_doc(service, m_row[0])
-        if m_doc:
-            m_eid = m_doc.get("assertion_id") or m_doc.get("school_view_id")
-            if m_eid:
-                mod_by_eid[m_eid] = m_row[0]
+    mod_by_eid = _modified_by_entity_id(service, old_step_run_id)
 
     for d_rev in old_decision_revs:
         ev_doc = _read_doc(service, d_rev)
@@ -795,26 +786,15 @@ def recover_review(service, edition_part_id: str, *, reason: str) -> dict:
 
 
 def _artifact_ref(service, revision_id):
-    row = service.store.conn.execute(
-        "SELECT a.artifact_id, a.artifact_type FROM artifacts a "
-        "JOIN artifact_revisions r ON r.artifact_id = a.artifact_id "
-        "WHERE r.artifact_revision_id=?",
-        (revision_id,),
-    ).fetchone()
-    if row is None:
+    info = service.describe_revision(revision_id)
+    if info is None:
         raise ValueError(f"Revision {revision_id} not found")
-    artifact_id, artifact_type = row[0], row[1]
+    artifact_id, artifact_type = info["artifact_id"], info["artifact_type"]
     if artifact_type == "stage_package":
-        package_row = service.store.conn.execute(
-            "SELECT sp.stage_package_id FROM stage_packages sp "
-            "JOIN artifact_revisions r ON r.artifact_id = sp.artifact_id "
-            "WHERE r.artifact_revision_id=?",
-            (revision_id,),
-        ).fetchone()
         return {
             "schema_version": "1.0.0",
             "artifact_kind": "stage_package",
-            "stage_package_id": package_row[0],
+            "stage_package_id": info["stage_package_id"],
             "artifact_revision_id": revision_id,
             "artifact_type": artifact_type,
         }
@@ -850,11 +830,7 @@ def request_correction(
     for sid in source_span_ids:
         ids.validate("source_span_id", sid)
 
-    cp_row = service.store.conn.execute(
-        "SELECT edition_part_id FROM stage_checkpoints WHERE step_run_id=? ORDER BY rowid DESC LIMIT 1",
-        (step_run_id,),
-    ).fetchone()
-    edition_part_id = cp_row[0] if cp_row else None
+    edition_part_id = _edition_part_id_of(service, step_run_id)
 
     event_doc = {
         "schema_version": "0.1.0-draft",
@@ -920,30 +896,12 @@ def close_review(service, step_run_id: str, resume_token: str) -> dict:
     if hasattr(service, "_check_token"):
         service._check_token(step, resume_token)
 
-    cp_row = service.store.conn.execute(
-        "SELECT edition_part_id FROM stage_checkpoints WHERE step_run_id=? ORDER BY rowid DESC LIMIT 1",
-        (step_run_id,),
-    ).fetchone()
-    edition_part_id = cp_row[0] if cp_row else None
+    edition_part_id = _edition_part_id_of(service, step_run_id)
 
     # 读取本运行的 review_queue
-    queue_row = service.store.conn.execute(
-        "SELECT r.artifact_revision_id FROM artifact_revisions r "
-        "JOIN artifacts a ON a.artifact_id = r.artifact_id "
-        "WHERE a.artifact_type = 'review_queue' AND r.step_run_id = ?",
-        (step_run_id,),
-    ).fetchone()
-    if not queue_row:
-        queue_row = service.store.conn.execute(
-            "SELECT r.artifact_revision_id FROM frozen_inputs f "
-            "JOIN artifact_revisions r ON r.artifact_revision_id = f.artifact_revision_id "
-            "JOIN artifacts a ON a.artifact_id = r.artifact_id "
-            "WHERE a.artifact_type = 'review_queue' AND f.step_run_id = ?",
-            (step_run_id,),
-        ).fetchone()
-    if not queue_row:
+    queue_rev = _review_queue_revision(service, step_run_id)
+    if queue_rev is None:
         raise ReviewRefused("找不到本运行的 review_queue 修订", code="REF_001")
-    queue_rev = queue_row[0]
     queue = _read_doc(service, queue_rev) or []
 
     # 查 candidate_set 与 spans
@@ -953,16 +911,7 @@ def close_review(service, step_run_id: str, resume_token: str) -> dict:
     config_doc = _read_doc(service, config_rev) or {}
     required_decision_types = config_doc.get("required_decision_types") or {}
 
-    types_map = {}
-    if frozen:
-        placeholders = ",".join("?" * len(frozen))
-        t_rows = service.store.conn.execute(
-            "SELECT r.artifact_revision_id, a.artifact_type FROM artifact_revisions r "
-            "JOIN artifacts a ON a.artifact_id = r.artifact_id "
-            "WHERE r.artifact_revision_id IN (%s)" % placeholders,
-            tuple(frozen),
-        ).fetchall()
-        types_map = {r[0]: r[1] for r in t_rows}
+    types_map = _artifact_types(service, frozen)
 
     cand_set_rev = next((r for r in frozen if types_map.get(r) == "candidate_set"), None)
     spans_rev = next((r for r in frozen if types_map.get(r) == "corpus_spans"), None)
@@ -995,26 +944,15 @@ def close_review(service, step_run_id: str, resume_token: str) -> dict:
     cand_by_id = {c["entity_id"]: c for c in cand_objects}
 
     # 查本运行已封存 reviewed_candidate
-    mod_by_eid = {}
-    mod_rows = service.store.conn.execute(
-        "SELECT r.artifact_revision_id FROM artifacts a "
-        "JOIN artifact_revisions r ON r.artifact_id = a.artifact_id "
-        "WHERE a.artifact_type = 'reviewed_candidate' AND r.step_run_id = ?",
-        (step_run_id,),
-    ).fetchall()
-    for m_row in mod_rows:
-        m_doc = _read_doc(service, m_row[0])
-        if m_doc:
-            m_eid = m_doc.get("assertion_id") or m_doc.get("school_view_id")
-            if m_eid:
-                mod_by_eid[m_eid] = m_row[0]
+    mod_by_eid = _modified_by_entity_id(service, step_run_id)
 
     # 读取所有 human_events
-    cur_events = service.store.conn.execute(
-        "SELECT event_revision_id, decision_type FROM human_events WHERE step_run_id=? ORDER BY rowid ASC",
-        (step_run_id,),
-    ).fetchall()
-    decision_revs = [r[0] for r in cur_events if r[1] is not None]
+    cur_events = service.list_human_events(step_run_id)
+    decision_revs = [
+        row["event_revision_id"]
+        for row in cur_events
+        if row["decision_type"] is not None
+    ]
 
     # 收集全部 correction_requests（按记录顺序：冻结输入中及本运行中）
     correction_revs = []
@@ -1024,10 +962,10 @@ def close_review(service, step_run_id: str, resume_token: str) -> dict:
             if f_doc and f_doc.get("event_kind") == "correction_request" and r not in correction_revs:
                 correction_revs.append(r)
     for r in cur_events:
-        if r[1] is None:
-            c_doc = _read_doc(service, r[0])
-            if c_doc and c_doc.get("event_kind") == "correction_request" and r[0] not in correction_revs:
-                correction_revs.append(r[0])
+        if r["decision_type"] is None:
+            c_doc = _read_doc(service, r["event_revision_id"])
+            if c_doc and c_doc.get("event_kind") == "correction_request" and r["event_revision_id"] not in correction_revs:
+                correction_revs.append(r["event_revision_id"])
 
     # 重建 decision_entry（第 75 条：冻结输入里的继承决定与本运行决定一并 fold）
     mode = _review_mode(service, step)
@@ -1329,7 +1267,7 @@ def close_review(service, step_run_id: str, resume_token: str) -> dict:
         service.seal_revision(package_rev)
 
         # 5. record_transformation
-        all_human_event_revs = [r[0] for r in cur_events]
+        all_human_event_revs = [row["event_revision_id"] for row in cur_events]
         if mode == "rework":
             all_human_event_revs = (
                 list(rework_ctx["carried_decision_revision_ids"]) + all_human_event_revs

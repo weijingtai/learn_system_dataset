@@ -222,6 +222,24 @@ class LedgerReadMixin:
         """某 Transformation 引用的人工事件修订号（修订号升序）。"""
         return self.store.list_transformation_human_events(transformation_id)
 
+    # —— T03c M6 新增 ——
+    def list_step_run_checkpoints(self, step_run_id):
+        """某 StepRun 的全部 StageCheckpoint 元数据行（无内容 JSON），按写入顺序（旧→新）。"""
+        return self.store.list_step_run_checkpoints(step_run_id)
+
+    # —— T03c M6-acceptance 新增 ——
+    def list_stage_checkpoint_step_runs(self, stage):
+        """某 stage 的全部 StageCheckpoint 所属 StepRun 号（去重），按首次写入顺序。"""
+        return self.store.list_stage_checkpoint_step_runs(stage)
+
+    def first_sealed_event_created_at(self, artifact_revision_id):
+        """某修订最早的 ``to_status='sealed'`` 状态事件时间；没有则 ``None``。"""
+        return self.store.first_sealed_event_created_at(artifact_revision_id)
+
+    def count_checkpoints_by_rework_report(self, revision_id):
+        """引用某 ReworkImpactReport 修订的 StageCheckpoint 条数。"""
+        return self.store.count_checkpoints_by_rework_report(revision_id)
+
     def list_stage_packages(self, stage):
         """某 stage 的全部 StagePackage 修订，附 step_run_id 与 step_run_status。"""
         return self.store.list_stage_packages(stage)

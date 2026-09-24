@@ -339,6 +339,56 @@ class TestAcceptance(unittest.TestCase):
             errs,
         )
 
+    def test_snapshot_projection_else_branch_picks_latest_m6_package(self):
+        w = self._clone_world()
+        self.assertEqual(acceptance._check_snapshot_projection(w), [])
+        snap_rev_id = w["snapshot_revision_id"]
+        # 让「较早写入的 m6 包」不可用：只有选中最近写入的那一个（复审包）才不报错。
+        pkgs = w["service"].list_stage_packages("m6")
+        self.assertGreaterEqual(len(pkgs), 2)
+        earlier_pkg_rev = pkgs[0]["artifact_revision_id"]
+        pkg_row = w["service"].get_revision(earlier_pkg_rev)
+        doc = json.loads(w["service"].read_object(pkg_row["sha256"]).decode("utf-8"))
+        doc["payload"]["reviewed_edition_revision_id"] = ""
+        new_bytes = json.dumps(doc).encode("utf-8")
+        new_sha = hashlib.sha256(new_bytes).hexdigest()
+        w["service"].objects.put(new_bytes)
+        w["service"].store.conn.execute(
+            "UPDATE artifact_revisions SET sha256=? WHERE artifact_revision_id=?",
+            (new_sha, earlier_pkg_rev),
+        )
+        w["service"].store.conn.commit()
+        # 抹掉 first_close / rework_close，逼出「按 stage 找 m6 包」的 else 分支
+        w.pop("first_close")
+        w.pop("rework_close")
+        w["snapshot_revision_id"] = snap_rev_id
+        errors = acceptance._check_snapshot_projection(w)
+        self.assertEqual(errors, [])
+
+    def test_decisions_as_human_events_detects_empty_rationale(self):
+        w = self._clone_world()
+        self.assertEqual(acceptance._check_decisions_as_human_events(w), [])
+        service = w["service"]
+        target = None
+        for row in service.list_human_events():
+            doc = acceptance._doc(service, row["event_revision_id"]) or {}
+            if doc.get("event_kind") == "review_decision":
+                target = row["event_revision_id"]
+                break
+        self.assertIsNotNone(target)
+        rev = service.get_revision(target)
+        doc = json.loads(service.read_object(rev["sha256"]).decode("utf-8"))
+        doc["rationale"] = ""
+        payload = json.dumps(doc).encode("utf-8")
+        service.objects.put(payload)
+        service.store.conn.execute(
+            "UPDATE artifact_revisions SET sha256=? WHERE artifact_revision_id=?",
+            (hashlib.sha256(payload).hexdigest(), target),
+        )
+        service.store.conn.commit()
+        errors = acceptance._check_decisions_as_human_events(w)
+        self.assertTrue(any("rationale 为空" in e for e in errors), errors)
+
     def test_first_review_counts_match(self):
         w = self._clone_world()
         errors = acceptance._check_first_review_counts(w)

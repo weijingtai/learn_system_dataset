@@ -3,6 +3,7 @@ import shutil
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 from pipeline.ledger.service import LedgerService
 from pipeline.review.errors import ReviewRefused
@@ -141,6 +142,37 @@ class TestReworkReview(unittest.TestCase):
         self.assertIn("rework_threshold_exceeded", str(err.exception))
         self.assertIn("需操作者确认", str(err.exception))
         self.assertEqual(before, self._footprint())
+
+    def test_open_rerun_picks_m5_stage_package_of_current_m5_step_run(self):
+        """护栏：复审解析的 m5 StagePackage 必须按「当前 m5 StepRun」筛选。
+
+        M5' 重跑后账本里有两份 m5 StagePackage（旧运行 + 当前运行）。在候选列表前面
+        插一条属于别的 StepRun 的行（指向 candidate_set 修订，其文档没有
+        ``validation.passed``）；筛选被去掉时会取到它并误报 ReviewRefused。
+        """
+        ctx = self._run_to_report()
+        ctx["seed_res"] = self._seed_m4_m5(ctx)
+        m5_rows = self.service.list_stage_packages("m5")
+        self.assertEqual(len(m5_rows), 2)
+        decoy = dict(m5_rows[0])
+        decoy["step_run_id"] = "srun_decoy000000000000000000000000"
+        decoy["artifact_revision_id"] = self.seed_result["candidate_set_revision_id"]
+        orig_list = self.service.list_stage_packages
+
+        def fake_list_stage_packages(stage):
+            listed = list(orig_list(stage))
+            return [decoy] + listed if stage == "m5" else listed
+
+        with mock.patch.object(
+            self.service, "list_stage_packages", side_effect=fake_list_stage_packages
+        ):
+            res = open_rework_review(
+                self.service,
+                self.edition_part_id,
+                rework_impact_report_revision_id=ctx["report_revision_id"],
+                acknowledge_rework_warning=True,
+            )
+        self.assertIsNotNone(res["step_run_id"])
 
     def test_acknowledgement_recorded_as_human_event_with_checkpoint(self):
         ctx = self._open_rerun()
