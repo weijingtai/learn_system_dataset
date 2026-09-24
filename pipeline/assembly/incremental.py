@@ -223,15 +223,13 @@ def assert_prev_meta_agreement(prev_revision_id: Optional[str], knowledge: dict)
 
 def snapshot_revision_pairs(service) -> List[Dict[str, Any]]:
     """扫描 Ledger 里全部 sealed ``canonical_snapshot`` 修订，返回 ``(prev, meta_base)`` 对。"""
-    rows = service.store.conn.execute(
-        "SELECT r.artifact_revision_id, r.prev_revision_id, r.sha256 FROM artifact_revisions r "
-        "JOIN artifacts a ON a.artifact_id = r.artifact_id "
-        "WHERE a.artifact_type='canonical_snapshot' AND r.status='sealed' "
-        "ORDER BY r.artifact_revision_id"
-    ).fetchall()
+    rows = service.list_revisions(artifact_type="canonical_snapshot", status="sealed")
+    rows = sorted(rows, key=lambda r: r["artifact_revision_id"])
     pairs = []
-    for revision_id, prev_revision_id, sha256 in rows:
-        raw = service.objects.get(sha256)
+    for row in rows:
+        revision_id = row["artifact_revision_id"]
+        prev_revision_id = row["prev_revision_id"]
+        raw = service.read_object(row["sha256"])
         knowledge = {}
         if raw:
             try:
