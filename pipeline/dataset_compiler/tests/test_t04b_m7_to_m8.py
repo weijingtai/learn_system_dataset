@@ -320,13 +320,13 @@ class TestRunM8CompilesKnowledgeFromSnapshot(unittest.TestCase):
 class TestRunM8KnowledgeOffsetRoute(ElectronicTextStepBase):
     """offset 档（电子文本路线，真书路线）：证据链第 6/7 段为 text_mapping / source_asset{page, sha256}。"""
 
-    def test_offset_evidence_chain_carries_text_mapping_and_raw_text_sha(self):
-        inputs = self._ready()
+    def _offset_knowledge(self, inputs):
+        """一条 Pattern、一条带真实 span 绝对偏移证据的断言（形状同 M7 Snapshot）。"""
         spans_doc = _read_any(self.service, inputs["spans_revision_id"])
         span = spans_doc["spans"][0]
         length = min(2, len(span["text"]))
         quote = span["text"][:length]
-        knowledge = {
+        return span, {
             "technique_id": inputs["technique_id"],
             "patterns": [
                 {"pattern_id": "pat_qizheng_000001", "name": "示例格局", "assertion_ids": ["as_qizheng_000001"]}
@@ -352,6 +352,62 @@ class TestRunM8KnowledgeOffsetRoute(ElectronicTextStepBase):
             "school_views": [],
             "conflict_groups": [],
         }
+
+    def test_previous_release_allocation_refuses_instead_of_renumbering(self):
+        """账本已有同技法、已 succeeded 的前序发号表：不得静默重新发号（跨 Release 保号，TODO T05e）。"""
+        from pipeline.ledger import ids
+
+        inputs = self._ready()
+        technique_id = inputs["technique_id"]
+        processing_run_id = self.service.create_processing_run(
+            "release_run", ids.new_id("artifact_id"), technique_id
+        )
+        _, config_revision_id = self.service.put_run_artifact(
+            processing_run_id, "configuration", json.dumps({"stage": "m8"}).encode("utf-8"),
+            producer_module="test.seed", producer_version="0",
+        )
+        step_run_id = self.service.begin_step_run(
+            {
+                "schema_version": "1.0.0",
+                "processing_run_id": processing_run_id,
+                "step_run_id": ids.new_id("step_run_id"),
+                "input_artifact_ids": [],
+                "technique_profile_id": technique_id,
+                "configuration_artifact_id": config_revision_id,
+            }
+        )
+        _, previous_revision_id = self.service.put_artifact(
+            step_run_id, "entry_id_allocation",
+            json.dumps({"technique_id": technique_id, "allocations": []}).encode("utf-8"),
+            producer_module="test.seed", producer_version="0",
+        )
+        self.service.seal_revision(previous_revision_id)
+        self.service.finish_step_run(
+            step_run_id,
+            {
+                "schema_version": "1.0.0",
+                "processing_run_id": processing_run_id,
+                "step_run_id": step_run_id,
+                "status_version": self.service.get_step_run(step_run_id)["status_version"] + 1,
+                "status": "succeeded",
+                "output_artifact_ids": [previous_revision_id],
+                "validation_report_ids": [],
+                "log_artifact_ids": [],
+                "failure_artifact_ids": [],
+            },
+        )
+        _span, knowledge = self._offset_knowledge(inputs)
+        seed_m7_snapshot(self.service, self.edition_part_id, knowledge=knowledge)
+        result = self._run_etext()
+        self.assertEqual(result["status"], "failed")
+        self.assertEqual(result["failed_check"], "compile")
+        self.assertIn(previous_revision_id, result["reason"])
+        self.assertIn("T05e", result["reason"])
+        self.assertEqual(_sealed(self.service, result["step_run_id"], "entry_id_allocation"), [])
+
+    def test_offset_evidence_chain_carries_text_mapping_and_raw_text_sha(self):
+        inputs = self._ready()
+        span, knowledge = self._offset_knowledge(inputs)
         seed_m7_snapshot(self.service, self.edition_part_id, knowledge=knowledge)
         result = self._run_etext()
         out = _knowledge_outputs(self, self.service, result["step_run_id"])
