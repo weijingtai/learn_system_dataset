@@ -438,3 +438,219 @@ class TestRunM8KnowledgeOffsetRoute(ElectronicTextStepBase):
             chain["evidence_link"]["quote_sha256"],
             knowledge["assertions"][0]["evidence"][0]["quote_sha256"],
         )
+
+    def test_offset_route_publication_content_checks_pass(self):
+        """真书路线（offset 档）：M8 成功后，验收的知识链与图投影内容校验实评通过。"""
+        from pipeline.dataset_compiler import acceptance
+
+        inputs = self._ready()
+        _span, knowledge = self._offset_knowledge(inputs)
+        seed_m7_snapshot(self.service, self.edition_part_id, knowledge=knowledge)
+        result = self._run_etext()
+        self.assertEqual(result["status"], "succeeded", result.get("reason"))
+        step_run_id, _package_revision_id, package = acceptance._find_m8_package(
+            self.service, self.edition_part_id
+        )
+        facts = acceptance._m8_output_facts(
+            {"service": self.service, "package": package, "m8_step_run_id": step_run_id}
+        )
+        name, status, detail = acceptance._check_knowledge_chain(facts)
+        self.assertEqual((name, status), ("knowledge_chain", "PASS"), detail)
+        name, status, detail = acceptance._check_graph_projection(facts)
+        self.assertEqual((name, status), ("graph_projection", "PASS"), detail)
+
+
+# ---------------------------------------------------------------------------
+# T04B 第 4 项：M8 验收 knowledge_chain / graph_projection 的真内容校验。
+# 先在真实 Ledger 上跑通 M7→M8，再逐项篡改 Ledger 里读出的文档（经假 Ledger 端口替换
+# 修订内容，不改真账本），每一种篡改都必须让对应判据 FAIL。
+# ---------------------------------------------------------------------------
+class _TamperedLedger:
+    """读端口包装：指定修订返回替换后的字节，其余原样委派真 Ledger。"""
+
+    def __init__(self, service, replacements):
+        self._service = service
+        self._replacements = replacements
+
+    def get_revision(self, revision_id):
+        if revision_id in self._replacements:
+            return dict(self._service.get_revision(revision_id), sha256="tampered:" + revision_id)
+        return self._service.get_revision(revision_id)
+
+    def read_object(self, sha256):
+        if sha256.startswith("tampered:"):
+            return self._replacements[sha256[len("tampered:"):]]
+        return self._service.read_object(sha256)
+
+    def __getattr__(self, name):
+        return getattr(self._service, name)
+
+
+@unittest.skipUnless(assets_available(), "本机缺三页真实页图")
+class TestPublicationContentChecks(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        from pipeline.dataset_compiler import acceptance
+
+        cls.acceptance = acceptance
+        cls._tmp = tempfile.mkdtemp(prefix="t04b-acc-")
+        cls.service = LedgerService(Path(cls._tmp) / "ledger")
+        prepared = prepare_m8_ready(cls.service)
+        cls.edition_part_id = prepared["edition_part_id"]
+        manifest = yaml.safe_load((FIXTURE_M7 / "manifest.yaml").read_bytes())
+        seeded = seed_release_package(cls.service, FIXTURE_M7)
+        first_m6 = seeded["editions"][manifest["editions"][0]["edition_key"]]
+        res_m7 = run_m7(
+            cls.service,
+            cls.edition_part_id,
+            technique_id="qizheng",
+            reviewed_package_revision_ids=[first_m6["m6_package_revision_id"]],
+            id_range=manifest["id_range"],
+        )
+        assert res_m7["status"] == "succeeded", res_m7
+        res_m8 = run_m8(cls.service, cls.edition_part_id, consumption_level="INTERNAL_DEMO")
+        assert res_m8["status"] == "succeeded", res_m8.get("reason")
+        context = _build_context(
+            cls.service, cls.edition_part_id, FIXTURE_M8, FIXTURE_M8, "glyphbox_level"
+        )
+        cls.facts = acceptance._m8_output_facts(context)
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.service.close()
+        shutil.rmtree(cls._tmp, True)
+
+    def _doc(self, revision_id):
+        return json.loads(self.service.read_object(self.service.get_revision(revision_id)["sha256"]).decode("utf-8"))
+
+    def _tampered_facts(self, revision_id, mutate):
+        document = self._doc(revision_id)
+        mutate(document)
+        data = json.dumps(document, ensure_ascii=False).encode("utf-8")
+        return dict(self.facts, service=_TamperedLedger(self.service, {revision_id: data}))
+
+    def _knowledge_status(self, facts):
+        return self.acceptance._check_knowledge_chain(facts)[1:]
+
+    def _graph_status(self, facts):
+        return self.acceptance._check_graph_projection(facts)[1:]
+
+    @property
+    def _packs(self):
+        return self.facts["packs"]
+
+    def _orphan_id(self):
+        knowledge = self._doc(self._packs["knowledge_data_pack"])
+        referenced = {a for entry in knowledge["entries"] for a in entry["assertion_ids"]}
+        return sorted(a["assertion_id"] for a in knowledge["assertions"] if a["assertion_id"] not in referenced)[0]
+
+    def test_untampered_publication_passes_both_content_checks(self):
+        status, detail = self._knowledge_status(self.facts)
+        self.assertEqual(status, "PASS", detail)
+        status, detail = self._graph_status(self.facts)
+        self.assertEqual(status, "PASS", detail)
+
+    def test_evidence_link_moved_off_its_entry_assertion_fails(self):
+        orphan = self._orphan_id()
+
+        def mutate(doc):
+            doc["chains"][0]["assertion_id"] = orphan
+            doc["chains"][0]["evidence_link"]["assertion_id"] = orphan
+
+        status, detail = self._knowledge_status(self._tampered_facts(self._packs["evidence_chain"], mutate))
+        self.assertEqual(status, "FAIL", detail)
+
+    def test_quote_hash_tamper_fails(self):
+        def mutate(doc):
+            doc["chains"][0]["evidence_link"]["quote_sha256"] = "0" * 64
+
+        status, detail = self._knowledge_status(self._tampered_facts(self._packs["evidence_chain"], mutate))
+        self.assertEqual(status, "FAIL", detail)
+
+    def test_evidence_offset_moved_outside_span_fails(self):
+        def mutate(doc):
+            link = doc["chains"][0]["evidence_link"]
+            link["start_offset"] -= link["start_offset"] + 1  # 负偏移：越出 span
+
+        status, detail = self._knowledge_status(self._tampered_facts(self._packs["evidence_chain"], mutate))
+        self.assertEqual(status, "FAIL", detail)
+
+    def test_dropped_chain_fails(self):
+        def mutate(doc):
+            doc["chains"].pop()
+
+        status, detail = self._knowledge_status(self._tampered_facts(self._packs["evidence_chain"], mutate))
+        self.assertEqual(status, "FAIL", detail)
+
+    def test_chain_segment_order_swapped_fails(self):
+        def mutate(doc):
+            chain = doc["chains"][0]
+            reordered = {key: chain[key] for key in ("entry_id", "assertion_id", "source_span", "evidence_link")}
+            reordered.update({key: chain[key] for key in list(chain)[4:]})
+            doc["chains"][0] = reordered
+
+        status, detail = self._knowledge_status(self._tampered_facts(self._packs["evidence_chain"], mutate))
+        self.assertEqual(status, "FAIL", detail)
+
+    def test_ocr_page_glyph_ids_tamper_fails(self):
+        def mutate(doc):
+            doc["chains"][0]["ocr_page"]["glyph_ids"] = doc["chains"][0]["ocr_page"]["glyph_ids"][:-1]
+
+        status, detail = self._knowledge_status(self._tampered_facts(self._packs["evidence_chain"], mutate))
+        self.assertEqual(status, "FAIL", detail)
+
+    def test_entry_assertion_set_tamper_fails(self):
+        orphan = self._orphan_id()
+
+        def mutate(doc):
+            doc["entries"][0]["assertion_ids"] = sorted(doc["entries"][0]["assertion_ids"] + [orphan])
+
+        status, detail = self._knowledge_status(self._tampered_facts(self._packs["knowledge_data_pack"], mutate))
+        self.assertEqual(status, "FAIL", detail)
+
+    def test_undisclosed_subjectless_assertion_fails(self):
+        def mutate(doc):
+            doc["known_defects"] = [d for d in doc["known_defects"] if d["code"] != "assertion_without_subject"]
+
+        facts = self._tampered_facts(self.facts["publication"]["release_manifest_revision_id"], mutate)
+        status, detail = self._knowledge_status(facts)
+        self.assertEqual(status, "FAIL", detail)
+
+    def test_graph_edge_dropped_fails(self):
+        def mutate(doc):
+            doc["edges"].pop()
+            doc["edge_count"] -= 1
+
+        status, detail = self._graph_status(self._tampered_facts(self._packs["graph_projection_pack"], mutate))
+        self.assertEqual(status, "FAIL", detail)
+
+    def test_graph_node_label_changed_fails(self):
+        def mutate(doc):
+            doc["nodes"][0]["label"] += "（改）"
+
+        status, detail = self._graph_status(self._tampered_facts(self._packs["graph_projection_pack"], mutate))
+        self.assertEqual(status, "FAIL", detail)
+
+    def test_graph_extra_node_fails(self):
+        def mutate(doc):
+            doc["nodes"].append(
+                {
+                    "node_id": "co_qizheng_999999",
+                    "kind": "concept",
+                    "label": "多出来的概念",
+                    "content_status": "machine_extracted",
+                    "watermark": True,
+                }
+            )
+            doc["nodes"].sort(key=lambda node: node["node_id"])
+            doc["node_count"] += 1
+
+        status, detail = self._graph_status(self._tampered_facts(self._packs["graph_projection_pack"], mutate))
+        self.assertEqual(status, "FAIL", detail)
+
+    def test_graph_canonical_hash_mismatch_fails(self):
+        def mutate(doc):
+            doc["canonical_hash"] = "0" * 64
+
+        status, detail = self._graph_status(self._tampered_facts(self._packs["graph_projection_pack"], mutate))
+        self.assertEqual(status, "FAIL", detail)

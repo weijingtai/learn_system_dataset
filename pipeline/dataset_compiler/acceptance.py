@@ -596,15 +596,18 @@ def _m8_output_facts(context):
     publication = _read_revision_json(service, payload["publication_package_revision_id"])
     packs = dict(publication.get("packs") or {})
     evidence = _read_revision_json(service, packs["evidence_map_pack"]) if "evidence_map_pack" in packs else {}
-    input_types = sorted(
-        {ref.get("artifact_type") for ref in (package.get("manifest") or {}).get("input_artifacts") or []}
-        - {None}
-    )
+    input_refs = list((package.get("manifest") or {}).get("input_artifacts") or [])
+    input_types = sorted({ref.get("artifact_type") for ref in input_refs} - {None})
     return {
         "packs": packs,
         "knowledge_chain": payload.get("knowledge_chain"),
         "input_types": input_types,
         "mentions": evidence.get("mentions"),
+        # T04B：内容校验要回到 Ledger 独立读子包、冻结输入与发号表
+        "service": service,
+        "publication": publication,
+        "input_refs": input_refs,
+        "m8_step_run_id": context.get("m8_step_run_id"),
     }
 
 
@@ -629,7 +632,14 @@ def _check_knowledge_chain(facts):
     if state == "compiled" and not has_pack:
         return ("knowledge_chain", "FAIL", "knowledge_chain=compiled，但发布包没有 knowledge_data_pack（子包: %s）" % packs)
     if has_pack:
-        return ("knowledge_chain", "FAIL", _CONTENT_CHECK_PENDING % ("knowledge_data_pack", "T05f/T05c"))
+        if state != "compiled":
+            return (
+                "knowledge_chain",
+                "FAIL",
+                "发布包有 knowledge_data_pack，但 knowledge_chain=%s（子包: %s）" % (state, packs),
+            )
+        ok, detail = _run_content_check(_verify_knowledge_chain, facts)
+        return ("knowledge_chain", "PASS" if ok else "FAIL", detail)
     has_snapshot = "canonical_snapshot" in facts["input_types"]
     return (
         "knowledge_chain",
@@ -645,6 +655,340 @@ def _check_subpack_produced(name, facts, pack_key, todo_id, why_absent):
     if pack_key in facts["packs"]:
         return (name, "FAIL", _CONTENT_CHECK_PENDING % (pack_key, todo_id))
     return (name, "BLOCKED", "实测发布包无 %s（子包: %s）；%s（TODO.md %s）" % (pack_key, packs, why_absent, todo_id))
+
+
+def _check_graph_projection(facts):
+    """GraphProjectionPack：没产出 → BLOCKED（写实测）；产出了 → 同源、往返无损内容校验。"""
+    if "graph_projection_pack" not in facts["packs"]:
+        return _check_subpack_produced(
+            "graph_projection", facts, "graph_projection_pack", "T05d",
+            "run_m8 尚未产出 GraphProjectionPack",
+        )
+    ok, detail = _run_content_check(_verify_graph_projection, facts)
+    return ("graph_projection", "PASS" if ok else "FAIL", detail)
+
+
+# ------------------------------------------------------------------ 内容校验（T04B）
+# 独立实现：只从 Ledger 读 M8 冻结输入（M7 Snapshot、corpus_spans、清单、页 JSON、RawText）
+# 与发布包子包，自行重算；不 import packs / gate，不信任 run_m8 的返回值与 gate 报告。
+_ENTRY_ID_RE = re.compile(r"^ent_[0-9a-f]{32}$")
+# §16:705-712 固定七段；INTERFACES §3.10：前 5 键公共，第 6/7 键按证据级别分派，键序即段序
+_CHAIN_KEYS = {
+    "glyphbox_level": [
+        "entry_id", "assertion_id", "evidence_link", "source_span", "source_anchor",
+        "ocr_page", "source_asset",
+    ],
+    "offset_level": [
+        "entry_id", "assertion_id", "evidence_link", "source_span", "source_anchor",
+        "text_mapping", "source_asset",
+    ],
+}
+
+
+def _run_content_check(verify, facts):
+    """执行一项内容校验；任何异常都记为 FAIL（核对不了就不许判 PASS）。"""
+    try:
+        ok, detail = verify(facts)
+    except Exception as exc:  # noqa: BLE001 - 读不到/形状不符都属未通过
+        return False, "内容校验无法执行（%s: %s）" % (type(exc).__name__, exc)
+    return ok, detail if ok else "内容校验未过：" + detail
+
+
+def _frozen_input(facts, artifact_type):
+    """m8 冻结输入里恰 1 个该类型的修订号。"""
+    revision_ids = [
+        ref["artifact_revision_id"]
+        for ref in facts["input_refs"]
+        if ref.get("artifact_type") == artifact_type
+    ]
+    if len(revision_ids) != 1:
+        raise ValueError("m8 冻结输入 %s 数量 != 1: %d" % (artifact_type, len(revision_ids)))
+    return revision_ids[0]
+
+
+def _verify_chain_tail(facts, chain, span, level, manifest):
+    """第 6/7 段：glyphbox 回到页 JSON 与清单资产；offset 回到 RawText / 补丁集冻结输入。"""
+    service = facts["service"]
+    page_assets = manifest.get("source_assets") or []
+    if level == "glyphbox_level":
+        page = span["page"]
+        page_docs = [
+            _read_revision_json(service, ref["artifact_revision_id"])
+            for ref in facts["input_refs"]
+            if ref.get("artifact_type") == "ocr_page"
+        ]
+        page_doc = next((doc for doc in page_docs if doc.get("page") == page), None)
+        if page_doc is None:
+            return "span %s 所在页 %s 不在 m8 冻结的 ocr_page 里" % (span["span_id"], page)
+        glyph_ids = [
+            char["id"]
+            for char in page_doc["chars"]
+            if char["parent"] == span["source_anchor"]["line_id"]
+        ]
+        if not glyph_ids or chain["ocr_page"] != {"page": page, "glyph_ids": glyph_ids}:
+            return "ocr_page 与页 JSON 该行字框重算不符: %s" % span["span_id"]
+        assets = [item for item in page_assets if item.get("page") == page]
+        if len(assets) != 1 or chain["source_asset"] != {
+            "page": page,
+            "image_sha256": assets[0]["sha256"],
+        }:
+            return "source_asset 与清单页图哈希不符: %s" % span["span_id"]
+        return None
+    raw_text_revision_id = _frozen_input(facts, "raw_text")
+    raw_sha256 = service.get_revision(raw_text_revision_id)["sha256"]
+    anchor = span["source_anchor"]
+    expected_mapping = {
+        "raw_text_revision_id": raw_text_revision_id,
+        "cleaned_text_revision_id": _frozen_input(facts, "cleaned_text_revision"),
+        "patch_set_revision_id": _frozen_input(facts, "deterministic_patch_set"),
+        "raw_start": anchor["raw_start"],
+        "raw_end": anchor["raw_end"],
+    }
+    if anchor["raw_text_revision_id"] != raw_text_revision_id or chain["text_mapping"] != expected_mapping:
+        return "text_mapping 与 m8 冻结的 RawText/清洗文本/补丁集及锚点不符: %s" % span["span_id"]
+    assets = [item for item in page_assets if item.get("sha256") == raw_sha256]
+    if len(assets) != 1 or chain["source_asset"] != {"page": assets[0]["page"], "sha256": raw_sha256}:
+        return "source_asset 与清单底本 / RawText 修订哈希不符: %s" % span["span_id"]
+    return None
+
+
+def _verify_knowledge_chain(facts):
+    """知识链闭合 + 证据链可回指到 span（§16:703-715，INTERFACES §3.8/§3.9/§3.10，I-11）。"""
+    service = facts["service"]
+    publication = facts["publication"]
+    snapshot = _read_revision_json(service, _frozen_input(facts, "canonical_snapshot"))
+    spans_doc = _read_revision_json(service, _frozen_input(facts, "corpus_spans"))
+    manifest = _read_revision_json(service, _frozen_input(facts, "source_manifest"))
+    release_manifest = _read_revision_json(service, publication["release_manifest_revision_id"])
+    knowledge = _read_revision_json(service, facts["packs"]["knowledge_data_pack"])
+    chain_doc = _read_revision_json(service, facts["packs"]["evidence_chain"])
+
+    release_id = publication["release_id"]
+    for label, value in (
+        ("release_manifest", release_manifest.get("release_id")),
+        ("knowledge_data_pack", knowledge.get("release_id")),
+        ("evidence_chain", chain_doc.get("release_id")),
+    ):
+        if value != release_id:
+            return False, "%s.release_id %r 与发布包 %r 不符" % (label, value, release_id)
+
+    # 1) 词条：由 Snapshot 双轨显式引用独立重算（第 107 条 Q-M8-01，不推断）
+    assertions = {item["assertion_id"]: item for item in snapshot.get("assertions") or []}
+    expected_subjects = {}
+    for pattern in snapshot.get("patterns") or []:
+        if pattern.get("assertion_ids"):
+            expected_subjects.setdefault(pattern["pattern_id"], set()).update(pattern["assertion_ids"])
+    for item in assertions.values():
+        for concept_id in item.get("concept_refs") or []:
+            expected_subjects.setdefault(concept_id, set()).add(item["assertion_id"])
+    entries = knowledge.get("entries") or []
+    if not entries:
+        return False, "KnowledgeDataPack 无任何词条（知识链为空，第 107 条：如实失败）"
+    entry_subjects = {}
+    for entry in entries:
+        entry_id = entry.get("entry_id")
+        if not isinstance(entry_id, str) or _ENTRY_ID_RE.match(entry_id) is None:
+            return False, "entry_id 非法: %r" % (entry_id,)
+        if not entry.get("assertion_ids"):
+            return False, "词条 %s 没有断言（每个 KnowledgeEntry 至少追溯到一个 Assertion）" % entry_id
+        if entry["subject_entity_id"] in entry_subjects:
+            return False, "主体 %s 出了多个词条" % entry["subject_entity_id"]
+        entry_subjects[entry["subject_entity_id"]] = set(entry["assertion_ids"])
+    if len({entry["entry_id"] for entry in entries}) != len(entries):
+        return False, "entry_id 重复"
+    if entry_subjects != expected_subjects:
+        return False, "词条主体/断言与 Snapshot 显式引用重算不符: 包 %s，Snapshot %s" % (
+            {key: sorted(value) for key, value in sorted(entry_subjects.items())},
+            {key: sorted(value) for key, value in sorted(expected_subjects.items())},
+        )
+    pack_assertions = {item["assertion_id"]: item for item in knowledge.get("assertions") or []}
+    if set(pack_assertions) != set(assertions):
+        return False, "KnowledgeDataPack 断言集合与 Snapshot 不符"
+    for assertion_id, item in pack_assertions.items():
+        if item.get("proposition") != assertions[assertion_id].get("proposition"):
+            return False, "断言 %s 的 proposition 与 Snapshot 不符" % assertion_id
+
+    # 2) 发号表（INTERFACES §3.16）：本次 M8 封存的 entry_id_allocation 与词条一一对应
+    rows = service.list_step_run_revisions(
+        facts["m8_step_run_id"], artifact_type="entry_id_allocation", status="sealed"
+    )
+    if len(rows) != 1:
+        return False, "m8 StepRun 名下 sealed entry_id_allocation 数量 != 1: %d" % len(rows)
+    allocation = _read_revision_json(service, rows[0]["artifact_revision_id"])
+    allocated = {item["subject_entity_id"]: item["entry_id"] for item in allocation.get("allocations") or []}
+    if allocated != {entry["subject_entity_id"]: entry["entry_id"] for entry in entries}:
+        return False, "发号表与词条 entry_id 不一一对应"
+
+    # 3) 无主体断言如实披露（INTERFACES §3.8：assertion_without_subject: N 并逐条列 ID）
+    in_entries = set().union(*entry_subjects.values())
+    orphans = sorted(set(assertions) - in_entries)
+    disclosed = [
+        item for item in release_manifest.get("known_defects") or []
+        if item.get("code") == "assertion_without_subject"
+    ]
+    expected_disclosure = (
+        [{"code": "assertion_without_subject", "detail": "%d: %s" % (len(orphans), ",".join(orphans))}]
+        if orphans
+        else []
+    )
+    if disclosed != expected_disclosure:
+        return False, "无主体断言披露不符: 应 %s，实 %s" % (expected_disclosure, disclosed)
+
+    # 4) 七段证据链逐条回指 span（键序即段序；EvidenceLink 不绕过 Assertion；偏移按 I-11）
+    level = spans_doc["evidence_level"]
+    keys = _CHAIN_KEYS.get(level)
+    if keys is None:
+        return False, "evidence_level 不在闭集: %r" % (level,)
+    redacted = manifest.get("release_policy") == "reference_and_hash_only"
+    spans = {span["span_id"]: span for span in spans_doc["spans"]}
+    entry_by_id = {entry["entry_id"]: entry for entry in entries}
+    chains = chain_doc.get("chains") or []
+    if not chains:
+        return False, "evidence_chain.chains 为空（INTERFACES §3.10 minItems 1）"
+    got_links = []
+    for index, chain in enumerate(chains):
+        where = "chains[%d]" % index
+        if list(chain) != keys:
+            return False, "%s 键序/键集 %s 不是固定七段 %s" % (where, list(chain), keys)
+        entry = entry_by_id.get(chain["entry_id"])
+        if entry is None:
+            return False, "%s entry_id 悬空: %s" % (where, chain["entry_id"])
+        link = chain["evidence_link"]
+        if chain["assertion_id"] not in entry["assertion_ids"] or link.get("assertion_id") != chain["assertion_id"]:
+            return False, "%s EvidenceLink 绕过 Assertion：%s 不属词条 %s 的断言" % (
+                where, chain["assertion_id"], chain["entry_id"],
+            )
+        span = spans.get(link.get("source_span_id"))
+        if span is None:
+            return False, "%s 回指的 span 不在 m8 冻结的 corpus_spans 里: %s" % (where, link.get("source_span_id"))
+        local_start = link["start_offset"] - span["start_offset"]
+        local_end = link["end_offset"] - span["start_offset"]
+        if not (0 <= local_start <= local_end <= len(span["text"])):
+            return False, "%s 证据偏移 [%d,%d) 越出 span %s（I-11 绝对偏移）" % (
+                where, link["start_offset"], link["end_offset"], span["span_id"],
+            )
+        quote = span["text"][local_start:local_end]
+        if _sha256_hex(quote.encode("utf-8")) != link.get("quote_sha256"):
+            return False, "%s quote_sha256 与 span 原文切片重算不符" % where
+        if link.get("quote") != (None if redacted else quote):
+            return False, "%s evidence_link.quote 与 span 原文切片不符" % where
+        expected_span = {
+            "source_span_id": span["span_id"],
+            "source_id": spans_doc["source_id"],
+            "page": span.get("page"),
+            "start_offset": span["start_offset"],
+            "end_offset": span["end_offset"],
+            "text": None if redacted else span["text"],
+        }
+        if chain["source_span"] != expected_span:
+            return False, "%s source_span 与 corpus_spans 不符" % where
+        if chain["source_anchor"] != span["source_anchor"]:
+            return False, "%s source_anchor 与 corpus_spans 锚点不符" % where
+        problem = _verify_chain_tail(facts, chain, span, level, manifest)
+        if problem is not None:
+            return False, "%s %s" % (where, problem)
+        got_links.append(
+            (chain["entry_id"], chain["assertion_id"], link["source_span_id"],
+             link["start_offset"], link["end_offset"], link["quote_sha256"])
+        )
+    expected_links = set()
+    for entry in entries:
+        for assertion_id in entry["assertion_ids"]:
+            for evidence in assertions[assertion_id].get("evidence") or []:
+                expected_links.add(
+                    (entry["entry_id"], assertion_id, evidence["source_span_id"],
+                     evidence["start_offset"], evidence["end_offset"], evidence["quote_sha256"])
+                )
+    if len(set(got_links)) != len(got_links) or set(got_links) != expected_links:
+        return False, "证据链与 Snapshot 证据独立推导不一致（缺链/多链/重复）: 包 %d 条，应 %d 条" % (
+            len(got_links), len(expected_links),
+        )
+    return True, (
+        "知识链闭合：%d 个词条、%d 条断言；%d 条七段证据链逐条回指 span（I-11 绝对偏移、quote_sha256 重算一致）；"
+        "无主体断言 %d 条已按 §3.8 披露" % (len(entries), len(assertions), len(chains), len(orphans))
+    )
+
+
+def _verify_graph_projection(facts):
+    """GraphProjectionPack 与移动端数据（KnowledgeDataPack）同源、往返无损（§16:725，INTERFACES §3.15）。"""
+    service = facts["service"]
+    publication = facts["publication"]
+    if "knowledge_data_pack" not in facts["packs"]:
+        return False, "发布包没有同源的移动端数据 knowledge_data_pack，无法核对往返"
+    _frozen_input(facts, "canonical_snapshot")  # 两者须出自本次冻结的同一 Snapshot
+    graph = _read_revision_json(service, facts["packs"]["graph_projection_pack"])
+    knowledge = _read_revision_json(service, facts["packs"]["knowledge_data_pack"])
+    release_manifest = _read_revision_json(service, publication["release_manifest_revision_id"])
+
+    # 1) 同源标识：release_id / canonical_hash / consumption_level
+    if not (graph.get("release_id") == knowledge.get("release_id") == release_manifest.get("release_id") == publication["release_id"]):
+        return False, "release_id 不一致（图投影/移动端数据/清单/发布包）"
+    if not (graph.get("canonical_hash") == release_manifest.get("canonical_hash") == publication["canonical_hash"]):
+        return False, "graph_projection.canonical_hash 与 ReleaseManifest/发布包不符"
+    if not (graph.get("consumption_level") == knowledge.get("consumption_level") == release_manifest.get("consumption_level")):
+        return False, "consumption_level 不一致"
+
+    # 2) 形状（INTERFACES §3.15）
+    nodes = graph.get("nodes") or []
+    edges = graph.get("edges") or []
+    if graph.get("node_count") != len(nodes) or graph.get("edge_count") != len(edges):
+        return False, "node_count/edge_count 与实际不符"
+    node_ids = [node["node_id"] for node in nodes]
+    if node_ids != sorted(set(node_ids)):
+        return False, "nodes 未按 node_id 升序或有重复"
+    triples = [(edge["source"], edge["relation"], edge["target"]) for edge in edges]
+    if triples != sorted(set(triples)):
+        return False, "edges 未按 (source, relation, target) 升序或有重复"
+    if any("edge_id" in edge or "id" in edge for edge in edges):
+        return False, "边带了独立 ID（【I-10】）"
+
+    # 3) 往返无损：由移动端数据独立重建应有的节点与关系，须与图投影逐一相等
+    entries = knowledge.get("entries") or []
+    expected_nodes = {}
+    for concept in knowledge.get("concepts") or []:
+        expected_nodes[concept["concept_id"]] = ("concept", concept["name"], None)
+    for assertion in knowledge.get("assertions") or []:
+        expected_nodes[assertion["assertion_id"]] = ("assertion", assertion["proposition"], assertion["status"])
+    for entry in entries:
+        if entry["subject_entity_id"].startswith("pat_"):
+            expected_nodes[entry["subject_entity_id"]] = ("pattern", entry["title"], None)
+    for view in knowledge.get("school_views") or []:
+        expected_nodes[view["school_view_id"]] = ("school_view", view["school_view_id"], view["content_status"])
+    got_nodes = {}
+    for node in nodes:
+        expected = expected_nodes.get(node["node_id"])
+        status = node.get("content_status") if expected is not None and expected[2] is not None else None
+        got_nodes[node["node_id"]] = (node["kind"], node["label"], status)
+    if got_nodes != expected_nodes:
+        missing = sorted(set(expected_nodes) - set(got_nodes))
+        extra = sorted(set(got_nodes) - set(expected_nodes))
+        changed = sorted(
+            node_id for node_id in set(got_nodes) & set(expected_nodes)
+            if got_nodes[node_id] != expected_nodes[node_id]
+        )
+        return False, "图节点与移动端数据往返不符: 缺 %s 多 %s 变 %s" % (missing, extra, changed)
+    expected_edges = set()
+    for entry in entries:
+        subject = entry["subject_entity_id"]
+        for assertion_id in entry["assertion_ids"]:
+            if subject.startswith("pat_"):
+                expected_edges.add((subject, "has_assertion", assertion_id))
+            elif subject.startswith("co_"):
+                expected_edges.add((assertion_id, "belongs_to_concept", subject))
+    for assertion in knowledge.get("assertions") or []:
+        if (assertion.get("subject_entity_id") or "").startswith("co_"):
+            expected_edges.add((assertion["assertion_id"], "belongs_to_concept", assertion["subject_entity_id"]))
+    for view in knowledge.get("school_views") or []:
+        if view.get("conflict_group_id"):
+            expected_edges.add((view["school_view_id"], "in_conflict_group", view["conflict_group_id"]))
+    if set(triples) != expected_edges:
+        return False, "图关系与移动端数据往返不符: 缺 %s 多 %s" % (
+            sorted(expected_edges - set(triples)), sorted(set(triples) - expected_edges),
+        )
+    return True, (
+        "GraphProjectionPack 与 KnowledgeDataPack 同源（release_id/canonical_hash/consumption_level 一致），"
+        "往返无损：%d 节点、%d 条关系逐一可由移动端数据重建" % (len(nodes), len(edges))
+    )
 
 
 # ------------------------------------------------------------------ 组装结果
@@ -779,12 +1123,7 @@ def _evaluate_publication(context):
             results.append(_safe(name, func))
     facts = _m8_output_facts(context)
     results.append(_check_knowledge_chain(facts))
-    results.append(
-        _check_subpack_produced(
-            "graph_projection", facts, "graph_projection_pack", "T05d",
-            "run_m8 尚未产出 GraphProjectionPack",
-        )
-    )
+    results.append(_check_graph_projection(facts))
     results.append(
         _check_subpack_produced(
             "identity_migration", facts, "identity_migration_map", "T05e",
