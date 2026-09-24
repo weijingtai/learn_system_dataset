@@ -176,7 +176,7 @@ def _prepare_release_rounds(tmp_root: Path) -> dict:
             if not revision_id:
                 return None
             revision = service.get_revision(revision_id)
-            return service.objects.get(revision["sha256"])
+            return service.read_object(revision["sha256"])
 
         def _revision_doc(revision_id):
             raw = _revision_bytes(revision_id)
@@ -291,32 +291,20 @@ def _prepare_with_real_m6():
             raise RuntimeError("real M6 close_review 未成功: %r" % first_close.get("failed_check"))
 
         # 查找 m6 StagePackage 修订
-        m6_pkg_row = service.store.conn.execute(
-            "SELECT ar.artifact_revision_id FROM artifact_revisions ar "
-            "JOIN stage_packages sp ON ar.artifact_id = sp.artifact_id "
-            "WHERE sp.stage='m6'",
-        ).fetchone()
-        if not m6_pkg_row:
+        m6_pkgs = service.list_stage_packages("m6")
+        if not m6_pkgs:
             raise RuntimeError("未找到 m6 StagePackage")
-        m6_pkg_rev_id = m6_pkg_row[0]
+        m6_pkg_rev_id = m6_pkgs[0]["artifact_revision_id"]
 
         m6_before = service.get_revision(m6_pkg_rev_id)
 
         # 查找 reviewed_edition 修订
-        re_row = service.store.conn.execute(
-            "SELECT ar.artifact_revision_id FROM artifact_revisions ar "
-            "JOIN artifacts a ON a.artifact_id = ar.artifact_id "
-            "WHERE a.artifact_type='reviewed_edition'",
-        ).fetchone()
-        re_rev_id = re_row[0] if re_row else None
+        re_revs = service.list_revisions(artifact_type="reviewed_edition")
+        re_rev_id = re_revs[0]["artifact_revision_id"] if re_revs else None
 
         # 查找 reviewed_edition_package 修订
-        rep_row = service.store.conn.execute(
-            "SELECT ar.artifact_revision_id FROM artifact_revisions ar "
-            "JOIN artifacts a ON a.artifact_id = ar.artifact_id "
-            "WHERE a.artifact_type='reviewed_edition_package'",
-        ).fetchone()
-        rep_rev_id = rep_row[0] if rep_row else None
+        rep_revs = service.list_revisions(artifact_type="reviewed_edition_package")
+        rep_rev_id = rep_revs[0]["artifact_revision_id"] if rep_revs else None
 
         # 运行 M7
         technique_id = "qizheng"
@@ -331,14 +319,14 @@ def _prepare_with_real_m6():
         m6_after = service.get_revision(m6_pkg_rev_id)
 
         snap_rev = service.get_revision(res["snapshot_revision_id"])
-        snap_bytes = service.objects.get(snap_rev["sha256"])
+        snap_bytes = service.read_object(snap_rev["sha256"])
         snap_doc = json.loads(snap_bytes.decode("utf-8"))
 
         # 读 reviewed_edition 内容
         re_doc = None
         if re_rev_id:
             re_rev = service.get_revision(re_rev_id)
-            re_doc = json.loads(service.objects.get(re_rev["sha256"]).decode("utf-8"))
+            re_doc = json.loads(service.read_object(re_rev["sha256"]).decode("utf-8"))
 
         world = {
             "service": service,
@@ -389,7 +377,7 @@ def _prepare(tmp_root: Path):
         }
 
         snap_rev = service.get_revision(res["snapshot_revision_id"])
-        snap_bytes = service.objects.get(snap_rev["sha256"])
+        snap_bytes = service.read_object(snap_rev["sha256"])
         snap_doc = json.loads(snap_bytes.decode("utf-8"))
 
         # 在独立干净临时 Ledger 中运行第二次同一输入，验证纯函数/确定性
@@ -406,7 +394,7 @@ def _prepare(tmp_root: Path):
                     base_snapshot_revision_id=None,
                 )
                 snap_rev2 = service2.get_revision(res2["snapshot_revision_id"])
-                snap_bytes_r2 = service2.objects.get(snap_rev2["sha256"])
+                snap_bytes_r2 = service2.read_object(snap_rev2["sha256"])
             finally:
                 service2.close()
         finally:
@@ -440,7 +428,7 @@ def _prepare(tmp_root: Path):
 def check_genesis_snapshot(world) -> list[str]:
     service: LedgerService = world["service"]
     res = world["run_result"]
-    step = service.store.get_step_run(res["step_run_id"])
+    step = service.get_step_run(res["step_run_id"])
     errors = []
     if step["status"] != "succeeded":
         errors.append("step_run 状态非 succeeded: %s" % step["status"])
@@ -457,17 +445,13 @@ def check_genesis_snapshot(world) -> list[str]:
 
 def check_configuration_and_scope(world) -> list[str]:
     service: LedgerService = world["service"]
-    step = service.store.get_step_run(world["step_run_id"])
+    step = service.get_step_run(world["step_run_id"])
     errors = []
 
-    row = service.store.conn.execute(
-        "SELECT * FROM processing_runs WHERE processing_run_id=?",
-        (step["processing_run_id"],),
-    ).fetchone()
-    if not row:
+    prun = service.get_processing_run(step["processing_run_id"])
+    if not prun:
         errors.append("ProcessingRun 不存在: %s" % step["processing_run_id"])
         return errors
-    prun = dict(row)
     if prun.get("kind") != "release_run":
         errors.append("ProcessingRun kind 须为 release_run，实际: %s" % prun.get("kind"))
     if prun.get("edition_part_id") != world["edition_part_id"]:
@@ -479,7 +463,7 @@ def check_configuration_and_scope(world) -> list[str]:
     req = json.loads(step["request_json"])
     cfg_rev_id = req["configuration_artifact_id"]
     cfg_rev = service.get_revision(cfg_rev_id)
-    cfg_doc = json.loads(service.objects.get(cfg_rev["sha256"]).decode("utf-8"))
+    cfg_doc = json.loads(service.read_object(cfg_rev["sha256"]).decode("utf-8"))
     if cfg_doc.get("stage") != "m7":
         errors.append("configuration.stage 须为 m7，实际: %s" % cfg_doc.get("stage"))
 
@@ -488,23 +472,18 @@ def check_configuration_and_scope(world) -> list[str]:
 
 def check_package_lineage(world) -> list[str]:
     service: LedgerService = world["service"]
-    step = service.store.get_step_run(world["step_run_id"])
+    step = service.get_step_run(world["step_run_id"])
     errors = []
 
     # 查 stage_package revision
-    row = service.store.conn.execute(
-        "SELECT ar.artifact_revision_id FROM artifact_revisions ar "
-        "JOIN stage_packages sp ON ar.artifact_id = sp.artifact_id "
-        "WHERE ar.step_run_id=? AND sp.stage='m7'",
-        (step["step_run_id"],),
-    ).fetchone()
-    if not row:
+    m7_pkgs = [p for p in service.list_stage_packages("m7") if p["step_run_id"] == step["step_run_id"]]
+    if not m7_pkgs:
         errors.append("未找到 m7 stage_package 修订")
         return errors
 
-    stage_pkg_rev_id = row[0]
+    stage_pkg_rev_id = m7_pkgs[0]["artifact_revision_id"]
     stage_pkg_rev = service.get_revision(stage_pkg_rev_id)
-    stage_pkg_doc = json.loads(service.objects.get(stage_pkg_rev["sha256"]).decode("utf-8"))
+    stage_pkg_doc = json.loads(service.read_object(stage_pkg_rev["sha256"]).decode("utf-8"))
 
     # 过 schema（使用 service._validate 自动绑定引用 Registry）
     try:
@@ -676,13 +655,9 @@ def check_closed_set_types(world) -> list[str]:
     ]
     types = set()
     for rid in rev_ids:
-        rev = service.get_revision(rid)
-        row = service.store.conn.execute(
-            "SELECT artifact_type FROM artifacts WHERE artifact_id=?",
-            (rev["artifact_id"],),
-        ).fetchone()
-        if row:
-            types.add(row[0])
+        info = service.describe_revision(rid)
+        if info and info.get("artifact_type"):
+            types.add(info["artifact_type"])
 
     expected = {"canonical_snapshot", "assembly_package", "validation_report"}
     if types != expected:
@@ -1315,12 +1290,13 @@ def check_upstream_m6_real_book(world) -> tuple:
 
 
 def _newest_sealed_m6_revision(service):
-    rows = service.store.conn.execute(
-        "SELECT r.artifact_revision_id FROM stage_packages sp "
-        "JOIN artifact_revisions r ON r.artifact_id = sp.artifact_id "
-        "WHERE sp.stage='m6' AND r.status='sealed' ORDER BY r.created_at DESC, r.rowid DESC"
-    ).fetchall()
-    return rows[0][0] if rows else None
+    pkgs = service.list_stage_packages("m6")
+    sealed = [
+        p["artifact_revision_id"]
+        for p in pkgs
+        if (service.get_revision(p["artifact_revision_id"]) or {}).get("status") == "sealed"
+    ]
+    return sealed[-1] if sealed else None
 
 
 def _seal_base_snapshot(service, gold_bytes: bytes, technique_id: str) -> str:
@@ -1364,7 +1340,7 @@ def _revision_doc(service, revision_id):
     if not revision_id:
         return None
     revision = service.get_revision(revision_id)
-    return json.loads(service.objects.get(revision["sha256"]).decode("utf-8"))
+    return json.loads(service.read_object(revision["sha256"]).decode("utf-8"))
 
 
 def check_upstream_m6_real_with_note(world) -> tuple:

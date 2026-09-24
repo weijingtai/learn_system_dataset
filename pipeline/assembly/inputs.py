@@ -22,7 +22,7 @@ def _read_doc(service, revision_id: str) -> dict:
     rev = service.get_revision(revision_id)
     if rev is None:
         raise AssemblyRefused("修订不存在: %s" % revision_id, code="REF_001")
-    raw = service.objects.get(rev["sha256"])
+    raw = service.read_object(rev["sha256"])
     if raw is None:
         raise AssemblyRefused("对象不存在: %s (%s)" % (revision_id, rev["sha256"]), code="REF_001")
     text = raw.decode("utf-8")
@@ -33,25 +33,18 @@ def _read_doc(service, revision_id: str) -> dict:
 
 
 def _get_artifact_type(service, revision_id: str) -> str:
-    row = service.store.conn.execute(
-        "SELECT a.artifact_type FROM artifact_revisions r "
-        "JOIN artifacts a ON a.artifact_id = r.artifact_id "
-        "WHERE r.artifact_revision_id = ?",
-        (revision_id,),
-    ).fetchone()
-    if row is None:
+    desc = service.describe_revision(revision_id)
+    if desc is None:
         raise AssemblyRefused("未找到修订所属 artifact_type: %s" % revision_id, code="REF_001")
-    return row[0]
+    return desc["artifact_type"]
 
 
 def _get_stage_package_info(service, artifact_id: str) -> tuple:
-    row = service.store.conn.execute(
-        "SELECT stage_package_id, stage FROM stage_packages WHERE artifact_id = ?",
-        (artifact_id,),
-    ).fetchone()
-    if row is None:
+    sp = service.get_stage_package(artifact_id=artifact_id)
+    if sp is None:
         raise AssemblyRefused("未找到 stage_packages 记录: artifact_id=%s" % artifact_id, code="REF_001")
-    return row[0], row[1]
+    return sp["stage_package_id"], sp["stage"]
+
 
 
 def _package_error(index: int, revision_id: str, message: str, code: str) -> AssemblyRefused:
@@ -164,21 +157,12 @@ def _resolve_one_package(service, m6_rev_id: str, index: int) -> Dict[str, Any]:
         )
 
     # 查询 candidate_package 所属 step_run
-    m4_step_run_row = service.store.conn.execute(
-        "SELECT step_run_id, status FROM step_runs WHERE stage='m4' AND result_json LIKE ?",
-        ("%" + candidate_pkg_rev_id + "%",),
-    ).fetchone()
-    if m4_step_run_row is None:
-        # 尝试查 transformations
-        m4_step_run_row = service.store.conn.execute(
-            "SELECT r.step_run_id, r.status FROM transformations t "
-            "JOIN step_runs r ON r.step_run_id = t.step_run_id "
-            "WHERE t.output_artifact_revision_id = ? AND r.stage='m4'",
-            (candidate_pkg_rev_id,),
-        ).fetchone()
+    cp_desc = service.describe_revision(candidate_pkg_rev_id)
+    step_run_id = cp_desc.get("step_run_id") if cp_desc else None
+    step = service.get_step_run(step_run_id) if step_run_id else None
 
-    if m4_step_run_row is None or m4_step_run_row[1] != "succeeded":
-        status = m4_step_run_row[1] if m4_step_run_row else "None"
+    if step is None or step.get("stage") != "m4" or step.get("status") != "succeeded":
+        status = step.get("status") if (step and step.get("stage") == "m4") else "None"
         raise _package_error(
             index,
             m6_rev_id,

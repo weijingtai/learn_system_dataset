@@ -535,3 +535,14 @@ class LedgerClient:
         return self._call(
             "list_transformation_human_events", {"transformation_id": transformation_id}
         )
+
+    # —— T03c M7 新增 ——
+    def get_stage_package(self, stage_package_id=None, artifact_id=None):
+        """见 ``LedgerReader.get_stage_package``。"""
+        params = {}
+        if stage_package_id is not None:
+            params["stage_package_id"] = stage_package_id
+        if artifact_id is not None:
+            params["artifact_id"] = artifact_id
+        return self._call("get_stage_package", params)
+
