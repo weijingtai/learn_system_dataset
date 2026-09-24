@@ -21,14 +21,7 @@ M7_TOOL_VERSION = "0.1.0-draft"
 
 def latest_succeeded_step_run(reader, edition_part_id: str, stage: str) -> Optional[str]:
     """该 EditionPart×Stage 上最近一个 ``succeeded`` 的 StepRun（只读，不写死号）。"""
-    rows = reader.store.conn.execute(
-        "SELECT DISTINCT c.step_run_id, c.created_at, c.rowid FROM stage_checkpoints c "
-        "JOIN step_runs r ON r.step_run_id = c.step_run_id "
-        "WHERE c.edition_part_id=? AND c.stage=? AND r.status='succeeded' "
-        "ORDER BY c.created_at DESC, c.rowid DESC",
-        (edition_part_id, stage),
-    ).fetchall()
-    return rows[0][0] if rows else None
+    return reader.latest_checkpoint_step_run(edition_part_id, stage, "succeeded")
 
 
 def begin_or_supersede(
@@ -482,13 +475,9 @@ def run_m7(
     if base is not None:
         snap_rows = []
     else:
-        snap_rows = service.store.conn.execute(
-            "SELECT r.artifact_revision_id, r.sha256 FROM artifact_revisions r "
-            "JOIN artifacts a ON a.artifact_id = r.artifact_id "
-            "WHERE a.artifact_type='canonical_snapshot' AND r.status='sealed'"
-        ).fetchall()
-    for snap_rev_id, sha in snap_rows:
-        raw = service.objects.get(sha)
+        snap_rows = service.list_revisions(artifact_type="canonical_snapshot", status="sealed")
+    for snap in snap_rows:
+        raw = service.read_object(snap["sha256"])
         if raw:
             try:
                 snap_doc = json.loads(raw.decode("utf-8"))
