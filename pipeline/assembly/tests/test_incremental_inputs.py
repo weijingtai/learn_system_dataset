@@ -478,6 +478,22 @@ class IncrementalInputsCase(unittest.TestCase):
             sorted(snapshots), sorted([first["snapshot_revision_id"], second["snapshot_revision_id"]])
         )
 
+    def test_resolve_m4_fallback_query_is_broken_today(self):
+        """证明现状：当 m4 StepRun 的 result_json 不含 candidate_package 修订号时，
+        走入回退查询，因 transformations 表缺少 output_artifact_revision_id 列而抛出
+        sqlite3.OperationalError: no such column: t.output_artifact_revision_id。"""
+        import sqlite3
+
+        # 破坏 m4 step_run 的 result_json，使主查询 LIKE 匹配落空
+        self.service.store.conn.execute("UPDATE step_runs SET result_json = '{}' WHERE stage='m4'")
+        self.service.store.conn.commit()
+
+        with self.assertRaises(sqlite3.OperationalError) as ctx:
+            resolve_m7_inputs(self.service, [self.ed01_m6_rev()])
+        self.assertIn("no such column", str(ctx.exception).lower())
+        self.assertIn("output_artifact_revision_id", str(ctx.exception))
+
 
 if __name__ == "__main__":
     unittest.main()
+

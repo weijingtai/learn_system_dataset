@@ -762,11 +762,19 @@ class MetadataStore:
             (stage_package_id, artifact_id, stage),
         )
 
-    def get_stage_package(self, stage_package_id):
-        """按包号返回 dict，或 ``None``。"""
-        row = self.conn.execute(
-            "SELECT * FROM stage_packages WHERE stage_package_id=?", (stage_package_id,)
-        ).fetchone()
+    # —— T03c M7 新增 ——
+    def get_stage_package(self, stage_package_id=None, artifact_id=None):
+        """按包号或 artifact_id 返回 dict（stage_package_id, artifact_id, stage），或 ``None``。"""
+        if stage_package_id is not None:
+            row = self.conn.execute(
+                "SELECT * FROM stage_packages WHERE stage_package_id=?", (stage_package_id,)
+            ).fetchone()
+        elif artifact_id is not None:
+            row = self.conn.execute(
+                "SELECT * FROM stage_packages WHERE artifact_id=?", (artifact_id,)
+            ).fetchone()
+        else:
+            raise ValueError("必须指定 stage_package_id 或 artifact_id")
         return _as_dict(row)
 
     def insert_checkpoint(

@@ -22,7 +22,7 @@ def _read_doc(service, revision_id: str) -> dict:
     rev = service.get_revision(revision_id)
     if rev is None:
         raise AssemblyRefused("修订不存在: %s" % revision_id, code="REF_001")
-    raw = service.objects.get(rev["sha256"])
+    raw = service.read_object(rev["sha256"])
     if raw is None:
         raise AssemblyRefused("对象不存在: %s (%s)" % (revision_id, rev["sha256"]), code="REF_001")
     text = raw.decode("utf-8")
@@ -33,25 +33,18 @@ def _read_doc(service, revision_id: str) -> dict:
 
 
 def _get_artifact_type(service, revision_id: str) -> str:
-    row = service.store.conn.execute(
-        "SELECT a.artifact_type FROM artifact_revisions r "
-        "JOIN artifacts a ON a.artifact_id = r.artifact_id "
-        "WHERE r.artifact_revision_id = ?",
-        (revision_id,),
-    ).fetchone()
-    if row is None:
+    desc = service.describe_revision(revision_id)
+    if desc is None:
         raise AssemblyRefused("未找到修订所属 artifact_type: %s" % revision_id, code="REF_001")
-    return row[0]
+    return desc["artifact_type"]
 
 
 def _get_stage_package_info(service, artifact_id: str) -> tuple:
-    row = service.store.conn.execute(
-        "SELECT stage_package_id, stage FROM stage_packages WHERE artifact_id = ?",
-        (artifact_id,),
-    ).fetchone()
-    if row is None:
+    sp = service.get_stage_package(artifact_id=artifact_id)
+    if sp is None:
         raise AssemblyRefused("未找到 stage_packages 记录: artifact_id=%s" % artifact_id, code="REF_001")
-    return row[0], row[1]
+    return sp["stage_package_id"], sp["stage"]
+
 
 
 def _package_error(index: int, revision_id: str, message: str, code: str) -> AssemblyRefused:

@@ -238,6 +238,12 @@ class LedgerReadMixin:
         """按 stage 聚合某 ProcessingRun 的进度（§17.1）。"""
         return _stage_progress(self.store, processing_run_id)
 
+    # —— T03c M7 新增 ——
+    def get_stage_package(self, stage_package_id=None, artifact_id=None):
+        """按包号或 artifact_id 返回 dict（stage_package_id, artifact_id, stage），或 ``None``。"""
+        return self.store.get_stage_package(stage_package_id=stage_package_id, artifact_id=artifact_id)
+
+
 
 class LedgerService(LedgerReadMixin):
     """Ledger 写 API（规格 §17 步骤事务序列、§7.1 人工恢复、§17.1 Checkpoint）。"""
