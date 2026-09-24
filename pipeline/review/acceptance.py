@@ -77,7 +77,7 @@ def _revision_bytes(service, revision_id):
     row = service.get_revision(revision_id)
     if row is None:
         raise KeyError("修订不存在: %s" % revision_id)
-    return service.objects.get(row["sha256"])
+    return service.read_object(row["sha256"])
 
 
 def _doc(service, revision_id):
@@ -89,33 +89,16 @@ def _doc(service, revision_id):
 
 
 def _artifact_type(service, revision_id):
-    row = service.store.conn.execute(
-        "SELECT a.artifact_type FROM artifact_revisions r "
-        "JOIN artifacts a ON a.artifact_id = r.artifact_id "
-        "WHERE r.artifact_revision_id=?",
-        (revision_id,),
-    ).fetchone()
-    return None if row is None else row[0]
+    info = service.describe_revision(revision_id)
+    return None if info is None else info["artifact_type"]
 
 
 def _frozen_inputs(service, step_run_id):
-    return [
-        row[0]
-        for row in service.store.conn.execute(
-            "SELECT artifact_revision_id FROM frozen_inputs WHERE step_run_id=? "
-            "ORDER BY artifact_revision_id",
-            (step_run_id,),
-        ).fetchall()
-    ]
+    return service.list_frozen_inputs(step_run_id)
 
 
 def _m6_step_runs(service):
-    return [
-        row[0]
-        for row in service.store.conn.execute(
-            "SELECT DISTINCT step_run_id FROM stage_checkpoints WHERE stage='m6'"
-        ).fetchall()
-    ]
+    return service.list_stage_checkpoint_step_runs("m6")
 
 
 def _own_checkpoints(service, edition_part_id, step_run_id):
@@ -128,23 +111,14 @@ def _own_checkpoints(service, edition_part_id, step_run_id):
 
 def _human_event_revs(service, step_run_id):
     return [
-        row[0]
-        for row in service.store.conn.execute(
-            "SELECT event_revision_id FROM human_events WHERE step_run_id=? "
-            "ORDER BY rowid",
-            (step_run_id,),
-        ).fetchall()
+        row["event_revision_id"] for row in service.list_human_events(step_run_id)
     ]
 
 
 def _all_review_queues(service):
     """所有 ``review_queue`` 修订的内容列表。"""
-    rows = service.store.conn.execute(
-        "SELECT r.artifact_revision_id FROM artifact_revisions r "
-        "JOIN artifacts a ON a.artifact_id = r.artifact_id "
-        "WHERE a.artifact_type='review_queue'"
-    ).fetchall()
-    return [_doc(service, row[0]) or [] for row in rows]
+    rows = service.list_revisions(artifact_type="review_queue")
+    return [_doc(service, row["artifact_revision_id"]) or [] for row in rows]
 
 
 def _stage_package_validator():
@@ -250,15 +224,10 @@ def _check_inputs_frozen(world):
         if revision_id is None:
             errors.append("期望冻结修订缺失")
             continue
-        row = service.store.conn.execute(
-            "SELECT created_at FROM revision_status_events "
-            "WHERE artifact_revision_id=? AND to_status='sealed' "
-            "ORDER BY created_at LIMIT 1",
-            (revision_id,),
-        ).fetchone()
+        row = service.first_sealed_event_created_at(revision_id)
         if row is None:
             errors.append("冻结修订无 sealed 事件: %s" % revision_id)
-        elif row[0] > step_created_at:
+        elif row > step_created_at:
             errors.append("冻结修订在其后封存: %s" % revision_id)
     return errors
 
@@ -294,9 +263,10 @@ def _check_decisions_as_human_events(world):
             queue_types[item["queue_item_id"]] = item["decision_type"]
     m6_runs = set(_m6_step_runs(service))
 
-    rows = service.store.conn.execute(
-        "SELECT event_revision_id, step_run_id, decision_type FROM human_events"
-    ).fetchall()
+    rows = [
+        (row["event_revision_id"], row["step_run_id"], row["decision_type"])
+        for row in service.list_human_events()
+    ]
     for event_revision_id, step_run_id, decision_type in rows:
         doc = _doc(service, event_revision_id) or {}
         if doc.get("event_kind") != "review_decision":
@@ -385,13 +355,11 @@ def _check_reviewed_edition_contract(world):
     expected = world["expected"]["first_review"]
     errors = []
     validator = _stage_package_validator()
-    packages = service.store.conn.execute(
-        "SELECT sp.stage_package_id, r.artifact_revision_id FROM stage_packages sp "
-        "JOIN artifact_revisions r ON r.artifact_id = sp.artifact_id WHERE sp.stage='m6'"
-    ).fetchall()
+    packages = service.list_stage_packages("m6")
     if len(packages) != 2:
         errors.append("m6 StagePackage 数不为 2: %d" % len(packages))
-    for _package_id, revision_id in packages:
+    for package_row in packages:
+        revision_id = package_row["artifact_revision_id"]
         package = _doc(service, revision_id) or {}
         try:
             validator.validate(package)
@@ -441,13 +409,10 @@ def _check_transformation_record(world):
         step = service.get_step_run(step_run_id)
         if step["status"] != "succeeded":
             errors.append("运行非 succeeded: %s" % step_run_id)
-        manifest = service.store.conn.execute(
-            "SELECT r.artifact_revision_id FROM artifact_revisions r "
-            "JOIN artifacts a ON a.artifact_id = r.artifact_id "
-            "WHERE a.artifact_type='step_manifest' AND r.step_run_id=?",
-            (step_run_id,),
-        ).fetchone()
-        if manifest is None:
+        manifest = service.list_step_run_revisions(
+            step_run_id, artifact_type="step_manifest"
+        )
+        if not manifest:
             errors.append("运行无 StepManifest: %s" % step_run_id)
         frozen = set(_frozen_inputs(service, step_run_id))
         for transformation in service.list_transformations(step_run_id):
@@ -464,47 +429,26 @@ def _check_transformation_record(world):
             report = transformation.get("validation_report_revision_id")
             if not report or _artifact_type(service, report) != "validation_report":
                 errors.append("Transformation 校验报告缺失或类型不符")
-            inputs = [
-                row[0]
-                for row in service.store.conn.execute(
-                    "SELECT artifact_revision_id FROM transformation_inputs "
-                    "WHERE transformation_id=?",
-                    (transformation_id,),
-                ).fetchall()
-            ]
+            inputs = service.list_transformation_inputs(transformation_id)
             if not inputs:
                 errors.append("Transformation 输入为空")
             own_sealed = {
-                row[0]
-                for row in service.store.conn.execute(
-                    "SELECT artifact_revision_id FROM artifact_revisions "
-                    "WHERE step_run_id=? AND status='sealed'",
-                    (step_run_id,),
-                ).fetchall()
+                row["artifact_revision_id"]
+                for row in service.list_revisions(
+                    status="sealed", step_run_ids=[step_run_id]
+                )
             }
             extra = set(inputs) - (frozen | own_sealed)
             if extra:
                 errors.append("Transformation 输入既非冻结输入也非本运行产出: %s" % sorted(extra))
-            outputs = [
-                row[0]
-                for row in service.store.conn.execute(
-                    "SELECT artifact_revision_id FROM transformation_outputs "
-                    "WHERE transformation_id=?",
-                    (transformation_id,),
-                ).fetchall()
-            ]
+            outputs = service.list_transformation_outputs(transformation_id)
             for revision_id in outputs:
                 row = service.get_revision(revision_id)
                 if row is None or row["status"] != "sealed":
                     errors.append("Transformation 输出未 sealed: %s" % revision_id)
-            human_events = {
-                row[0]
-                for row in service.store.conn.execute(
-                    "SELECT event_revision_id FROM transformation_human_events "
-                    "WHERE transformation_id=?",
-                    (transformation_id,),
-                ).fetchall()
-            }
+            human_events = set(
+                service.list_transformation_human_events(transformation_id)
+            )
             for revision_id in human_events:
                 if _artifact_type(service, revision_id) != "human_event":
                     errors.append("Transformation 人工事件类型不符: %s" % revision_id)
@@ -547,10 +491,10 @@ def _old_pending_queue(world):
     service = world["service"]
     queue = _doc(service, world["first_open"]["queue_revision_id"]) or []
     decided_entities = set()
-    for revision_id, decision_type in service.store.conn.execute(
-        "SELECT event_revision_id, decision_type FROM human_events WHERE step_run_id=?",
-        (world["first_open"]["step_run_id"],),
-    ).fetchall():
+    for revision_id, decision_type in [
+        (row["event_revision_id"], row["decision_type"])
+        for row in service.list_human_events(world["first_open"]["step_run_id"])
+    ]:
         if decision_type is None:
             continue
         doc = _doc(service, revision_id) or {}
@@ -596,10 +540,7 @@ def _check_precise_invalidation(world):
     if reachable != sorted(report.get("reachable_entity_ids") or []):
         errors.append("独立重算可达对象不一致")
 
-    referenced = service.store.conn.execute(
-        "SELECT count(*) FROM stage_checkpoints WHERE rework_impact_report_revision_id=?",
-        (report_revision_id,),
-    ).fetchone()[0]
+    referenced = service.count_checkpoints_by_rework_report(report_revision_id)
     if referenced < 1:
         errors.append("无 Checkpoint 引用该报告")
     return errors
@@ -608,20 +549,18 @@ def _check_precise_invalidation(world):
 def _check_no_cross_module_status_change(world):
     service = world["service"]
     errors = []
-    invalidated = service.store.conn.execute(
-        "SELECT artifact_revision_id FROM artifact_revisions WHERE status='invalidated'"
-    ).fetchall()
+    invalidated = service.list_revisions(status="invalidated")
     if invalidated:
-        errors.append("存在被置为 invalidated 的修订: %s" % [row[0] for row in invalidated])
+        errors.append(
+            "存在被置为 invalidated 的修订: %s"
+            % [row["artifact_revision_id"] for row in invalidated]
+        )
     old_candidate_set = world["seed"]["candidate_set_revision_id"]
     row = service.get_revision(old_candidate_set)
     if row["status"] != "superseded":
         errors.append("旧 candidate_set 未被 supersede: %s" % row["status"])
-    successor = service.store.conn.execute(
-        "SELECT artifact_revision_id FROM artifact_revisions WHERE prev_revision_id=?",
-        (old_candidate_set,),
-    ).fetchone()
-    if successor is None:
+    successor = service.list_revisions(prev_revision_id=old_candidate_set)
+    if not successor:
         errors.append("旧 candidate_set 无后继修订")
     return errors
 
@@ -675,14 +614,11 @@ def _check_snapshot_projection(world) -> list[str]:
         m6_pkg_rev_id = world["first_close"]["package_revision_id"]
         re_rev_id = world["first_close"]["reviewed_edition_revision_id"]
     else:
-        row = service.store.conn.execute(
-            "SELECT ar.artifact_revision_id FROM artifact_revisions ar "
-            "JOIN stage_packages sp ON ar.artifact_id = sp.artifact_id "
-            "WHERE sp.stage='m6' ORDER BY ar.rowid DESC LIMIT 1"
-        ).fetchone()
-        if not row:
+        # list_stage_packages 按 r.created_at, r.rowid 升序（写入顺序），末行即最近写入的 m6 包
+        packages = service.list_stage_packages("m6")
+        if not packages:
             return ["未找到 m6 StagePackage"]
-        m6_pkg_rev_id = row[0]
+        m6_pkg_rev_id = packages[-1]["artifact_revision_id"]
         pkg_doc = _doc(service, m6_pkg_rev_id) or {}
         re_rev_id = pkg_doc.get("payload", {}).get("reviewed_edition_revision_id")
         if not re_rev_id:
@@ -711,7 +647,7 @@ def _check_snapshot_projection(world) -> list[str]:
     snap_rev = service.get_revision(snap_rev_id)
     if not snap_rev:
         return ["未找到 Snapshot 修订: %s" % snap_rev_id]
-    snap_doc = json.loads(service.objects.get(snap_rev["sha256"]).decode("utf-8"))
+    snap_doc = json.loads(service.read_object(snap_rev["sha256"]).decode("utf-8"))
     k = snap_doc.get("knowledge", snap_doc)
 
     # 独立核对四项（不复用 run_m7 返回的 gate/report）：
