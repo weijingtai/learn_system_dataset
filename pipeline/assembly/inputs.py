@@ -157,21 +157,12 @@ def _resolve_one_package(service, m6_rev_id: str, index: int) -> Dict[str, Any]:
         )
 
     # 查询 candidate_package 所属 step_run
-    m4_step_run_row = service.store.conn.execute(
-        "SELECT step_run_id, status FROM step_runs WHERE stage='m4' AND result_json LIKE ?",
-        ("%" + candidate_pkg_rev_id + "%",),
-    ).fetchone()
-    if m4_step_run_row is None:
-        # 尝试查 transformations
-        m4_step_run_row = service.store.conn.execute(
-            "SELECT r.step_run_id, r.status FROM transformations t "
-            "JOIN step_runs r ON r.step_run_id = t.step_run_id "
-            "WHERE t.output_artifact_revision_id = ? AND r.stage='m4'",
-            (candidate_pkg_rev_id,),
-        ).fetchone()
+    cp_desc = service.describe_revision(candidate_pkg_rev_id)
+    step_run_id = cp_desc.get("step_run_id") if cp_desc else None
+    step = service.get_step_run(step_run_id) if step_run_id else None
 
-    if m4_step_run_row is None or m4_step_run_row[1] != "succeeded":
-        status = m4_step_run_row[1] if m4_step_run_row else "None"
+    if step is None or step.get("stage") != "m4" or step.get("status") != "succeeded":
+        status = step.get("status") if (step and step.get("stage") == "m4") else "None"
         raise _package_error(
             index,
             m6_rev_id,
