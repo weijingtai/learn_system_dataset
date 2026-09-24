@@ -454,7 +454,18 @@ class StepKnowledgeChainTests(StepTestBase):
                     }
                 ],
                 "concepts": [],
-                "assertions": [{"assertion_id": "as_qizheng_000001"}],
+                # T04B：run_m8 现在真编译 KnowledgeDataPack，断言须带 Snapshot 必备字段
+                # （INTERFACES §3.7：proposition / subject_entity_id / evidence / 内容状态）
+                "assertions": [
+                    {
+                        "assertion_id": "as_qizheng_000001",
+                        "proposition": "示例断言",
+                        "subject_entity_id": "pat_qizheng_000001",
+                        "evidence": [],
+                        "school_view_ids": [],
+                        "content_status": "machine_extracted",
+                    }
+                ],
                 "school_views": [],
                 "conflict_groups": [],
             }
