@@ -148,7 +148,8 @@ class TestRegistryCatalog(CatalogTestBase):
 
     def test_module_for_zero_one_many(self):
         registry = Registry.from_dict(copy.deepcopy(self.doc), repo_root=REPO_ROOT)
-        self.assertIsNone(registry.module_for("m4"))
+        # TODO T04A：m1–m6 与 m8 均已登记生产 Module，m7 仍未登记（归 T04B）。
+        self.assertIsNone(registry.module_for("m7"))
         self.assertEqual(
             registry.module_for("m5")["module_id"], "m5.automatic_validation"
         )
@@ -235,7 +236,7 @@ class TestRegistryCatalog(CatalogTestBase):
         self.assertEqual(ok.returncode, 0, ok.stderr.decode("utf-8"))
         self.assertEqual(
             ok.stdout.decode("utf-8").strip().splitlines()[-1],
-            "REGISTRY OK modules=5 ports=4",
+            "REGISTRY OK modules=7 ports=4",
         )
 
         doc = copy.deepcopy(self.doc)

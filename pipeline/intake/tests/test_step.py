@@ -8,12 +8,30 @@ import tempfile
 import unittest
 from pathlib import Path
 
+import jsonschema
 import yaml
+from referencing import Registry as _RefRegistry, Resource
+from referencing.jsonschema import DRAFT202012
 
 from pipeline.intake.errors import IntakeRefused, SourceAssetMissing
 from pipeline.intake.step import run_m1
 from pipeline.intake.tests.helpers import fixture_source, make_text_file
 from pipeline.ledger.service import LedgerService
+
+SCHEMAS_DIR = Path(__file__).resolve().parents[3] / "openspec" / "schemas"
+
+
+def _validate_schema(schema_name, data):
+    """按 L0 Schema 校验对象（注册 ``artifact_ref.schema.json`` 供 ``$ref`` 解析）。"""
+    schema = json.loads((SCHEMAS_DIR / (schema_name + ".schema.json")).read_text(encoding="utf-8"))
+    artifact_ref = json.loads(
+        (SCHEMAS_DIR / "artifact_ref.schema.json").read_text(encoding="utf-8")
+    )
+    registry = _RefRegistry().with_resource(
+        "artifact_ref.schema.json",
+        Resource.from_contents(artifact_ref, default_specification=DRAFT202012),
+    )
+    jsonschema.Draft202012Validator(schema, registry=registry).validate(data)
 
 
 class TestStep(unittest.TestCase):
@@ -208,6 +226,36 @@ class TestStep(unittest.TestCase):
             proc = subprocess.run(cmd, capture_output=True, text=True)
             self.assertEqual(proc.returncode, 2)
             self.assertIn("INTAKE REFUSED", proc.stderr)
+
+    def test_run_m1_registers_stage_package(self):
+        """synthetic_fixture: true，M1 自登记恰 1 个 StagePackage（TODO T04A 裁决 1）。"""
+        res = run_m1(self.service, self.source_info, self.files, self.edition_part_id)
+        step_run_id = res["step_run_id"]
+        rows = self.service.list_step_run_revisions(
+            step_run_id, artifact_type="stage_package"
+        )
+        self.assertEqual(len(rows), 1, "M1 必须恰登记 1 个 StagePackage")
+        package_revision_id = rows[0]["artifact_revision_id"]
+        revision = self.service.get_revision(package_revision_id)
+        self.assertEqual(revision["status"], "sealed")
+        package = yaml.safe_load(
+            self.service.objects.get(revision["sha256"]).decode("utf-8")
+        )
+        self.assertEqual(package["stage"], "m1")
+        self.assertEqual(package["manifest"]["step_run_id"], step_run_id)
+        self.assertEqual(package["manifest"]["processing_run_id"], self.service.get_step_run(step_run_id)["processing_run_id"])
+        self.assertTrue(package["validation"]["passed"])
+        self.assertEqual(package["failures"], [])
+        self.assertEqual(
+            {
+                ref["artifact_revision_id"]
+                for ref in package["manifest"]["output_artifacts"]
+            },
+            {res["manifest_revision_id"], *res["raw_text_revision_ids"]},
+        )
+        _validate_schema("stage_package", package)
+        result = json.loads(self.service.get_step_run(step_run_id)["result_json"])
+        self.assertIn(package_revision_id, result["output_artifact_ids"])
 
 
 if __name__ == "__main__":

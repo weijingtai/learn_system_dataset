@@ -140,6 +140,16 @@ def _resolve_entry(entry, module_id):
         raise OrchestratorRefused("entry 缺属性 %s" % entry)
 
 
+def descriptor_needs_run_inputs(descriptor):
+    """描述符是否声明入口需要 EditionRun 运行输入（``receives_run_inputs: true``）。"""
+    return descriptor.get("receives_run_inputs") is True
+
+
+def resolve_entry(entry, module_id):
+    """经 ``importlib`` 解析登记表 ``"模块:属性"`` 入口（人工恢复入口共用）。"""
+    return _resolve_entry(entry, module_id)
+
+
 def bind_module(descriptor, *, modules=None):
     """按描述符与 ``modules=`` 注入表解析出 ``ModuleBinding``。"""
     modules = modules or {}

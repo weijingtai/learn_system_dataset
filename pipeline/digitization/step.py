@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 from typing import Any
 
@@ -56,6 +57,85 @@ def _read_revision_bytes(service: LedgerService, revision_id: str) -> bytes:
     if data is None:
         raise DigitizationRefused(f"raw_text 对象数据缺失: {sha256}", code="SCH_003")
     return data
+
+
+def _artifact_ref(service: LedgerService, revision_id: str) -> dict:
+    """按修订元数据构造 ArtifactRef（§3 形状）。"""
+    info = service.describe_revision(revision_id)
+    return {
+        "schema_version": "1.0.0",
+        "artifact_kind": "artifact",
+        "artifact_id": info["artifact_id"],
+        "artifact_revision_id": revision_id,
+        "artifact_type": info["artifact_type"],
+    }
+
+
+def _register_stage_package(
+    service: LedgerService,
+    *,
+    step_run_id: str,
+    processing_run_id: str,
+    raw_text_revision_id: str,
+    outputs: list,
+    report_bytes: bytes,
+    validation_report_revision_id: str,
+    log_revision_id: str,
+    configuration_revision_id: str,
+) -> str:
+    """登记 M2 StagePackage（包内清单 = 本步实际写出的修订），返回包修订号。"""
+    stage_package_id = ids.new_id("stage_package_id", stage="m2")
+    package_revision_id = ids.new_id("artifact_revision_id")
+    package = {
+        "schema_version": "1.0.0",
+        "stage_package_id": stage_package_id,
+        "artifact_revision_id": package_revision_id,
+        "stage": "m2",
+        "status": "sealed",
+        "payload": {
+            "cleaned_text_revision_id": outputs[0],
+            "deterministic_patch_set_revision_id": outputs[1],
+            "sanitization_report_revision_id": outputs[2],
+        },
+        "manifest": {
+            "schema_version": "1.0.0",
+            "processing_run_id": processing_run_id,
+            "step_run_id": step_run_id,
+            "input_artifacts": [_artifact_ref(service, raw_text_revision_id)],
+            "output_artifacts": [_artifact_ref(service, rev) for rev in outputs],
+            "counts": {"cleaned_text": 1, "patch_set": 1, "sanitization_report": 1},
+            "content_sha256": hashlib.sha256(report_bytes).hexdigest(),
+        },
+        "validation": {
+            "passed": True,
+            "report_artifacts": [
+                _artifact_ref(service, validation_report_revision_id)
+            ],
+        },
+        "lineage": {
+            "upstream_artifacts": [_artifact_ref(service, raw_text_revision_id)],
+            "transformations": [
+                {
+                    "operation": "sanitize_text",
+                    "step_run_id": step_run_id,
+                    "configuration_artifact_revision_id": configuration_revision_id,
+                    "input_artifact_revision_ids": [raw_text_revision_id],
+                    "output_artifact_revision_ids": list(outputs),
+                }
+            ],
+        },
+        "logs": [_artifact_ref(service, log_revision_id)],
+        "failures": [],
+    }
+    service.register_stage_package(
+        step_run_id,
+        package,
+        json.dumps(package, sort_keys=True, ensure_ascii=False).encode("utf-8"),
+        stage_package_id=stage_package_id,
+        artifact_revision_id=package_revision_id,
+    )
+    service.seal_revision(package_revision_id)
+    return package_revision_id
 
 
 def run_m2(
@@ -218,6 +298,43 @@ def run_m2(
 
         all_outputs = [cleaned_rev, patch_rev, report_rev]
 
+        # 校验报告：只写 M2 实际做过的检查（清洗报告的结论 + m2 Gate 判定）。
+        _, validation_report_revision_id = service.put_artifact(
+            step_run_id,
+            "validation_report",
+            json.dumps(
+                {
+                    "stage": "m2",
+                    "tool": M2_TOOL,
+                    "tool_version": M2_TOOL_VERSION,
+                    "passed": True,
+                    "checks": {
+                        "m2_gate": "sanitization_report 经 evaluate_m2_gate 判定通过（failed_checks=%s）"
+                        % list(gate_result.failed_checks),
+                        "deferred_count": "report.deferred_count=%s"
+                        % report.get("deferred_count"),
+                        "patch_count": "deterministic_patch_set 条数=%d" % len(patches),
+                    },
+                },
+                sort_keys=True,
+                ensure_ascii=False,
+            ).encode("utf-8"),
+            producer_module=M2_TOOL,
+            producer_version=M2_TOOL_VERSION,
+        )
+        service.seal_revision(validation_report_revision_id)
+        _, log_revision_id = service.put_artifact(
+            step_run_id,
+            "step_log",
+            (
+                "sanitize_text findings=%d patches=%d\n"
+                % (len(clean_result.findings), len(patches))
+            ).encode("utf-8"),
+            producer_module=M2_TOOL,
+            producer_version=M2_TOOL_VERSION,
+        )
+        service.seal_revision(log_revision_id)
+
         # 记录变换
         service.record_transformation(
             step_run_id,
@@ -227,6 +344,20 @@ def run_m2(
             configuration_revision_id=config_revision_id,
             input_revision_ids=[raw_text_revision_id],
             output_revision_ids=all_outputs,
+            validation_report_revision_id=validation_report_revision_id,
+        )
+
+        # StagePackage（TODO T04A 裁决 1）：包内清单为本步实际写出的修订。
+        package_revision_id = _register_stage_package(
+            service,
+            step_run_id=step_run_id,
+            processing_run_id=processing_run_id,
+            raw_text_revision_id=raw_text_revision_id,
+            outputs=all_outputs,
+            report_bytes=report_bytes,
+            validation_report_revision_id=validation_report_revision_id,
+            log_revision_id=log_revision_id,
+            configuration_revision_id=config_revision_id,
         )
 
         # 写入 checkpoint
@@ -257,9 +388,9 @@ def run_m2(
                 "step_run_id": step_run_id,
                 "status_version": current_version + 1,
                 "status": "succeeded",
-                "output_artifact_ids": all_outputs,
-                "validation_report_ids": [],
-                "log_artifact_ids": [],
+                "output_artifact_ids": all_outputs + [package_revision_id],
+                "validation_report_ids": [validation_report_revision_id],
+                "log_artifact_ids": [log_revision_id],
                 "failure_artifact_ids": [],
             },
         )
@@ -270,6 +401,7 @@ def run_m2(
             "report_revision_id": report_rev,
             "gate_result": gate_result,
             "step_run_id": step_run_id,
+            "stage_package_revision_id": package_revision_id,
         }
     except Exception as exc:
         failed_check = (

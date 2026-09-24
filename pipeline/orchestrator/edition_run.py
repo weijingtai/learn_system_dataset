@@ -15,10 +15,11 @@ from pipeline.contract_registry.ports import PortGuard
 from pipeline.ledger import ids
 from pipeline.ledger.errors import SchemaViolation
 
-from . import EDITION_STAGES, FIRST_SLICE_EDITION_STAGES
+from . import EDITION_STAGES
 from .errors import OrchestratorRefused
 from .gate import effective_step_runs, evaluate_stage_gate
-from .module import StepContext, bind_module
+from .module import StepContext, bind_module, descriptor_needs_run_inputs
+from .run_inputs import persist_run_inputs, validate_run_inputs
 from .runner import execute_step, run_legacy
 
 # advance 的动作闭集
@@ -83,24 +84,38 @@ def _result_dict(
     }
 
 
-def _handle(processing_run_id, edition_part_id, technique_id):
+def _handle(processing_run_id, edition_part_id, technique_id, run_inputs=None):
     return {
         "processing_run_id": processing_run_id,
         "edition_part_id": edition_part_id,
         "technique_id": technique_id,
+        "run_inputs": run_inputs,
     }
 
 
-def start_edition_run(port, *, edition_part_id, technique_id):
-    """新建一个 ``edition_run`` 并返回句柄。"""
+def start_edition_run(port, *, edition_part_id, technique_id, run_inputs=None):
+    """新建一个 ``edition_run`` 并返回句柄。
+
+    ``run_inputs`` 给出时按运行输入校验（必须显式 ``route: text``，裁决 2）并落成运行级
+    ``configuration`` 修订；不给时不在启动阶段追问（桩/测试宿主不需要路线），由需要运行
+    输入的 stage 在执行前拒收。
+    """
+    if run_inputs is not None:
+        validate_run_inputs(run_inputs)
     processing_run_id = port.create_processing_run(
         "edition_run", edition_part_id, technique_id
     )
-    return _handle(processing_run_id, edition_part_id, technique_id)
+    if run_inputs is not None:
+        persist_run_inputs(port, processing_run_id, run_inputs)
+    return _handle(processing_run_id, edition_part_id, technique_id, run_inputs)
 
 
-def adopt_edition_run(port, *, processing_run_id, edition_part_id, technique_id):
+def adopt_edition_run(
+    port, *, processing_run_id, edition_part_id, technique_id, run_inputs=None
+):
     """接管既有 ``edition_run``：交叉校验技法与 Checkpoint 归属，不符即拒绝（零写入）。"""
+    if run_inputs is not None:
+        validate_run_inputs(run_inputs)
     status = port.run_status(processing_run_id)
     step_runs = status["step_runs"]
     own_ids = {step["step_run_id"] for step in step_runs}
@@ -119,7 +134,7 @@ def adopt_edition_run(port, *, processing_run_id, edition_part_id, technique_id)
             raise OrchestratorRefused(
                 "阶段 %s 的最新 Checkpoint 不属于本运行" % stage
             )
-    return _handle(processing_run_id, edition_part_id, technique_id)
+    return _handle(processing_run_id, edition_part_id, technique_id, run_inputs)
 
 
 def _prior_stages(stages, stage):
@@ -203,7 +218,7 @@ def _execute_step_request(port, binding, descriptor, handle, stages, stage, gate
     )
 
 
-def advance(port, registry, handle, *, modules=None, stages=FIRST_SLICE_EDITION_STAGES):
+def advance(port, registry, handle, *, modules=None, stages=EDITION_STAGES):
     """推进一个 EditionRun 一步；除 ``executed`` 外一律零写入。"""
     gate_reports = {}
     for stage in stages:
@@ -257,6 +272,17 @@ def advance(port, registry, handle, *, modules=None, stages=FIRST_SLICE_EDITION_
                 reason="阶段 %s 未登记 Module（%s）"
                 % (stage, registry.stage_rows.get(stage, stage)),
             )
+        if descriptor_needs_run_inputs(descriptor):
+            try:
+                validate_run_inputs(handle.get("run_inputs"))
+            except OrchestratorRefused as exc:
+                return _result_dict(
+                    "refused",
+                    stage=stage,
+                    gate=gate,
+                    gate_reports=gate_reports,
+                    reason=str(exc),
+                )
         binding = bind_module(descriptor, modules=modules)
         if not binding.executable:
             return _result_dict(
@@ -324,7 +350,7 @@ def run_until(
     stage,
     *,
     modules=None,
-    stages=FIRST_SLICE_EDITION_STAGES,
+    stages=EDITION_STAGES,
     max_steps=16,
 ):
     """反复 ``advance`` 直到目标 stage 的 Gate 通过或无法继续。"""
