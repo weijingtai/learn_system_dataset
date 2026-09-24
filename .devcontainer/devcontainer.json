@@ -1,0 +1,33 @@
+{
+  "name": "Full Stack Environment",
+  "image": "mcr.microsoft.com/devcontainers/universal:2",
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "lts"
+    },
+    "ghcr.io/devcontainers/features/python:1": {
+      "version": "3.11"
+    }
+  },
+  "forwardPorts": [3000, 8000],
+  "portsAttributes": {
+    "3000": {
+      "label": "Frontend (Vue)",
+      "onAutoForward": "notify"
+    },
+    "8000": {
+      "label": "Backend (FastAPI)",
+      "onAutoForward": "notify"
+    }
+  },
+  "postCreateCommand": "cd console_frontend && npm install && cd .. && pip install -r requirements-dev.txt",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "Vue.volar",
+        "ms-python.python",
+        "ms-python.vscode-pylance"
+      ]
+    }
+  }
+}

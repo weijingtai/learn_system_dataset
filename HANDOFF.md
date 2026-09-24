@@ -1,4 +1,7 @@
 # HANDOFF
+
+> **2026-09-23 起本线移交云端（GitHub 上的 Claude Code 云端会话）。接手者先读 `docs/handoff/CLOUD-HANDOFF.md`，再读 `TODO.md`。** 下面是更早的本地交接记录，仅供查历史。
+
 更新时间：2026-09-23
 当前分支/worktree：`codex/docs/knowledge-compilation`；`/Users/jingtaiwei/Git/Public/learn_system`
 刚完成：
