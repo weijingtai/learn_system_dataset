@@ -80,6 +80,15 @@ class TestContractRegistryAcceptance(unittest.TestCase):
             hits = scan_ledger_internals([pkg])
         self.assertEqual([line for _path, line in hits], [2, 4], "代码与注释都要命中；tests/ 下不扫")
 
+    def test_t03c_packages_have_no_ledger_internals(self):
+        # TODO.md T03c（2026-09-24）：M1/M2/M4/M6/M7 五个包 111 处走后门全部改为经 LedgerPort；
+        # 这五个包尚未全部登记为生产模块，modules_port_clean 扫不到它们，由本用例单独守住
+        from pipeline.contract_registry.acceptance import scan_ledger_internals
+
+        for pkg in ("intake", "digitization", "knowledge_extraction", "assembly", "review"):
+            with self.subTest(pkg=pkg):
+                self.assertEqual(scan_ledger_internals([REPO_ROOT / "pipeline" / pkg]), [], pkg)
+
     def test_other_ports_blocked_counts_text(self):
         _code, output = run_acceptance([])
         line = [
