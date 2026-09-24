@@ -111,7 +111,7 @@ def _run_m1_on_temp_ledger(fixture_dir: Path) -> tuple[dict | None, list[dict]]:
             facts: dict = {}
             if "manifest_revision_id" in m1:
                 manifest = yaml.safe_load(
-                    service.objects.get(
+                    service.read_object(
                         service.get_revision(m1["manifest_revision_id"])["sha256"]
                     ).decode("utf-8")
                 )
@@ -122,7 +122,7 @@ def _run_m1_on_temp_ledger(fixture_dir: Path) -> tuple[dict | None, list[dict]]:
                     raw_revs.append({
                         "sha256": rev["sha256"],
                         "size_bytes": rev["size_bytes"],
-                        "chars": len(service.objects.get(rev["sha256"]).decode("utf-8")),
+                        "chars": len(service.read_object(rev["sha256"]).decode("utf-8")),
                     })
                 m1_facts = {
                     "manifest": manifest,

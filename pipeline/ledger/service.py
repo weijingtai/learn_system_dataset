@@ -184,6 +184,11 @@ class LedgerReadMixin:
         """某 EditionPart 的 StepRun（可按 stage 筛选），旧→新。"""
         return self.store.list_step_runs(edition_part_id, stage)
 
+    # ---- 只读元数据查询（TODO.md T03c）：M1/M2/M4/M6/M7 原先自写的 SQL 挪到这里 ----
+    def latest_processing_run(self, edition_part_id, kind):
+        """某 EditionPart 最近创建的指定 kind 的 ProcessingRun 号，没有则 ``None``。"""
+        return self.store.latest_processing_run(edition_part_id, kind)
+
     def list_stage_packages(self, stage):
         """某 stage 的全部 StagePackage 修订，附 step_run_id 与 step_run_status。"""
         return self.store.list_stage_packages(stage)

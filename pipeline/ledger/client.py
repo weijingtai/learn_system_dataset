@@ -486,3 +486,7 @@ class LedgerClient:
     def count_artifacts(self, artifact_type):
         """见 ``LedgerReader.count_artifacts``。"""
         return self._call("count_artifacts", {"artifact_type": artifact_type})
+
+    def latest_processing_run(self, edition_part_id, kind):
+        """见 ``LedgerReader.latest_processing_run``。"""
+        return self._call("latest_processing_run", {"edition_part_id": edition_part_id, "kind": kind})

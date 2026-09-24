@@ -61,13 +61,8 @@ def run_m1(service: LedgerService, source_info: dict, files: list[dict], edition
 
     # ---- 2. 创建或复用 ProcessingRun 并写入配置 ----
     technique_id = valid_source["technique_id"]
-    row = service.store.conn.execute(
-        "SELECT processing_run_id FROM processing_runs WHERE edition_part_id=? AND kind='edition_run' ORDER BY created_at DESC LIMIT 1",
-        (edition_part_id,),
-    ).fetchone()
-    if row is not None:
-        processing_run_id = row[0]
-    else:
+    processing_run_id = service.latest_processing_run(edition_part_id, "edition_run")
+    if processing_run_id is None:
         processing_run_id = service.create_processing_run(
             "edition_run", edition_part_id, technique_id
         )

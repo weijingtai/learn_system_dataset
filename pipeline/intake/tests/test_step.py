@@ -54,6 +54,14 @@ class TestStep(unittest.TestCase):
         self.assertIsNotNone(step)
         self.assertEqual(step["status"], "succeeded")
 
+    def test_run_m1_reuses_latest_edition_run(self):
+        """synthetic_fixture: true，该 EditionPart 已有 edition_run 时复用最近一个，不另建（TODO T03c 改端口后的行为护栏）。"""
+        self.service.create_processing_run("edition_run", self.edition_part_id, "qizheng")
+        latest = self.service.create_processing_run("edition_run", self.edition_part_id, "qizheng")
+        self.service.create_processing_run("release_run", self.edition_part_id, "qizheng")
+        res = run_m1(self.service, self.source_info, self.files, self.edition_part_id)
+        self.assertEqual(self.service.get_step_run(res["step_run_id"])["processing_run_id"], latest)
+
     def test_run_m1_duplicate_refused(self):
         """synthetic_fixture: true，同 edition_part_id 二次运行 → IntakeRefused。"""
         # 第一次运行成功

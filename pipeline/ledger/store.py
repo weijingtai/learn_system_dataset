@@ -501,6 +501,15 @@ class MetadataStore:
         ).fetchone()
         return _as_dict(row)
 
+    def latest_processing_run(self, edition_part_id, kind):
+        """某 EditionPart 最近创建的指定 kind 的 ProcessingRun 号，没有则 ``None``。"""
+        row = self.conn.execute(
+            "SELECT processing_run_id FROM processing_runs WHERE edition_part_id=? AND kind=? "
+            "ORDER BY created_at DESC LIMIT 1",
+            (edition_part_id, kind),
+        ).fetchone()
+        return row[0] if row is not None else None
+
     def list_step_runs(self, edition_part_id, stage=None):
         """某 EditionPart 的 StepRun（可按 stage 筛选）；按创建顺序（旧→新）。"""
         sql = (
