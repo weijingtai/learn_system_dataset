@@ -575,6 +575,17 @@ class MetadataStore:
         sql += " ORDER BY rowid"
         return [dict(row) for row in self.conn.execute(sql, params).fetchall()]
 
+    # —— T03c M6 新增 ——
+    def list_step_run_checkpoints(self, step_run_id):
+        """某 StepRun 的全部 StageCheckpoint 元数据行，按写入顺序（rowid）；只读登记列，不读对象内容。"""
+        rows = self.conn.execute(
+            "SELECT artifact_revision_id, artifact_id, edition_part_id, stage, step_run_id, "
+            "prev_checkpoint_revision_id, rework_impact_report_revision_id, actor_ref, created_at "
+            "FROM stage_checkpoints WHERE step_run_id=? ORDER BY rowid",
+            (step_run_id,),
+        ).fetchall()
+        return [dict(row) for row in rows]
+
     def list_step_runs(self, edition_part_id, stage=None):
         """某 EditionPart 的 StepRun（可按 stage 筛选）；按创建顺序（旧→新）。"""
         sql = (

@@ -222,6 +222,11 @@ class LedgerReadMixin:
         """某 Transformation 引用的人工事件修订号（修订号升序）。"""
         return self.store.list_transformation_human_events(transformation_id)
 
+    # —— T03c M6 新增 ——
+    def list_step_run_checkpoints(self, step_run_id):
+        """某 StepRun 的全部 StageCheckpoint 元数据行（无内容 JSON），按写入顺序（旧→新）。"""
+        return self.store.list_step_run_checkpoints(step_run_id)
+
     def list_stage_packages(self, stage):
         """某 stage 的全部 StagePackage 修订，附 step_run_id 与 step_run_status。"""
         return self.store.list_stage_packages(stage)

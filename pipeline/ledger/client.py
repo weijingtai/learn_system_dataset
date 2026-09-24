@@ -535,3 +535,8 @@ class LedgerClient:
         return self._call(
             "list_transformation_human_events", {"transformation_id": transformation_id}
         )
+
+    # —— T03c M6 新增 ——
+    def list_step_run_checkpoints(self, step_run_id):
+        """见 ``LedgerReader.list_step_run_checkpoints``。"""
+        return self._call("list_step_run_checkpoints", {"step_run_id": step_run_id})

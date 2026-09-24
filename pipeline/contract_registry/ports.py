@@ -60,6 +60,8 @@ LEDGER_PORT_METHODS = (
     "list_transformation_inputs",
     "list_transformation_outputs",
     "list_transformation_human_events",
+    # —— T03c M6 新增 ——
+    "list_step_run_checkpoints",
 )
 
 # 直连委托给 LedgerService 的方法（read_object 走 objects.get，单独实现）

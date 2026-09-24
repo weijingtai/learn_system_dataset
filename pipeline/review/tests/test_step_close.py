@@ -139,6 +139,42 @@ class TestStepClose(unittest.TestCase):
         ).fetchall()
         self.assertEqual(len(rows), 5)
 
+    def test_record_decision_checkpoint_separates_decisions_from_correction_request(self):
+        # 同一 StepRun 里既有 correction_request（decision_type 为 NULL）又有 5 条决定：
+        # 每步落盘的 Checkpoint 的 human_decisions 只记「决定」事件，correction_request 不入其列。
+        open_res = open_review(self.service, self.edition_part_id)
+        step_run_id = open_res["step_run_id"]
+        token = open_res["resume_token"]
+        cr_res = request_correction(
+            self.service,
+            step_run_id,
+            token,
+            source_span_ids=["ss_sanche_ed01_p0003_s08"],
+            description="修正宮為官",
+        )
+        decisions_data = load_data("m6_decisions")["decisions"]
+        for d in decisions_data:
+            record_decision(
+                self.service,
+                step_run_id,
+                token,
+                queue_item_id=d["queue_item_id"],
+                verdict=d["verdict"],
+                rationale=d["rationale"],
+                modified_content=d.get("modified_content"),
+            )
+        human_decisions = self.service.latest_checkpoint(
+            self.edition_part_id, "m6"
+        )["content"]["human_decisions"]
+        decision_revs = [
+            row["event_revision_id"]
+            for row in self.service.list_human_events(step_run_id)
+            if row["decision_type"] is not None
+        ]
+        self.assertEqual(len(decision_revs), 5)
+        self.assertEqual(human_decisions, decision_revs)
+        self.assertNotIn(cr_res["correction_request_revision_id"], human_decisions)
+
     def test_close_refuses_with_unresolved_zero_writes_token_kept(self):
         open_res = open_review(self.service, self.edition_part_id)
         step_run_id = open_res["step_run_id"]
