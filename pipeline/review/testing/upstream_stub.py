@@ -11,6 +11,7 @@ from pipeline.knowledge_extraction.serialize import canonical_json
 from pipeline.ledger import ids
 from pipeline.ledger.fixture_ingest import ingest
 from pipeline.review.inputs import _artifact_types, _read_doc, latest_succeeded_step_run
+from pipeline.review.step import _artifact_ref
 from pipeline.validation.step import run_m5
 
 STUB_TOOL = "pipeline.review.testing.upstream_stub"
@@ -24,39 +25,6 @@ def load_data(name: str) -> dict:
     path = _DATA_DIR / f"{name}.yaml"
     with open(path, encoding="utf-8") as f:
         return yaml.safe_load(f)
-
-
-def _artifact_ref(service, revision_id):
-    row = service.store.conn.execute(
-        "SELECT a.artifact_id, a.artifact_type FROM artifacts a "
-        "JOIN artifact_revisions r ON r.artifact_id = a.artifact_id "
-        "WHERE r.artifact_revision_id=?",
-        (revision_id,),
-    ).fetchone()
-    if row is None:
-        raise ValueError(f"Revision {revision_id} not found")
-    artifact_id, artifact_type = row[0], row[1]
-    if artifact_type == "stage_package":
-        package_row = service.store.conn.execute(
-            "SELECT sp.stage_package_id FROM stage_packages sp "
-            "JOIN artifact_revisions r ON r.artifact_id = sp.artifact_id "
-            "WHERE r.artifact_revision_id=?",
-            (revision_id,),
-        ).fetchone()
-        return {
-            "schema_version": "1.0.0",
-            "artifact_kind": "stage_package",
-            "stage_package_id": package_row[0],
-            "artifact_revision_id": revision_id,
-            "artifact_type": artifact_type,
-        }
-    return {
-        "schema_version": "1.0.0",
-        "artifact_kind": "artifact",
-        "artifact_id": artifact_id,
-        "artifact_revision_id": revision_id,
-        "artifact_type": artifact_type,
-    }
 
 
 def seed_upstream(service, fixture_dir) -> dict:
@@ -869,14 +837,9 @@ def seed_rerun_m4_m5(
     new_validation_package_doc["m3_package_revision_id"] = (
         new_corpus_stage_package_revision_id
     )
-    sp_row = service.store.conn.execute(
-        "SELECT sp.stage_package_id FROM stage_packages sp "
-        "JOIN artifact_revisions r ON r.artifact_id = sp.artifact_id "
-        "WHERE r.artifact_revision_id=?",
-        (new_corpus_stage_package_revision_id,),
-    ).fetchone()
-    if sp_row is not None:
-        new_validation_package_doc["m3_stage_package_id"] = sp_row[0]
+    sp_info = service.describe_revision(new_corpus_stage_package_revision_id)
+    if sp_info is not None and sp_info["stage_package_id"] is not None:
+        new_validation_package_doc["m3_stage_package_id"] = sp_info["stage_package_id"]
     _, new_validation_package_rev = service.put_artifact(
         m5_step_run_id,
         "validation_package",

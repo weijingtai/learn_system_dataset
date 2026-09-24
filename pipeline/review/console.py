@@ -18,7 +18,7 @@ from pipeline.ledger.errors import (
 from pipeline.ledger.service import LedgerReader, LedgerService
 from pipeline.review import model, rework, step
 from pipeline.review.errors import ReviewRefused
-from pipeline.review.inputs import _read_doc
+from pipeline.review.inputs import _artifact_types, _read_doc
 
 REFUSED_EXCEPTIONS = (
     ReviewRefused,
@@ -71,32 +71,20 @@ def cmd_queue(args):
         if srun is None:
             raise MissingReference(f"StepRun 不存在: {args.step_run}", code="REF_001")
 
-        queue_row = reader.store.conn.execute(
-            "SELECT r.artifact_revision_id FROM artifact_revisions r "
-            "JOIN artifacts a ON a.artifact_id = r.artifact_id "
-            "WHERE a.artifact_type = 'review_queue' AND r.step_run_id = ?",
-            (args.step_run,),
-        ).fetchone()
-        if not queue_row:
-            queue_row = reader.store.conn.execute(
-                "SELECT r.artifact_revision_id FROM frozen_inputs f "
-                "JOIN artifact_revisions r ON r.artifact_revision_id = f.artifact_revision_id "
-                "JOIN artifacts a ON a.artifact_id = r.artifact_id "
-                "WHERE a.artifact_type = 'review_queue' AND f.step_run_id = ?",
-                (args.step_run,),
-            ).fetchone()
-        if not queue_row:
+        # 本运行的 review_queue（含冻结输入回退），与 step.py 同一套端口查询
+        queue_rev = step._review_queue_revision(reader, args.step_run)
+        if queue_rev is None:
             raise ReviewRefused("找不到 review_queue", code="REF_001")
-        queue = _read_doc(reader, queue_row[0]) or []
+        queue = _read_doc(reader, queue_rev) or []
 
-        cur_events = reader.store.conn.execute(
-            "SELECT event_revision_id FROM human_events WHERE step_run_id=? AND decision_type IS NOT NULL ORDER BY rowid ASC",
-            (args.step_run,),
-        ).fetchall()
+        cur_events = [
+            row["event_revision_id"]
+            for row in reader.list_human_events(args.step_run)
+            if row["decision_type"] is not None
+        ]
 
         entries = []
-        for r in cur_events:
-            d_rev = r[0]
+        for d_rev in cur_events:
             ev_doc = _read_doc(reader, d_rev)
             if not ev_doc or ev_doc.get("event_kind") != "review_decision":
                 continue
@@ -161,17 +149,7 @@ def cmd_show(args):
             raise MissingReference(f"StepRun 不存在: {args.step_run}", code="REF_001")
         req = json.loads(srun["request_json"] or "{}")
         frozen = list(req.get("input_artifact_ids") or [])
-
-        types_map = {}
-        if frozen:
-            placeholders = ",".join("?" * len(frozen))
-            t_rows = reader.store.conn.execute(
-                f"SELECT r.artifact_revision_id, a.artifact_type FROM artifact_revisions r "
-                f"JOIN artifacts a ON a.artifact_id = r.artifact_id "
-                f"WHERE r.artifact_revision_id IN ({placeholders})",
-                tuple(frozen),
-            ).fetchall()
-            types_map = {r[0]: r[1] for r in t_rows}
+        types_map = _artifact_types(reader, frozen)
 
         cand_set_rev = next((r for r in frozen if types_map.get(r) == "candidate_set"), None)
         spans_rev = next((r for r in frozen if types_map.get(r) == "corpus_spans"), None)
@@ -251,18 +229,19 @@ def cmd_show(args):
             for ch in gr_doc.get("passed_checks", []):
                 print(f"VALIDATION {ch} passed -")
 
-        he_rows = reader.store.conn.execute(
-            "SELECT event_revision_id FROM human_events WHERE step_run_id=? AND decision_type IS NOT NULL ORDER BY rowid ASC",
-            (args.step_run,),
-        ).fetchall()
-        for he_row in he_rows:
-            ev_doc = _read_doc(reader, he_row[0])
+        he_rows = [
+            row["event_revision_id"]
+            for row in reader.list_human_events(args.step_run)
+            if row["decision_type"] is not None
+        ]
+        for he_rev in he_rows:
+            ev_doc = _read_doc(reader, he_rev)
             if ev_doc and ev_doc.get("event_kind") == "review_decision":
                 t_eid = ev_doc.get("target", {}).get("entity_id")
                 dt = ev_doc.get("decision_type")
                 if t_eid == entity_id and (decision_type is None or dt == decision_type):
                     verdict = ev_doc.get("verdict", "-")
-                    print(f"DECISION {he_row[0]} {verdict} active")
+                    print(f"DECISION {he_rev} {verdict} active")
 
         return 0
     except REFUSED_EXCEPTIONS as e:
@@ -390,7 +369,7 @@ def cmd_close(args):
         res = step.close_review(service, args.step_run, args.resume_token)
         if res.get("status") == "succeeded":
             ed_row = service.get_revision(res["reviewed_edition_revision_id"])
-            ed_doc = json.loads(service.objects.get(ed_row["sha256"]).decode("utf-8"))
+            ed_doc = json.loads(service.read_object(ed_row["sha256"]).decode("utf-8"))
             num_decisions = len(ed_doc.get("decisions", []))
             print(
                 f"M6 OK {res['step_run_id']} approved={len(res['approved'])} rejected={len(res['rejected'])} decisions={num_decisions}"

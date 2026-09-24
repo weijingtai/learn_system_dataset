@@ -101,6 +101,15 @@ class TestReworkReview(unittest.TestCase):
             rework_impact_report_revision_id=ctx["report_revision_id"],
         )
 
+    def test_rerun_validation_package_carries_m3_stage_package_id(self):
+        # 重跑 M5' 的 validation_package 必须把 m3_stage_package_id 指向新的 M3 StagePackage，
+        # 而不是沿用旧包（对应 acceptance.py 清掉的那处直连查询）
+        ctx = self._run_to_report()
+        seed_res = self._seed_m4_m5(ctx)
+        doc = self._read_doc(seed_res["validation_package_revision_id"])
+        m3_pkg_info = self.service.describe_revision(doc["m3_package_revision_id"])
+        self.assertEqual(doc["m3_stage_package_id"], m3_pkg_info["stage_package_id"])
+
     def _open_rerun(self, acknowledge=True):
         ctx = self._run_to_report()
         ctx["seed_res"] = self._seed_m4_m5(ctx)
