@@ -355,47 +355,164 @@ class TestEditionRun(EditionTestCase):
         ]
         return rows[-1]["step_run_id"]
 
-    def test_run_release_invokes_m8_and_gates(self):
-        edition_part_id = ids.new_id("artifact_id")
-        entry = make_legacy_entry("m8", produces=("stub_output",))
-        descriptor = {
-            "module_id": "m8.dataset_compilation",
-            "stage": "m8",
+    @staticmethod
+    def _release_descriptor(stage, module_id, entry_kwargs=None):
+        return {
+            "module_id": module_id,
+            "stage": stage,
             "kind": "production",
             "binding": "legacy_self_driving",
             "entry": "tests:fake",
             "version": "0.1.0",
             "consumes": [],
             "produces": [{"artifact_type": "stub_output"}],
-            "human_queue": False,
+            "human_queue": stage == "m7",
             "supports_recovery": False,
-            "entry_kwargs": {"consumption_level": "INTERNAL_DEMO"},
+            "entry_kwargs": dict(entry_kwargs or {}),
             "owns_processing_run": True,
         }
-        registry = self.registry_from_descriptors([descriptor])
+
+    def test_release_stages_are_m7_then_m8(self):
+        # TODO T04B：release 段由 M7 推到 M8；M7 已接上，不再是缺口
+        from pipeline.orchestrator import DEFERRED_STAGES, RELEASE_STAGES
+
+        self.assertEqual(RELEASE_STAGES, ("m7", "m8"))
+        self.assertNotIn("m7", DEFERRED_STAGES)
+
+    def test_run_release_invokes_m7_then_m8_and_gates(self):
+        edition_part_id = ids.new_id("artifact_id")
+        calls = []
+        m7_entry = make_legacy_entry("m7", produces=("stub_output",))
+        m8_entry = make_legacy_entry("m8", produces=("stub_output",))
+
+        def recording(stage, entry):
+            def wrapped(service, edition_part_id, **kwargs):
+                calls.append(stage)
+                return entry(service, edition_part_id, **kwargs)
+
+            return wrapped
+
+        registry = self.registry_from_descriptors(
+            [
+                self._release_descriptor("m7", "m7.incremental_assembly"),
+                self._release_descriptor(
+                    "m8",
+                    "m8.dataset_compilation",
+                    {"consumption_level": "INTERNAL_DEMO"},
+                ),
+            ]
+        )
         out = run_release(
             self.adapter,
             registry,
             edition_part_id=edition_part_id,
             technique_id="qizheng",
-            modules={"m8.dataset_compilation": entry},
+            modules={
+                "m7.incremental_assembly": recording("m7", m7_entry),
+                "m8.dataset_compilation": recording("m8", m8_entry),
+            },
         )
+        self.assertEqual(calls, ["m7", "m8"])
         self.assertEqual(out["action"], "executed")
         self.assertEqual(out["stage"], "m8")
         self.assertEqual(out["step_result"]["status"], "succeeded")
         self.assertTrue(out["processing_run_id"].startswith("prun_"))
         self.assertEqual(out["gate"]["gate"], "passed")
-        self.assertEqual(entry.received, {"consumption_level": "INTERNAL_DEMO"})
+        self.assertEqual(sorted(out["gate_reports"]), ["m7", "m8"])
+        self.assertEqual(out["gate_reports"]["m7"]["gate"], "passed")
+        self.assertEqual(m7_entry.received, {})
+        self.assertEqual(m8_entry.received, {"consumption_level": "INTERNAL_DEMO"})
 
-        registry_no_m8 = self.registry_from_descriptors([])
         refused = run_release(
             self.adapter,
-            registry_no_m8,
+            self.registry_from_descriptors([]),
             edition_part_id=edition_part_id,
             technique_id="qizheng",
         )
         self.assertEqual(refused["action"], "refused")
-        self.assertIn("M8 Dataset Compilation", refused["reason"])
+        self.assertEqual(refused["stage"], "m7")
+        self.assertIn("M7 Incremental Assembly", refused["reason"])
+
+        only_m7 = make_legacy_entry("m7", produces=("stub_output",))
+        refused_m8 = run_release(
+            self.adapter,
+            self.registry_from_descriptors(
+                [self._release_descriptor("m7", "m7.incremental_assembly")]
+            ),
+            edition_part_id=ids.new_id("artifact_id"),
+            technique_id="qizheng",
+            modules={"m7.incremental_assembly": only_m7},
+        )
+        self.assertEqual(refused_m8["action"], "refused")
+        self.assertEqual(refused_m8["stage"], "m8")
+        self.assertIn("M8 Dataset Compilation", refused_m8["reason"])
+        self.assertEqual(refused_m8["gate_reports"]["m7"]["gate"], "passed")
+
+    def test_run_release_stops_at_m7_when_m7_not_succeeded(self):
+        """M7 未 succeeded（失败或停在人工裁决）→ 停在 m7，不推进 m8。"""
+        from pipeline.orchestrator.module import StepContext
+        from pipeline.orchestrator.tests.scaffold import make_step_request
+        from pipeline.orchestrator.tests.test_runner import ServicePort, finalize_step_run
+
+        m8_entry = make_legacy_entry("m8", produces=("stub_output",))
+
+        def failing_m7(service, edition_part_id, **kwargs):
+            processing_run = service.create_processing_run(
+                "release_run", edition_part_id, "qizheng"
+            )
+            port = ServicePort(service)
+            stub = StubModule(
+                "m7",
+                module_id="legacy.m7",
+                fail_on_task="t1",
+                consumes_from=None,
+            )
+            _artifact_id, config_revision_id = service.put_run_artifact(
+                processing_run,
+                "configuration",
+                json.dumps(
+                    {"stage": "m7", "module_id": stub.module_id, "tasks": ["t1", "t2"]},
+                    sort_keys=True,
+                ).encode("utf-8"),
+                producer_module="tests",
+                producer_version="1.0",
+            )
+            request = make_step_request(processing_run, config_revision_id)
+            service.begin_step_run(request)
+            outcome = stub.execute(
+                port,
+                request,
+                StepContext(
+                    mode="fresh",
+                    edition_part_id=edition_part_id,
+                    stage="m7",
+                    module_id=stub.module_id,
+                ),
+            )
+            finalize_step_run(port, request, outcome)
+            return {"step_run_id": request["step_run_id"], "processing_run_id": processing_run}
+
+        registry = self.registry_from_descriptors(
+            [
+                self._release_descriptor("m7", "m7.incremental_assembly"),
+                self._release_descriptor("m8", "m8.dataset_compilation"),
+            ]
+        )
+        out = run_release(
+            self.adapter,
+            registry,
+            edition_part_id=ids.new_id("artifact_id"),
+            technique_id="qizheng",
+            modules={
+                "m7.incremental_assembly": failing_m7,
+                "m8.dataset_compilation": m8_entry,
+            },
+        )
+        self.assertEqual(out["action"], "executed")
+        self.assertEqual(out["stage"], "m7")
+        self.assertEqual(out["step_result"]["status"], "failed")
+        self.assertIsNone(m8_entry.received, "m7 未 succeeded 时不得推进 m8")
+        self.assertNotIn("m8", out["gate_reports"])
 
 
 if __name__ == "__main__":

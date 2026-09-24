@@ -309,38 +309,56 @@ def advance(port, registry, handle, *, modules=None, stages=EDITION_STAGES):
 
 
 def run_release(port, registry, *, edition_part_id, technique_id, modules=None):
-    """首切片 release 段：单个 M8 legacy 步（§6.2 ReleaseRun 状态机 DEFERRED）。"""
-    descriptor = registry.module_for("m8")
-    if descriptor is None:
-        return _result_dict(
-            "refused",
-            stage="m8",
-            reason="阶段 m8 未登记 Module（%s）" % registry.stage_rows.get("m8", "m8"),
+    """release 段：按 ``RELEASE_STAGES``（m7→m8）逐段执行 legacy 步（§6.2 ReleaseRun 状态机 DEFERRED）。
+
+    每段入口自建 ProcessingRun（``owns_processing_run``），Gate 按该段自己的运行判定；
+    某段未 ``succeeded``（失败，或 M7 停在人工裁决 ``awaiting_human``）即停在该段返回，
+    不推进下一段。返回最后执行的那一段；``gate_reports`` 带已执行各段的 Gate。
+    """
+    # 局部导入：本次改动只落在 release 段（并行改动 advance/run_until 的执行者不受影响）
+    from . import RELEASE_STAGES
+
+    gate_reports = {}
+    item = None
+    for stage in RELEASE_STAGES:
+        descriptor = registry.module_for(stage)
+        if descriptor is None:
+            return _result_dict(
+                "refused",
+                stage=stage,
+                gate_reports=gate_reports,
+                reason="阶段 %s 未登记 Module（%s）"
+                % (stage, registry.stage_rows.get(stage, stage)),
+            )
+        binding = bind_module(descriptor, modules=modules)
+        if binding.binding != "legacy_self_driving":
+            return _result_dict(
+                "refused",
+                stage=stage,
+                gate_reports=gate_reports,
+                reason="release 段只支持 legacy_self_driving 绑定",
+            )
+        out = run_legacy(
+            port,
+            binding,
+            {"edition_part_id": edition_part_id, "processing_run_id": None, "technique_id": technique_id},
         )
-    binding = bind_module(descriptor, modules=modules)
-    if binding.binding != "legacy_self_driving":
-        return _result_dict(
-            "refused",
-            stage="m8",
-            reason="首切片 release 段只支持 legacy_self_driving 绑定",
-        )
-    out = run_legacy(
-        port,
-        binding,
-        {"edition_part_id": edition_part_id, "processing_run_id": None, "technique_id": technique_id},
-    )
-    handle = _handle(out["processing_run_id"], edition_part_id, technique_id)
-    gate = evaluate_stage_gate(port, registry, handle, "m8")
-    return {
-        "action": "executed",
-        "stage": "m8",
-        "step_run_id": out["step_run_id"],
-        "processing_run_id": out["processing_run_id"],
-        "step_result": out["step_result"],
-        "gate": gate,
-        "gate_reports": {"m8": gate},
-        "reason": None,
-    }
+        handle = _handle(out["processing_run_id"], edition_part_id, technique_id)
+        gate = evaluate_stage_gate(port, registry, handle, stage)
+        gate_reports[stage] = gate
+        item = {
+            "action": "executed",
+            "stage": stage,
+            "step_run_id": out["step_run_id"],
+            "processing_run_id": out["processing_run_id"],
+            "step_result": out["step_result"],
+            "gate": gate,
+            "gate_reports": dict(gate_reports),
+            "reason": None,
+        }
+        if out["step_result"].get("status") != "succeeded":
+            break
+    return item
 
 
 def run_until(
