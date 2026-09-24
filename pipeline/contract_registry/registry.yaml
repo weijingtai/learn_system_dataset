@@ -95,7 +95,7 @@ modules:
     stage: m4
     kind: production
     binding: legacy_self_driving
-    entry: "pipeline.knowledge_extraction.step:run_m4"
+    entry: "pipeline.knowledge_extraction.entry:run_m4"
     resume_entry: "pipeline.knowledge_extraction.step:resume_m4"
     version: "0.1.0"
     consumes:
@@ -111,6 +111,7 @@ modules:
     supports_recovery: false
     entry_kwargs: {}
     owns_processing_run: false
+    receives_run_inputs: true
   - module_id: m5.automatic_validation
     stage: m5
     kind: production

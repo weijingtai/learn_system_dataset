@@ -101,7 +101,7 @@ def start_edition_run(port, *, edition_part_id, technique_id, run_inputs=None):
     输入的 stage 在执行前拒收。
     """
     if run_inputs is not None:
-        validate_run_inputs(run_inputs)
+        validate_run_inputs(run_inputs, technique_id=technique_id)
     processing_run_id = port.create_processing_run(
         "edition_run", edition_part_id, technique_id
     )
@@ -115,7 +115,7 @@ def adopt_edition_run(
 ):
     """接管既有 ``edition_run``：交叉校验技法与 Checkpoint 归属，不符即拒绝（零写入）。"""
     if run_inputs is not None:
-        validate_run_inputs(run_inputs)
+        validate_run_inputs(run_inputs, technique_id=technique_id)
     status = port.run_status(processing_run_id)
     step_runs = status["step_runs"]
     own_ids = {step["step_run_id"] for step in step_runs}
@@ -274,7 +274,9 @@ def advance(port, registry, handle, *, modules=None, stages=EDITION_STAGES):
             )
         if descriptor_needs_run_inputs(descriptor):
             try:
-                validate_run_inputs(handle.get("run_inputs"))
+                validate_run_inputs(
+                    handle.get("run_inputs"), technique_id=handle.get("technique_id")
+                )
             except OrchestratorRefused as exc:
                 return _result_dict(
                     "refused",

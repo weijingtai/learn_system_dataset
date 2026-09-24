@@ -23,12 +23,13 @@ import yaml
 from pipeline.contract_registry.catalog import load_registry
 from pipeline.contract_registry.ports import DirectLedgerAdapter
 from pipeline.knowledge_extraction import CANDIDATE_SCHEMA_VERSION
-from pipeline.knowledge_extraction.adapters.registry import register_technique_profile
 from pipeline.knowledge_extraction.step import record_category_ruling
 from pipeline.knowledge_extraction.submit import run_m4_submit
 from pipeline.orchestrator import EDITION_STAGES
 from pipeline.orchestrator.edition_run import advance, run_until, start_edition_run
 from pipeline.orchestrator.human import resume
+from pipeline.orchestrator.module import bind_module
+from pipeline.orchestrator.runner import run_legacy
 from pipeline.review.step import record_decision
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -82,6 +83,10 @@ class EditionRunTextChainTests(unittest.TestCase):
                 "route": "text",
                 "source_dir": str(HOST),
                 "source_info": self.source_info,
+                "technique_profile": {
+                    "technique_id": "qizheng",
+                    "canon_dir": str(CANON_DIR),
+                },
             },
         )
         self.awaiting_stages = []
@@ -127,6 +132,40 @@ class EditionRunTextChainTests(unittest.TestCase):
             sorted({row["stage"] for row in step_runs}), ["m1", "m2", "m3"]
         )
 
+    def test_m4_registry_entry_takes_technique_profile_from_run_inputs(self):
+        """m4 登记条目是 M4 薄适配：技法画像只经运行输入进入，由入口登记在本运行下。"""
+        descriptor = self.registry.module_for("m4")
+        self.assertEqual(descriptor["entry"], "pipeline.knowledge_extraction.entry:run_m4")
+        self.assertIs(descriptor.get("receives_run_inputs"), True)
+
+        run_until(self.adapter, self.registry, self.handle, "m3")
+        for name in SUBMISSION_FILES:
+            summary = run_m4_submit(
+                self.service,
+                self.edition_part_id,
+                (M4_DIR / name).read_bytes(),
+                producer_module="t04a_host:%s" % name,
+                producer_version="0.1.0",
+            )
+            self.assertEqual(summary["status"], "succeeded", name)
+        profiles_before = self.service.list_revisions(
+            artifact_type="technique_profile",
+            processing_run_id=self.handle["processing_run_id"],
+        )
+        self.assertEqual(profiles_before, [])
+
+        # 只验登记条目 → run_legacy → 薄适配的接线（advance 的 m4 判定见全线用例）
+        out = run_legacy(self.adapter, bind_module(descriptor), self.handle)
+        self.assertEqual(out["step_result"]["status"], "awaiting_human")
+        self.assertEqual(out["processing_run_id"], self.handle["processing_run_id"])
+        profiles = self.service.list_revisions(
+            artifact_type="technique_profile",
+            processing_run_id=self.handle["processing_run_id"],
+        )
+        self.assertEqual(len(profiles), 1)
+        request = json.loads(self.service.get_step_run(out["step_run_id"])["request_json"])
+        self.assertIn(profiles[0]["artifact_revision_id"], request["input_artifact_ids"])
+
     def test_scheduler_drives_m1_to_m6_with_public_human_entries(self):
         """M1→M6 全线：仅 M4/M6 停 awaiting_human，恢复经 human.resume 后自动收口。"""
         results = run_until(self.adapter, self.registry, self.handle, "m3")
@@ -135,13 +174,7 @@ class EditionRunTextChainTests(unittest.TestCase):
             ["m1", "m2", "m3"],
         )
 
-        # M4 的输入（六份提交件 + 技法画像）在 M3 之后经公开入口登记。
-        register_technique_profile(
-            self.service,
-            self.handle["processing_run_id"],
-            technique_id="qizheng",
-            canon_dir=CANON_DIR,
-        )
+        # M4 的六份提交件在 M3 之后经公开入口登记；技法画像由运行输入给出（M4 薄适配登记）。
         for name in SUBMISSION_FILES:
             summary = run_m4_submit(
                 self.service,
