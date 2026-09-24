@@ -20,7 +20,7 @@ from pipeline.orchestrator.edition_run import (
     start_edition_run,
 )
 from pipeline.orchestrator.errors import OrchestratorRefused
-from pipeline.orchestrator.gate import effective_step_runs
+from pipeline.orchestrator.gate import effective_step_runs, evaluate_stage_gate
 from pipeline.orchestrator.stubs import StubModule
 from pipeline.orchestrator.tests.scaffold import REPO_ROOT
 from pipeline.orchestrator.tests.test_gate import GateTestCase
@@ -79,6 +79,38 @@ class TestEditionRun(EditionTestCase):
             [item["stage"] for item in results if item["action"] == "executed"],
             list(EDITION_STAGES),
         )
+
+    def test_run_until_stops_after_target_stage_never_executes_next(self):
+        """``run_until(..., "m3")`` 执行完 m3 就停，绝不执行 m4（目标 Gate 按执行之后的事实判）。"""
+        stubs = self.all_stubs()
+        registry = self.registry_with(stubs)
+        modules = self.stub_modules(stubs)
+        processing_run_id, edition_part_id = self.start_run()
+        handle = self.handle(processing_run_id, edition_part_id)
+
+        results = run_until(
+            self.adapter, registry, handle, "m3", modules=modules, stages=EDITION_STAGES
+        )
+        self.assertEqual(
+            [item["stage"] for item in results if item["action"] == "executed"],
+            ["m1", "m2", "m3"],
+        )
+        step_runs = self.adapter.run_status(processing_run_id)["step_runs"]
+        self.assertEqual(
+            sorted({step["stage"] for step in step_runs}), ["m1", "m2", "m3"]
+        )
+        self.assertEqual(modules["stub.m4"].executed_tasks, [])
+        self.assertEqual(
+            evaluate_stage_gate(self.adapter, registry, handle, "m3")["gate"], "passed"
+        )
+
+        # 目标 Gate 已过时再 run_until 同一目标：零写入，不执行任何 stage
+        before = self.row_counts()
+        again = run_until(
+            self.adapter, registry, handle, "m3", modules=modules, stages=EDITION_STAGES
+        )
+        self.assertEqual([item for item in again if item["action"] == "executed"], [])
+        self.assertEqual(before, self.row_counts())
 
     def test_advance_gate_reports_carry_upstream_gate(self):
         stubs = self.all_stubs()
@@ -182,8 +214,9 @@ class TestEditionRun(EditionTestCase):
         processing_run_id, edition_part_id = self.start_run()
         handle = self.handle(processing_run_id, edition_part_id)
 
+        # 目标取 m4：run_until 不再越过目标，推到未登记的 m4 才会被拒
         results = run_until(
-            self.adapter, registry, handle, "m3", modules=modules, stages=EDITION_STAGES
+            self.adapter, registry, handle, "m4", modules=modules, stages=EDITION_STAGES
         )
         self.assertEqual(results[-1]["action"], "refused")
         self.assertEqual(results[-1]["stage"], "m4")

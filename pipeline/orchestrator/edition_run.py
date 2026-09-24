@@ -353,17 +353,23 @@ def run_until(
     stages=EDITION_STAGES,
     max_steps=16,
 ):
-    """反复 ``advance`` 直到目标 stage 的 Gate 通过或无法继续。"""
+    """反复 ``advance`` 直到目标 stage 的 Gate 通过或无法继续。
+
+    ``advance`` 返回的 ``gate_reports`` 是执行**之前**算的，不能拿来判「目标已过」。
+    因此只在 ``stages`` 截至目标 stage（含）的前缀上推进：每次 ``advance`` 都按执行
+    **之后**的 Ledger 事实重判 Gate，目标及其上游全部通过即返回 ``complete``（零写入），
+    绝不越过目标去执行下游 stage。
+    """
+    if stage not in stages:
+        raise OrchestratorRefused("run_until 的目标 stage 不在 stages 中: %r" % (stage,))
+    prefix = tuple(stages[: stages.index(stage) + 1])
     results = []
     for _ in range(max_steps):
-        item = advance(port, registry, handle, modules=modules, stages=stages)
+        item = advance(port, registry, handle, modules=modules, stages=prefix)
         results.append(item)
         if item["action"] != "executed":
             break
         if (item.get("step_result") or {}).get("status") != "succeeded":
-            break
-        target_gate = item.get("gate_reports", {}).get(stage)
-        if target_gate is not None and target_gate.get("gate") == "passed":
             break
     else:
         raise OrchestratorRefused("run_until 超过 max_steps=%d" % max_steps)

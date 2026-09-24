@@ -112,6 +112,21 @@ class EditionRunTextChainTests(unittest.TestCase):
             self.awaiting_stages.append(item["stage"])
 
     # ------------------------------------------------------------------ 用例
+    def test_run_until_m3_never_enters_m4(self):
+        """生产登记表上 ``run_until(..., "m3")`` 执行完 m3 就停：本运行不得出现 m4 StepRun。"""
+        results = run_until(self.adapter, self.registry, self.handle, "m3")
+        self.assertEqual(
+            [item["stage"] for item in results if item["action"] == "executed"],
+            ["m1", "m2", "m3"],
+        )
+        for item in results:
+            if item["action"] == "executed":
+                self.assertEqual(item["step_result"]["status"], "succeeded", item["stage"])
+        step_runs = self.adapter.run_status(self.handle["processing_run_id"])["step_runs"]
+        self.assertEqual(
+            sorted({row["stage"] for row in step_runs}), ["m1", "m2", "m3"]
+        )
+
     def test_scheduler_drives_m1_to_m6_with_public_human_entries(self):
         """M1→M6 全线：仅 M4/M6 停 awaiting_human，恢复经 human.resume 后自动收口。"""
         results = run_until(self.adapter, self.registry, self.handle, "m3")
