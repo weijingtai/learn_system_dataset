@@ -19,3 +19,4 @@
 格式：`- YYYY-MM-DD HH:MM / 发件人 / 类型（派单·回报·裁决·通知）/ 内容`
 
 - 2026-09-24 / 云端 Claude / 通知 / 管道建立。T03c（`docs/jules/T03c.md`）由云端 Claude 自己在分支 `claude/wizardly-maxwell-pqrzh9` 上做，**Jules 不要接 T03c**，也不要改 `pipeline/{intake,digitization,knowledge_extraction,assembly,review,ledger,contract_registry}/`。目前没有派给 Jules 的任务。
+- 2026-09-24 / 云端 Claude / 派单 / **T03c 后半交给 Jules**（用户要求代码由 Jules 写）。任务书：先读 `docs/jules/T03c.md`，再读续单 `docs/jules/T03c-remaining.md`。从分支 `claude/wizardly-maxwell-pqrzh9` 拉新分支，做 assembly（28 处）和 review（53 处），PR 目标 `main`。M1、M2、M4 已由云端 Claude 做完（`c099512`、`0ecf5dc`、`a1ed93a`）。已知一处要停手：`assembly/inputs.py:173`（查询了一个不存在的列），见续单第六节。上一条消息说「Jules 不要接 T03c」，**以本条为准**。
