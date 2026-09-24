@@ -280,6 +280,65 @@ class TestConsole(unittest.TestCase):
         self.assertIn("end_offset=8673", out)
         self.assertIn("quote=天官者，天干之官", out)
 
+    def test_queue_reflects_recorded_decisions(self):
+        step_run_id, token, _ = self._open_review()
+        # 只用 accept/reject 决定：modify 走 cmd_queue 既有路径会抛
+        # ReviewRefused("modify requires modified_revision_id")（既有缺陷，另记待裁决）
+        raw = yaml.safe_load((DATA_DIR / "m6_decisions.yaml").read_text(encoding="utf-8"))
+        decisions = [d for d in raw["decisions"] if d["verdict"] in ("accept", "reject")]
+        filtered = Path(self._tmp) / "queue_decisions.yaml"
+        filtered.write_text(yaml.safe_dump({"decisions": decisions}), encoding="utf-8")
+
+        res_batch = self._run_cli(
+            "decide-batch",
+            "--step-run",
+            step_run_id,
+            "--resume-token",
+            token,
+            "--from-file",
+            str(filtered),
+        )
+        self.assertEqual(
+            res_batch.returncode, 0, f"decide-batch failed: {res_batch.stderr}\n{res_batch.stdout}"
+        )
+
+        res = self._run_cli("queue", "--step-run", step_run_id)
+        self.assertEqual(res.returncode, 0, f"queue failed: {res.stderr}\n{res.stdout}")
+        lines = [l for l in res.stdout.strip().split("\n") if l.strip()]
+        self.assertEqual(lines[-1], f"M6 QUEUE {step_run_id} pending={5 - len(decisions)}")
+        statuses = {l.split("\t")[0]: l.split("\t")[2] for l in lines[:-1]}
+        self.assertEqual(len(statuses), 5)
+        self.assertEqual(statuses["as_qizheng_000001#review_source_fidelity"], "accept")
+        self.assertEqual(statuses["as_qizheng_000002#review_source_fidelity"], "reject")
+        self.assertEqual(statuses["as_qizheng_000003#review_source_fidelity"], "pending")
+
+    def test_show_prints_decision_line_after_decide(self):
+        step_run_id, token, _ = self._open_review()
+        res_batch = self._run_cli(
+            "decide-batch",
+            "--step-run",
+            step_run_id,
+            "--resume-token",
+            token,
+            "--from-file",
+            str(DATA_DIR / "m6_decisions.yaml"),
+        )
+        self.assertEqual(
+            res_batch.returncode, 0, f"decide-batch failed: {res_batch.stderr}\n{res_batch.stdout}"
+        )
+
+        res = self._run_cli(
+            "show",
+            "--step-run",
+            step_run_id,
+            "--item",
+            "as_qizheng_000001#review_source_fidelity",
+        )
+        self.assertEqual(res.returncode, 0, f"show failed: {res.stderr}\n{res.stdout}")
+        decision_lines = [l for l in res.stdout.splitlines() if l.startswith("DECISION ")]
+        self.assertEqual(len(decision_lines), 1)
+        self.assertIn(" accept active", decision_lines[0])
+
     def test_glyphbox_console_output_format_invariance(self):
         # 既有 glyphbox 路线控制台输出逐字段不破坏
         step_run_id, token, _ = self._open_review()
