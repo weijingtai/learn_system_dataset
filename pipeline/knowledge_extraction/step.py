@@ -55,27 +55,19 @@ def _submission_sort_key(key):
 
 
 def _artifact_types(service, revision_ids):
-    revision_ids = [rev for rev in revision_ids if rev]
-    if not revision_ids:
-        return {}
-    placeholders = ",".join("?" * len(revision_ids))
-    rows = service.store.conn.execute(
-        "SELECT r.artifact_revision_id, a.artifact_type FROM artifact_revisions r "
-        "JOIN artifacts a ON a.artifact_id = r.artifact_id "
-        "WHERE r.artifact_revision_id IN (%s)" % placeholders,
-        tuple(revision_ids),
-    ).fetchall()
-    return {row[0]: row[1] for row in rows}
+    types = {}
+    for revision_id in revision_ids:
+        info = service.describe_revision(revision_id) if revision_id else None
+        if info is not None:
+            types[revision_id] = info["artifact_type"]
+    return types
 
 
 def _read_bytes(service, revision_id):
     row = service.get_revision(revision_id)
     if row is None:
         raise _InputContractError("引用的修订不存在: %s" % revision_id)
-    read = getattr(service, "read_object", None)
-    if read is not None:
-        return read(row["sha256"])
-    return service.objects.get(row["sha256"])
+    return service.read_object(row["sha256"])
 
 
 def _read_doc(service, revision_id):
@@ -87,24 +79,13 @@ def _read_doc(service, revision_id):
 
 def _artifact_ref(service, revision_id):
     """构造过 ``artifact_ref.schema.json`` 的引用（stage_package 用包号身份）。"""
-    row = service.store.conn.execute(
-        "SELECT a.artifact_id, a.artifact_type FROM artifacts a "
-        "JOIN artifact_revisions r ON r.artifact_id = a.artifact_id "
-        "WHERE r.artifact_revision_id=?",
-        (revision_id,),
-    ).fetchone()
-    artifact_id, artifact_type = row[0], row[1]
+    info = service.describe_revision(revision_id)
+    artifact_id, artifact_type = info["artifact_id"], info["artifact_type"]
     if artifact_type == "stage_package":
-        package_row = service.store.conn.execute(
-            "SELECT sp.stage_package_id FROM stage_packages sp "
-            "JOIN artifact_revisions r ON r.artifact_id = sp.artifact_id "
-            "WHERE r.artifact_revision_id=?",
-            (revision_id,),
-        ).fetchone()
         return {
             "schema_version": "1.0.0",
             "artifact_kind": "stage_package",
-            "stage_package_id": package_row[0],
+            "stage_package_id": info["stage_package_id"],
             "artifact_revision_id": revision_id,
             "artifact_type": artifact_type,
         }
@@ -615,35 +596,23 @@ def run_m4(
 
 # ------------------------------------------------------------------ 类别裁决 / 恢复
 def _edition_part_id(service, processing_run_id):
-    row = service.store.conn.execute(
-        "SELECT edition_part_id FROM processing_runs WHERE processing_run_id=?",
-        (processing_run_id,),
-    ).fetchone()
-    return row[0] if row else None
+    run = service.get_processing_run(processing_run_id)
+    return run["edition_part_id"] if run else None
 
 
 def _own_sealed_revisions(service, step_run_id, artifact_type):
     return [
-        row[0]
-        for row in service.store.conn.execute(
-            "SELECT r.artifact_revision_id FROM artifact_revisions r "
-            "JOIN artifacts a ON a.artifact_id = r.artifact_id "
-            "WHERE r.step_run_id=? AND a.artifact_type=? AND r.status='sealed' "
-            "ORDER BY r.created_at, r.rowid",
-            (step_run_id, artifact_type),
-        ).fetchall()
+        row["artifact_revision_id"]
+        for row in service.list_step_run_revisions(step_run_id, artifact_type, "sealed")
     ]
 
 
 def _registered_rulings(service, step_run_id, ordered=False):
     """本 StepRun 已登记的人工裁决事件 ``[(dispute_id, event_revision_id), ...]``。"""
-    rows = service.store.conn.execute(
-        "SELECT h.event_revision_id FROM human_events h WHERE h.step_run_id=? "
-        "ORDER BY h.created_at, h.rowid",
-        (step_run_id,),
-    ).fetchall()
+    # 端口按写入顺序返回；稳定排序后即原 SQL 的 ORDER BY created_at, rowid
+    rows = sorted(service.list_human_events(step_run_id), key=lambda row: row["created_at"])
     pairs = []
-    for (revision_id,) in rows:
+    for revision_id in (row["event_revision_id"] for row in rows):
         content = _read_doc(service, revision_id) or {}
         pairs.append((content.get("dispute_id"), revision_id))
     if ordered:

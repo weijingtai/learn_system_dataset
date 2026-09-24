@@ -1,6 +1,6 @@
 """M4 输入解析：从 Artifact Ledger 冻结修订只读解析 M3 输出与 M4 输入。
 
-只调用 ``LedgerReadMixin`` 公开方法与 ``reader.store.conn`` 只读 SELECT；不做任何写入。
+只经 LedgerPort 只读方法读账本（TODO T03c），不做任何写入。
 上游只认「``succeeded`` 且 Transformation ``operation == compile_corpus``」的 m3 运行
 （P5），输出定位经 ``result_json["output_artifact_ids"]`` + ``artifacts.artifact_type``，
 **不依赖** ``list_transformations`` 返回输出（它只返回 ``transformations`` 表行）。
@@ -22,10 +22,7 @@ _SUBMIT_TASK_RE = re.compile(r"^submit_(%s)_([abc])$" % "|".join(CATEGORIES))
 
 # ---------------------------------------------------------------- 只读工具
 def _read_bytes(reader, sha256):
-    read = getattr(reader, "read_object", None)
-    if read is not None:
-        return read(sha256)
-    return reader.objects.get(sha256)
+    return reader.read_object(sha256)
 
 
 def _read_doc(reader, revision_id):
@@ -41,18 +38,13 @@ def _read_doc(reader, revision_id):
 
 
 def _artifact_types(reader, revision_ids):
-    """只读 SELECT：``artifacts.artifact_type``（经 ``artifact_revisions`` join）。"""
-    revision_ids = [rev for rev in revision_ids if rev]
-    if not revision_ids:
-        return {}
-    placeholders = ",".join("?" * len(revision_ids))
-    rows = reader.store.conn.execute(
-        "SELECT r.artifact_revision_id, a.artifact_type FROM artifact_revisions r "
-        "JOIN artifacts a ON a.artifact_id = r.artifact_id "
-        "WHERE r.artifact_revision_id IN (%s)" % placeholders,
-        tuple(revision_ids),
-    ).fetchall()
-    return {row[0]: row[1] for row in rows}
+    """经 LedgerPort ``describe_revision`` 取 ``artifact_type``；不存在的修订不出现在结果里。"""
+    types = {}
+    for revision_id in revision_ids:
+        info = reader.describe_revision(revision_id) if revision_id else None
+        if info is not None:
+            types[revision_id] = info["artifact_type"]
+    return types
 
 
 def latest_succeeded_step_run(reader, edition_part_id, stage):
@@ -60,26 +52,16 @@ def latest_succeeded_step_run(reader, edition_part_id, stage):
 
     后续 StepRun 以 ``supersede_step_run`` 接替它（G7-RULINGS 第 32/58 条）。
     """
-    rows = reader.store.conn.execute(
-        "SELECT DISTINCT c.step_run_id, c.created_at, c.rowid FROM stage_checkpoints c "
-        "JOIN step_runs r ON r.step_run_id = c.step_run_id "
-        "WHERE c.edition_part_id=? AND c.stage=? AND r.status='succeeded' "
-        "ORDER BY c.created_at DESC, c.rowid DESC",
-        (edition_part_id, stage),
-    ).fetchall()
-    return rows[0][0] if rows else None
+    return reader.latest_checkpoint_step_run(edition_part_id, stage, "succeeded")
 
 
 def _processing_run_technique_id(reader, processing_run_id):
-    row = reader.store.conn.execute(
-        "SELECT technique_id FROM processing_runs WHERE processing_run_id=?",
-        (processing_run_id,),
-    ).fetchone()
-    if row is None:
+    run = reader.get_processing_run(processing_run_id)
+    if run is None:
         raise ExtractionRefused(
             "ProcessingRun 不存在: %s" % processing_run_id, code="REF_001"
         )
-    return row[0]
+    return run["technique_id"]
 
 
 def _m3_candidates(reader, edition_part_id):
@@ -102,14 +84,14 @@ def _m3_candidates(reader, edition_part_id):
 
 
 def _m3_stage_package(reader, stage="m3"):
-    rows = reader.store.conn.execute(
-        "SELECT sp.stage_package_id, r.artifact_revision_id, r.step_run_id "
-        "FROM stage_packages sp "
-        "JOIN artifact_revisions r ON r.artifact_id = sp.artifact_id "
-        "WHERE sp.stage=?",
-        (stage,),
-    ).fetchall()
-    return [dict(zip(("stage_package_id", "artifact_revision_id", "step_run_id"), row)) for row in rows]
+    return [
+        {
+            "stage_package_id": row["stage_package_id"],
+            "artifact_revision_id": row["artifact_revision_id"],
+            "step_run_id": row["step_run_id"],
+        }
+        for row in reader.list_stage_packages(stage)
+    ]
 
 
 def resolve_m3_outputs(reader, edition_part_id):
@@ -227,18 +209,16 @@ def collect_submissions(reader, edition_part_id):
 
 
 def _profile_revisions(reader, processing_run_id, technique_id):
-    rows = reader.store.conn.execute(
-        "SELECT r.artifact_revision_id FROM artifact_revisions r "
-        "JOIN artifacts a ON a.artifact_id = r.artifact_id "
-        "WHERE a.artifact_type='technique_profile' AND r.processing_run_id=? "
-        "ORDER BY r.created_at, r.rowid",
-        (processing_run_id,),
-    ).fetchall()
+    # 端口按写入顺序返回；稳定排序后即原 SQL 的 ORDER BY created_at, rowid
+    rows = sorted(
+        reader.list_revisions(artifact_type="technique_profile", processing_run_id=processing_run_id),
+        key=lambda row: row["created_at"],
+    )
     matches = []
     for row in rows:
-        content = _read_doc(reader, row[0]) or {}
+        content = _read_doc(reader, row["artifact_revision_id"]) or {}
         if content.get("technique_id") == technique_id:
-            matches.append(row[0])
+            matches.append(row["artifact_revision_id"])
     return matches
 
 

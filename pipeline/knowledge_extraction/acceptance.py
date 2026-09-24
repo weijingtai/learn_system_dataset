@@ -108,7 +108,7 @@ BLOCKED_CHECKS = (
 # ------------------------------------------------------------------ 只读工具
 def _revision_bytes(service, revision_id):
     row = service.get_revision(revision_id)
-    return service.objects.get(row["sha256"])
+    return service.read_object(row["sha256"])
 
 
 def _doc(service, revision_id):
@@ -198,12 +198,7 @@ def _check_lane_isolation(world):
         if frozen != {m3["package_revision_id"], m3["spans_revision_id"]}:
             errors.append("submit %s 冻结输入不符: %s" % (submit["step_run_id"], sorted(frozen)))
         for revision_id in frozen:
-            artifact_type = service.store.conn.execute(
-                "SELECT a.artifact_type FROM artifact_revisions r "
-                "JOIN artifacts a ON a.artifact_id = r.artifact_id "
-                "WHERE r.artifact_revision_id=?",
-                (revision_id,),
-            ).fetchone()[0]
+            artifact_type = service.describe_revision(revision_id)["artifact_type"]
             if artifact_type == "candidate_submission":
                 errors.append("submit 冻结输入含 candidate_submission: %s" % revision_id)
     if world["submits"][0]["step_run_id"] == world["submits"][1]["step_run_id"]:
@@ -333,13 +328,8 @@ def _check_status_ceiling(world):
         for index, obj in enumerate(candidate_set.get(key) or []):
             if obj.get("content_status") not in M4_STATUS_CEILING:
                 errors.append("%s[%d] content_status 越权" % (key, index))
-    placeholders = ",".join("?" * len(_m4_step_runs(world)))
-    rows = service.store.conn.execute(
-        "SELECT r.artifact_revision_id FROM artifact_revisions r WHERE r.step_run_id IN (%s)"
-        % placeholders,
-        tuple(_m4_step_runs(world)),
-    ).fetchall()
-    for (revision_id,) in rows:
+    rows = service.list_revisions(step_run_ids=_m4_step_runs(world))
+    for revision_id in (row["artifact_revision_id"] for row in rows):
         data = _revision_bytes(service, revision_id)
         if b"expert_verified" in data or b"cross_model_reviewed" in data:
             errors.append("m4 修订含越权状态字节: %s" % revision_id)
@@ -419,17 +409,15 @@ def _check_dispute_ruling(world):
         await_idx[-1] < human_idx[0] and human_idx[-1] < resume_idx[-1]
     ):
         errors.append("事件顺序非 await_human → human_event → resume")
-    rows = service.store.conn.execute(
-        "SELECT decision_type FROM human_events WHERE step_run_id=?", (step,)
-    ).fetchall()
-    if any(row[0] is not None for row in rows):
+    human_rows = service.list_human_events(step)
+    if any(row["decision_type"] is not None for row in human_rows):
         errors.append("human_events.decision_type 非 NULL")
-    events_registered = service.store.conn.execute(
-        "SELECT event_revision_id FROM human_events WHERE step_run_id=? ORDER BY created_at, rowid",
-        (step,),
-    ).fetchall()
+    # 端口按写入顺序返回；稳定排序后即原 SQL 的 ORDER BY created_at, rowid
+    events_registered = [
+        row["event_revision_id"] for row in sorted(human_rows, key=lambda row: row["created_at"])
+    ]
     own = _own_checkpoints(service, world, step)
-    for (revision_id,) in events_registered:
+    for revision_id in events_registered:
         content = _doc(service, revision_id) or {}
         dispute_id = content.get("dispute_id")
         matched = [
@@ -505,30 +493,15 @@ def _check_package_lineage(world):
         errors.append("extract_candidates Transformation 数不为 1")
     else:
         transformation_id = transformations[0]["id"]
-        outputs = [
-            row[0]
-            for row in service.store.conn.execute(
-                "SELECT artifact_revision_id FROM transformation_outputs WHERE transformation_id=?",
-                (transformation_id,),
-            ).fetchall()
-        ]
+        outputs = service.list_transformation_outputs(transformation_id)
         for revision_id in outputs:
             row = service.get_revision(revision_id)
             if row is None or row["status"] != "sealed":
                 errors.append("Transformation 输出未 sealed: %s" % revision_id)
-        events = [
-            row[0]
-            for row in service.store.conn.execute(
-                "SELECT event_revision_id FROM transformation_human_events WHERE transformation_id=?",
-                (transformation_id,),
-            ).fetchall()
-        ]
+        events = service.list_transformation_human_events(transformation_id)
         registered = [
-            row[0]
-            for row in service.store.conn.execute(
-                "SELECT event_revision_id FROM human_events WHERE step_run_id=? ORDER BY created_at, rowid",
-                (step,),
-            ).fetchall()
+            row["event_revision_id"]
+            for row in sorted(service.list_human_events(step), key=lambda row: row["created_at"])
         ]
         if events != registered:
             errors.append("Transformation human_event_revision_ids 与裁决事件不符")

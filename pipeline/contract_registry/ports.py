@@ -54,6 +54,12 @@ LEDGER_PORT_METHODS = (
     "count_artifacts",
     # TODO.md T03c：M1/M2/M4/M6/M7 原先直接写 SQL 查询的元数据
     "latest_processing_run",
+    "latest_checkpoint_step_run",
+    "list_revisions",
+    "list_human_events",
+    "list_transformation_inputs",
+    "list_transformation_outputs",
+    "list_transformation_human_events",
 )
 
 # 直连委托给 LedgerService 的方法（read_object 走 objects.get，单独实现）

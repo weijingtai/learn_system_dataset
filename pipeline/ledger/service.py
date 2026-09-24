@@ -189,6 +189,39 @@ class LedgerReadMixin:
         """某 EditionPart 最近创建的指定 kind 的 ProcessingRun 号，没有则 ``None``。"""
         return self.store.latest_processing_run(edition_part_id, kind)
 
+    def latest_checkpoint_step_run(self, edition_part_id, stage, status):
+        """某 EditionPart×Stage 检查点所属、StepRun 状态为 ``status`` 的最新 StepRun 号，没有则 ``None``。"""
+        return self.store.latest_checkpoint_step_run(edition_part_id, stage, status)
+
+    def list_revisions(
+        self,
+        artifact_type=None,
+        status=None,
+        step_run_ids=None,
+        processing_run_id=None,
+        prev_revision_id=None,
+    ):
+        """按条件筛修订元数据（形状同 ``describe_revision``，另带 ``prev_revision_id``），按写入顺序。"""
+        return self.store.list_revisions(
+            artifact_type, status, step_run_ids, processing_run_id, prev_revision_id
+        )
+
+    def list_human_events(self, step_run_id=None):
+        """人工事件登记行（可按 StepRun 筛），按写入顺序。"""
+        return self.store.list_human_events(step_run_id)
+
+    def list_transformation_inputs(self, transformation_id):
+        """某 Transformation 的输入修订号（修订号升序）。"""
+        return self.store.list_transformation_inputs(transformation_id)
+
+    def list_transformation_outputs(self, transformation_id):
+        """某 Transformation 的输出修订号（修订号升序）。"""
+        return self.store.list_transformation_outputs(transformation_id)
+
+    def list_transformation_human_events(self, transformation_id):
+        """某 Transformation 引用的人工事件修订号（修订号升序）。"""
+        return self.store.list_transformation_human_events(transformation_id)
+
     def list_stage_packages(self, stage):
         """某 stage 的全部 StagePackage 修订，附 step_run_id 与 step_run_status。"""
         return self.store.list_stage_packages(stage)

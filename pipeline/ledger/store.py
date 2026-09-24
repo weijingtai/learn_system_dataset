@@ -510,6 +510,71 @@ class MetadataStore:
         ).fetchone()
         return row[0] if row is not None else None
 
+    def latest_checkpoint_step_run(self, edition_part_id, stage, status):
+        """某 EditionPart×Stage 检查点所属、StepRun 状态为 ``status`` 的最新 StepRun 号，没有则 ``None``。
+
+        「最新」按检查点 ``created_at DESC, rowid DESC``。
+        """
+        rows = self.conn.execute(
+            "SELECT DISTINCT c.step_run_id, c.created_at, c.rowid FROM stage_checkpoints c "
+            "JOIN step_runs r ON r.step_run_id = c.step_run_id "
+            "WHERE c.edition_part_id=? AND c.stage=? AND r.status=? "
+            "ORDER BY c.created_at DESC, c.rowid DESC",
+            (edition_part_id, stage, status),
+        ).fetchall()
+        return rows[0][0] if rows else None
+
+    def list_revisions(
+        self,
+        artifact_type=None,
+        status=None,
+        step_run_ids=None,
+        processing_run_id=None,
+        prev_revision_id=None,
+    ):
+        """按条件筛修订元数据（形状同 ``describe_revision``，另带 ``prev_revision_id``）；按写入顺序（rowid）。
+
+        ``step_run_ids`` 为 ``None`` 表示不按 StepRun 筛；为空序列时返回 ``[]``。
+        """
+        sql = (
+            "SELECT r.artifact_revision_id, r.artifact_id, a.artifact_type, r.sha256, r.status, "
+            "r.step_run_id, r.processing_run_id, r.created_at, sp.stage_package_id, "
+            "r.prev_revision_id "
+            "FROM artifact_revisions r JOIN artifacts a ON a.artifact_id = r.artifact_id "
+            "LEFT JOIN stage_packages sp ON sp.artifact_id = r.artifact_id WHERE 1=1"
+        )
+        params = []
+        if artifact_type is not None:
+            sql += " AND a.artifact_type=?"
+            params.append(artifact_type)
+        if status is not None:
+            sql += " AND r.status=?"
+            params.append(status)
+        if step_run_ids is not None:
+            step_run_ids = list(step_run_ids)
+            if not step_run_ids:
+                return []
+            sql += " AND r.step_run_id IN (%s)" % ",".join("?" * len(step_run_ids))
+            params.extend(step_run_ids)
+        if processing_run_id is not None:
+            sql += " AND r.processing_run_id=?"
+            params.append(processing_run_id)
+        if prev_revision_id is not None:
+            sql += " AND r.prev_revision_id=?"
+            params.append(prev_revision_id)
+        sql += " ORDER BY r.rowid"
+        return [dict(row) for row in self.conn.execute(sql, tuple(params)).fetchall()]
+
+    def list_human_events(self, step_run_id=None):
+        """人工事件登记行（event_revision_id、step_run_id、decision_type、created_at），按写入顺序（rowid）。"""
+        sql = "SELECT event_revision_id, step_run_id, decision_type, created_at FROM human_events"
+        params = ()
+        if step_run_id is not None:
+            sql += " WHERE step_run_id=?"
+            params = (step_run_id,)
+        sql += " ORDER BY rowid"
+        return [dict(row) for row in self.conn.execute(sql, params).fetchall()]
+
     def list_step_runs(self, edition_part_id, stage=None):
         """某 EditionPart 的 StepRun（可按 stage 筛选）；按创建顺序（旧→新）。"""
         sql = (
@@ -667,6 +732,15 @@ class MetadataStore:
         rows = self.conn.execute(
             "SELECT artifact_revision_id FROM transformation_outputs WHERE transformation_id=? "
             "ORDER BY artifact_revision_id ASC",
+            (transformation_id,),
+        ).fetchall()
+        return [row[0] for row in rows]
+
+    def list_transformation_human_events(self, transformation_id):
+        """返回某 Transformation 引用的人工事件 Revision 号列表。"""
+        rows = self.conn.execute(
+            "SELECT event_revision_id FROM transformation_human_events WHERE transformation_id=? "
+            "ORDER BY event_revision_id ASC",
             (transformation_id,),
         ).fetchall()
         return [row[0] for row in rows]

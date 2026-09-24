@@ -186,26 +186,19 @@ OFFSET_ACCEPT_SPANS = {
 }
 
 
-class _FakeObjects:
-    """最小对象存储替身：只服务按 sha256 取字节。"""
-
-    def __init__(self, payload):
-        self.payload = payload
-
-    def get(self, sha256):
-        return self.payload
-
-
 class _FakeService:
-    """最小 Ledger 读替身：acceptance 的只读路径只需要 ``get_revision``/``objects``。"""
+    """最小 Ledger 读替身：只提供 LedgerPort 方法 ``get_revision``/``read_object``，
+    故意不给 ``store``/``objects``——acceptance 再走后门会立即报错（TODO T03c）。"""
 
     def __init__(self, payload):
-        self.objects = _FakeObjects(payload)
         self.spans_bytes = payload
         self.revisions = {}
 
     def get_revision(self, revision_id):
         return self.revisions.get(revision_id)
+
+    def read_object(self, sha256):
+        return self.spans_bytes
 
 
 class OffsetLevelQuoteFidelityTests(unittest.TestCase):

@@ -490,3 +490,48 @@ class LedgerClient:
     def latest_processing_run(self, edition_part_id, kind):
         """见 ``LedgerReader.latest_processing_run``。"""
         return self._call("latest_processing_run", {"edition_part_id": edition_part_id, "kind": kind})
+
+    def latest_checkpoint_step_run(self, edition_part_id, stage, status):
+        """见 ``LedgerReader.latest_checkpoint_step_run``。"""
+        return self._call(
+            "latest_checkpoint_step_run",
+            {"edition_part_id": edition_part_id, "stage": stage, "status": status},
+        )
+
+    def list_revisions(
+        self,
+        artifact_type=None,
+        status=None,
+        step_run_ids=None,
+        processing_run_id=None,
+        prev_revision_id=None,
+    ):
+        """见 ``LedgerReader.list_revisions``。"""
+        return self._call(
+            "list_revisions",
+            {
+                "artifact_type": artifact_type,
+                "status": status,
+                "step_run_ids": None if step_run_ids is None else list(step_run_ids),
+                "processing_run_id": processing_run_id,
+                "prev_revision_id": prev_revision_id,
+            },
+        )
+
+    def list_human_events(self, step_run_id=None):
+        """见 ``LedgerReader.list_human_events``。"""
+        return self._call("list_human_events", {"step_run_id": step_run_id})
+
+    def list_transformation_inputs(self, transformation_id):
+        """见 ``LedgerReader.list_transformation_inputs``。"""
+        return self._call("list_transformation_inputs", {"transformation_id": transformation_id})
+
+    def list_transformation_outputs(self, transformation_id):
+        """见 ``LedgerReader.list_transformation_outputs``。"""
+        return self._call("list_transformation_outputs", {"transformation_id": transformation_id})
+
+    def list_transformation_human_events(self, transformation_id):
+        """见 ``LedgerReader.list_transformation_human_events``。"""
+        return self._call(
+            "list_transformation_human_events", {"transformation_id": transformation_id}
+        )
