@@ -7,10 +7,7 @@ from pipeline.review.errors import ReviewRefused
 
 
 def _read_bytes(reader, sha256):
-    read = getattr(reader, "read_object", None)
-    if read is not None:
-        return read(sha256)
-    return reader.objects.get(sha256)
+    return reader.read_object(sha256)
 
 
 def _read_doc(reader, revision_id):
@@ -28,28 +25,18 @@ def _read_doc(reader, revision_id):
 
 
 def _artifact_types(reader, revision_ids):
-    revision_ids = [rev for rev in revision_ids if rev]
-    if not revision_ids:
-        return {}
-    placeholders = ",".join("?" * len(revision_ids))
-    rows = reader.store.conn.execute(
-        "SELECT r.artifact_revision_id, a.artifact_type FROM artifact_revisions r "
-        "JOIN artifacts a ON a.artifact_id = r.artifact_id "
-        "WHERE r.artifact_revision_id IN (%s)" % placeholders,
-        tuple(revision_ids),
-    ).fetchall()
-    return {row[0]: row[1] for row in rows}
+    """经 LedgerPort ``describe_revision`` 取 ``artifact_type``；不存在的修订不出现在结果里。"""
+    types = {}
+    for revision_id in revision_ids:
+        info = reader.describe_revision(revision_id) if revision_id else None
+        if info is not None:
+            types[revision_id] = info["artifact_type"]
+    return types
 
 
 def latest_succeeded_step_run(reader, edition_part_id, stage):
-    rows = reader.store.conn.execute(
-        "SELECT DISTINCT c.step_run_id, c.created_at, c.rowid FROM stage_checkpoints c "
-        "JOIN step_runs r ON r.step_run_id = c.step_run_id "
-        "WHERE c.edition_part_id=? AND c.stage=? AND r.status='succeeded' "
-        "ORDER BY c.created_at DESC, c.rowid DESC",
-        (edition_part_id, stage),
-    ).fetchall()
-    return rows[0][0] if rows else None
+    """该 EditionPart×Stage 上最近一个 ``succeeded`` 的 StepRun（只读）。"""
+    return reader.latest_checkpoint_step_run(edition_part_id, stage, "succeeded")
 
 
 def resolve_m6_inputs(reader, edition_part_id: str) -> dict:
@@ -147,18 +134,16 @@ def resolve_m6_inputs(reader, edition_part_id: str) -> dict:
             code="REF_001",
         )
 
-    # 经 stage_packages 只读 SELECT 取 m5 StagePackage
-    m5_sp_rows = reader.store.conn.execute(
-        "SELECT sp.stage_package_id, r.artifact_revision_id FROM stage_packages sp "
-        "JOIN artifact_revisions r ON r.artifact_id = sp.artifact_id "
-        "JOIN step_runs sr ON sr.step_run_id = r.step_run_id "
-        "WHERE sp.stage='m5' AND r.step_run_id=? AND sr.status='succeeded'",
-        (m5_step_run_id,),
-    ).fetchall()
+    # 经端口列 m5 StagePackage：原查询按 stage='m5' + 该 StepRun + succeeded 取第一行修订
+    m5_sp_rows = [
+        row
+        for row in reader.list_stage_packages("m5")
+        if row["step_run_id"] == m5_step_run_id and row["step_run_status"] == "succeeded"
+    ]
     if not m5_sp_rows:
         raise ReviewRefused("未找到 M5 StagePackage 记录", code="REF_001")
 
-    m5_stage_package_doc = _read_doc(reader, m5_sp_rows[0][1])
+    m5_stage_package_doc = _read_doc(reader, m5_sp_rows[0]["artifact_revision_id"])
     if (
         not isinstance(m5_stage_package_doc, dict)
         or m5_stage_package_doc.get("validation", {}).get("passed") is not True

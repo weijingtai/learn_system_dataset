@@ -86,6 +86,29 @@ class TestReviewInputs(unittest.TestCase):
         self.assertEqual(step_count_before, step_count_after)
         self.assertEqual(audit_count_before, audit_count_after)
 
+    def test_resolve_picks_m5_stage_package_of_current_m5_step_run(self):
+        """护栏：m5 StagePackage 必须按「当前 m5 StepRun」筛选。
+
+        在候选列表前面插一条属于别的 StepRun 的行（指向 candidate_set 修订，
+        其文档没有 ``validation.passed``）。筛选被去掉时会取到它并误报 ReviewRefused。
+        """
+        rows = self.service.list_stage_packages("m5")
+        self.assertEqual(len(rows), 1)
+        decoy = dict(rows[0])
+        decoy["step_run_id"] = "srun_decoy000000000000000000000000"
+        decoy["artifact_revision_id"] = self.seed_result["candidate_set_revision_id"]
+        orig_list = self.service.list_stage_packages
+
+        def fake_list_stage_packages(stage):
+            listed = list(orig_list(stage))
+            return [decoy] + listed if stage == "m5" else listed
+
+        with mock.patch.object(
+            self.service, "list_stage_packages", side_effect=fake_list_stage_packages
+        ):
+            resolved = resolve_m6_inputs(self.service, self.edition_part_id)
+        self.assertEqual(resolved["m5_step_run_id"], self.seed_result["m5_step_run_id"])
+
     def test_refuses_when_m5_missing(self):
         orig_latest = pipeline.review.inputs.latest_succeeded_step_run
 
