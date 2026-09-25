@@ -31,28 +31,21 @@ except ImportError:  # 宿主缺依赖：main 返回 3
 import pipeline.orchestrator.gate as gate
 from pipeline.contract_registry.catalog import Registry, check_registry, load_registry
 from pipeline.contract_registry.ports import DirectLedgerAdapter
-from pipeline.ledger import fixture_ingest, ids
-from pipeline.ledger.service import LedgerService
-
-try:
-    from pipeline.dataset_compiler.shim import m1_shim_source_assets
-
-    SourceAssetMissing = m1_shim_source_assets.SourceAssetMissing
-except ImportError:  # 宿主缺依赖：main 返回 3
-    SourceAssetMissing = None
-    m1_shim_source_assets = None
-
-from pipeline.orchestrator import EDITION_STAGES, FIRST_SLICE_EDITION_STAGES
+from pipeline.knowledge_extraction import CANDIDATE_SCHEMA_VERSION
+from pipeline.knowledge_extraction.step import record_category_ruling
+from pipeline.knowledge_extraction.submit import run_m4_submit
+from pipeline.ledger import ids
+from pipeline.orchestrator import EDITION_STAGES
 from pipeline.orchestrator.edition_run import (
     advance,
-    adopt_edition_run,
     edition_status,
     run_release,
     run_until,
     start_edition_run,
 )
-from pipeline.orchestrator.human import rerun_from_checkpoint
+from pipeline.orchestrator.human import rerun_from_checkpoint, resume
 from pipeline.orchestrator.stubs import StubModule
+from pipeline.review.step import record_decision
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_ASSET_ROOT = REPO_ROOT / "ocr" / "data_work" / "sanche_pages"
@@ -66,6 +59,24 @@ CHECKS = (
     "real_chain_mini_ed01",
     "registered_modules_m1_m6",
 )
+
+# 20.1 宿主路线（裁决 4）：电子文本 fixture。路线权威 = 宿主 spans.yaml 顶层
+# evidence_level（与 m8-span-identity.sh 的 D-W8-16 同源）：宿主不是该路线即 BLOCKED，
+# **绝不**回落 OCR 路线的 mini_ed01。
+_TEXT_ROUTE_EVIDENCE = "offset_level"
+
+# 宿主自带的 M4 六份提交件（经公开提交入口 ``run_m4_submit`` 交进去，不新造数据）
+TEXT_HOST_SUBMISSIONS = (
+    "submission_assertion_a.yaml",
+    "submission_assertion_b.yaml",
+    "submission_pattern_a.yaml",
+    "submission_pattern_b.yaml",
+    "submission_concept_mention_a.yaml",
+    "submission_concept_mention_b.yaml",
+)
+
+# M4 运行输入要求的技法画像 canon 目录（与全线用例同源）
+DEFAULT_CANON_DIR = REPO_ROOT / "pipeline" / "schemas" / "shared" / "canon"
 
 _PACKAGE_VALIDATOR = None
 
@@ -176,25 +187,6 @@ def _has_upstream(port, row, upstream_stage, upstream_prun):
         (port.get_revision(revision_id) or {}).get("step_run_id") in upstream_ids
         for revision_id in request.get("input_artifact_ids", [])
     )
-
-
-def _render_stages(stages):
-    """把连续阶段折叠为区间：``["m1","m2","m3","m5"]`` → ``"m1–m3、m5"``。"""
-    groups = []
-    index = 0
-    while index < len(stages):
-        end = index
-        while (
-            end + 1 < len(stages)
-            and _stage_index(stages[end + 1]) == _stage_index(stages[end]) + 1
-        ):
-            end += 1
-        if end > index:
-            groups.append("%s–%s" % (stages[index], stages[end]))
-        else:
-            groups.append(stages[index])
-        index = end + 1
-    return "、".join(groups)
 
 
 class _NoUpstreamInputs(StubModule):
@@ -425,140 +417,271 @@ def _check_recovery_via_orchestrator(fixture_dir, registry, asset_root, keep):
 
 
 # ------------------------------------------------------------ 真实链判定
+def _text_host_gap(fixture_dir):
+    """20.1 宿主（裁决 4：电子文本路线）齐备性；缺什么报什么，**绝不**回落 OCR 宿主。
+
+    返回值形如 ``前置缺失: <§19 差距行名>；<为什么>``（run_all.sh 的 BLOCKED 解析口径）。
+    """
+    fixture_dir = Path(fixture_dir)
+    for name in ("source_info.yaml", "spans.yaml"):
+        if not (fixture_dir / name).is_file():
+            return (
+                "前置缺失: M1 Source Intake；裁决 4 指定的电子文本宿主缺 %s：%s"
+                % (name, fixture_dir)
+            )
+    try:
+        document = yaml.safe_load((fixture_dir / "spans.yaml").read_bytes())
+    except Exception:  # noqa: BLE001 - 宿主不可读按缺失处理
+        return "前置缺失: M1 Source Intake；宿主 spans.yaml 不可解析：%s" % fixture_dir
+    if not isinstance(document, dict) or document.get("evidence_level") != _TEXT_ROUTE_EVIDENCE:
+        return (
+            "前置缺失: M1 Source Intake；宿主非电子文本路线"
+            "（spans.yaml evidence_level 不是 %s）：%s"
+            % (_TEXT_ROUTE_EVIDENCE, fixture_dir)
+        )
+    if not (fixture_dir / "expected" / "m1_source_expected.yaml").is_file():
+        return (
+            "前置缺失: M1 Source Intake；宿主缺独立期望 expected/m1_source_expected.yaml"
+            "（缺期望即不可判定）"
+        )
+    missing = [
+        name
+        for name in TEXT_HOST_SUBMISSIONS
+        if not (fixture_dir / "m4" / name).is_file()
+    ]
+    if missing:
+        return "前置缺失: M4 Knowledge Extraction；宿主 M4 提交件缺失：%s" % "、".join(
+            missing
+        )
+    return None
+
+
+def _read_step_run_doc(service, step_run_id, artifact_type):
+    """读该 StepRun 该类型的唯一封存文档；不是恰一个或不可读返回 ``None``。"""
+    rows = service.list_step_run_revisions(step_run_id, artifact_type=artifact_type)
+    if len(rows) != 1:
+        return None
+    revision = service.get_revision(rows[0]["artifact_revision_id"])
+    if revision is None:
+        return None
+    return json.loads(service.objects.get(revision["sha256"]).decode("utf-8"))
+
+
+def _drive_text_chain(adapter, registry, handle, host):
+    """按公开入口驱动 M1→M6 全线；返回 ``None`` 表示全链成立，否则返回失败说明。
+
+    人工环节只走公开入口：M4 的六份宿主提交件经 ``run_m4_submit``、分歧经
+    ``record_category_ruling``；M6 的签发经审核台 ``record_decision``；两处恢复统一经
+    ``human.resume``（legacy 绑定走描述符 ``resume_entry``）。本函数不写金标、不直接改
+    Ledger 造人工结果，除 m4/m6 外没有任何手工推进。
+    """
+    service = adapter.unwrap()
+    edition_part_id = handle["edition_part_id"]
+    awaitings = []
+
+    def executed(results):
+        return [item for item in results if item["action"] == "executed"]
+
+    results = run_until(adapter, registry, handle, "m3")
+    stages = [item["stage"] for item in executed(results)]
+    if stages != ["m1", "m2", "m3"]:
+        return "EditionRun 段未按 m1→m2→m3 推进: %r" % (stages,)
+    for item in executed(results):
+        if item["step_result"]["status"] != "succeeded":
+            return "%s 未 succeeded: %s" % (item["stage"], item["step_result"]["status"])
+
+    # M4：六份宿主提交件只经公开提交入口登记（不直接写 Ledger）
+    for name in TEXT_HOST_SUBMISSIONS:
+        summary = run_m4_submit(
+            service,
+            edition_part_id,
+            (host / "m4" / name).read_bytes(),
+            producer_module="orchestrator.acceptance",
+            producer_version="1.0.0",
+        )
+        if summary["status"] != "succeeded":
+            return "M4 提交 %s 未 succeeded" % name
+
+    item = advance(adapter, registry, handle)
+    if (item["action"], item["stage"]) != ("executed", "m4"):
+        return "M4 未执行: action=%s stage=%s" % (item["action"], item["stage"])
+    if (item.get("step_result") or {}).get("status") != "awaiting_human":
+        return "M4 未停成 awaiting_human"
+    awaitings.append("m4")
+    m4_step_run_id = item["step_run_id"]
+    m4_token = item["step_result"]["resume_token"]
+    dispute_doc = _read_step_run_doc(service, m4_step_run_id, "dispute_queue")
+    dispute_ids = [
+        row["dispute_id"] for row in (dispute_doc or {}).get("disputes") or []
+    ]
+    if not dispute_ids:
+        return "M4 停 awaiting_human 时待裁决分歧为空"
+    for dispute_id in dispute_ids:
+        record_category_ruling(
+            service,
+            m4_step_run_id,
+            m4_token,
+            {
+                "schema_version": CANDIDATE_SCHEMA_VERSION,
+                "dispute_id": dispute_id,
+                "choice": "a",
+                "rationale": "20.1 验收：按 A 路归属裁决",
+                "actor_ref": "orchestrator.acceptance",
+            },
+        )
+    resumed = resume(adapter, registry, handle, m4_step_run_id, m4_token)
+    if resumed["status"] != "succeeded":
+        return "M4 恢复未 succeeded: %s" % resumed["status"]
+
+    item = advance(adapter, registry, handle)
+    if (item["action"], item["stage"]) != ("executed", "m5"):
+        return "M5 未自动执行: action=%s stage=%s" % (item["action"], item["stage"])
+    if item["step_result"]["status"] != "succeeded":
+        return "M5 未 succeeded: %s" % item["step_result"]["status"]
+
+    item = advance(adapter, registry, handle)
+    if (item["action"], item["stage"]) != ("executed", "m6"):
+        return "M6 未执行: action=%s stage=%s" % (item["action"], item["stage"])
+    if (item.get("step_result") or {}).get("status") != "awaiting_human":
+        return "M6 未停成 awaiting_human"
+    awaitings.append("m6")
+    m6_step_run_id = item["step_run_id"]
+    m6_token = item["step_result"]["resume_token"]
+    queue_doc = _read_step_run_doc(service, m6_step_run_id, "review_queue") or []
+    queue_item_ids = [row["queue_item_id"] for row in queue_doc]
+    if not queue_item_ids:
+        return "M6 停 awaiting_human 时审核队列为空"
+    for queue_item_id in queue_item_ids:
+        record_decision(
+            service,
+            m6_step_run_id,
+            m6_token,
+            queue_item_id=queue_item_id,
+            verdict="accept",
+            rationale="20.1 验收：签发",
+        )
+    resumed = resume(adapter, registry, handle, m6_step_run_id, m6_token)
+    if resumed["status"] != "succeeded":
+        return "M6 恢复未 succeeded: %s" % resumed["status"]
+
+    item = advance(adapter, registry, handle)
+    if item["action"] != "complete":
+        return "全线未收口: action=%s" % item["action"]
+
+    if awaitings != ["m4", "m6"]:
+        return "人工暂停顺序不是 m4→m6: %r" % (awaitings,)
+    # Ledger 层面复核：全链只发生过两次 ``await_human`` 事件，且恰在 m4/m6
+    stopped = []
+    for row in adapter.run_status(handle["processing_run_id"])["step_runs"]:
+        events = [
+            event.get("event_type")
+            for event in adapter.list_step_run_events(row["step_run_id"])
+        ]
+        stopped.extend([row["stage"]] * events.count("await_human"))
+    if stopped != ["m4", "m6"]:
+        return "Ledger 中 await_human 事件不是恰 m4、m6 各一次: %r" % (stopped,)
+    return None
+
+
+def _supersedes_reaches(adapter, start, target):
+    """``start`` 是否经 ``supersedes_step_run_id`` 链（含自身）指向 ``target``。"""
+    seen = set()
+    current = start
+    while current is not None and current not in seen:
+        if current == target:
+            return True
+        seen.add(current)
+        row = adapter.get_step_run(current)
+        current = row.get("supersedes_step_run_id") if row else None
+    return False
+
+
 def _check_real_chain(fixture_dir, registry, asset_root, keep):
-    if m1_shim_source_assets is None or SourceAssetMissing is None:
-        raise RuntimeError("薄 M1 页图登记依赖不可导入")
+    """20.1：电子文本宿主上由调度器走完 M1→M6 全线（裁决 4）。
+
+    判据（全部要成立）：① m1..m6 每 stage 恰 1 个阶段包、且来自生产模块（binding 非
+    ``imported``）；② 只在 m4、m6 停 ``awaiting_human``，除此之外无任何手工推进；
+    ③ 人工环节只走公开入口；④ 恢复经 ``human.resume`` → 描述符 ``resume_entry`` 后自动
+    续跑到 m6 succeeded。宿主缺失即 BLOCKED，**绝不**回落 OCR 宿主；本函数只读 Ledger
+    事实独立重算，不调用 ``gate.evaluate_stage_gate`` 做判定（G7-RULINGS 第 46 条）。
+    """
+    gap = _text_host_gap(fixture_dir)
+    if gap is not None:
+        raise _PreconditionMissing(gap)
+
+    host = Path(fixture_dir)
+    source_info = yaml.safe_load((host / "source_info.yaml").read_text(encoding="utf-8"))
+    technique_id = source_info["technique_id"]
 
     root = _temp_root(keep)
-    service = LedgerService(root)
-    try:
-        summary = fixture_ingest.ingest(fixture_dir, service, stages=("m1", "m2"))
-        try:
-            m1_shim_source_assets.register_source_assets(
-                service, summary["edition_part_id"], str(asset_root)
-            )
-        except SourceAssetMissing:
-            raise _PreconditionMissing("前置缺失: M1 Source Intake；派生页图缺失")
-        except FileNotFoundError:
-            raise _PreconditionMissing("前置缺失: M1 Source Intake；派生页图缺失")
-    finally:
-        service.close()
-
     adapter = DirectLedgerAdapter(root)
     try:
-        handle = adopt_edition_run(
+        handle = start_edition_run(
             adapter,
-            processing_run_id=summary["processing_run_id"],
-            edition_part_id=summary["edition_part_id"],
-            technique_id=summary["technique_id"],
+            edition_part_id=source_info["edition_part"]["artifact_id"],
+            technique_id=technique_id,
+            run_inputs={
+                "route": "text",
+                "source_dir": str(host),
+                "source_info": source_info,
+                "technique_profile": {
+                    "technique_id": technique_id,
+                    "canon_dir": str(DEFAULT_CANON_DIR),
+                },
+            },
         )
-        results = run_until(
-            adapter, registry, handle, "m5", stages=FIRST_SLICE_EDITION_STAGES
-        )
-        executed = [item for item in results if item["action"] == "executed"]
-        if executed and [item["stage"] for item in executed] == ["m3", "m5"]:
-            for item in executed:
-                if item["step_result"]["status"] != "succeeded":
-                    return ("FAIL", "real_chain_mini_ed01", "%s 未 succeeded" % item["stage"])
-        else:
-            return ("FAIL", "real_chain_mini_ed01", "EditionRun 段未按 m3→m5 推进")
-        m3_item = executed[0]
-        for stage in ("m1", "m2"):
-            report = m3_item["gate_reports"].get(stage)
-            if not report or report["gate"] != "passed":
-                return ("FAIL", "real_chain_mini_ed01", "%s Gate 未 passed" % stage)
-
-        release = run_release(
-            adapter,
-            registry,
-            edition_part_id=summary["edition_part_id"],
-            technique_id=summary["technique_id"],
-        )
-        if (
-            release["action"] != "executed"
-            or release["stage"] != "m8"
-            or release["step_result"]["status"] != "succeeded"
-            or not str(release["processing_run_id"]).startswith("prun_")
-        ):
-            return ("FAIL", "real_chain_mini_ed01", "release 段未成功执行 m8")
-
-        failure = _recompute_real_chain(adapter, summary, release, fixture_dir)
+        failure = _drive_text_chain(adapter, registry, handle, host)
+        if failure is None:
+            failure = _recompute_real_chain(adapter, registry, handle, host)
         if failure is not None:
             return ("FAIL", "real_chain_mini_ed01", failure)
     finally:
         adapter.close()
         _cleanup(root, keep)
-
-    # 准备 B（负例）：只灌 m1
-    root_b = _temp_root(keep)
-    service_b = LedgerService(root_b)
-    try:
-        summary_b = fixture_ingest.ingest(fixture_dir, service_b, stages=("m1",))
-    finally:
-        service_b.close()
-    adapter_b = DirectLedgerAdapter(root_b)
-    try:
-        handle_b = adopt_edition_run(
-            adapter_b,
-            processing_run_id=summary_b["processing_run_id"],
-            edition_part_id=summary_b["edition_part_id"],
-            technique_id=summary_b["technique_id"],
-        )
-        item = advance(adapter_b, registry, handle_b, stages=FIRST_SLICE_EDITION_STAGES)
-        if item["action"] != "refused" or item["stage"] != "m2" or "imported" not in (item["reason"] or ""):
-            return ("FAIL", "real_chain_mini_ed01", "准备 B 未在 m2 refused（imported）")
-        step_runs = adapter_b.run_status(summary_b["processing_run_id"])["step_runs"]
-        if any(row["stage"] == "m3" for row in step_runs):
-            return ("FAIL", "real_chain_mini_ed01", "准备 B 出现 m3 StepRun")
-    finally:
-        adapter_b.close()
-        _cleanup(root_b, keep)
-    return ("PASS", "real_chain_mini_ed01", "")
+    return (
+        "PASS",
+        "real_chain_mini_ed01",
+        "宿主 qianyuan_ed01_text：调度器 M1→M6 全线（人工节点只 m4/m6，且只经公开入口）",
+    )
 
 
-def _recompute_real_chain(adapter, summary, release, fixture_dir):
-    """从 Ledger 事实独立重算首纵切链（不调用 Gate、不信任 step_result）。"""
-    edition_prun = summary["processing_run_id"]
-    release_prun = release["processing_run_id"]
+def _recompute_real_chain(adapter, registry, handle, fixture_dir):
+    """从 Ledger 事实独立重算 M1→M6 全线（不调用 Gate、不信任 step_result）。
 
-    def runs(prun, stage):
-        return [
-            row for row in adapter.run_status(prun)["step_runs"] if row["stage"] == stage
-        ]
-
-    for stage in ("m2", "m3", "m5"):
-        rows = runs(edition_prun, stage)
-        if len(rows) != 1 or rows[0]["status"] != "succeeded":
-            return "%s 的有效运行不是恰 1 个 succeeded" % stage
-
-    m1_rows = runs(edition_prun, "m1")
-    if len(m1_rows) != 2 or any(row["status"] != "succeeded" for row in m1_rows):
-        return "m1 有效运行不是 2 个 succeeded"
-    if len([row for row in m1_rows if _packages(adapter, row)]) != 1:
-        return "m1 承载 StagePackage 的运行不是恰 1 个"
-
-    m3_row = runs(edition_prun, "m3")[0]
-    m5_row = runs(edition_prun, "m5")[0]
-    for upstream in ("m1", "m2"):
-        if not _has_upstream(adapter, m3_row, upstream, edition_prun):
-            return "m3 冻结输入缺 %s 产出" % upstream
-    if not _has_upstream(adapter, m5_row, "m3", edition_prun):
-        return "m5 冻结输入缺 m3 产出"
-
-    m8_rows = runs(release_prun, "m8")
-    if len(m8_rows) != 1 or m8_rows[0]["status"] != "succeeded":
-        return "m8 的有效运行不是恰 1 个 succeeded"
-    m8_row = m8_rows[0]
-    for upstream in ("m1", "m2", "m3"):
-        if not _has_upstream(adapter, m8_row, upstream, edition_prun):
-            return "m8 冻结输入缺 %s 产出" % upstream
-
+    逐 stage 重算：恰 1 个承载 StagePackage 的运行、其余同阶段运行须经 ``supersedes``
+    链回溯到该承载者；包须 sealed、过 Schema、``validation.passed=true``、``failures``
+    为空；描述符 ``consumes`` 声明的每个上游 stage 都要出现在冻结输入里；最后用宿主
+    独立期望 ``expected/m1_source_expected.yaml``（第 95 条）核对 M1 的 raw_text 修订。
+    """
+    edition_prun = handle["processing_run_id"]
+    all_rows = adapter.run_status(edition_prun)["step_runs"]
     contents = {}
-    for stage, row in (("m3", m3_row), ("m5", m5_row), ("m8", m8_row)):
-        packages = _packages(adapter, row)
-        if len(packages) != 1:
-            return "%s 的 StagePackage 不是恰 1 个" % stage
-        content = _read_content(adapter, packages[0])
+    for stage in EDITION_STAGES:
+        descriptor = registry.module_for(stage)
+        if descriptor is None:
+            return "阶段 %s 未登记 Module" % stage
+        if descriptor.get("binding") == "imported":
+            return "阶段 %s 来自 imported 绑定（非生产模块）" % stage
+        rows = [row for row in all_rows if row["stage"] == stage]
+        overfull = [row for row in rows if len(_packages(adapter, row)) > 1]
+        if overfull:
+            return "%s 存在承载多个 StagePackage 的运行: %s" % (
+                stage,
+                [row["step_run_id"] for row in overfull],
+            )
+        carriers = [row for row in rows if len(_packages(adapter, row)) == 1]
+        if len(carriers) != 1:
+            return "%s 承载 StagePackage 的运行不是恰 1 个（%d 个）" % (
+                stage,
+                len(carriers),
+            )
+        carrier = carriers[0]
+        if carrier["status"] != "succeeded":
+            return "%s 的承载运行非 succeeded: %s" % (stage, carrier["status"])
+        package = _packages(adapter, carrier)[0]
+        if package.get("status") != "sealed":
+            return "%s 的 StagePackage 未 sealed" % stage
+        content = _read_content(adapter, package)
         if not isinstance(content, dict):
             return "%s 的 StagePackage 内容不可读" % stage
         try:
@@ -571,20 +694,52 @@ def _recompute_real_chain(adapter, summary, release, fixture_dir):
             return "%s 的 StagePackage validation.passed 非 true" % stage
         if content.get("failures") != []:
             return "%s 的 StagePackage failures 非空" % stage
+        for row in rows:
+            if row["step_run_id"] == carrier["step_run_id"]:
+                continue
+            if row["status"] != "succeeded":
+                return "%s 的非承载运行未 succeeded: %s" % (stage, row["status"])
+            # 承载者的 supersedes 链必须向下覆盖该运行（即它确被接替），否则它是游离的
+            # 同阶段运行，不得计入有效运行。
+            if not _supersedes_reaches(
+                adapter, carrier["step_run_id"], row["step_run_id"]
+            ):
+                return "%s 的非承载运行未被承载者接替: %s" % (stage, row["step_run_id"])
         contents[stage] = content
 
+    # 血缘：描述符 consumes 声明的每个上游 stage 都必须出现在冻结输入里
+    for stage in EDITION_STAGES:
+        descriptor = registry.module_for(stage)
+        carrier = [
+            row
+            for row in all_rows
+            if row["stage"] == stage and len(_packages(adapter, row)) == 1
+        ][0]
+        upstreams = sorted(
+            {
+                item.get("from_stage")
+                for item in (descriptor.get("consumes") or [])
+                if item.get("from_stage")
+            }
+        )
+        for upstream in upstreams:
+            if not _has_upstream(adapter, carrier, upstream, edition_prun):
+                return "%s 冻结输入缺 %s 产出" % (stage, upstream)
+
+    # 金标：M1 的 raw_text 修订 sha256 必须等于宿主独立期望
     expected = yaml.safe_load(
-        (Path(fixture_dir) / "expected" / "m3.stage_package.yaml").read_text(
+        (Path(fixture_dir) / "expected" / "m1_source_expected.yaml").read_text(
             encoding="utf-8"
         )
     )
-    if (
-        contents["m3"]["manifest"]["content_sha256"]
-        != expected["manifest"]["content_sha256"]
-    ):
-        return "m3 StagePackage content_sha256 与 fixture 金标不一致"
-    if contents["m8"]["payload"].get("consumption_level") != "INTERNAL_DEMO":
-        return "m8 StagePackage payload.consumption_level 非 INTERNAL_DEMO"
+    raw_ids = list(
+        (contents["m1"].get("payload") or {}).get("raw_text_revision_ids") or []
+    )
+    if len(raw_ids) != 1:
+        return "M1 StagePackage 的 raw_text 修订不是恰 1 个"
+    revision = adapter.get_revision(raw_ids[0])
+    if revision is None or revision.get("sha256") != expected.get("sha256"):
+        return "M1 raw_text 修订 sha256 与宿主独立期望不一致"
     return None
 
 
@@ -593,28 +748,28 @@ def _check_registered_modules(fixture_dir, registry, asset_root, keep):
     problems = check_registry(registry)
     if any(problem["code"] == "stub_in_production" for problem in problems):
         return ("FAIL", "registered_modules_m1_m6", "登记表含桩（stub_in_production），不得计入")
-    for stage in EDITION_STAGES:
-        if registry.module_for(stage) is None:
-            unregistered = [
-                item for item in EDITION_STAGES if registry.module_for(item) is None
-            ]
-            return (
-                "BLOCKED",
-                "registered_modules_m1_m6",
-                "前置缺失: %s；Local Orchestrator 首切片已串联 %s Gate，%s 未登记生产 Module"
-                % (
-                    registry.stage_rows[stage],
-                    _render_stages(FIRST_SLICE_EDITION_STAGES),
-                    "/".join(unregistered),
-                ),
-            )
+    # 按真实登记情况判：`imported` 绑定不是生产模块（裁决 2/4），与未登记一并计入缺口。
+    gaps = [
+        stage
+        for stage in EDITION_STAGES
+        if registry.module_for(stage) is None
+        or registry.module_for(stage).get("binding") == "imported"
+    ]
+    if gaps:
+        return (
+            "BLOCKED",
+            "registered_modules_m1_m6",
+            "前置缺失: %s；Local Orchestrator M1–M6 链路已接线，%s 未登记生产 Module"
+            "（未登记或 imported 绑定）"
+            % (registry.stage_rows[gaps[0]], "/".join(gaps)),
+        )
     registered = [
         (stage, registry.module_for(stage)["binding"]) for stage in EDITION_STAGES
     ]
     return (
         "PASS",
         "registered_modules_m1_m6",
-        "首纵切链已登记 %d 个 Stage（%s）"
+        "M1–M6 已登记 %d 个生产 Stage（%s）"
         % (len(registered), ", ".join("%s:%s" % item for item in registered)),
     )
 
