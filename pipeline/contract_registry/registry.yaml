@@ -151,6 +151,22 @@ modules:
     supports_recovery: false
     entry_kwargs: {}
     owns_processing_run: false
+  # 发布段（TODO T04B）：M7 为人工节点（M7 待裁决）；run_m7 自建 release_run ProcessingRun。
+  - module_id: m7.incremental_assembly
+    stage: m7
+    kind: production
+    binding: legacy_self_driving
+    entry: "pipeline.assembly.entry:run_m7"
+    version: "0.1.0-draft"
+    consumes:
+      - artifact_type: stage_package
+        from_stage: m6
+    produces:
+      - artifact_type: assembly_package
+    human_queue: true
+    supports_recovery: false
+    entry_kwargs: {}
+    owns_processing_run: true
   - module_id: m8.dataset_compilation
     stage: m8
     kind: production
@@ -166,6 +182,8 @@ modules:
         from_stage: m2
       - artifact_type: corpus_package
         from_stage: m3
+      - artifact_type: canonical_snapshot
+        from_stage: m7
     produces:
       - artifact_type: publication_package
     human_queue: false

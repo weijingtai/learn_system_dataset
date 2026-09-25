@@ -66,10 +66,32 @@ class KnowledgeChainTest(unittest.TestCase):
         self.assertIn("没有 knowledge_data_pack", detail)
 
     def test_pack_present_is_not_silently_passed(self):
+        # T04B：内容校验已实现；读不到 Ledger 里的子包就核对不了 → 仍须 FAIL（不许判 PASS）
         packs = dict(BASE_PACKS, knowledge_data_pack="rev_k")
         _, status, detail = acceptance._check_knowledge_chain(facts(knowledge_chain="compiled", packs=packs))
         self.assertEqual(status, "FAIL")
-        self.assertIn("尚未实现", detail)
+        self.assertIn("内容校验", detail)
+
+    def test_pack_present_but_chain_not_compiled_fails(self):
+        packs = dict(BASE_PACKS, knowledge_data_pack="rev_k")
+        _, status, detail = acceptance._check_knowledge_chain(facts(packs=packs))
+        self.assertEqual(status, "FAIL")
+        self.assertIn("knowledge_chain=not_compiled", detail)
+
+
+class GraphProjectionTest(unittest.TestCase):
+    """T04B：graph_projection 判据——没产出 BLOCKED（写实测），产出了就做内容校验、核对不了即 FAIL。"""
+
+    def test_absent_is_blocked_with_observed_packs(self):
+        name, status, detail = acceptance._check_graph_projection(facts())
+        self.assertEqual((name, status), ("graph_projection", "BLOCKED"))
+        self.assertIn("实测发布包无 graph_projection_pack", detail)
+
+    def test_present_but_unverifiable_fails(self):
+        packs = dict(BASE_PACKS, graph_projection_pack="rev_g")
+        name, status, detail = acceptance._check_graph_projection(facts(packs=packs))
+        self.assertEqual((name, status), ("graph_projection", "FAIL"))
+        self.assertIn("内容校验", detail)
 
 
 class SubpackProducedTest(unittest.TestCase):

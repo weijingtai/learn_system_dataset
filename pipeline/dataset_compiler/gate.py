@@ -122,6 +122,29 @@ def _first_difference(left, right):
     return -1
 
 
+def _disclosed_assertions_without_subject(release_manifest):
+    """独立解析 ReleaseManifest 对无主体断言的披露（INTERFACES §3.8）。
+
+    口径：``known_defects`` 恰 1 条 ``code == "assertion_without_subject"``，其 ``detail``
+    为 ``"N: id1,id2,…"`` 且 N 等于所列 ID 数、ID 不重复。返回升序 ID 列表；无披露或
+    格式不符 → ``None``（调用方按未披露处理）。
+    """
+    items = [
+        item
+        for item in (release_manifest or {}).get("known_defects") or []
+        if isinstance(item, dict) and item.get("code") == "assertion_without_subject"
+    ]
+    if len(items) != 1 or not isinstance(items[0].get("detail"), str):
+        return None
+    count, separator, listed = items[0]["detail"].partition(": ")
+    if not separator or not count.isdigit():
+        return None
+    disclosed = [item for item in listed.split(",") if item]
+    if int(count) != len(disclosed) or len(set(disclosed)) != len(disclosed):
+        return None
+    return sorted(disclosed)
+
+
 def _replay_patches(raw_text, patches):
     """按 DeterministicPatchSet **独立重放**，重建清洗文本。
 
@@ -624,15 +647,27 @@ def evaluate_publication(
         for pat in knowledge.get("patterns", []):
             referenced.update(pat.get("assertion_ids") or [])
         for a in knowledge.get("assertions", []):
-            referenced.update(a.get("concept_refs") or [])
+            # 第 107 条 Q-M8-01 双轨：assertion 自身带 concept_refs 即有显式主体
+            # （与 chain_closure 同口径；此前误把 concept ID 记进「已引用断言」集合）
+            if a.get("concept_refs"):
+                referenced.add(a["assertion_id"])
         bypass = sorted(assertion_ids - referenced)
-        if bypass:
+        if not bypass:
+            return _ev(True, "全部 assertion 均经显式引用接入知识链")
+        # INTERFACES §3.8：无主体断言不生成 entry，须在 known_defects 以
+        # 「assertion_without_subject: N」逐条列 ID 如实披露；逐字相符才不判违约。
+        disclosed = _disclosed_assertions_without_subject(release_manifest)
+        if disclosed == bypass:
             return _ev(
-                False,
-                "assertion 未被 entry 显式引用（不得绕过 Assertion）: %s"
-                % ",".join(bypass),
+                True,
+                "无主体断言 %d 条不生成 entry，已按 §3.8 如实披露: %s"
+                % (len(bypass), ",".join(bypass)),
             )
-        return _ev(True, "全部 assertion 均经显式引用接入知识链")
+        return _ev(
+            False,
+            "assertion 未被 entry 显式引用（不得绕过 Assertion），且未如实披露为"
+            " assertion_without_subject: %s（披露: %r）" % (",".join(bypass), disclosed),
+        )
 
     # 17 quote_hash_integrity
     def check_quote_hash_integrity():
@@ -659,12 +694,22 @@ def evaluate_publication(
                     return _fail(
                         "evidence 缺偏移: %s" % a["assertion_id"]
                     )
-                if not (0 <= start <= end <= len(span["text"])):
+                # 【I-11】evidence 偏移为相对页块的绝对偏移（与 corpus_spans 同一坐标系，
+                # start_offset = span.start_offset + 局部起点）→ 局部 = 绝对 − span.start_offset；
+                # 不猜局部、不退回整片段（G7-RULINGS 第 106 条 D1）。
+                local_start = start - span["start_offset"]
+                local_end = end - span["start_offset"]
+                if not (0 <= local_start <= local_end <= len(span["text"])):
                     return _fail(
-                        "evidence 偏移越界: %s [%d,%d) len=%d"
-                        % (a["assertion_id"], start, end, len(span["text"]))
+                        "evidence 偏移越出 span（I-11 绝对偏移）: %s [%d,%d) span=[%d,%d)"
+                        % (
+                            a["assertion_id"], start, end,
+                            span["start_offset"], span["start_offset"] + len(span["text"]),
+                        )
                     )
-                recomputed = _sha256(span["text"][start:end].encode("utf-8"))
+                recomputed = _sha256(
+                    span["text"][local_start:local_end].encode("utf-8")
+                )
                 if qh != recomputed:
                     return _ev(
                         False,

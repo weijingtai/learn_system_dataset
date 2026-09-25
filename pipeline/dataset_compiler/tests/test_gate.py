@@ -963,8 +963,9 @@ class GateClosedSetTests(unittest.TestCase):
                     "evidence": [
                         {
                             "source_span_id": "ss_sanche_ed01_p0001_s04",
-                            "start_offset": 0,
-                            "end_offset": 6,
+                            # 【I-11】相对页块的绝对偏移 = span.start_offset + 局部起点（局部 0..6）
+                            "start_offset": base["spans_doc"]["spans"][3]["start_offset"],
+                            "end_offset": base["spans_doc"]["spans"][3]["start_offset"] + 6,
                             "quote_sha256": packs.quote_sha256(
                                 base["spans_doc"]["spans"][3]["text"][0:6]
                             ),
@@ -1254,6 +1255,162 @@ class PatchReversibilityTests(unittest.TestCase):
         check = _evaluate(_golden())["checks"]["patch_reversible"]
         self.assertEqual(check["status"], "not_applicable")
         self.assertIsNone(check["ok"])
+
+
+class GateKnowledgeSpecTests(unittest.TestCase):
+    """T04B 第 3 项：gate 两处按规格口径修正。
+
+    - quote_hash_integrity：EvidenceLink 偏移是【I-11】「相对页块的绝对偏移」
+      （``start_offset = span.start_offset + 局部起点``），局部 = 绝对 − span.start_offset；
+      不猜局部、不退回（G7-RULINGS 第 106 条 D1）。
+    - no_assertion_bypass：无主体断言已按 INTERFACES §3.8 披露为
+      ``assertion_without_subject: N`` 并逐条列 ID 时不判违约；主体只来自显式引用
+      （Pattern.assertion_ids 与 assertion.concept_refs，第 107 条 Q-M8-01）。
+    """
+
+    SPAN_INDEX = 3  # ss_sanche_ed01_p0001_s04：start_offset 非 0，能区分绝对/局部
+
+    def _knowledge(self, evidence, *, extra_assertions=(), concepts=()):
+        assertions = [
+            {
+                "assertion_id": "as_qizheng_000001",
+                "proposition": "示例断言",
+                "subject_entity_id": "pat_qizheng_000001",
+                "evidence": list(evidence),
+                "school_view_ids": [],
+                "content_status": "machine_extracted",
+            }
+        ]
+        assertions.extend(extra_assertions)
+        return {
+            "patterns": [
+                {
+                    "pattern_id": "pat_qizheng_000001",
+                    "name": "示例格局",
+                    "assertion_ids": ["as_qizheng_000001"],
+                    "school_view_ids": [],
+                }
+            ],
+            "concepts": list(concepts),
+            "assertions": assertions,
+            "school_views": [],
+            "conflict_groups": [],
+        }
+
+    def _run(self, knowledge, *, known_defects=None):
+        base = _golden()
+        evidence = copy.deepcopy(base["evidence_map_pack"])
+        evidence["knowledge_chain"] = "compiled"
+        release = copy.deepcopy(base["release_manifest"])
+        if known_defects is not None:
+            release["known_defects"] = list(release["known_defects"]) + list(known_defects)
+        return _evaluate(
+            base,
+            evidence_map_pack=evidence,
+            snapshot_knowledge=knowledge,
+            release_manifest=release,
+        )["checks"]
+
+    def _span(self):
+        return _golden()["spans_doc"]["spans"][self.SPAN_INDEX]
+
+    def _evidence(self, start, end, quote_sha256):
+        return {
+            "source_span_id": self._span()["span_id"],
+            "start_offset": start,
+            "end_offset": end,
+            "quote_sha256": quote_sha256,
+        }
+
+    def test_quote_hash_integrity_reads_i11_absolute_offsets(self):
+        span = self._span()
+        self.assertGreater(span["start_offset"], 0, "夹具前提：该 span 起点非 0")
+        checks = self._run(
+            self._knowledge(
+                [
+                    self._evidence(
+                        span["start_offset"] + 2,
+                        span["start_offset"] + 6,
+                        packs.quote_sha256(span["text"][2:6]),
+                    )
+                ]
+            )
+        )
+        self.assertIs(
+            checks["quote_hash_integrity"]["ok"], True, checks["quote_hash_integrity"]["detail"]
+        )
+
+    def test_quote_hash_integrity_rejects_local_offsets_no_guessing(self):
+        """证据写成片段内局部偏移（违反 I-11）必须失败：不许「猜局部」放行。"""
+        span = self._span()
+        checks = self._run(
+            self._knowledge([self._evidence(2, 6, packs.quote_sha256(span["text"][2:6]))])
+        )
+        self.assertIs(checks["quote_hash_integrity"]["ok"], False)
+
+    def test_quote_hash_integrity_rejects_absolute_range_beyond_span_end(self):
+        span = self._span()
+        checks = self._run(
+            self._knowledge(
+                [self._evidence(span["end_offset"] - 1, span["end_offset"] + 1, "0" * 64)]
+            )
+        )
+        self.assertIs(checks["quote_hash_integrity"]["ok"], False)
+
+    def _orphan(self, assertion_id="as_qizheng_000002", concept_refs=None):
+        item = {
+            "assertion_id": assertion_id,
+            "proposition": "无主体断言",
+            "subject_entity_id": None,
+            "evidence": [],
+            "school_view_ids": [],
+            "content_status": "machine_extracted",
+        }
+        if concept_refs is not None:
+            item["concept_refs"] = list(concept_refs)
+        return item
+
+    def test_no_assertion_bypass_passes_when_orphans_disclosed_exactly(self):
+        checks = self._run(
+            self._knowledge([], extra_assertions=[self._orphan()]),
+            known_defects=[
+                {"code": "assertion_without_subject", "detail": "1: as_qizheng_000002"}
+            ],
+        )
+        self.assertIs(
+            checks["no_assertion_bypass"]["ok"], True, checks["no_assertion_bypass"]["detail"]
+        )
+
+    def test_no_assertion_bypass_fails_when_orphans_not_disclosed(self):
+        checks = self._run(self._knowledge([], extra_assertions=[self._orphan()]))
+        self.assertIs(checks["no_assertion_bypass"]["ok"], False)
+
+    def test_no_assertion_bypass_fails_when_disclosure_does_not_match(self):
+        for detail in (
+            "1: as_qizheng_000009",  # 列错 ID
+            "2: as_qizheng_000002",  # N 与所列条数不符
+            "2: as_qizheng_000002,as_qizheng_000003",  # 多列了不是无主体的 ID
+            "as_qizheng_000002",  # 缺 N
+        ):
+            with self.subTest(detail=detail):
+                checks = self._run(
+                    self._knowledge([], extra_assertions=[self._orphan()]),
+                    known_defects=[{"code": "assertion_without_subject", "detail": detail}],
+                )
+                self.assertIs(checks["no_assertion_bypass"]["ok"], False)
+
+    def test_no_assertion_bypass_counts_concept_refs_as_explicit_subject(self):
+        """只经 concept_refs 显式引用的断言有主体（Q-M8-01 双轨），不是绕过、也不需披露。"""
+        checks = self._run(
+            self._knowledge(
+                [],
+                extra_assertions=[self._orphan(concept_refs=["co_qizheng_000001"])],
+                concepts=[{"concept_id": "co_qizheng_000001", "name": "示例概念"}],
+            )
+        )
+        self.assertIs(
+            checks["no_assertion_bypass"]["ok"], True, checks["no_assertion_bypass"]["detail"]
+        )
 
 
 if __name__ == "__main__":
