@@ -157,6 +157,101 @@ class TestM7Resume(unittest.TestCase):
                     "resume_token 不得持久化到 objects 文件: %s" % obj_path.name,
                 )
 
+    def test_resume_m7_refuses_when_proposals_undecided_and_keeps_token(self):
+        """BDD 8.2：还有未决提案时调用 resume_m7 拒绝，StepRun 保持 awaiting_human，token 未被消费。"""
+        r1 = self._run_genesis()
+        m6_rev_99 = self.seeded[self.ed99["edition_key"]]["m6_package_revision_id"]
+        r2 = run_m7(
+            self.service,
+            self.ed99["edition_part_artifact_id"],
+            technique_id=self.technique_id,
+            reviewed_package_revision_ids=[m6_rev_99],
+            base_snapshot_revision_id=r1["snapshot_revision_id"],
+            id_range=self.manifest["id_range"],
+        )
+        step_run_id = r2["step_run_id"]
+        token = r2["resume_token"]
+
+        # 未登记决定即调 resume_m7 → 拒绝
+        with self.assertRaises(AssemblyRefused) as caught:
+            resume_m7(self.service, step_run_id, token)
+        self.assertEqual(caught.exception.code, "REF_001")
+
+        # StepRun 仍保持 awaiting_human
+        step_row = self.service.get_step_run(step_run_id)
+        self.assertEqual(step_row["status"], "awaiting_human")
+
+        # token 未被消费：登记决定后仍可使用该 token 成功续跑
+        dec = decisions_for_round(2)[0]
+        record_m7_decision(self.service, step_run_id, token, dec)
+        resumed = resume_m7(self.service, step_run_id, token)
+        self.assertEqual(resumed["status"], "succeeded")
+        self.assertEqual(self.service.get_step_run(step_run_id)["status"], "succeeded")
+
+    def test_record_m7_decision_rejects_duplicate_decision(self):
+        """BDD 8.3：同一提案重复决定，在写入任何修订之前拒绝。"""
+        r1 = self._run_genesis()
+        m6_rev_99 = self.seeded[self.ed99["edition_key"]]["m6_package_revision_id"]
+        r2 = run_m7(
+            self.service,
+            self.ed99["edition_part_artifact_id"],
+            technique_id=self.technique_id,
+            reviewed_package_revision_ids=[m6_rev_99],
+            base_snapshot_revision_id=r1["snapshot_revision_id"],
+            id_range=self.manifest["id_range"],
+        )
+        step_run_id = r2["step_run_id"]
+        token = r2["resume_token"]
+        dec = decisions_for_round(2)[0]
+
+        record_m7_decision(self.service, step_run_id, token, dec)
+        with self.assertRaises(AssemblyRefused) as caught:
+            record_m7_decision(self.service, step_run_id, token, dec)
+        self.assertEqual(caught.exception.code, "ID_002")
+
+    def test_record_m7_decision_rejects_choice_not_in_options(self):
+        """BDD 8.3：choice 不在 options 内拒绝。"""
+        from pipeline.ledger.errors import SchemaViolation
+
+        r1 = self._run_genesis()
+        m6_rev_99 = self.seeded[self.ed99["edition_key"]]["m6_package_revision_id"]
+        r2 = run_m7(
+            self.service,
+            self.ed99["edition_part_artifact_id"],
+            technique_id=self.technique_id,
+            reviewed_package_revision_ids=[m6_rev_99],
+            base_snapshot_revision_id=r1["snapshot_revision_id"],
+            id_range=self.manifest["id_range"],
+        )
+        step_run_id = r2["step_run_id"]
+        token = r2["resume_token"]
+        bad_dec = dict(decisions_for_round(2)[0], choice="impossible_choice")
+
+        with self.assertRaises(SchemaViolation) as caught:
+            record_m7_decision(self.service, step_run_id, token, bad_dec)
+        self.assertEqual(caught.exception.code, "SCH_002")
+
+    def test_resume_m7_rejects_wrong_token(self):
+        """错误 token 拒绝，状态机不跃迁。"""
+        r1 = self._run_genesis()
+        m6_rev_99 = self.seeded[self.ed99["edition_key"]]["m6_package_revision_id"]
+        r2 = run_m7(
+            self.service,
+            self.ed99["edition_part_artifact_id"],
+            technique_id=self.technique_id,
+            reviewed_package_revision_ids=[m6_rev_99],
+            base_snapshot_revision_id=r1["snapshot_revision_id"],
+            id_range=self.manifest["id_range"],
+        )
+        step_run_id = r2["step_run_id"]
+        token = r2["resume_token"]
+        dec = decisions_for_round(2)[0]
+        record_m7_decision(self.service, step_run_id, token, dec)
+
+        with self.assertRaises(InvalidResumeToken):
+            resume_m7(self.service, step_run_id, token + "x")
+        self.assertEqual(self.service.get_step_run(step_run_id)["status"], "awaiting_human")
+
 
 if __name__ == "__main__":
     unittest.main()

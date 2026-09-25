@@ -157,6 +157,7 @@ modules:
     kind: production
     binding: legacy_self_driving
     entry: "pipeline.assembly.entry:run_m7"
+    resume_entry: "pipeline.assembly.step:resume_m7"
     version: "0.1.0-draft"
     consumes:
       - artifact_type: stage_package

@@ -41,8 +41,8 @@ def _latest_m6_package_revision_id(service, edition_part_id):
     return rows[0]["artifact_revision_id"]
 
 
-def run_m7(service, edition_part_id, *, id_range=None):
-    """调度器入口：以该 EditionPart 最新签发的 M6 包做一次 M7 创世汇编。"""
+def run_m7(service, edition_part_id, *, id_range=None, base_snapshot_revision_id=None):
+    """调度器入口：以该 EditionPart 最新签发的 M6 包做一次 M7 汇编（创世或增量）。"""
     package_revision_id = _latest_m6_package_revision_id(service, edition_part_id)
     technique_id = resolve_m7_inputs(service, [package_revision_id])["technique_id"]
     summary = _run_m7(
@@ -50,6 +50,7 @@ def run_m7(service, edition_part_id, *, id_range=None):
         edition_part_id,
         technique_id=technique_id,
         reviewed_package_revision_ids=[package_revision_id],
+        base_snapshot_revision_id=base_snapshot_revision_id,
         id_range=id_range,
     )
     step = service.get_step_run(summary["step_run_id"])
