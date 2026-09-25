@@ -89,6 +89,59 @@ class TestReplayHumanDecisionsUnit(unittest.TestCase):
             verify_m6_targets(new_queue_items, old_decisions)
         self.assertIn("目标集合不等", str(ctx.exception))
 
+    def test_m6_pattern_in_queue_without_supplement_stops(self):
+        """M6 队列包含 pattern 但旧决定中无对应项时停手。"""
+        new_queue_items = [
+            {
+                "queue_item_id": "as_qizheng_000001#review_source_fidelity",
+                "target_entity_id": "as_qizheng_000001",
+                "kind": "assertion",
+                "decision_type": "review_source_fidelity",
+            },
+            {
+                "queue_item_id": "pat_qizheng_000001#review_source_fidelity",
+                "target_entity_id": "pat_qizheng_000001",
+                "kind": "pattern",
+                "decision_type": "review_source_fidelity",
+            },
+        ]
+        old_decisions = [
+            {
+                "target_entity_id": "as_qizheng_000001",
+                "entity_kind": "assertion",
+                "decision_type": "review_source_fidelity",
+                "verdict": "accept",
+                "rationale": "通过",
+            }
+        ]
+        with self.assertRaises(ReplayMismatchError) as ctx:
+            verify_m6_targets(new_queue_items, old_decisions)
+        self.assertIn("pat_qizheng_000001", str(ctx.exception))
+
+    def test_load_m6_supplement_decisions(self):
+        """测试从 YAML 读取 U07 补充决定并标准化为决定字典。"""
+        from pipeline.tools.replay_human_decisions import load_m6_supplement_decisions
+        import tempfile
+        with tempfile.NamedTemporaryFile("w", suffix=".yaml", delete=False, encoding="utf-8") as f:
+            f.write("""
+actor_ref: user:wjt
+decisions:
+  - entity_id: pat_qizheng_000001
+    decision_type: review_source_fidelity
+    verdict: accept
+    rationale: 审定接受
+""")
+            temp_path = f.name
+        try:
+            items = load_m6_supplement_decisions(temp_path)
+            self.assertEqual(len(items), 1)
+            self.assertEqual(items[0]["target_entity_id"], "pat_qizheng_000001")
+            self.assertEqual(items[0]["entity_kind"], "pattern")
+            self.assertEqual(items[0]["verdict"], "accept")
+            self.assertEqual(items[0]["actor_ref"], "user:wjt")
+        finally:
+            Path(temp_path).unlink(missing_ok=True)
+
 
 class TestReplayHumanDecisionsIntegration(unittest.TestCase):
     """小夹具集成测试：证明对得上就逐字照抄。"""
@@ -307,6 +360,123 @@ class TestReplayHumanDecisionsIntegration(unittest.TestCase):
         rc_doc = json.loads(self.adapter.read_object(self.service.get_revision(rev_cands[0]["artifact_revision_id"])["sha256"]).decode("utf-8"))
         self.assertEqual(rc_doc["assertion_id"], "as_qizheng_000002")
         self.assertEqual(rc_doc["proposition"], "修改后的论断二")
+
+    def test_m6_replay_with_pattern_and_supplement_integration(self):
+        """集成测试：M6 队列含 pattern 时，不加 supplement 停手抛出异常，加 supplement 成功回放。"""
+        edition_part_id = ids.new_id("artifact_id")
+        prun_id = self.service.create_processing_run(
+            "edition_run",
+            edition_part_id,
+            "qizheng",
+        )
+        m6_config_rev = self.service.put_run_artifact(
+            prun_id,
+            "configuration",
+            json.dumps({"stage": "m6"}).encode("utf-8"),
+            producer_module="test",
+            producer_version="0.1.0",
+        )[1]
+        m6_srun_id = self.service.begin_step_run(
+            {
+                "schema_version": "1.0.0",
+                "processing_run_id": prun_id,
+                "step_run_id": ids.new_id("step_run_id"),
+                "input_artifact_ids": [],
+                "technique_profile_id": "qizheng",
+                "configuration_artifact_id": m6_config_rev,
+            }
+        )
+        cand_set_doc = {
+            "assertions": [{"assertion_id": "as_qizheng_000001", "proposition": "论断一"}],
+            "patterns": [{"pattern_id": "pat_qizheng_000001", "pattern_name": "格局一"}],
+        }
+        cand_set_rev = self.service.put_artifact(
+            m6_srun_id,
+            "candidate_set",
+            json.dumps(cand_set_doc, ensure_ascii=False).encode("utf-8"),
+            producer_module="test",
+            producer_version="0.1.0",
+        )[1]
+        self.service.seal_revision(cand_set_rev)
+
+        queue_items = [
+            {
+                "queue_item_id": "as_qizheng_000001#review_source_fidelity",
+                "target_entity_id": "as_qizheng_000001",
+                "kind": "assertion",
+                "decision_type": "review_source_fidelity",
+                "seen_artifact_revision_id": cand_set_rev,
+            },
+            {
+                "queue_item_id": "pat_qizheng_000001#review_source_fidelity",
+                "target_entity_id": "pat_qizheng_000001",
+                "kind": "pattern",
+                "decision_type": "review_source_fidelity",
+                "seen_artifact_revision_id": cand_set_rev,
+            },
+        ]
+        rq_rev = self.service.put_artifact(
+            m6_srun_id,
+            "review_queue",
+            json.dumps(queue_items, ensure_ascii=False).encode("utf-8"),
+            producer_module="test",
+            producer_version="0.1.0",
+        )[1]
+        self.service.seal_revision(rq_rev)
+        self.service.write_checkpoint(
+            m6_srun_id,
+            edition_part_id=edition_part_id,
+            stage="m6",
+            completed_tasks=[],
+            human_decisions=[],
+            pending_queue=[rq_rev],
+            next_pointer=None,
+        )
+        m6_token = self.service.await_human(m6_srun_id, pending_queue_revision_ids=[rq_rev])
+
+        old_decisions = [
+            {
+                "target_entity_id": "as_qizheng_000001",
+                "entity_kind": "assertion",
+                "decision_type": "review_source_fidelity",
+                "verdict": "accept",
+                "rationale": "通过",
+                "evidence_refs": [],
+                "actor_ref": "local_owner",
+            }
+        ]
+        # 探针 1：不给 supplement，必须停手抛错，指明缺失 pat_qizheng_000001
+        with self.assertRaises(ReplayMismatchError) as ctx:
+            replay_m6_decisions(
+                self.service,
+                m6_srun_id,
+                m6_token,
+                old_decisions=old_decisions,
+            )
+        self.assertIn("pat_qizheng_000001", str(ctx.exception))
+
+        # 探针 2：给 supplement 后，成功回放
+        supplement = [
+            {
+                "target_entity_id": "pat_qizheng_000001",
+                "entity_kind": "pattern",
+                "decision_type": "review_source_fidelity",
+                "verdict": "accept",
+                "rationale": "格局接受",
+                "evidence_refs": [],
+                "actor_ref": "user:wjt",
+            }
+        ]
+        results = replay_m6_decisions(
+            self.service,
+            m6_srun_id,
+            m6_token,
+            old_decisions=old_decisions,
+            supplement_decisions=supplement,
+        )
+        self.assertEqual(len(results), 2)
+        events = self.service.list_human_events(m6_srun_id)
+        self.assertEqual(len(events), 2)
 
 
 if __name__ == "__main__":

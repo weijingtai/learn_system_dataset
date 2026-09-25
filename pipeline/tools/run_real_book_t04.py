@@ -15,6 +15,7 @@
 
 from __future__ import annotations
 
+import argparse
 import hashlib
 import json
 import shutil
@@ -46,6 +47,7 @@ from pipeline.tools.replay_human_decisions import (
     ReplayMismatchError,
     load_m4_rulings_from_ledger,
     load_m6_decisions_from_ledger,
+    load_m6_supplement_decisions,
     replay_m4_rulings,
     replay_m6_decisions,
 )
@@ -115,7 +117,10 @@ def verify_inputs_and_hashes() -> dict[str, str]:
     return submission_shas
 
 
-def run_full_pipeline(clean_target: bool = False) -> dict[str, Any]:
+def run_full_pipeline(
+    clean_target: bool = False,
+    supplement_file: Path | str | None = None,
+) -> dict[str, Any]:
     """在空账本上真跑 M1→M8 全流程，回放人工决定，返回统计与对位表。"""
     # 1. 预检
     print("[1/10] 核对源文件与 M4 提交件哈希...")
@@ -277,16 +282,36 @@ def run_full_pipeline(clean_target: bool = False) -> dict[str, Any]:
         m6_token = item_m6["step_result"]["resume_token"]
         print(f"      M6 暂停在 awaiting_human, StepRun: {m6_srun_id}")
 
-        # 9. 回放 26 条 M6 审核决定
-        print("[9/10] 从参考副本回放 26 条 M6 审核决定...")
+        # 9. 回放 M6 审核决定
+        print("[9/10] 从参考副本回放 M6 审核决定...")
+        supplement_decisions = None
+        if supplement_file:
+            print(f"      加载 M6 补充决定: {supplement_file}")
+            supplement_decisions = load_m6_supplement_decisions(supplement_file)
+
         with LedgerReader(REF_LEDGER) as reader:
             old_m6_decisions = load_m6_decisions_from_ledger(reader)
-            m6_applied = replay_m6_decisions(
-                service,
-                m6_srun_id,
-                m6_token,
-                old_decisions=old_m6_decisions,
-            )
+            try:
+                m6_applied = replay_m6_decisions(
+                    service,
+                    m6_srun_id,
+                    m6_token,
+                    old_decisions=old_m6_decisions,
+                    supplement_decisions=supplement_decisions,
+                )
+            except ReplayMismatchError as err:
+                print(f"\n[PAUSE] M6 审核队列发现未记录的项: {err}")
+                print(f"       调度器已停在 M6 awaiting_human (StepRun: {m6_srun_id})，未代用户做决定。")
+                print("       等待用户提供 U07 decisions_supplement.yaml 后再继续。")
+                return {
+                    "edition_run_id": edition_run_id,
+                    "edition_part_id": edition_part_id,
+                    "status": "awaiting_human",
+                    "paused_stage": "m6",
+                    "m6_step_run_id": m6_srun_id,
+                    "reason": str(err),
+                }
+
         print(f"      M6 回放完成: 成功登记 {len(m6_applied)} 条决定")
 
         # 记录 M6 对位表 (old_event_rev -> new_event_rev)
@@ -303,14 +328,18 @@ def run_full_pipeline(clean_target: bool = False) -> dict[str, Any]:
             new_m6_by_key[key] = ev["event_revision_id"]
 
         m6_alignment_table = []
-        for old_d in old_m6_decisions:
+        all_m6_for_table = list(old_m6_decisions)
+        if supplement_decisions:
+            all_m6_for_table.extend(supplement_decisions)
+
+        for old_d in all_m6_for_table:
             key = (old_d["target_entity_id"], old_d["entity_kind"], old_d["decision_type"])
             m6_alignment_table.append(
                 {
                     "entity_id": old_d["target_entity_id"],
                     "entity_kind": old_d["entity_kind"],
                     "decision_type": old_d["decision_type"],
-                    "old_event_revision_id": old_d["_event_revision_id"],
+                    "old_event_revision_id": old_d.get("_event_revision_id"),
                     "new_event_revision_id": new_m6_by_key.get(key),
                     "verdict": old_d["verdict"],
                     "actor_ref": old_d.get("actor_ref"),
@@ -334,8 +363,7 @@ def run_full_pipeline(clean_target: bool = False) -> dict[str, Any]:
         release_res = run_release(
             adapter,
             registry,
-            edition_part_id=edition_part_id,
-            technique_id="qizheng",
+            handle,
         )
         if (
             release_res.get("action") != "executed"
@@ -398,10 +426,29 @@ def run_full_pipeline(clean_target: bool = False) -> dict[str, Any]:
 
 
 def main() -> int:
+    parser = argparse.ArgumentParser(description="真书全线运行驱动")
+    parser.add_argument(
+        "--supplement",
+        type=str,
+        default=None,
+        help="U07 M6 补充决定 YAML 文件路径",
+    )
+    parser.add_argument(
+        "--no-clean",
+        action="store_true",
+        help="不清理目标账本目录",
+    )
+    args = parser.parse_args()
+
     try:
-        report = run_full_pipeline(clean_target=True)
-        print("\n=== 执行成功！汇总数据如下 ===")
+        report = run_full_pipeline(
+            clean_target=not args.no_clean,
+            supplement_file=args.supplement,
+        )
+        print("\n=== 执行报告 ===")
         print(json.dumps(report, indent=2, ensure_ascii=False))
+        if report.get("status") == "awaiting_human":
+            return 2  # 正常暂停在 awaiting_human
         return 0
     except Exception as exc:
         print(f"\n[ERROR] 执行失败: {type(exc).__name__}: {exc}", file=sys.stderr)

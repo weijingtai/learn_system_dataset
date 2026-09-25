@@ -13,6 +13,8 @@ import json
 from pathlib import Path
 from typing import Any
 
+import yaml
+
 from pipeline.knowledge_extraction import CANDIDATE_SCHEMA_VERSION
 from pipeline.knowledge_extraction.step import record_category_ruling
 from pipeline.ledger.service import LedgerReader
@@ -282,12 +284,49 @@ def load_m6_decisions_from_ledger(
     return decisions
 
 
+def load_m6_supplement_decisions(path: Path | str) -> list[dict]:
+    """从外部 YAML 文件（如 U07-decisions_supplement.yaml）加载人工审核决定。"""
+    p = Path(path)
+    if not p.is_file():
+        raise FileNotFoundError(f"缺少 M6 补充决定文件: {p}")
+    data = yaml.safe_load(p.read_text(encoding="utf-8")) or {}
+    actor_ref = data.get("actor_ref", "user:wjt")
+    items = []
+    for d in data.get("decisions", []):
+        eid = d.get("entity_id") or d.get("target_entity_id")
+        ekind = d.get("entity_kind")
+        if not ekind:
+            if eid.startswith("pat_"):
+                ekind = "pattern"
+            elif eid.startswith("as_"):
+                ekind = "assertion"
+            elif eid.startswith("sv_"):
+                ekind = "school_view"
+            else:
+                ekind = "pattern"
+        items.append(
+            {
+                "target_entity_id": eid,
+                "entity_kind": ekind,
+                "decision_type": d["decision_type"],
+                "verdict": d["verdict"],
+                "rationale": d["rationale"],
+                "evidence_refs": d.get("evidence_refs", []),
+                "actor_ref": d.get("actor_ref", actor_ref),
+                "modified_content": d.get("modified_content"),
+                "_event_revision_id": None,
+            }
+        )
+    return items
+
+
 def replay_m6_decisions(
     service: Any,
     step_run_id: str,
     resume_token: str,
     *,
     old_decisions: list[dict],
+    supplement_decisions: list[dict] | None = None,
 ) -> list[dict]:
     """在新运行的 M6 暂停节点回放审核决定。"""
     queues = service.list_step_run_revisions(step_run_id, artifact_type="review_queue")
@@ -297,8 +336,12 @@ def replay_m6_decisions(
     new_rq_rev_id = queues[0]["artifact_revision_id"]
     new_queue_items = _read_json_object(service, new_rq_rev_id)
 
+    all_decisions = list(old_decisions)
+    if supplement_decisions:
+        all_decisions.extend(supplement_decisions)
+
     # 对位校验
-    verify_m6_targets(new_queue_items, old_decisions)
+    verify_m6_targets(new_queue_items, all_decisions)
 
     old_by_key = {
         (
@@ -306,7 +349,7 @@ def replay_m6_decisions(
             d["entity_kind"],
             d["decision_type"],
         ): d
-        for d in old_decisions
+        for d in all_decisions
     }
 
     applied = []
