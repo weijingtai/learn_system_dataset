@@ -137,3 +137,24 @@ advance: blocked m4 reason= stage_package_valid step_result= None
 
 执行：Freebuff（DeepSeek V4.1 Flash）。已验收提交：`b416d55` `run_until` 越界修复；`cc0179f` technique_profile 走运行输入（M4 薄适配 `knowledge_extraction/entry.py`）；`9310b67` Q2 放行（`human_input_artifact`，三护栏）；`2b48aa9` `test_resume_token_never_persisted`；`f212366` `test_imported_with_entry_forbidden` 改写；`e8ac25f` Q3「乙」两级门禁（依第 109 条；词表未动、`itemized` 缺失按 error、片段 ID 形态取 `ledger.ids`）；`4cbac32` T18 去重；`2bbde38` Q1 缺件 `refused` 零写入；`e45dba1` Q2 条件 (2) 缺件用例；`cc2cb08` 旧用例 2/6 改写。**全线用例 `test_edition_run_text_chain` 在集成目录 4 OK**（M5 两级门禁下 M1→M6 走通）；validation 123 OK。剩余：20.1 判据（`_check_real_chain` 改电子文本宿主 M1→M6 全线）、`run_all.sh` 20.1 段、4 条旧口径验收用例——第四轮进行中。
 合并冲突预告：Q1 的 refused 检查落在旧单段 `run_release`，与 T04B 的 m7→m8 循环冲突，协调者解法 = 检查移进循环（rerere 已记）。
+
+### 阶段 2 完成：`win/t04a` 已合入 `t04`（`b38051d` + 第五轮 `3d06b7a`）
+
+第四/五轮（Freebuff 到点后由 agy Gemini 3.8 Flash Medium 接手）：`7e2dd3f` `_check_real_chain` 改为电子文本宿主 M1→M6 全线（判据 1–4，宿主缺失 BLOCKED 不回落 mini_ed01）、`_check_registered_modules` 按真实登记判；`efbadae` 20.1 用例；`c01ace6` orchestrator 4 条旧口径验收用例改写；`31c2a12` contract_registry `test_run_all.py` 2 条改写 + `run_all.sh` 20.1 段加 `ELECTRONIC_TEXT_FIXTURE_DIR` 覆盖（FAIL 路径探针改为篡改电子文本宿主副本，保留真实 FAIL 路径）。每条改前/改后/为什么见执行者回报第四、五轮段。
+
+**协调者验收（主克隆 `t04`，有页图、有真书账本）**
+
+```
+$ bash openspec/acceptance/run_all.sh 20.1 20.2
+PASS  20.1  一个 EditionPart 严格按 M1–M6 阶段 Gate 完成（宿主 qianyuan_ed01_text 电子文本真实 Ledger）
+PASS  20.2  最近 StageCheckpoint 可恢复且历史失败保留（宿主 mini_ed01 真实 Ledger）
+SUMMARY pass=2 fail=0 blocked=0
+```
+
+- orchestrator：Ran 120 **OK**（Mac 红单 7 条全部转绿，0 环境红）
+- validation：Ran 123 OK（含 Q3「乙」两级门禁与 T18 去重）
+- knowledge_extraction：Ran 155，3 ERROR = W2 环境红
+- contract_registry `test_run_all`：Ran 5，红 2 = W4（20.10 verify.sh 路径）+ W5（`paste` 多字节分隔符）；`test_20_1_blocked_line_computed`、`test_accept_check_fail_path` 已绿
+- 合并冲突（Q1 refused 检查 vs T04B m7→m8 循环）按前述解法解决，rerere 已记。
+
+**Mac 红单 12 条现状**：orchestrator 7 条全绿；contract_registry 3 条中 `test_imported_with_entry_forbidden`、`test_20_1_blocked_line_computed` 绿，`test_full_summary_unchanged` 仍是 W5 环境 ERROR（Linux/Mac 同样会撞到 `paste -sd '；'` 的多字节分隔符问题，该行不在 20.1 段未改，建议主 Agent 在 Mac 复验）；dataset_compiler 2 条绿。完成判据 ①②④ 达成，③ 见阶段 4。
