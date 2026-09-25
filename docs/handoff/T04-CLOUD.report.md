@@ -86,3 +86,50 @@ ledger 106 OK | orchestrator 125 OK | review 179 OK | validation 123 OK
 3. 真书跑到 M6：M6 队列现在会多出 2 个 pattern 项（`pat_qizheng_000001`「去官留煞」、`pat_qizheng_000002`「贪合忘煞」），账本副本里没有这两项的决定 → 按回放规则停在 M6 `awaiting_human`，等 **U07**（用户给决定，写成 `decisions_supplement.yaml`，actor_ref=user:wjt）。
 4. U07 到手后跑到 M8：`python -m pipeline.dataset_compiler.acceptance --fixture pipeline/corpus/_fixture/qianyuan_ed01_text --check publication --ledger var/ledgers/qianyuan_t04`；上面第 1、2 条待裁决会在真书上同样出现。
 5. 阶段 5：11 包真数据回归、真书正本指纹（`875139ae…f75b`）、`run_all.sh 20.1 20.2`、合并。
+
+## 六、本机进度（2026-09-25，Windows 本机执行）
+
+1. **拉取合入 PR #2**：分支 `origin/claude/wizardly-maxwell-pqrzh9` 快进合入 `t04`（`be0831e`）。
+2. **清理 s4 擅改文件**：在 `D:\Programme\t04w\s4` 逐一使用 `git restore` 丢弃执行者擅自修改的 4 个生产文件（`genesis.py`、`acceptance.py`、`step.py`、`gate.py`）。
+3. **合入回放工具与驱动**：
+   - `git merge win/s4`（`0770a86`）。
+   - 修复驱动中 `run_release(adapter, registry, handle)` 签名。
+   - 回放工具 `replay_human_decisions.py` 支持 `load_m6_supplement_decisions` 与 `supplement_decisions`，配齐篡改探针与单测（`d610e4c`，8 条全绿通过）。
+4. **真书首轮运行**：在新建账本 `var/ledgers/qianyuan_t04` 上由调度器从 M1 推进至 M6。仅使用正本副本已有决定，遇到 2 个格局审核项（`pat_qizheng_000001`、`pat_qizheng_000002`）在账本中无记录，调度器如实停在 M6 `awaiting_human`（StepRun: `srun_f0b0059f1cbf487fa51f6a42fcbba447`），未代用户做决定。
+
+```text
+[1/10] 核对源文件与 M4 提交件哈希...
+      源文件 SHA256 与 6 份 M4 提交件哈希比对通过 (6 份)
+[2/10] 新建 EditionRun...
+      EditionRun ID: prun_7c6d3138281c4a8d984a77055cb2d152
+[3/10] 推进至 M3 (run_until m3)...
+      阶段 m1: succeeded
+      阶段 m2: succeeded
+      阶段 m3: succeeded
+[4/10] 经公开入口登记 6 份 M4 提交件 (run_m4_submit)...
+      6 份 M4 提交件登记成功
+[5/10] advance 推进 M4...
+      M4 暂停在 awaiting_human, StepRun: srun_f986c570bf7c42769842a993ce61b6cd
+[6/10] 从参考副本回放 24 条 M4 类别裁决...
+      M4 回放完成: 成功登记 24 条裁决
+      恢复 M4 (resume)...
+[7/10] advance 推进 M5 (自动)...
+      M5 succeeded, 披露项统计: warnings=12条, errors=0条
+[8/10] advance 推进 M6...
+      M6 暂停在 awaiting_human, StepRun: srun_f0b0059f1cbf487fa51f6a42fcbba447
+[9/10] 从参考副本回放 M6 审核决定...
+
+[PAUSE] M6 审核队列发现未记录的项: M6 审核目标集合不等: 新有旧无 [('pat_qizheng_000001', 'pattern', 'review_source_fidelity'), ('pat_qizheng_000002', 'pattern', 'review_source_fidelity')], 旧有新无 [], 差异集合: [('pat_qizheng_000001', 'pattern', 'review_source_fidelity'), ('pat_qizheng_000002', 'pattern', 'review_source_fidelity')]
+       调度器已停在 M6 awaiting_human (StepRun: srun_f0b0059f1cbf487fa51f6a42fcbba447)，未代用户做决定。
+       等待用户提供 U07 decisions_supplement.yaml 后再继续。
+
+=== 执行报告 ===
+{
+  "edition_run_id": "prun_7c6d3138281c4a8d984a77055cb2d152",
+  "edition_part_id": "art_00000000000000000000000000000001",
+  "status": "awaiting_human",
+  "paused_stage": "m6",
+  "m6_step_run_id": "srun_f0b0059f1cbf487fa51f6a42fcbba447",
+  "reason": "M6 审核目标集合不等: 新有旧无 [('pat_qizheng_000001', 'pattern', 'review_source_fidelity'), ('pat_qizheng_000002', 'pattern', 'review_source_fidelity')], 旧有新无 [], 差异集合: [('pat_qizheng_000001', 'pattern', 'review_source_fidelity'), ('pat_qizheng_000002', 'pattern', 'review_source_fidelity')]"
+}
+```
