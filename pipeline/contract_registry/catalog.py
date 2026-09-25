@@ -270,6 +270,22 @@ def check_registry(registry, *, resolve_entries=False):
                 % (module_id, module["owns_processing_run"]),
             )
 
+        # R4'：人工输入件声明（裁决 Q2）：必须是非空字符串，且只许人工队列模块声明
+        if "human_input_artifact" in module:
+            human_input_artifact = module["human_input_artifact"]
+            if not isinstance(human_input_artifact, str) or not human_input_artifact:
+                add(
+                    "human_input_artifact_invalid",
+                    "%s human_input_artifact 必须是非空字符串: %r"
+                    % (module_id, human_input_artifact),
+                )
+            elif module.get("human_queue") is not True:
+                add(
+                    "human_input_artifact_forbidden",
+                    "%s 非 human_queue: true 却声明 human_input_artifact: %r"
+                    % (module_id, human_input_artifact),
+                )
+
         # R4：consumes 顺序与 artifact_type 形态
         for item in module.get("consumes") or []:
             if not isinstance(item, dict):

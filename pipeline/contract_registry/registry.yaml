@@ -108,6 +108,7 @@ modules:
     produces:
       - artifact_type: candidate_package
     human_queue: true
+    human_input_artifact: candidate_submission
     supports_recovery: false
     entry_kwargs: {}
     owns_processing_run: false

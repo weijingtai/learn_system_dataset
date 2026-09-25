@@ -431,5 +431,151 @@ class TestEditionRun(EditionTestCase):
         self.assertIn("M8 Dataset Compilation", refused["reason"])
 
 
+class HumanInputStub(StubModule):
+    """模拟 m4：成功但无阶段包、只登记描述符声明的人工输入件的运行。
+
+    - ``writes_human=False``：构造「声明了却没有任何该类型修订」的负例；
+    - ``writes_produces=True``：构造「写过 produces 类型却仍无包」的负例。
+
+    描述符显式带 ``human_input_artifact``（裁决 Q2），produces 默认为
+    ``candidate_package``（与人工输入件不同）。
+    """
+
+    def __init__(
+        self,
+        stage,
+        *,
+        human_input_type="candidate_submission",
+        writes_human=True,
+        writes_produces=False,
+        **kwargs
+    ):
+        kwargs.setdefault("produces", ("candidate_package",))
+        super().__init__(stage, stage_package_mode="missing", **kwargs)
+        self.human_input_type = human_input_type
+        self.writes_human = writes_human
+        self.writes_produces = writes_produces
+
+    def descriptor(self):
+        descriptor = dict(super().descriptor())
+        descriptor["human_input_artifact"] = self.human_input_type
+        return descriptor
+
+    def execute(self, port, request, context):
+        step_run_id = request["step_run_id"]
+        outputs = []
+        for flag, artifact_type in (
+            (self.writes_human, self.human_input_type),
+            (self.writes_produces, self.produces[0]),
+        ):
+            if not flag:
+                continue
+            _artifact_id, revision_id = port.put_artifact(
+                step_run_id,
+                artifact_type,
+                b"stub-human-input",
+                producer_module=self.module_id,
+                producer_version="0.0.0",
+            )
+            port.seal_revision(revision_id)
+            outputs.append(revision_id)
+        port.write_checkpoint(
+            step_run_id,
+            edition_part_id=context.edition_part_id,
+            stage=self.stage,
+            completed_tasks=[
+                {
+                    "task_id": "submit",
+                    "artifact_revision_id": revision_id,
+                    "status": "succeeded",
+                    "terminal_state": None,
+                }
+                for revision_id in outputs
+            ],
+            human_decisions=[],
+            pending_queue=[],
+            next_pointer=None,
+        )
+        return {
+            "status": "succeeded",
+            "output_artifact_ids": list(outputs),
+            "validation_report_ids": [],
+            "log_artifact_ids": [],
+            "failure_artifact_ids": [],
+        }
+
+
+class TestAdvanceHumanInputReentry(EditionTestCase):
+    """裁决 Q2：仅「只承载声明的人工输入件、尚未产出 produces 类型」的 stage 才重入登记入口。"""
+
+    def test_declared_stage_with_human_input_run_reenters_entry(self):
+        prior = HumanInputStub("m1")
+        registry = self.registry_with([prior])
+        processing_run_id, edition_part_id = self.start_run()
+        self.execute_stub(prior, processing_run_id, edition_part_id)
+
+        entry = StubModule("m1", module_id=prior.module_id)
+        result = advance(
+            self.adapter,
+            registry,
+            self.handle(processing_run_id, edition_part_id),
+            modules={prior.module_id: entry},
+            stages=("m1",),
+        )
+        self.assertEqual((result["action"], result["stage"]), ("executed", "m1"))
+        self.assertTrue(entry.executed_tasks, "重入必须真的调起登记入口")
+
+    def test_undeclared_stage_with_succeeded_no_package_still_blocked(self):
+        stub = StubModule("m1", stage_package_mode="missing")
+        registry = self.registry_with([stub])
+        processing_run_id, edition_part_id = self.start_run()
+        self.execute_stub(stub, processing_run_id, edition_part_id)
+
+        before = self.row_counts()
+        result = advance(
+            self.adapter,
+            registry,
+            self.handle(processing_run_id, edition_part_id),
+            modules={stub.module_id: stub},
+            stages=("m1",),
+        )
+        self.assertEqual(result["action"], "blocked")
+        self.assertEqual(before, self.row_counts())
+
+    def test_declared_stage_without_human_input_revision_still_blocked(self):
+        stub = HumanInputStub("m1", writes_human=False)
+        registry = self.registry_with([stub])
+        processing_run_id, edition_part_id = self.start_run()
+        self.execute_stub(stub, processing_run_id, edition_part_id)
+
+        before = self.row_counts()
+        result = advance(
+            self.adapter,
+            registry,
+            self.handle(processing_run_id, edition_part_id),
+            modules={stub.module_id: stub},
+            stages=("m1",),
+        )
+        self.assertEqual(result["action"], "blocked")
+        self.assertEqual(before, self.row_counts())
+
+    def test_declared_stage_with_produces_written_still_blocked(self):
+        stub = HumanInputStub("m1", writes_produces=True)
+        registry = self.registry_with([stub])
+        processing_run_id, edition_part_id = self.start_run()
+        self.execute_stub(stub, processing_run_id, edition_part_id)
+
+        before = self.row_counts()
+        result = advance(
+            self.adapter,
+            registry,
+            self.handle(processing_run_id, edition_part_id),
+            modules={stub.module_id: stub},
+            stages=("m1",),
+        )
+        self.assertEqual(result["action"], "blocked")
+        self.assertEqual(before, self.row_counts())
+
+
 if __name__ == "__main__":
     unittest.main()
