@@ -284,6 +284,30 @@ class M4EntrySubmissionGapTests(unittest.TestCase):
         self.assertEqual(before, self._counts(), "拒收发生在任何写入之前")
         self.assertEqual(self._profiles(), [], "拒收时也不得登记技法画像")
 
+    def test_partial_submissions_are_refused_not_taken_as_complete(self):
+        """只交 3/6（每类只有 a 路）：M4 自己拒收（REF_*），零写入且不反复调起。"""
+        from pipeline.knowledge_extraction.entry import run_m4
+
+        for name in (
+            "submission_assertion_a.yaml",
+            "submission_pattern_a.yaml",
+            "submission_concept_mention_a.yaml",
+        ):
+            self._submit(name)
+
+        before = self._counts()
+        first = run_m4(self.service, self.edition_part_id, run_inputs=_run_inputs())
+        self.assertEqual(first["refused"], True)
+        self.assertIn("缺必需路", first["reason"])
+        self.assertIn("REF_001", first["reason"])
+        self.assertIn("run_m4_submit", first["reason"])
+        self.assertEqual(before, self._counts(), "不齐不得当齐，拒收零写入")
+        self.assertEqual(self._profiles(), [])
+
+        second = run_m4(self.service, self.edition_part_id, run_inputs=_run_inputs())
+        self.assertEqual(second, first, "再调一次仍是同样的拒收（不建 StepRun、不重试）")
+        self.assertEqual(before, self._counts(), "反复调起不得新增修订")
+
     def test_refusal_disappears_once_all_six_submissions_are_registered(self):
         """补齐 6/6 后拒收消失：入口正常跑 M4（停在人工队列）。"""
         from pipeline.knowledge_extraction.entry import run_m4
