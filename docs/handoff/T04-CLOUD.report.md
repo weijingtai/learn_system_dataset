@@ -60,6 +60,16 @@ contract_registry 的 5 红逐条核实：
 - 红：`'pat_qizheng_000001#review_source_fidelity' not found in [...]` 等 4 条。绿：`test_pattern_review` 5 条 OK。
 - 探针（裁决指定）：只从审核队列删掉 pattern → `close_review` 失败，`reason: queue_coverage,outcome_consistency,package_counts`；M6 验收独立推导去掉 pattern → `队列项集合与独立推导不符: ['pat_qizheng_000001#review_source_fidelity']`。
 
+### 全量回归（本分支 `8d81337` 之上，11 包）
+
+```
+assembly 305 OK (skipped=2) | contract_registry 51 OK | corpus_compiler 167 OK
+dataset_compiler 269 OK (skipped=52) | digitization 88 OK | intake 40 OK | knowledge_extraction 155 OK
+ledger 106 OK | orchestrator 125 OK | review 179 OK | validation 123 OK
+```
+
+对照基线：contract_registry 5 红 → 0；新增用例 dataset_compiler +5（Q8 2、Q9 3）、orchestrator +5（Q7）、review +5（T19）；skip 53→52（Q7 改写的用例不再依赖页图）；其余包条数与结果不变。T16 两条偶发用例本轮未出现。
+
 ## 四、新发现 / 待裁决
 
 1. **【待裁决】offset 档 M8 验收 `evidence_chain_closure` 停在 `text_offsets`**：`KeyError: 'line_index'`（`dataset_compiler/acceptance.py:_check_text_offsets` 比对 `line_index`，电子文本 span 没有该字段）。候选：(a) offset 档只比对 offset/text/quote/content_status，`line_index` 与页子步同样声明不适用；(b) M3 电子文本 span 补 `line_index`；(c) 维持 FAIL。`.get()` 容错按 Q9 (iii) 否决。
