@@ -221,6 +221,8 @@ def _fail(service, step_run_id, check, detail):
     return {
         "status": "failed",
         "step_run_id": step_run_id,
+        # 与成功返回同形：调度器按登记表 owns_processing_run 读取（T04 阶段 4 Q8）
+        "processing_run_id": service.get_step_run(step_run_id)["processing_run_id"],
         "failed_check": check,
         "failure_revision_id": failure_revision_id,
         "reason": detail,
