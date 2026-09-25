@@ -228,7 +228,7 @@ run_item() {
       # pipeline/corpus/_fixture/qianyuan_ed01_text，判据为调度器 M1→M6 全线
       # （pipeline.orchestrator.acceptance 的 real_chain 项）。宿主缺失 → BLOCKED，
       # **绝不**回落 OCR 路线的 mini_ed01（同 G7-RULINGS 第 97 条 D2）。
-      local text_fixture="$REPO_ROOT/pipeline/corpus/_fixture/qianyuan_ed01_text"
+      local text_fixture="${ELECTRONIC_TEXT_FIXTURE_DIR:-$REPO_ROOT/pipeline/corpus/_fixture/qianyuan_ed01_text}"
       local text_verify="$REPO_ROOT/pipeline/corpus/_fixture/qianyuan_ed01_text/verify.sh"
       if [ ! -d "$text_fixture" ]; then
         block_line "$n" "M3 Corpus Compilation" "裁决 4 指定的电子文本宿主不存在: $text_fixture"
