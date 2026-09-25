@@ -127,3 +127,13 @@ advance: blocked m4 reason= stage_package_valid step_result= None
 ### Q4：M7 人工节点（增量 Release）的暂停与续跑（待主 Agent 裁）
 
 真书首个 Release 走创世路径不暂停，阶段 4 不受影响；但完成判据 ② 列了「M7 裁决」为人工节点。候选：A 仿 M4/M6 加 `resume_m7` + 登记表 `resume_entry`（动登记条目，不改 consumes/produces）；B 沿用现有 `decisions` 重跑整轮（旧 awaiting_human StepRun 成孤儿，需 supersede）；C 同 A 但在旧 StepRun 内重跑 assemble。执行者倾向 A。未实现。
+
+### 阶段 3 追加：Q4 采方案 A（M7 续跑）—— `cb62223` 已合入
+
+裁决：主 Agent 采 A。实现（agy，Gemini 3.8 Flash Medium）：`assembly/step.py:121` 把 `await_human` 的 token 放进返回值；新增 `record_m7_decision`、`resume_m7`（`service.resume` 校验 token → 读回提案与已登记决定 → 合并写新 Snapshot、同一 StepRun 收口；决定不齐再次 `await_human`）；登记表 m7 加 `resume_entry: "pipeline.assembly.step:resume_m7"`；`consumes`/`produces` 未动；创世不暂停。用例 `assembly/tests/test_resume.py`（含 `test_m7_resume_token_never_persisted`：暂停后按字节搜 `ledger.sqlite` 与 `objects/` 0 命中）。探针：撤 `resume_entry`、撤 token 透传各转红。token 校验用 `service._check_token`，与 `review/step.py` 同一既有写法。
+协调者验收（集成目录 `ca1da8b` = t04b@cb62223 + t04a@cc2cb08）：assembly 305 OK(skip 2)；orchestrator 120 红 4（第四轮改写中的旧口径用例）；contract_registry 51 红 8（6 Windows 环境 + 2 待 20.1 改写）。
+
+## 阶段 2：T04A（M1→M6）—— 进行中，`win/t04a` 未合
+
+执行：Freebuff（DeepSeek V4.1 Flash）。已验收提交：`b416d55` `run_until` 越界修复；`cc0179f` technique_profile 走运行输入（M4 薄适配 `knowledge_extraction/entry.py`）；`9310b67` Q2 放行（`human_input_artifact`，三护栏）；`2b48aa9` `test_resume_token_never_persisted`；`f212366` `test_imported_with_entry_forbidden` 改写；`e8ac25f` Q3「乙」两级门禁（依第 109 条；词表未动、`itemized` 缺失按 error、片段 ID 形态取 `ledger.ids`）；`4cbac32` T18 去重；`2bbde38` Q1 缺件 `refused` 零写入；`e45dba1` Q2 条件 (2) 缺件用例；`cc2cb08` 旧用例 2/6 改写。**全线用例 `test_edition_run_text_chain` 在集成目录 4 OK**（M5 两级门禁下 M1→M6 走通）；validation 123 OK。剩余：20.1 判据（`_check_real_chain` 改电子文本宿主 M1→M6 全线）、`run_all.sh` 20.1 段、4 条旧口径验收用例——第四轮进行中。
+合并冲突预告：Q1 的 refused 检查落在旧单段 `run_release`，与 T04B 的 m7→m8 循环冲突，协调者解法 = 检查移进循环（rerere 已记）。
