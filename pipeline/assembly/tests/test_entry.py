@@ -67,6 +67,32 @@ class M7EntryTests(unittest.TestCase):
         self.assertEqual(self.service.count_artifacts("configuration"), before)
         self.assertEqual(self.service.count_artifacts("canonical_snapshot"), 0)
 
+    def test_entry_passes_base_snapshot_revision_id_for_incremental(self):
+        from pipeline.assembly.entry import run_m7
+
+        seed_release_package(self.service, FIXTURE)
+        ed01 = self.manifest["editions"][0]
+        ed99 = self.manifest["editions"][1]
+
+        r1 = run_m7(
+            self.service,
+            ed01["edition_part_artifact_id"],
+            id_range=self.manifest["id_range"],
+        )
+        self.assertEqual(r1["status"], "succeeded")
+
+        r2 = run_m7(
+            self.service,
+            ed99["edition_part_artifact_id"],
+            base_snapshot_revision_id=r1["snapshot_revision_id"],
+            id_range=self.manifest["id_range"],
+        )
+        self.assertEqual(r2["status"], "awaiting_human")
+        self.assertIsNotNone(r2.get("resume_token"))
+        step = self.service.get_step_run(r2["step_run_id"])
+        self.assertEqual(r2["processing_run_id"], step["processing_run_id"])
+
 
 if __name__ == "__main__":
     unittest.main()
+

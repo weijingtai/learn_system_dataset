@@ -218,6 +218,7 @@ class TestRegistryCatalog(CatalogTestBase):
         self.assertEqual(m7["kind"], "production")
         self.assertEqual(m7["binding"], "legacy_self_driving")
         self.assertEqual(m7["entry"], "pipeline.assembly.entry:run_m7")
+        self.assertEqual(m7.get("resume_entry"), "pipeline.assembly.step:resume_m7")
         self.assertIs(m7["human_queue"], True)
         # run_m7 自建 release_run ProcessingRun
         self.assertIs(m7["owns_processing_run"], True)
