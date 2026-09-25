@@ -7,6 +7,7 @@
 1. 仓库根 `TODO.md` —— 唯一待办入口。当前主线是 **T04**；其余条目的状态以它为准。
 2. `docs/handoff/T04-WINDOWS.md` —— T04 任务书（完成判据 4 条、5 个阶段、纪律）。
 3. `docs/handoff/T04-WINDOWS.report.md`（在 `t04` 分支）—— Windows 执行方的回报，含全部「待裁决」记录。
+   Windows 会话同日也做了交接：`docs/handoff/T04-WINDOWS-HANDOFF.md`（`t04` 分支最新提交），给接手 Windows 那一侧的 Agent 用（目录/分支/tmux/执行顺序 Q8→Q7→Q9→T19→真书跑到 M6 停）。**两边都停手了**，Windows 侧也可能换人；新地址以对方发来的 `from` 为准。
 4. `docs/blackbox-spec-rework/G7-RULINGS.md` 第 107、109 条 —— 最近两条直接影响 T04 的裁决。
 5. `AGENTS.md` —— 仓库纪律。
 
