@@ -22,7 +22,7 @@ from . import (
 )
 from . import assemble, gate
 from .errors import ExtractionRefused
-from .inputs import resolve_m4_inputs
+from .inputs import collect_submissions, resolve_m4_inputs
 from .serialize import canonical_json
 from .submission import validate_submission
 from .submit import begin_m4_step_run
@@ -505,6 +505,26 @@ def _run_after_begin(
     return _complete(service, step_run_id, ctx)
 
 
+def submission_gap(service, edition_part_id, *, required_lanes=None):
+    """只读预检提交件齐备性；不齐时返回 ``ExtractionRefused`` 实例（**不抛**）。
+
+    返回 ``None`` 表示齐备。两处调用同一判定：``run_m4`` 自己（抛）与调度器入口
+    ``entry.run_m4``（转成零写入拒收，裁决 Q1）。本函数不要求技法画像已登记、
+    不写任何东西，故可在任何写入之前调用。
+    """
+    submissions = collect_submissions(service, edition_part_id)
+    if not submissions:
+        return ExtractionRefused("没有已登记的提交件", code="REF_001")
+    effective_required_lanes = dict(required_lanes or DEFAULT_REQUIRED_LANES)
+    for category in sorted({key.split("/")[0] for key in submissions}):
+        for lane in effective_required_lanes.get(category, []):
+            if "%s/%s" % (category, lane) not in submissions:
+                return ExtractionRefused(
+                    "缺必需路: %s/%s" % (category, lane), code="REF_001"
+                )
+    return None
+
+
 def run_m4(
     service,
     edition_part_id,
@@ -520,20 +540,15 @@ def run_m4(
         edition_part_id,
         technique_profile_revision_id=technique_profile_revision_id,
     )
-    if not inputs["submissions"]:
-        raise ExtractionRefused("没有已登记的提交件", code="REF_001")
+    gap = submission_gap(service, edition_part_id, required_lanes=required_lanes)
+    if gap is not None:
+        raise gap
     id_range = dict(id_range or DEFAULT_ID_RANGE)
     effective_required_lanes = dict(required_lanes or DEFAULT_REQUIRED_LANES)
-    present = sorted({key.split("/")[0] for key in inputs["submissions"]})
-    required = {}
-    for category in present:
-        lanes = list(effective_required_lanes.get(category, []))
-        required[category] = lanes
-        for lane in lanes:
-            if "%s/%s" % (category, lane) not in inputs["submissions"]:
-                raise ExtractionRefused(
-                    "缺必需路: %s/%s" % (category, lane), code="REF_001"
-                )
+    required = {
+        category: list(effective_required_lanes.get(category, []))
+        for category in sorted({key.split("/")[0] for key in inputs["submissions"]})
+    }
 
     processing_run_id = inputs["processing_run_id"]
     technique_id = inputs["technique_id"]

@@ -54,6 +54,18 @@ def _missing_host_reason():
     return None
 
 
+def _row_counts(root):
+    """只读统计 ``(artifact_revisions, step_runs, audit_log)`` 行数（零写入的判据）。"""
+    connection = sqlite3.connect("file:%s?mode=ro" % (root / "ledger.sqlite"), uri=True)
+    try:
+        return tuple(
+            connection.execute("SELECT COUNT(*) FROM %s" % table).fetchone()[0]
+            for table in ("artifact_revisions", "step_runs", "audit_log")
+        )
+    finally:
+        connection.close()
+
+
 def _run_inputs(**profile):
     technique_profile = {"technique_id": "qizheng", "canon_dir": str(CANON_DIR)}
     technique_profile.update(profile)
@@ -193,6 +205,95 @@ class M4EntryTests(unittest.TestCase):
                     run_m4(self.service, self.edition_part_id, run_inputs=run_inputs)
                 self.assertEqual(before, self._counts())
                 self.assertEqual(self._profiles(), [])
+
+
+@unittest.skipIf(_missing_host_reason() is not None, _missing_host_reason())
+class M4EntrySubmissionGapTests(unittest.TestCase):
+    """模板 Ledger：M1→M3，**尚无任何提交件**（裁决 Q1：缺提交件 → 零写入拒收）。
+
+    与上一个模板的区别只在“有没有提交件”：那些先拒收再交件的用例不能靠删修订实现，
+    故另建一个只跑到 M3 的模板。
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        cls._template_tmp = tempfile.mkdtemp(prefix="m4-entry-gap-template-")
+        cls.template_root = Path(cls._template_tmp) / "ledger"
+        service = LedgerService(cls.template_root)
+        try:
+            source_info = yaml.safe_load(
+                (HOST / "source_info.yaml").read_text(encoding="utf-8")
+            )
+            cls.edition_part_id = source_info["edition_part"]["artifact_id"]
+            files = read_source_files(str(HOST), source_info["pages"])
+            m1 = run_m1(service, source_info, files, cls.edition_part_id)
+            run_m2(
+                service,
+                m1["raw_text_revision_ids"][0],
+                source_info,
+                cls.edition_part_id,
+            )
+            m3 = run_m3_text(service, cls.edition_part_id)
+            if m3.get("status") != "succeeded":
+                raise RuntimeError("宿主 M3 未成功: %r" % (m3,))
+        finally:
+            service.close()
+
+    @classmethod
+    def tearDownClass(cls):
+        shutil.rmtree(cls._template_tmp, True)
+
+    def setUp(self):
+        self._tmp = tempfile.mkdtemp(prefix="m4-entry-gap-")
+        self.addCleanup(shutil.rmtree, self._tmp, True)
+        self.root = Path(self._tmp) / "ledger"
+        shutil.copytree(self.template_root, self.root)
+        self.service = LedgerService(self.root)
+        self.addCleanup(self.service.close)
+
+    def _counts(self):
+        return _row_counts(self.root)
+
+    def _profiles(self):
+        return [
+            row["artifact_revision_id"]
+            for row in self.service.list_revisions(artifact_type="technique_profile")
+        ]
+
+    def _submit(self, name):
+        summary = run_m4_submit(
+            self.service,
+            self.edition_part_id,
+            (M4_DIR / name).read_bytes(),
+            producer_module="m4_entry_gap:%s" % name,
+            producer_version="0.1.0",
+        )
+        self.assertEqual(summary["status"], "succeeded")
+
+    def test_no_submissions_is_a_zero_write_refusal_pointing_at_run_m4_submit(self):
+        """一份提交件都没有：入口返回零写入拒收，理由写明出路 ``run_m4_submit``。"""
+        from pipeline.knowledge_extraction.entry import run_m4
+
+        before = self._counts()
+        result = run_m4(self.service, self.edition_part_id, run_inputs=_run_inputs())
+
+        self.assertEqual(result["refused"], True)
+        self.assertIn("run_m4_submit", result["reason"], "拒收必须写明怎么解")
+        self.assertIn("REF_001", result["reason"])
+        self.assertEqual(result.get("step_run_id"), None, "拒收不建 StepRun")
+        self.assertEqual(before, self._counts(), "拒收发生在任何写入之前")
+        self.assertEqual(self._profiles(), [], "拒收时也不得登记技法画像")
+
+    def test_refusal_disappears_once_all_six_submissions_are_registered(self):
+        """补齐 6/6 后拒收消失：入口正常跑 M4（停在人工队列）。"""
+        from pipeline.knowledge_extraction.entry import run_m4
+
+        for name in SUBMISSION_FILES:
+            self._submit(name)
+        summary = run_m4(self.service, self.edition_part_id, run_inputs=_run_inputs())
+        self.assertEqual(summary["status"], "awaiting_human")
+        self.assertNotIn("refused", summary)
+        self.assertEqual(len(self._profiles()), 1)
 
 
 if __name__ == "__main__":

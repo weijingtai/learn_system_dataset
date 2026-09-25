@@ -288,6 +288,79 @@ class TestEditionRun(EditionTestCase):
         self.assertEqual(result["action"], "refused")
         self.assertEqual(before, self.row_counts())
 
+    def test_legacy_entry_refusal_is_reported_and_zero_write(self):
+        """裁决 Q1：legacy 入口在**任何写入之前**拒收时，advance 零写入返回 refused。
+
+        入口不是抛异常、也不是留下一个 failed StepRun，而是返回零写入拒收；调度器
+        如实报出理由（含出路），且反复 advance 不产生任何新修订。
+        """
+
+        def refusing_entry(service, edition_part_id, **kwargs):
+            refusing_entry.received = kwargs
+            return {
+                "refused": True,
+                "reason": "M4 拒收（REF_001）：没有已登记的提交件；"
+                "请先经 run_m4_submit 提交候选件",
+            }
+
+        m1 = StubModule("m1")
+        m2 = StubModule("m2", consumes_from="m1")
+        m3 = StubModule("m3", consumes_from="m2")
+        descriptor = {
+            "module_id": "m4.knowledge_extraction",
+            "stage": "m4",
+            "kind": "production",
+            "binding": "legacy_self_driving",
+            "entry": "tests:refusing_entry",
+            "version": "0.1.0",
+            "consumes": [],
+            "produces": [{"artifact_type": "candidate_package"}],
+            "human_queue": True,
+            "supports_recovery": False,
+            "entry_kwargs": {},
+            "owns_processing_run": False,
+        }
+        registry = self.registry_from_descriptors(
+            [m1.descriptor(), m2.descriptor(), m3.descriptor(), descriptor]
+        )
+        modules = self.stub_modules([m1, m2, m3])
+        modules["m4.knowledge_extraction"] = refusing_entry
+        processing_run_id, edition_part_id = self.start_run()
+        handle = self.handle(processing_run_id, edition_part_id)
+        run_until(
+            self.adapter,
+            registry,
+            handle,
+            "m3",
+            modules=modules,
+            stages=EDITION_STAGES,
+        )
+
+        before = self.row_counts()
+        first = advance(
+            self.adapter, registry, handle, modules=modules, stages=EDITION_STAGES
+        )
+        self.assertEqual(first["action"], "refused")
+        self.assertEqual(first["stage"], "m4")
+        self.assertIsNone(first["step_run_id"])
+        self.assertIn("run_m4_submit", first["reason"])
+        self.assertIn("REF_001", first["reason"])
+        self.assertEqual(before, self.row_counts(), "拒收必须零写入")
+
+        second = advance(
+            self.adapter, registry, handle, modules=modules, stages=EDITION_STAGES
+        )
+        self.assertEqual(second["action"], "refused", "不许反复调起后改口")
+        self.assertEqual(second["reason"], first["reason"])
+        self.assertEqual(before, self.row_counts(), "重复 advance 不得新增修订")
+        self.assertFalse(
+            any(
+                step["stage"] == "m4"
+                for step in self.adapter.run_status(processing_run_id)["step_runs"]
+            ),
+            "拒收不建 StepRun",
+        )
+
     def test_adopt_rejects_foreign_technique(self):
         stubs = self.all_stubs()
         registry = self.registry_with(stubs)

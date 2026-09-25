@@ -20,7 +20,7 @@ from .errors import OrchestratorRefused
 from .gate import effective_step_runs, evaluate_stage_gate
 from .module import StepContext, bind_module, descriptor_needs_run_inputs
 from .run_inputs import persist_run_inputs, validate_run_inputs
-from .runner import execute_step, run_legacy
+from .runner import REFUSAL_KEY, execute_step, run_legacy
 
 # advance 的动作闭集
 ADVANCE_ACTIONS = ("executed", "waiting", "blocked", "refused", "complete")
@@ -343,6 +343,15 @@ def advance(port, registry, handle, *, modules=None, stages=EDITION_STAGES):
             )
         if binding.binding == "legacy_self_driving":
             out = run_legacy(port, binding, handle)
+            if out.get(REFUSAL_KEY):
+                # 入口在**任何写入之前**自判不可执行（裁决 Q1）：零写入拒收，理由原样转出。
+                return _result_dict(
+                    "refused",
+                    stage=stage,
+                    gate=gate,
+                    gate_reports=gate_reports,
+                    reason=out["reason"],
+                )
             return _result_dict(
                 "executed",
                 stage=stage,
@@ -378,6 +387,8 @@ def run_release(port, registry, *, edition_part_id, technique_id, modules=None):
         binding,
         {"edition_part_id": edition_part_id, "processing_run_id": None, "technique_id": technique_id},
     )
+    if out.get(REFUSAL_KEY):
+        return _result_dict("refused", stage="m8", reason=out["reason"])
     handle = _handle(out["processing_run_id"], edition_part_id, technique_id)
     gate = evaluate_stage_gate(port, registry, handle, "m8")
     return {
