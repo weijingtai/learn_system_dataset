@@ -382,5 +382,85 @@ class OffsetRouteTests(unittest.TestCase):
         self.assertIn("FIXTURE OK", proc.stdout)
 
 
+class LedgerOptionAndClosureStepsTests(unittest.TestCase):
+    """T04 阶段 4 Q9：``--ledger`` 只读判定既有账本；offset 档证据链闭合的页/字框子步输出 NOT_APPLICABLE。"""
+
+    def _run(self, argv):
+        buffer = io.StringIO()
+        with contextlib.redirect_stdout(buffer):
+            code = acceptance.main(argv)
+        return code, buffer.getvalue()
+
+    def _built_offset_ledger(self):
+        """在临时账本上按 offset 档装配宿主并跑一次 M8，返回账本目录。"""
+        from pipeline.dataset_compiler.step import run_m8
+        from pipeline.ledger.service import LedgerService
+
+        tmp = tempfile.mkdtemp(prefix="m8-acc-ledger-")
+        self.addCleanup(shutil.rmtree, tmp, True)
+        root = Path(tmp) / "ledger"
+        service = LedgerService(root)
+        try:
+            edition_part_id = acceptance._prepare_ledger(
+                service, OFFSET_FIXTURE, None, acceptance.ROUTE_OFFSET
+            )
+            run_m8(service, edition_part_id, consumption_level="INTERNAL_DEMO")
+        finally:
+            service.close()
+        return root
+
+    @staticmethod
+    def _table_counts(root):
+        import sqlite3
+
+        connection = sqlite3.connect("file:%s?mode=ro" % (root / "ledger.sqlite"), uri=True)
+        try:
+            return tuple(
+                connection.execute("SELECT COUNT(*) FROM %s" % table).fetchone()[0]
+                for table in ("artifact_revisions", "step_runs", "processing_runs", "audit_log")
+            )
+        finally:
+            connection.close()
+
+    def test_ledger_option_judges_an_existing_ledger_read_only(self):
+        root = self._built_offset_ledger()
+        before = self._table_counts(root)
+        code, out = self._run(
+            ["--fixture", str(OFFSET_FIXTURE), "--check", "publication", "--ledger", str(root)]
+        )
+        self.assertEqual(before, self._table_counts(root), "--ledger 不得写入被判定的账本")
+        self.assertIn("run_succeeded", out)
+        self.assertTrue(_last_line(out).startswith("SUMMARY "), out)
+        # 与现场装配的判定逐行一致（同一宿主、同一 M8 事实）
+        _code, fresh = self._run(["--fixture", str(OFFSET_FIXTURE), "--check", "publication"])
+        self.assertEqual(
+            [line.split(" ", 2)[:2] for line in out.strip().splitlines()],
+            [line.split(" ", 2)[:2] for line in fresh.strip().splitlines()],
+        )
+
+    def test_ledger_option_refuses_a_missing_ledger(self):
+        missing = Path(tempfile.mkdtemp(prefix="m8-acc-none-")) / "nope"
+        self.addCleanup(shutil.rmtree, missing.parent, True)
+        code, out = self._run(
+            ["--fixture", str(OFFSET_FIXTURE), "--check", "publication", "--ledger", str(missing)]
+        )
+        self.assertEqual(code, 3)
+        self.assertIn("BLOCKED m8_acceptance", out)
+        self.assertFalse(missing.exists(), "不得为缺失的账本新建目录")
+
+    def test_offset_closure_reports_page_steps_not_applicable(self):
+        """页/字框子步不再以「span_id 无法解析」判 FAIL，而是逐项披露 NOT_APPLICABLE（不静默跳过）。
+
+        其余子步照判：本宿主当前停在 text_offsets（offset 档 span 无 line_index，待裁决），
+        判据如实 FAIL 并点名失败子步。
+        """
+        _code, out = self._run(["--fixture", str(OFFSET_FIXTURE), "--check", "publication"])
+        line = next(l for l in out.splitlines() if " evidence_chain_closure " in l)
+        self.assertNotIn("span_page_binding: span_id 无法解析", line)
+        for step in ("span_page_binding", "glyph_anchor_closure"):
+            self.assertIn("%s=%s" % (step, acceptance.NOT_APPLICABLE), line)
+        self.assertFalse(line.startswith("PASS "), "不适用子步不得让判据冒充通过")
+
+
 if __name__ == "__main__":
     unittest.main()

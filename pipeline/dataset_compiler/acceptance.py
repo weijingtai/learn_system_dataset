@@ -38,7 +38,7 @@ from pipeline.digitization.step import run_m2
 from pipeline.intake.source import read_source_files
 from pipeline.intake.step import run_m1
 from pipeline.ledger import fixture_ingest
-from pipeline.ledger.service import LedgerService
+from pipeline.ledger.service import LedgerReader, LedgerService
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_FIXTURE = REPO_ROOT / "pipeline" / "corpus" / "_fixture" / "mini_ed01"
@@ -62,6 +62,9 @@ _OFFSET_NA_SPAN_CHECKS = (
     "reverse_index",
 )
 _OFFSET_NA_PUBLICATION_CHECKS = ("coordinate_frame",)
+# publication 的 evidence_chain_closure 内依赖页/字框的子步（T04 Q9，同 Q-M8-08 口径）：offset 档
+# 逐项标 NOT_APPLICABLE 并写进该判据的说明，不静默跳过、不按通过计。
+_OFFSET_NA_CLOSURE_STEPS = ("span_page_binding", "glyph_anchor_closure")
 
 # TODO.md T02（2026-09-23）：以下各判据一律**看 M8 实际产出**再下结论，不许无条件输出 BLOCKED。
 # 子包没产出 → BLOCKED，理由写实测事实；子包产出了但内容校验尚未实现 → FAIL（防止接上函数就自动变绿）。
@@ -1096,16 +1099,36 @@ def _evaluate_publication(context):
     loaded["m3_gate_profile"] = context["m3_gate_profile"]
 
     def evidence_chain_closure():
+        checked = []
+        # 适用级别事先声明：offset 档这些子步一律披露为 NOT_APPLICABLE，不论后续子步成败
+        not_applicable = (
+            ["%s=%s" % (name, NOT_APPLICABLE) for name in _OFFSET_NA_CLOSURE_STEPS]
+            if route == ROUTE_OFFSET
+            else []
+        )
         for name, func in (
             ("span_identity", lambda: _check_span_key_unique(loaded, context["spans_golden"])),
             ("span_page_binding", lambda: _check_span_page_binding(loaded)),
             ("text_offsets", lambda: _check_text_offsets(loaded)),
             ("glyph_anchor_closure", lambda: _check_glyph_closure(loaded)),
         ):
-            ok, detail = func()
+            if route == ROUTE_OFFSET and name in _OFFSET_NA_CLOSURE_STEPS:
+                continue
+            try:
+                ok, detail = func()
+            except Exception as exc:  # noqa: BLE001 - 子步异常按该子步失败，保留不适用披露
+                ok, detail = False, "%s: %s" % (type(exc).__name__, exc)
             if not ok:
-                return False, "%s: %s" % (name, detail)
-        return True, "链 1–5 闭合"
+                failure = "%s: %s" % (name, detail)
+                if not_applicable:
+                    failure += "（%s：%s）" % ("、".join(not_applicable), _OFFSET_NOT_APPLICABLE_DETAIL)
+                return False, failure
+            checked.append(name)
+        if not not_applicable:
+            return True, "链 1–5 闭合"
+        return True, "已核 %s 闭合（%s：%s）" % (
+            "、".join(checked), "、".join(not_applicable), _OFFSET_NOT_APPLICABLE_DETAIL
+        )
 
     checks = [
         ("evidence_chain_closure", evidence_chain_closure),
@@ -1155,6 +1178,10 @@ def main(argv=None):
         default="span_identity",
     )
     parser.add_argument("--keep", action="store_true", help="保留临时 Ledger")
+    parser.add_argument(
+        "--ledger",
+        help="判定既有账本（只读打开，不装配宿主、不跑 M8）；缺省在临时 Ledger 上现场装配（T04 Q9）",
+    )
     args = parser.parse_args(argv)
 
     try:
@@ -1200,12 +1227,26 @@ def main(argv=None):
             print("SUMMARY pass=0 fail=0 blocked=1")
             return 3
 
-    tmp = tempfile.mkdtemp(prefix="m8-acceptance-")
-    service = LedgerService(Path(tmp) / "ledger")
+    tmp = None
+    if args.ledger:
+        ledger_root = Path(args.ledger).resolve()
+        if not (ledger_root / "ledger.sqlite").is_file():
+            print("BLOCKED m8_acceptance 宿主缺失: 账本不存在 %s" % ledger_root)
+            print("SUMMARY pass=0 fail=0 blocked=1")
+            return 3
+        # 只读：判定的是账本里已有的 M8 事实，不写入（mode=ro，不取写锁）
+        service = LedgerReader(ledger_root)
+    else:
+        tmp = tempfile.mkdtemp(prefix="m8-acceptance-")
+        service = LedgerService(Path(tmp) / "ledger")
     try:
         try:
-            edition_part_id = _prepare_ledger(service, fixture_dir, asset_root, route)
-            run_m8(service, edition_part_id, consumption_level="INTERNAL_DEMO")
+            if args.ledger:
+                manifest = yaml.safe_load((fixture_dir / "manifest.yaml").read_bytes())
+                edition_part_id = manifest["edition_part"]["artifact_id"]
+            else:
+                edition_part_id = _prepare_ledger(service, fixture_dir, asset_root, route)
+                run_m8(service, edition_part_id, consumption_level="INTERNAL_DEMO")
             context = _build_context(
                 service, edition_part_id, fixture_dir, asset_root, route
             )
@@ -1241,7 +1282,7 @@ def main(argv=None):
         return 0
     finally:
         service.close()
-        if not args.keep:
+        if tmp is not None and not args.keep:
             shutil.rmtree(tmp, True)
 
 
