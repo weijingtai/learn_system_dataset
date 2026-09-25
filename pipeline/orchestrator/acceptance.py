@@ -464,7 +464,7 @@ def _read_step_run_doc(service, step_run_id, artifact_type):
     revision = service.get_revision(rows[0]["artifact_revision_id"])
     if revision is None:
         return None
-    return json.loads(service.objects.get(revision["sha256"]).decode("utf-8"))
+    return json.loads(service.read_object(revision["sha256"]).decode("utf-8"))
 
 
 def _drive_text_chain(adapter, registry, handle, host):

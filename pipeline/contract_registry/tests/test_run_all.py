@@ -64,9 +64,11 @@ class TestRunAll(unittest.TestCase):
         # 20.5 自 M7 I 波集成（64c091e）起由 m7-assembler.sh 的真实退出码决定：
         # 本机有真书账本时全 PASS；没有账本时真书判据如实 BLOCKED，20.5 随之 BLOCKED。
         # 其余十项的结论不随宿主变化，仍按原快照锁定。
+        # T04 阶段 2（cfe9feb）起 20.1 在仓库内电子文本宿主上 PASS（原 BLOCKED），与宿主无关：
+        # 改前 有账本 3/1/7、无账本 2/1/8 → 改后 有账本 4/1/6、无账本 3/1/7。
         has_real_ledger = (REPO_ROOT / "var" / "ledgers" / "qianyuan_w8").is_dir()
         expected = (
-            "SUMMARY pass=3 fail=1 blocked=7" if has_real_ledger else "SUMMARY pass=2 fail=1 blocked=8"
+            "SUMMARY pass=4 fail=1 blocked=6" if has_real_ledger else "SUMMARY pass=3 fail=1 blocked=7"
         )
         result = _run()
         lines = result.stdout.decode("utf-8").strip().splitlines()
