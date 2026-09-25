@@ -20,13 +20,57 @@ from .errors import OrchestratorRefused
 from .gate import effective_step_runs, evaluate_stage_gate
 from .module import StepContext, bind_module, descriptor_needs_run_inputs
 from .run_inputs import persist_run_inputs, validate_run_inputs
-from .runner import execute_step, run_legacy
+from .runner import REFUSAL_KEY, execute_step, run_legacy
 
 # advance 的动作闭集
 ADVANCE_ACTIONS = ("executed", "waiting", "blocked", "refused", "complete")
 
 # 需要等待（不推进）的 StepRun 状态
 WAITING_STATUSES = ("running", "awaiting_human", "suspended")
+
+# 描述符声明的人工输入件类型键（TODO T04A 裁决 Q2）
+HUMAN_INPUT_ARTIFACT_KEY = "human_input_artifact"
+
+# StagePackage 的 artifact_type（抵达即视为已产出阶段产出，不得重入）
+_STAGE_PACKAGE_TYPE = "stage_package"
+
+
+def _declared_human_input_type(descriptor):
+    """描述符声明的人工输入件类型；未声明或非法返回 ``None``。"""
+    if not isinstance(descriptor, dict):
+        return None
+    value = descriptor.get(HUMAN_INPUT_ARTIFACT_KEY)
+    return value if isinstance(value, str) and value else None
+
+
+def _only_human_inputs(port, descriptor, effective):
+    """有效运行是否**只**承载声明的人工输入件、尚未产出任何 ``produces`` 类型。
+
+    三条须全部成立（裁决 Q2 收窄版；只经 LedgerPort 公开只读方法取事实）：
+
+    - (a) 描述符声明 ``human_input_artifact``；
+    - (b) **每个**有效运行都有该类型的 sealed 修订；
+    - (c) **没有**任何有效运行写过描述符 ``produces`` 里的类型，也没有 ``stage_package``。
+    """
+    human_type = _declared_human_input_type(descriptor)
+    if human_type is None:
+        return False
+    produces = {
+        item.get("artifact_type")
+        for item in (descriptor.get("produces") or [])
+        if isinstance(item, dict)
+    }
+    for row in effective:
+        step_run_id = row.get("step_run_id")
+        if not port.list_step_run_revisions(
+            step_run_id, artifact_type=human_type, status="sealed"
+        ):
+            return False
+        for revision in port.list_step_run_revisions(step_run_id):
+            artifact_type = revision.get("artifact_type")
+            if artifact_type == _STAGE_PACKAGE_TYPE or artifact_type in produces:
+                return False
+    return True
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 _SCHEMAS_DIR = _REPO_ROOT / "openspec" / "schemas"
@@ -101,7 +145,7 @@ def start_edition_run(port, *, edition_part_id, technique_id, run_inputs=None):
     输入的 stage 在执行前拒收。
     """
     if run_inputs is not None:
-        validate_run_inputs(run_inputs)
+        validate_run_inputs(run_inputs, technique_id=technique_id)
     processing_run_id = port.create_processing_run(
         "edition_run", edition_part_id, technique_id
     )
@@ -115,7 +159,7 @@ def adopt_edition_run(
 ):
     """接管既有 ``edition_run``：交叉校验技法与 Checkpoint 归属，不符即拒绝（零写入）。"""
     if run_inputs is not None:
-        validate_run_inputs(run_inputs)
+        validate_run_inputs(run_inputs, technique_id=technique_id)
     status = port.run_status(processing_run_id)
     step_runs = status["step_runs"]
     own_ids = {step["step_run_id"] for step in step_runs}
@@ -246,7 +290,11 @@ def advance(port, registry, handle, *, modules=None, stages=EDITION_STAGES):
                 gate_reports=gate_reports,
                 reason="存在失败未重跑的 StepRun",
             )
-        if effective:
+        descriptor = registry.module_for(stage)
+        # 裁决 Q2：有效运行「成功但无包」时，仅当该 stage 已声明人工输入件类型、且每个有效
+        # 运行都只承载该类型（未写过任何 produces 类型或 stage_package）时，才重入登记入口；
+        # 其余情况照旧 blocked 且零写入。
+        if effective and not _only_human_inputs(port, descriptor, effective):
             failed_check = next(
                 (
                     name
@@ -262,7 +310,6 @@ def advance(port, registry, handle, *, modules=None, stages=EDITION_STAGES):
                 gate_reports=gate_reports,
                 reason=failed_check,
             )
-        descriptor = registry.module_for(stage)
         if descriptor is None:
             return _result_dict(
                 "refused",
@@ -274,7 +321,9 @@ def advance(port, registry, handle, *, modules=None, stages=EDITION_STAGES):
             )
         if descriptor_needs_run_inputs(descriptor):
             try:
-                validate_run_inputs(handle.get("run_inputs"))
+                validate_run_inputs(
+                    handle.get("run_inputs"), technique_id=handle.get("technique_id")
+                )
             except OrchestratorRefused as exc:
                 return _result_dict(
                     "refused",
@@ -294,6 +343,15 @@ def advance(port, registry, handle, *, modules=None, stages=EDITION_STAGES):
             )
         if binding.binding == "legacy_self_driving":
             out = run_legacy(port, binding, handle)
+            if out.get(REFUSAL_KEY):
+                # 入口在**任何写入之前**自判不可执行（裁决 Q1）：零写入拒收，理由原样转出。
+                return _result_dict(
+                    "refused",
+                    stage=stage,
+                    gate=gate,
+                    gate_reports=gate_reports,
+                    reason=out["reason"],
+                )
             return _result_dict(
                 "executed",
                 stage=stage,
@@ -343,6 +401,10 @@ def run_release(port, registry, *, edition_part_id, technique_id, modules=None):
             binding,
             {"edition_part_id": edition_part_id, "processing_run_id": None, "technique_id": technique_id},
         )
+        if out.get(REFUSAL_KEY):
+            return _result_dict(
+                "refused", stage=stage, gate_reports=gate_reports, reason=out["reason"]
+            )
         handle = _handle(out["processing_run_id"], edition_part_id, technique_id)
         gate = evaluate_stage_gate(port, registry, handle, stage)
         gate_reports[stage] = gate
@@ -371,17 +433,23 @@ def run_until(
     stages=EDITION_STAGES,
     max_steps=16,
 ):
-    """反复 ``advance`` 直到目标 stage 的 Gate 通过或无法继续。"""
+    """反复 ``advance`` 直到目标 stage 的 Gate 通过或无法继续。
+
+    ``advance`` 返回的 ``gate_reports`` 是执行**之前**算的，不能拿来判「目标已过」。
+    因此只在 ``stages`` 截至目标 stage（含）的前缀上推进：每次 ``advance`` 都按执行
+    **之后**的 Ledger 事实重判 Gate，目标及其上游全部通过即返回 ``complete``（零写入），
+    绝不越过目标去执行下游 stage。
+    """
+    if stage not in stages:
+        raise OrchestratorRefused("run_until 的目标 stage 不在 stages 中: %r" % (stage,))
+    prefix = tuple(stages[: stages.index(stage) + 1])
     results = []
     for _ in range(max_steps):
-        item = advance(port, registry, handle, modules=modules, stages=stages)
+        item = advance(port, registry, handle, modules=modules, stages=prefix)
         results.append(item)
         if item["action"] != "executed":
             break
         if (item.get("step_result") or {}).get("status") != "succeeded":
-            break
-        target_gate = item.get("gate_reports", {}).get(stage)
-        if target_gate is not None and target_gate.get("gate") == "passed":
             break
     else:
         raise OrchestratorRefused("run_until 超过 max_steps=%d" % max_steps)

@@ -432,6 +432,83 @@ class TestRunLegacy(LedgerTestCase):
             )
         self.assertEqual(before, counts())
 
+    def test_run_legacy_passes_through_zero_write_refusal(self):
+        """裁决 Q1：入口返回零写入拒收（非异常）时原样透传，不抛异常、不写账本。"""
+        processing_run_id, edition_part_id = self.start_run()
+
+        def refusing_entry(service, edition_part_id, **kwargs):
+            return {
+                "refused": True,
+                "reason": "M4 拒收（REF_001）：没有已登记的提交件；"
+                "请先经 run_m4_submit 提交候选件",
+            }
+
+        descriptor = {
+            "module_id": "m4.knowledge_extraction",
+            "stage": "m4",
+            "binding": "legacy_self_driving",
+            "entry": "tests:fake",
+            "entry_kwargs": {},
+            "owns_processing_run": False,
+        }
+
+        def counts():
+            connection = sqlite3.connect(
+                "file:%s?mode=ro" % (self.root / "ledger.sqlite"), uri=True
+            )
+            try:
+                return tuple(
+                    connection.execute(
+                        "SELECT COUNT(*) FROM %s" % table
+                    ).fetchone()[0]
+                    for table in ("artifact_revisions", "step_runs", "audit_log")
+                )
+            finally:
+                connection.close()
+
+        before = counts()
+        out = run_legacy(
+            self.adapter,
+            self._legacy_binding(descriptor, refusing_entry),
+            {
+                "processing_run_id": processing_run_id,
+                "edition_part_id": edition_part_id,
+                "technique_id": "qizheng",
+            },
+        )
+        self.assertEqual(
+            out,
+            {
+                "refused": True,
+                "reason": "M4 拒收（REF_001）：没有已登记的提交件；"
+                "请先经 run_m4_submit 提交候选件",
+            },
+        )
+        self.assertEqual(before, counts())
+
+    def test_run_legacy_rejects_refusal_without_reason(self):
+        """零写入拒收必须带理由：缺 reason 按契约违约拒收（零写入）。"""
+        processing_run_id, edition_part_id = self.start_run()
+        descriptor = {
+            "module_id": "m4.knowledge_extraction",
+            "stage": "m4",
+            "binding": "legacy_self_driving",
+            "entry": "tests:fake",
+            "entry_kwargs": {},
+            "owns_processing_run": False,
+        }
+        with self.assertRaises(OrchestratorRefused) as caught:
+            run_legacy(
+                self.adapter,
+                self._legacy_binding(descriptor, lambda *a, **k: {"refused": True}),
+                {
+                    "processing_run_id": processing_run_id,
+                    "edition_part_id": edition_part_id,
+                    "technique_id": "qizheng",
+                },
+            )
+        self.assertIn("reason", str(caught.exception))
+
     def test_run_legacy_refused_on_ledgerd_adapter(self):
         class NoDirectPort:
             def unwrap(self):

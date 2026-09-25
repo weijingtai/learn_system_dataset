@@ -113,10 +113,46 @@ class TestRegistryCatalog(CatalogTestBase):
         self.assertIn("module_id_duplicate", self.codes(self.mutated(tamper)))
 
     def test_imported_with_entry_forbidden(self):
+        # TODO T04A 裁决 2 删除了 m1/m2 的 fixture 导入入口后，生产登记表已无 imported
+        # Module，守卫的正例不复存在；故此处显式构造负例：先声明 imported，再强行带上
+        # 合法形态的 entry，守卫必须只报 entry_forbidden，而不是退化成 entry_required。
         def tamper(doc):
+            doc["modules"][0]["binding"] = "imported"
             doc["modules"][0]["entry"] = "pipeline.foo:bar"
 
-        self.assertIn("entry_forbidden", self.codes(self.mutated(tamper)))
+        codes = self.codes(self.mutated(tamper))
+        self.assertNotIn("entry_required", codes)
+        self.assertIn("entry_forbidden", codes)
+
+    def test_m4_declares_human_input_artifact(self):
+        # 裁决 Q2：m4 显式声明人工输入件类型，advance 据此收窄重入登记入口的条件。
+        by_id = load_registry().modules_by_id()
+        self.assertEqual(
+            by_id["m4.knowledge_extraction"]["human_input_artifact"],
+            "candidate_submission",
+        )
+
+    def test_human_input_artifact_requires_human_queue(self):
+        # 裁决 Q2：该键只许 human_queue: true 的模块声明。
+        def tamper(doc):
+            for module in doc["modules"]:
+                if module["module_id"] == "m4.knowledge_extraction":
+                    module["human_queue"] = False
+
+        self.assertIn(
+            "human_input_artifact_forbidden", self.codes(self.mutated(tamper))
+        )
+
+    def test_human_input_artifact_must_be_string(self):
+        # 裁决 Q2：值必须是字符串。
+        def tamper(doc):
+            for module in doc["modules"]:
+                if module["module_id"] == "m4.knowledge_extraction":
+                    module["human_input_artifact"] = ["candidate_submission"]
+
+        self.assertIn(
+            "human_input_artifact_invalid", self.codes(self.mutated(tamper))
+        )
 
     def test_consumes_from_later_stage_detected(self):
         def tamper(doc):

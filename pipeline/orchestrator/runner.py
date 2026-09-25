@@ -155,6 +155,9 @@ def execute_step(port, binding, request, context):
 # 入口需要运行输入时由描述符声明（TODO T04A 裁决 2/3）
 RUN_INPUTS_KEY = "receives_run_inputs"
 
+# legacy 入口的「零写入拒收」协议键（TODO T04A Q1 裁决；见 ``run_legacy``）
+REFUSAL_KEY = "refused"
+
 
 def _awaiting_pending_queue(port, step_run_id):
     """最近一次 ``await_human`` 事件里的待处理队列修订号。"""
@@ -227,6 +230,13 @@ def run_legacy(port, binding, handle):
 
     入口可在同一 StepRun 上停成 ``awaiting_human``（M4 分歧、M6 审核）；此时重建的
     StepResult 带入口当次返回的 ``resume_token``（只经内存交给调用方，不落盘）。
+
+    入口另可返回**零写入拒收**（TODO T04A Q1 裁决）：
+    ``{"refused": True, "reason": <非空字符串>}``（不含 ``step_run_id``）。
+    这是「模块自己判定当前输入不成立、但在任何写入之前停手」的正式出口——
+    调度器如实转成 ``refused`` 结果（不抛异常、不建 StepRun、不留修订）。
+    入口一旦已开始写入，必须走 ``StepOutcome``（succeeded/failed/awaiting_human），
+    不得用本协议；缺 ``reason`` 的拒收按契约违约拒收（零写入）。
     """
     try:
         service = port.unwrap()
@@ -244,6 +254,12 @@ def run_legacy(port, binding, handle):
         raise OrchestratorRefused(
             "legacy 入口异常（%s: %s）" % (type(exc).__name__, exc)
         )
+
+    if isinstance(summary, dict) and summary.get(REFUSAL_KEY) is True:
+        reason = summary.get("reason")
+        if not isinstance(reason, str) or not reason:
+            raise OrchestratorRefused("legacy 入口的零写入拒收缺 reason")
+        return {REFUSAL_KEY: True, "reason": reason}
 
     step_run_id = summary["step_run_id"]
     step = port.get_step_run(step_run_id)
