@@ -461,11 +461,22 @@ class TestRunM8KnowledgeOffsetRoute(ElectronicTextStepBase):
 
 
 # ---------------------------------------------------------------------------
-# T04B 第 5 项（R15）：调度器 release 段经登记表的生产模块（M7 薄适配 → run_m8）走完全栈。
+# T04B 第 5 项（R15）→ T04 Q7 改写。
+# 改前：合成账本（prepare_m8_ready 的 M1–M3 + seed_release_package 的合成 M6）上凭 edition_part_id
+#       调 run_release，断言 M7→M8 编出知识链。
+# 改后：该合成世界没有 EditionRun（M6 落在合成的 release_run 里、没有 M5），发布准入必须拒收、零写入、
+#       不调 M7。经登记表从真实 EditionRun 推 M7→M8 的全栈路径改由
+#       pipeline/orchestrator/tests/test_edition_run_text_chain.py 的
+#       test_run_release_takes_the_edition_run_through_registered_m7_and_m8 覆盖（电子文本宿主，无需页图）；
+#       M8 以 M7 Snapshot 编出知识包/图/证据链的内容断言仍由本文件 TestRunM8CompilesKnowledgeFromSnapshot、
+#       TestRunM8KnowledgeOffsetRoute 覆盖。
+# 为什么：Q7 裁决「release 准入读 EditionRun 的 m6」；合成 M6 不在任何 EditionRun 里，
+#       原断言要求的成功路径在新契约下本就不该成立。
 # ---------------------------------------------------------------------------
-@unittest.skipUnless(assets_available(), "本机缺三页真实页图")
 class TestReleaseSegmentThroughRegistry(unittest.TestCase):
-    def test_run_release_drives_registered_m7_then_m8(self):
+    def test_seeded_m6_without_edition_run_is_refused_at_release_admission(self):
+        import sqlite3
+
         from pipeline.contract_registry.catalog import load_registry
         from pipeline.contract_registry.ports import DirectLedgerAdapter
         from pipeline.orchestrator.edition_run import run_release
@@ -475,32 +486,35 @@ class TestReleaseSegmentThroughRegistry(unittest.TestCase):
         adapter = DirectLedgerAdapter(Path(tmp) / "ledger")
         self.addCleanup(adapter.close)
         service = adapter.unwrap()
-        prepared = prepare_m8_ready(service)
-        edition_part_id = prepared["edition_part_id"]
-        # 该 EditionPart 名下一个 succeeded 的 M6 签发包（mini_release01 ed01 视图）
-        seed_release_package(service, FIXTURE_M7)
+        manifest = yaml.safe_load((FIXTURE_M7 / "manifest.yaml").read_bytes())
+        seeded = seed_release_package(service, FIXTURE_M7)
+        edition = manifest["editions"][0]
+        seeded_run = edition["ledger_constants"]["processing_run_id"]
+        handle = {
+            "processing_run_id": seeded_run,
+            "edition_part_id": edition["edition_part_artifact_id"],
+            "technique_id": manifest["technique_id"],
+        }
+        self.assertIn(edition["edition_key"], seeded["editions"])
 
-        out = run_release(
-            adapter, load_registry(), edition_part_id=edition_part_id, technique_id="qizheng"
-        )
-        self.assertEqual(out["action"], "executed", out.get("reason"))
-        self.assertEqual(out["stage"], "m8")
-        self.assertEqual(out["step_result"]["status"], "succeeded")
-        self.assertEqual(sorted(out["gate_reports"]), ["m7", "m8"])
+        def counts():
+            connection = sqlite3.connect("file:%s?mode=ro" % (Path(tmp) / "ledger" / "ledger.sqlite"), uri=True)
+            try:
+                return tuple(
+                    connection.execute("SELECT COUNT(*) FROM %s" % table).fetchone()[0]
+                    for table in ("artifact_revisions", "step_runs", "processing_runs")
+                )
+            finally:
+                connection.close()
 
-        # M7 由登记表入口（pipeline.assembly.entry:run_m7）跑出 Snapshot，并被 M8 冻结为输入
-        m7_step_run_id = service.latest_checkpoint_step_run(edition_part_id, "m7", "succeeded")
-        self.assertIsNotNone(m7_step_run_id)
-        snapshots = _sealed(service, m7_step_run_id, "canonical_snapshot")
-        self.assertEqual(len(snapshots), 1)
-        self.assertIn(snapshots[0], service.list_frozen_inputs(out["step_run_id"]))
-
-        rows = service.list_step_run_revisions(out["step_run_id"], artifact_type="stage_package", status="sealed")
-        package = _read_json(service, rows[0]["artifact_revision_id"])
-        self.assertEqual(package["payload"]["knowledge_chain"], "compiled")
-        publication = _read_json(service, package["payload"]["publication_package_revision_id"])
-        for key in ("knowledge_data_pack", "graph_projection_pack", "evidence_chain"):
-            self.assertIn(key, publication["packs"])
+        before = counts()
+        out = run_release(adapter, load_registry(), handle)
+        self.assertEqual((out["action"], out["stage"]), ("refused", "m7"))
+        self.assertIn("发布准入", out["reason"])
+        self.assertIn(seeded_run, out["reason"])
+        self.assertIn("upstream_lineage", out["reason"])
+        self.assertEqual(before, counts())
+        self.assertEqual(service.list_step_runs(handle["edition_part_id"], "m7"), [])
 
 
 # ---------------------------------------------------------------------------

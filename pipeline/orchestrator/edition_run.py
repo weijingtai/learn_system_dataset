@@ -366,17 +366,38 @@ def advance(port, registry, handle, *, modules=None, stages=EDITION_STAGES):
     return _result_dict("complete", gate_reports=gate_reports)
 
 
-def run_release(port, registry, *, edition_part_id, technique_id, modules=None):
+def run_release(port, registry, edition_handle, *, modules=None):
     """release 段：按 ``RELEASE_STAGES``（m7→m8）逐段执行 legacy 步（§6.2 ReleaseRun 状态机 DEFERRED）。
 
-    每段入口自建 ProcessingRun（``owns_processing_run``），Gate 按该段自己的运行判定；
-    某段未 ``succeeded``（失败，或 M7 停在人工裁决 ``awaiting_human``）即停在该段返回，
-    不推进下一段。返回最后执行的那一段；``gate_reports`` 带已执行各段的 Gate。
+    ``edition_handle`` 是该 EditionPart 的 EditionRun 句柄（m1–m6 所在的运行）。
+
+    - **发布准入**（T04 Q7）：先判 EditionRun 的 m6 Gate，不 passed 即拒收、零写入；
+      m6 只在 EditionRun 里读，不在 release run 里找。
+    - 每段入口自建 ProcessingRun（``owns_processing_run``），release run 只承载 m7/m8；
+      该段 Gate 按自己的运行判定，上游所在运行由本函数显式给出（m1–m6 → EditionRun，
+      m7 → M7 的 release run），Gate 不按 EditionPart 回退。
+    - 某段未 ``succeeded``（失败，或 M7 停在人工裁决 ``awaiting_human``）**或该段 Gate 未
+      passed**，即停在该段返回，不推进下一段（与 EditionRun 段一致）。
+
+    返回最后执行的那一段；``gate_reports`` 带已执行各段的 Gate。
     """
     # 局部导入：本次改动只落在 release 段（并行改动 advance/run_until 的执行者不受影响）
     from . import RELEASE_STAGES
 
+    edition_part_id = edition_handle["edition_part_id"]
+    technique_id = edition_handle["technique_id"]
     gate_reports = {}
+    admission = evaluate_stage_gate(port, registry, edition_handle, "m6")
+    if admission["gate"] != "passed":
+        failed = [name for name, check in admission["checks"].items() if not check["ok"]]
+        return _result_dict(
+            "refused",
+            stage=RELEASE_STAGES[0],
+            gate_reports=gate_reports,
+            reason="发布准入：EditionRun %s 的 m6 Gate 未通过（%s）"
+            % (edition_handle["processing_run_id"], "、".join(failed)),
+        )
+    upstream_handles = {stage: edition_handle for stage in EDITION_STAGES}
     item = None
     for stage in RELEASE_STAGES:
         descriptor = registry.module_for(stage)
@@ -406,7 +427,9 @@ def run_release(port, registry, *, edition_part_id, technique_id, modules=None):
                 "refused", stage=stage, gate_reports=gate_reports, reason=out["reason"]
             )
         handle = _handle(out["processing_run_id"], edition_part_id, technique_id)
-        gate = evaluate_stage_gate(port, registry, handle, stage)
+        gate = evaluate_stage_gate(
+            port, registry, handle, stage, upstream_handles=upstream_handles
+        )
         gate_reports[stage] = gate
         item = {
             "action": "executed",
@@ -418,8 +441,9 @@ def run_release(port, registry, *, edition_part_id, technique_id, modules=None):
             "gate_reports": dict(gate_reports),
             "reason": None,
         }
-        if out["step_result"].get("status") != "succeeded":
+        if out["step_result"].get("status") != "succeeded" or gate["gate"] != "passed":
             break
+        upstream_handles[stage] = handle
     return item
 
 

@@ -297,5 +297,51 @@ class EditionRunTextChainTests(unittest.TestCase):
             self.assertEqual(step["status"], "succeeded", stage)
 
 
+    def test_run_release_takes_the_edition_run_through_registered_m7_and_m8(self):
+        """T04 Q7：M1→M6 由调度器推完后，发布段经生产登记表 ``run_release`` 推 m7→m8（不直调 run_m7）。
+
+        发布准入读 EditionRun 的 m6；m7/m8 各在自己的 release run 里，Gate 的上游血缘由调度器
+        显式指向 EditionRun（m1–m6）与 M7 的 release run（m7）。M8 本身成败取决于宿主内容
+        （本宿主 M4 的 pattern 提交件为空），不在本用例判定。
+        """
+        from pipeline.orchestrator.acceptance import _drive_text_chain
+        from pipeline.orchestrator.edition_run import run_release
+
+        self.assertIsNone(_drive_text_chain(self.adapter, self.registry, self.handle, HOST))
+        out = run_release(self.adapter, self.registry, self.handle)
+
+        m7_gate = out["gate_reports"]["m7"]
+        self.assertEqual(m7_gate["gate"], "passed", m7_gate["checks"])
+        m7_steps = self.service.list_step_runs(self.edition_part_id, "m7")
+        self.assertEqual(len(m7_steps), 1)
+        m7_step_run_id = m7_steps[0]["step_run_id"]
+        self.assertNotEqual(m7_steps[0]["processing_run_id"], self.handle["processing_run_id"])
+        m6_packages = self.service.list_stage_packages("m6")
+        self.assertEqual(len(m6_packages), 1)
+        self.assertIn(
+            m6_packages[0]["artifact_revision_id"], self.service.list_frozen_inputs(m7_step_run_id)
+        )
+
+        # m8 由登记表入口执行，冻结了 M7 的 Snapshot
+        self.assertEqual((out["action"], out["stage"]), ("executed", "m8"), out.get("reason"))
+        snapshots = self.service.list_step_run_revisions(
+            m7_step_run_id, artifact_type="canonical_snapshot", status="sealed"
+        )
+        self.assertEqual(len(snapshots), 1)
+        self.assertIn(
+            snapshots[0]["artifact_revision_id"], self.service.list_frozen_inputs(out["step_run_id"])
+        )
+
+        # EditionRun 只承载 m1–m6，release run 只承载各自一段
+        edition_stages = {
+            row["stage"] for row in self.adapter.run_status(self.handle["processing_run_id"])["step_runs"]
+        }
+        self.assertEqual(edition_stages, set(EDITION_STAGES))
+        for stage in ("m7", "m8"):
+            release_run = out["gate_reports"][stage]["processing_run_id"]
+            stages = {row["stage"] for row in self.adapter.run_status(release_run)["step_runs"]}
+            self.assertEqual(stages, {stage})
+
+
 if __name__ == "__main__":
     unittest.main()
