@@ -223,14 +223,27 @@ class TestEditionRun(EditionTestCase):
         self.assertIn("M4 Knowledge Extraction", results[-1]["reason"])
 
     def test_imported_stage_without_tasks_refused(self):
-        registry = load_registry()
+        """``imported`` 绑定无任务可执行 → 拒收，理由点名 ``imported``，且零写入。
+
+        改前：直接拿生产登记表来推（当时的 m1/m2 就是 ``imported`` 夹具模块）。
+        裁决 2 把夹具导入入口从生产表删掉后，生产表里再没有 ``imported`` 模块，
+        该分支必须在本用例里**显式构造**（与 `test_catalog` 的同类改写同口径）；
+        同时补上「拒收零写入」与阶段名两条断言，只收紧不放宽。
+        """
+        descriptor = dict(StubModule("m1").descriptor())
+        descriptor["binding"] = "imported"
+        registry = self.registry_from_descriptors([descriptor])
         processing_run_id, edition_part_id = self.start_run()
         handle = self.handle(processing_run_id, edition_part_id)
+
+        before = self.row_counts()
         result = advance(
             self.adapter, registry, handle, stages=FIRST_SLICE_EDITION_STAGES
         )
         self.assertEqual(result["action"], "refused")
+        self.assertEqual(result["stage"], "m1")
         self.assertIn("imported", result["reason"])
+        self.assertEqual(before, self.row_counts(), "拒收零写入")
 
     def test_plan_config_stage_mismatch_refused_before_write(self):
         class WrongStage(StubModule):
@@ -410,24 +423,34 @@ class TestEditionRun(EditionTestCase):
         self.assertTrue(status_after["complete"])
 
     def test_first_slice_plan_runs_m1_m2_m3_m5_and_reports_gap(self):
-        doc = yaml.safe_load(REGISTRY_PATH.read_text(encoding="utf-8"))
-        descriptors = [
-            module for module in doc["modules"] if module["stage"] in ("m1", "m2")
-        ]
+        """首切片：m1/m2 已登记 → 调度器只跑 m3/m5，并如实报 m4/m6 缺口。
+
+        改前：m1/m2 的描述符直接取自生产登记表（当时它们是 ``imported`` 夹具模块，
+        `produces` 恰好与本用例手工执行的桩一致）。裁决 2 把生产表的 m1/m2 换成文本
+        路线生产模块（`consumes`/`produces` 均不同），手工登记的桩包就不再满足
+        描述符的 `output_contract`——守卫的意图（已满足的阶段不重跑、缺口如实报出）
+        不变，故描述符改由本用例的两个桩自述。断言未改。
+        """
+        m1_stub = StubModule("m1", produces=("source_manifest",))
+        m2_stub = StubModule("m2", produces=("ocr_page_set",), consumes_from="m1")
         m3 = StubModule("m3")
         m5 = StubModule("m5", consumes_from="m3")
-        descriptors.extend([m3.descriptor(), m5.descriptor()])
-        registry = self.registry_from_descriptors(descriptors)
+        registry = self.registry_from_descriptors(
+            [
+                m1_stub.descriptor(),
+                m2_stub.descriptor(),
+                m3.descriptor(),
+                m5.descriptor(),
+            ]
+        )
         modules = {m3.module_id: m3, m5.module_id: m5}
 
         processing_run_id, edition_part_id = self.start_run()
         handle = self.handle(processing_run_id, edition_part_id)
 
-        # 先手工登记 m1/m2（imported 阶段只判 Gate）
-        m1_stub = StubModule("m1", produces=("source_manifest",))
+        # 先手工登记 m1/m2（已满足的阶段只判 Gate）
         self.execute_stub(m1_stub, processing_run_id, edition_part_id)
         ancestor = self.parsed_run(self.adapter, self._last_step_run(processing_run_id, "m1"))
-        m2_stub = StubModule("m2", produces=("ocr_page_set",), consumes_from="m1")
         self.execute_stub(
             m2_stub, processing_run_id, edition_part_id, upstream={"m1": [ancestor]}
         )
