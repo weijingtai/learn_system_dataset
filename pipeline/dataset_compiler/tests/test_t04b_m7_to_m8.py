@@ -461,6 +461,49 @@ class TestRunM8KnowledgeOffsetRoute(ElectronicTextStepBase):
 
 
 # ---------------------------------------------------------------------------
+# T04B 第 5 项（R15）：调度器 release 段经登记表的生产模块（M7 薄适配 → run_m8）走完全栈。
+# ---------------------------------------------------------------------------
+@unittest.skipUnless(assets_available(), "本机缺三页真实页图")
+class TestReleaseSegmentThroughRegistry(unittest.TestCase):
+    def test_run_release_drives_registered_m7_then_m8(self):
+        from pipeline.contract_registry.catalog import load_registry
+        from pipeline.contract_registry.ports import DirectLedgerAdapter
+        from pipeline.orchestrator.edition_run import run_release
+
+        tmp = tempfile.mkdtemp(prefix="t04b-release-")
+        self.addCleanup(shutil.rmtree, tmp, True)
+        adapter = DirectLedgerAdapter(Path(tmp) / "ledger")
+        self.addCleanup(adapter.close)
+        service = adapter.unwrap()
+        prepared = prepare_m8_ready(service)
+        edition_part_id = prepared["edition_part_id"]
+        # 该 EditionPart 名下一个 succeeded 的 M6 签发包（mini_release01 ed01 视图）
+        seed_release_package(service, FIXTURE_M7)
+
+        out = run_release(
+            adapter, load_registry(), edition_part_id=edition_part_id, technique_id="qizheng"
+        )
+        self.assertEqual(out["action"], "executed", out.get("reason"))
+        self.assertEqual(out["stage"], "m8")
+        self.assertEqual(out["step_result"]["status"], "succeeded")
+        self.assertEqual(sorted(out["gate_reports"]), ["m7", "m8"])
+
+        # M7 由登记表入口（pipeline.assembly.entry:run_m7）跑出 Snapshot，并被 M8 冻结为输入
+        m7_step_run_id = service.latest_checkpoint_step_run(edition_part_id, "m7", "succeeded")
+        self.assertIsNotNone(m7_step_run_id)
+        snapshots = _sealed(service, m7_step_run_id, "canonical_snapshot")
+        self.assertEqual(len(snapshots), 1)
+        self.assertIn(snapshots[0], service.list_frozen_inputs(out["step_run_id"]))
+
+        rows = service.list_step_run_revisions(out["step_run_id"], artifact_type="stage_package", status="sealed")
+        package = _read_json(service, rows[0]["artifact_revision_id"])
+        self.assertEqual(package["payload"]["knowledge_chain"], "compiled")
+        publication = _read_json(service, package["payload"]["publication_package_revision_id"])
+        for key in ("knowledge_data_pack", "graph_projection_pack", "evidence_chain"):
+            self.assertIn(key, publication["packs"])
+
+
+# ---------------------------------------------------------------------------
 # T04B 第 4 项：M8 验收 knowledge_chain / graph_projection 的真内容校验。
 # 先在真实 Ledger 上跑通 M7→M8，再逐项篡改 Ledger 里读出的文档（经假 Ledger 端口替换
 # 修订内容，不改真账本），每一种篡改都必须让对应判据 FAIL。
