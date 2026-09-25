@@ -72,3 +72,7 @@ Q1 M4 提交不是暂停节点（缺件 → `refused` 零写入）；Q2 A2 收�
 ## 9. 纪律（违反即返工）
 
 不放宽任何检查；先红后绿 + 探针；人工节点只走公开入口、不直写账本、不手写金标；真书正本只读；不许 `git reset --hard` / `checkout -- .` / `clean -f` / `push --force` / `rebase` / `branch -D`；只推 `t04`；提交信息末尾 `Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>`。
+
+## 10. 主 Agent 侧交接（2026-09-25 补）
+
+主 Agent 同时暂停、可能换人。它的交接文档在 GitHub **`main`** 分支：`docs/handoff/MAIN-AGENT-HANDOFF-20260925.md`（含 Q1–Q9 全部裁决、T19、U07）。U07 = 真书 2 条 pattern 的用户审核决定（`decisions_supplement.yaml`），拿到后主 Agent 侧会转给本地协调会话。新的请示仍发 §8 的地址；若换了新主 Agent，会另行告知地址。接手者按 §5 的顺序 Q8 → Q7 → Q9 → T19 派工，真书跑到 M6 `awaiting_human` 停下即可。
