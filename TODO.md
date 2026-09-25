@@ -48,6 +48,8 @@
 
 | T18 | 待办（09-24 已批准 Windows T04 会话现在修） | **M5 自述门禁重复计数**（Windows T04A 执行者 09-24 在宿主 `qianyuan_ed01_text` 实测）：`pipeline/validation/adapter_notes.py` 的 `submission_documents` 逐个 m4 Checkpoint 取 StepRun，而 38 个 Checkpoint 都指向同一个 assemble 运行，同一份提交件被登记 32 次，384 条 error 实为 12 条（=4 命中 × 3 份 b 路）。 | 按 step_run_id 去重；先写用例证明 384→12 转红再修；不动词表、不动 error 级别、不动 `test_real_book_submission_notes_are_flagged` | Windows 回报 `docs/handoff/T04-WINDOWS.report.md` Q3「附带发现」 |
 
+| T19 | 待办（09-25 划入 T04 阶段 4，Windows 会话做） | **M6 审核队列从不纳入 pattern，M7 创世却要求 pattern 已审**（Windows T04 阶段 4 真书全线实测撞上；主 Agent 09-25 核根源）：`pipeline/review/inputs.py:161-169` 的 candidate_objects 只收 assertions 与 school_views，`model.py:11` ENTITY_ID_KINDS 无 pattern；真书 candidate_set 有 2 条 pattern（pat_qizheng_000001「去官留煞」、pat_qizheng_000002「贪合忘煞」）用户从未有机会审。第 65 条早已把 patterns 审核登记为对 M6 的接口需求。第 107 条下真书 0 条 concept_refs，entry 只能来自 pattern，故 T04 判据③非补此缺口不可。 | M6 队列纳入 pattern（kind=pattern，decision_type=review_source_fidelity），reviewed_edition 与 M6 gate 一并覆盖；先写用例证明缺失转红，篡改探针：删队列里的 pattern → queue_coverage 转红；genesis.py 不改；INTERFACES §5.3 同步登记。真书那 2 条 pattern 的审核决定由用户给（U07） | Windows 回报 Q6，主 Agent 裁决 09-25 |
+
 ## 二、待用户决定
 
 | # | 状态 | 事项 | 主 Agent 建议 |
@@ -57,7 +59,8 @@
 | U03 | 待用户决定 | 仓库里其他会话留下的未跟踪文件：`.claude/`、`.commandcode/`、nc-* 的 `DELIVERY_REPORT*.md`、`guwen-retrieval-deployment-and-lightweight-guide.md`，以及 worktree `.claude/worktrees/agent-ad7f6f7bb2ae5215e`。 | 交给对应会话认领；认领不了的由你决定删留 |
 | U04 | 待用户决定 | 本会话的 Remote Control 仍开着（当初为跟另一台机器通话打开）。 | 用不上了，可在工具栏关掉 |
 | U05 | 待用户决定 | T13（20.7 判据）——见上表。 | 选 (a) |
-| U06 | **已决定（用户 09-24 采乙）**，裁决写入 G7-RULINGS 第 109 条，交 Windows T04 会话执行 | **ACT 19 Q1 与 Q3 自相矛盾，宿主与真书都过不了 M5**。Q1（M4 brief v2.1 铁律 4）：因上限略去必须在 `adapter_notes` 逐条点名，「没有逐条点名的截断视为违规」——即逐条点名的略去合规。Q3（`pipeline/validation/adapter_notes.py`）：自述里出现「控总数/上限/略去/未逐一登记」任一词即 error、M5 失败；且没有清除路径（补抽后旧提交件自述仍在，永远命中）。宿主 `qianyuan_ed01_text` b 路 4 条命中全是逐条点名形态；真书提交件相同。调度器在 m5 停 blocked 是正确行为；M6 gate 也要求 M5 通过。Windows 提的 P1（放宽调度器）、P2（判据降到 M5）、P3（换提交件）、P4（人工确认截断）已全部否决。 | **建议 (乙)**：修 Q3 口径而非放宽——门禁改为两级：自述含截断词但**逐条点名**（含片段 ID 或术语表 + 理由）→ 记为披露项（warning 级，进 gate_results 如实列出，不阻断）；含截断词但**没有逐条点名** → 仍 error 阻断。词表不动、检测面不缩、`test_real_book_submission_notes_are_flagged` 改为断言 4 条仍被检出且分级正确。这是让 Q3 与 Q1 一致，不是放松。备选 (甲) 不改规格：由你真返工——对 b 路补抽被略去的候选并经 `run_m4_submit` 交入新提交件（ACT 19 Q2 已机械取证的 5 条 concept_mention 可直接用），3 条「义近略去」需你判是否补抽；这是人工的活，T04 全线要等它。 |
+| U06 | **已决定（用户 09-24 采乙）**，裁决写入 G7-RULINGS 第 109 条，交 Windows T04 会话执行 |
+| U07 | 待用户决定（**挡着 T04 判据③**） | 真书 2 条 pattern 的 M6 审核决定（P7，不由 Agent 代作）：pat_qizheng_000001「去官留煞」（引论断 as_qizheng_000018「子平可去官留煞，五星则煞总不可混官，须以食神制之，遂使官清。」）；pat_qizheng_000002「贪合忘煞」（引论断 as_qizheng_000022「贪合见煞也忘煞，天官亦尊。」）。两条都只有 b 路抽出、content_status=disputed。 | 各给 accept / reject 与一句理由；主 Agent 写成 `decisions_supplement.yaml` 交回放器 | **ACT 19 Q1 与 Q3 自相矛盾，宿主与真书都过不了 M5**。Q1（M4 brief v2.1 铁律 4）：因上限略去必须在 `adapter_notes` 逐条点名，「没有逐条点名的截断视为违规」——即逐条点名的略去合规。Q3（`pipeline/validation/adapter_notes.py`）：自述里出现「控总数/上限/略去/未逐一登记」任一词即 error、M5 失败；且没有清除路径（补抽后旧提交件自述仍在，永远命中）。宿主 `qianyuan_ed01_text` b 路 4 条命中全是逐条点名形态；真书提交件相同。调度器在 m5 停 blocked 是正确行为；M6 gate 也要求 M5 通过。Windows 提的 P1（放宽调度器）、P2（判据降到 M5）、P3（换提交件）、P4（人工确认截断）已全部否决。 | **建议 (乙)**：修 Q3 口径而非放宽——门禁改为两级：自述含截断词但**逐条点名**（含片段 ID 或术语表 + 理由）→ 记为披露项（warning 级，进 gate_results 如实列出，不阻断）；含截断词但**没有逐条点名** → 仍 error 阻断。词表不动、检测面不缩、`test_real_book_submission_notes_are_flagged` 改为断言 4 条仍被检出且分级正确。这是让 Q3 与 Q1 一致，不是放松。备选 (甲) 不改规格：由你真返工——对 b 路补抽被略去的候选并经 `run_m4_submit` 交入新提交件（ACT 19 Q2 已机械取证的 5 条 concept_mention 可直接用），3 条「义近略去」需你判是否补抽；这是人工的活，T04 全线要等它。 |
 
 ## 三、已定论、不做（留档，防止被当成遗漏）
 
