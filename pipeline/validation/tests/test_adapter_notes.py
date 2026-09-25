@@ -273,12 +273,16 @@ class _Reader:
     模块若还绕过端口直读，这里会立即 AttributeError。
     """
 
-    def __init__(self, checkpoints, step_runs, types_by_revision, objects):
+    def __init__(self, checkpoints, step_runs, types_by_revision, objects, revision_rows=None):
         self._types_by_revision = types_by_revision
         self._objects = objects
         self._checkpoints = checkpoints
         self._step_runs = step_runs
-        self._revision_rows = {"rev_sub_b": {"sha256": "sha_b"}}
+        self._revision_rows = (
+            {"rev_sub_b": {"sha256": "sha_b"}}
+            if revision_rows is None
+            else revision_rows
+        )
 
     def list_checkpoints(self, edition_part_id, stage):
         return self._checkpoints.get((edition_part_id, stage), [])
@@ -336,6 +340,77 @@ class SubmissionLookupTest(unittest.TestCase):
         # 该桩里的注记是宿主「十神名（…）」条：逐条点名 → 披露项（warning）
         self.assertEqual(findings[0]["severity"]["INTERNAL_DEMO"], "warning")
         self.assertTrue(findings[0]["detail"].startswith("已逐条点名"))
+
+
+def _repeated_checkpoint_reader(step_run_count=1, checkpoints=32):
+    """真书账本口径的桩：同一 M4 StepRun 被多个 Checkpoint 重复登记。
+
+    六份宿主提交件（3 份带 4 条截断自述的 b 路、3 份干净的 a 路）挂在 succeeded 的 m4
+    StepRun 上；每个 StepRun 被 ``checkpoints`` 个 Checkpoint 登记（真书实测：M4 assemble
+    的 38 个 Checkpoint 全指同一 StepRun，未去重时 6×32=192、命中 12×32=384）。
+    """
+    noisy = _load_submission("submission_assertion_b.yaml")
+    clean = _load_submission("submission_assertion_a.yaml")
+    objects, revision_rows, types_by_revision = {}, {}, {}
+    for index in range(6):
+        revision_id, sha256 = "rev_%d" % index, "sha_%d" % index
+        objects[sha256] = yaml.safe_dump(
+            noisy if index < 3 else clean, allow_unicode=True
+        ).encode("utf-8")
+        revision_rows[revision_id] = {"sha256": sha256}
+        types_by_revision[revision_id] = "candidate_submission"
+    request = json.dumps({"input_artifact_ids": list(revision_rows)})
+    step_runs = {
+        "srun_m4_%d" % index: {"status": "succeeded", "request_json": request}
+        for index in range(step_run_count)
+    }
+    checkpoint_rows = [
+        {"content": {"step_run_id": "srun_m4_%d" % (index % step_run_count)}}
+        for index in range(checkpoints * step_run_count)
+    ]
+    return _Reader(
+        checkpoints={("art_1", "m4"): checkpoint_rows},
+        step_runs=step_runs,
+        types_by_revision=types_by_revision,
+        objects=objects,
+        revision_rows=revision_rows,
+    )
+
+
+class RepeatedRegistrationTest(unittest.TestCase):
+    """同一 M4 StepRun 被重复登记时只计一次（192→6 / 384→12，依第 109 条）。"""
+
+    def test_each_m4_step_run_is_counted_once(self):
+        documents = submission_documents(_repeated_checkpoint_reader(), "art_1")
+        self.assertEqual(len(documents), 6, "同一 StepRun 重复登记 32 次只计一次")
+        self.assertEqual(
+            sorted(revision_id for revision_id, _doc in documents),
+            ["rev_%d" % index for index in range(6)],
+        )
+
+        hits = scan_documents(documents)
+        self.assertEqual(len(hits), 12, "3 份 × 4 条（未去重时 12×32=384）")
+        self.assertEqual(
+            sorted({hit["artifact_revision_id"] for hit in hits}),
+            ["rev_0", "rev_1", "rev_2"],
+        )
+
+    def test_distinct_step_runs_are_still_counted_separately(self):
+        """去重只按 StepRun：两个不同 StepRun 各自登记的提交件仍各自计数（不误并）。"""
+        documents = submission_documents(
+            _repeated_checkpoint_reader(step_run_count=2), "art_1"
+        )
+        self.assertEqual(len(documents), 12)
+        self.assertEqual(len(scan_documents(documents)), 24)
+
+    def test_repeated_checkpoint_does_not_change_findings(self):
+        """去重后产出与「每份提交件恰好登记一次」逐条一致。"""
+        once = findings_from_hits(
+            scan_documents(submission_documents(_repeated_checkpoint_reader(), "art_1"))
+        )
+        self.assertEqual(len(once), 12)
+        self.assertTrue(all(f["check"] == CHECK_NAME for f in once))
+        self.assertTrue(all(f["severity"]["INTERNAL_DEMO"] == "warning" for f in once))
 
 
 if __name__ == "__main__":

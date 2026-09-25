@@ -235,15 +235,22 @@ def submission_documents(reader, edition_part_id):
     取其 ``request_json.input_artifact_ids`` 中 ``artifact_type ==
     "candidate_submission"`` 的冻结输入（M4 把六份提交件作为冻结输入登记）。
     非 succeeded 的 M4 StepRun 一律不看（与上游「只接受 succeeded 的包」同口径）。
+
+    计数口径（第 109 条附带发现修复）：Checkpoint 是**指针**不是所有者——真书账本里 M4
+    assemble 的 38 个 Checkpoint 全指同一个 StepRun，同六份提交件因此被登记 32 次
+    （``submission_documents`` 6→192、``scan_documents`` 12→384）。故一个 ``step_run_id``
+    只取一次；不同 StepRun 各自登记的提交件仍各自计数（不误并，也不跨 StepRun 去重）。
     """
     documents = []
+    seen_step_runs = set()
     for checkpoint in reader.list_checkpoints(edition_part_id, "m4"):
         step_run_id = (checkpoint.get("content") or {}).get("step_run_id")
-        if not step_run_id:
+        if not step_run_id or step_run_id in seen_step_runs:
             continue
         step = reader.get_step_run(step_run_id)
         if step is None or step["status"] != "succeeded":
             continue
+        seen_step_runs.add(step_run_id)
         request = json.loads(step["request_json"] or "{}")
         revision_ids = list(request.get("input_artifact_ids") or [])
         types = _artifact_types(reader, revision_ids)
@@ -255,7 +262,11 @@ def submission_documents(reader, edition_part_id):
 
 
 def scan(reader, edition_part_id, *, markers=None):
-    """``run_m5`` 用的入口：定位提交件→扫描→产出发现（无提交件即返回空表）。"""
+    """``run_m5`` 用的入口：定位提交件→扫描→产出发现（无提交件即返回空表）。
+
+    计数以**修订**为单位：同一 M4 StepRun 被多个 Checkpoint 重复登记不放大命中数
+    （见 ``submission_documents``）。
+    """
     documents = submission_documents(reader, edition_part_id)
     if not documents:
         return []
