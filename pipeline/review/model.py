@@ -8,7 +8,7 @@ from pipeline.review import CANDIDATE_KINDS, STANDINGS
 
 NON_CONTENT_KEYS = ("candidate_revision_id", "content_status", "origin")
 APPROVED_CONTENT_STATUS = "expert_verified"
-ENTITY_ID_KINDS = {"assertion": "assertion_id", "school_view": "school_view_id"}
+ENTITY_ID_KINDS = {"assertion": "assertion_id", "pattern": "pattern_id", "school_view": "school_view_id"}
 
 
 class EvidenceOffsetError(ReviewRefused, SchemaViolation):

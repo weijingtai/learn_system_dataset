@@ -122,6 +122,15 @@ def _candidate_objects(candidate_set_doc, candidate_set_revision_id, spans_by_id
                 "candidate_revision_id": candidate_set_revision_id,
             }
         )
+    for p in candidate_set_doc.get("patterns", []) or []:
+        objects.append(
+            {
+                "entity_id": p["pattern_id"],
+                "kind": "pattern",
+                "source_object": _normalized_object(p, spans_by_id),
+                "candidate_revision_id": candidate_set_revision_id,
+            }
+        )
     for v in candidate_set_doc.get("school_views", []) or []:
         objects.append(
             {
@@ -579,6 +588,9 @@ def _resolve_rerun_inputs(service, edition_part_id: str) -> dict:
     candidate_objects = [
         {"entity_id": a["assertion_id"], "kind": "assertion", "source_object": a}
         for a in candidate_set_doc.get("assertions") or []
+    ] + [
+        {"entity_id": p["pattern_id"], "kind": "pattern", "source_object": p}
+        for p in candidate_set_doc.get("patterns") or []
     ] + [
         {"entity_id": v["school_view_id"], "kind": "school_view", "source_object": v}
         for v in candidate_set_doc.get("school_views") or []

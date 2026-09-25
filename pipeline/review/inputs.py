@@ -159,10 +159,15 @@ def resolve_m6_inputs(reader, edition_part_id: str) -> dict:
         )
 
     assertions = candidate_set_doc.get("assertions") or []
+    patterns = candidate_set_doc.get("patterns") or []
     school_views = candidate_set_doc.get("school_views") or []
+    # T19：pattern 与断言、学派观点一样排进审核队列（M7 创世只收 M6 已审的 pattern）
     candidate_objects = [
         {"entity_id": a["assertion_id"], "kind": "assertion", "source_object": a}
         for a in assertions
+    ] + [
+        {"entity_id": p["pattern_id"], "kind": "pattern", "source_object": p}
+        for p in patterns
     ] + [
         {"entity_id": v["school_view_id"], "kind": "school_view", "source_object": v}
         for v in school_views
