@@ -132,6 +132,42 @@ class EditionRunTextChainTests(unittest.TestCase):
             sorted({row["stage"] for row in step_runs}), ["m1", "m2", "m3"]
         )
 
+    def _submit_m4_and_pause(self):
+        """跑 m1–m3 → 经公开入口交六份提交件 → ``advance`` 停在 m4 awaiting_human，返回该结果。"""
+        run_until(self.adapter, self.registry, self.handle, "m3")
+        for name in SUBMISSION_FILES:
+            summary = run_m4_submit(
+                self.service,
+                self.edition_part_id,
+                (M4_DIR / name).read_bytes(),
+                producer_module="t04a_host:%s" % name,
+                producer_version="0.1.0",
+            )
+            self.assertEqual(summary["status"], "succeeded", name)
+        item = advance(self.adapter, self.registry, self.handle)
+        self.assertEqual(
+            (item["action"], item["stage"], item["step_result"]["status"]),
+            ("executed", "m4", "awaiting_human"),
+        )
+        return item
+
+    def test_resume_token_never_persisted(self):
+        """裁决 3 硬约束：m4 暂停返回的 resume_token 明文不得落进 ledger 的 sqlite 或 objects/。"""
+        item = self._submit_m4_and_pause()
+        token = item["step_result"]["resume_token"]
+        self.assertIsInstance(token, str)
+        self.assertGreaterEqual(len(token), 32)
+        needle = token.encode("utf-8")
+        # 按字节搜之前先释放账本写锁（Windows 下 sqlite 打开时不可读）
+        self.adapter.close()
+        hits = []
+        for path in sorted(self.root.rglob("*")):
+            if not path.is_file():
+                continue
+            if needle in path.read_bytes():
+                hits.append(str(path.relative_to(self.root)))
+        self.assertEqual(hits, [], "resume_token 明文出现在: %s" % hits)
+
     def test_m4_registry_entry_takes_technique_profile_from_run_inputs(self):
         """m4 登记条目是 M4 薄适配：技法画像只经运行输入进入，由入口登记在本运行下。"""
         descriptor = self.registry.module_for("m4")
