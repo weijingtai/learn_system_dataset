@@ -46,7 +46,7 @@
 ## 五、Windows 环境（必须在 Git Bash 里做）
 
 ```bash
-git clone https://github.com/weijingtai/learn_system_dataset.git learn_system && cd learn_system
+git clone -c core.autocrlf=false -b t04 https://github.com/weijingtai/learn_system_dataset.git learn_system && cd learn_system   # 关 CRLF 转换：金标逐字节比对；先检出 main 会得到 2835 个 CRLF 文件
 git switch t04
 bash tools/setup_windows.sh                 # uv + Python 3.14 + .venv/bin 联接 + 冒烟
 export PYTHONUTF8=1 LC_ALL=C.UTF-8 LANG=C.UTF-8   # 之后每次开 Git Bash 都要先执行
