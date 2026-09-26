@@ -173,19 +173,52 @@ assert n == 3, f"line.text 恰好 3 字，_align_to_count 应保证框数恒等�
 
 ---
 
-## 4. `export_corpus` 对接新 M1 —— 到此止步，不写新测试
+## 4. `export_corpus` —— 已裁决（用户 2026-09-26，候选 A）：标注为 audit-only，生产接入交给 T04c
 
-**不新增测试**。理由见 `README.md` §2.6：新 M1（电子文本路线）与 OCR 现有产出的数据形状不兼容，且 OCR 路线自己的 M1/M2（`TODO.md` T04c）尚未设计，本任务没有权威依据可以断言"新格式应该是什么样"。
+`README.md` §2.6 已记录裁决过程与三个候选。**候选 A 生效**：不改 `manifest.yaml` 的字段结构本身（仍是旧格式），只做两件事：①在代码里加一个明确的机器可读标注，②用测试把"现状 + 标注 + 交接说明"三件事同时钉住。这不再是"到此止步"，是要做完的实现。
 
-本节唯一要做的，是一条**现状钉子测试**（characterization test），只用来防止"文档说已经对接新 M1"这种误报，不判定对错：
+### 4.1 实现要求（写给执行者）
 
-### 用例：`test_export_corpus_output_is_documented_legacy_format`（新增，`ocr/tests/test_export_corpus.py`，若该文件不存在则新建）
+1. `ocr/src/gujiorc/core/export.py` 顶层（`export_corpus` 函数定义之前，建议紧邻 `# ---------------- pipeline corpus 导出（manifest.yaml） ----------------` 这行注释之后，即 `export.py:112` 附近）新增一个模块级常量：
 
-- **准备**：最小 `PageResult`（1 页 1 字，仿 `ocr/docs/PLANS.md` 或既有 `test_export_corpus.py`——**先确认该文件是否已存在**：`ocr/docs/HANDOFF.md:127` 提到过 `tests/test_export_corpus.py`，执行者动手前先 `ls ocr/tests/test_export_corpus.py` 核实，存在则在其中新增用例，不存在则按 `ocr/docs/TASKS_ENG_GAPS.md` 任务 B.4（`TASKS_ENG_GAPS.md:196-213`）里的 `make_page` 写法新建）。
-- **动作**：调用 `export_corpus(pages, tmp_dir, book="t25probe", work_title="T", technique_id="qizheng")`，读回 `manifest.yaml`。
-- **断言**：manifest 内容包含旧格式的标志字段 `files:`（列表，含 `role: "transcript"`），**不**包含新 M1 `source_info.yaml` 要求的必填键（`pipeline/intake/source.py:14-26` 的 `REQUIRED_KEYS`，例如 `release_policy`、`edition_part`、`source_site` 均不出现在 manifest 文本里）。
-- **预期先红原因**：本条目前应当是绿的（现状确实是旧格式），它是"钉住现状"，不是"发现新 bug"；一旦这条变红，意味着有人已经悄悄改了 `export_corpus` 的输出格式却没有走 §2.6 说的用户决定流程，act 里据此拦截。
-- **篡改探针**：反证——若临时把断言反过来写成"manifest 应包含新 M1 必填键"，此断言必须转红（证明现状确实不是新格式，不是测试写错）。
+   ```python
+   # T25 候选 A（用户 2026-09-26 裁决）：export_corpus 保留旧格式，仅供人工核对/审计留档；
+   # 不对接新 M1（pipeline/intake/source.py 的 source_info.yaml）。
+   # OCR 路线的生产接入见 TODO.md T04c——那里要设计的 OCR 专属 M1/M2 模块直接消费
+   # 页面 JSON/audit.jsonl，不经过本函数或 manifest.yaml。
+   EXPORT_CORPUS_FORMAT = "legacy_audit_only"
+   ```
+
+2. `export_corpus` 的 docstring（`export.py:148`，现状仅一行"导出为 pipeline corpus 目录 + manifest.yaml（PLANS §6.1）。"）追加一段：
+
+   ```python
+   def export_corpus(
+       ...
+   ) -> dict[str, Path]:
+       """导出为 pipeline corpus 目录 + manifest.yaml（PLANS §6.1）。
+
+       用途限定（用户 2026-09-26 裁决 T25 候选 A，见 EXPORT_CORPUS_FORMAT）：
+       本函数产出旧格式，仅供人工核对/审计留档，不是新 M1 的生产输入。
+       OCR 路线的生产接入见 TODO.md T04c。
+       """
+   ```
+
+   **不改**函数体、不改 `manifest` 拼出的字段（`export.py:160-171` 逐字不动）。
+
+### 4.2 用例：`test_export_corpus_is_marked_legacy_audit_only_and_points_to_t04c`（新增，`ocr/tests/test_export_corpus.py`）
+
+- **准备**：最小 `PageResult`（1 页 1 字，仿既有 `test_export_corpus.py` 里的 `make_page`，见该文件已存在，无需新建）。
+- **动作**：①`from gujiorc.core import export as export_mod`；②调用 `export_corpus(pages, tmp_dir, book="t25probe", work_title="T", technique_id="qizheng")`，读回 `manifest.yaml`。
+- **断言**（四条，同一条用例里都要有）：
+  1. `export_mod.EXPORT_CORPUS_FORMAT == "legacy_audit_only"`（常量存在且取值正确）。
+  2. `"T04c" in export_mod.export_corpus.__doc__`（docstring 指向交接点，字符串精确匹配 `"T04c"`，不匹配别的措辞，避免今后有人改了措辞却没意识到这条测试在钉什么）。
+  3. manifest 内容仍包含旧格式的标志字段 `files:`（列表，含 `role: "transcript"`）——沿用原有的"现状钉子"断言，防止有人顺手把格式也改了。
+  4. manifest 内容**不**包含新 M1 `source_info.yaml` 要求的必填键（`pipeline/intake/source.py:14-26` 的 `REQUIRED_KEYS`，例如 `release_policy`、`edition_part`、`source_site` 均不出现在 manifest 文本里）——候选 A 明确不实现候选 B/C，这条防止有人在这一步顺手实现了候选 B。
+- **预期先红原因**：断言 1、2 现状必然失败（`EXPORT_CORPUS_FORMAT` 不存在 → `AttributeError`；docstring 不含 `"T04c"`）；断言 3、4 现状应当已经是真（旧格式、无新必填键），先跑一遍确认这两条本来就是绿的，只有 1、2 会红。
+- **篡改探针**：
+  1. 把 `EXPORT_CORPUS_FORMAT` 的值改成别的字符串（如 `"legacy"`）→ 断言 1 转红。
+  2. 把 docstring 里的 `"T04c"` 删掉或换成别的措辞 → 断言 2 转红。
+  3. 反证断言 4：临时把断言反过来写成"manifest 应包含新 M1 必填键"→ 必须转红（证明现状确实不是新格式，不是测试写错）。
 
 ---
 
