@@ -19,9 +19,11 @@
 下一步（第一件事）：
 - 提交合并 PR / 等待主 Agent 或用户合并 `t04` 分支到主线。
 - 随后继续推进 `TODO.md` 下一未完成项（T05 / T18 / T22 等）。
+- 留给用户决定（CHARTER §32.4）：Gitea 受保护分支是否合入（备份分支 `backup/knowledge-compilation-20260923` 已含全部提交）；
+  废纸篓 3.6GB 探针副本；其他会话留下的未跟踪文件与 `.claude/worktrees/agent-ad7f…`。
 已知的坑：
-- 以只读方式访问真书账本时 SQLite 会临时生成 `-wal`/`-shm` 文件，校验正本指纹前需先清理或确保不计入。
-- T23 已暴露待用户裁决：M8 生产门禁在 offset 档跳过 `watermark_disclosure`，比验收松。
+- 以后读真书正本一律用 SQLite URI `file:...?mode=ro&immutable=1` 或只读副本，禁止删改或生成任何文件。
+- T23 云端已提交修复（门禁按 offset 档实评，只标 highlight_level 不适用），待本机真书全线复跑取证。
 - `corpus_compiler` 回归中间几行 `FAIL m3_acceptance` 是已知自检子进程噪声，以最后一行 `OK` 为准。
 
 ## （上一节）Web 综合控制台交付（2026-09-18）
