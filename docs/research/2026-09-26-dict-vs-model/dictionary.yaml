@@ -1,0 +1,74 @@
+# 七政术语词典 v0（实验用，非生产资产）
+#
+# 建立规则：只从下列「现成来源」逐条摘取或按已在来源中写明的通假规则派生，
+# 不看 pipeline/corpus/_fixture/qianyuan_ed01_text 的任一片段反向补词。
+# 每条记录 surface（匹配用字面）与 provenance（来源 + 理由）。
+#
+# 来源清单：
+#   S1 = pipeline/TASKS/task_bazi_qtbj_concepts_r1/input/glossary_v0.yaml
+#        （及同目录族其余 task_bazi_qtbj_* / glossary_v0.yaml，内容一致，取 r1 为代表）
+#        —— 八字《穷通宝鉴》术语表，kind: ten_god 的条目。领域与本次七政文本不同
+#        （七政用星曜配十神，八字用干支配十神），但十神这一概念范畴共享。
+#   S2 = pattern_knowledge_workbench/assets/ge_ju_database.sqlite 的 ge_ju_schools 表
+#        —— 七政格局库，三派之一记为 ('tian_guan', '天官派')。
+#        查过 ge_ju_rules：school_id='tian_guan' 的规则数为 0（空派系，只有派名无内容）；
+#        ge_ju_patterns / ge_ju_rules 全文검索「天官/七煞/伤官/食神/正财/偏财/正印/偏印/
+#        劫财/通根/化禄/元禄/天官经」均 0 命中——该库对本次目标术语几乎没有覆盖，
+#        只贡献了"天官"一词（派名去"派"字）。
+#   D1 = 派生规则：来源本身文字内写明的通假，照抄不算反向补词。
+#        S1 条目 co_bazi_000007（surface: 才）自带 note：
+#        "原文以'才'通假'财'(偏财)，不依赖'财'字匹配"——即来源自己承认 才/财 互通，
+#        故本词典对"才"补一个"财"作为同义 surface。
+#   D2 = 派生规则：术数文献中"煞"为"杀"的通行异体字（字典学常识，非本文献专有、
+#        非从目标片段读出），S1 有 surface: 杀，故补充"煞"作为异体字 surface。
+#
+# 明确不做的事：不把"食""印""才/财""比"等单字，按标准十神全称（食神/正印/偏财/
+# 比肩……）反推补出"正财""偏财""正印""偏印""食神"等复合词——这些复合词在 S1/S2
+# 均未literal出现，若补上就等于凭常识替被测文本"补词"，判为作弊，宁可让词典漏检。
+
+terms:
+  - surface: 天官
+    kind: ten_god_analog
+    provenance: "S2：ge_ju_schools 表 ('tian_guan','天官派')，去'派'字。"
+  - surface: 官
+    kind: ten_god
+    provenance: "S1：co_bazi_000004，surface=官，kind=ten_god。"
+  - surface: 杀
+    kind: ten_god
+    provenance: "S1：co_bazi_000003，surface=杀，kind=ten_god。"
+  - surface: 煞
+    kind: ten_god
+    provenance: "D2：'杀'的术数文献通行异体字（词典学通识），由 S1 的'杀'条派生。"
+  - surface: 伤官
+    kind: ten_god
+    provenance: "S1：co_bazi_000001，surface=伤官，kind=ten_god。"
+  - surface: 阳刃
+    kind: ten_god
+    provenance: "S1：co_bazi_000002，surface=阳刃，kind=ten_god。"
+  - surface: 印绶
+    kind: ten_god
+    provenance: "S1：co_bazi_000005，surface=印绶，kind=ten_god。"
+  - surface: 印
+    kind: ten_god
+    provenance: "S1：co_bazi_000006，surface=印，kind=ten_god。"
+  - surface: 才
+    kind: ten_god
+    provenance: "S1：co_bazi_000007，surface=才，kind=ten_god。"
+  - surface: 财
+    kind: ten_god
+    provenance: "D1：S1 co_bazi_000007 自带 note 写明'才'通假'财'，照抄来源自证的通假。"
+  - surface: 比肩
+    kind: ten_god
+    provenance: "S1：co_bazi_000008，surface=比肩，kind=ten_god。"
+  - surface: 比劫
+    kind: ten_god
+    provenance: "S1：glossary_v0 族内 surface=比劫，kind=ten_god（八字术语，比肩劫财合称）。"
+  - surface: 劫财
+    kind: ten_god
+    provenance: "S1：glossary_v0 族内 surface=劫财，kind=ten_god。"
+  - surface: 食
+    kind: ten_god
+    provenance: "S1：glossary_v0 族内 surface=食，kind=ten_god。"
+  - surface: 比
+    kind: ten_god
+    provenance: "S1：glossary_v0 族内 surface=比，kind=ten_god。"
