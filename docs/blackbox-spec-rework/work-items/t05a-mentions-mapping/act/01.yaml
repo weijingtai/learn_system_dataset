@@ -1,184 +1,278 @@
 act_id: t05a/01
-title: concept→span 的 mentions 映射（EvidenceMapPack.mentions，仅覆盖已带 concept_ref 的 concept_mention）
-estimated_minutes: 180
+title: concept→span 的 mentions 映射 —— M6 队列纳入 concept 类候选 + M7 概念发号 + M8 mentions 派生（用户 2026-09-26 裁决，两项均 (a)）
+estimated_minutes: 480
 group: T05a
 depends_on: []
-decisions_required_before_start:
-  - "README.md 二、待用户决定 #1：主 Agent 建议 (c)（new_concept_candidates 发号机制不在本任务做，另立 T05a2）"
-  - "README.md 二、待用户决定 #2：主 Agent 建议 (a)（Concept 新增 source_span_ids 字段，evidence_map_pack 新增 mentions 字段）"
 scope:
   write:
-    - pipeline/assembly/model.py                 # validate_snapshot_knowledge 校验 concept.source_span_ids
-    - pipeline/assembly/apply.py                 # _build_concepts / _concept_provenance
+    - pipeline/review/__init__.py                # CANDIDATE_KINDS 加两类
+    - pipeline/review/model.py                    # ENTITY_ID_KINDS 校验分支
+    - pipeline/review/inputs.py                   # resolve_m6_inputs 的 candidate_objects
+    - pipeline/review/step.py                     # 四处（见 README 2.1.4）
+    - pipeline/review/rework.py                   # 两处（见 README 2.1.5）
+    - pipeline/review/console.py                  # cmd_show 查目标（见 README 2.1.6）
+    - pipeline/review/gate.py                     # evidence_closure 新分支（见 README 2.1.7）
+    - pipeline/review/acceptance.py                # _check_queue_from_upstream 的 expected 集合
+    - pipeline/review/testing/upstream_stub.py     # 测试桩数据装配
+    - pipeline/review/tests/test_concept_review.py # 新建
+    - pipeline/assembly/model.py                   # validate_snapshot_knowledge / empty_snapshot_knowledge
+    - pipeline/assembly/incremental.py             # allocate_ids 新增 concept 号位
+    - pipeline/assembly/apply.py                   # _build_concepts / 新增四个发号相关函数
     - pipeline/assembly/tests/test_apply.py
     - pipeline/assembly/tests/test_model.py
-    - pipeline/dataset_compiler/packs.py         # build_evidence_map_pack / _build_offset_evidence_map_pack
+    - pipeline/assembly/tests/test_incremental_proposals.py  # 或执行者核实后的实际文件，见 TDD.md §2 备注
+    - pipeline/dataset_compiler/packs.py           # build_evidence_map_pack / _build_offset_evidence_map_pack
     - pipeline/dataset_compiler/tests/test_packs.py
-    - pipeline/dataset_compiler/tests/test_t05a_mentions_real_shape.py   # 新建，见 TDD.md §4（若执行者判断该放进 test_packs.py，改写 test_packs.py 并在回报里说明）
-    - docs/blackbox-spec-rework/work-items/impl-00-interfaces/INTERFACES.md   # 登记 §3.9-附近或新增小节：concept.source_span_ids、evidence_map_pack.mentions
+    - pipeline/dataset_compiler/tests/test_t05a_mentions_real_shape.py   # 新建，见 TDD.md §6（若执行者判断该放进 test_packs.py，改写 test_packs.py 并在回报里说明）
+    - docs/blackbox-spec-rework/work-items/impl-00-interfaces/INTERFACES.md   # §3.5（M6 候选类别）、id_range/concepts[] 相关章节、evidence_map_pack.mentions
+    - docs/blackbox-spec-rework/work-items/impl-06-review/README.md       # §5.1-§5.3 同步（T19 改过的位置）
     - docs/blackbox-spec-rework/work-items/t05a-mentions-mapping/act/01.yaml  # 回报写在本文件末尾「## 回报」
-    - TODO.md                                    # T05a 行状态与证据（AGENTS.md 例外条款：本任务由主 Agent 写文档、执行者写代码，TODO.md 状态更新按分工规则由执行者填真实哈希，但不得改判据文字本身，只改状态列与备注列）
+    - TODO.md                                      # T05a 行状态与证据（AGENTS.md 分工例外条款：状态列/备注列，不改判据文字本身）
   read_only:
-    - var/                                        # 真书账本只读；R15 用例在临时目录的账本副本上做，见步骤 5
-    - pipeline/corpus/_fixture/mini_ed01/          # 金标，一字不动
-    - pipeline/corpus/_fixture/qianyuan_ed01_text/ # 真实语料/夹具，只读取，不改
-    - pipeline/dataset_compiler/step.py            # 本任务不需要改这一层的接线（1.4 已核实通）；若执行者发现确实需要改，停手上报，不擅自改
-    - pipeline/dataset_compiler/gate.py            # 不在本任务范围
-    - pipeline/dataset_compiler/acceptance.py      # _check_mentions_mapping 的判定逻辑不改；本任务只让它读到非空 mentions 时如实产出结果，不改判定代码本身
+    - var/                                          # 真书账本只读；R15/真书复核在临时目录的账本副本上做
+    - pipeline/corpus/_fixture/mini_ed01/            # 金标，一字不动
+    - pipeline/corpus/_fixture/qianyuan_ed01_text/   # 真实语料/夹具，只读取，不改
+    - pipeline/assembly/genesis.py                   # 明确不改（README 2.0/2.4/完成判据 7 已三次强调）
+    - pipeline/dataset_compiler/step.py              # 不需要改这一层的接线；若执行者发现确实需要改，停手上报
+    - pipeline/dataset_compiler/gate.py              # 不在本任务范围（M8 生产门禁，与 M8 验收判据是两件事）
+    - pipeline/dataset_compiler/acceptance.py        # _check_mentions_mapping 的判定逻辑不改
 background: |
-  见同目录 README.md 全文（根因链路、真书实测数字、待用户决定两项）。本 ACT 只在
-  README「二、待用户决定」两项都已获用户批准（或主 Agent 转达的书面裁决）后才可执行；
-  若尚未批准，执行者读到这里应立刻停手，在 TODO.md T05a 行与本文件末尾写「待裁决」，
-  不做任何 write scope 里的改动。
+  见同目录 README.md 全文（根因链路、真书实测数字、已裁决方案）。
+
+  **裁决状态**：用户 2026-09-26 已把 README「二」原「待用户决定」两项都裁为 (a)：
+  1) 新概念发号：仿 Pattern 建 concept 号池游标（`id_range` 增 `co_<tech>` 键、
+     `id_allocation` 同口径），M6 已审通过的 `new_concept_candidates` 在 M7 发
+     `co_` 号成为 Concept；不另立 T05a2，纳入本任务。
+  2) `mentions` 形状：Concept 加 `source_span_ids`，M8 派生 `mentions`（与原候选
+     (a) 相同，未变）。
+
+  用户同时要求核实 `new_concept_candidates` 是否已进 M6 审核队列——**已核实：
+  没有**（T19 只把 pattern 纳入了队列，见 README 2.0）。因此 M6 队列纳入
+  `concept_mention`/`new_concept_candidate` 是本 ACT 的**前置步骤**（一、二节），
+  不是可选项；没有这一步，M7 的发号机制（三节）无候选可发。
 
   合并基线：本文档基于 `worktree-agent-a05fa5819d06e2a48` 与
-  `claude/wizardly-maxwell-pqrzh9`（`d3c01d3`）合并后的树。执行者开工前先确认自己的
-  工作树也已包含这次合并（`git log --oneline -1` 应能看到 `d3c01d3` 或其后代），
-  否则先合并、重新核对 README 里的行号，再开始。
+  `claude/wizardly-maxwell-pqrzh9`（`d3c01d3`，其后另有一次 `68d7975` 的
+  merge commit 把本任务自己的文档合了回去）合并后的树。执行者开工前先确认
+  自己的工作树也已包含这次合并（`git log --oneline -5` 应能看到这两个哈希
+  或其后代），否则先合并、重新核对 README 里的行号，再开始。**本 ACT 篇幅大，
+  建议按下面四节顺序分批提交**（一节全绿再进下一节），不要求一次做完，但
+  会话结束前必须把「进行到一半」的确切位置写进 TODO.md T05a 行的备注。
 contract: |
   一、范围边界（严格执行，超出即停手上报，不得自行扩大或缩小）
-    1. 只处理"已经带 `concept_ref` 的 `concept_mentions`"这一条数据路径；
-       `new_concept_candidates` 的材化/发号**不做**（README 待用户决定 #1 已定 (c)）。
+    1. 不改 `pipeline/assembly/genesis.py`（R04 提案生成早已统一处理 concept
+       类候选，本任务不需要改它，也不许因为"顺手"改它）。
     2. 只加字段、不改任何既有字段的语义或既有测试的既有断言（除非该断言本身就是
-       在断言"这个字段不存在"，那种情况下允许把断言改成"这个字段存在且为空/正确值"，
-       并在回报里逐条列出改了哪条既有断言、为什么）。
-    3. 不碰 `assertion.concept_refs`（第 107 条 Q-M8-01 P7 禁止 Agent 代补，
-       与本任务的 mentions 映射是两件事，见 README 1.5）。
-    4. 不碰 `pipeline/dataset_compiler/step.py` 的接线（1.4 已核实 `snapshot_knowledge`
-       已经传进 `build_evidence_map_pack`，不需要新接线）。
-    5. 不碰 README 里记录的"附带发现"（`evidence_map_pack`/`evidence_chain`
-       artifact_type 撞名）——那是另一条 TODO（建议 T05a3），本任务只记录不动手。
+       在断言"这个字段不存在"/"这个候选不材化"，那种情况下允许把断言改成新的
+       正确断言，并在回报里逐条列出改了哪条既有断言、为什么——尤其是 TDD.md
+       §2 里那条取代原有护栏的用例，改动方向必须与 README 2.4 一致）。
+    3. 不碰 `assertion.concept_refs` 的产出/推断——第 107 条裁决 P7 明确禁止
+       Agent 代补，与本任务的 mentions 映射是两件事（README 1.5、完成判据 5）。
+    4. 不碰 `pipeline/dataset_compiler/step.py`/`gate.py`/`acceptance.py` 的
+       接线与判定逻辑（`snapshot_knowledge` 已经传进 `build_evidence_map_pack`，
+       不需要新接线；`_check_mentions_mapping` 的判定代码不改）。
+    5. 不碰 README 1.4「附带发现」记录的 `evidence_map_pack`/`evidence_chain`
+       artifact_type 撞名问题——那是另一条 TODO，本任务只记录不动手。
+    6. 不新增 Snapshot 版本号机制、不修 Pattern 已知的"最大号退役"边界缺陷、
+       不实现 Concept 退役的专门流程（README 2.2 已说明）。
 
-  二、`pipeline/assembly/model.py`（`validate_snapshot_knowledge`）
-    在 concept 的校验循环（现状：第 521 行 `_check_sorted(knowledge.get("concepts",
-    []), key_fn=lambda x: x["concept_id"], name="concepts")`，附近没有逐字段校验
-    concept 内部结构的循环——需要新增一个）里，对每个 concept 新增：
-      - `source_span_ids` 键必须存在，值为列表；
-      - 列表内元素升序且互异（仿 `_check_sorted` 或手写排序检查）；
-      - 每个元素经 `ids.validate("source_span_id", element)` 校验，非法即让该异常
-        原样外抛（`InvalidIdentifier`）。
-    不改动 `concept` 字典里任何既有键的校验（`concept_id`/`name`/`aliases`/`provenance`）。
+  二、前置步骤：`pipeline/review/` 纳入 concept 类候选（README 2.1 逐条机械
+      步骤，2.1.1–2.1.10 对应下面九个文件，逐条照做，不要跳步）：
+    1. `__init__.py`：`CANDIDATE_KINDS` 加 `"concept_mention"`、
+       `"new_concept_candidate"`。
+    2. `model.py`：新增 `_validate_entity_id(kind, entity_id)` 辅助函数
+       （concept_mention 走双正则 OR 校验，new_concept_candidate 只要求非空
+       字符串，其余 kind 走原 `validate(ENTITY_ID_KINDS[kind], entity_id)`），
+       `build_review_queue` 里原来直接调 `validate(...)` 那一行改为调这个
+       新函数。**`ENTITY_ID_KINDS` 本身不加新键**（README 2.1.2 已说明原因）。
+    3. `inputs.py`：`resolve_m6_inputs` 的 `candidate_objects` 拼接追加
+       `concept_mentions`（`entity_id=concept_ref`）与
+       `new_concept_candidates`（`entity_id=surface`）两段。
+    4. `step.py`：四处（`_modified_by_entity_id`、`_carried_decision_entries`
+       的 `objects`、`record_decision` 查 `orig_obj`、`close_review` 的
+       `cand_objects`）都追加对 concept 类两段的同形处理，逐字对照 README 2.1.4。
+    5. `rework.py`：`_candidate_objects` 与 `_resolve_rerun_inputs` 两处追加
+       同形两段。
+    6. `console.py`：`cmd_show` 的目标查找链追加 concept_mention/
+       new_concept_candidate 两级。
+    7. `gate.py`：`evaluate_review` 的 `evidence_closure` 新增
+       `kind in ("concept_mention", "new_concept_candidate")` 分支，复用
+       assertion 分支的校验方式（只核 `span_id in spans_dict`，不核引文哈希，
+       因为 concept 候选的 evidence 未经 `normalize_evidence_offsets` 规范化——
+       README 2.1.7 已详细说明，包括"是否要让 concept 候选也走
+       `normalize_candidate_object`"这个新增一致性问题，执行者判断后必须在
+       回报里说明做了哪个选择、为什么）。
+    8. `acceptance.py`：`_check_queue_from_upstream` 的 `expected` 集合追加
+       对 `concept_mentions`/`new_concept_candidates` 的同形两段。
+    9. `testing/upstream_stub.py`：`seed_upstream` 追加读取/装配
+       `concept_mentions`/`new_concept_candidates`（缺省仍是 `[]`/`0`）。
+    10. `INTERFACES.md` §3.5、`impl-06-review/README.md` §5.1–§5.3：登记
+        两个新候选类别与决定类型（`review_source_fidelity`）。
 
-  三、`pipeline/assembly/apply.py`（`_build_concepts` / `_concept_provenance`）
-    - `_concept_provenance`（第 703-710 行）签名与调用点都要能拿到 `items` 里每条
-      mention 的 `evidence`（已经在手，`mention["evidence"]` 是
-      `[{source_span_id, support_type}]`，见 README 1.1），从中收集
-      `source_span_id` 集合。
-    - 新建 concept（第 671-676 行 `by_id[ref] = {...}` 那个分支）时，加一个
-      `"source_span_ids": sorted({span_id for item in items for ev in
-      item.get("evidence") or [] for span_id in [ev["source_span_id"]]})`
-      这样形状的字段（写法自定，语义是：本次这批 mention 的证据 span 的并集，排序去重）。
-    - 已存在 concept 的合并分支（第 689-698 行 `existing["aliases"] = ...`
-      那一段附近）要**同样**把这批新 mention 的 span 并入
-      `existing["source_span_ids"]`（并集、排序、去重），不得覆盖丢弃已有版次的 span。
-    - 不改变函数签名对外的调用方式（`_build_concepts(base_state, view_docs, touched)`
-      不变），不改变返回值元组结构。
+  三、M7 概念发号（README 2.2 逐条对照表，`pipeline/assembly/`）：
+    1. `model.py`：`empty_snapshot_knowledge` 初始化 `id_range["co_<tech>"]`；
+       `validate_snapshot_knowledge` 新增对 `concepts[].source_span_ids`、
+       `allocated_concept_ids[]` 的校验（升序互异、元素合法）；**不对
+       `id_range["co_<tech>"]` 做硬性存在性要求**（与 pattern 的
+       `expected_range_key` 检查刻意不同，见下面第五节向后兼容）。
+    2. `incremental.py`：`allocate_ids` 新增 `_concept_number_of`
+       （前缀 `"co_%s_" % technique_id`）与 `used_concepts` 收集循环
+       （基底 `concepts[]`/`retired_entity_ids`/`allocated_concept_ids`/
+       本轮已获批带正式 `co_` 号的候选），返回值 `id_allocation` 追加
+       `"co_%s" % technique_id` 键。
+    3. `apply.py`：
+       - 新增 `_used_concept_numbers(base_state, technique_id)`（仿
+         `_used_pattern_numbers`）。
+       - 新增 `_is_concept_candidate_approved(approved_index, candidate)`
+         （检查 `candidate.get("concept_ref")` 或 `candidate.get("surface")`
+         是否在 `approved_index` 里）。
+       - 新增 `_allocate_new_concepts(base_state, view_docs,
+         concept_watermark, concept_range_start, technique_id)`（仿
+         `_build_patterns` 的 `pending`/发号循环，候选来源
+         `view["candidate_set"].get("new_concept_candidates", [])`，
+         排序键 `(source_id, surface)`）。
+       - 新增 `_concept_id_allocation(base, knowledge, technique_id,
+         concept_range_key)`（仿 `_id_allocation`）。
+       - 改 `_build_concepts`：追加读取已批准的 `new_concept_candidates`，
+         用 `_allocate_new_concepts` 分配到的号新建 Concept 对象（`name`=
+         surface、`source_span_ids`=该候选 evidence 的 span 并集），并把
+         这些 surface/号计入返回的 `materialized["concept"]`。
+       - 改 `_concept_provenance`/新建 concept 分支/已存在 concept 合并分支：
+         收集 `source_span_ids`（并集、排序、去重），逐字仿 README 2.2 与
+         act 四节的写法。
+       - `apply_resolutions` 里 `knowledge["id_allocation"]`（原第 434 行
+         `_id_allocation(...)` 那行）改为合并两个号段的结果；
+         `knowledge["allocated_pattern_ids"]` 旁新增
+         `knowledge["allocated_concept_ids"]`（与基底并集）。
+       - concept 的 `range_key`/`range_start` 计算**独立于** pattern 那套
+         （`apply.py:236-242` 那段是 pattern 专用，不要改它，新写一段
+         concept 专用的、允许缺键缺省为 0 的等价逻辑）。
 
-  四、`pipeline/dataset_compiler/packs.py`
-    - `build_evidence_map_pack`（第 293 行起）：在现有 `entries`/`page_index`
-      组装完成之后，新增 `mentions` 的派生——从形参 `snapshot_knowledge`（已经在
-      现有参数列表里，第 300 行 `snapshot_knowledge=None`）读
-      `snapshot_knowledge.get("concepts") or []`，对每个 concept 取
-      `source_span_ids`，与刚组装好的 `entries` 的键集合做交集，非空交集才写入
-      `mentions[concept_id]`（升序列表）；`mentions` 键必须始终存在（哪怕是
-      `{}`），不得为 `None`，不得省略。**`snapshot_knowledge=None`（现状真书未来
-      也可能出现这个情形）时 `mentions` 恒为 `{}`**，不抛异常。
-    - `_build_offset_evidence_map_pack`（第 452 行起）：签名当前没有
-      `snapshot_knowledge` 形参——新增一个（缺省 `None`，向后兼容），从
-      `build_evidence_map_pack`（第 329-336 行的 offset 分派调用点）把
-      `snapshot_knowledge` 转传过去；`mentions` 派生逻辑与 glyphbox 档复用同一段
-      代码（写成一个小的私有 helper 函数，两处调用，不要复制粘贴两份逻辑）。
-    - `pack` 字典里 `mentions` 放在 `page_index`/`excluded_pages` 附近（键序不是
-      强制的，JSON 无法约束键序——参考 INTERFACES §3.10 现有的免责声明——但为了
-      可读性建议放在 `entries` 之后）。
+  四、M8 `mentions` 派生（`pipeline/dataset_compiler/packs.py`，与本任务
+      最初版本相同，未变）：
+    1. `build_evidence_map_pack`：在 `entries`/`page_index` 组装完成之后，
+       从 `snapshot_knowledge.get("concepts") or []` 派生 `mentions`——每个
+       concept 的 `source_span_ids` 与刚组装好的 `entries` 键集合取交集，
+       非空才写入 `mentions[concept_id]`（升序列表）；`mentions` 键恒存在
+       （`snapshot_knowledge=None` 时为 `{}`，不抛异常）。
+    2. `_build_offset_evidence_map_pack`：新增 `snapshot_knowledge=None` 形参，
+       从 `build_evidence_map_pack` 的 offset 分派处转传；`mentions` 派生
+       逻辑写成小型私有 helper，两处调用共用，不复制粘贴。
+    3. `INTERFACES.md` §3.10：追加登记 `mentions` 键（不修改该节已有的
+       `chains[]` 描述，那是另一件事）。
 
-  五、`INTERFACES.md` 登记
-    在 §3.10 `evidence_map_pack.schema.json` 段落（当前描述与实现不符，见 README
-    1.4「附带发现」——**本任务不修那处不符**，只新增一句登记）后面加一条说明：
-    `evidence_map_pack.entries` 之外新增 `mentions: {conceptId: [sourceSpanId,...]}`
-    键，来源 T05a、README.md 链接。同时在 §3.9 `knowledge_data_pack.schema.json`
-    或另找恰当位置（执行者判断，写清楚放在哪一节、为什么）登记 Snapshot `concepts[]`
-    新增 `source_span_ids[]` 字段。**不修改 §3.10 已有文字描述的 `chains[]`
-    形状**（那是另一件事，见 README「附带发现」）。
+  五、退役号/最大号边界与向后兼容（README 2.2 最后两段，机械规则，不是
+      待裁决项，照做）：
+    1. Concept 侧照抄 Pattern 已知的"`id_allocation` 校验在最大号退役时
+       两难"这个既有边界，不新增更强约束，不修 Pattern 那处已知缺陷。
+    2. Concept 退役目前无场景触发，本任务不新增专门处理，只要号位收集函数
+       能正确识别 `co_` 前缀即可。
+    3. **向后兼容（新增边界，Concept 特有）**：真书账本
+       `var/ledgers/qianyuan_t04` 上已有的 Snapshot **没有**
+       `id_range["co_qizheng"]` 键。`apply.py` 对 concept 的
+       `range_key`/`range_start` 计算**不得**照抄 pattern 那样在缺键时
+       `AssemblyRefused`——缺键时 `range_start` 取 `0`，并把这个缺省值
+       **写回** `knowledge["id_range"]`（下一轮起就有了，不需要一次性迁移
+       脚本、不需要额外操作 `var/ledgers/qianyuan_t04`）。
 tests_first: |
-  按 TDD.md 第 1–4 节逐条写，贴 Red 原文（`unittest` 的失败/错误摘要即可，
-  不需要贴完整堆栈）。至少覆盖：
-    test_concept_evidence_source_span_ids_are_carried_into_snapshot
-    test_concept_source_span_ids_union_across_multiple_mentions_same_source
-    test_concept_source_span_ids_merge_across_editions
-    test_new_concept_candidates_without_pre_existing_concept_ref_are_not_silently_materialized  # 回归护栏，Red 期本就应为绿
-    test_validate_snapshot_knowledge_accepts_concept_source_span_ids
-    test_validate_snapshot_knowledge_rejects_concept_source_span_ids_not_sorted_or_invalid
-    test_evidence_map_pack_mentions_maps_concept_to_span_within_this_edition
-    test_evidence_map_pack_mentions_excludes_spans_outside_this_edition_entries
-    test_evidence_map_pack_mentions_is_empty_dict_when_no_concept_has_spans
-    test_offset_evidence_map_pack_mentions_same_derivation_as_glyphbox
-    test_real_shape_mentions_round_trip_from_qianyuan_snapshot   # R15
+  按 TDD.md 第 1–6 节逐条写，贴 Red 原文（`unittest` 的失败/错误摘要即可，
+  不需要贴完整堆栈）。**建议按 TDD.md 的节顺序做（第 1 节 M6 队列 → 第 2 节
+  M7 发号 → 第 3–4 节 span 归属/schema → 第 5 节 M8 mentions → 第 6 节
+  R15 全链路），每节全绿才进下一节**，因为后面节的用例依赖前面节的产物形状。
+  至少覆盖 TDD.md 里列出的全部具名用例（第 1 节 5 条、第 2 节 7 条、第 3 节
+  3 条、第 4 节 3 条、第 5 节 4 条、第 6 节 1 条 R15）。
 verify: |
   cd <仓库根> && export LC_ALL=en_US.UTF-8   # 云端容器用 C.UTF-8，见 AGENTS.md
+  .venv/bin/python -m unittest discover -s pipeline/review/tests -t . 2>&1 | tail -3
+      # OK；skipped 数不得比开工基线增加
   .venv/bin/python -m unittest discover -s pipeline/assembly/tests -t . 2>&1 | tail -3
       # OK；skipped 数不得比开工基线增加
   .venv/bin/python -m unittest discover -s pipeline/dataset_compiler/tests -t . 2>&1 | tail -3
       # OK；skipped 数不得比开工基线增加
   bash openspec/acceptance/m8-span-identity.sh 2>&1 | tail -1
-      # 期望：mentions_mapping 一行不再是 BLOCKED。若「待用户决定 #1」选 (c)、真书
-      # Snapshot concepts=[] 仍成立，mini_ed01/合成夹具上跑该脚本时 mentions 结构
-      # 已具备，但 mini_ed01 本身若没有带 concept_ref 的 concept_mention，脚本仍可能
-      # 报 FAIL（"产出但为空"，见 _check_mentions_mapping 现有逻辑第二行判空）——
-      # 这是符合 README 场景三的诚实结果，不是失败；把改前/改后的这一行原文都贴进回报。
+      # 期望：mentions_mapping 一行 PASS（不再 BLOCKED）
   git diff --check
   git status --short pipeline/corpus/_fixture/mini_ed01/     # 无输出（金标未动）
-  git diff --stat -- pipeline/dataset_compiler/step.py pipeline/dataset_compiler/gate.py pipeline/dataset_compiler/acceptance.py
-      # 无输出（这三个文件本任务不改）
-  # 篡改探针（TDD.md §5 四条，cp 备份→改→验证转红→cp 恢复→验证转绿，四条都要贴三行结果）
-  # 真书复核（README 1.2「结论 A」标注的推断，本步骤转为已核实事实或标注未能复核）：
+  git diff --stat -- pipeline/assembly/genesis.py pipeline/dataset_compiler/step.py pipeline/dataset_compiler/gate.py pipeline/dataset_compiler/acceptance.py
+      # 无输出（这四个文件本任务不改）
+  # 篡改探针（TDD.md §7 六条，cp 备份→改→验证转红→cp 恢复→验证转绿，六条都要贴三行结果）
+  # 真书/qianyuan_ed01_text 宿主复核（完成判据 2，在临时账本副本上做）：
+  cp -R var/ledgers/qianyuan_t04 <临时目录>/qianyuan_t04_probe
+  # 在副本上：M4 补一条最小 new_concept_candidate（真实 span_id/文本）→ M6 open_review/
+  # record_decision(accept)/close_review → M7 apply_resolutions → M8 run_m8
+  # 把每一步的关键输出（新分配的 co_ 号、Snapshot.concepts 新条目、
+  # evidence_map_pack.mentions 内容、mentions_mapping 判据结果）逐条贴进回报
   .venv/bin/python -m pipeline.dataset_compiler.acceptance \
     --fixture pipeline/corpus/_fixture/qianyuan_ed01_text \
-    --check publication --ledger var/ledgers/qianyuan_t04
-      # 只读复核，不改账本；把 knowledge_chain / graph_projection 两行原文贴进回报，
-      # 并回答："真书 Snapshot 的 concepts[] 现在是不是仍为空列表？"
+    --check publication --ledger <临时目录>/qianyuan_t04_probe
+      # 只读复核正本、只写副本；把 knowledge_chain / graph_projection 两行原文贴进回报
 commit:
   add:
+    - pipeline/review/__init__.py
+    - pipeline/review/model.py
+    - pipeline/review/inputs.py
+    - pipeline/review/step.py
+    - pipeline/review/rework.py
+    - pipeline/review/console.py
+    - pipeline/review/gate.py
+    - pipeline/review/acceptance.py
+    - pipeline/review/testing/upstream_stub.py
+    - pipeline/review/tests/test_concept_review.py
     - pipeline/assembly/model.py
+    - pipeline/assembly/incremental.py
     - pipeline/assembly/apply.py
     - pipeline/assembly/tests/test_apply.py
     - pipeline/assembly/tests/test_model.py
+    - pipeline/assembly/tests/test_incremental_proposals.py
     - pipeline/dataset_compiler/packs.py
     - pipeline/dataset_compiler/tests/test_packs.py
     - pipeline/dataset_compiler/tests/test_t05a_mentions_real_shape.py
     - docs/blackbox-spec-rework/work-items/impl-00-interfaces/INTERFACES.md
+    - docs/blackbox-spec-rework/work-items/impl-06-review/README.md
     - docs/blackbox-spec-rework/work-items/t05a-mentions-mapping/act/01.yaml
-  message: "feat(m8): derive concept-to-span mentions in EvidenceMapPack from Snapshot concept.source_span_ids (T05a)"
+  message: "feat(m6,m7,m8): queue concept candidates for review, allocate co_ ids on M7 approval, derive concept-to-span mentions (T05a)"
   note: |
     只在本地/自己的分支/worktree 提交，**不 push、不合并到 main/master、不 rebase**。
-    每完成一个可验证子任务（例如：model.py 校验先落地并绿、再 apply.py、再 packs.py）
-    就提交一次，消息用 Conventional Commits；不要攒到最后一次性提交。
-    提交后把真实提交哈希填进 TODO.md T05a 行与本文件末尾「## 回报」。
+    每完成一节（M6 队列 / M7 发号 / M8 mentions）就提交一次，消息用 Conventional
+    Commits；不要攒到最后一次性提交。提交后把真实提交哈希填进 TODO.md T05a 行与
+    本文件末尾「## 回报」。
 on_fail: |
   以下情况必须停手写「## 待裁决」，不得自行决定：
-    ① 开工前发现 README「二、待用户决定」任一项尚未获批准
-       —— 不写任何代码，只更新 TODO.md 状态为「待用户决定」并说明卡在哪一项
-    ② `_build_concepts` 已有的既有测试（第 990 行
-       `test_decided_proposal_with_decision_is_applied` 等）因为新增
-       `source_span_ids` 字段而意外断言失败，且你判断不出是"该改的既有断言"
-       还是"暴露了新的既有缺陷"
-    ③ `validate_snapshot_knowledge` 现有调用方（`orchestrator`、`review`、
-       `assembly` 里任何读 Snapshot 的既有代码）因为新字段而报错
-    ④ 真书复核发现 `concepts[]` **不是**空列表（即 README 的推断被证伪）——
-       这说明还有一条本文档没追踪到的数据路径，需要主 Agent 重新核根因，不许
-       顺手改代码去"处理"这个意外
-    ⑤ 发现 offset 档与 glyphbox 档的 `mentions` 派生逻辑无法共用同一段代码
-       （比如两边 `entries` 键的形状差异导致交集逻辑要写两套）
-    ⑥ 任何一步需要动 `step.py`/`gate.py`/`acceptance.py`（write scope 之外）
-       才能让 `mentions_mapping` 判据反映真实状态
+    ① `_build_concepts`/M6 相关既有测试因为新增字段或新分支而意外断言失败，
+       且你判断不出是"该改的既有断言"还是"暴露了新的既有缺陷"
+    ② `validate_snapshot_knowledge`/`build_review_queue` 现有调用方
+       （`orchestrator`、`assembly` 里任何读 Snapshot 或建队列的既有代码）
+       因为新字段/新 kind 而报错
+    ③ concept 候选的 `evidence` 缺 `start`/`end`/`quote_sha256`（未经
+       `normalize_evidence_offsets`），导致 `evidence_closure` 分支只能核
+       span_id 存在、不能核引文——判断"是否要让 concept 候选也走
+       `normalize_candidate_object`"你拿不准时，停手上报，不要自行决定
+       改变既有归一化调用范围
+    ④ 真书/宿主复核发现新分配的 `co_` 号与已有号冲突，或
+       `id_allocation`/`allocated_pattern_ids` 一类既有校验因为新增的
+       concept 姊妹字段而报出你无法判断是否合理的错误
+    ⑤ `_admit_new_without_object` 的既有行为（"有 auto 提案没材化就报告"）
+       在本任务改动后，对**已批准**的候选也报告了（说明"已批准即不再报告"
+       这条逻辑接错了）
+    ⑥ 任何一步需要动 `pipeline/assembly/genesis.py`、
+       `pipeline/dataset_compiler/step.py`/`gate.py`/`acceptance.py`
+       （write scope 之外）才能让判据反映真实状态
+    ⑦ 真书/宿主复核阶段（在副本上）发现走完 M4→M6→M7→M8 全链路后，
+       `evidence_map_pack.mentions` 仍然为空，且你排查后确认不是自己代码的
+       bug（例如复核用的 new_concept_candidate 从未真正进入队列/未被批准）——
+       如实报告排查过程，不要为了让判据"看起来过了"而在测试外的正式代码路径
+       上塞入捷径
   停手后：在 TODO.md T05a 行写清楚卡在哪一条、已完成到哪一步（精确到文件/函数/
   提交哈希），不要笼统写"遇到问题"。
 
 ## 回报
 （执行者按 AGENTS.md 分工规则填写；主 Agent 独立核验通过后再改 TODO.md 判据状态）
-- 决定 #1/#2 批准出处：
-- 各测试 Red→Green 提交哈希：
-- 篡改探针三行结果（四条）：
-- 真书复核结果（`--check publication --ledger var/ledgers/qianyuan_t04` 原文）：
+- M6 队列（一节）Red→Green 提交哈希：
+- M7 发号（二节）Red→Green 提交哈希：
+- M8 mentions（三节）Red→Green 提交哈希：
+- 篡改探针三行结果（六条，TDD.md §7）：
+- 真书/宿主复核结果（副本上 M4→M6→M7→M8 全链路，逐步输出）：
+- `--check publication` 副本上 `knowledge_chain`/`graph_projection` 两行原文：
 - `m8-span-identity.sh` 改前/改后 `mentions_mapping` 行原文对照：
+- evidence_closure 是否让 concept 候选也走 normalize_candidate_object：选择与理由：
 - 待裁决（如有）：
