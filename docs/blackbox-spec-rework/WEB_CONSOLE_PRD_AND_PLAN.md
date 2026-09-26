@@ -126,7 +126,7 @@ class OcrEnginePort(ABC):
 - [ ] **Task 2.2**：实现 Repository 仓储抽象与 SQLite / Turso 驱动适配器；
 - [ ] **Task 2.3**：封装 M1～M8 后台异步任务管理器，支持状态挂起与恢复；
 - [ ] **Task 2.4**：实现 WebSocket 长连接通道，定义流水线状态推送与控制事件帧；
-- [ ] **Task 2.5**：封装 AI Auto-Reviewer 代理服务（支持置信度阈值过滤与自动签发）；
+- [ ] ~~**Task 2.5**：封装 AI Auto-Reviewer 代理服务（支持置信度阈值过滤与自动签发）；~~ **作废（T24，P7）**：M4 分歧裁决与 M6 审核只能由用户本人做，任何 Agent/AI 代签路径都不许存在（规格 P7；G7-RULINGS 第 104 条 D1）。控制台改为纯展示 M4/M6 队列并把用户在界面上给出的决定，经 `record_category_ruling` / `record_decision` 等公开入口写入 Ledger，不做自动签发。详见本目录 `work-items/t24-console/README.md`。
 - [ ] **Task 2.6**：留桩 `DataDistributorPort`，实现本地 ZIP 下载分发器。
 
 ### 阶段三：Vue 3 前端应用交付（Ant Design Vue）
@@ -137,6 +137,6 @@ class OcrEnginePort(ABC):
 - [ ] **Task 3.5**：实现一键发布包下载及状态结算页。
 
 ### 阶段四：联调闭环与回归验收
-- [ ] **Task 4.1**：端到端连通测试（全自动 AI 代审模式 10 分钟出包）；
+- [ ] ~~**Task 4.1**：端到端连通测试（全自动 AI 代审模式 10 分钟出包）；~~ **作废（T24，P7）**：与 Task 2.5 同理，「全自动 AI 代审出包」意味着 M4/M6 由 Agent 代签，违反 P7。端到端验证改为 Task 4.2 的人机协同路径（人工在界面上逐条裁决/审核后续跑），详见 `work-items/t24-console/README.md`。
 - [ ] **Task 4.2**：端到端连通测试（人机协同半自动模式，人工交互过审）；
 - [ ] **Task 4.3**：合并回主分支并形成交付验收文档。

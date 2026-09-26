@@ -1,0 +1,185 @@
+act_id: t24-console/01
+title: Web 控制台接真流程 —— 后端换真管道 + 前端换真 API（电子文本路线，M4/M6 全走界面）
+estimated_minutes: 900
+group: T24
+depends_on: []
+decisions: [规格 P7, G7-RULINGS 第104条D1, TODO.md T24, ASK-2026-09-26.reply.md 第1题]
+scope:
+  write:
+    - console_backend/app/orchestrator_client.py     # 新增，唯一允许调用 pipeline.orchestrator 公开入口的模块
+    - console_backend/app/repository.py              # 改造：流水线事实部分换 LedgerPort 只读查询；UI 偏好可留 SQLite
+    - console_backend/app/routers/workbench.py        # 删 mock，M4/M6 队列与提交改接真流程
+    - console_backend/app/routers/pipeline.py         # EditionRun 生命周期端点（创建/advance/上传提交件/上传AI建议/resume/run_release/下载/查状态）
+    - console_backend/tests/                          # 新增测试，见 TDD.md 第 1 节
+    - console_frontend/src/**                         # mock 数据源换真 API；新增 AI 预审建议展示与采纳交互
+    - pipeline/contract_registry/tests/               # 新增独立用例，调用既有 scan_ledger_internals(["console_backend"])，不改该函数本身
+    - docs/blackbox-spec-rework/work-items/t24-console/**   # 本工作文档随实现推进更新（Red/Green 回填）
+  read_only:
+    - pipeline/                                       # 生产代码只读；若确实必须改，先停手报告理由（本 ACT 第五节）
+    - pipeline/corpus/_fixture/qianyuan_ed01_text/     # 端到端用例的宿主，一字不动
+    - docs/handoff/                                    # 参考材料，不改内容（除非另有 ACT 授权）
+background: |
+  控制台（console_backend FastAPI + console_frontend Vue3）09-17 前后交付后停在壳子：
+  M1 页面扫描是硬编码 mock（workbench.py:37 `_create_default_mock_page_scan`），只有 M2
+  cleaner 调了真实 `pipeline.digitization.cleaner`；M3/M6 审核队列也是硬编码的四条示例数据
+  （`_create_default_review_queue`）；仓储是控制台自己的 SQLite（repository.py），从未接
+  `pipeline.orchestrator` 或 Ledger。PRD 二期 2.3（M1～M8 后台任务管理器）与四期（联调闭环）
+  从未开工也从未派单（`docs/handoff/ASK-2026-09-26.reply.md` 第 1 题，Dataset 会话 09-26 核实）。
+
+  用户 09-26 追加要求：M4 分歧裁决与 M6 审核**必须在 Web 界面完成**，不许看命令行/编辑文件；
+  界面还要显示本机外部 agent（FreeBuff/OpenCode，T06 范畴）产出的「AI 预审建议」文件，供用户
+  参考/采纳/修改，但任何情况下不得因为存在建议就自动提交决定。
+
+  **本 ACT 只交付工作文档（README.md/TDD.md/本文件）+ PRD 作废标注，不写实现代码**——这是
+  协调者 09-26 在本轮会话中途缩小的范围（"实现改由用户本机的外部 agent 按你的文档来做"）。
+  下面 contract 部分描述的是**给后续实现者的完整设计约束**，本 ACT 本身只需要完成"写文档"
+  这一半，verify 部分对应区分了"本次必须做到"和"实现阶段必须做到"。
+
+  **基线更正（协调者 09-26）**：本 worktree 原先错误地基于 `main`（缺 T04 产出）；已
+  `git merge claude/wizardly-maxwell-pqrzh9`（合并提交 `6a06144`，merge 不是 rebase，
+  无冲突），本分支现在含 T04 全部产出——`start_edition_run` 接受 `run_inputs`，
+  `registry.yaml` 里 m4/m6/m7 均已登记且带 `resume_entry`。本文档第 6 节与 README.md §0
+  的函数签名/行号均已在合并后的树（`6a06144`）上重新核实。分支合并不再是阻断。
+contract: |
+  零、前置修复步骤（实现阶段第一步，本 ACT 已实测确认修法，见 README.md §9）
+    `console_backend/tests` 现在的基线是 `Ran 6 tests ... FAILED (errors=2)`，根因是
+    `.venv`（Python 3.14.0rc2）里 `pydantic==2.13.5` 与 `fastapi==0.141.1` 的兼容性缺口
+    （`typing._eval_type() got an unexpected keyword argument 'prefer_fwd_module'`）。
+    已实测排除：升级到 `pydantic==2.14.0b2` 无效（同一根因仍报）；降级到 `2.10.6` 因无
+    Python 3.14 预编译 wheel、源码编译失败，不可行。**确切可用修法**：另建一个基于
+    Python 3.13.12（本机 `/usr/bin/python3.13` 已装）的 venv，同一份 `requirements-dev.txt`：
+        uv venv .venv-py313 --python 3.13.12
+        uv pip install --python .venv-py313/bin/python -r requirements-dev.txt
+        export LC_ALL=C.UTF-8
+        .venv-py313/bin/python -m unittest discover -s console_backend/tests -t .
+        # 实测：Ran 22 tests in 0.297s / OK
+    实现者开工写 TDD.md 第 1 节新测试前先做这一步；`requirements-dev.txt` 不改动版本锁定，
+    只是 `console_backend` 的测试换一个解释器版本跑（11 个 pipeline 包是否也切到 3.13
+    本 ACT 未验证，不能预先断言可行，实现者若要统一环境需自己先跑一次基线）。这属于环境/
+    依赖版本问题，处理它不算违反"不改 pipeline/ 下生产代码"。
+
+  一、控制台定位（P7 铁律，不许有例外）
+    控制台是 `pipeline.orchestrator` 人工节点的前端，不是决策者。所有写账本操作只能经
+    公开入口：`start_edition_run` / `advance` / `run_until` / `resume` / `run_release` /
+    `run_m4_submit` / `record_category_ruling` / `record_decision` 等。
+    完成判据：`pipeline.contract_registry.acceptance.scan_ledger_internals(["console_backend"])`
+    返回空列表。**已实测基线（改造前，`6a06144`）：`[]`**——但这只说明"现在还没碰
+    Ledger"，不说明"接入后仍然干净"（该函数按正则 `\.store\b|\.objects\b` 扫描直接访问
+    LedgerPort 内部属性的写法，`console_backend` 现在完全不 import
+    `pipeline.orchestrator`/`pipeline.ledger`，正则自然扫不到东西，见 README.md §7.1）。
+    实现阶段接入 `orchestrator_client` 之后必须重跑这条扫描仍为 `[]`，并在
+    `pipeline/contract_registry/tests/` 新增一条独立用例长期钉住它（不是扩展现有
+    `modules_port_clean`——那个函数只扫 `registry.yaml` 里登记的模块，`console_backend`
+    不是登记模块，不会被它覆盖）。控制台自带 SQLite 仓储里存"流水线事实"的部分（PipelineRun
+    状态、M1/M2/M6 数据、审核决定）必须换成对 LedgerPort 的查询；纯 UI 偏好（如"用户上次
+    打开的标签页"）可以留在 SQLite 或前端本地存储，不算违反本条。
+
+  二、不得有任何 AI/Agent 代签路径（规格 P7）
+    M4 分歧裁决与 M6 审核只能由用户本人在界面上点击提交才算数。
+    - `WEB_CONSOLE_PRD_AND_PLAN.md` 的 Task 2.5「AI Auto-Reviewer 自动签发」与
+      Task 4.1「全自动 AI 代审出包」已标注**作废（T24，P7）**（本 ACT 已完成这条标注，
+      不删原文，加删除线注明理由）。
+    - 决定的 `actor_ref` 由用户在界面给出/配置，默认 `user:wjt`，代码不得伪造成别人、
+      不得省略、不得由后端自行推断成"ai:"/"agent:"前缀。
+    - AI 预审建议（用户 09-26 新增要求）**只是展示数据**：界面可以显示、可以"一键采纳"
+      把建议内容填进表单，但填表单之后仍必须用户点击"提交"才产生一次
+      `record_category_ruling`/`record_decision` 调用；没有用户这次显式点击，就不存在
+      决定。任何"批量提交"/"全部采纳建议后自动提交"的功能都不许做（见 TDD.md
+      `test_queue_endpoint_is_read_only_no_bulk_submit_route`、
+      `test_adopt_suggestion_does_not_auto_submit`）。
+
+  三、AI 预审建议文件与决定记录的关联方式（本 ACT 已在 README.md §4 定型，实现阶段照做）
+    - 建议文件路径、字段、与 `queue_item_id`/`dispute_id` 的对位规则、对不上时界面提示，
+      按 README.md §4.1 执行，不许实现者另起一套格式。
+    - 不改账本 schema：用户的决定若曾展示过匹配的建议，后端在提交前把建议来源
+      （`model_id`/`generated_at`/`suggestion_file_sha256`/`adopted`）追加进
+      `rationale` 文本，格式按 README.md §4.2 的 `[AI预审建议] key=value` 约定。
+      如果将来需要结构化字段（例如统计采纳率），那是**待裁决**的 schema 变更，
+      本 ACT 与后续实现阶段都不擅自扩展 `ruling_doc`/`record_decision` 的参数闭集。
+
+  四、resume_token 不许落盘（ACT 19 铁律的延伸）
+    - `resume_token` 只能存在于控制台后端进程内存里；有测试按字节在临时账本目录、
+      控制台代码与后端日志文件里搜索明文 token，确认无命中
+      （`test_resume_token_never_written_to_disk_or_log`）。
+    - 后端重启后如何重新拿到已丢失的 token：本 ACT 已查明**没有公开途径**（README.md
+      §8 三条候选 A/B/C，均需人类裁决——**待裁决，保留原样，本 ACT 不擅自选定**）。
+      本 ACT 给出推荐意见（README.md §8.1，仅供人类参考，非最终决定）：默认先实现
+      **候选 C**（进程常驻不重启 + 界面如实提示，零改动生产代码、零新增落盘面）；
+      **候选 B**（Ledger 重新签发 token）列为更彻底的长期候选，但需单独裁决破例改
+      `pipeline/ledger` 生产代码；**不推荐候选 A**（控制台自己落盘 token，字面即违反
+      "不许落盘"的精神，风险收益比最差）。实现阶段若人类尚未裁决，按候选 C 的展示行为
+      实现，不要自创落盘方案，也不要因为本 ACT 推荐候选 C 就当作已经裁决。
+
+  五、只做电子文本路线（route: text）
+    M4 内容暂由用户上传提交件 YAML（沿用 `run_m4_submit` 现有形态），不实现模型调用
+    （T06 的模型适配器另有人做，本 ACT 及其后续实现阶段都不碰）。
+
+  六、测试先行、篡改探针（实现阶段的硬约束，本 ACT 只文档不代码）
+    每个功能先写测试并确认红，再实现到绿；每个核心修复做篡改探针（故意破坏→测试转红→
+    恢复），探针用 `cp` 备份文件后恢复，不用 `git checkout` 恢复（铁律，避免误吞其他会话
+    的并发改动）。
+
+  七、不放宽任何检查、不改 pipeline/ 生产代码、不删测试
+    若确有必要改 `pipeline/` 下生产代码，先停手报告理由，不许直接改。新增
+    `test_scan_ledger_internals_console_backend_is_empty` 属于新增契约测试用例，
+    不是放宽既有检查（`scan_ledger_internals` 本身是通用函数，不需要改它的实现，只是
+    多了一处调用它的地方）；若实现者觉得这条边界拿不准，停手上报，不要自己决定"这算不算
+    放宽"。
+tests_first: |
+  本 ACT（写文档）没有代码意义上的红/绿；已执行并回填的唯一"红"证据是
+  `console_backend/tests` 的既有基线（见下方 verify 与 TDD.md §0）：
+      export LC_ALL=C.UTF-8
+      .venv/bin/python -m unittest discover -s console_backend/tests -t .
+      # Ran 6 tests ... FAILED (errors=2)：test_api_and_ws、test_workbench_api 两个模块
+      # 在 import fastapi.testclient 时因 pydantic 2.13.5 / Python 3.14.0rc2 兼容性问题报错
+      # （详见 README.md §9，已实测确认换 Python 3.13.12 解释器可解决），非本 ACT 引入、
+      # 非代码逻辑缺陷。
+  TDD.md 第 1 节列出的全部新测试名，此刻均处于"文件不存在"的最强红态，留给实现者按
+  Red → Green 顺序逐条落地并回填 TDD.md 的 Green 列。
+verify: |
+  # 本次（只写文档）实际执行并已在 TDD.md §0 回填：
+  cd /home/user/learn_system_dataset/.claude/worktrees/agent-a5cf1bfd2b8d5baa0
+  git log --oneline -1        # 6a06144 合并 claude/wizardly-maxwell-pqrzh9（本次基线更正）
+  export LC_ALL=C.UTF-8
+  .venv/bin/python -m unittest discover -s console_backend/tests -t .
+      # 实测（合并后重跑，与合并前一致）：Ran 6 tests in 0.001s / FAILED (errors=2)
+  uv venv .venv-py313 --python 3.13.12
+  uv pip install --python .venv-py313/bin/python -r requirements-dev.txt
+  .venv-py313/bin/python -m unittest discover -s console_backend/tests -t .
+      # 实测：Ran 22 tests in 0.297s / OK —— §零 前置修复步骤已验证可行
+  .venv/bin/python -c "from pipeline.contract_registry.acceptance import scan_ledger_internals as s; print(s(['console_backend']))"
+      # 实测：[]（改造前基线，读法见 README.md §7.1，不代表"接入后仍然干净"）
+  bash tools/jules_setup.sh 2>&1 | tail -3
+      # 实测：Ran 106 tests in 8.993s / OK（环境自带回归，供确认 .venv 完好）
+  git diff --check
+      # 文档变更专用检查（AGENTS.md 测试命令一节要求）
+
+  # 实现阶段（后续 ACT）必须做到，本 ACT 不代做：
+  #   §零 前置修复步骤先落地（console_backend 测试环境换 3.13.12）
+  #   11 个 pipeline 包 + pipeline/tools 各自单测全绿（若 tools 无 tests 目录则跳过并写明）
+  #   console_backend/tests 全绿，新增用例覆盖 TDD.md 第 1 节全部行
+  #   cd console_frontend && npm install && npm run build   # 零错误
+  #   端到端：console_backend FastAPI TestClient 走 S1→S7，在 qianyuan_ed01_text 宿主临时账本上
+  #     跑到 M8 succeeded 并能下载发布包（TDD.md test_end_to_end_qianyuan_text_host_reaches_m8_via_http_api）
+  #   scan_ledger_internals(["console_backend"]) 接入 orchestrator_client 后仍为 []，
+  #     并有 pipeline/contract_registry/tests/ 下的回归用例长期钉住
+  #   篡改探针：至少覆盖"resume_token 落盘检测"（故意在测试里写一次明文 token 到文件 → 探针测试转红 → 撤销该行为 → 转绿）
+commit:
+  add:
+    - docs/blackbox-spec-rework/work-items/t24-console/README.md
+    - docs/blackbox-spec-rework/work-items/t24-console/TDD.md
+    - docs/blackbox-spec-rework/work-items/t24-console/act/01.yaml
+    - docs/blackbox-spec-rework/WEB_CONSOLE_PRD_AND_PLAN.md
+  message: "docs(t24-console): 工作文档（README/TDD/ACT）+ PRD Task 2.5/4.1 作废标注（P7）"
+on_fail: |
+  停止并报告，不许提交红的基线当作绿。
+  以下情况必须停手写「## 待裁决」而不是自行决定：
+    ① resume_token 后端重启后的恢复路径（README §8/§8.1 候选 A/B/C，本 ACT 已给推荐但
+       未擅自选定）——已停手，等人类裁决
+    ② console_backend 测试基线 2 个 error 的依赖版本修法——**已解决，不再待裁决**：
+       根因已查明（README §9），已实测排除升级/降级 pydantic 两条路径，确认换 Python
+       3.13.12 解释器可行（README §9.2）；实现阶段照做即可，不需要再停手请示
+    ③ AI 预审建议若要求结构化记录（不只是塞进 rationale 文本）而必须改账本 schema——停手，
+       不擅自扩展 record_category_ruling/record_decision 的参数闭集
+    ④ 实现阶段若发现自己所在分支与本文档核实过的签名/行号（README §0）不一致——停手，
+       先更新文档再动代码，不要凭记忆猜签名
