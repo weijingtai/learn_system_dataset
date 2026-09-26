@@ -16,6 +16,7 @@
 from __future__ import annotations
 
 import argparse
+from contextlib import contextmanager
 import hashlib
 import json
 import shutil
@@ -71,7 +72,18 @@ SUBMISSION_FILES = (
 EXPECTED_RAW_SHA256 = "3f7170cd504e496096bc933ab5ed8805d68fa98625c91c5c09a9e3a61fcecdbb"
 
 
-def verify_inputs_and_hashes() -> dict[str, str]:
+@contextmanager
+def safe_ref_reader(ref_ledger_path: Path):
+    """安全读取参考正本，将正本拷贝至隔离临时目录，避免 SQLite WAL 机制写入正本目录。"""
+    import tempfile
+    with tempfile.TemporaryDirectory(prefix="safe_ref_") as tmp_dir:
+        safe_copy = Path(tmp_dir) / "ref_ledger"
+        shutil.copytree(ref_ledger_path, safe_copy)
+        with LedgerReader(safe_copy) as reader:
+            yield reader
+
+
+def verify_inputs_and_hashes(ref_ledger: Path = REF_LEDGER) -> dict[str, str]:
     """开跑前核对原始文本与 6 份提交件 sha256，不符即停手报错。"""
     raw_path = HOST / "qianyuan_ed01_text.md"
     if not raw_path.is_file():
@@ -93,7 +105,7 @@ def verify_inputs_and_hashes() -> dict[str, str]:
 
     # 查验只读参考副本中的 6 个 candidate_submission
     submission_shas = {}
-    with LedgerReader(REF_LEDGER) as reader:
+    with safe_ref_reader(Path(ref_ledger)) as reader:
         # 获取候选提交修订
         revs = reader.list_revisions(artifact_type="candidate_submission")
         ref_shas = {r["sha256"] for r in revs}
@@ -120,20 +132,25 @@ def verify_inputs_and_hashes() -> dict[str, str]:
 def run_full_pipeline(
     clean_target: bool = False,
     supplement_file: Path | str | None = None,
+    target_ledger: Path | str | None = None,
+    ref_ledger: Path | str | None = None,
 ) -> dict[str, Any]:
     """在空账本上真跑 M1→M8 全流程，回放人工决定，返回统计与对位表。"""
+    target_path = Path(target_ledger) if target_ledger else TARGET_LEDGER
+    source_ref_path = Path(ref_ledger) if ref_ledger else REF_LEDGER
+
     # 1. 预检
     print("[1/10] 核对源文件与 M4 提交件哈希...")
-    sub_shas = verify_inputs_and_hashes()
+    sub_shas = verify_inputs_and_hashes(ref_ledger=source_ref_path)
     print(f"      源文件 SHA256 与 6 份 M4 提交件哈希比对通过 ({len(sub_shas)} 份)")
 
     # 2. 准备目标新账本目录
-    if TARGET_LEDGER.exists() and clean_target:
-        print(f"      清理目标账本目录: {TARGET_LEDGER}")
-        shutil.rmtree(TARGET_LEDGER)
-    TARGET_LEDGER.mkdir(parents=True, exist_ok=True)
+    if target_path.exists() and clean_target:
+        print(f"      清理目标账本目录: {target_path}")
+        shutil.rmtree(target_path)
+    target_path.mkdir(parents=True, exist_ok=True)
 
-    adapter = DirectLedgerAdapter(TARGET_LEDGER)
+    adapter = DirectLedgerAdapter(target_path)
     service = adapter.unwrap()
     registry = load_registry()
 
@@ -199,7 +216,7 @@ def run_full_pipeline(
 
         # 7. 回放 24 条 M4 类别裁决
         print("[6/10] 从参考副本回放 24 条 M4 类别裁决...")
-        with LedgerReader(REF_LEDGER) as reader:
+        with safe_ref_reader(source_ref_path) as reader:
             old_disputes, old_rulings = load_m4_rulings_from_ledger(reader)
             m4_applied = replay_m4_rulings(
                 service,
@@ -289,7 +306,7 @@ def run_full_pipeline(
             print(f"      加载 M6 补充决定: {supplement_file}")
             supplement_decisions = load_m6_supplement_decisions(supplement_file)
 
-        with LedgerReader(REF_LEDGER) as reader:
+        with safe_ref_reader(source_ref_path) as reader:
             old_m6_decisions = load_m6_decisions_from_ledger(reader)
             try:
                 m6_applied = replay_m6_decisions(
@@ -434,6 +451,18 @@ def main() -> int:
         help="U07 M6 补充决定 YAML 文件路径",
     )
     parser.add_argument(
+        "--target-ledger",
+        type=str,
+        default=None,
+        help="目标账本目录（默认为 var/ledgers/qianyuan_t04）",
+    )
+    parser.add_argument(
+        "--ref-ledger",
+        type=str,
+        default=None,
+        help="参考账本目录（默认为 var/ledgers/qianyuan_w8）",
+    )
+    parser.add_argument(
         "--no-clean",
         action="store_true",
         help="不清理目标账本目录",
@@ -444,6 +473,8 @@ def main() -> int:
         report = run_full_pipeline(
             clean_target=not args.no_clean,
             supplement_file=args.supplement,
+            target_ledger=args.target_ledger,
+            ref_ledger=args.ref_ledger,
         )
         print("\n=== 执行报告 ===")
         print(json.dumps(report, indent=2, ensure_ascii=False))

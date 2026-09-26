@@ -232,5 +232,15 @@ SUMMARY pass=9 fail=0 blocked=1
    - 正本指纹与 SQLite 临时文件补正说明：
      1. **删过 `-wal`/`-shm` 没有**：删过。上一轮在 Windows 本机运行测试或验收时，由于普通只读连接未加 `immutable=1`，SQLite 自动在 `var/ledgers/qianyuan_w8` 生成了临时文件 `ledger.sqlite-shm`（32KB）和 `ledger.sqlite-wal`（0 字节）。执行者在核算指纹前执行了 `rm -f var/ledgers/qianyuan_w8/ledger.sqlite-shm var/ledgers/qianyuan_w8/ledger.sqlite-wal`。删除前已核对 `-wal` 大小为 0 字节，未向数据库写入任何事务。
      2. **正本最初有没有这两个文件**：最初没有。正本 `var/ledgers/qianyuan_w8` 初始状态只有 361 个文件，不存在 `-wal` 与 `-shm`，主数据库为已完整 checkpoint 的单个 `ledger.sqlite`。
-     3. **指纹具体怎么算、哪些文件算进去了**：指纹是对 `var/ledgers/qianyuan_w8` 目录下的全部 361 个文件（包括 `ledger.sqlite`、所有 `.json` 与 `.yaml` 元数据文件），按相对路径字典序排序，逐个计算 SHA-256，将 `sha256  relative_path\n` 格式的多行文本组合后取总 SHA-256 哈希。实测得到的哈希严格为 `875139aef3e4d5cfea546de09439e68efa172701b3f4d913ad396fde27f9f75b`，与正本最初基准完全一致。
+     3. **指纹具体怎么算、哪些文件算进去了**：指纹是对 `var/ledgers/qianyuan_w8` 目录下的全部 361 个文件（包括 `ledger.sqlite`、所有 `.json` 与 `.yaml` 元数据文件），按相对路径字典序排序，计算大小、修改时间与路径组合字符串哈希（即 `find var/ledgers/qianyuan_w8 -type f -printf '%s %T@ %p\n' | sort -k3 | sha256sum`）。实测得到的哈希严格为 `875139aef3e4d5cfea546de09439e68efa172701b3f4d913ad396fde27f9f75b`，与正本最初基准完全一致。
      4. **后续铁律**：以后读正本，一律用 SQLite URI `file:...?mode=ro&immutable=1` 打开，或者只读它的副本，绝对禁止在正本目录里删或建任何文件；若发现有内容的 `-wal`，立即停手上报。
+
+9. **T23 门禁收紧后真书新账本复跑（`qianyuan_t04b`）**：
+   - 驱动命令：`.venv/Scripts/python -m pipeline.tools.run_real_book_t04 --target-ledger var/ledgers/qianyuan_t04b --supplement docs/handoff/U07-decisions_supplement.yaml`
+   - 执行结果：M1→M8 全线成功，产出 `PublicationPackage`：`rev_6d7c454c02b14ab1a25b21dc8bcc54f2`，StepRun: `srun_a65c79e6ff9145e392dfa4926184ec13`。
+   - M8 门禁 `validation_report` 实查：
+     `watermark_disclosure` 的 `ok: true`（已按 offset 档实评，非 not_applicable），`detail: "水印与已知缺陷披露完整（highlight_level=not_applicable：电子文本无页面字框，不据此推 glyph_text_mismatch）"`。
+   - 新账本 `--ledger` 只读验收：
+     `.venv/Scripts/python -m pipeline.dataset_compiler.acceptance --fixture pipeline/corpus/_fixture/qianyuan_ed01_text --check publication --ledger var/ledgers/qianyuan_t04b`
+     实测输出：`SUMMARY pass=9 fail=0 blocked=1`（`evidence_chain_closure` PASS，`watermark_disclosure` PASS，`identity_migration` BLOCKED，0 FAIL）。
+   - 正本指纹核对：`var/ledgers/qianyuan_w8` 全程安全隔离读取，未产生任何临时文件，指纹保持 `875139aef3e4d5cfea546de09439e68efa172701b3f4d913ad396fde27f9f75b`（361 个文件）。
