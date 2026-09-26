@@ -167,20 +167,35 @@ contract: |
        两难"这个既有边界，不新增更强约束，不修 Pattern 那处已知缺陷。
     2. Concept 退役目前无场景触发，本任务不新增专门处理，只要号位收集函数
        能正确识别 `co_` 前缀即可。
-    3. **向后兼容（新增边界，Concept 特有）**：真书账本
-       `var/ledgers/qianyuan_t04` 上已有的 Snapshot **没有**
-       `id_range["co_qizheng"]` 键。`apply.py` 对 concept 的
-       `range_key`/`range_start` 计算**不得**照抄 pattern 那样在缺键时
-       `AssemblyRefused`——缺键时 `range_start` 取 `0`，并把这个缺省值
-       **写回** `knowledge["id_range"]`（下一轮起就有了，不需要一次性迁移
-       脚本、不需要额外操作 `var/ledgers/qianyuan_t04`）。
+    3. **向后兼容（新增边界，Concept 特有；2026-09-26 协调者更正）**：真书
+       账本 `var/ledgers/qianyuan_t04` 上已有的 Snapshot **没有**
+       `id_range["co_qizheng"]` 键。`apply.py` 对 concept 的 `range_key`/
+       `range_start` 计算**不得**照抄 Pattern 那样在缺键时
+       `AssemblyRefused`——缺键时 `range_start` 取 `0`。**但撞号风险已更正
+       （不是简单取 0 就完）**：旧 Snapshot 即使没有 `id_range["co_qizheng"]`
+       这个号段声明键，也可能**已经含有**带 `concept_ref` 的
+       `co_<tech>_NNNNNN` 概念对象（例如 `mini_ed01` 一类夹具，走 1.1
+       "已有 concept_ref"路径进 Snapshot、不经本任务发号机制）。因此
+       `watermark` 必须无条件按 `_used_concept_numbers` 扫描 Snapshot 里
+       **现存**的 `co_<tech>_NNNNNN` 概念对象（`base_state["concepts"]`）
+       与**已退役号**（`base_state["retired"]`，与 Pattern 的
+       `_used_pattern_numbers` 同口径，两者都要扫，不能只扫活对象），取
+       其中最大号；一个都没有才是 `0`。新发号仍走
+       `number = max(watermark + 1, range_start)`（与 Pattern 逐字同一行
+       逻辑）。`range_start` 缺省 `0` 这个值本身，在组装
+       `knowledge["id_range"]` 时**写回**（下一轮起就有了，不需要一次性
+       迁移脚本、不需要额外操作 `var/ledgers/qianyuan_t04`）——**写回的是
+       `range_start` 缺省值，不是算出来的 watermark**，watermark 每轮都
+       重新扫描，不缓存、不写进 `id_range`。详细理由与撞号场景见 README
+       2.2「向后兼容」一节的更正说明。
 tests_first: |
   按 TDD.md 第 1–6 节逐条写，贴 Red 原文（`unittest` 的失败/错误摘要即可，
   不需要贴完整堆栈）。**建议按 TDD.md 的节顺序做（第 1 节 M6 队列 → 第 2 节
   M7 发号 → 第 3–4 节 span 归属/schema → 第 5 节 M8 mentions → 第 6 节
   R15 全链路），每节全绿才进下一节**，因为后面节的用例依赖前面节的产物形状。
-  至少覆盖 TDD.md 里列出的全部具名用例（第 1 节 5 条、第 2 节 7 条、第 3 节
-  3 条、第 4 节 3 条、第 5 节 4 条、第 6 节 1 条 R15）。
+  至少覆盖 TDD.md 里列出的全部具名用例（第 1 节 5 条、第 2 节 8 条（含
+  2026-09-26 协调者更正新增的撞号护栏用例）、第 3 节 3 条、第 4 节 3 条、
+  第 5 节 4 条、第 6 节 1 条 R15）。
 verify: |
   cd <仓库根> && export LC_ALL=en_US.UTF-8   # 云端容器用 C.UTF-8，见 AGENTS.md
   .venv/bin/python -m unittest discover -s pipeline/review/tests -t . 2>&1 | tail -3
@@ -195,7 +210,7 @@ verify: |
   git status --short pipeline/corpus/_fixture/mini_ed01/     # 无输出（金标未动）
   git diff --stat -- pipeline/assembly/genesis.py pipeline/dataset_compiler/step.py pipeline/dataset_compiler/gate.py pipeline/dataset_compiler/acceptance.py
       # 无输出（这四个文件本任务不改）
-  # 篡改探针（TDD.md §7 六条，cp 备份→改→验证转红→cp 恢复→验证转绿，六条都要贴三行结果）
+  # 篡改探针（TDD.md §7 七条，cp 备份→改→验证转红→cp 恢复→验证转绿，七条都要贴三行结果）
   # 真书/qianyuan_ed01_text 宿主复核（完成判据 2，在临时账本副本上做）：
   cp -R var/ledgers/qianyuan_t04 <临时目录>/qianyuan_t04_probe
   # 在副本上：M4 补一条最小 new_concept_candidate（真实 span_id/文本）→ M6 open_review/
@@ -270,7 +285,7 @@ on_fail: |
 - M6 队列（一节）Red→Green 提交哈希：
 - M7 发号（二节）Red→Green 提交哈希：
 - M8 mentions（三节）Red→Green 提交哈希：
-- 篡改探针三行结果（六条，TDD.md §7）：
+- 篡改探针三行结果（七条，TDD.md §7）：
 - 真书/宿主复核结果（副本上 M4→M6→M7→M8 全链路，逐步输出）：
 - `--check publication` 副本上 `knowledge_chain`/`graph_projection` 两行原文：
 - `m8-span-identity.sh` 改前/改后 `mentions_mapping` 行原文对照：

@@ -62,7 +62,8 @@ pipeline/assembly/tests/` 核实放哪个文件）。
 | `test_new_concept_candidate_without_m6_approval_is_not_materialized_even_with_auto_proposal` | 候选走完 R04 auto 提案生成（走 `apply_resolutions` 正常 `proposals` 参数），但决定环节 reject 或缺失 | 同上 | 不材化；`report["admit_new_without_object"]` 如实含这一条（`reason: candidate_not_materialized`），因为它是"有提案、没批准"的情形 | 这是本节唯一真正的新护栏（对应 README 2.4），本任务改动 `_build_concepts` 后必须仍然守住这一条，若不小心把"只要有 auto 提案就材化"写错了，本用例转红 |
 | `test_used_concept_numbers_include_retired_and_base_concepts` | `base_state["concepts"]` 与 `base_state["retired"]` 各含若干 `co_qizheng_NNNNNN` 号 | 调 `_used_concept_numbers(base_state, "qizheng")` | 返回集合含两边全部号，格式非 `co_qizheng_` 前缀的（如 `co_shared_qizheng_01`）不计入 | `_used_concept_numbers` 函数不存在，`AttributeError`/`ImportError` |
 | `test_allocate_ids_reports_concept_watermark` | `base_knowledge` 含若干 `concepts[]`，加一条本轮已获批带正式 `co_` 号的 concept_mention 视图 | 调 `incremental.allocate_ids(base_knowledge, views)` | 返回值 `id_allocation` 含 `"co_qizheng"` 键，值为已用号最大值 | `allocate_ids`（`incremental.py:158-205`）现在只算 `"pat_%s"` 键，没有 concept 键 |
-| `test_id_range_missing_co_key_defaults_to_zero_and_is_backfilled` | `base_knowledge["id_range"]` **没有** `"co_qizheng"` 键（模拟真书现有 Snapshot 的状态） | `apply_resolutions(...)` | 不抛异常（与 Pattern 缺 `pat_<tech>` 时的硬性 `AssemblyRefused` 刻意不同）；返回的 `knowledge["id_range"]["co_qizheng"]` 被回填为一个合理缺省（执行者按 README 2.2「向后兼容」选定的具体缺省值，写清楚选了什么并在这条用例里断言这个具体值） | 这是 README 2.2「向后兼容」一节要求的行为，实现前会直接 `AssemblyRefused`（如果照抄 Pattern 的硬性检查）或 `KeyError`（如果没处理这个键） |
+| `test_id_range_missing_co_key_defaults_to_zero_and_is_backfilled` | `base_knowledge["id_range"]` **没有** `"co_qizheng"` 键（模拟真书现有 Snapshot 的状态），且 `base_knowledge["concepts"]` 为空（这条只测缺键本身，不测撞号，撞号场景见下一条） | `apply_resolutions(...)` | 不抛异常（与 Pattern 缺 `pat_<tech>` 时的硬性 `AssemblyRefused` 刻意不同）；返回的 `knowledge["id_range"]["co_qizheng"]` 被回填为一个合理缺省（执行者按 README 2.2「向后兼容」选定的具体缺省值，写清楚选了什么并在这条用例里断言这个具体值） | 这是 README 2.2「向后兼容」一节要求的行为，实现前会直接 `AssemblyRefused`（如果照抄 Pattern 的硬性检查）或 `KeyError`（如果没处理这个键） |
+| `test_id_range_missing_co_key_with_existing_concept_allocates_strictly_above_existing_max` | `base_knowledge["id_range"]` **没有** `"co_qizheng"` 键，但 `base_knowledge["concepts"]` 里**已经存在**一条带 `concept_ref` 的 `co_qizheng_000003`（例如仿 `mini_ed01` 那种"已有 concept_ref、不经本任务发号机制进 Snapshot"的既有概念），同批再批准一条 `new_concept_candidate` | `apply_resolutions(...)` | 新分配的号**严格大于** `3`（不是从 `1` 开始，不撞已存在的 `co_qizheng_000003`）；再补一种情形：`co_qizheng_000003` 不在活对象里而在 `base_knowledge["retired_entity_ids"]`（已退役），新号仍必须严格大于 `3`（与 Pattern 的 `_used_pattern_numbers` 同时扫活对象与退役号同一口径） | 若实现按「协调者更正前」的写法把缺键场景的 `range_start`/`watermark` 一律定死为 `0` 而不扫描 `base_state["concepts"]`/`base_state["retired"]`，新号会从 `1` 开始，撞上已存在的 `co_qizheng_000003`，本用例的"严格大于"断言失败 |
 
 ## 3. `pipeline/assembly/tests/test_apply.py`：Concept 装配时保留 span 归属
 
@@ -129,6 +130,11 @@ offset 档），不要新开 class（除非发现既有 class 的 `setUp` 与本
 6.（第 2 节）把 `_build_concepts` 里"消费已批准 new_concept_candidates"那段
    删掉 → 第 2 节 `test_approved_new_concept_candidate_allocates_fresh_co_id`
    等转红。
+7.（第 2 节，撞号护栏，2026-09-26 协调者更正新增）把缺
+   `id_range["co_qizheng"]` 时的 `watermark` 计算改回"缺键就是 `0`"
+   （即改回不扫描 `base_state["concepts"]`/`base_state["retired"]` 的旧写法）
+   → `test_id_range_missing_co_key_with_existing_concept_allocates_strictly_above_existing_max`
+   转红（新号会撞上已存在的 `co_qizheng_000003`）。
 
 每条篡改前先 `cp` 备份改动文件（不是整仓），验证转红后立刻 `cp` 恢复，
 把"改前 OK / 改后转红 / 恢复后 OK"三行贴进回报，不许只写结论。

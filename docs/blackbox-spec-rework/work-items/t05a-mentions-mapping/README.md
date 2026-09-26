@@ -478,22 +478,52 @@ pattern，本次照样加 `concept_mention`/`new_concept_candidate` 两类，附
   只要 `_used_concept_numbers`/`_concept_id_allocation` 遍历
   `base_state["retired"]` 时能正确识别 `co_` 前缀的号（复用 `_number_of`
   风格的前缀匹配即可，退役号本身怎么产生不是本任务的事）。
-- **向后兼容（新增边界，Pattern 没有这个问题，Concept 有）**：真书账本
-  `var/ledgers/qianyuan_t04` 上已经存在一个**没有** `id_range["co_qizheng"]`
-  键的 Snapshot（T04B/T05f 产出时就没有这个键，因为这个键是本任务才引入的）。
-  若照抄 Pattern 在 `apply_resolutions` 开头的硬性检查（`apply.py:236-241`：
-  缺 `id_range[range_key]` 就 `AssemblyRefused`），**下一次任何人对着真书账本
-  跑 `apply_resolutions`（包括本任务自己验证时）都会先炸在这一步**，不是因为
-  新代码有 bug，是因为老 Snapshot 缺新键。**本任务定的处理方式（机械决定）**：
-  `apply.py` 在算 `range_key`/`range_start` 那几行旁边，对 concept 的
-  `range_key = "co_%s" % technique_id` 单独处理成**不 raise 的缺省**——
-  若 `id_range` 没有这个键，`range_start` 取 `0`，且在组装 `knowledge["id_range"]`
-  时把这个缺省值**写回**（下一轮起 Snapshot 就有这个键了，不需要一次性
-  迁移脚本、不需要额外操作 `var/ledgers/qianyuan_t04`）。这是与 Pattern
-  刻意不同的一点（上面对照表已注明），因为 Pattern 这个字段从 Snapshot
-  诞生第一天就存在，从来没有"老 Snapshot 缺新键"的问题，Concept 现在是
-  中途加字段，两种情况不同，处理方式理应不同，不是执行者可以自由选的
-  "待裁决"，是本文档定的机械规则，照做即可。
+- **向后兼容（新增边界，Pattern 没有这个问题，Concept 有；2026-09-26 协调者
+  更正）**：真书账本 `var/ledgers/qianyuan_t04` 上已经存在一个**没有**
+  `id_range["co_qizheng"]` 键的 Snapshot（T04B/T05f 产出时就没有这个键，
+  因为这个键是本任务才引入的）。若照抄 Pattern 在 `apply_resolutions`
+  开头的硬性检查（`apply.py:236-241`：缺 `id_range[range_key]` 就
+  `AssemblyRefused`），**下一次任何人对着真书账本跑 `apply_resolutions`
+  （包括本任务自己验证时）都会先炸在这一步**，不是因为新代码有 bug，是因为
+  老 Snapshot 缺新键。
+
+  **本文档最初版本定的处理方式（缺键时 `range_start` 一律取 `0`）有撞号
+  风险，已更正**：老 Snapshot 虽然没有 `id_range["co_qizheng"]` 这个**号段
+  声明**键，但**可能已经含有带 `concept_ref` 的 `co_qizheng_NNNNNN` 概念
+  对象**——例如 `pipeline/corpus/_fixture/mini_ed01` 一类夹具，若其
+  `concept_mentions` 早就显式声明过某个 `co_qizheng_000003` 之类的号（走
+  1.1 提到的"已有 `concept_ref`"路径，不需要本任务的发号机制就能进
+  Snapshot），那么"缺键就把 `range_start` 定死为 0"会让 `_allocate_new_concepts`
+  从 1 号开始发号，**撞上** Snapshot 里已经存在的 `co_qizheng_000001`
+  这类号——这正是 Pattern 侧 `range_start`/`watermark` 两者取
+  `max()`（`apply.py:748`：`number = max(watermark + 1, range_start)`）
+  要防的那类问题，缺键时只处理 `range_start` 却不管 `watermark`/已用号集合
+  就会把这层保护绕过去。
+
+  **更正后的处理方式（机械决定，仍不是待裁决项）**：`apply.py` 在算
+  concept 的 `range_key`/`range_start` 那几行旁边，对 concept **单独处理成
+  不 raise 的缺省**——若 `id_range` 没有这个键：
+    1. `range_start` 缺省取 `0`（不变）；
+    2. 但**紧接着**，`watermark`（决定发号从哪开始，见对照表第 2 行的
+       `allocate_ids`/`_concept_number_of`）仍必须按 `_used_concept_numbers`
+       同一套逻辑，扫过 Snapshot 里**现存**的 `co_<tech>_NNNNNN` 概念对象
+       （`base_state["concepts"]`）与**已退役号**（`base_state["retired"]`，
+       与 Pattern 侧 `_used_pattern_numbers` 同口径，两者都要扫，不能只扫
+       活对象），取其中的最大号；若一个都没有，`watermark` 才是 `0`。
+    3. 新发号仍走 `number = max(watermark + 1, range_start)`（与 Pattern
+       逐字同一行代码逻辑，`range_start` 缺省 0 时这一步自然退化成
+       "从现存最大号+1 开始"，不需要为 concept 另写一条不同的取最大值公式）。
+    4. 在组装 `knowledge["id_range"]` 时把这个缺省值（`0`，不是算出来的
+       watermark）**写回**（下一轮起 Snapshot 就有这个键了，不需要一次性
+       迁移脚本、不需要额外操作 `var/ledgers/qianyuan_t04`）。
+
+  换句话说：**缺键只影响 `id_range` 这个"声明的号段下限"，不影响"已用号
+  集合"的扫描**——已用号集合本来就该无条件扫描（Pattern 侧从来不会因为
+  `id_range` 有没有声明就跳过扫描 `base_state["patterns"]`），本次更正只是
+  把 concept 版本里被漏掉的这一步补上，逐字对齐 Pattern 现有逻辑，不是
+  发明新规则。这仍是与 Pattern 刻意不同的**唯一**一点（`id_range` 键的
+  存在性要求从 raise 改成缺省 0），已用号扫描本身与 Pattern 完全同形，
+  不是执行者可以自由选的"待裁决"，是本文档定的机械规则，照做即可。
 
 ### 2.3 M7 侧先红后绿
 
