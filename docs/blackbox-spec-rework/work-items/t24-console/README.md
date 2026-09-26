@@ -3,24 +3,33 @@
 状态：**只完成本文档（含 TDD.md、act/01.yaml、PRD 作废标注），未写实现代码**。范围收窄见文末「本轮范围」。
 实现将由用户本机的外部 agent 按本文档独立执行；本文档要写到它不需要再回来问设计问题。
 
-## 0. 前置阻断（写在最前面，因为它挡住一切实现）
+## 0. 基线（协调者 09-26 更正后）
 
-**本 worktree 所在分支（`worktree-agent-a5cf1bfd2b8d5baa0`，基于 `main`）没有 T04 的产出。**
-`main` 上 `pipeline/orchestrator/edition_run.py` 的 `start_edition_run(port, *, edition_part_id, technique_id)`
-不接受 `run_inputs`（无 `route: text`）；`advance()`、`run_release()` 的签名也和
-`docs/handoff/ASK-2026-09-26.reply.md`、`pipeline/tools/run_real_book_t04.py` 里描述的不一样；
-`pipeline/contract_registry/registry.yaml` 里 m4/m6/m7 的登记与 `resume_entry` 机制在本分支不存在。
+**本 worktree 已 `git merge claude/wizardly-maxwell-pqrzh9`**（合并提交 `6a06144`，merge 不是
+rebase，无冲突），因此本分支现在**含 T04 全部产出**：`registry.yaml` 里 m1～m8 全部登记，
+m4/m6/m7 都带 `resume_entry`；`start_edition_run` 接受 `run_inputs`；`run_real_book_t04.py`、
+`docs/handoff/ASK-2026-09-26.reply.md`、`docs/handoff/U07-decisions_supplement.yaml` 都已在本分支。
+下面第 6 节的公开入口签名、路径、行号均已在**合并后**的树上逐一重新核对（见本节末尾），
+以此为准；这不再是阻断，T24 的实现直接基于这条已合并的分支做。
 
-这些东西存在于另一条分支 **`claude/wizardly-maxwell-pqrzh9`**（本地已有该 ref，未合并进
-`main`，与本分支在 `f4df613` 分叉，各自往下走了不同的提交；两分支互不包含对方全部提交）。
-`TODO.md` 里 T24 这一条本身也只在 `claude/wizardly-maxwell-pqrzh9` 的 `TODO.md`（`f8d0d44`）里，
-本分支的 `TODO.md` 停在 T19。
+**已核对的签名/行号（2026-09-26，合并提交 `6a06144` 上实测）**：
 
-**结论：T24 的实现动不了，直到人类决定这两条分支怎么合。** 本文档按
-`claude/wizardly-maxwell-pqrzh9` 上已经存在的公开入口（`run_real_book_t04.py` 的调用序列）来写
-设计，是因为那是当前唯一「M1→M8 真的连通过一次」的证据；但实现者接手时的第一件事，
-必须是确认自己所在分支上这些入口是否存在、签名是否与本文档一致——不一致就停手，不要自己改公开
-入口的签名来凑。
+| 引用 | 位置 |
+|---|---|
+| `start_edition_run(port, *, edition_part_id, technique_id, run_inputs=None)` | `pipeline/orchestrator/edition_run.py:140` |
+| `advance(port, registry, handle, *, modules=None, stages=EDITION_STAGES)` | `pipeline/orchestrator/edition_run.py:265` |
+| `run_release(port, registry, edition_handle, *, modules=None)` | `pipeline/orchestrator/edition_run.py:369` |
+| `run_until(...)` | `pipeline/orchestrator/edition_run.py:450` |
+| `human.resume(port, registry, handle, step_run_id, resume_token, *, modules=None)`，legacy 绑定经 `_legacy_resume_entry` 调用描述符的 `resume_entry` | `pipeline/orchestrator/human.py:96-119`（`_legacy_resume_entry` 在 `:96`，`resume` 在 `:106`） |
+| `registry.yaml` m4 登记，`resume_entry: "pipeline.knowledge_extraction.step:resume_m4"` | `pipeline/contract_registry/registry.yaml:94-99` |
+| `registry.yaml` m6 登记，`resume_entry: "pipeline.review.step:close_review"` | `pipeline/contract_registry/registry.yaml:136-141` |
+| `registry.yaml` m7 登记，`resume_entry: "pipeline.assembly.step:resume_m7"` | `pipeline/contract_registry/registry.yaml:157-162` |
+| `run_m4_submit(...)` | `pipeline/knowledge_extraction/submit.py:69` |
+| `record_category_ruling(service, step_run_id, resume_token, ruling_doc)` | `pipeline/knowledge_extraction/step.py:703` |
+| `record_decision(service, step_run_id, resume_token, *, ...)` | `pipeline/review/step.py:434` |
+| `resume_token_hash` 只存哈希，明文不落盘 | `pipeline/ledger/store.py:97, 194, 397-415` |
+
+（第 8、9 节其余的行号引用同样已按合并后的树重新核实，不重复列在此表。）
 
 ## 1. 目标
 
@@ -204,9 +213,8 @@ Then 后端调用 human.resume(...)，M6 转为 succeeded，EditionRun 收口（
 ```gherkin
 Given EditionRun 已收口（complete）
 When 用户点击"生成发布包"
-Then 后端调用 run_release(adapter, registry, edition_part_id=..., technique_id=...)（**注意**：本分支
-   与 claude/wizardly-maxwell-pqrzh9 的 run_release 签名不同，实现者要先核实自己分支上的真实签名，
-   见第 0 节）
+Then 后端调用 run_release(adapter, registry, handle)（签名 `run_release(port, registry, edition_handle, *, modules=None)`，
+   `pipeline/orchestrator/edition_run.py:369`，合并后已核实与本文档一致）
  And 界面显示 M7 创世与 M8 编译的结果（knowledge_chain 状态、PublicationPackage 修订号）
 When 用户点击"下载"
 Then 后端把该 PublicationPackage 打包（或直接给出已封存的字节）供浏览器下载
@@ -264,7 +272,8 @@ Then 每次提交仍是一次独立的 record_category_ruling / record_decision 
 ## 6. 公开入口函数与调用顺序
 
 按 `claude/wizardly-maxwell-pqrzh9` 上 `pipeline/tools/run_real_book_t04.py` 的驱动序列
-（本文档设计的调用顺序**以它为基准**，实现时先核对自己分支上的真实签名，见第 0 节与第 10 节）：
+（合并 `claude/wizardly-maxwell-pqrzh9` 后，本文档设计的调用顺序与函数签名已在 `6a06144` 上
+逐一核对，见第 0 节的对照表；下面调用序列里的参数名与实际签名一致）：
 
 ```
 start_edition_run(adapter, edition_part_id=..., technique_id=..., run_inputs={"route": "text", ...})
@@ -301,7 +310,29 @@ run_release(adapter, registry, edition_part_id=..., technique_id=...)   # M7 创
 - `console_frontend/src/*`：把现有 mock 数据源换成对上面端点的真实请求；新增"AI 预审建议"展示
   与"采纳建议"交互（S9/S10）。
 - `pipeline/contract_registry` 下 `scan_ledger_internals` 对 `console_backend` 的扫描范围要覆盖
-  新代码（若该函数按目录扫描则自动覆盖，需实现者核实）。
+  新代码（见下方基线，它是通用函数、按传入的 `roots` 扫描，不需要改代码就能覆盖 `console_backend`，
+  但目前没有任何契约测试拿 `console_backend` 当 `roots` 调用它——实现阶段要新增这条测试，
+  而不是假设它已经被谁扫描了）。
+
+### 7.1 `scan_ledger_internals(console_backend)` 当前基线（本次已实测，2026-09-26，`6a06144`）
+
+```python
+from pipeline.contract_registry.acceptance import scan_ledger_internals
+scan_ledger_internals(["console_backend"])
+# => []（0 处命中）
+```
+
+**这个 0 不是"已经干净"的证明，读法要小心**：`scan_ledger_internals` 的检测规则是
+`LEDGER_INTERNAL_RE = r"\.store\b|\.objects\b"`（`pipeline/contract_registry/acceptance.py:53`）——
+它找的是"对 LedgerPort/service 对象直接访问 `.store`/`.objects` 属性"这种绕过端口的写法。
+`console_backend` 现在**完全没有 import `pipeline.orchestrator`/`pipeline.ledger`**（它自己的
+`SqlitePipelineRepository` 是另一个独立的 SQLite 库，见 §7 上面几条），所以正则天然扫不到任何
+东西——0 命中只说明"现在还没碰 Ledger"，不说明"改造完之后仍然干净"。
+**实现阶段真正的判据是：接上 `orchestrator_client` 之后重跑这条扫描，必须仍然是 0**；
+这条基线（改造前 0）本身没有意义，只是留作"改造前/改造后对照"的起点，且应该在
+`pipeline/contract_registry/tests/` 里新增一条用例把 `console_backend` 纳入某个既有或新增的
+`modules_port_clean` 同类检查里长期钉住（而不是只手动跑一次），否则以后谁悄悄写了
+`service.store...` 也不会被回归发现。
 
 ## 8. resume_token 与后端重启问题（调查结论）
 
@@ -339,49 +370,118 @@ run_release(adapter, registry, edition_part_id=..., technique_id=...)   # M7 创
 本文档不擅自选定，写在这里等人类裁决；实现者在开工前应先确认是否已有裁决，没有裁决就先按候选 C
 的展示行为实现（如实提示），不要自己发明落盘方案。
 
-## 9. console_backend 现有 2 个测试 error 的原因（已查明，非代码逻辑 bug）
+### 8.1 推荐与理由（供人类裁决参考，不是本文档的最终决定）
+
+推荐**默认先实现候选 C，把候选 B 列为长期候选，不推荐候选 A**：
+
+- **候选 C（运维约束：进程常驻不重启）优先**，因为它不需要改任何生产代码或新增落盘面，
+  和"resume_token 只存进程内存"的字面约束零冲突；代价是操作上要求控制台进程被容器/进程
+  管理器保活，一旦真的重启，界面如实显示"需要重新获取恢复凭证"（S8 已写成 BDD 场景），
+  用户仍可以通过第 10 节以外的手段（人工核对 Ledger、走既有的 `docs/handoff` 里那类
+  "回放人工决定"脚本重建裁决）兜底，不是彻底不可恢复，只是不能"点一下就续跑"。
+- **候选 B（Ledger 重新签发 token）是更彻底的长期修法**：它不违反"不许落盘"，只是把
+  "拿旧 token"换成"拿新 token"，语义上更贴近现有 `resume_token_hash` 一次性消费的设计
+  （新签发时旧哈希失效，行为上类似 `_check_token` 现在做的版本号校验）。但它要改
+  `pipeline/ledger`/`pipeline/orchestrator` 的生产代码，属于本任务书第 7 条"不改 pipeline/
+  下生产代码"，需要单独裁决破例；不建议在没有裁决的情况下由实现者自己动手。
+- **不推荐候选 A**：把 `resume_token` 落盘到控制台自己的本地文件，字面上仍然是"把 token
+  写到了磁盘"，即使不写进 Ledger，也很可能被理解为违反"resume_token 不许落盘"这条铁律的
+  精神（该铁律的目的是防止一次性凭证被长期保存、被拷贝、被日志意外记录），风险收益比最差。
+
+### 8.2 与 §7.1 基线的关系
+
+一旦选定候选 B 或候选 C，`orchestrator_client.py` 都需要维护一个进程内存里的
+`{step_run_id: resume_token}` 映射（§7 已列），这个映射本身是否被序列化/写文件，是
+§7.1 那条 `scan_ledger_internals` 回归要盯住的东西之一（正则扫不到"写文件"这种操作，
+所以还需要 TDD.md 里 `test_resume_token_never_written_to_disk_or_log` 这条独立的按字节
+搜索测试，两者互补，不能只依赖 `scan_ledger_internals`）。
+
+## 9. console_backend 现有 2 个测试 error：根因、已验证过的修法排除、确切可用修法
 
 ```
 export LC_ALL=C.UTF-8 && .venv/bin/python -m unittest discover -s console_backend/tests -t .
-# Ran 6 tests ... FAILED (errors=2)
+# Ran 6 tests in 0.001s
+# FAILED (errors=2)
 # ERROR: console_backend.tests.test_api_and_ws
 # ERROR: console_backend.tests.test_workbench_api
 ```
 
 两个失败都发生在 **import 阶段**（`from fastapi.testclient import TestClient`），根因是
-本机 `.venv`（Python 3.14.0rc2 + `pydantic==2.13.5` + `fastapi==0.141.1`）的版本组合不兼容：
-`fastapi/openapi/models.py` 在模块加载时构造 `Contact` 这个 pydantic 模型，pydantic 的
-`_typing_extra.eval_type_backport` 调用了 `typing._eval_type(..., prefer_fwd_module=True)`，
-而 Python 3.14.0rc2 的标准库 `typing._eval_type` 不接受这个关键字参数，最终抛
+`.venv`（`uv venv --python 3.14` → 实际装出 **Python 3.14.0rc2**；`pydantic==2.13.5`；
+`fastapi==0.141.1`，均见 `requirements-dev.txt:9,21,22`）的版本组合不兼容：
+`fastapi/openapi/models.py` 在模块加载时构造 `Contact` 这个 pydantic 模型（字段
+`email: EmailStr | None = None`），pydantic 的 `_typing_extra.eval_type_backport`（或
+2.14.0b2 里改名后的 `eval_type`）调用了 `typing._eval_type(..., prefer_fwd_module=True)`，
+而 **Python 3.14.0rc2** 标准库里的 `typing._eval_type` 不接受这个关键字参数，抛
 `TypeError: _eval_type() got an unexpected keyword argument 'prefer_fwd_module'`，
-被 pydantic 自己的异常处理吞掉后重新抛出 `AssertionError`。
+被 pydantic 自己的异常处理吞掉后重新抛出 `AssertionError`。这不是 console_backend 代码的
+逻辑缺陷，是 Python 3.14 预发布版与 pydantic 之间一个已知形态的兼容性缺口。
 
-这**不是 console_backend 代码的逻辑缺陷**，是环境里 pydantic 与 Python 3.14 之间的兼容性问题，
-任何 import `fastapi` 的测试模块在这套环境下都会这样错。修法候选（本次不做，留给实现者或
-`tools/jules_setup.sh` 的维护者裁定，因为这属于环境/依赖版本，不属于本文档"只写文档"的范围）：
-- 升级/降级 `pydantic`（或连带 `fastapi`）到一个与 Python 3.14.0rc2 兼容的版本组合，
-  重新锁定 `console_backend/requirements*.txt`（若有）或 `tools/jules_setup.sh` 里的版本；
-- 或者等 Python 3.14 出正式版、pydantic 出适配版本后再验证。
-**这个问题独立于 T24 的设计工作，但会挡住 T24 实现阶段"先写测试红后绿"的第一步**
-（因为新写的 console_backend 测试大概率也要 `from fastapi.testclient import TestClient`）。
-实现者开工前应先确认这个环境问题是否已被别的会话修过；没修过就先修（不算违反"不改
-pipeline/ 生产代码"，这是环境依赖版本，不是 pipeline 代码）。
+### 9.1 已实测、确认无效或不可行的修法（避免实现者重复踩坑）
+
+- **升级 pydantic 到 `2.14.0b2`（当前唯一比 2.13.5 新的可安装版本，稳定版里 `2.13.5` 已是最新）**：
+  `uv pip install --python .venv/bin/python "pydantic==2.14.0b2"` 之后重跑同样的测试，
+  **仍然报同一个根因**（`prefer_fwd_module` 这个 kwarg 依旧被传给 `typing._eval_type`），
+  只是报错信息前多了一行 `Unable to evaluate type annotation str | None.`（已实测，2026-09-26）。
+  **升级 pydantic 到目前能拿到的最新版本不能解决这个问题**，不要在这个方向上重复尝试。
+- **降级 pydantic 到 `2.10.6`**（更早、不含这段兼容代码的版本）：`uv pip install` 会去装配套的
+  `pydantic-core==2.27.2`，但该版本在 PyPI 上**没有 Python 3.14 的预编译 wheel**，`uv` 会本地用
+  `maturin`/`cargo` 从源码编译，实测**编译失败**（`command ['maturin', 'pep517', 'build-wheel', ...]
+  returned non-zero exit status 1`）。降级路线在当前环境不可行（除非另外装 Rust 工具链并接受
+  长编译时间，价值不高，不推荐）。
+
+### 9.2 确切可用的修法（已实测通过）
+
+**根因是 CPython 3.14.0rc2（预发布版）标准库 `typing` 模块缺一个 pydantic 期望存在的参数，
+不是 pydantic 版本选得不对**。本机已经装有 **Python 3.13.12**（`/usr/bin/python3.13`，
+`uv python list` 可见），用它建一个独立的 venv、装同一份 `requirements-dev.txt`，
+`console_backend` 的两个测试模块 import 正常，全部测试通过：
+
+```bash
+cd /home/user/learn_system_dataset/.claude/worktrees/agent-a5cf1bfd2b8d5baa0
+uv venv .venv-py313 --python 3.13.12
+uv pip install --python .venv-py313/bin/python -r requirements-dev.txt
+export LC_ALL=C.UTF-8
+.venv-py313/bin/python -m unittest discover -s console_backend/tests -t .
+# 实测输出：Ran 22 tests in 0.297s / OK
+```
+
+（"Ran 6 tests"→"Ran 22 tests"的差异是因为原来两个模块 import 失败时，`unittest` 只能把
+每个失败模块记成一个占位的 `_FailedTest`，真正能收集到的用例数远少于模块内实际的测试方法数；
+import 成功后才收集到全部 22 个真实用例。）
+
+**建议做法**：不动 `pydantic`/`fastapi` 的版本锁定（`requirements-dev.txt` 不改），只是给
+`console_backend` 的测试运行**换一个 Python 解释器版本**（3.13.12 而非 3.14.0rc2）。
+具体落地方式留给实现者按仓库惯例二选一，写进回报里说明选了哪个：
+- (a) 只给 `console_backend/tests` 单独维护一个 `.venv-console`（3.13），11 个 pipeline 包仍用
+  现有 `.venv`（3.14），两套环境并存，`TDD.md`/CI 脚本分别指向各自的解释器；
+- (b) 或者验证 11 个 pipeline 包在 Python 3.13.12 下全绿后，把整仓库的 `tools/jules_setup.sh`
+  改成装 3.13（**本次未验证 11 个包在 3.13 下是否全绿，不能预先断言可行**，这一步本身要按
+  "先跑一次基线、记录结果"来做，不能想当然）。
+
+**这个问题独立于 T24 的设计工作，但会挡住 T24 实现阶段"先写测试红后绿"的第一步**，因此把它列为
+`act/01.yaml` 的**前置修复步骤（第一步）**：实现者开工前先按上面命令验证通过，再开始写
+TDD.md 第 1 节的新测试；这属于环境/依赖版本问题，修复它不算违反"不改 pipeline/ 下生产代码"
+（`requirements-dev.txt` 与 venv 解释器版本都不是 `pipeline/` 下的生产代码）。
 
 ## 10. 实现者开工前必须先做的核实清单
 
-1. 确认本 worktree/分支是否已经合并/rebase 了 `claude/wizardly-maxwell-pqrzh9` 的 T04 相关提交
-   （或人类已经决定了别的合并方案）；没有就先停手上报，不要自己 merge/rebase 到 main
-   （铁律 2、4）。
-2. 在自己真正要跑的分支上，重新读一遍 `pipeline/orchestrator/edition_run.py`、
-   `pipeline/orchestrator/human.py`、`pipeline/knowledge_extraction/step.py`、
-   `pipeline/review/step.py` 的公开函数签名，逐一核对本文档第 6 节的调用序列——签名不同就
-   按实际签名改文档（先改文档再写代码），不要靠猜。
-3. 确认 §9 的环境问题是否仍然存在；仍存在就先修，按"先写测试确认红，再修，再确认绿"的顺序，
-   并做一次篡改探针（如临时把 pydantic 版本改错再改回，观察测试红绿）。
-4. 确认 §8 的 resume_token 落盘问题是否已有裁决；没有就按候选 C 的展示行为实现，不要自创方案。
-5. 跑一次 `pipeline.contract_registry` 的 `scan_ledger_internals`（或等价扫描）针对
-   `console_backend`，作为改造前基线记录下来（预期非空，因为现在整个 repository.py 都在绕开
-   LedgerPort）。
+本文档所依据的分支状态已经是合并后的 `6a06144`（本 worktree 当前 HEAD 的父提交之一）；
+下面几条是**实现者在自己实际开工的那次会话/分支上**要重新确认的，因为不能保证实现者拿到的
+分支就是原封不动的 `6a06144`（可能又有新提交、可能是另一次从 main 或别的地方开的 worktree）：
+
+1. 确认自己所在分支包含本文档第 0 节列出的全部签名/行号（一条条重新 `grep`/`Read` 核对一遍，
+   不要假设"文档写了就是对的"）；不一致就先按实际签名更新本文档，再动代码。
+2. 按 §9.2 的确切命令先修好 `console_backend` 的测试环境（Python 3.13.12 起独立 venv），
+   确认 `.venv-py313/bin/python -m unittest discover -s console_backend/tests -t .` → `OK`
+   之后才开始写 TDD.md 第 1 节的新测试；对这一步本身做一次篡改探针（例如临时把
+   `.venv-py313` 换回指向 3.14 的解释器，观察测试是否变回同样的 2 个 error，然后改回）。
+3. 确认 §8/§8.1 的 resume_token 落盘问题是否已有人类裁决；没有就按候选 C（默认推荐）的
+   展示行为实现，不要自创落盘方案，也不要因为觉得候选 B 更好就自己去改 `pipeline/ledger`。
+4. 重跑一次 §7.1 的 `scan_ledger_internals(["console_backend"])` 作为自己那次改动前的基线
+   （预期仍是 `[]`，因为改造前 `console_backend` 还没接 Ledger）；每接入一块新代码
+   （尤其是 `orchestrator_client.py`）就重跑一次，确保接入后仍然是 `[]`，并补一条
+   `pipeline/contract_registry/tests/` 下的回归用例把这个检查钉住（§7.1 已说明原因）。
 
 ## 11. 完成判据（对齐 act/01.yaml，汇总）
 

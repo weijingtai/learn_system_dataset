@@ -31,8 +31,20 @@ FAILED (errors=2)
 `typing._eval_type` 不兼容，`import fastapi` 时构造 `fastapi.openapi.models.Contact` 触发
 `TypeError: _eval_type() got an unexpected keyword argument 'prefer_fwd_module'`，最终以
 `AssertionError` 形式向上抛出，两个测试模块都在 `from fastapi.testclient import TestClient`
-这一行 import 失败。**这是本次开工基线的既有红，不是本次改动引入的**；实现者动手前必须先处理
-（见 README.md §9 修法候选），否则新写的测试无法跑。
+这一行 import 失败。**这是本次开工基线的既有红，不是本次改动引入的**；已实测升级/降级
+pydantic 均不能解决（README.md §9.1），**确切可用的修法是换 Python 解释器版本**
+（README.md §9.2）：
+
+```bash
+uv venv .venv-py313 --python 3.13.12
+uv pip install --python .venv-py313/bin/python -r requirements-dev.txt
+export LC_ALL=C.UTF-8
+.venv-py313/bin/python -m unittest discover -s console_backend/tests -t .
+# 实测：Ran 22 tests in 0.297s / OK
+```
+
+这一步已列为 `act/01.yaml` 的前置修复步骤（第一步），实现者动手写 TDD.md 第 1 节的新测试前
+必须先做，否则新写的测试无法跑（会在 import 阶段报同一个环境错误，而不是测出真正缺失的功能）。
 
 其余 11 个 pipeline 包 + tools 基线（本次已执行，回填证据）：
 
@@ -74,8 +86,8 @@ bash tools/jules_setup.sh   # 环境搭建自带跑一次 unittest：Ran 106 tes
 | S9 | `test_ruling_rationale_has_no_suggestion_tag_when_no_suggestion_shown` | 队列项没有匹配建议时，提交的 rationale 不包含 `[AI预审建议]` 标记（防止误标） | 同上 | |
 | S10 批量视图与进度 | `test_queue_endpoint_is_read_only_no_bulk_submit_route` | 契约测试：`console_backend` 路由表里不存在任何"批量提交决定"的端点（每次提交仍是单条 `queue_item_id`/`dispute_id`） | 同上 | |
 | 端到端（宿主 fixture） | `test_end_to_end_qianyuan_text_host_reaches_m8_via_http_api` | 用 `pipeline/corpus/_fixture/qianyuan_ed01_text` 在临时账本上，全程只经 FastAPI `TestClient` 调用控制台端点（S1→S7 全序列，决定用测试里显式给出的裁决/审核结果，可参考
-   `docs/handoff/U07-decisions_supplement.yaml` 的形状），断言最终 M8 succeeded 且能下载发布包 | 集成测试尚未写；且见 README §0——本分支缺 T04 基础设施，此测试要求的 `run_inputs`/`route:text` 支持在本分支尚不存在，实现者必须先解决 README §0 的分支阻断，否则这条测试连"红"都红不对（会红在"入口不支持该参数"而不是"功能未实现"） | |
-| 契约：不绕过 LedgerPort | `test_scan_ledger_internals_console_backend_is_empty`（放在 `pipeline/contract_registry/tests/`，扩展现有 `test_modules_port_clean_*` 同类用例，把 `console_backend` 纳入扫描目标） | `pipeline.contract_registry.acceptance` 的扫描器对 `console_backend/` 返回空列表 | 尚未确认 `scan_ledger_internals`/`modules_port_clean` 当前扫描目标是否已含 `console_backend`（README §7 已列为待核实）；若扫描器只扫 `pipeline/` 目录，需要新增一条把 `console_backend` 纳入扫描范围的用例（这属于扩展契约注册表，不算"改 pipeline 生产代码逻辑"，但改动前要停手确认这不会被算作放宽检查） | |
+   `docs/handoff/U07-decisions_supplement.yaml` 的形状），断言最终 M8 succeeded 且能下载发布包 | 集成测试尚未写；合并 `claude/wizardly-maxwell-pqrzh9` 后 `run_inputs`/`route:text` 已在本分支存在（README §0 已核实签名），本条不再有分支阻断，直接按 README §6 的调用序列实现即可 | |
+| 契约：不绕过 LedgerPort | `test_scan_ledger_internals_console_backend_is_empty`（放在 `pipeline/contract_registry/tests/`，新增一条独立用例，不是扩展 `test_modules_port_clean_*`——`modules_port_clean` 只按 `registry.yaml` 里登记的模块入口扫描，`console_backend` 不是登记模块，不会被它覆盖，需要单独调用 `scan_ledger_internals(["console_backend"])`） | `scan_ledger_internals(["console_backend"])` 返回 `[]` | **已实测基线**：改造前即为 `[]`（README §7.1），但这是"还没碰 Ledger"而不是"接了 Ledger 还干净"，红的地方是"这条回归用例本身还不存在"，不是数字不对；实现阶段接入 `orchestrator_client` 后要保证这条用例持续通过 | |
 | 硬约束：resume_token 不落盘 | `test_resume_token_never_written_to_disk_or_log`（借用/仿照 `docs/handoff/t04a.report.md` 提到的 `test_resume_token_never_persisted` 思路） | 全流程跑完后，`grep -r <token明文> $TMP_LEDGER_DIR console_backend/` 与后端日志文件均无命中 | 未写 | |
 
 ## 2. 与主线 TDD 的关系
