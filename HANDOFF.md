@@ -4,35 +4,24 @@
 
 > **2026-09-23 起本线移交云端（GitHub 上的 Claude Code 云端会话）。接手者先读 `docs/handoff/CLOUD-HANDOFF.md`，再读 `TODO.md`。** 下面是更早的本地交接记录，仅供查历史。
 
-更新时间：2026-09-23
-当前分支/worktree：`codex/docs/knowledge-compilation`；`/Users/jingtaiwei/Git/Public/learn_system`
+更新时间：2026-09-26
+当前分支/worktree：`t04`；`D:\Programme\learn_system_dataset\learn_system`
 刚完成：
-0. **M7 I 波（多版次对勘）完成并集成**：两条轨道并行——引擎在本机（ACT 29，`4a93821`），Gate 与验收判据在另一台机器上独立实现（ACT 30，`b718f71`），
-   合并 `badc65d` 后主 Agent 集成。**`run_all.sh 20.5` 首次 PASS，`m7-assembler.sh` pass=17 fail=0 blocked=0，`PLAN.md:94` 已打勾。**
-   缺文 / 增文 / 异文 / 对齐四类都有真实路径验证；真书第二轮仍零对勘关系、26 项不可比。详见 CHARTER §25–§31。
-   合并时两边独立实现暴露出一处裁定措辞的缝（§29 Q8 漏写 addition），已更正（§31.1）。
-1. **M7 增量汇编（impl-07 增量线，F/A/B/C/D/E/G1/H/G2 九波）收口**，总纲与全部裁定见
-   `docs/blackbox-spec-rework/work-items/impl-07-assembly/CHARTER-INCREMENTAL.md`（§1–§24）。
-   - 三条真实路径都有全栈验证：单本书首次汇编（创世）、新书加入（真书第二轮 13 项独立 Gate 全过）、
-     **同一本书改一版**（R15 全栈用例：临时 Ledger 上 r1→ed99→ed01r2 三轮 `run_m7`，不手工构造提案）。
-   - `assembly` **229 OK**；`m7-assembler.sh` `pass=16 fail=0 blocked=1`（原 `pass=11 blocked=5`，五条写死的「未实现」已全部改为实跑判定）；
-     新增真书判据 `upstream_m6_real_book` PASS；`upstream_m6_real` 旁加 NOTE 写明输入为合成桩。
-   - `run_all.sh 20.5` 已接线，按 `m7-assembler.sh` 真实退出码映射，当前为 BLOCKED（唯一原因见下）。
-   - 关键提交：`d80d143`（G1）`79bcbe7`（H）`de1a802`（G2）；验收记录 CHARTER §20、§23、§24。
+- **T04 阶段 4 收尾与阶段 5 验证全线收口**：
+  1. 快进合入 PR #2 与云端 T20/T21 修复（`origin/claude/wizardly-maxwell-pqrzh9` @ `5e74d5f`）。
+  2. 合入回放工具 `replay_human_decisions.py` 与 `run_real_book_t04.py`，补齐 U07 补充决定对位校验。
+  3. 跑通真书全线 M1→M8，产出 `rev_401cb768181b41bc923dc9203ffac3bb`。
+  4. 只读方式跑真书 `--ledger` 验收：`pass=9 fail=0 blocked=1`（`evidence_chain_closure` PASS，`watermark_disclosure` PASS，`identity_migration` BLOCKED，0 fail）。
+  5. 阶段 5 跑通 `openspec/acceptance/run_all.sh 20.1 20.2`（2 pass）与 11 包回归，正本指纹保持 `875139aef3e4d5cfea546de09439e68efa172701b3f4d913ad396fde27f9f75b`。
+  6. `docs/handoff/T04-CLOUD.report.md` 追加第 8 节实测证据，`TODO.md` 更新 T20 与 T21。
 进行到一半的事（精确到文件和章节）：
-- 无。M7 已收口，`PLAN.md:94` 已打勾。
+- 无。T04 阶段 4 和 5 已全部完成，真书账本 M8 验收 0 fail 落地。
 下一步（第一件事）：
-- **先读仓库根 `TODO.md`**（2026-09-23 起唯一待办入口），按「执行顺序」从 T01 开始一条条做，做完即改状态。
-- M7 无必做项，已知缺口已逐条定论（CHARTER §32.2，均为「报错停下、不会静默出错」的边界）。
-- 用户下一步：对 learn_system 生产 dataset 的架构、功能、代码做全面盘点。盘点起点：
-  `run_all.sh` 全局 `pass=3 fail=1 blocked=7`（CHARTER §32.1 逐项说明），11 个 pipeline 包全部测试通过。
-- 留给用户决定（CHARTER §32.4）：Gitea 受保护分支是否合入（备份分支 `backup/knowledge-compilation-20260923` 已含全部提交）；
-  废纸篓 3.6GB 探针副本；其他会话留下的未跟踪文件与 `.claude/worktrees/agent-ad7f…`。
+- 提交合并 PR / 等待主 Agent 或用户合并 `t04` 分支到主线。
+- 随后继续推进 `TODO.md` 下一未完成项（T05 / T18 / T22 等）。
 已知的坑：
-- 已知缺口（CHARTER §23.2）：多版次对勘；Concept 合并（规则表不可达）；同 source 不同 `edition_part_ids` 的扩展（仍拒收）；
-  `_id_allocation` 在最大号被退役时的两难；退役号被第三方引用时 fail-closed，不自动改指。
-- 本线七次「测试绿、真路径不通 / 判据与裁定不同步」，由此立 **R15**：每波验收须有一条真实形状输入走完全栈的用例；
-  新增公开函数须 grep 非测试调用点，只有测试调用的一律视为未接线（CHARTER §19.1、§21.1）。
+- 以只读方式访问真书账本时 SQLite 会临时生成 `-wal`/`-shm` 文件，校验正本指纹前需先清理或确保不计入。
+- T23 已暴露待用户裁决：M8 生产门禁在 offset 档跳过 `watermark_disclosure`，比验收松。
 - `corpus_compiler` 回归中间几行 `FAIL m3_acceptance` 是已知自检子进程噪声，以最后一行 `OK` 为准。
 
 ## （上一节）Web 综合控制台交付（2026-09-18）
