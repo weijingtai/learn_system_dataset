@@ -58,8 +58,9 @@ _CHECK_APPLICABILITY = {
     "release_manifest_hashes": "both",
     "input_reconciliation": "both",
     "consumption_level": "both",
-    # ACT 17 二.2：披露清单依赖 highlight_level（OCR 专有）→ 仅字框档实评
-    "watermark_disclosure": "glyphbox",
+    # T23（用户 2026-09-26 裁决 (a)，ACT 17 二.2 但书）：offset 档另有水印事实，两档实评；
+    # 仅 highlight_level → glyph_text_mismatch 的推导在 offset 档不适用（检查内部分档）
+    "watermark_disclosure": "both",
     "knowledge_chain": "transition",
     "chain_closure": "knowledge",
     "no_assertion_bypass": "knowledge",
@@ -546,7 +547,13 @@ def evaluate_publication(
         required = set()
         if evidence_map_pack["excluded_pages"]:
             required.add("excluded_page")
-        if any(
+        offset_level = evidence_level == "offset_level"
+        if offset_level:
+            # 电子文本无页面字框：highlight_level 必须真的不在，出现即混进了字框档数据
+            for key, entry in evidence_map_pack["entries"].items():
+                if "highlight_level" in entry:
+                    return _fail("offset 档不应有 highlight_level: %s" % key)
+        elif any(
             entry["highlight_level"] == "line_bbox"
             for entry in evidence_map_pack["entries"].values()
         ):
@@ -565,6 +572,11 @@ def evaluate_publication(
         if not required.issubset(given):
             return _fail(
                 "known_defects 少了必需代码: %s" % ",".join(sorted(required - given))
+            )
+        if offset_level:
+            return _ok(
+                "水印与已知缺陷披露完整（highlight_level=not_applicable：电子文本无页面字框，"
+                "不据此推 glyph_text_mismatch）"
             )
         return _ok("水印与已知缺陷披露完整")
 

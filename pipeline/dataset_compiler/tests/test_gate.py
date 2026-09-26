@@ -454,12 +454,35 @@ class ApplicabilityConsistencyTests(unittest.TestCase):
         mismatch = _evaluate(_offset_golden(), raw_text_binding={"sha256": "0" * 64})
         self.assertFalse(mismatch["checks"]["source_asset_binding"]["ok"])
 
-    def test_watermark_disclosure_offset_level_is_not_applicable(self):
-        """watermark_disclosure 的语义依赖 highlight_level（OCR 专有）→ 声明 glyphbox。"""
+    def test_watermark_disclosure_offset_level_is_evaluated(self):
+        """T23（用户 2026-09-26 裁决 (a)）：offset 档另有水印事实（entry.watermark、清单 watermark、
+        known_defects），按 ACT 17 二.2 的但书改为两档实评；只有 highlight_level 推导不适用。"""
+        self.assertEqual(gate._CHECK_APPLICABILITY["watermark_disclosure"], "both")
         check = _evaluate(_offset_golden())["checks"]["watermark_disclosure"]
-        self.assertEqual(check.get("status"), "not_applicable")
-        self.assertIsNot(check["ok"], True)
-        self.assertEqual(gate._CHECK_APPLICABILITY["watermark_disclosure"], "glyphbox")
+        self.assertIsNone(check.get("status"))
+        self.assertTrue(check["ok"], msg=check["detail"])
+        self.assertIn("highlight_level=not_applicable", check["detail"])
+
+    def test_watermark_disclosure_offset_level_tamper_probes(self):
+        """篡改探针：offset 档漏置 entry 水印、丢已知缺陷、混进 highlight_level，均 FAIL。"""
+        golden = _offset_golden()
+        evidence = copy.deepcopy(golden["evidence_map_pack"])
+        evidence["entries"][next(iter(evidence["entries"]))]["watermark"] = False
+        self.assertFalse(
+            _evaluate(golden, evidence_map_pack=evidence)["checks"]["watermark_disclosure"]["ok"]
+        )
+        release = copy.deepcopy(golden["release_manifest"])
+        release["known_defects"] = [
+            item for item in release["known_defects"] if item["code"] != "machine_content"
+        ]
+        self.assertFalse(
+            _evaluate(golden, release_manifest=release)["checks"]["watermark_disclosure"]["ok"]
+        )
+        stray = copy.deepcopy(golden["evidence_map_pack"])
+        stray["entries"][next(iter(stray["entries"]))]["highlight_level"] = "glyph"
+        check = _evaluate(golden, evidence_map_pack=stray)["checks"]["watermark_disclosure"]
+        self.assertFalse(check["ok"])
+        self.assertIn("highlight_level", check["detail"])
 
     def test_sanitization_disclosure_still_reconciles_forbidden_chars(self):
         """裁定 103 D1 不得动摇：报告「在了」不等于通过，禁止字符必须逐条对账。"""
@@ -507,7 +530,7 @@ class ApplicabilityConsistencyTests(unittest.TestCase):
         for name in not_applicable:
             self.assertIsNot(out["checks"][name]["ok"], True, msg=name)
         out2 = _evaluate(
-            golden, checks_override={"watermark_disclosure": {"ok": True}}
+            golden, checks_override={"coordinate_frame": {"ok": True}}
         )
         self.assertFalse(out2["passed"])
 
