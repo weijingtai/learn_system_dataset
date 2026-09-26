@@ -163,22 +163,25 @@ def _changed_and_reachable(old_spans, new_spans, candidate_set):
             changed.append(span_id)
     affected = set(changed) | set(removed)
 
-    objects = list(candidate_set.get("assertions") or []) + list(
-        candidate_set.get("school_views") or []
+    objects = (
+        list(candidate_set.get("assertions") or [])
+        + list(candidate_set.get("school_views") or [])
+        + list(candidate_set.get("patterns") or [])
     )
     reachable = set()
     for obj in objects:
+        eid = obj.get("assertion_id") or obj.get("school_view_id") or obj.get("pattern_id")
         for ev in obj.get("evidence") or []:
             if ev.get("source_span_id") in affected:
-                reachable.add(obj.get("assertion_id") or obj.get("school_view_id"))
+                reachable.add(eid)
         for ref in obj.get("source_refs") or []:
             if ref.get("source_span_id") in affected:
-                reachable.add(obj.get("assertion_id") or obj.get("school_view_id"))
+                reachable.add(eid)
     changed_flag = True
     while changed_flag:
         changed_flag = False
         for obj in objects:
-            eid = obj.get("assertion_id") or obj.get("school_view_id")
+            eid = obj.get("assertion_id") or obj.get("school_view_id") or obj.get("pattern_id")
             if eid in reachable:
                 continue
             if obj.get("subject_entity_id") in reachable:
@@ -186,6 +189,10 @@ def _changed_and_reachable(old_spans, new_spans, candidate_set):
                 changed_flag = True
             for claim in obj.get("claim_refs") or []:
                 if claim.get("entity_id") in reachable:
+                    reachable.add(eid)
+                    changed_flag = True
+            for aid in obj.get("assertion_ids") or []:
+                if aid in reachable:
                     reachable.add(eid)
                     changed_flag = True
     return sorted(changed), sorted(removed), sorted(reachable)

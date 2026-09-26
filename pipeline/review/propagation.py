@@ -63,6 +63,11 @@ def reachable_entities(candidates: list[dict], affected_span_ids: list[str]) -> 
                 if cr.get("entity_id") in reachable:
                     reachable.add(eid)
                     changed = True
+            # T22: pattern 的 assertion_ids 指向的断言被返工时，pattern 随之进入可达闭包
+            for aid in obj.get("assertion_ids", []):
+                if aid in reachable:
+                    reachable.add(eid)
+                    changed = True
                     
     return sorted(list(reachable))
 
@@ -137,12 +142,21 @@ def propagate(*, old_candidates: list[dict], old_spans_doc: dict, new_spans_doc:
                 if ref.get("source_span_id") in removed_set:
                     has_removed = True
                     
+            has_reworked_assertion = any(aid in reachable_set for aid in obj.get("assertion_ids", []))
+                    
             if has_removed:
                 needs_review.append({
                     "decision_revision_id": d["decision_revision_id"],
                     "target_entity_id": target,
                     "queue_item_id": d["queue_item_id"],
                     "reason": "target_removed"
+                })
+            elif has_reworked_assertion:
+                needs_review.append({
+                    "decision_revision_id": d["decision_revision_id"],
+                    "target_entity_id": target,
+                    "queue_item_id": d["queue_item_id"],
+                    "reason": "assertion_reworked"
                 })
             else:
                 old_hash = content_hash(c, old_spans_doc.get("spans", {}))

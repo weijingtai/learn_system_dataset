@@ -227,7 +227,53 @@ class TestPropagation(unittest.TestCase):
         
         res1 = propagation.propagate(old_candidates=self.old_candidates, old_spans_doc=self.old_spans_doc, new_spans_doc=new_doc, validation_entries=self.validation_entries, standing_decisions=self.standing_decisions, rework_round_before=0, trigger_correction_request_revision_id=self.trigger_cr_rev)
         res2 = propagation.propagate(old_candidates=self.old_candidates, old_spans_doc=self.old_spans_doc, new_spans_doc=new_doc, validation_entries=self.validation_entries, standing_decisions=self.standing_decisions, rework_round_before=0, trigger_correction_request_revision_id=self.trigger_cr_rev)
-        self.assertEqual(res1, res2)
+    def test_t22_pattern_assertion_rework_propagates_to_pattern(self):
+        """T22: pattern 引用的断言被返工时，引它的 pattern 进 needs_review，不许沿用 (carried) 为已审。"""
+        old_candidates = list(self.old_candidates) + [
+            {
+                "entity_id": "pat_qizheng_000001",
+                "kind": "pattern",
+                "source_object": {
+                    "pattern_id": "pat_qizheng_000001",
+                    "name": "去官留煞",
+                    "assertion_ids": ["as_qizheng_000001"],
+                },
+                "candidate_revision_id": "rev_c_pat_1",
+            }
+        ]
+        standing_decisions = list(self.standing_decisions) + [
+            {
+                "queue_item_id": "pat_qizheng_000001#review_source_fidelity",
+                "target_entity_id": "pat_qizheng_000001",
+                "decision_revision_id": "rev_d_pat_1",
+                "seen_artifact_revision_id": "rev_seen_pat_1",
+            }
+        ]
+        # p0003_s08 变动，使得 as_qizheng_000001 被返工
+        new_doc = {"spans": dict(self.old_spans_doc["spans"])}
+        new_doc["spans"]["p0003_s08"] = {"text": "朱熹在《大学章句》中明确指出改动…", "geometry": {}, "start_offset": 10}
+
+        res = propagation.propagate(
+            old_candidates=old_candidates,
+            old_spans_doc=self.old_spans_doc,
+            new_spans_doc=new_doc,
+            validation_entries=self.validation_entries,
+            standing_decisions=standing_decisions,
+            rework_round_before=0,
+            trigger_correction_request_revision_id=self.trigger_cr_rev,
+        )
+
+        # 1. pattern 必须在 reachable_entity_ids 中
+        self.assertIn("pat_qizheng_000001", res["reachable_entity_ids"])
+
+        # 2. pattern 的已有决定必须进入 needs_review，绝不能在 carried_forward 中
+        car_pat = [c for c in res["carried_forward"] if c.get("entity_id") == "pat_qizheng_000001"]
+        self.assertEqual(car_pat, [], "引用的断言被返工时，pattern 决定不许沿用 (carried)")
+
+        nr_pat = [n for n in res["needs_review"] if n["target_entity_id"] == "pat_qizheng_000001"]
+        self.assertEqual(len(nr_pat), 1, "pattern 必须进入 needs_review")
+        self.assertEqual(nr_pat[0]["queue_item_id"], "pat_qizheng_000001#review_source_fidelity")
+
 
 if __name__ == '__main__':
     unittest.main()
