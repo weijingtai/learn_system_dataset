@@ -72,3 +72,27 @@ FAILED (failures=3)
    - 恢复 `or step_run_id in seen_step_runs` 后，`pipeline/validation/tests/test_adapter_notes.py` 15 条全部恢复通过；全量 `validation` 包 123 条测试全部 PASS。
 4. **真书实跑结果**：
    - 在真书全线运行（`qianyuan_t04b`）中，M5 阶段披露项统计为：`warnings=12 errors=0`，与预期严格一致。
+
+## 三、T22 修复与验证（返工传播经 pattern 的 assertion_ids 传递）
+
+### 1. 缺陷根因与修复方案
+- **缺陷表现**：`review/rework.py`、`propagation.py` 与 M6 验收的可达性闭包此前只遍历了 `evidence`、`source_refs`、`subject_entity_id`、`claim_refs`。由于 `pattern` 自身无 evidence，其证据均通过 `assertion_ids` 挂接在断言上；当断言所在 span 发生变动被返工时，`pattern` 没有被纳入可达闭包，且由于缺乏自身 evidence，`content_hash` 计算前后一致，导致其旧审核决定被错误沿用（carried），未按规范进入 `needs_review`。
+- **修复方案**：
+  1. `pipeline/review/propagation.py`：在 `reachable_entities` 的传递闭包中加入对 `assertion_ids` 的检查；在 `propagate` 的决策分流中，若 `target` 引用的任一断言在 `reachable_set` 中（`has_reworked_assertion`），明确进入 `needs_review`（`reason="assertion_reworked"`），阻止其被误沿用；
+  2. `pipeline/review/acceptance.py`：在 `_reachable_entities` 中纳入 `patterns` 列表，并在传递闭包中加入 `assertion_ids`；
+  3. `pipeline/review/tests/test_propagation.py`：新增用例 `test_t22_pattern_assertion_rework_propagates_to_pattern`。
+- **提交号**：`1c8027f`。
+
+### 2. 先红后绿与篡改探针证据
+1. **测试先红**：
+   - 在未改动业务代码前执行 `test_t22_pattern_assertion_rework_propagates_to_pattern`，输出明确失败：
+```text
+FAIL: test_t22_pattern_assertion_rework_propagates_to_pattern
+AssertionError: 'pat_qizheng_000001' not found in ['as_qizheng_000001', 'sv_00000000000000000000000000000001']
+```
+2. **改动后转绿**：
+   - 修复后复测 `test_propagation.py`：16 条用例全部 PASS（0.002s）。
+   - 全量 `review` 包回归：180 条测试全部 PASS（337.459s OK）。
+3. **篡改探针验证**：
+   - 故意注释掉 `propagation.py` 中遍历 `assertion_ids` 的逻辑，复跑 `test_propagation.py`，测试再次精准转红（`AssertionError: 'pat_qizheng_000001' not found in ...`）；
+   - 恢复代码后复测，16 条再次全绿。
