@@ -14,6 +14,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[3]
 RUN_ALL = REPO_ROOT / "openspec" / "acceptance" / "run_all.sh"
 FIXTURE_DIR = REPO_ROOT / "pipeline" / "corpus" / "_fixture" / "mini_ed01"
+TEXT_FIXTURE_DIR = REPO_ROOT / "pipeline" / "corpus" / "_fixture" / "qianyuan_ed01_text"
 
 
 def _run(items=None, env_extra=None):
@@ -42,12 +43,12 @@ class TestRunAll(unittest.TestCase):
         lines = result.stdout.decode("utf-8").strip().splitlines()
         self.assertTrue(
             lines[0].startswith(
-                "BLOCKED  20.1  前置缺失: M4 Knowledge Extraction；"
-                "Local Orchestrator 首切片已串联 m1–m3、m5 Gate"
+                "PASS  20.1  一个 EditionPart 严格按 M1–M6 阶段 Gate 完成"
+                "（宿主 qianyuan_ed01_text 电子文本真实 Ledger）"
             ),
             lines[0],
         )
-        self.assertEqual(lines[-1], "SUMMARY pass=0 fail=0 blocked=1")
+        self.assertEqual(lines[-1], "SUMMARY pass=1 fail=0 blocked=0")
 
     def test_20_10_blocked_line_computed(self):
         result = _run(["20.10"])
@@ -63,9 +64,11 @@ class TestRunAll(unittest.TestCase):
         # 20.5 自 M7 I 波集成（64c091e）起由 m7-assembler.sh 的真实退出码决定：
         # 本机有真书账本时全 PASS；没有账本时真书判据如实 BLOCKED，20.5 随之 BLOCKED。
         # 其余十项的结论不随宿主变化，仍按原快照锁定。
+        # T04 阶段 2（cfe9feb）起 20.1 在仓库内电子文本宿主上 PASS（原 BLOCKED），与宿主无关：
+        # 改前 有账本 3/1/7、无账本 2/1/8 → 改后 有账本 4/1/6、无账本 3/1/7。
         has_real_ledger = (REPO_ROOT / "var" / "ledgers" / "qianyuan_w8").is_dir()
         expected = (
-            "SUMMARY pass=3 fail=1 blocked=7" if has_real_ledger else "SUMMARY pass=2 fail=1 blocked=8"
+            "SUMMARY pass=4 fail=1 blocked=6" if has_real_ledger else "SUMMARY pass=3 fail=1 blocked=7"
         )
         result = _run()
         lines = result.stdout.decode("utf-8").strip().splitlines()
@@ -74,12 +77,19 @@ class TestRunAll(unittest.TestCase):
 
     def test_accept_check_fail_path(self):
         with tempfile.TemporaryDirectory() as tmp:
-            copy_dir = Path(tmp) / "mini_ed01"
-            shutil.copytree(FIXTURE_DIR, copy_dir)
-            spans = copy_dir / "spans.yaml"
-            lines = spans.read_text(encoding="utf-8").rstrip().splitlines()
-            spans.write_text("\n".join(lines[:-1]) + "\n", encoding="utf-8")
-            result = _run(["20.1"], env_extra={"FIXTURE_DIR": str(copy_dir)})
+            copy_dir = Path(tmp) / "qianyuan_ed01_text"
+            shutil.copytree(TEXT_FIXTURE_DIR, copy_dir)
+            source_info = copy_dir / "source_info.yaml"
+            lines = source_info.read_text(encoding="utf-8").splitlines()
+            tampered = [
+                "file_sha256: " + "0" * 64 if line.startswith("file_sha256:") else line
+                for line in lines
+            ]
+            source_info.write_text("\n".join(tampered) + "\n", encoding="utf-8")
+            result = _run(
+                ["20.1"],
+                env_extra={"ELECTRONIC_TEXT_FIXTURE_DIR": str(copy_dir)},
+            )
         first = result.stdout.decode("utf-8").strip().splitlines()[0]
         self.assertTrue(first.startswith("FAIL  20.1"), first)
 

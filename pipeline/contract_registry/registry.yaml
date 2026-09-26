@@ -41,12 +41,13 @@ human_queues:
 
 # 首纵切 Module 描述符（字段键序固定）
 modules:
-  - module_id: m1.fixture_import
+  # 生产登记表只登记电子文本路线（TODO T04A 裁决 2）：route 由 EditionRun 运行输入显式声明。
+  - module_id: m1.intake_text
     stage: m1
-    kind: thin_import
-    binding: imported
-    entry: null
-    version: mini_ed01
+    kind: production
+    binding: legacy_self_driving
+    entry: "pipeline.intake.entry:run_m1"
+    version: "0.1.0"
     consumes: []
     produces:
       - artifact_type: source_manifest
@@ -54,33 +55,35 @@ modules:
     supports_recovery: false
     entry_kwargs: {}
     owns_processing_run: false
-  - module_id: m2.fixture_import
+    receives_run_inputs: true
+  - module_id: m2.digitization_text
     stage: m2
-    kind: thin_import
-    binding: imported
-    entry: null
-    version: mini_ed01
+    kind: production
+    binding: legacy_self_driving
+    entry: "pipeline.digitization.entry:run_m2"
+    version: "0.1.0"
     consumes:
-      - artifact_type: source_manifest
+      - artifact_type: raw_text
         from_stage: m1
     produces:
-      - artifact_type: ocr_page_set
+      - artifact_type: cleaned_text_revision
+      - artifact_type: deterministic_patch_set
+      - artifact_type: sanitization_report
     human_queue: true
     supports_recovery: false
     entry_kwargs: {}
     owns_processing_run: false
+    receives_run_inputs: true
   - module_id: m3.corpus_structural
     stage: m3
     kind: production
     binding: legacy_self_driving
-    entry: "pipeline.corpus_compiler.step:run_m3"
+    entry: "pipeline.corpus_compiler.step_offset:run_m3_text"
     version: "0.1.0"
     consumes:
-      - artifact_type: source_manifest
+      - artifact_type: raw_text
         from_stage: m1
-      - artifact_type: ocr_page_set
-        from_stage: m2
-      - artifact_type: ocr_page
+      - artifact_type: cleaned_text_revision
         from_stage: m2
     produces:
       - artifact_type: corpus_package
@@ -88,6 +91,28 @@ modules:
     supports_recovery: false
     entry_kwargs: {}
     owns_processing_run: false
+  - module_id: m4.knowledge_extraction
+    stage: m4
+    kind: production
+    binding: legacy_self_driving
+    entry: "pipeline.knowledge_extraction.entry:run_m4"
+    resume_entry: "pipeline.knowledge_extraction.step:resume_m4"
+    version: "0.1.0"
+    consumes:
+      - artifact_type: stage_package
+        from_stage: m3
+      - artifact_type: corpus_package
+        from_stage: m3
+      - artifact_type: corpus_spans
+        from_stage: m3
+    produces:
+      - artifact_type: candidate_package
+    human_queue: true
+    human_input_artifact: candidate_submission
+    supports_recovery: false
+    entry_kwargs: {}
+    owns_processing_run: false
+    receives_run_inputs: true
   - module_id: m5.automatic_validation
     stage: m5
     kind: production
@@ -108,6 +133,43 @@ modules:
     entry_kwargs:
       target_consumption_level: INTERNAL_DEMO
     owns_processing_run: false
+  - module_id: m6.review_workbench
+    stage: m6
+    kind: production
+    binding: legacy_self_driving
+    entry: "pipeline.review.step:run_m6"
+    resume_entry: "pipeline.review.step:close_review"
+    version: "0.1.0"
+    consumes:
+      - artifact_type: candidate_package
+        from_stage: m4
+      - artifact_type: candidate_set
+        from_stage: m4
+      - artifact_type: validation_package
+        from_stage: m5
+    produces:
+      - artifact_type: reviewed_edition_package
+    human_queue: true
+    supports_recovery: false
+    entry_kwargs: {}
+    owns_processing_run: false
+  # 发布段（TODO T04B）：M7 为人工节点（M7 待裁决）；run_m7 自建 release_run ProcessingRun。
+  - module_id: m7.incremental_assembly
+    stage: m7
+    kind: production
+    binding: legacy_self_driving
+    entry: "pipeline.assembly.entry:run_m7"
+    resume_entry: "pipeline.assembly.step:resume_m7"
+    version: "0.1.0-draft"
+    consumes:
+      - artifact_type: stage_package
+        from_stage: m6
+    produces:
+      - artifact_type: assembly_package
+    human_queue: true
+    supports_recovery: false
+    entry_kwargs: {}
+    owns_processing_run: true
   - module_id: m8.dataset_compilation
     stage: m8
     kind: production
@@ -123,6 +185,8 @@ modules:
         from_stage: m2
       - artifact_type: corpus_package
         from_stage: m3
+      - artifact_type: canonical_snapshot
+        from_stage: m7
     produces:
       - artifact_type: publication_package
     human_queue: false

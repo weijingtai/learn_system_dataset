@@ -250,7 +250,13 @@ def _no_pending_work(port, handle, stage, effective, effective_ids):
     return {"ok": ok, "detail": "无待办" if ok else "；".join(details)}
 
 
-def _upstream_lineage(port, handle, descriptor, effective):
+def _upstream_lineage(port, handle, descriptor, effective, upstream_handles=None):
+    """``consumes`` 的每个上游 stage 都须有 succeeded 产出被有效运行冻结。
+
+    上游默认在本句柄的运行里找；``upstream_handles``（stage → 句柄）由调度器显式给出
+    上游所在运行（T04 Q7：发布段的 m1–m6 在 EditionRun、m7 在 M7 自己的 release run）。
+    只按句柄的运行号取数，不按 EditionPart 回退。
+    """
     if descriptor is None:
         return {"ok": True, "detail": "未登记 Module，血缘不判"}
     consumes = descriptor.get("consumes") or []
@@ -261,9 +267,10 @@ def _upstream_lineage(port, handle, descriptor, effective):
     )
     problems = []
     for upstream_stage in from_stages:
+        upstream_handle = (upstream_handles or {}).get(upstream_stage, handle)
         upstream_ids = {
             _step_run_id(row)
-            for row in succeeded_step_runs(port, handle, upstream_stage)
+            for row in succeeded_step_runs(port, upstream_handle, upstream_stage)
         }
         for row in effective:
             request = row.get("request") or {}
@@ -281,8 +288,11 @@ def _upstream_lineage(port, handle, descriptor, effective):
     return {"ok": not problems, "detail": "血缘 ok" if not problems else "；".join(problems)}
 
 
-def evaluate_stage_gate(port, registry, handle, stage):
-    """独立判定某 stage 的 Stage Gate，返回报告 dict（不落盘）。"""
+def evaluate_stage_gate(port, registry, handle, stage, upstream_handles=None):
+    """独立判定某 stage 的 Stage Gate，返回报告 dict（不落盘）。
+
+    ``upstream_handles`` 只影响 ``upstream_lineage`` 去哪个运行找上游，见 ``_upstream_lineage``。
+    """
     descriptor = registry.module_for(stage) if registry is not None else None
     effective = effective_step_runs(port, handle, stage)
     effective_ids = [_step_run_id(row) for row in effective]
@@ -407,7 +417,7 @@ def evaluate_stage_gate(port, registry, handle, stage):
         port, handle, stage, effective, effective_ids
     )
     checks["upstream_lineage"] = _upstream_lineage(
-        port, handle, descriptor, effective
+        port, handle, descriptor, effective, upstream_handles
     )
 
     gate = (

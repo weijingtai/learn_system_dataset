@@ -528,9 +528,24 @@ def _build_offset_evidence_map_pack(
     }
 
 
-def compute_known_defects(*, evidence_map_pack, m3_gate_profile, rights_status):
-    """计算已知缺陷（代码闭集，按 code 字典序）。"""
+def compute_known_defects(
+    *, evidence_map_pack, m3_gate_profile, rights_status, assertion_without_subject=None
+):
+    """计算已知缺陷（代码闭集，按 code 字典序）。
+
+    ``assertion_without_subject``（T04B）：``build_knowledge_data_pack`` 如实返回的无主体
+    断言 ID；非空时按 INTERFACES §3.8 口径披露为 ``assertion_without_subject: N`` 并逐条列 ID。
+    """
     defects = []
+
+    if assertion_without_subject:
+        orphan_ids = sorted(assertion_without_subject)
+        defects.append(
+            {
+                "code": "assertion_without_subject",
+                "detail": "%d: %s" % (len(orphan_ids), ",".join(orphan_ids)),
+            }
+        )
 
     excluded_pages = evidence_map_pack.get("excluded_pages") or {}
     if excluded_pages:

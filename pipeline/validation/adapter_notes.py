@@ -17,14 +17,24 @@
    于是产出恒为空、检查前后 M5 行为逐字节一致。
 3. 门禁取 ``G3``：``package._NOT_EVALUATED`` 里那条 M4 依赖项 ``candidate_evidence``
    本就归 G3（理由「M4 Knowledge Extraction」），候选证据的**完整性**属同一门禁。
-4. 命中即产出 ``severity[级别] == "error"``、``rework_stage`` 非空的发现——
+4. 命中后分两级（第 109 条，Q3 采「乙」）——
+   ① **逐条点名**（注记文本含真实片段 ID 或「（…）」括号术语表，见 ``is_itemized``）：
+   判为披露项，``severity[级别] == "warning"``、``rework_stage is None``，detail 前缀
+   「已逐条点名」；它进 ``gate_results.warnings`` 如实列出，**不进** ``rework_tasks``，
+   ``G3`` 结论为 ``passed_with_warnings``，M5 的 ``validation.passed`` 不因此转假。
+   抽取员已逐条点名「我略去了什么」（BRIEF v2 要求的正是逐条点名），故不该与
+   「说了一句『为控总数略去』了事」同等对待。
+   ② **未逐条点名**：``severity[级别] == "error"``、``rework_stage`` 非空——
    于是它进入 ``gate_results.rework_tasks``、``pending_rework_count`` 非零、
    ``gate.passed`` 转假，且 M5 StagePackage 的 ``validation.passed`` 随之为假：
    **不得静默通过**，也不冒充 ``ok`` / ``not_evaluated``。
+   ``itemized`` 字段缺失时按 **未点名**（error）处理——失败闭合。
 5. 返工阶段取 ``m3``：``findings._REWORK_STAGES`` 是 ``("m2", "m3", None)`` 闭集
    （D-11：无新前缀，只区分 m2/m3），M4 来源的返工项只能落在 m3。
 6. 词表**集中定义**在本模块的 ``TRUNCATION_MARKERS``，可整体覆盖（调用方参数或
-   ``M5_ADAPTER_NOTES_MARKERS`` 环境变量），不在别处硬编码。
+   ``M5_ADAPTER_NOTES_MARKERS`` 环境变量），不在别处硬编码；逐条点名的判定正则
+   同样集中在本模块（片段 ID 形态取自唯一权威出处 ``pipeline.ledger.ids``，
+   第 85、102 条）。第 109 条另有规定：词表不动、扫描面不缩、机械转换注记仍整条跳过。
 
 本模块**只读**：账本只经 LedgerPort 的只读方法（``get_revision`` / ``describe_revision`` / ``read_object``）取用，
 不写账本、不写提交件、不签发任何东西（人工裁决与 Concept 引用仍只由用户做，P7）。
@@ -32,6 +42,9 @@
 
 import json
 import os
+import re
+
+from pipeline.ledger.ids import PATTERNS
 
 from . import CONSUMPTION_LEVELS
 from .findings import make_finding
@@ -58,6 +71,37 @@ MARKERS_ENV = "M5_ADAPTER_NOTES_MARKERS"
 # M4 提交件的冻结输入类型
 SUBMISSION_TYPE = "candidate_submission"
 
+# 截断自述的两级判定（第 109 条 1/2 款）：逐条点名 = 披露项（warning），否则 error
+SEVERITY_ITEMIZED = "warning"
+SEVERITY_UNITEMIZED = "error"
+# detail 前缀（按级别区分，便于人类直接看出是披露还是漏披露）
+_DETAIL_PREFIX_ITEMIZED = "已逐条点名"
+_DETAIL_PREFIX_UNITEMIZED = "未逐条点名"
+
+# 片段 ID 的形态取自唯一权威出处 ``pipeline.ledger.ids.PATTERNS``（第 85、102 条：
+# 不得自有正则）；去掉首尾锚点后在自由文本里找（注记里引用的是真片段 ID）。
+_SPAN_ID_RE = re.compile(PATTERNS["source_span_id"].strip("^$"))
+# 「（…）」括号术语表：括号内至少一个非空项（空括号不作数）
+_TERM_LIST_RE = re.compile(r"（([^（）]*)）")
+_TERM_SEPARATORS_RE = re.compile(r"[、,，;；]")
+
+
+def is_itemized(note):
+    """注记是否「逐条点名」：含至少一个真实片段 ID，或一个非空的「（…）」术语表。
+
+    两者任一成立即视为抽取员已说明截断的是**哪些**东西（BRIEF v2 的「逐条点名」要求），
+    因而属披露项；都没有才是「一句「为控总数略去」了事」的未披露截断。
+    非字符串一律返回 ``False``（失败闭合：非字符串注记不会被扫描，也不当作已披露）。
+    """
+    if not isinstance(note, str):
+        return False
+    if _SPAN_ID_RE.search(note) is not None:
+        return True
+    for group in _TERM_LIST_RE.findall(note):
+        if any(part.strip() for part in _TERM_SEPARATORS_RE.split(group)):
+            return True
+    return False
+
 
 def markers_from_env(env=None):
     """从环境变量读词表覆盖；未设置或全为空白时返回默认词表。"""
@@ -75,9 +119,12 @@ def scan_documents(documents, *, markers=None):
     命中项形如::
 
         {"artifact_revision_id": ..., "lane": ..., "category": ...,
-         "note_index": ..., "note": ..., "markers": [命中的词表项, ...]}
+         "note_index": ..., "note": ..., "markers": [命中的词表项, ...],
+         "itemized": bool}
 
-    条目按 ``(revision_id, note_index)`` 升序；机械转换注记整条跳过。
+    条目按 ``(revision_id, note_index)`` 升序；机械转换注记整条跳过。``itemized``
+    按 ``is_itemized``（第 109 条）：命中词表但未逐条点名时仍产出命中项，由
+    ``findings_from_hits`` 判为 error。
     """
     active = tuple(markers if markers is not None else TRUNCATION_MARKERS)
     hits = []
@@ -101,19 +148,26 @@ def scan_documents(documents, *, markers=None):
                     "note_index": index,
                     "note": note,
                     "markers": matched,
+                    "itemized": is_itemized(note),
                 }
             )
     return hits
 
 
 def findings_from_hits(hits):
-    """把命中清单转成 M5 发现（每命中一条一个 error 发现）。"""
+    """把命中清单转成 M5 发现（每命中一条一个发现，两级见第 109 条）。
+
+    ``itemized`` 为真 → ``warning``、``rework_stage=None``（披露项，不阻断）；
+    否则 → ``error``、``rework_stage=m3``（进入返工任务）。``itemized`` 缺失按未点名处理。
+    """
     findings = []
     for hit in hits:
         revision_id = hit["artifact_revision_id"]
-        detail = (
-            "adapter_notes 截断自述（命中 %s）：%s"
-            % ("/".join(hit["markers"]), hit["note"][:120])
+        itemized = bool(hit.get("itemized"))
+        detail = "%s：adapter_notes 截断自述（命中 %s）：%s" % (
+            _DETAIL_PREFIX_ITEMIZED if itemized else _DETAIL_PREFIX_UNITEMIZED,
+            "/".join(hit["markers"]),
+            hit["note"][:120],
         )
         findings.append(
             make_finding(
@@ -121,10 +175,15 @@ def findings_from_hits(hits):
                 GATE,
                 CHECK_NAME,
                 None,
-                {level: "error" for level in CONSUMPTION_LEVELS},
+                {
+                    level: (
+                        SEVERITY_ITEMIZED if itemized else SEVERITY_UNITEMIZED
+                    )
+                    for level in CONSUMPTION_LEVELS
+                },
                 {"entity_id": revision_id, "artifact_revision_id": revision_id},
                 relation=None,
-                rework_stage=REWORK_STAGE,
+                rework_stage=None if itemized else REWORK_STAGE,
                 detail=detail,
             )
         )
@@ -176,15 +235,22 @@ def submission_documents(reader, edition_part_id):
     取其 ``request_json.input_artifact_ids`` 中 ``artifact_type ==
     "candidate_submission"`` 的冻结输入（M4 把六份提交件作为冻结输入登记）。
     非 succeeded 的 M4 StepRun 一律不看（与上游「只接受 succeeded 的包」同口径）。
+
+    计数口径（第 109 条附带发现修复）：Checkpoint 是**指针**不是所有者——真书账本里 M4
+    assemble 的 38 个 Checkpoint 全指同一个 StepRun，同六份提交件因此被登记 32 次
+    （``submission_documents`` 6→192、``scan_documents`` 12→384）。故一个 ``step_run_id``
+    只取一次；不同 StepRun 各自登记的提交件仍各自计数（不误并，也不跨 StepRun 去重）。
     """
     documents = []
+    seen_step_runs = set()
     for checkpoint in reader.list_checkpoints(edition_part_id, "m4"):
         step_run_id = (checkpoint.get("content") or {}).get("step_run_id")
-        if not step_run_id:
+        if not step_run_id or step_run_id in seen_step_runs:
             continue
         step = reader.get_step_run(step_run_id)
         if step is None or step["status"] != "succeeded":
             continue
+        seen_step_runs.add(step_run_id)
         request = json.loads(step["request_json"] or "{}")
         revision_ids = list(request.get("input_artifact_ids") or [])
         types = _artifact_types(reader, revision_ids)
@@ -196,7 +262,11 @@ def submission_documents(reader, edition_part_id):
 
 
 def scan(reader, edition_part_id, *, markers=None):
-    """``run_m5`` 用的入口：定位提交件→扫描→产出发现（无提交件即返回空表）。"""
+    """``run_m5`` 用的入口：定位提交件→扫描→产出发现（无提交件即返回空表）。
+
+    计数以**修订**为单位：同一 M4 StepRun 被多个 Checkpoint 重复登记不放大命中数
+    （见 ``submission_documents``）。
+    """
     documents = submission_documents(reader, edition_part_id)
     if not documents:
         return []

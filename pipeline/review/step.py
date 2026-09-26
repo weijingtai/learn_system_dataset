@@ -63,7 +63,9 @@ def _modified_by_entity_id(service, step_run_id):
     ):
         doc = _read_doc(service, row["artifact_revision_id"])
         if doc:
-            entity_id = doc.get("assertion_id") or doc.get("school_view_id")
+            entity_id = (
+                doc.get("assertion_id") or doc.get("pattern_id") or doc.get("school_view_id")
+            )
             if entity_id:
                 by_eid[entity_id] = row["artifact_revision_id"]
     return by_eid
@@ -202,6 +204,7 @@ def _carried_decision_entries(
     """按第 69/74 条构造 carried 决定条目（``seen_revision_id`` 保持首审旧修订；
     ``modify`` 的 ``modified_revision_id`` 取首审 ``reviewed_edition.decisions`` 的值）。"""
     objects = {a["assertion_id"]: a for a in cand_set.get("assertions", []) or []}
+    objects.update({p["pattern_id"]: p for p in cand_set.get("patterns", []) or []})
     objects.update(
         {v["school_view_id"]: v for v in cand_set.get("school_views", []) or []}
     )
@@ -487,6 +490,11 @@ def record_decision(
             if a.get("assertion_id") == target_eid:
                 orig_obj = a
                 break
+        if orig_obj is None:
+            for p in cand_set.get("patterns", []):
+                if p.get("pattern_id") == target_eid:
+                    orig_obj = p
+                    break
         if orig_obj is None:
             for v in cand_set.get("school_views", []):
                 if v.get("school_view_id") == target_eid:
@@ -932,6 +940,9 @@ def close_review(service, step_run_id: str, resume_token: str) -> dict:
     cand_objects = [
         {"entity_id": a["assertion_id"], "kind": "assertion", "source_object": a}
         for a in cand_set_doc.get("assertions", [])
+    ] + [
+        {"entity_id": p["pattern_id"], "kind": "pattern", "source_object": p}
+        for p in cand_set_doc.get("patterns", [])
     ] + [
         {
             "entity_id": v["school_view_id"],

@@ -242,6 +242,9 @@ def _check_queue_from_upstream(world):
     for assertion in candidate_set.get("assertions") or []:
         for decision_type in required.get(assertion["assertion_id"], []):
             expected.add("%s#%s" % (assertion["assertion_id"], decision_type))
+    for pattern in candidate_set.get("patterns") or []:  # T19：pattern 同样进审核队列
+        for decision_type in required.get(pattern["pattern_id"], []):
+            expected.add("%s#%s" % (pattern["pattern_id"], decision_type))
     for school_view in candidate_set.get("school_views") or []:
         for decision_type in required.get(school_view["school_view_id"], []):
             expected.add("%s#%s" % (school_view["school_view_id"], decision_type))

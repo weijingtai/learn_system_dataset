@@ -382,5 +382,220 @@ class OffsetRouteTests(unittest.TestCase):
         self.assertIn("FIXTURE OK", proc.stdout)
 
 
+class LedgerOptionAndClosureStepsTests(unittest.TestCase):
+    """T04 阶段 4 Q9：``--ledger`` 只读判定既有账本；offset 档证据链闭合的页/字框子步输出 NOT_APPLICABLE。"""
+
+    def _run(self, argv):
+        buffer = io.StringIO()
+        with contextlib.redirect_stdout(buffer):
+            code = acceptance.main(argv)
+        return code, buffer.getvalue()
+
+    def _built_offset_ledger(self):
+        """在临时账本上按 offset 档装配宿主并跑一次 M8，返回账本目录。"""
+        from pipeline.dataset_compiler.step import run_m8
+        from pipeline.ledger.service import LedgerService
+
+        tmp = tempfile.mkdtemp(prefix="m8-acc-ledger-")
+        self.addCleanup(shutil.rmtree, tmp, True)
+        root = Path(tmp) / "ledger"
+        service = LedgerService(root)
+        try:
+            edition_part_id = acceptance._prepare_ledger(
+                service, OFFSET_FIXTURE, None, acceptance.ROUTE_OFFSET
+            )
+            run_m8(service, edition_part_id, consumption_level="INTERNAL_DEMO")
+        finally:
+            service.close()
+        return root
+
+    @staticmethod
+    def _table_counts(root):
+        import sqlite3
+
+        connection = sqlite3.connect("file:%s?mode=ro" % (root / "ledger.sqlite"), uri=True)
+        try:
+            return tuple(
+                connection.execute("SELECT COUNT(*) FROM %s" % table).fetchone()[0]
+                for table in ("artifact_revisions", "step_runs", "processing_runs", "audit_log")
+            )
+        finally:
+            connection.close()
+
+    def test_ledger_option_judges_an_existing_ledger_read_only(self):
+        root = self._built_offset_ledger()
+        before = self._table_counts(root)
+        code, out = self._run(
+            ["--fixture", str(OFFSET_FIXTURE), "--check", "publication", "--ledger", str(root)]
+        )
+        self.assertEqual(before, self._table_counts(root), "--ledger 不得写入被判定的账本")
+        self.assertIn("run_succeeded", out)
+        self.assertTrue(_last_line(out).startswith("SUMMARY "), out)
+        # 与现场装配的判定逐行一致（同一宿主、同一 M8 事实）
+        _code, fresh = self._run(["--fixture", str(OFFSET_FIXTURE), "--check", "publication"])
+        self.assertEqual(
+            [line.split(" ", 2)[:2] for line in out.strip().splitlines()],
+            [line.split(" ", 2)[:2] for line in fresh.strip().splitlines()],
+        )
+
+    def test_ledger_option_refuses_a_missing_ledger(self):
+        missing = Path(tempfile.mkdtemp(prefix="m8-acc-none-")) / "nope"
+        self.addCleanup(shutil.rmtree, missing.parent, True)
+        code, out = self._run(
+            ["--fixture", str(OFFSET_FIXTURE), "--check", "publication", "--ledger", str(missing)]
+        )
+        self.assertEqual(code, 3)
+        self.assertIn("BLOCKED m8_acceptance", out)
+        self.assertFalse(missing.exists(), "不得为缺失的账本新建目录")
+
+    def test_offset_closure_reports_page_steps_not_applicable(self):
+        """页/字框子步不再以「span_id 无法解析」判 FAIL，而是逐项披露 NOT_APPLICABLE（不静默跳过）。
+
+        其余子步照判。原先本宿主停在 text_offsets（offset 档 span 无 line_index）而 FAIL；
+        T20 裁决 (a) 后 line_index 也披露为不适用，判据结论与篡改探针见 OffsetTextOffsetsTests。
+        """
+        _code, out = self._run(["--fixture", str(OFFSET_FIXTURE), "--check", "publication"])
+        line = next(l for l in out.splitlines() if " evidence_chain_closure " in l)
+        self.assertNotIn("span_page_binding: span_id 无法解析", line)
+        for step in ("span_page_binding", "glyph_anchor_closure"):
+            self.assertIn("%s=%s" % (step, acceptance.NOT_APPLICABLE), line)
+
+
+class OffsetTextOffsetsTests(unittest.TestCase):
+    """T20（用户 2026-09-26 裁决 (a)）：电子文本没有「行」，offset 档 text_offsets 不比 line_index，
+    披露为 NOT_APPLICABLE；offset/text/quote_sha256/content_status 照比，任一不符仍 FAIL。"""
+
+    SPAN_ID = "ss_qianyuan_ed01_text_000001"
+    TEXT = "去官留煞"
+
+    def _loaded(self, **entry_overrides):
+        span = {"span_id": self.SPAN_ID, "start_offset": 10, "end_offset": 14, "text": self.TEXT}
+        entry = {
+            "start_offset": 10,
+            "end_offset": 14,
+            "text": self.TEXT,
+            "quote_sha256": acceptance._sha256_hex(self.TEXT.encode("utf-8")),
+            "content_status": "machine_extracted",
+        }
+        entry.update(entry_overrides)
+        return {
+            "evidence": {"entries": {self.SPAN_ID: entry}},
+            "spans_doc": {"spans": [span], "content_status": "machine_extracted"},
+        }
+
+    def test_offset_route_does_not_require_line_index(self):
+        ok, detail = acceptance._check_text_offsets(self._loaded(), acceptance.ROUTE_OFFSET)
+        self.assertTrue(ok, detail)
+
+    def test_offset_route_still_rejects_tampered_fields(self):
+        """篡改探针：offset、text、quote_sha256、content_status 任一被改，offset 档照样 FAIL。"""
+        for field, value in (
+            ("start_offset", 11),
+            ("end_offset", 15),
+            ("text", "贪合忘煞"),
+            ("quote_sha256", "0" * 64),
+            ("content_status", "expert_verified"),
+        ):
+            with self.subTest(field=field):
+                ok, _detail = acceptance._check_text_offsets(
+                    self._loaded(**{field: value}), acceptance.ROUTE_OFFSET
+                )
+                self.assertFalse(ok, field)
+
+    def test_offset_route_rejects_a_stray_line_index(self):
+        """offset 档出现 line_index 说明混进了页/行档数据，判 FAIL，不当作「有就比、没有就算」。"""
+        ok, detail = acceptance._check_text_offsets(
+            self._loaded(line_index=0), acceptance.ROUTE_OFFSET
+        )
+        self.assertFalse(ok)
+        self.assertIn("line_index", detail)
+
+    def test_glyph_route_still_compares_line_index(self):
+        loaded = self._loaded(line_index=1)
+        loaded["spans_doc"]["spans"][0]["line_index"] = 0
+        ok, _detail = acceptance._check_text_offsets(loaded, acceptance.ROUTE_GLYPHBOX)
+        self.assertFalse(ok)
+
+    def test_offset_host_closure_passes_and_discloses_line_index(self):
+        buffer = io.StringIO()
+        with contextlib.redirect_stdout(buffer):
+            acceptance.main(["--fixture", str(OFFSET_FIXTURE), "--check", "publication"])
+        line = next(l for l in buffer.getvalue().splitlines() if " evidence_chain_closure " in l)
+        self.assertTrue(line.startswith("PASS "), line)
+        self.assertIn("text_offsets", line)
+        for step in ("span_page_binding", "glyph_anchor_closure", "text_offsets.line_index"):
+            self.assertIn("%s=%s" % (step, acceptance.NOT_APPLICABLE), line)
+
+
+class OffsetWatermarkDisclosureTests(unittest.TestCase):
+    """T21（用户 2026-09-26 裁决）：电子文本没有页面上的框，offset 档 watermark_disclosure 不看
+    highlight_level，披露为 NOT_APPLICABLE；水印与其余已知缺陷照判，任一缺失仍 FAIL。"""
+
+    MANIFEST = {
+        "watermark": {"required": True, "text": "INTERNAL_DEMO｜机器转录"},
+        "known_defects": [
+            {"code": "knowledge_chain_not_compiled"},
+            {"code": "machine_content"},
+            {"code": "semantic_not_evaluated"},
+        ],
+    }
+
+    def _judge(self, route, entry_overrides=None, manifest=None):
+        entry = {"watermark": True}
+        entry.update(entry_overrides or {})
+        loaded = {
+            "release_manifest_revision_id": "rev_x",
+            "evidence": {
+                "entries": {"ss_x": entry},
+                "excluded_pages": {},
+                "knowledge_chain": "not_compiled",
+            },
+            "spans_doc": {"content_status": "machine_extracted"},
+            "manifest": {"rights_status": "站方声明免费下载"},
+            "m3_gate_profile": "structural_only",
+        }
+        with mock.patch.object(
+            acceptance, "_read_revision_json", return_value=manifest or self.MANIFEST
+        ):
+            return acceptance._check_watermark_disclosure(None, loaded, route)
+
+    def test_offset_route_does_not_require_highlight_level(self):
+        ok, detail = self._judge(acceptance.ROUTE_OFFSET)
+        self.assertTrue(ok, detail)
+        self.assertIn("highlight_level=%s" % acceptance.NOT_APPLICABLE, detail)
+
+    def test_offset_route_still_requires_watermark_and_defects(self):
+        """篡改探针：entry 水印未置真、水印文本为空、缺一条已知缺陷，offset 档照样 FAIL。"""
+        ok, _ = self._judge(acceptance.ROUTE_OFFSET, {"watermark": False})
+        self.assertFalse(ok)
+        ok, _ = self._judge(
+            acceptance.ROUTE_OFFSET, manifest=dict(self.MANIFEST, watermark={"required": True, "text": ""})
+        )
+        self.assertFalse(ok)
+        ok, detail = self._judge(
+            acceptance.ROUTE_OFFSET, manifest=dict(self.MANIFEST, known_defects=self.MANIFEST["known_defects"][:2])
+        )
+        self.assertFalse(ok)
+        self.assertIn("semantic_not_evaluated", detail)
+
+    def test_offset_route_rejects_a_stray_highlight_level(self):
+        ok, detail = self._judge(acceptance.ROUTE_OFFSET, {"highlight_level": "glyph"})
+        self.assertFalse(ok)
+        self.assertIn("highlight_level", detail)
+
+    def test_glyph_route_still_requires_glyph_text_mismatch_disclosure(self):
+        ok, detail = self._judge(acceptance.ROUTE_GLYPHBOX, {"highlight_level": "line_bbox"})
+        self.assertFalse(ok)
+        self.assertIn("glyph_text_mismatch", detail)
+
+    def test_offset_host_watermark_disclosure_passes(self):
+        buffer = io.StringIO()
+        with contextlib.redirect_stdout(buffer):
+            acceptance.main(["--fixture", str(OFFSET_FIXTURE), "--check", "publication"])
+        line = next(l for l in buffer.getvalue().splitlines() if " watermark_disclosure " in l)
+        self.assertTrue(line.startswith("PASS "), line)
+        self.assertIn("highlight_level=%s" % acceptance.NOT_APPLICABLE, line)
+
+
 if __name__ == "__main__":
     unittest.main()

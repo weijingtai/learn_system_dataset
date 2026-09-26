@@ -454,7 +454,18 @@ class StepKnowledgeChainTests(StepTestBase):
                     }
                 ],
                 "concepts": [],
-                "assertions": [{"assertion_id": "as_qizheng_000001"}],
+                # T04B：run_m8 现在真编译 KnowledgeDataPack，断言须带 Snapshot 必备字段
+                # （INTERFACES §3.7：proposition / subject_entity_id / evidence / 内容状态）
+                "assertions": [
+                    {
+                        "assertion_id": "as_qizheng_000001",
+                        "proposition": "示例断言",
+                        "subject_entity_id": "pat_qizheng_000001",
+                        "evidence": [],
+                        "school_view_ids": [],
+                        "content_status": "machine_extracted",
+                    }
+                ],
                 "school_views": [],
                 "conflict_groups": [],
             }
@@ -615,6 +626,59 @@ class ElectronicTextFrozenInputTests(ElectronicTextStepBase):
         self.assertEqual(result["failed_check"], "input_contract")
         self.assertIn("RawText", result["reason"])
         self.assertEqual(self._m8_package_count(), 0)
+
+
+class _ServicePort:
+    """最小直连端口：``unwrap()`` 给 legacy 入口直连服务，其余方法委派服务。"""
+
+    def __init__(self, service):
+        self._service = service
+
+    def unwrap(self):
+        return self._service
+
+    def __getattr__(self, name):
+        return getattr(self._service, name)
+
+
+class FailedSummaryProcessingRunTests(ElectronicTextStepBase):
+    """T04 阶段 4 Q8：M8 失败封存的返回也必须带 ``processing_run_id``。
+
+    runner 对 ``owns_processing_run`` 的入口直接读 ``summary["processing_run_id"]``；
+    失败返回缺它时，调度器 release 段遇到 M8 失败会以 ``KeyError`` 崩掉，而不是如实报 failed。
+    """
+
+    def _break_raw_text_sha(self):
+        inputs = self._ready()
+
+        def mutate(manifest):
+            manifest["source_assets"][0]["sha256"] = "0" * 64
+
+        self._rewrite_object(inputs["manifest_revision_id"], mutate)
+
+    def test_failed_summary_carries_processing_run_id(self):
+        self._break_raw_text_sha()
+        result = self._run_etext()
+        self.assertEqual(result["status"], "failed")
+        self.assertIn("processing_run_id", result)
+        step = self.service.get_step_run(result["step_run_id"])
+        self.assertEqual(result["processing_run_id"], step["processing_run_id"])
+
+    def test_orchestrator_reports_failed_m8_instead_of_crashing(self):
+        from pipeline.contract_registry.catalog import load_registry
+        from pipeline.orchestrator.module import bind_module
+        from pipeline.orchestrator.runner import run_legacy
+
+        self._break_raw_text_sha()
+        binding = bind_module(load_registry().module_for("m8"))
+        out = run_legacy(
+            _ServicePort(self.service),
+            binding,
+            {"edition_part_id": self.edition_part_id, "processing_run_id": None, "technique_id": "qizheng"},
+        )
+        self.assertEqual(out["step_result"]["status"], "failed")
+        step = self.service.get_step_run(out["step_run_id"])
+        self.assertEqual(out["processing_run_id"], step["processing_run_id"])
 
 
 class GateEvidenceKwargTests(ElectronicTextStepBase):
