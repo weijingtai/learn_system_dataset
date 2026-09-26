@@ -232,8 +232,9 @@ Given 用户已创建 EditionRun 并推进到某个阶段（含 awaiting_human �
 When 用户刷新页面或重新打开浏览器
 Then 后端从 Ledger 查询该 edition_part_id 的最新 StepRun 状态（经 list_step_runs / run_status 等只读入口，
    不查控制台自己的 SQLite），界面据此显示当前停在哪一步
- And 若该 EditionRun 停在 awaiting_human 但后端进程已重启（resume_token 已丢失，见第 8 节待裁决），
-   界面如实提示"该阶段需要重新获取恢复凭证，当前无法从界面直接续跑"，不假装能继续
+ And 若该 EditionRun 停在 awaiting_human 但后端进程已重启（resume_token 已丢失），界面显示
+   "恢复凭证已丢失，点击「恢复审核」重新获取"，不假装能直接续跑（见第 8 节，用户已裁决
+   候选 B——点击后经用户确认调用 `reissue_resume_token`，不自动重签）
 ```
 
 ### S9 M4/M6 界面显示 AI 预审建议，用户可采纳/修改/忽略（09-26 新增）
@@ -308,7 +309,15 @@ run_release(adapter, registry, edition_part_id=..., technique_id=...)   # M7 创
 - `console_backend/app/routers/pipeline.py`：新增/改造 EditionRun 生命周期端点（创建、advance、
   上传 M4 提交件、上传 AI 预审建议文件、resume、run_release、下载发布包、查状态）。
 - `console_frontend/src/*`：把现有 mock 数据源换成对上面端点的真实请求；新增"AI 预审建议"展示
-  与"采纳建议"交互（S9/S10）。
+  与"采纳建议"交互（S9/S10），以及"恢复审核"按钮与确认框（§8.4）。
+- `pipeline/ledger/service.py`：新增 `LedgerService.reissue_resume_token`（§8.1，唯一需要改的
+  `pipeline/` 生产代码之一）。
+- `pipeline/ledger/client.py`：新增 `LedgerClient.reissue_resume_token` 转发方法（§8.1）。
+- `pipeline/contract_registry/ports.py`：`LEDGER_PORT_METHODS` 元组新增一项
+  `"reissue_resume_token"`（§8.1，唯一改动点，`DirectLedgerAdapter`/`LedgerdClientAdapter`/
+  `PortGuard` 自动跟随）。
+- `docs/blackbox-spec-rework/work-items/impl-00-interfaces/INTERFACES.md`：§1.1 新增一行登记
+  `reissue_resume_token`（§8.6）。
 - `pipeline/contract_registry` 下 `scan_ledger_internals` 对 `console_backend` 的扫描范围要覆盖
   新代码（见下方基线，它是通用函数、按传入的 `roots` 扫描，不需要改代码就能覆盖 `console_backend`，
   但目前没有任何契约测试拿 `console_backend` 当 `roots` 调用它——实现阶段要新增这条测试，
@@ -334,67 +343,202 @@ scan_ledger_internals(["console_backend"])
 `modules_port_clean` 同类检查里长期钉住（而不是只手动跑一次），否则以后谁悄悄写了
 `service.store...` 也不会被回归发现。
 
-## 8. resume_token 与后端重启问题（调查结论）
+## 8. resume_token 与后端重启问题：**已裁决 B（用户 2026-09-26）**
 
-已读代码（本分支 `pipeline/orchestrator/human.py`、`pipeline/ledger/store.py`）：
+已读代码（本分支 `pipeline/ledger/service.py`、`pipeline/ledger/store.py`、
+`pipeline/ledger/client.py`、`pipeline/contract_registry/ports.py`，均已在合并
+`claude/wizardly-maxwell-pqrzh9` 后的树上重新核对行号）：
 
-- `resume_token` 只在"running → awaiting_human"转换那一刻生成一次，返回给调用方；
-  Ledger **只存它的哈希**（`resume_token_hash = "v<status_version>:<sha256(token)>"`），
-  明文从不落盘（`store.py` 第 97、100、958-981 行）。这是有意设计，不是缺口。
-- `claude/wizardly-maxwell-pqrzh9` 的交接文档（`docs/handoff/CLOUD-HANDOFF.md`、`t04a-ruling1.md`、
-  `t04a.report.md`）提到的 `resume_entry`，是**登记表描述符的一个字段**（如 m4 → 
-  `pipeline.knowledge_extraction.step:resume_m4`），用来告诉 `human.resume` 在 `mode="resumed"`
-  时应该调用哪个模块函数——**它解决的是"resume 时该跑哪段代码"，不是"token 丢了怎么办"**。
-  两者是完全不同的问题，不要混淆。
-- 没有找到任何公开入口可以在 token 丢失后重新拿到它或让 Ledger 重新签发一个（`recover()`
-  能把状态对回 `awaiting_human` 但不返回新 token；`rerun_from_checkpoint` 是给 `failed/suspended`
-  用的，不是给 `awaiting_human` 用的）。
+- `resume_token` 只在 `await_human()` 转换 `running → awaiting_human` 那一刻生成一次
+  （`secrets.token_urlsafe(32)`，`service.py:988`），返回给调用方；Ledger **只存它的哈希**
+  （`resume_token_hash = "v<status_version>:<sha256(token)>"`，`_token_hash` @ `service.py:99`），
+  明文从不落盘（`store.py:97,194,397-415` 只有列定义/绑参，没有任何写文件路径）。这是有意设计，
+  不是缺口，**本次裁决不改这一点**。
+- `_check_token`（`service.py:958-983`）校验 token 时同时比对哈希与 `status_version`；
+  `resume()`（`service.py:1065`）消费后把 `resume_token_hash` 置 `NULL`。
+- `recover()`（`service.py:1133`）只处理 `suspended → awaiting_human/running` 这一种情况，
+  且遇到"suspended 之前就是 awaiting_human"时是**保留旧 token**（把旧哈希的版本号前缀
+  重新对齐到新版本，`service.py:1161-1166`，注释写"BDD 3.3"），这解决的是"操作者手里的
+  token 还在、只是 status_version 变了"，**不是**"token 本身已经丢失"——两者是不同问题，
+  之前的调查结论把这两者分清楚了。
+- `resume_entry`（`registry.yaml` m4/m6/m7 各一条，见 §0 对照表）是 orchestrator 登记表
+  描述符字段，告诉 `human.resume` 在 `mode="resumed"` 时该调用哪个模块函数——**它解决的
+  是"resume 时该跑哪段代码"，不是"token 丢了怎么办"**，不要混淆。
 
-**结论：待裁决。** 没有公开途径能在控制台后端进程重启后重新获得已丢失的 `resume_token`。
-按 ACT 19 铁律，本文档遵照第 3 条硬性约束"resume_token 只存进程内存，不许落盘"，
-**这意味着后端重启后，任何已停在 awaiting_human 但尚未 resume 的 EditionRun，界面只能显示
-"停在 M4/M6，需要重新获取恢复凭证"，无法自行续跑**，直到人类在下列候选里选一个：
+**结论：没有公开途径能在 token 丢失后重新拿到它**——这就是候选 B 要新增的那个入口。
 
-- 候选 A：不改账本，允许控制台进程内**持久化到本地磁盘文件**（非 Ledger）保存
-  `{step_run_id: resume_token}`，用文件权限而非 Ledger 完整性来保护；风险：违反本任务书
-  第 3 条"resume_token 不许落盘"的字面约束，需要用户重新裁决这条约束是否允许"控制台自己的
-  本地文件"这种例外。
-- 候选 B：给 Ledger 新增一个公开入口，允许在 `awaiting_human` 状态下**重新签发**一个新
-  `resume_token`（旧哈希失效、换新哈希），代价是要改 `pipeline/ledger`（生产代码），
-  违反本任务第 7 条"不改 pipeline/ 下生产代码"，需要单独裁决是否破例。
-  好处是不违反"不许落盘"。
-- 候选 C：约束运维流程——控制台进程常驻不重启（容器/进程管理器保活），把"后端重启丢 token"
-  当作已知运维风险而非产品问题；配合 S8 场景里"如实提示，不假装能继续"。这是本文档默认采用的
-  展示行为，但不解决"万一真的重启了"的恢复问题。
+**用户 2026-09-26 裁决：选候选 B——在 LedgerPort 新增一个公开的「重签发 resume_token」
+入口。** 候选 A（控制台本地落盘）与候选 C（只靠运维保活、不解决重启后恢复）不再采用；
+候选 C 的"界面如实提示"行为仍保留，但只用于"重签发也失败/用户还没点重签发"时的兜底展示，
+不再是唯一手段。**本条规格变更已获用户批准**，属于对 §17.1 人工暂停与恢复机制的扩展，
+不是实现者自行决定的放宽，登记方式见 §8.4。
 
-本文档不擅自选定，写在这里等人类裁决；实现者在开工前应先确认是否已有裁决，没有裁决就先按候选 C
-的展示行为实现（如实提示），不要自己发明落盘方案。
+### 8.1 新入口设计：`reissue_resume_token`
 
-### 8.1 推荐与理由（供人类裁决参考，不是本文档的最终决定）
+**放在哪**：`pipeline/ledger/service.py` 的 `LedgerService` 类，紧邻 `resume`/`suspend`/
+`recover`（建议插在 `recover()` 之后，`service.py:1131` 后）；`pipeline/ledger/client.py`
+的 `LedgerClient` 加一个同名转发方法（仿 `resume`/`recover` 的写法，`client.py:316-332`
+附近）；`pipeline/contract_registry/ports.py` 的 `LEDGER_PORT_METHODS` 元组（`ports.py:19-71`）
+里加一行 `"reissue_resume_token",`（建议紧跟 `"recover",` 之后，`ports.py:33`）——这一处改动
+会自动让 `DirectLedgerAdapter`、`LedgerdClientAdapter`、`PortGuard`、`port_surface`、
+`missing_port_methods` 全部认得这个新方法，不需要在这几个类里手写委托代码（`ports.py:74-78`
+的 `_DELEGATED_TO_SERVICE`/`_DELEGATED_TO_CLIENT` 都是从 `LEDGER_PORT_METHODS` 派生的）。
+`ledgerd.py` 的 socket 服务端按方法名 `getattr(service, op)` 通用分派（`ledgerd.py:65-73`），
+不需要改。**这是唯一需要动 `pipeline/` 生产代码的地方，且范围严格限定为这三个文件的这三处
+改动**，其余按本任务第 7 条仍然只读。
 
-推荐**默认先实现候选 C，把候选 B 列为长期候选，不推荐候选 A**：
+**函数签名**：
 
-- **候选 C（运维约束：进程常驻不重启）优先**，因为它不需要改任何生产代码或新增落盘面，
-  和"resume_token 只存进程内存"的字面约束零冲突；代价是操作上要求控制台进程被容器/进程
-  管理器保活，一旦真的重启，界面如实显示"需要重新获取恢复凭证"（S8 已写成 BDD 场景），
-  用户仍可以通过第 10 节以外的手段（人工核对 Ledger、走既有的 `docs/handoff` 里那类
-  "回放人工决定"脚本重建裁决）兜底，不是彻底不可恢复，只是不能"点一下就续跑"。
-- **候选 B（Ledger 重新签发 token）是更彻底的长期修法**：它不违反"不许落盘"，只是把
-  "拿旧 token"换成"拿新 token"，语义上更贴近现有 `resume_token_hash` 一次性消费的设计
-  （新签发时旧哈希失效，行为上类似 `_check_token` 现在做的版本号校验）。但它要改
-  `pipeline/ledger`/`pipeline/orchestrator` 的生产代码，属于本任务书第 7 条"不改 pipeline/
-  下生产代码"，需要单独裁决破例；不建议在没有裁决的情况下由实现者自己动手。
-- **不推荐候选 A**：把 `resume_token` 落盘到控制台自己的本地文件，字面上仍然是"把 token
-  写到了磁盘"，即使不写进 Ledger，也很可能被理解为违反"resume_token 不许落盘"这条铁律的
-  精神（该铁律的目的是防止一次性凭证被长期保存、被拷贝、被日志意外记录），风险收益比最差。
+```python
+def reissue_resume_token(self, step_run_id, *, actor_ref, reason):
+    """StepRun 仍处于 awaiting_human 但 resume_token 已丢失（例如控制台进程重启、
+    内存映射清空）时，使旧 token 立即作废并签发一个新的单次使用 token（§8.2 之外
+    再无其他改变：不影响已经登记过的人工事件/决定，见 §8.3）。"""
+```
 
-### 8.2 与 §7.1 基线的关系
+- `step_run_id`：目标 StepRun（M4 分歧裁决或 M6 审核所在的那次 `awaiting_human`）。
+- `actor_ref`：**显式参数，不用 `self.actor()`**——与本项目其余 `resume`/`suspend`/`recover`
+  不同，这里刻意要求调用方把"是谁点了这个按钮"当参数传进来，而不是依赖进程级的
+  `actor_provider`。理由：P7 要求这类操作必须可追溯到界面上的一次用户点击，进程级
+  actor 配置容易被误配成某个默认值（例如运维账号），显式参数逼着 `orchestrator_client`
+  在调用前先拿到界面传来的用户身份。
+- `reason`：自由文本，用户在界面上填写"为什么要重新获取凭证"（例如"后端重启，原恢复
+  凭证已丢失"），写入 `step_run_events.reason` 与 `audit_log`，不做闭集校验（同
+  `suspend(step_run_id, reason, source)` 的 `reason` 一样是自由文本）。
 
-一旦选定候选 B 或候选 C，`orchestrator_client.py` 都需要维护一个进程内存里的
-`{step_run_id: resume_token}` 映射（§7 已列），这个映射本身是否被序列化/写文件，是
-§7.1 那条 `scan_ledger_internals` 回归要盯住的东西之一（正则扫不到"写文件"这种操作，
-所以还需要 TDD.md 里 `test_resume_token_never_written_to_disk_or_log` 这条独立的按字节
-搜索测试，两者互补，不能只依赖 `scan_ledger_internals`）。
+**前置条件**（不满足则拒绝，不静默）：
+
+1. `step_run_id` 必须存在，否则 `MissingReference`（`code="REF_001"`，同其余方法的既有写法）。
+2. StepRun 当前 `status` 必须是 `awaiting_human`；不是就抛 `IllegalTransition`
+   （消息里带上当前实际状态，同 `recover()` 的写法 `service.py:1146-1150`）。
+   **注意**：`STEP_RUN_TRANSITIONS["awaiting_human"]` 这张表（`states.py:35`）里没有
+   `"awaiting_human"` 自己——因为这不是一次"状态迁移"（status 没变，只是版本号和 token
+   换了）。所以本方法**不调用** `check_step_run_transition`，改成显式检查
+   `if step["status"] != "awaiting_human": raise IllegalTransition(...)`。这是本设计
+   唯一偏离"新状态变化都走 `check_step_run_transition`"这条既有惯例的地方，写在这里是
+   为了让实现者知道这是刻意的，不是漏调用。
+3. 不要求"旧 token 已经真的丢了"这件事本身可验证（后端没法知道调用方是不是真的丢了 token，
+   这天然不可验证）——**任何时候用户在界面点了「恢复审核」并确认，都视为合法请求**；
+   旧 token 立刻作废，即使它其实还没丢（这是候选 B 的固有代价：重签发是"一次性、不可逆"
+   的操作，界面必须让用户确认自己不是手滑点到）。
+
+**实现**（在 `awaiting_human` 状态内自转，不经过状态机表）：
+
+```python
+    def reissue_resume_token(self, step_run_id, *, actor_ref, reason):
+        token = secrets.token_urlsafe(32)
+        with self.store.transaction():
+            step = self.store.get_step_run(step_run_id)
+            if step is None:
+                raise MissingReference("StepRun 不存在: %s" % step_run_id, code="REF_001")
+            if step["status"] != "awaiting_human":
+                raise IllegalTransition(
+                    "reissue_resume_token 只允许 awaiting_human 状态: %s 当前为 %s"
+                    % (step_run_id, step["status"])
+                )
+            bound_version = step["status_version"] + 1
+            self.store.update_step_run_status(
+                step_run_id,
+                "awaiting_human",
+                "awaiting_human",
+                step["status_version"],
+                fields={"resume_token_hash": _token_hash(token, bound_version)},
+            )
+            self.store.append_step_run_event(
+                step_run_id,
+                "resume_token_reissued",
+                actor_ref,
+                from_status="awaiting_human",
+                to_status="awaiting_human",
+                reason=reason,
+            )
+            self.store.append_audit(
+                "reissue_resume_token", str(step_run_id), actor_ref,
+                json.dumps({"reason": reason}, sort_keys=True, ensure_ascii=False),
+            )
+        return token
+```
+
+（`store.update_step_run_status` 的 `WHERE status=from_status AND status_version=expected`
+天然支持"同状态自转"，`from_status="awaiting_human", to_status="awaiting_human"`
+不需要改 `store.py`；乐观锁保证并发下两次重签发不会互相踩。）
+
+### 8.2 旧 token 立即作废、审计记录（已在上面实现里体现，逐条对应约束）
+
+- **旧 token 立即作废**：新的 `resume_token_hash` 绑定 `bound_version = 旧 status_version+1`，
+  旧 token 的哈希对应的是旧版本号；旧 token 再拿去调 `resume()`/`record_human_event()`时，
+  `_check_token` 里 `bound_version != step["status_version"]` 这一条（`service.py:979-982`）
+  会先失败（版本号不匹配），**旧 token 被拒**，不需要额外维护"黑名单"。
+- **审计记录**：两处，都在同一事务里：
+  1. `step_run_events` 表新增一行，`event_type="resume_token_reissued"`，
+     `from_status=to_status="awaiting_human"`，`actor_ref` 为传入的用户身份，
+     `reason` 为用户填写的理由——这条经 `list_step_run_events(step_run_id)`
+     （已在 `LEDGER_PORT_METHODS` 闭集里）**可以经端口读到**，是给控制台界面显示
+     "这次审核的恢复凭证历史"用的。
+  2. `audit_log` 表新增一行（`append_audit`），`action="reissue_resume_token"`，
+     `target=step_run_id`，`actor_ref` 同上，`payload_json` 里带 `reason`——这条和
+     其余 `resume`/`suspend`/`recover` 一样**不经端口读**（`count_audit`/`append_audit`
+     都不在 `LEDGER_PORT_METHODS` 闭集里），测试要验证它存在得像既有 ledger 测试那样
+     直接用 `DirectLedgerAdapter(...).unwrap().store` 读（只在测试代码里这样做，
+     生产代码仍然不允许，同 `legacy_self_driving` 经 `unwrap()` 的既有例外）。
+
+### 8.3 重签发不改变已记录的决定
+
+`reissue_resume_token` 只碰 `step_runs.resume_token_hash`/`status_version` 与新增的两条
+事件/审计记录，**不触碰**任何 `human_event`、`artifact_revisions`、`checkpoints`——用户在
+本次 `awaiting_human` 里已经通过 `record_category_ruling`/`record_decision` 登记过的决定
+（哪怕只登记了一部分，还没 `resume`）原样保留，重签发后用户可以继续用新 token 把剩下的
+决定登记完，再 `resume`。这是"重签发只换凭证、不影响已登记内容"的字面含义，`TDD.md`
+`test_reissue_does_not_change_recorded_decisions` 要直接断言这一点。
+
+### 8.4 界面触发方式（不得后台自动重签）
+
+控制台后端**不得**在检测到内存映射里没有某个 `awaiting_human` StepRun 的 token 时自动调用
+`reissue_resume_token`——那等于绕开用户做决定，违反 P7 的精神（这个操作本身不是"审核决定"，
+但仍然是一次有实际后果的写账本操作，必须由用户主动触发）。设计的触发流程：
+
+1. 用户刷新页面/重开浏览器，界面查到某个 EditionRun 停在 `awaiting_human` 但控制台内存
+   映射里没有对应 token（S8 场景已覆盖这种查询）；
+2. 界面显示"该阶段的恢复凭证已丢失（多半是后端重启），点击「恢复审核」重新获取"，
+   **不自动弹窗、不自动请求**，等用户主动点击；
+3. 用户点击后，界面弹出确认框，要求填写/确认 `reason`（可给默认文案，但要让用户看到并
+   能改），并显示"这会让旧凭证失效"的提示；
+4. 用户确认后，前端才发一次 HTTP 请求到控制台后端的"重签发"端点，后端据此调用
+   `reissue_resume_token(step_run_id, actor_ref=<界面配置的用户身份>, reason=<用户填写>)`，
+   把新 token 存进内存映射，界面刷新出"可以继续审核"的状态。
+
+这段流程本身不是本次交付的代码，是 README §5（BDD）与 §7（要改的文件）里
+`console_backend/app/orchestrator_client.py`/`routers/pipeline.py` 的一部分，本节只是把
+"必须用户主动点击确认"这条硬性约束写清楚，供实现阶段直接抄。
+
+### 8.5 与 §7.1 基线的关系
+
+`orchestrator_client.py` 仍然要维护一个进程内存里的 `{step_run_id: resume_token}` 映射
+（§7 已列），这个映射本身是否被序列化/写文件，是 §7.1 那条 `scan_ledger_internals` 回归
+要盯住的东西之一（正则扫不到"写文件"这种操作，所以还需要 TDD.md 里
+`test_resume_token_never_written_to_disk_or_log` 这条独立的按字节搜索测试，两者互补，
+不能只依赖 `scan_ledger_internals`）。`reissue_resume_token` 返回的新 token 同样只能进
+这个内存映射，不许落盘——**候选 B 解决的是"丢了怎么重新拿"，不是"允许存起来"**，
+`resume_token` 不落盘这条铁律本身没有变。
+
+### 8.6 规格登记（此入口属于规格变更，已获用户批准）
+
+`reissue_resume_token` 扩展了 §17.1 人工暂停与恢复机制，不是实现细节，要登记进
+`docs/blackbox-spec-rework/work-items/impl-00-interfaces/INTERFACES.md` **§1.1「调用、
+事务与人工恢复」表**（该表现在到"人工事件"一行为止，见 `INTERFACES.md:17-34`；本文档
+读过该表，行号已核实：表头 `:19`，"人工事件"行 `:30`）。**由实现者在开工时新增一行**
+（本文档不越权改动 impl-00 包的文件），格式仿"人工事件"那一行：
+
+```
+| resume_token 重签发 | `reissue_resume_token(step_run_id, *, actor_ref, reason)`；仅
+  `awaiting_human` 状态合法；旧 token 立即作废（新哈希绑定新 status_version）；
+  写 `step_run_events`（`event_type="resume_token_reissued"`）与 `audit_log`；
+  不改变已登记的人工事件/决定；token 仍不落盘，只返回给调用方 | 【草案】T24 ACT
+  01（本包）；用户 2026-09-26 裁决候选 B（README.md §8） |
+```
+
+`INTERFACES.md` 顶部状态行（`:3`）若因此需要提及新增内容，也由实现者按该包既有的更新
+习惯（写变更摘要+日期）处理，本文档不代做。
 
 ## 9. console_backend 现有 2 个测试 error：根因、已验证过的修法排除、确切可用修法
 
@@ -476,12 +620,15 @@ TDD.md 第 1 节的新测试；这属于环境/依赖版本问题，修复它不
    确认 `.venv-py313/bin/python -m unittest discover -s console_backend/tests -t .` → `OK`
    之后才开始写 TDD.md 第 1 节的新测试；对这一步本身做一次篡改探针（例如临时把
    `.venv-py313` 换回指向 3.14 的解释器，观察测试是否变回同样的 2 个 error，然后改回）。
-3. 确认 §8/§8.1 的 resume_token 落盘问题是否已有人类裁决；没有就按候选 C（默认推荐）的
-   展示行为实现，不要自创落盘方案，也不要因为觉得候选 B 更好就自己去改 `pipeline/ledger`。
+3. resume_token 已裁决候选 B（§8）：先落地 `reissue_resume_token`（§8.1，`act/01.yaml`
+   已排在"接 M4/M6 审核"之前作为独立步骤），跑绿 TDD.md 里对应的 ledger 层测试，再接
+   `console_backend` 的触发端点；不要跳过 ledger 层直接在 `orchestrator_client.py` 里
+   自己发明"重签发"逻辑（那会绕开 `LedgerPort` 的闭集机制，违反第一条硬约束）。
 4. 重跑一次 §7.1 的 `scan_ledger_internals(["console_backend"])` 作为自己那次改动前的基线
    （预期仍是 `[]`，因为改造前 `console_backend` 还没接 Ledger）；每接入一块新代码
    （尤其是 `orchestrator_client.py`）就重跑一次，确保接入后仍然是 `[]`，并补一条
    `pipeline/contract_registry/tests/` 下的回归用例把这个检查钉住（§7.1 已说明原因）。
+5. 按 §8.6 在 `INTERFACES.md` §1.1 补登记 `reissue_resume_token` 那一行。
 
 ## 11. 完成判据（对齐 act/01.yaml，汇总）
 
@@ -489,6 +636,8 @@ TDD.md 第 1 节的新测试；这属于环境/依赖版本问题，修复它不
 - M4/M6 决定均在界面完成，`actor_ref` 来自用户配置，不存在任何自动/代签路径；
 - M4/M6 页面能显示已上传的 AI 预审建议（若有），采纳与否都不影响"必须用户点击提交才算决定"；
 - `scan_ledger_internals(console_backend)` 为空；
-- resume_token 不落盘（有测试按字节搜索证明）；
+- resume_token 不落盘（有测试按字节搜索证明）；后端重启丢失 token 后，用户可在界面点击
+  「恢复审核」经 `reissue_resume_token`（候选 B，§8）重新获得凭证续跑，全程不自动重签；
 - 刷新/重开浏览器能看到当前停在哪一步；
-- 任一阶段失败时界面如实显示失败原因。
+- 任一阶段失败时界面如实显示失败原因；
+- `reissue_resume_token` 已登记进 `INTERFACES.md` §1.1（§8.6）。

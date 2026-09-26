@@ -89,6 +89,29 @@ bash tools/jules_setup.sh   # 环境搭建自带跑一次 unittest：Ran 106 tes
    `docs/handoff/U07-decisions_supplement.yaml` 的形状），断言最终 M8 succeeded 且能下载发布包 | 集成测试尚未写；合并 `claude/wizardly-maxwell-pqrzh9` 后 `run_inputs`/`route:text` 已在本分支存在（README §0 已核实签名），本条不再有分支阻断，直接按 README §6 的调用序列实现即可 | |
 | 契约：不绕过 LedgerPort | `test_scan_ledger_internals_console_backend_is_empty`（放在 `pipeline/contract_registry/tests/`，新增一条独立用例，不是扩展 `test_modules_port_clean_*`——`modules_port_clean` 只按 `registry.yaml` 里登记的模块入口扫描，`console_backend` 不是登记模块，不会被它覆盖，需要单独调用 `scan_ledger_internals(["console_backend"])`） | `scan_ledger_internals(["console_backend"])` 返回 `[]` | **已实测基线**：改造前即为 `[]`（README §7.1），但这是"还没碰 Ledger"而不是"接了 Ledger 还干净"，红的地方是"这条回归用例本身还不存在"，不是数字不对；实现阶段接入 `orchestrator_client` 后要保证这条用例持续通过 | |
 | 硬约束：resume_token 不落盘 | `test_resume_token_never_written_to_disk_or_log`（借用/仿照 `docs/handoff/t04a.report.md` 提到的 `test_resume_token_never_persisted` 思路） | 全流程跑完后，`grep -r <token明文> $TMP_LEDGER_DIR console_backend/` 与后端日志文件均无命中 | 未写 | |
+| S8 恢复审核（候选 B，09-26 追加裁决） | `test_reissue_endpoint_requires_user_confirmation_reason` | 控制台"恢复审核"端点必须带 `reason` 字段（用户在确认框里填写/确认），缺失时 HTTP 400，不调用 `reissue_resume_token` | `console_backend.app.orchestrator_client` 尚不存在该端点 | |
+| S8 | `test_reissue_endpoint_never_triggered_automatically` | 契约测试：状态查询端点（GET，只读）在处理请求过程中，即使发现内存映射缺 token，也不会触发任何写调用（spy 断言 `reissue_resume_token`/`record_*`/`resume` 均未被调用）——防止"查询时顺手自动重签" | 同上 | |
+
+## 1.1 `reissue_resume_token`（LedgerPort 层，放 `pipeline/ledger/tests/`，候选 B，用户 2026-09-26 裁决）
+
+这 5 条是**新增生产代码**（`pipeline/ledger/service.py`、`client.py`、
+`pipeline/contract_registry/ports.py`，README.md §8.1/act §一之五）配套的测试，测试先行、
+按 Red → Green 落地，每条都要有对应的篡改探针（探针用 `cp` 备份文件后恢复，不用
+`git checkout`）：
+
+| 测试名 | 断言要点 | 篡改探针 |
+|---|---|---|
+| `test_reissue_resume_token_allows_resume_with_new_token` | `await_human` 拿到 token1 后，调用 `reissue_resume_token(step_run_id, actor_ref="user:wjt", reason="后端重启")` 拿到 token2（`token2 != token1`），用 token2 调 `resume()` 成功（状态转 `running`） | 把 `reissue_resume_token` 里 `to_status` 硬编码写成 `"running"`（而不是 `"awaiting_human"` 自转）→ 本测试及 `test_reissue_rejects_when_not_awaiting_human` 转红；改回后转绿 |
+| `test_old_resume_token_rejected_after_reissue` | 重签发后，用旧 token1 调 `resume()` 或 `record_human_event()` 必须抛 `InvalidResumeToken`（版本号不匹配） | 把 `reissue_resume_token` 里 `bound_version` 改成 `step["status_version"]`（不 +1）→ 本测试转红（旧 token 仍能用）；改回后转绿 |
+| `test_reissue_rejects_when_not_awaiting_human` | StepRun 处于 `running`/`succeeded`/`suspended` 等非 `awaiting_human` 状态时调用，抛 `IllegalTransition`，`resume_token_hash` 不变 | 把前置条件检查删掉（或改成允许任意状态）→ 本测试转红；改回后转绿 |
+| `test_reissue_writes_step_run_event_and_audit_log` | 调用后 `list_step_run_events(step_run_id)` 里出现一条 `event_type="resume_token_reissued"`，`actor_ref`/`reason` 与传入参数一致；`DirectLedgerAdapter(...).unwrap().store.count_audit()` 增加 1，且能读到 `action="reissue_resume_token"` 那一行（测试直接读 store，生产代码不许） | 删掉 `append_step_run_event`/`append_audit` 调用中的任意一处 → 本测试转红；改回后转绿 |
+| `test_reissue_does_not_change_recorded_decisions` | 在 `awaiting_human` 期间先登记 1-2 条 `record_human_event`（部分裁决），调用 `reissue_resume_token`，断言 `list_human_events(step_run_id)` 前后完全一致，且用新 token 还能继续登记剩下的决定、再 resume 成功 | 让 `reissue_resume_token` 误删/清空 `human_events`（模拟实现错误）→ 本测试转红；改回后转绿 |
+
+契约测试（`pipeline/contract_registry/tests/`）：
+
+| 测试名 | 断言要点 |
+|---|---|
+| `test_ledger_port_methods_includes_reissue_resume_token` | `LEDGER_PORT_METHODS` 元组含 `"reissue_resume_token"`；`port_surface(DirectLedgerAdapter(...))` 与 `port_surface(LedgerdClientAdapter(...))` 都能看到它（回归钉住 §8.1 的"改一处、四处自动跟随"） |
 
 ## 2. 与主线 TDD 的关系
 
