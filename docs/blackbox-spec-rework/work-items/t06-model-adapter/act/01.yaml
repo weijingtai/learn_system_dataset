@@ -1,0 +1,320 @@
+act_id: t06/01
+title: M4 本机模型适配器 —— 阶段 A 探测 → 阶段 B 用户裁决（停手）→ 阶段 C 实现（用户批准后）
+estimated_minutes: 480
+group: T06
+depends_on: []
+decisions: []
+scope:
+  write:
+    # 阶段 A：只写这两份记录文件，不动任何生产代码
+    - docs/handoff/T06-phase-a.md
+    - docs/handoff/T06.report.md
+    # 阶段 C（仅当用户在阶段 B 批准后才允许写下面这些；阶段 A/B 阶段绝不能碰）
+    - pipeline/knowledge_extraction/adapters/freebuff.py
+    - pipeline/knowledge_extraction/adapters/opencode.py
+    - pipeline/knowledge_extraction/adapters/task_pipeline.py
+    - pipeline/knowledge_extraction/__init__.py
+    - pipeline/knowledge_extraction/submit.py
+    - pipeline/knowledge_extraction/acceptance.py
+    - pipeline/knowledge_extraction/tests/test_model_adapter_freebuff.py
+    - pipeline/knowledge_extraction/tests/test_model_adapter_opencode.py
+    - pipeline/knowledge_extraction/tests/test_task_pipeline_adapter.py
+    - pipeline/knowledge_extraction/tests/test_submit.py
+    - pipeline/knowledge_extraction/tests/test_acceptance.py
+    - pipeline/knowledge_extraction/tests/data/fake_models/
+  read_only:
+    - pipeline/corpus/_fixture/qianyuan_ed01_text/           # 真书宿主，六份提交件与 brief.md 一字不动
+    - pipeline/corpus/_fixture/mini_ed01/                    # 金标，一字不动
+    - pipeline/knowledge_extraction/entry.py                 # T04 调度器接线，不改
+    - pipeline/knowledge_extraction/step.py                  # 不改 run_m4/resume_m4 签名
+    - pipeline/knowledge_extraction/inputs.py
+    - pipeline/knowledge_extraction/submission.py
+    - pipeline/knowledge_extraction/review_events.py
+    - pipeline/knowledge_extraction/gate.py
+    - pipeline/knowledge_extraction/assemble.py
+    - pipeline/ledger/                                       # 只读端口方法，不改 Ledger 本身
+    - pipeline/contract_registry/                             # T03b 范围，见 README §2.7
+    - pipeline/dataset_compiler/
+    - pipeline/orchestrator/
+    - openspec/
+    - TODO.md
+    - PLAN.md
+    - HANDOFF.md
+    - var/                                                    # 任何真实账本目录，只读，绝不许写；实跑用 cp -R 副本
+background: |
+  见 README.md §1、§2（全部背景与出处已核实 file:line）。一句话：真书《乾元秘旨》
+  「天官」「七煞」两节的六份 M4 提交件是主 Agent手工两路派发、机械转换出来的
+  （pipeline/corpus/_fixture/qianyuan_ed01_text/m4/README.md）；本任务要把这套手工
+  流程改造成 FreeBuff / OpenCode 两个可自动调用的 Model Adapter；但开放
+  `model_adapter` 渠道属于放宽 M4 的渠道闭集，是改规格判定，必须先经用户批准
+  （阶段 B），不许执行者自己决定。
+
+# ============================================================ 阶段 A：探测 ============================================================
+phase_a:
+  goal: 实测 FreeBuff、OpenCode 能否非交互调用；产出结论供阶段 B 参考。本阶段绝不写任何生产代码。
+  steps:
+    - step: A1
+      action: |
+        确认本机是否安装 FreeBuff、OpenCode 命令行工具。
+      command: |
+        which freebuff fb opencode oc 2>&1; echo "exit=$?"
+        # 若上述命令都找不到，改用本机实际的可执行文件名（例如 tmux-agents/bin 下的脚本），
+        # 但不要用交互式脚本（tmux-agent.sh、*-watch.sh）代替，那些是屏幕抓取，本步骤要找的
+        # 是"能不能不经 tmux 直接拿到完整输出"的调用方式。
+      expected: 至少给出一个可执行文件的路径，或明确"未找到"。
+      on_fail: |
+        若两个工具都完全找不到任何可执行入口（连带 tmux 交互脚本也没有对应的
+        CLI 二进制），停手，在 T06.report.md 写「阶段 A 无法开始：本机没有
+        FreeBuff/OpenCode 的任何可执行文件」，不要凑合用别的工具替代（README §0
+        已说明你不能自己选替代方案）。
+    - step: A2
+      action: |
+        对 FreeBuff 做三次非交互调用测试：同一条命令、同一个固定 prompt
+        （建议用一句无歧义的短问题，如"只回答一个数字：1+1=?"，方便判断输出是否
+        确定性可复现），不使用 tmux 附着、不使用屏幕截图/OCR 读屏。
+      command: |
+        # 示例写法，按本机实际命令替换：
+        for i in 1 2 3; do
+          echo "== 第 $i 次 =="
+          time <freebuff 非交互命令> "只回答一个数字：1+1=?" > /tmp/fb_out_$i.txt 2> /tmp/fb_err_$i.txt
+          echo "exit=$?"
+          head -c 2000 /tmp/fb_out_$i.txt
+        done
+      expected: |
+        三次都有退出码记录；三次 stdout 都被完整捕获（不是空、不是被截断的进度条）；
+        三次输出在语义上一致（都能解析出"2"这个答案）。
+      on_fail: |
+        如果三次调用需要人在终端里按键、或必须用 tmux 才能看到输出、或输出总是
+        被截断/夹杂无关的进度信息导致无法用脚本可靠解析，记为"FreeBuff 不可非交互
+        调用"，附具体现象。**不要**改用屏幕截图/tmux 抓取来凑合，直接如实记录失败。
+    - step: A3
+      action: 对 OpenCode 重复 A2 的三次测试。
+      command: |
+        for i in 1 2 3; do
+          echo "== 第 $i 次 =="
+          time <opencode 非交互命令，如 opencode run -m <model> "…"> > /tmp/oc_out_$i.txt 2> /tmp/oc_err_$i.txt
+          echo "exit=$?"
+          head -c 2000 /tmp/oc_out_$i.txt
+        done
+      expected: 同 A2。
+      on_fail: 同 A2，记为"OpenCode 不可非交互调用"。
+    - step: A4
+      action: |
+        把 A2、A3 的完整记录（命令、退出码、耗时、原始输出前 200 行、是否确定性
+        可复现、结论）按 TDD.md §1 的表格逐项写入 docs/handoff/T06-phase-a.md。
+      command: |
+        test -f docs/handoff/T06-phase-a.md && wc -l docs/handoff/T06-phase-a.md
+      expected: 文件存在且非空，含 A2、A3 两个工具各三次调用的完整记录。
+      on_fail: 记录不完整就是没做完，不许提交半份记录。
+    - step: A5
+      action: |
+        根据 A2/A3 结论判定阶段 A 是否通过。
+      decision: |
+        - 若 FreeBuff、OpenCode 至少有一个可非交互调用 → 阶段 A 通过，进入阶段 B。
+        - 若两者都不可非交互调用 → 停手。在 docs/handoff/T06.report.md 顶部写
+          「T06 阶段 A 不通过」，附 T06-phase-a.md 链接与结论摘要，**不进入阶段 B/C**，
+          不写任何 Adapter 代码。
+stop_condition_phase_a: |
+  A1 完全找不到工具，或 A2+A3 都判定"不可非交互调用" → 停手，不进入阶段 B。
+
+# ============================================================ 阶段 B：待用户决定（停手点） ============================================================
+phase_b:
+  goal: 把渠道开放方案交给用户裁决；执行者不做任何选择、不写任何代码。
+  precondition: 阶段 A 判定至少一个工具可非交互调用。
+  steps:
+    - step: B1
+      action: |
+        在 docs/handoff/T06.report.md 追加「## 待用户决定」小节，逐条列出以下候选方案，
+        每条给出对应的改动点（file:line）与影响面，但**不做推荐、不代用户选**：
+      content_template: |
+        ## 待用户决定：M4 model_adapter 渠道开放方案
+
+        背景：`pipeline/knowledge_extraction/__init__.py:18` 的 `ACCEPTED_CHANNELS`
+        目前只收 `fixture_gold`、`task_pipeline_manual`；`model_adapter` 已在完整
+        闭集 `CHANNELS`（:17）里，但被 `submit.py:84` 的 begin-前拒绝挡住。放开它是
+        放宽首切片判定（impl-05-knowledge/README.md:94 D-01），属于改规格判定，
+        需要用户批准。
+
+        候选方案：
+
+        a. **新增 model_adapter 渠道**：把 `"model_adapter"` 加入 `ACCEPTED_CHANNELS`
+           （`__init__.py:18`）。改动最小，符合 impl-05 README:94 早先预告的
+           「日后接入 Model Adapter 只新增渠道，不改 M4 Interface」。副作用：M4 会
+           开始接受 `channel=model_adapter` 的提交件，即使 Adapter 本身有 bug 也可能
+           把畸形候选写进 Ledger（fail-closed 由 Adapter 自己的异常处理承担，见
+           TDD.md §3.1）。
+
+        b. **仍走 task_pipeline_manual，只自动化产出抽取件**：新 Adapter 调用
+           FreeBuff/OpenCode 拿到抽取件后，仍经 `task_pipeline.py` 的
+           `normalize_task_output` 转成 `channel="task_pipeline_manual"` 的提交件
+           （像真书六份提交件现在的做法），不改 `ACCEPTED_CHANNELS`、不碰 M4 渠道
+           闭集。优点：不改任何 M4 判定代码，`producer.kind` 仍可以如实写 "model"
+           （闭集已支持，`__init__.py:19`）区分"人工"与"模型自动化"来源。缺点：
+           `cross_model_extraction` 这项 BLOCKED 判定（`acceptance.py:92-96`）目前
+           只以 `channel == "model_adapter"` 作为"接了 Model Adapter"的证据来源
+           （若选方案 b，需要另外确认判定改用什么信号，比如
+           `producer.kind == "model"` 而不看 channel——这一点也要用户一并批准）。
+
+        请用户在本节下方给出：
+        1. 选 a / b（或其他）；
+        2. 是否同时批准放开 `submit.py:84` 里 `doc["lane"] == "c"` 的复核路拒绝
+           （T06 的验收判据要求"第三个复核"过 M4 Gate，若不放开 lane c，复核路的
+           产出只能作分歧队列的参考信息，不能作为一路正式提交，见 README §4 第 2 条）；
+        3. 是否批准 `pipeline/knowledge_extraction/acceptance.py` 里
+           `cross_model_extraction` 从静态 BLOCKED 改为按实际提交件计算的判定
+           （改动位置：`acceptance.py:92-105` 的 `BLOCKED_CHECKS` 元组删掉这一项，
+           新增一个 `COMPUTED_CHECKS` 函数）。
+      expected: 该小节写完后，执行者停手，不写任何后续代码，等待用户在本文件下方
+        或 TODO.md 里给出批复。
+    - step: B2
+      action: 停手等待。
+      stop_condition: 用户在 T06.report.md 或 TODO.md 里给出方案 a/b 的选择之前，不进入阶段 C。
+
+# ============================================================ 阶段 C：实现（用户批准后才做） ============================================================
+phase_c:
+  goal: 按 TDD.md 的契约与测试表实现两个 Model Adapter，接通用户批准的渠道方案。
+  precondition: 用户已在阶段 B 给出书面批复（方案 a/b 二选一 + lane c 是否放开 +
+    cross_model_extraction 判定是否改写）。执行者在开始写代码前，把用户批复的原文
+    抄一段进 docs/handoff/T06.report.md，作为本阶段的依据留痕。
+  steps:
+    - step: C1
+      action: 先写 TDD.md §3.1、§3.2 的测试与假脚本，跑一次确认全部先红（ImportError / AttributeError）。
+      command: |
+        mkdir -p pipeline/knowledge_extraction/tests/data/fake_models
+        # 写好 freebuff_ok.sh / freebuff_hang.sh / freebuff_fail.sh / freebuff_garbage.sh
+        # 及 opencode_* 对应四个假脚本后：
+        chmod +x pipeline/knowledge_extraction/tests/data/fake_models/*.sh
+        .venv/bin/python -m unittest discover -s pipeline/knowledge_extraction/tests -t . -p 'test_model_adapter_*.py' -v 2>&1 | tail -30
+      expected: 全部新用例报 ImportError 或 AttributeError（freebuff.py/opencode.py 不存在）。
+      on_fail: 若某条用例意外通过（说明测试没写对，不可能在实现前通过），停手重写该用例。
+    - step: C2
+      action: 实现 pipeline/knowledge_extraction/adapters/freebuff.py 与 opencode.py（契约见 TDD.md §2）。
+      command: |
+        .venv/bin/python -m unittest discover -s pipeline/knowledge_extraction/tests -t . -p 'test_model_adapter_*.py' -v 2>&1 | tail -30
+      expected: TDD.md §3.1/§3.2 全部用例转绿。
+      on_fail: 逐条对照 TDD.md 的"断言"栏，不许放宽断言来凑绿。
+    - step: C3
+      action: 补 task_pipeline.py 的 pattern 类别支持（TDD.md §3.3），先红后绿。
+      command: |
+        .venv/bin/python -m unittest pipeline.knowledge_extraction.tests.test_task_pipeline_adapter -v 2>&1 | tail -20
+      expected: 新增两条用例先红后绿；既有用例数不减少。
+    - step: C4
+      action: 按用户批复实现渠道/lane c 放开（TDD.md §3.4），先红后绿。
+      command: |
+        .venv/bin/python -m unittest pipeline.knowledge_extraction.tests.test_submit -v 2>&1 | tail -30
+      expected: 新增用例先红后绿；模块整体用例数不减少、不出现 skipped。
+    - step: C5
+      action: 按用户批复实现 cross_model_extraction 判定改写（TDD.md §3.5），先红后绿。
+      command: |
+        .venv/bin/python -m unittest pipeline.knowledge_extraction.tests.test_acceptance -v 2>&1 | tail -30
+        bash openspec/acceptance/m4-stage-gate.sh 2>&1 | tail -5
+      expected: |
+        test_acceptance.py 新增两条用例先红后绿；m4-stage-gate.sh 输出里
+        cross_model_extraction 从 BLOCKED 变 PASS（若用户批复方案要求如此），
+        semantic_span_input / term_layering_scan 两项逐字仍为 BLOCKED、理由不变。
+    - step: C6
+      action: |
+        真书两节验收（不在单测里，只在本步骤手工跑一次真模型）。把真书正本
+        var/ledgers/<真书账本> 复制到临时目录后再跑，正本只读。
+      command: |
+        TMP=$(mktemp -d)
+        cp -R var/ledgers/<真书账本目录名> "$TMP/ledger"
+        # 用 FreeBuff Adapter 对 lane a、OpenCode Adapter 对 lane b，分别在
+        # spans_tianguan_qisha.yaml 上独立抽取，得到两份 candidate_submission，
+        # 经 run_m4_submit 登记到 "$TMP/ledger" 指向的 LedgerService 上。
+        # 与 pipeline/corpus/_fixture/qianyuan_ed01_text/m4/submission_*.yaml
+        # 逐条对照条数与字段形状差异。
+      expected: |
+        两份提交件都被 run_m4_submit 接受（status=succeeded）；把与现有六份人工
+        提交件的条数、字段形状差异列成表，写进 T06.report.md（不要求条数一致，
+        只要求"差异被列出并能解释"，见 README §5 场景 6）。
+      on_fail: |
+        若模型调用失败、或产出被 Adapter 判定非法而拒绝（AdapterCallFailed），
+        如实记录失败原因，不许换用别的路数据凑数、不许把失败静默跳过。
+  regression_after_each_step: |
+    .venv/bin/python -m unittest discover -s pipeline/knowledge_extraction/tests -t . 2>&1 | tail -3
+    bash openspec/acceptance/m4-stage-gate.sh 2>&1 | tail -5
+    python -m pipeline.contract_registry.acceptance 2>&1 | tail -3   # 只用于确认没有意外碰这个包，不要求它变化
+    git status --short pipeline/contract_registry pipeline/ledger pipeline/dataset_compiler pipeline/orchestrator openspec   # 空
+    git diff --check
+
+# ============================================================ 篡改探针（阶段 C，逐条见 TDD.md §3 表格「篡改探针」列） ============================================================
+tamper_probes: |
+  每条测试的篡改探针见 TDD.md §3 各表最后一列。通用流程：
+    1. cp 备份将要改的文件（cp X X.bak）
+    2. 按该行"篡改探针"描述改一处
+    3. 跑对应测试，确认转红，把红的输出贴进 T06.report.md
+    4. cp X.bak X 恢复，删 .bak，重跑确认转绿
+  绝不使用 git checkout -- 或 git stash 做这件事（AGENTS.md Git 安全铁律）。
+
+# ============================================================ 停手条件（汇总） ============================================================
+stop_conditions: |
+  1. 阶段 A：FreeBuff 与 OpenCode 都不能非交互调用 → 停手，不进入阶段 B/C。
+  2. 阶段 B：用户尚未给出方案批复 → 停手，不进入阶段 C，不写任何生产代码。
+  3. 阶段 C 任一步骤：测试先红环节意外为绿、或篡改探针改了却不转红 → 停手，
+     重新审视测试是否真的在验证契约，不许绕过重写测试来凑绿。
+  4. 阶段 C：真模型调用产出的候选形状与 README §2.8/TDD.md §2 的契约不符（例如
+     producer.model_id 为空、或 response_sha256 不是真算的哈希）→ 停手写「待裁决」，
+     不要自己放宽字段要求。
+  5. 任何一步需要改 pipeline/contract_registry/**、pipeline/ledger/**、
+     pipeline/dataset_compiler/**、pipeline/orchestrator/**、openspec/** 才能推进
+     → 停手写「待裁决」，这些目录的改动超出本任务范围（见 README §3 只读清单）。
+  6. 任何字段/断言你拿不准该怎么写 → 停手写「待裁决」，不要自己选一种写法然后继续。
+
+# ============================================================ 完成判据 ============================================================
+completion_criteria: |
+  最低完成判据（阶段 A/B 即使不进入阶段 C，也算「T06 本轮任务完成」，只是完成
+  形态是"阶段性停手报告"）：
+    - docs/handoff/T06-phase-a.md 存在，含 FreeBuff/OpenCode 各三次调用的完整记录
+    - docs/handoff/T06.report.md 存在，明确写出当前停在哪个阶段、为什么
+  若进入并完成阶段 C（用户已批复方案且执行者已实现），额外判据：
+    .venv/bin/python -m unittest discover -s pipeline/knowledge_extraction/tests -t . 2>&1 | tail -3
+        # 期望：OK，用例数 ≥ 开工基线 + 本次新增用例数（TDD.md §0 已记录基线），skipped 数不增加
+    bash openspec/acceptance/m4-stage-gate.sh 2>&1 | tail -5
+        # 期望：cross_model_extraction 一行按用户批复方案给出的判定（PASS 或仍 BLOCKED
+        # 但理由不再是本任务范围内可解决的静态占位），semantic_span_input /
+        # term_layering_scan 两项逐字不变
+    python -m pipeline.contract_registry.acceptance 2>&1 | tail -3
+        # 期望：other_ports_adapters 一行仍是 BLOCKED（T03b 范围未完成前不可能 PASS，
+        # 见 README §2.7），但不因本任务的改动而新增任何 FAIL
+    git status --short pipeline/contract_registry pipeline/ledger pipeline/dataset_compiler pipeline/orchestrator openspec
+        # 期望：空
+  真书两节验收（C6）完成时，T06.report.md 必须含与现有六份人工提交件的逐项对照表。
+
+# ============================================================ 回报格式 ============================================================
+report:
+  path: docs/handoff/T06.report.md
+  must_include:
+    - 当前停在哪个阶段（A / B / C 的哪一步），为什么
+    - 阶段 A 的完整探测记录（或指向 T06-phase-a.md 的链接）
+    - 阶段 B 的候选方案与（若有）用户批复原文摘录
+    - 阶段 C 每一步的 Red → Green 输出摘要（贴关键行，不要求全量日志）
+    - 全部篡改探针的结果（改了、转红、改回、转绿，四步都要有证据）
+    - 真书两节验收的对照表（若已跑到 C6）
+    - 「## 待裁决」小节：列出所有你拿不准、按 stop_conditions 停手的问题，逐条给
+      背景、选项、你倾向的方向（不代替用户下最终结论）
+commit:
+  add:
+    - docs/handoff/T06-phase-a.md
+    - docs/handoff/T06.report.md
+    # 阶段 C 完成后追加：
+    - pipeline/knowledge_extraction/adapters/freebuff.py
+    - pipeline/knowledge_extraction/adapters/opencode.py
+    - pipeline/knowledge_extraction/adapters/task_pipeline.py
+    - pipeline/knowledge_extraction/__init__.py
+    - pipeline/knowledge_extraction/submit.py
+    - pipeline/knowledge_extraction/acceptance.py
+    - pipeline/knowledge_extraction/tests/
+    - docs/blackbox-spec-rework/work-items/t06-model-adapter/
+  message_template: |
+    docs(t06): record phase A non-interactive probe results for FreeBuff/OpenCode
+    # 或阶段 C 完成后：
+    feat(m4): add FreeBuff/OpenCode model adapters for cross-model extraction (T06)
+
+    Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+    Claude-Session: https://claude.ai/code/session_01AXGprjG6XxcHq3mtHEJPhU
+  push: false
+  target: 你自己的 worktree 分支，不合并、不 push、不 rebase 到 main/master（人类合并）
+on_fail: |
+  任何一步走不通、任何断言你拿不准，停止并按 stop_conditions 写「## 待裁决」，
+  不许提交红的基线，不许放宽判据凑过。
