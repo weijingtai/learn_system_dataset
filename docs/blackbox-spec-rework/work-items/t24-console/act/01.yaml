@@ -3,19 +3,25 @@ title: Web 控制台接真流程 —— 后端换真管道 + 前端换真 API（
 estimated_minutes: 900
 group: T24
 depends_on: []
-decisions: [规格 P7, G7-RULINGS 第104条D1, TODO.md T24, ASK-2026-09-26.reply.md 第1题]
+decisions: [规格 P7, G7-RULINGS 第104条D1, TODO.md T24, ASK-2026-09-26.reply.md 第1题, 用户2026-09-26裁决resume_token候选B]
 scope:
   write:
+    - pipeline/ledger/service.py                      # 新增 LedgerService.reissue_resume_token（§二 之零，规格变更已获批）
+    - pipeline/ledger/client.py                        # 新增 LedgerClient.reissue_resume_token 转发方法
+    - pipeline/contract_registry/ports.py              # LEDGER_PORT_METHODS 元组新增一项 "reissue_resume_token"
+    - pipeline/ledger/tests/                           # 新增 reissue_resume_token 的 ledger 层测试，见 TDD.md
+    - docs/blackbox-spec-rework/work-items/impl-00-interfaces/INTERFACES.md   # §1.1 新增登记行（README §8.6）
     - console_backend/app/orchestrator_client.py     # 新增，唯一允许调用 pipeline.orchestrator 公开入口的模块
     - console_backend/app/repository.py              # 改造：流水线事实部分换 LedgerPort 只读查询；UI 偏好可留 SQLite
     - console_backend/app/routers/workbench.py        # 删 mock，M4/M6 队列与提交改接真流程
-    - console_backend/app/routers/pipeline.py         # EditionRun 生命周期端点（创建/advance/上传提交件/上传AI建议/resume/run_release/下载/查状态）
+    - console_backend/app/routers/pipeline.py         # EditionRun 生命周期端点（创建/advance/上传提交件/上传AI建议/resume/reissue-token/run_release/下载/查状态）
     - console_backend/tests/                          # 新增测试，见 TDD.md 第 1 节
-    - console_frontend/src/**                         # mock 数据源换真 API；新增 AI 预审建议展示与采纳交互
+    - console_frontend/src/**                         # mock 数据源换真 API；新增 AI 预审建议展示与采纳交互、恢复审核按钮
     - pipeline/contract_registry/tests/               # 新增独立用例，调用既有 scan_ledger_internals(["console_backend"])，不改该函数本身
     - docs/blackbox-spec-rework/work-items/t24-console/**   # 本工作文档随实现推进更新（Red/Green 回填）
   read_only:
-    - pipeline/                                       # 生产代码只读；若确实必须改，先停手报告理由（本 ACT 第五节）
+    - pipeline/                                       # 除上面明确列出的三个 ledger/contract_registry 文件外只读；
+                                                        # 若确实还需改别处，先停手报告理由（本 ACT 第七节）
     - pipeline/corpus/_fixture/qianyuan_ed01_text/     # 端到端用例的宿主，一字不动
     - docs/handoff/                                    # 参考材料，不改内容（除非另有 ACT 授权）
 background: |
@@ -74,6 +80,39 @@ contract: |
     状态、M1/M2/M6 数据、审核决定）必须换成对 LedgerPort 的查询；纯 UI 偏好（如"用户上次
     打开的标签页"）可以留在 SQLite 或前端本地存储，不算违反本条。
 
+  一之五、新增 LedgerPort 公开入口：resume_token 重签发（**排在接 M4/M6 审核之前实现**，
+    用户 2026-09-26 裁决候选 B，规格变更已获批，详见 README.md §8/§8.1-§8.6）
+    - 函数签名：`LedgerService.reissue_resume_token(self, step_run_id, *, actor_ref, reason)`，
+      放 `pipeline/ledger/service.py`（建议紧邻 `recover()` 之后）；`LedgerClient` 加同名转发
+      方法（`pipeline/ledger/client.py`）；`pipeline/contract_registry/ports.py` 的
+      `LEDGER_PORT_METHODS` 元组加一项 `"reissue_resume_token"`（建议紧跟 `"recover",`
+      之后），`DirectLedgerAdapter`/`LedgerdClientAdapter`/`PortGuard` 自动跟随，
+      `ledgerd.py` 按方法名通用分派，不需要改。这是本 ACT 唯一允许改动的
+      `pipeline/` 生产代码，范围严格限定为这三个文件的这三处改动。
+    - 前置条件：`step_run_id` 必须存在（否则 `MissingReference` code=REF_001）；
+      StepRun 当前 `status` 必须是 `awaiting_human`（否则 `IllegalTransition`，带上当前
+      实际状态）。**不调用 `check_step_run_transition`**——`STEP_RUN_TRANSITIONS` 表里
+      `awaiting_human` 没有到自己的边（status 没变，只是版本号与哈希换新），改成显式
+      `if step["status"] != "awaiting_human": raise IllegalTransition(...)`。
+    - 效果：旧 token 立即作废——新哈希绑定 `status_version+1`，旧 token 再拿去调
+      `resume()`/`record_human_event()` 时 `_check_token` 的版本号比对会先失败，天然被拒，
+      不需要额外黑名单。`store.update_step_run_status` 的 `from_status=to_status=
+      "awaiting_human"` 自转已被既有 SQL（`WHERE status=from_status AND
+      status_version=expected`）天然支持，不需要改 `store.py`。
+    - 审计：同一事务内两处——`store.append_step_run_event(step_run_id,
+      "resume_token_reissued", actor_ref, from_status="awaiting_human",
+      to_status="awaiting_human", reason=reason)`（经 `list_step_run_events` 可从端口读到）；
+      `store.append_audit("reissue_resume_token", str(step_run_id), actor_ref,
+      json.dumps({"reason": reason}))`（同其余 resume/suspend/recover，不经端口读，
+      测试里直接读 `DirectLedgerAdapter(...).unwrap().store`）。
+    - token 仍不落盘：只 `return token`，调用方（`orchestrator_client`）只放进程内存映射。
+    - 不改变已记录的决定：本方法只碰 `step_runs.resume_token_hash`/`status_version` 与新增
+      的两条事件/审计记录，不触碰任何 `human_event`/`artifact_revisions`/`checkpoints`。
+    - 触发方式：仅由用户在控制台界面点击"恢复审核"并在确认框里给出/确认 `reason` 后，
+      前端发一次请求，后端才调用本方法；**不得**在检测到内存映射缺 token 时后台自动重签。
+    - 规格登记：`INTERFACES.md` §1.1「调用、事务与人工恢复」表新增一行（README.md §8.6
+      给了完整表格式），由实现者在开工时加，不倒填成"已有"。
+
   二、不得有任何 AI/Agent 代签路径（规格 P7）
     M4 分歧裁决与 M6 审核只能由用户本人在界面上点击提交才算数。
     - `WEB_CONSOLE_PRD_AND_PLAN.md` 的 Task 2.5「AI Auto-Reviewer 自动签发」与
@@ -97,18 +136,14 @@ contract: |
       如果将来需要结构化字段（例如统计采纳率），那是**待裁决**的 schema 变更，
       本 ACT 与后续实现阶段都不擅自扩展 `ruling_doc`/`record_decision` 的参数闭集。
 
-  四、resume_token 不许落盘（ACT 19 铁律的延伸）
-    - `resume_token` 只能存在于控制台后端进程内存里；有测试按字节在临时账本目录、
-      控制台代码与后端日志文件里搜索明文 token，确认无命中
-      （`test_resume_token_never_written_to_disk_or_log`）。
-    - 后端重启后如何重新拿到已丢失的 token：本 ACT 已查明**没有公开途径**（README.md
-      §8 三条候选 A/B/C，均需人类裁决——**待裁决，保留原样，本 ACT 不擅自选定**）。
-      本 ACT 给出推荐意见（README.md §8.1，仅供人类参考，非最终决定）：默认先实现
-      **候选 C**（进程常驻不重启 + 界面如实提示，零改动生产代码、零新增落盘面）；
-      **候选 B**（Ledger 重新签发 token）列为更彻底的长期候选，但需单独裁决破例改
-      `pipeline/ledger` 生产代码；**不推荐候选 A**（控制台自己落盘 token，字面即违反
-      "不许落盘"的精神，风险收益比最差）。实现阶段若人类尚未裁决，按候选 C 的展示行为
-      实现，不要自创落盘方案，也不要因为本 ACT 推荐候选 C 就当作已经裁决。
+  四、resume_token 不许落盘（ACT 19 铁律的延伸，不因候选 B 而放松）
+    - `resume_token`（包括 `reissue_resume_token` 新签发的那个）只能存在于控制台后端
+      进程内存里；有测试按字节在临时账本目录、控制台代码与后端日志文件里搜索明文 token，
+      确认无命中（`test_resume_token_never_written_to_disk_or_log`）。
+    - 后端重启后如何重新拿到已丢失的 token：**已裁决候选 B（用户 2026-09-26）**——
+      新增 `reissue_resume_token` 入口（一之五）。候选 A（控制台本地落盘）与候选 C
+      （只靠运维保活、不提供恢复手段）不采用；候选 C 原有的"界面如实提示"行为保留，
+      但只用作"用户还没点恢复审核/重签发本身失败"时的兜底展示，不再是唯一手段。
 
   五、只做电子文本路线（route: text）
     M4 内容暂由用户上传提交件 YAML（沿用 `run_m4_submit` 现有形态），不实现模型调用
@@ -154,16 +189,21 @@ verify: |
   git diff --check
       # 文档变更专用检查（AGENTS.md 测试命令一节要求）
 
-  # 实现阶段（后续 ACT）必须做到，本 ACT 不代做：
+  # 实现阶段（后续 ACT）必须做到，本 ACT 不代做，按顺序：
   #   §零 前置修复步骤先落地（console_backend 测试环境换 3.13.12）
+  #   §一之五 reissue_resume_token 落地在 pipeline/ledger 三个文件，ledger 层测试全绿
+  #     （TDD.md 新增 5 条 + 各自篡改探针），且 11 个 pipeline 包（尤其 pipeline/ledger/tests
+  #     与 pipeline/contract_registry/tests）回归全绿——**这一步必须排在接 M4/M6 审核之前**
+  #   INTERFACES.md §1.1 补登记这一行（README §8.6）
   #   11 个 pipeline 包 + pipeline/tools 各自单测全绿（若 tools 无 tests 目录则跳过并写明）
-  #   console_backend/tests 全绿，新增用例覆盖 TDD.md 第 1 节全部行
+  #   console_backend/tests 全绿，新增用例覆盖 TDD.md 第 1 节全部行（含"恢复审核"触发端点）
   #   cd console_frontend && npm install && npm run build   # 零错误
   #   端到端：console_backend FastAPI TestClient 走 S1→S7，在 qianyuan_ed01_text 宿主临时账本上
   #     跑到 M8 succeeded 并能下载发布包（TDD.md test_end_to_end_qianyuan_text_host_reaches_m8_via_http_api）
   #   scan_ledger_internals(["console_backend"]) 接入 orchestrator_client 后仍为 []，
   #     并有 pipeline/contract_registry/tests/ 下的回归用例长期钉住
-  #   篡改探针：至少覆盖"resume_token 落盘检测"（故意在测试里写一次明文 token 到文件 → 探针测试转红 → 撤销该行为 → 转绿）
+  #   篡改探针：至少覆盖"resume_token 落盘检测"、"旧 token 重签发后被拒"、
+  #     "非 awaiting_human 状态拒绝重签发"（故意破坏对应检查 → 探针测试转红 → 撤销 → 转绿）
 commit:
   add:
     - docs/blackbox-spec-rework/work-items/t24-console/README.md
@@ -174,8 +214,10 @@ commit:
 on_fail: |
   停止并报告，不许提交红的基线当作绿。
   以下情况必须停手写「## 待裁决」而不是自行决定：
-    ① resume_token 后端重启后的恢复路径（README §8/§8.1 候选 A/B/C，本 ACT 已给推荐但
-       未擅自选定）——已停手，等人类裁决
+    ① resume_token 后端重启后的恢复路径——**已裁决，不再待裁决**：用户 2026-09-26 选
+       候选 B，`reissue_resume_token`（README §8、本文件 §一之五）；实现阶段照做即可，
+       若发现候选 B 的设计（前置条件/审计字段/触发方式）与实测的 ledger 代码有出入，
+       停手更新文档再动代码，不要自己改设计
     ② console_backend 测试基线 2 个 error 的依赖版本修法——**已解决，不再待裁决**：
        根因已查明（README §9），已实测排除升级/降级 pydantic 两条路径，确认换 Python
        3.13.12 解释器可行（README §9.2）；实现阶段照做即可，不需要再停手请示
