@@ -88,7 +88,8 @@ PLAN.md 第 8、108–196 行的 NC-001～NC-026、Firebase 去留、上游书�
 （每完成一条，在这里追加一行：日期 / 编号 / 提交号 / 一句话证据）
 - 2026-09-25 / T19 / `8d81337` / M6 审核队列纳入 pattern；test_pattern_review 5 条先红后绿；探针：只从队列删 pattern → close_review 失败于 queue_coverage,outcome_consistency,package_counts
 - 2026-09-25 / T04 阶段 4 代码部分（Q8/Q7/Q9 + 后门回归）/ `046c026` `ce862a9` `3746aa1` `352a9a8` / 云端电子文本宿主上 run_release 经登记表推 m7→m8、m7 Gate passed；contract_registry 51 全绿；详见 docs/handoff/T04-CLOUD.report.md
-- 2026-09-25 / T04 阶段 4 真书全线 + 阶段 5 验证 / 本次提交 / 真书《乾元秘旨》由调度器从 M1 跑到 M8 产出 PublicationPackage（rev_401cb768181b41bc923dc9203ffac3bb），knowledge_chain=compiled；run_all 20.1/20.2 PASS；11 包回归无新红；正本指纹保持 875139ae…f75b
+- 2026-09-25 / T04 阶段 4 真书全线 + 阶段 5 验证 / `1647725`（本机）/ 真书《乾元秘旨》由调度器从 M1 跑到 M8 产出 PublicationPackage（rev_401cb768181b41bc923dc9203ffac3bb），knowledge_chain=compiled；run_all 20.1/20.2 PASS；11 包回归无新红；正本指纹保持 875139ae…f75b
+- 2026-09-26 / T04 主 Agent 独立复核 / `1647725` / 云端 Linux 复跑：11 包 + tools 全绿（intake 40、digitization 88、ledger 106、review 179、knowledge_extraction 155、corpus_compiler 167、validation 123、orchestrator 125、dataset_compiler 269 skip52、assembly 305 skip2、contract_registry 51、tools 8，均 OK）——本机报的 intake/ledger/knowledge_extraction 红确为 Windows 环境红；run_all 全局 pass=3 fail=1 blocked=7（20.1/20.2/20.3 PASS；20.5 云端无真书账本 BLOCKED，本机 PASS；20.10 云端 BLOCKED 于 T03b，本机 FAIL 为 Windows 路径环境红）；1647725 相对 0a63506 只改 TODO 与回报，生产代码未动
 
 - 2026-09-23 / T03 / `fd0ba6e` `3adf199` `a3e7908` `9928478` + 收尾提交 / 63 处走后门清零：账本端口补 8 个只读查询（主 Agent），M5 15 处（主 Agent）、M3 30 处（FreeBuff DeepSeek V4.1 Flash）、M8 18 处（agy Gemini 3.8 Flash，worktree 并行）；契约注册表 `modules_port_clean` PASS；step_offset 冒充 M2 的问题修掉（探针：去掉筛选即报错）；检测器灵敏度补用例；删死代码 `_get_step_data`；11 个包全绿。20.10 仍 BLOCKED，只因 T03b
 - 2026-09-23 / T02 / `57e2a44` / 7 处写死判定全部改为读 M8 实际产出；探针：M8 报 graph_projection PASS/FAIL → 20.9 随之 PASS/FAIL；新理由实测出 M8 发布包只有 2 个子包、M8 输入不含 M7 Snapshot；11 个包全绿，全局 pass=3 fail=1 blocked=7
