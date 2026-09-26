@@ -133,3 +133,75 @@ ledger 106 OK | orchestrator 125 OK | review 179 OK | validation 123 OK
   "reason": "M6 审核目标集合不等: 新有旧无 [('pat_qizheng_000001', 'pattern', 'review_source_fidelity'), ('pat_qizheng_000002', 'pattern', 'review_source_fidelity')], 旧有新无 [], 差异集合: [('pat_qizheng_000001', 'pattern', 'review_source_fidelity'), ('pat_qizheng_000002', 'pattern', 'review_source_fidelity')]"
 }
 ```
+
+5. **真书加载 U07 跑通全线至 M8**：
+   - 命令：`.venv/Scripts/python -m pipeline.tools.run_real_book_t04 --supplement docs/handoff/U07-decisions_supplement.yaml`
+   - 结果：M6 审核通过并收口，M7 创世成功，M8 编译成功，产出 `PublicationPackage`（修订号 `rev_401cb768181b41bc923dc9203ffac3bb`），`knowledge_chain=compiled`！
+
+```text
+[1/10] 核对源文件与 M4 提交件哈希...
+      源文件 SHA256 与 6 份 M4 提交件哈希比对通过 (6 份)
+[2/10] 新建 EditionRun...
+      EditionRun ID: prun_b5883ef594a141b7b75fcf5498ef0cfb
+[3/10] 推进至 M3 (run_until m3)...
+      阶段 m1: succeeded
+      阶段 m2: succeeded
+      阶段 m3: succeeded
+[4/10] 经公开入口登记 6 份 M4 提交件 (run_m4_submit)...
+      6 份 M4 提交件登记成功
+[5/10] advance 推进 M4...
+      M4 暂停在 awaiting_human, StepRun: srun_40ebdd1c73be4fa6ba141974758504f5
+[6/10] 从参考副本回放 24 条 M4 类别裁决...
+      M4 回放完成: 成功登记 24 条裁决
+      恢复 M4 (resume)...
+[7/10] advance 推进 M5 (自动)...
+      M5 succeeded, 披露项统计: warnings=12条, errors=0条
+[8/10] advance 推进 M6...
+      M6 暂停在 awaiting_human, StepRun: srun_188ca298f6d64d508e75916ce3fbaf95
+[9/10] 从参考副本回放 M6 审核决定...
+      加载 M6 补充决定: docs/handoff/U07-decisions_supplement.yaml
+      M6 回放完成: 成功登记 28 条决定
+      恢复 M6 (resume)...
+      收口 EditionRun (advance)...
+      EditionRun 收口完成 (complete)
+[10/10] 执行 run_release (M7 创世 + M8 编译)...
+       run_release 成功! M8 StepRun: srun_99e181a48e3041d39b2b4b30908e83de
+       PublicationPackage 修订号: rev_401cb768181b41bc923dc9203ffac3bb
+       knowledge_chain: compiled
+```
+
+6. **真书账本 M8 验收如实暴露 T20/T21**：
+   - 命令：`.venv/Scripts/python -m pipeline.dataset_compiler.acceptance --fixture pipeline/corpus/_fixture/qianyuan_ed01_text --check publication --ledger var/ledgers/qianyuan_t04`
+   - 结果：如实暴露 T20（`KeyError: 'line_index'`）与 T21（`KeyError: 'highlight_level'`），未作放宽或隐藏；知识链闭合与图投影全 PASS。
+
+```text
+PASS run_succeeded m8 StepRun=succeeded
+FAIL evidence_chain_closure text_offsets: KeyError: 'line_index'（span_page_binding=NOT_APPLICABLE、glyph_anchor_closure=NOT_APPLICABLE：不适用证据级别 offset_level（依赖页/字框））
+NOT_APPLICABLE coordinate_frame 不适用证据级别 offset_level（依赖页/字框）
+PASS release_manifest_hashes 子包哈希与 canonical_hash 均可重算
+PASS input_reconciliation input_reconciliation 与冻结输入一致
+PASS consumption_level INTERNAL_DEMO/internal_only/partial/dev
+FAIL watermark_disclosure KeyError: 'highlight_level'
+PASS fail_closed_levels DEV_SEARCH/PUBLIC_RELEASE 均 admission 失败且无子包修订
+PASS knowledge_chain 知识链闭合：2 个词条、26 条断言；2 条七段证据链逐条回指 span（I-11 绝对偏移、quote_sha256 重算一致）；无主体断言 24 条已按 §3.8 披露
+PASS graph_projection GraphProjectionPack 与 KnowledgeDataPack 同源（release_id/canonical_hash/consumption_level 一致），往返无损：28 节点、2 条关系逐一可由移动端数据重建
+BLOCKED identity_migration 实测发布包无 identity_migration_map（子包: ['evidence_chain', 'evidence_map_pack', 'graph_projection_pack', 'knowledge_data_pack', 'source_asset_pack']）；本次只编译 1 个 Release，且 run_m8 尚未由 M7 identity_delta 生成 IdentityMigrationMap（TODO.md T05e）
+SUMMARY pass=7 fail=2 blocked=1
+```
+
+7. **阶段 5 验证与 11 包回归**：
+   - `bash openspec/acceptance/run_all.sh 20.1 20.2`：PASS（`SUMMARY pass=2 fail=0 blocked=0`）。
+   - `run_all.sh` 全局实跑：`SUMMARY pass=4 fail=2 blocked=5`（20.1/20.2/20.3/20.5 PASS，20.7 FAIL 规格原样，20.10 FAIL Windows 环境红，其余 5 项如实 BLOCKED）。
+   - 11 个包全量回归：除既有 Windows 环境红外，全量通过，无任何新红项。
+     - `intake`: 40 tests (1 failure: write_text CRLF，环境红)
+     - `digitization`: 88 tests OK
+     - `ledger`: 106 tests (7 failures: AF_UNIX daemon，环境红)
+     - `review`: 179 tests OK
+     - `knowledge_extraction`: 155 tests (3 errors: WinError 32 删 sqlite，环境红)
+     - `corpus_compiler`: 167 tests OK
+     - `validation`: 123 tests OK
+     - `orchestrator`: 125 tests OK
+     - `dataset_compiler`: 269 tests OK
+     - `assembly`: 305 tests OK
+     - `contract_registry`: 51 tests（除 AF_UNIX / WinError 32 / Windows 环境红外全绿）
+   - **正本指纹核对**：`var/ledgers/qianyuan_w8` 全程只读，最终校验仍为 `875139aef3e4d5cfea546de09439e68efa172701b3f4d913ad396fde27f9f75b`（361 个文件未动）。
