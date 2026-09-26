@@ -205,3 +205,28 @@ SUMMARY pass=7 fail=2 blocked=1
      - `assembly`: 305 tests OK
      - `contract_registry`: 51 tests（除 AF_UNIX / WinError 32 / Windows 环境红外全绿）
    - **正本指纹核对**：`var/ledgers/qianyuan_w8` 全程只读，最终校验仍为 `875139aef3e4d5cfea546de09439e68efa172701b3f4d913ad396fde27f9f75b`（361 个文件未动）。
+
+8. **T20/T21 云端修复后真书 `--ledger` 复验（本机）**：
+   - 合并：快进合入 `origin/claude/wizardly-maxwell-pqrzh9`（`5e74d5f`，含 T20 `97aba22` 与 T21 `ef3fc7e`）。
+   - `dataset_compiler` 测试包回归：279 条全绿（`Ran 279 tests in 233.231s ... OK`）。
+   - 真书账本只读验收命令：
+     `.venv/Scripts/python -m pipeline.dataset_compiler.acceptance --fixture pipeline/corpus/_fixture/qianyuan_ed01_text --check publication --ledger var/ledgers/qianyuan_t04`
+   - 实测原始输出：
+
+```text
+PASS run_succeeded m8 StepRun=succeeded
+PASS evidence_chain_closure 已核 span_identity、text_offsets 闭合（span_page_binding=NOT_APPLICABLE、glyph_anchor_closure=NOT_APPLICABLE、text_offsets.line_index=NOT_APPLICABLE：不适用证据级别 offset_level（依赖页/字框））
+NOT_APPLICABLE coordinate_frame 不适用证据级别 offset_level（依赖页/字框）
+PASS release_manifest_hashes 子包哈希与 canonical_hash 均可重算
+PASS input_reconciliation input_reconciliation 与冻结输入一致
+PASS consumption_level INTERNAL_DEMO/internal_only/partial/dev
+PASS watermark_disclosure 水印与已知缺陷披露完整（highlight_level=NOT_APPLICABLE：电子文本无页面字框，不据此推 glyph_text_mismatch）
+PASS fail_closed_levels DEV_SEARCH/PUBLIC_RELEASE 均 admission 失败且无子包修订
+PASS knowledge_chain 知识链闭合：2 个词条、26 条断言；2 条七段证据链逐条回指 span（I-11 绝对偏移、quote_sha256 重算一致）；无主体断言 24 条已按 §3.8 披露
+PASS graph_projection GraphProjectionPack 与 KnowledgeDataPack 同源（release_id/canonical_hash/consumption_level 一致），往返无损：28 节点、2 条关系逐一可由移动端数据重建
+BLOCKED identity_migration 实测发布包无 identity_migration_map（子包: ['evidence_chain', 'evidence_map_pack', 'graph_projection_pack', 'knowledge_data_pack', 'source_asset_pack']）；本次只编译 1 个 Release，且 run_m8 尚未由 M7 identity_delta 生成 IdentityMigrationMap（TODO.md T05e）
+SUMMARY pass=9 fail=0 blocked=1
+```
+
+   - 结论：`evidence_chain_closure` PASS（带 `text_offsets.line_index=NOT_APPLICABLE`），`watermark_disclosure` PASS（带 `highlight_level=NOT_APPLICABLE`），`identity_migration` BLOCKED，汇总 `pass=9 fail=0 blocked=1`，与预期严格一致。
+   - 正本指纹核对：`var/ledgers/qianyuan_w8` 全程只读，指纹保持 `875139aef3e4d5cfea546de09439e68efa172701b3f4d913ad396fde27f9f75b`（361 个文件）。
