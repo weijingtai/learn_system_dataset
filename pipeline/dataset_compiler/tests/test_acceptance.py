@@ -527,5 +527,75 @@ class OffsetTextOffsetsTests(unittest.TestCase):
             self.assertIn("%s=%s" % (step, acceptance.NOT_APPLICABLE), line)
 
 
+class OffsetWatermarkDisclosureTests(unittest.TestCase):
+    """T21（用户 2026-09-26 裁决）：电子文本没有页面上的框，offset 档 watermark_disclosure 不看
+    highlight_level，披露为 NOT_APPLICABLE；水印与其余已知缺陷照判，任一缺失仍 FAIL。"""
+
+    MANIFEST = {
+        "watermark": {"required": True, "text": "INTERNAL_DEMO｜机器转录"},
+        "known_defects": [
+            {"code": "knowledge_chain_not_compiled"},
+            {"code": "machine_content"},
+            {"code": "semantic_not_evaluated"},
+        ],
+    }
+
+    def _judge(self, route, entry_overrides=None, manifest=None):
+        entry = {"watermark": True}
+        entry.update(entry_overrides or {})
+        loaded = {
+            "release_manifest_revision_id": "rev_x",
+            "evidence": {
+                "entries": {"ss_x": entry},
+                "excluded_pages": {},
+                "knowledge_chain": "not_compiled",
+            },
+            "spans_doc": {"content_status": "machine_extracted"},
+            "manifest": {"rights_status": "站方声明免费下载"},
+            "m3_gate_profile": "structural_only",
+        }
+        with mock.patch.object(
+            acceptance, "_read_revision_json", return_value=manifest or self.MANIFEST
+        ):
+            return acceptance._check_watermark_disclosure(None, loaded, route)
+
+    def test_offset_route_does_not_require_highlight_level(self):
+        ok, detail = self._judge(acceptance.ROUTE_OFFSET)
+        self.assertTrue(ok, detail)
+        self.assertIn("highlight_level=%s" % acceptance.NOT_APPLICABLE, detail)
+
+    def test_offset_route_still_requires_watermark_and_defects(self):
+        """篡改探针：entry 水印未置真、水印文本为空、缺一条已知缺陷，offset 档照样 FAIL。"""
+        ok, _ = self._judge(acceptance.ROUTE_OFFSET, {"watermark": False})
+        self.assertFalse(ok)
+        ok, _ = self._judge(
+            acceptance.ROUTE_OFFSET, manifest=dict(self.MANIFEST, watermark={"required": True, "text": ""})
+        )
+        self.assertFalse(ok)
+        ok, detail = self._judge(
+            acceptance.ROUTE_OFFSET, manifest=dict(self.MANIFEST, known_defects=self.MANIFEST["known_defects"][:2])
+        )
+        self.assertFalse(ok)
+        self.assertIn("semantic_not_evaluated", detail)
+
+    def test_offset_route_rejects_a_stray_highlight_level(self):
+        ok, detail = self._judge(acceptance.ROUTE_OFFSET, {"highlight_level": "glyph"})
+        self.assertFalse(ok)
+        self.assertIn("highlight_level", detail)
+
+    def test_glyph_route_still_requires_glyph_text_mismatch_disclosure(self):
+        ok, detail = self._judge(acceptance.ROUTE_GLYPHBOX, {"highlight_level": "line_bbox"})
+        self.assertFalse(ok)
+        self.assertIn("glyph_text_mismatch", detail)
+
+    def test_offset_host_watermark_disclosure_passes(self):
+        buffer = io.StringIO()
+        with contextlib.redirect_stdout(buffer):
+            acceptance.main(["--fixture", str(OFFSET_FIXTURE), "--check", "publication"])
+        line = next(l for l in buffer.getvalue().splitlines() if " watermark_disclosure " in l)
+        self.assertTrue(line.startswith("PASS "), line)
+        self.assertIn("highlight_level=%s" % acceptance.NOT_APPLICABLE, line)
+
+
 if __name__ == "__main__":
     unittest.main()

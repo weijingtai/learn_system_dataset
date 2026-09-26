@@ -68,6 +68,9 @@ _OFFSET_NA_CLOSURE_STEPS = ("span_page_binding", "glyph_anchor_closure")
 # text_offsets 子步里依赖「行」的字段（T20，用户 2026-09-26 裁决 (a)）：电子文本没有行，offset 档不比，
 # 逐项披露 NOT_APPLICABLE；offset/text/quote_sha256/content_status 照比。
 _OFFSET_NA_TEXT_OFFSET_FIELDS = ("line_index",)
+# watermark_disclosure 里依赖「页面上的框」的字段（T21，用户 2026-09-26 裁决）：电子文本没有框可高亮，
+# offset 档不据 highlight_level 推 glyph_text_mismatch，披露 NOT_APPLICABLE；水印与其余已知缺陷照判。
+_OFFSET_NA_WATERMARK_FIELDS = ("highlight_level",)
 
 # TODO.md T02（2026-09-23）：以下各判据一律**看 M8 实际产出**再下结论，不许无条件输出 BLOCKED。
 # 子包没产出 → BLOCKED，理由写实测事实；子包产出了但内容校验尚未实现 → FAIL（防止接上函数就自动变绿）。
@@ -535,7 +538,7 @@ def _check_consumption_level(service, loaded):
     return True, "INTERNAL_DEMO/internal_only/partial/dev"
 
 
-def _check_watermark_disclosure(service, loaded):
+def _check_watermark_disclosure(service, loaded, route):
     release_manifest = _read_revision_json(
         service, loaded["release_manifest_revision_id"]
     )
@@ -552,7 +555,13 @@ def _check_watermark_disclosure(service, loaded):
     required = set()
     if loaded["evidence"]["excluded_pages"]:
         required.add("excluded_page")
-    if any(entry["highlight_level"] == "line_bbox" for entry in entries.values()):
+    if route == ROUTE_OFFSET:
+        # 不适用的字段必须真的不在；出现了说明混进了字框档数据，不做「有就看」
+        for span_id, entry in entries.items():
+            for field in _OFFSET_NA_WATERMARK_FIELDS:
+                if field in entry:
+                    return False, "offset 档不应有 %s: %s" % (field, span_id)
+    elif any(entry["highlight_level"] == "line_bbox" for entry in entries.values()):
         required.add("glyph_text_mismatch")
     if loaded["evidence"]["knowledge_chain"] != "compiled":
         required.add("knowledge_chain_not_compiled")
@@ -567,6 +576,11 @@ def _check_watermark_disclosure(service, loaded):
     missing = required - given
     if missing:
         return False, "known_defects 缺少: %s" % ",".join(sorted(missing))
+    if route == ROUTE_OFFSET:
+        return True, "水印与已知缺陷披露完整（%s：%s）" % (
+            "、".join("%s=%s" % (field, NOT_APPLICABLE) for field in _OFFSET_NA_WATERMARK_FIELDS),
+            "电子文本无页面字框，不据此推 glyph_text_mismatch",
+        )
     return True, "水印与已知缺陷披露完整"
 
 
@@ -1151,7 +1165,7 @@ def _evaluate_publication(context):
         ("release_manifest_hashes", lambda: _check_release_manifest_hashes(service, loaded)),
         ("input_reconciliation", lambda: _check_input_reconciliation(service, context, loaded)),
         ("consumption_level", lambda: _check_consumption_level(service, loaded)),
-        ("watermark_disclosure", lambda: _check_watermark_disclosure(service, loaded)),
+        ("watermark_disclosure", lambda: _check_watermark_disclosure(service, loaded, route)),
         ("fail_closed_levels", lambda: _check_fail_closed_levels(context)),
     ]
     for name, func in checks:
