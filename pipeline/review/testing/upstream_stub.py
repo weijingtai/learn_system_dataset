@@ -81,6 +81,7 @@ def seed_upstream(service, fixture_dir) -> dict:
 
     cands_data = load_data("m4_candidates")
     assertions = cands_data.get("assertions", [])
+    patterns = cands_data.get("patterns", [])
     school_views = cands_data.get("school_views", [])
 
     candidate_set = {
@@ -96,7 +97,7 @@ def seed_upstream(service, fixture_dir) -> dict:
             "concept_mentions": 0,
             "disputes": 0,
             "human_decisions": 0,
-            "patterns": 0,
+            "patterns": len(patterns),
             "new_concept_candidates": 0,
             "rejected": 0,
         },
@@ -105,7 +106,7 @@ def seed_upstream(service, fixture_dir) -> dict:
         "concept_mentions": [],
         "disputes": [],
         "new_concept_candidates": [],
-        "patterns": [],
+        "patterns": patterns,
         "rejected": [],
         "source_channels": {},
     }

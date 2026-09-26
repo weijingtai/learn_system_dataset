@@ -1,0 +1,16 @@
+# U07：真书 2 条 pattern 的 M6 审核决定（P7，用户本人所作，Agent 未代作）
+# 来源：用户 2026-09-25 在云端 Claude 会话中答复「接受」（两条均接受，未另附理由）。
+# 用途：T04 阶段 4 真书回放时，M6 队列里账本副本没有决定的 2 个 pattern 项只许从本文件取。
+# 字段形状按主 Agent 交接（MAIN-AGENT-HANDOFF-20260925.md §3「等用户的」）；若回放器
+# replay_human_decisions.py 要求别的键名，本机 agent 只做键名映射，不改 verdict 与 rationale 的含义。
+actor_ref: user:wjt
+decided_at: "2026-09-25"
+decisions:
+  - entity_id: pat_qizheng_000001   # 去官留煞（引 as_qizheng_000018）
+    decision_type: review_source_fidelity
+    verdict: accept
+    rationale: "用户 2026-09-25 审定接受（未另附理由）"
+  - entity_id: pat_qizheng_000002   # 贪合忘煞（引 as_qizheng_000022）
+    decision_type: review_source_fidelity
+    verdict: accept
+    rationale: "用户 2026-09-25 审定接受（未另附理由）"

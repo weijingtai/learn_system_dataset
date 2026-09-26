@@ -196,7 +196,21 @@ def evaluate_review(*, candidate_objects: list[dict], seen_revision_id: str, val
                 if hashlib.sha256(quote.encode("utf-8")).hexdigest() != link.get("quote_sha256"):
                     closure_ok = False
                     break
-                    
+
+    # T19：pattern 自身不带证据，经 assertion_ids 引到断言；已审 pattern 至少引一条本次已审通过的断言
+    # （M7 创世只保留已审断言，否则 pattern 没有任何可闭合的证据链）
+    approved_ids = {x["entity_id"] for x in reviewed_edition.get("approved", [])}
+    for x in reviewed_edition.get("approved", []):
+        c = candidate_by_id.get(x["entity_id"])
+        if c and c.get("kind") == "pattern":
+            referenced = (c.get("source_object") or {}).get("assertion_ids") or []
+            if not any(aid in approved_ids for aid in referenced):
+                closure_ok = False
+                checks["evidence_closure"]["detail"] = (
+                    "approved pattern %s 未引任何已审断言" % x["entity_id"]
+                )
+                break
+
     if closure_ok:
         checks["evidence_closure"]["passed"] = True
 

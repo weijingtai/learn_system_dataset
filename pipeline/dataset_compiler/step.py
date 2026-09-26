@@ -19,12 +19,12 @@ from pipeline.dataset_compiler import (
     M8_TOOL_VERSION,
     SUB_PACK_SCHEMA_VERSION,
 )
-from pipeline.dataset_compiler import gate, levels, packs
+from pipeline.dataset_compiler import entry_ids, gate, levels, packs
 from pipeline.dataset_compiler.canonical import canonical_bytes
 from pipeline.dataset_compiler.errors import DatasetRefused
 from pipeline.dataset_compiler.inputs import _check_input_references, resolve_m8_inputs
 from pipeline.ledger import ids
-from pipeline.ledger.errors import HashMismatch, SchemaViolation
+from pipeline.ledger.errors import HashMismatch, MissingReference, SchemaViolation
 
 MIN_APP_VERSION_RE = re.compile(r"^[0-9]+\.[0-9]+\.[0-9]+$")
 
@@ -114,7 +114,11 @@ def _assemble_frozen_inputs(inputs, manifest):
             raise DatasetRefused(
                 "冻结输入 %s 为 None，不得进入冻结集" % key, code="REF_001"
             )
-    return [value for _, value in items]
+    frozen = [value for _, value in items]
+    # T04B：有 M7 时，M7 Snapshot 是 M8 的冻结输入（run_m8 以 M7 Snapshot 为输入）
+    if inputs.get("m7_snapshot_revision_id") is not None:
+        frozen.append(inputs["m7_snapshot_revision_id"])
+    return frozen
 
 
 def _read_and_verify_frozen(service, frozen):
@@ -217,9 +221,213 @@ def _fail(service, step_run_id, check, detail):
     return {
         "status": "failed",
         "step_run_id": step_run_id,
+        # 与成功返回同形：调度器按登记表 owns_processing_run 读取（T04 阶段 4 Q8）
+        "processing_run_id": service.get_step_run(step_run_id)["processing_run_id"],
         "failed_check": check,
         "failure_revision_id": failure_revision_id,
         "reason": detail,
+    }
+
+
+def _put_sealed(service, step_run_id, artifact_type, data):
+    """put + seal 一个 M8 产出修订，返回修订号。"""
+    _, revision_id = service.put_artifact(
+        step_run_id, artifact_type, data,
+        producer_module=M8_TOOL, producer_version=M8_TOOL_VERSION,
+    )
+    service.seal_revision(revision_id)
+    return revision_id
+
+
+def _entry_subjects(snapshot_knowledge):
+    """词条主体集合（与 ``packs.build_knowledge_data_pack`` K1/K2 同一口径，显式引用、不推断）。
+
+    Pattern 的 ``assertion_ids`` 非空 → 该 Pattern；被某 ``assertion.concept_refs`` 显式引用
+    → 该 Concept（第 107 条 Q-M8-01）。零断言主体不占号。口径若与打包层不一致，打包层
+    按「缺主体发号」fail-closed（``ID_001``），不会静默补号。
+    """
+    subjects = set()
+    for pattern in snapshot_knowledge.get("patterns") or []:
+        if pattern.get("pattern_id") and pattern.get("assertion_ids"):
+            subjects.add(pattern["pattern_id"])
+    for assertion in snapshot_knowledge.get("assertions") or []:
+        subjects.update(assertion.get("concept_refs") or [])
+    return sorted(subjects)
+
+
+def _refuse_unfrozen_previous_allocation(service, technique_id):
+    """跨 Release 保号（§8.1:318、第 107 条 Q-M8-02）须把前序发号表作为冻结输入读入。
+
+    本切片只编译首个 Release（前序映射为空）；账本里已有同技法、已 succeeded 的 M8
+    发号表时 fail-closed，绝不静默重新发号（读前序发号表归 TODO T05e）。
+    """
+    for row in service.list_revisions(artifact_type="entry_id_allocation", status="sealed"):
+        step_run = service.get_step_run(row["step_run_id"]) if row.get("step_run_id") else None
+        if step_run is None or step_run["status"] != "succeeded":
+            continue
+        document = json.loads(service.read_object(row["sha256"]).decode("utf-8"))
+        if document.get("technique_id") == technique_id:
+            raise DatasetRefused(
+                "账本已有技法 %s 的前序发号表 %s：跨 Release 保号须以它为冻结输入"
+                "（TODO T05e），本切片不静默重新发号"
+                % (technique_id, row["artifact_revision_id"]),
+                code="REF_001",
+            )
+
+
+def _evidence_chain(item, *, spans_by_id, spans_doc, release_policy, inputs, offset_asset):
+    """把 KnowledgeDataPack 的一条前三段知识链接成固定七段证据链（§16:705-712，INTERFACES §3.10）。
+
+    EvidenceLink 偏移按【I-11】为相对页块的**绝对偏移**：局部 = 绝对 − ``span.start_offset``；
+    越出 span 即拒绝（SRC_003），不猜局部、不退回整片段（G7-RULINGS 第 106 条 D1）。
+    """
+    link = item["evidence_link"]
+    span = spans_by_id.get(link["source_span_id"])
+    if span is None:
+        raise MissingReference(
+            "证据引用悬空 span: %s -> %s" % (item["assertion_id"], link["source_span_id"]),
+            code="REF_001",
+        )
+    local_start = link["start_offset"] - span["start_offset"]
+    local_end = link["end_offset"] - span["start_offset"]
+    if not (0 <= local_start <= local_end <= len(span["text"])):
+        raise DatasetRefused(
+            "证据偏移越出 span（I-11 绝对偏移）: %s %s [%d,%d)"
+            % (item["assertion_id"], span["span_id"], link["start_offset"], link["end_offset"]),
+            code="SRC_003",
+        )
+    anchor = span["source_anchor"]
+    evidence_level = spans_doc["evidence_level"]
+    ocr_page = text_mapping = None
+    if evidence_level == "glyphbox_level":
+        ocr_page = {
+            "page": span["page"],
+            "glyph_ids": [char["glyph_id"] for char in anchor["chars"]],
+        }
+        source_asset = {"page": span["page"], "image_sha256": anchor["image_sha256"]}
+    else:
+        text_mapping = {
+            "raw_text_revision_id": anchor["raw_text_revision_id"],
+            "cleaned_text_revision_id": anchor["cleaned_text_revision_id"],
+            "patch_set_revision_id": inputs["deterministic_patch_set_revision_id"],
+            "raw_start": anchor["raw_start"],
+            "raw_end": anchor["raw_end"],
+        }
+        source_asset = offset_asset
+    return packs.build_evidence_chain(
+        entry_id=item["entry_id"],
+        assertion_id=item["assertion_id"],
+        evidence_link=dict(link, quote=span["text"][local_start:local_end]),
+        source_span={
+            "source_span_id": span["span_id"],
+            "source_id": spans_doc["source_id"],
+            "page": span.get("page"),
+            "start_offset": span["start_offset"],
+            "end_offset": span["end_offset"],
+            "text": span["text"],
+        },
+        source_anchor=anchor,
+        evidence_level=evidence_level,
+        release_policy=release_policy,
+        ocr_page=ocr_page,
+        text_mapping=text_mapping,
+        source_asset=source_asset,
+    )
+
+
+def _compile_knowledge(
+    service, step_run_id, *, inputs, manifest, spans_doc, source_asset_pack,
+    release_id, consumption_level, raw_text_sha256,
+):
+    """T04B/T05f：以 M7 Snapshot 编译发号表 → KnowledgeDataPack → 七段证据链，逐一封存。
+
+    GraphProjectionPack 依赖 ReleaseManifest 的 ``canonical_hash``（§16:725），在清单之后编译。
+    """
+    snapshot = inputs["snapshot_knowledge"]
+    technique_id = inputs["technique_id"]
+    if snapshot.get("technique_id") not in (None, technique_id):
+        raise DatasetRefused(
+            "M7 Snapshot technique_id %r 与清单 technique_id %r 不符"
+            % (snapshot.get("technique_id"), technique_id),
+            code="SCH_002",
+        )
+    _refuse_unfrozen_previous_allocation(service, technique_id)
+
+    # 发号表（INTERFACES §3.16）：首个 Release 前序映射为空
+    allocation = entry_ids.allocate_entry_ids(
+        {}, _entry_subjects(snapshot), release_id=release_id
+    )
+    allocation_doc = {
+        "schema_version": SUB_PACK_SCHEMA_VERSION,
+        "release_id": release_id,
+        "technique_id": technique_id,
+        "allocations": [
+            {
+                "subject_entity_id": subject,
+                "entry_id": entry_id,
+                "allocated_in_release_id": release_id,
+            }
+            for subject, entry_id in allocation.items()
+        ],
+        "allocation_count": len(allocation),
+    }
+    allocation_revision_id = _put_sealed(
+        service, step_run_id, "entry_id_allocation", canonical_bytes(allocation_doc)
+    )
+
+    knowledge = packs.build_knowledge_data_pack(
+        snapshot_knowledge=snapshot,
+        entry_id_allocation=allocation,
+        release_id=release_id,
+        consumption_level=consumption_level,
+        technique_id=technique_id,
+    )
+    knowledge_revision_id = _put_sealed(
+        service, step_run_id, "knowledge_data_pack", knowledge["bytes"]
+    )
+
+    offset_asset = None
+    if spans_doc["evidence_level"] == "offset_level":
+        pages = [
+            page
+            for page in source_asset_pack["pack"]["pages"]
+            if page["sha256"] == raw_text_sha256
+        ]
+        if len(pages) != 1:
+            raise DatasetRefused(
+                "offset 档底本资产须恰 1 条与 RawText 同哈希: %d" % len(pages),
+                code="SRC_003",
+            )
+        offset_asset = {"page": pages[0]["page"], "sha256": raw_text_sha256}
+    spans_by_id = {span["span_id"]: span for span in spans_doc["spans"]}
+    chains = [
+        _evidence_chain(
+            item,
+            spans_by_id=spans_by_id,
+            spans_doc=spans_doc,
+            release_policy=manifest["release_policy"],
+            inputs=inputs,
+            offset_asset=offset_asset,
+        )
+        for item in knowledge["evidence_chains"]
+    ]
+    # 七段证据链文档即 INTERFACES §3.10 的 evidence_map_pack（{release_id, chains[]}）。
+    # 键序即段序（§3.10「键序由 fixture verify.sh V11 与 M8 验收检查」），故不按字母重排键。
+    chain_doc = {
+        "schema_version": SUB_PACK_SCHEMA_VERSION,
+        "release_id": release_id,
+        "chains": chains,
+    }
+    chain_bytes = json.dumps(
+        chain_doc, ensure_ascii=False, separators=(",", ":"), allow_nan=False
+    ).encode("utf-8")
+    chain_revision_id = _put_sealed(service, step_run_id, "evidence_map_pack", chain_bytes)
+    return {
+        "allocation_revision_id": allocation_revision_id,
+        "knowledge": knowledge,
+        "knowledge_revision_id": knowledge_revision_id,
+        "chains": chains,
+        "chain_revision_id": chain_revision_id,
     }
 
 
@@ -360,8 +568,12 @@ def _run_after_begin(
             service, step_run_id, "admission", "unmet: " + ",".join(admission["unmet"])
         )
 
+    # 发号表、KnowledgeDataPack 与证据链都要带 release_id，故在子包编译之前定下
+    effective_release_id = release_id if release_id is not None else ids.new_id("release_id")
+
     # ---- 8) 子包编译 ----
     checkpoint_revision_ids = []
+    compiled_knowledge = None
     try:
         source_asset_pack = packs.build_source_asset_pack(
             manifest=manifest,
@@ -399,12 +611,23 @@ def _run_after_begin(
                 evidence_map_pack_revision_id, packs.TASKS[2:],
             )
         )
+
+        # 8b) T04B/T05f：有 M7 Snapshot 时编译知识链（发号表 → KnowledgeDataPack → 证据链）
+        if inputs["snapshot_knowledge"] is not None:
+            compiled_knowledge = _compile_knowledge(
+                service, step_run_id,
+                inputs=inputs,
+                manifest=manifest,
+                spans_doc=spans_doc,
+                source_asset_pack=source_asset_pack,
+                release_id=effective_release_id,
+                consumption_level=consumption_level,
+                raw_text_sha256=raw_text_sha256,
+            )
     except Exception as exc:
         return _fail(
             service, step_run_id, "compile", "%s: %s" % (type(exc).__name__, exc)
         )
-
-    effective_release_id = release_id if release_id is not None else ids.new_id("release_id")
 
     # ---- 9) ReleaseManifest ----
     release_manifest = packs.build_release_manifest(
@@ -433,6 +656,11 @@ def _run_after_begin(
             evidence_map_pack=evidence_map_pack["pack"],
             m3_gate_profile=inputs["m3_gate_profile"],
             rights_status=manifest["rights_status"],
+            assertion_without_subject=(
+                compiled_knowledge["knowledge"]["assertion_without_subject"]
+                if compiled_knowledge is not None
+                else None
+            ),
         ),
         watermark_text=packs.INTERNAL_DEMO_WATERMARK,
     )
@@ -447,6 +675,24 @@ def _run_after_begin(
             release_manifest_revision_id, packs.TASKS[3:],
         )
     )
+
+    # ---- 9b) GraphProjectionPack：与移动端数据同一 Snapshot、共享 release_id/canonical_hash（§16:725）----
+    graph_projection_pack = None
+    if compiled_knowledge is not None:
+        try:
+            graph_projection_pack = packs.build_graph_projection_pack(
+                release_id=effective_release_id,
+                canonical_hash=release_manifest["canonical_hash"],
+                consumption_level=consumption_level,
+                knowledge_data=inputs["snapshot_knowledge"],
+            )
+            compiled_knowledge["graph_revision_id"] = _put_sealed(
+                service, step_run_id, "graph_projection_pack", graph_projection_pack["bytes"]
+            )
+        except Exception as exc:
+            return _fail(
+                service, step_run_id, "compile", "%s: %s" % (type(exc).__name__, exc)
+            )
 
     # ---- 10) 独立发布 Gate ----
     gate_report = gate.evaluate_publication(
@@ -467,6 +713,9 @@ def _run_after_begin(
         },
         consumption_level=consumption_level,
         snapshot_knowledge=inputs["snapshot_knowledge"],
+        graph_projection_pack=(
+            graph_projection_pack["pack"] if graph_projection_pack is not None else None
+        ),
         raw_text_binding=gate_raw_text_binding,
         raw_text=gate_raw_text,
         sanitization_report=gate_sanitization_report,
@@ -507,15 +756,28 @@ def _run_after_begin(
         )
 
     # ---- 11) PublicationPackage ----
+    publication_packs = {
+        "evidence_map_pack": evidence_map_pack_revision_id,
+        "source_asset_pack": source_asset_pack_revision_id,
+    }
+    knowledge_output_ids = []
+    if compiled_knowledge is not None:
+        # T04B/T05f：KnowledgeDataPack、GraphProjectionPack 与七段证据链进发布包
+        publication_packs["knowledge_data_pack"] = compiled_knowledge["knowledge_revision_id"]
+        publication_packs["graph_projection_pack"] = compiled_knowledge["graph_revision_id"]
+        publication_packs["evidence_chain"] = compiled_knowledge["chain_revision_id"]
+        knowledge_output_ids = [
+            compiled_knowledge["allocation_revision_id"],
+            compiled_knowledge["knowledge_revision_id"],
+            compiled_knowledge["chain_revision_id"],
+            compiled_knowledge["graph_revision_id"],
+        ]
     publication_data = {
         "release_id": effective_release_id,
         "consumption_level": consumption_level,
         "release_manifest_revision_id": release_manifest_revision_id,
         "validation_report_revision_id": validation_revision_id,
-        "packs": {
-            "evidence_map_pack": evidence_map_pack_revision_id,
-            "source_asset_pack": source_asset_pack_revision_id,
-        },
+        "packs": publication_packs,
         "canonical_hash": release_manifest["canonical_hash"],
     }
     _, publication_package_revision_id = service.put_artifact(
@@ -536,8 +798,9 @@ def _run_after_begin(
             source_asset_pack_revision_id,
             evidence_map_pack_revision_id,
             release_manifest_revision_id,
-            publication_package_revision_id,
-        ],
+        ]
+        + knowledge_output_ids
+        + [publication_package_revision_id],
         validation_report_revision_id=validation_revision_id,
         human_event_revision_ids=[],
     )
@@ -547,8 +810,22 @@ def _run_after_begin(
         "resolve_m8_inputs",
         "compile source_asset_pack pages=%d" % len(source_asset_pack["pack"]["pages"]),
         "compile evidence_map_pack spans=%d" % len(evidence_map_pack["pack"]["entries"]),
-        "evaluate_publication passed=%s" % gate_report["passed"],
     ]
+    if compiled_knowledge is not None:
+        log_lines += [
+            "compile knowledge_data_pack entries=%d assertion_without_subject=%d"
+            % (
+                len(compiled_knowledge["knowledge"]["pack"]["entries"]),
+                len(compiled_knowledge["knowledge"]["assertion_without_subject"]),
+            ),
+            "compile evidence_chain chains=%d" % len(compiled_knowledge["chains"]),
+            "compile graph_projection_pack nodes=%d edges=%d"
+            % (
+                graph_projection_pack["pack"]["node_count"],
+                graph_projection_pack["pack"]["edge_count"],
+            ),
+        ]
+    log_lines.append("evaluate_publication passed=%s" % gate_report["passed"])
     _, log_revision_id = service.put_artifact(
         step_run_id, "step_log", "\n".join(log_lines).encode("utf-8"),
         producer_module=M8_TOOL, producer_version=M8_TOOL_VERSION,
@@ -562,7 +839,7 @@ def _run_after_begin(
         # offset 档不产出 glyph/line_bbox 高亮（highlight_counts 为 {}）→ 计 0，不用字面量键取用
         "glyph_highlights": evidence_map_pack["highlight_counts"].get("glyph", 0),
         "line_bbox_highlights": evidence_map_pack["highlight_counts"].get("line_bbox", 0),
-        "packs": 2,
+        "packs": len(publication_packs),
     }
 
     artifacts_map = _build_artifacts_map(
@@ -577,6 +854,12 @@ def _run_after_begin(
             log_revision_id,
         ],
     )
+    upstream_artifacts = [
+        _artifact_ref(inputs["m3_package_revision_id"], artifacts_map),
+        _artifact_ref(inputs["manifest_revision_id"], artifacts_map),
+    ]
+    if inputs["m7_snapshot_revision_id"] is not None:
+        upstream_artifacts.append(_artifact_ref(inputs["m7_snapshot_revision_id"], artifacts_map))
     stage_package_id = ids.new_id("stage_package_id", stage="m8")
     package_revision_id = ids.new_id("artifact_revision_id")
     package = {
@@ -591,7 +874,8 @@ def _run_after_begin(
             "release_manifest_revision_id": release_manifest_revision_id,
             "publication_package_revision_id": publication_package_revision_id,
             "canonical_hash": release_manifest["canonical_hash"],
-            "knowledge_chain": knowledge_chain_state,
+            # 发布包已过 Gate：链是否编译由事实推出（有 M7 Snapshot 且三样子包已进包 → compiled）
+            "knowledge_chain": evidence_map_pack["pack"]["knowledge_chain"],
         },
         "manifest": {
             "schema_version": "1.0.0",
@@ -607,10 +891,7 @@ def _run_after_begin(
             "report_artifacts": [_artifact_ref(validation_revision_id, artifacts_map)],
         },
         "lineage": {
-            "upstream_artifacts": [
-                _artifact_ref(inputs["m3_package_revision_id"], artifacts_map),
-                _artifact_ref(inputs["manifest_revision_id"], artifacts_map),
-            ],
+            "upstream_artifacts": upstream_artifacts,
             "transformations": [
                 {
                     "operation": "compile_dataset",
@@ -621,8 +902,9 @@ def _run_after_begin(
                         source_asset_pack_revision_id,
                         evidence_map_pack_revision_id,
                         release_manifest_revision_id,
-                        publication_package_revision_id,
-                    ],
+                    ]
+                    + knowledge_output_ids
+                    + [publication_package_revision_id],
                 }
             ],
         },
@@ -652,9 +934,9 @@ def _run_after_begin(
                 source_asset_pack_revision_id,
                 evidence_map_pack_revision_id,
                 release_manifest_revision_id,
-                publication_package_revision_id,
-                package_revision_id,
-            ],
+            ]
+            + knowledge_output_ids
+            + [publication_package_revision_id, package_revision_id],
             "validation_report_ids": [validation_revision_id],
             "log_artifact_ids": [log_revision_id],
             "failure_artifact_ids": [],

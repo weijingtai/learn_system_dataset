@@ -113,10 +113,46 @@ class TestRegistryCatalog(CatalogTestBase):
         self.assertIn("module_id_duplicate", self.codes(self.mutated(tamper)))
 
     def test_imported_with_entry_forbidden(self):
+        # TODO T04A 裁决 2 删除了 m1/m2 的 fixture 导入入口后，生产登记表已无 imported
+        # Module，守卫的正例不复存在；故此处显式构造负例：先声明 imported，再强行带上
+        # 合法形态的 entry，守卫必须只报 entry_forbidden，而不是退化成 entry_required。
         def tamper(doc):
+            doc["modules"][0]["binding"] = "imported"
             doc["modules"][0]["entry"] = "pipeline.foo:bar"
 
-        self.assertIn("entry_forbidden", self.codes(self.mutated(tamper)))
+        codes = self.codes(self.mutated(tamper))
+        self.assertNotIn("entry_required", codes)
+        self.assertIn("entry_forbidden", codes)
+
+    def test_m4_declares_human_input_artifact(self):
+        # 裁决 Q2：m4 显式声明人工输入件类型，advance 据此收窄重入登记入口的条件。
+        by_id = load_registry().modules_by_id()
+        self.assertEqual(
+            by_id["m4.knowledge_extraction"]["human_input_artifact"],
+            "candidate_submission",
+        )
+
+    def test_human_input_artifact_requires_human_queue(self):
+        # 裁决 Q2：该键只许 human_queue: true 的模块声明。
+        def tamper(doc):
+            for module in doc["modules"]:
+                if module["module_id"] == "m4.knowledge_extraction":
+                    module["human_queue"] = False
+
+        self.assertIn(
+            "human_input_artifact_forbidden", self.codes(self.mutated(tamper))
+        )
+
+    def test_human_input_artifact_must_be_string(self):
+        # 裁决 Q2：值必须是字符串。
+        def tamper(doc):
+            for module in doc["modules"]:
+                if module["module_id"] == "m4.knowledge_extraction":
+                    module["human_input_artifact"] = ["candidate_submission"]
+
+        self.assertIn(
+            "human_input_artifact_invalid", self.codes(self.mutated(tamper))
+        )
 
     def test_consumes_from_later_stage_detected(self):
         def tamper(doc):
@@ -148,7 +184,16 @@ class TestRegistryCatalog(CatalogTestBase):
 
     def test_module_for_zero_one_many(self):
         registry = Registry.from_dict(copy.deepcopy(self.doc), repo_root=REPO_ROOT)
-        self.assertIsNone(registry.module_for("m4"))
+        # TODO T04B：m7 已登记生产 Module；「0 个」改用删掉 m7 条目的副本来证。
+        self.assertEqual(
+            registry.module_for("m7")["module_id"], "m7.incremental_assembly"
+        )
+        without_m7 = self.mutated(
+            lambda doc: doc.__setitem__(
+                "modules", [m for m in doc["modules"] if m["stage"] != "m7"]
+            )
+        )
+        self.assertIsNone(without_m7.module_for("m7"))
         self.assertEqual(
             registry.module_for("m5")["module_id"], "m5.automatic_validation"
         )
@@ -200,6 +245,27 @@ class TestRegistryCatalog(CatalogTestBase):
         self.assertIn("entry_kwargs_invalid", codes)
         self.assertIn("owns_processing_run_invalid", codes)
 
+    def test_m7_registered_as_release_production_module(self):
+        """TODO T04B：M7 登记为发布段生产模块（人工节点 M7 待裁决），M8 消费 M7 Snapshot。"""
+        registry = load_registry()
+        m7 = registry.module_for("m7")
+        self.assertIsNotNone(m7, "m7 未登记")
+        self.assertEqual(m7["module_id"], "m7.incremental_assembly")
+        self.assertEqual(m7["kind"], "production")
+        self.assertEqual(m7["binding"], "legacy_self_driving")
+        self.assertEqual(m7["entry"], "pipeline.assembly.entry:run_m7")
+        self.assertEqual(m7.get("resume_entry"), "pipeline.assembly.step:resume_m7")
+        self.assertIs(m7["human_queue"], True)
+        # run_m7 自建 release_run ProcessingRun
+        self.assertIs(m7["owns_processing_run"], True)
+        self.assertIn({"artifact_type": "stage_package", "from_stage": "m6"}, m7["consumes"])
+        m8 = registry.module_for("m8")
+        self.assertIn(
+            {"artifact_type": "canonical_snapshot", "from_stage": "m7"}, m8["consumes"]
+        )
+        # 登记表一致性（含 entry 可解析）必须仍通过
+        self.assertEqual(check_registry(registry, resolve_entries=True), [])
+
     def test_fingerprint_ignores_version_but_not_produces(self):
         registry = Registry.from_dict(copy.deepcopy(self.doc), repo_root=REPO_ROOT)
         baseline = interface_fingerprint(registry, "m3.corpus_structural")
@@ -235,7 +301,7 @@ class TestRegistryCatalog(CatalogTestBase):
         self.assertEqual(ok.returncode, 0, ok.stderr.decode("utf-8"))
         self.assertEqual(
             ok.stdout.decode("utf-8").strip().splitlines()[-1],
-            "REGISTRY OK modules=5 ports=4",
+            "REGISTRY OK modules=8 ports=4",
         )
 
         doc = copy.deepcopy(self.doc)

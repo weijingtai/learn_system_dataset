@@ -7,7 +7,7 @@ import json
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
-from pipeline.assembly import canonical, incremental, model, orchestrate
+from pipeline.assembly import apply, canonical, incremental, model, orchestrate
 from pipeline.assembly.errors import AssemblyRefused
 from pipeline.assembly.gate import evaluate_assembly, evaluate_genesis
 from pipeline.assembly.genesis import assemble_genesis, propose_genesis
@@ -118,11 +118,12 @@ def _run_incremental_round(
         pending_queue=pending,
         next_pointer=None,
     )
-    service.await_human(step_run_id, [prop_rev_id, rep_rev_id])
+    resume_token = service.await_human(step_run_id, [prop_rev_id, rep_rev_id])
 
     return {
         "status": "awaiting_human",
         "step_run_id": step_run_id,
+        "resume_token": resume_token,
         "snapshot_revision_id": None,
         "assembly_package_revision_id": None,
         "validation_report_revision_id": None,
@@ -377,6 +378,9 @@ def _finish_incremental(
     )
     service.seal_revision(m7_pkg_rev_id)
 
+    all_events = service.list_human_events(step_run_id)
+    human_decisions = [r["event_revision_id"] for r in all_events]
+
     service.write_checkpoint(
         step_run_id,
         edition_part_id=scope_key,
@@ -388,7 +392,7 @@ def _finish_incremental(
                 "status": "succeeded",
             }
         ],
-        human_decisions=[],
+        human_decisions=human_decisions,
         pending_queue=[],
         next_pointer=None,
     )
@@ -863,3 +867,292 @@ def run_m7(
         "validation_report_revision_id": val_rev_id,
         "gate": gate_res,
     }
+
+
+def record_m7_decision(
+    service,
+    step_run_id: str,
+    resume_token: str,
+    decision: dict,
+    *,
+    rationale: str = "human_decision",
+    actor_ref: Optional[str] = None,
+) -> Dict[str, Any]:
+    """公开入口：为暂停在 awaiting_human 的 M7 StepRun 登记一条人工决定。
+
+    BDD §8 / CHARTER §9.3：人工决定只能走 M7 既有公开入口登记，不许直接写账本。
+    决定落盘为 human_event 修订、调用 service.record_human_event 并立即写 Checkpoint。
+    """
+    step = service.get_step_run(step_run_id)
+    if step is None:
+        raise AssemblyRefused("StepRun 不存在: %s" % step_run_id, code="REF_001")
+    if step["status"] != "awaiting_human":
+        raise AssemblyRefused(
+            "StepRun 状态非 awaiting_human: %s" % step["status"], code="REF_001"
+        )
+    if hasattr(service, "_check_token"):
+        service._check_token(step, resume_token)
+
+    prop_rows = service.list_revisions(
+        artifact_type="assembly_proposal_set",
+        status="sealed",
+        step_run_ids=[step_run_id],
+    )
+    if not prop_rows:
+        raise AssemblyRefused(
+            "找不到本 StepRun 的 assembly_proposal_set 修订: %s" % step_run_id,
+            code="REF_001",
+        )
+    latest_prop_rev = prop_rows[-1]["artifact_revision_id"]
+    prop_doc = json.loads(service.read_object(prop_rows[-1]["sha256"]).decode("utf-8"))
+
+    prop_set_rev_id = decision.get("proposal_set_revision_id")
+    if prop_set_rev_id:
+        desc = service.describe_revision(prop_set_rev_id)
+        if desc is not None and desc.get("step_run_id") != step_run_id:
+            raise AssemblyRefused(
+                "决定引用的提案集修订属于其他 StepRun: %s" % prop_set_rev_id,
+                code="REF_001",
+            )
+
+    proposal_key = decision.get("proposal_key")
+    if not proposal_key:
+        raise AssemblyRefused("决定缺少 proposal_key", code="SCH_001")
+
+    matched_proposal = None
+    for p in prop_doc.get("proposals") or []:
+        if p.get("proposal_key") == proposal_key:
+            matched_proposal = p
+            break
+    if matched_proposal is None:
+        raise AssemblyRefused(
+            "未知 proposal_key: %s" % proposal_key, code="REF_001"
+        )
+
+    apply.validate_decision(matched_proposal, decision)
+
+    existing_events = service.list_human_events(step_run_id)
+    for ev in existing_events:
+        rev_row = service.get_revision(ev["event_revision_id"])
+        ev_doc = json.loads(service.read_object(rev_row["sha256"]).decode("utf-8"))
+        ev_dec = ev_doc.get("decision") or ev_doc
+        if ev_dec.get("proposal_key") == proposal_key:
+            raise AssemblyRefused(
+                "同一提案重复决定: %s" % proposal_key, code="ID_002"
+            )
+
+    event_doc = {
+        "schema_version": "0.1.0-draft",
+        "event_kind": "assembly_decision",
+        "stage": "m7",
+        "processing_run_id": step["processing_run_id"],
+        "step_run_id": step_run_id,
+        "proposal_key": proposal_key,
+        "proposal_set_revision_id": prop_set_rev_id or latest_prop_rev,
+        "choice": decision["choice"],
+        "target_entity_ids": list(decision.get("target_entity_ids") or []),
+        "seen_revision_id": decision.get("seen_revision_id"),
+        "decision_type": decision.get("decision_type"),
+        "decision": dict(decision),
+        "rationale": rationale,
+        "actor_ref": actor_ref or service.actor(),
+    }
+    event_bytes = json.dumps(event_doc, sort_keys=True, ensure_ascii=False).encode("utf-8")
+    _, event_rev_id = service.put_artifact(
+        step_run_id,
+        "human_event",
+        event_bytes,
+        producer_module=M7_TOOL,
+        producer_version=M7_TOOL_VERSION,
+    )
+    service.seal_revision(event_rev_id)
+
+    service.record_human_event(
+        step_run_id,
+        resume_token,
+        event_rev_id,
+        decision_type=decision.get("decision_type"),
+    )
+
+    req = json.loads(step["request_json"] or "{}")
+    cfg_rev_id = req.get("configuration_artifact_id")
+    cfg_rev = service.get_revision(cfg_rev_id)
+    scope_key = cfg_rev["artifact_id"]
+
+    all_human_events = service.list_human_events(step_run_id)
+    human_decisions = [row["event_revision_id"] for row in all_human_events]
+
+    decided_keys = set()
+    for row in all_human_events:
+        rev = service.get_revision(row["event_revision_id"])
+        d = json.loads(service.read_object(rev["sha256"]).decode("utf-8"))
+        pk = (d.get("decision") or d).get("proposal_key")
+        if pk:
+            decided_keys.add(pk)
+
+    last_cp = service.latest_checkpoint(scope_key, "m7")
+    completed_tasks = list((last_cp["content"].get("completed_tasks") or [])) if last_cp else []
+
+    all_pending_keys = [
+        p["proposal_key"]
+        for p in prop_doc.get("proposals") or []
+        if p.get("resolution") in ("human", "blocked")
+    ]
+    remaining_pending = [pk for pk in all_pending_keys if pk not in decided_keys]
+
+    checkpoint_rev_id = service.write_checkpoint(
+        step_run_id,
+        edition_part_id=scope_key,
+        stage="m7",
+        completed_tasks=completed_tasks,
+        human_decisions=human_decisions,
+        pending_queue=remaining_pending,
+        next_pointer=None,
+    )
+
+    return {
+        "event_revision_id": event_rev_id,
+        "checkpoint_revision_id": checkpoint_rev_id,
+        "remaining_pending": remaining_pending,
+    }
+
+
+def resume_m7(
+    service,
+    step_run_id: str,
+    resume_token: str,
+    **kwargs: Any,
+) -> Dict[str, Any]:
+    """消费 resume_token，读回暂停时的提案与人工决定并续跑该 StepRun。
+
+    - 决定齐全且收敛：完成合并、写新 Snapshot、finish 该 StepRun（succeeded）；
+    - 仍有后续轮次待决提案：再次 await_human 并返回 awaiting_human；
+    - 仍有未决提案时调用：拒绝，StepRun 保持 awaiting_human，token 不被消费（BDD 8.2）。
+    """
+    step = service.get_step_run(step_run_id)
+    if step is None:
+        raise AssemblyRefused("StepRun 不存在: %s" % step_run_id, code="REF_001")
+    if step["status"] != "awaiting_human":
+        raise AssemblyRefused(
+            "StepRun 状态非 awaiting_human: %s" % step["status"], code="REF_001"
+        )
+
+    req = json.loads(step["request_json"] or "{}")
+    cfg_rev_id = req.get("configuration_artifact_id")
+    if not cfg_rev_id:
+        raise AssemblyRefused("StepRun 缺少 configuration_artifact_id", code="REF_001")
+    cfg_rev = service.get_revision(cfg_rev_id)
+    cfg_doc = json.loads(service.read_object(cfg_rev["sha256"]).decode("utf-8"))
+
+    technique_id = cfg_doc["technique_id"]
+    reviewed_package_revision_ids = cfg_doc["reviewed_package_revision_ids"]
+    base_snapshot_revision_id = cfg_doc["base_snapshot_revision_id"]
+    scope_key = cfg_rev["artifact_id"]
+    proc_id = req["processing_run_id"]
+    frozen_revision_ids = list(req.get("input_artifact_ids") or [])
+
+    base = resolve_base_snapshot(service, base_snapshot_revision_id)
+    inputs = resolve_m7_inputs(service, reviewed_package_revision_ids)
+    packages = inputs["packages"]
+    views = [
+        {
+            "source_id": package["source_id"],
+            "candidate_set": package["candidate_set"],
+            "reviewed_edition": package["reviewed_edition"],
+        }
+        for package in packages
+    ]
+
+    human_event_rows = service.list_human_events(step_run_id)
+    decisions = []
+    decided_keys = set()
+    for row in human_event_rows:
+        rev = service.get_revision(row["event_revision_id"])
+        doc = json.loads(service.read_object(rev["sha256"]).decode("utf-8"))
+        dec = doc.get("decision") or doc
+        decisions.append(dec)
+        if dec.get("proposal_key"):
+            decided_keys.add(dec["proposal_key"])
+
+    # 检查当前待决提案是否已有决定（BDD 8.2：还有未决提案时拒绝，token 不消费）
+    prop_rows = service.list_revisions(
+        artifact_type="assembly_proposal_set",
+        status="sealed",
+        step_run_ids=[step_run_id],
+    )
+    if prop_rows:
+        latest_prop_doc = json.loads(service.read_object(prop_rows[-1]["sha256"]).decode("utf-8"))
+        pending_in_latest = [
+            p["proposal_key"]
+            for p in latest_prop_doc.get("proposals") or []
+            if p.get("resolution") in ("human", "blocked")
+        ]
+        unresolved = [k for k in pending_in_latest if k not in decided_keys]
+        if unresolved:
+            raise AssemblyRefused(
+                "仍有未决提案: %s" % unresolved, code="REF_001"
+            )
+
+    # 校验并消费 token（awaiting_human -> running）
+    service.resume(step_run_id, resume_token)
+
+    try:
+        outcome = orchestrate.assemble(
+            base["doc"],
+            views,
+            decisions,
+            incremental=True,
+            base_snapshot_revision_id=base["revision_id"],
+        )
+    except (AssemblyRefused, LedgerError) as exc:
+        fail_doc = {
+            "schema_version": "1.0.0",
+            "step_run_id": step_run_id,
+            "check_name": "incremental_orchestration_resume",
+            "error": str(exc),
+            "code": getattr(exc, "code", "REF_001"),
+        }
+        fail_bytes = json.dumps(fail_doc, sort_keys=True, ensure_ascii=False).encode("utf-8")
+        _, fail_rev_id = service.put_artifact(
+            step_run_id,
+            "failure_report",
+            fail_bytes,
+            producer_module=M7_TOOL,
+            producer_version=M7_TOOL_VERSION,
+        )
+        service.seal_revision(fail_rev_id)
+        service.fail_step_run(step_run_id, [fail_rev_id], reason="incremental resume failed")
+        return {
+            "status": "failed",
+            "step_run_id": step_run_id,
+            "snapshot_revision_id": None,
+            "assembly_package_revision_id": None,
+            "validation_report_revision_id": None,
+            "error": str(exc),
+        }
+
+    if outcome["status"] == "awaiting_human":
+        return _run_incremental_round(
+            service,
+            step_run_id=step_run_id,
+            scope_key=scope_key,
+            technique_id=technique_id,
+            base=base,
+            proposal_res=outcome["rounds"][-1],
+            pending=outcome["pending"],
+        )
+
+    return _finish_incremental(
+        service,
+        step_run_id=step_run_id,
+        scope_key=scope_key,
+        technique_id=technique_id,
+        base=base,
+        packages=packages,
+        views=views,
+        decisions=decisions,
+        outcome=outcome,
+        proc_id=proc_id,
+        cfg_rev_id=cfg_rev_id,
+        frozen_revision_ids=frozen_revision_ids,
+    )

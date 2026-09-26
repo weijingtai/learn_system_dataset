@@ -166,6 +166,9 @@ def cmd_show(args):
         target = next((a for a in cand_set_doc.get("assertions", []) if a.get("assertion_id") == entity_id), None)
         kind = "assertion"
         if not target:
+            target = next((p for p in cand_set_doc.get("patterns", []) if p.get("pattern_id") == entity_id), None)
+            kind = "pattern"
+        if not target:
             target = next((v for v in cand_set_doc.get("school_views", []) if v.get("school_view_id") == entity_id), None)
             kind = "school_view"
         if not target:

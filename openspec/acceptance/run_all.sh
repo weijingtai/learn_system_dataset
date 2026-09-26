@@ -224,24 +224,34 @@ run_item() {
   local n="$1"
   case "$n" in
     20.1)
-      fx
-      if [ "$FX_STATUS" = "MISSING" ]; then
-        block_line "$n" "M3 Corpus Compilation" "fixture 缺失"
-        return 0
-      fi
-      if [ "$FX_STATUS" = "FAIL" ]; then
-        fail_line "$n" "统一验收宿主校验未通过" "$FX_REASON"
+      # 裁决 4（T04A）：20.1 的宿主改为电子文本宿主
+      # pipeline/corpus/_fixture/qianyuan_ed01_text，判据为调度器 M1→M6 全线
+      # （pipeline.orchestrator.acceptance 的 real_chain 项）。宿主缺失 → BLOCKED，
+      # **绝不**回落 OCR 路线的 mini_ed01（同 G7-RULINGS 第 97 条 D2）。
+      local text_fixture="${ELECTRONIC_TEXT_FIXTURE_DIR:-$REPO_ROOT/pipeline/corpus/_fixture/qianyuan_ed01_text}"
+      local text_verify="$REPO_ROOT/pipeline/corpus/_fixture/qianyuan_ed01_text/verify.sh"
+      if [ ! -d "$text_fixture" ]; then
+        block_line "$n" "M3 Corpus Compilation" "裁决 4 指定的电子文本宿主不存在: $text_fixture"
         return 0
       fi
       if [ ! -x "$PY" ]; then
         block_line "$n" "测试宿主匮乏" ".venv 缺失"
         return 0
       fi
-      case "$(probe_status "$n")" in
-        OK) accept_check "$n" pipeline.orchestrator.acceptance "一个 EditionPart 严格按 M1–M6 阶段 Gate 完成（宿主 mini_ed01 真实 Ledger）" --fixture "$FIXTURE_DIR" ${FIXTURE_ASSET_ROOT:+--asset-root "$FIXTURE_ASSET_ROOT"} ;;
-        FAIL) fail_line "$n" "三包 stage 递增与 lineage 串联不成立" "$(probe_reason "$n")" ;;
-        *) block_line "$n" "测试宿主匮乏" "判据探针无输出" ;;
-      esac
+      # 探针改读新宿主：一律调用仓库内规范脚本（电子文本 verify.sh 不读任何页图）
+      local text_out text_rc text_first
+      text_out="$(FIXTURE_DIR="$text_fixture" bash "$text_verify" 2>&1)"
+      text_rc=$?
+      if [ "$text_rc" -eq 1 ]; then
+        text_first="$(printf '%s\n' "$text_out" | grep -m1 '^FAIL' )"
+        fail_line "$n" "统一验收宿主校验未通过" "$text_first"
+        return 0
+      fi
+      if [ "$text_rc" -ne 0 ]; then
+        block_line "$n" "M3 Corpus Compilation" "电子文本宿主素材缺失（verify.sh 退出码 $text_rc）"
+        return 0
+      fi
+      accept_check "$n" pipeline.orchestrator.acceptance "一个 EditionPart 严格按 M1–M6 阶段 Gate 完成（宿主 qianyuan_ed01_text 电子文本真实 Ledger）" --fixture "$text_fixture"
       ;;
     20.2)
       fx
