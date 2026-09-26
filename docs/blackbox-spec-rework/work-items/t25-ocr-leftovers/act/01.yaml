@@ -1,0 +1,297 @@
+act_id: t25-ocr-leftovers/01
+title: OCR 校对工具遗留 —— R7 横排切分、min_gap 死参、断言收紧、export_corpus 对接新 M1（待决）、Colab 与界面人工走查（用户专属）
+todo_ref: TODO.md:58（T25）
+depends_on_docs:
+  - docs/blackbox-spec-rework/work-items/t25-ocr-leftovers/README.md
+  - docs/blackbox-spec-rework/work-items/t25-ocr-leftovers/TDD.md
+
+scope:
+  write:
+    - ocr/tests/test_segment.py
+    - ocr/src/gujiorc/ocr/segment.py
+    - ocr/tests/test_export_corpus.py     # 只在第 5 步新增"钉现状"用例，不改 export.py
+    - docs/blackbox-spec-rework/work-items/t25-ocr-leftovers/act/01.yaml   # 仅用于第 6/7 步填记录表
+  read_only:
+    - ocr/src/gujiorc/core/export.py       # 第 5 步只读，不改
+    - ocr/src/gujiorc/core/models.py
+    - ocr/tests/test_segment_alignment.py  # 必须保持通过，不许改它来迁就新逻辑
+    - ocr/docs/                            # 全部只读参考
+    - pipeline/                            # 全部只读参考（本任务不改 pipeline）
+    - openspec/                            # 全部只读参考
+  forbidden:
+    - ocr/local/static/                    # 未验收的 Vue 前端，禁止碰（ocr/docs/HANDOFF.md:115）
+    - ocr/scripts/fetch_frontend.py
+    - "ocr/src/gujiorc/ 下除 segment.py 外的任何其他生产文件"
+    - "pipeline/ 下任何文件的写入"
+    - "TODO.md、HANDOFF.md、PLAN.md 的状态字段——AGENTS.md「受限执行 Agent 例外」：本 ACT 明确禁止执行 Agent 改这三个文件；完成后由主 Agent 独立验收再统一更新"
+
+global_rules: |
+  1. 先红后绿：每一步先按 TDD.md 写出新测试/改断言，跑一次确认变红（或确认"篡改探针"能让它红），
+     把红的实际输出贴进回报，再改实现，再跑绿。不许先改实现再补测试。
+  2. 篡改探针：每条 TDD.md 里写了探针的用例，改完之后都要按探针操作一次、记录变红、再改回来确认变绿，
+     三个状态（绿→红→绿）都要在回报里贴命令与输出，不能只贴最后一次绿。
+  3. 不放宽检查：不允许为了让测试通过而删断言、放大容差到形同虚设、或者用 try/except 吞掉异常。
+     TDD.md §1.2 篡改探针 3 已经预告了这个陷阱，照那条执行。
+  4. 不改与本任务无关的文件；不做 `git add .` / `git add -A`（工作区可能有其他会话的未提交改动）。
+  5. 不 push、不 rebase、不合并到 main/master、不 `git reset --hard`、不 `git checkout -- .`、
+     不 `git clean -f`、不 force push、不删 `.git`。
+  6. 每完成一个可独立验证的子步骤（第 2/3/4/5 步各自算一个子步骤）立即提交一次，
+     消息用 Conventional Commits，结尾附：
+       Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+       Claude-Session: https://claude.ai/code/session_01AXGprjG6XxcHq3mtHEJPhU
+  7. 对不上就停：任何一步发现代码实际情况与 README.md/TDD.md 描述的行号、函数名、现有断言原文不一致，
+     立即停止该步，把差异原样写进回报的「## 差异」小节，不自由发挥、不臆测意图。
+  8. 环境：`ocr/` 用它自己的隔离 venv（见第 1 步），不要用仓库根 `.venv/`（那是 Python 3.14，给
+     `pipeline/` 用，装不了 `numpy`/`pytest`/`opencc` 等 `ocr/` 依赖）。
+
+steps:
+  - id: "1"
+    title: 建隔离测试环境 + 记录开工基线
+    actions: |
+      python3 -m venv /tmp/t25_ocr_venv
+      /tmp/t25_ocr_venv/bin/pip install --quiet numpy Pillow pytest opencc-python-reimplemented fastapi uvicorn httpx
+      cd ocr && PYTHONPATH=src /tmp/t25_ocr_venv/bin/python -m pytest tests/ -q
+    expect: |
+      形如 "2 failed, 134 passed, 26 skipped"（本次核实的确切基线，见 README.md §3）。
+      两条失败都是 tests/test_segment.py 里的 OSError（字体路径），不是别的错误。
+      若数字不同（尤其 passed 数不同），先停手记录实际数字，再继续——后续步骤的判据
+      都是"相对这条基线的变化"，基线不对，后面每一步的判据都要重新核对。
+    on_mismatch: 停手，把实际输出完整贴进回报，不要按本文档写的数字硬套。
+
+  - id: "2"
+    title: "前置修复：字体路径可移植性（TDD.md §0）"
+    actions: |
+      在 ocr/tests/test_segment.py 顶部按 TDD.md §0 的骨架新增 _resolve_cjk_font()
+      与 _CJK_FONT_CANDIDATES；把 make_vertical_text_image() 里硬编码的字体路径
+      改成调用 _resolve_cjk_font()。新增用例 test_cjk_font_resolves_on_this_machine。
+    verify: |
+      cd ocr && PYTHONPATH=src /tmp/t25_ocr_venv/bin/python -m pytest tests/test_segment.py -v
+    expect: |
+      test_cjk_font_resolves_on_this_machine 通过；
+      test_segment_block_vertical、test_segment_page_chars 不再是 OSError（可能仍因为
+      §3 还没做而是别的状态，只要求"不是 OSError"）。
+    tamper_probe: |
+      把 _CJK_FONT_CANDIDATES 临时改成两个都不存在的路径 → 重跑 →
+      test_cjk_font_resolves_on_this_machine 必须是 skipped（不是 failed，不是 error）；
+      改回真实路径 → 恢复 passed。把探针的三段输出（改前 passed / 改后 skipped / 改回 passed）
+      都贴进回报。
+    commit:
+      files: [ocr/tests/test_segment.py]
+      message: "test(ocr): 中文字体路径可移植解析,避免非macOS环境假红(T25前置)"
+
+  - id: "3"
+    title: "R7：修 segment_block 横排分支（TDD.md §1）"
+    actions: |
+      1. 先按 TDD.md §1.2 在 ocr/tests/test_segment.py 新增
+         test_segment_block_horizontal_uses_ink_mask_and_correct_axis 及其用到的
+         make_horizontal_text_image 辅助函数，跑一遍确认按 TDD.md 描述的方式转红
+         （贴红的实际输出）。
+      2. 改 ocr/src/gujiorc/ocr/segment.py:108-126（横排分支）：
+         - 把 `sub = region[:, g0:g1]` 改为对 dark（墨迹掩码）取同样切片，不是 region。
+         - 修正轴向：需要的是该段在 y 方向（行）上的墨迹范围，不是长度恒等于该段宽度
+           的一维数组。具体写法交给你判断（TDD.md 没有给出逐行代码，只给了判定标准），
+           但必须同时满足：(a) 判墨迹用 dark 不用 region 的原始灰度；(b) 得到的 h 是
+           对该段在 box 高度范围内逐行扫出来的真实墨迹行数，不是又一次被该段宽度限制住
+           的量。
+      3. 重跑第 2 步新增用例，确认变绿；重跑 TDD.md §1.3 列的竖排回归护栏两条，确认仍绿。
+    verify: |
+      cd ocr && PYTHONPATH=src /tmp/t25_ocr_venv/bin/python -m pytest tests/test_segment.py -v
+      cd ocr && PYTHONPATH=src /tmp/t25_ocr_venv/bin/python -m pytest tests/ -q
+    expect: |
+      test_segment.py 全绿；tests/ 整体 "0 failed"（相对第 1 步基线的 2 failed 归零），
+      skipped 数不应比第 1 步基线增加（除非是 §2 的字体 skip，且第 1 步基线已经跑通了
+      字体，正常不会新增 skip）。
+    tamper_probe: |
+      按 TDD.md §1.2 的两条篡改探针逐一操作并记录（改回原始灰度判定 → 红；改回错误轴向
+      → 红；改回后再恢复 → 绿）。第三条"放宽容差"探针不要求真的去改代码，只在回报里
+      写一句"已知悉此陷阱，未这样做"。
+    commit:
+      files: [ocr/tests/test_segment.py, ocr/src/gujiorc/ocr/segment.py]
+      message: "fix(ocr): R7-segment_block横排分支改用墨迹掩码并修正取轴,框高不再恒等于框宽"
+
+  - id: "4"
+    title: "min_gap 死参 + 断言收紧（TDD.md §2、§3）"
+    actions: |
+      1. 先按 TDD.md §2.2 新增 test_find_gaps_min_gap_merges_only_narrow_blank_runs，
+         跑一遍确认转红（两次不同 min_gap 结果相同）。
+      2. 改 ocr/src/gujiorc/ocr/segment.py 的 _find_gaps（第 305 行起）：让 min_gap 只
+         用于判定"空白间隙"是否够宽算真间隙（宽度 < min_gap 的空白应被当作字内空隙，
+         合并两侧内容段），**不得**用它判定内容段本身是否算噪声（TDD.md §2.1 已经解释
+         为什么，逐字读一遍再动手，别重新发明 _merge_thin_segments）。
+      3. 重跑新用例确认变绿；按 TDD.md §2.2 篡改探针 2 的构造再跑一次确认能分辨"按空白
+         宽度合并"与"按内容宽度丢弃"这两种不同实现。
+      4. **强制回归**：`cd ocr && PYTHONPATH=src /tmp/t25_ocr_venv/bin/python -m pytest
+         tests/test_segment_alignment.py -v`。这一步是硬性门槛，见下面 on_fail。
+      5. 按 TDD.md §3.1、§3.2 把 test_segment.py 里两条过宽断言原地改紧（不新建用例，
+         改已有断言那一行）。改完重跑对应用例，确认仍是绿（这两条是"收紧"不是"修 bug"，
+         预期改完不转红；如果转红，说明实现和 README/TDD 描述的行为不一致，见 on_mismatch）。
+      6. 按 TDD.md §3.1、§3.2 的篡改探针分别验证：故意让 segment_block/_align_to_count
+         退化，确认新断言比旧断言更敏感（能抓到旧断言抓不到的问题），贴对比进回报。
+    verify: |
+      cd ocr && PYTHONPATH=src /tmp/t25_ocr_venv/bin/python -m pytest tests/ -q
+      cd ocr && PYTHONPATH=src /tmp/t25_ocr_venv/bin/python -m pytest tests/test_segment_alignment.py -v
+    expect: |
+      tests/ 全部通过，skipped 数不变（相对第 3 步之后的状态）；
+      test_segment_alignment.py 逐条列出的用例名（尤其
+      test_thin_stroke_not_merged_into_previous_char）全部 passed。
+    on_fail: |
+      如果第 4 步"强制回归"里 test_segment_alignment.py 任何一条变红：**立即停手**，
+      不许为了让它变绿而修改 test_segment_alignment.py 本身（那是保护既有回归的护栏，
+      不是本任务的改动对象），也不许放弱 min_gap 的合并逻辑到"实际上什么都不做"。
+      把红的具体用例名、错误信息、以及你当时对 min_gap 的实现方式完整写进回报的
+      「## 待裁决」小节，交回给主 Agent 裁定是否要调整 min_gap 的语义，不要自行改动
+      TDD.md 之外的判定标准。
+    commit:
+      files: [ocr/tests/test_segment.py, ocr/src/gujiorc/ocr/segment.py]
+      message: "fix(ocr): min_gap接入空白间隙合并判定,并收紧test_segment.py两条过宽断言"
+
+  - id: "5"
+    title: "export_corpus 对接新 M1 —— 停手，交给用户决定"
+    actions: |
+      1. 按 TDD.md §4 新增 test_export_corpus_output_is_documented_legacy_format
+         （先确认 ocr/tests/test_export_corpus.py 是否已存在——本次核实它已存在，
+         若你核实时发现不存在，按 TDD.md §4 的备用写法新建，并在回报里注明）。
+      2. 跑一遍确认这条"钉现状"用例本身是绿的（它不改 export_corpus.py，只是确认
+         现状确实是旧格式）。
+      3. **不实现任何新格式，不改 ocr/src/gujiorc/core/export.py**。到这一步为止。
+    verify: |
+      cd ocr && PYTHONPATH=src /tmp/t25_ocr_venv/bin/python -m pytest tests/test_export_corpus.py -v
+    expect: 新用例通过；export.py 文件内容与本次核实时（README.md §2.6 引用的行号）一致。
+    stop_here: true
+    decision_needed: |
+      ## 待用户决定：export_corpus 对接新 M1，采用哪个候选？
+
+      背景见 README.md §2.6：新 M1（电子文本路线，pipeline/intake/source.py）要求的
+      source_info.yaml 与 OCR 产出的逐页逐字坐标框数据形状完全不同；OCR 路线自己的
+      M1/M2 生产模块（TODO.md T04c）尚未设计。三个候选：
+
+        候选 A（推荐）：export_corpus 保留现在的旧格式产出，但明确降级为"人工核对/
+          审计留档"用途，不再暗示已经打通新流水线（可以只改函数文档字符串说明这一点，
+          或者不改代码，只在 ocr/docs/HANDOFF.md 补一句现状说明）。真正的生产对接留给
+          T04c 设计的 OCR 专属 M1/M2 模块，那个模块直接消费 OCR 的页面 JSON/audit.jsonl，
+          不经过 manifest.yaml 这一层。
+          代价：export_corpus 现在的产出暂时没有生产用途，只能人工查阅。
+
+        候选 B：改造 export_corpus，把整本 transcript_v1.md 当成新 M1 电子文本路线的
+          唯一"页面文本文件"直接摄入（借用 pipeline/intake/source.py 的
+          read_source_files）。
+          代价：逐字坐标框、生僻字标记、校对历史全部丢失，OCR 的证据链等级
+          （glyphbox_level，见 pipeline/dataset_compiler 对 route 的判定逻辑）也随之
+          丢失，等于把 OCR 结果降级成普通电子文本，不满足"扫描本古籍应保留字级证据"
+          的既有设计意图。
+
+        候选 C：新设计一个 OCR 专用的 source_info 变体 schema（在 T04c 里做），
+          export_corpus 只负责产出这份新 schema 需要的原始材料（页 JSON、位图、
+          sha256 清单），manifest.yaml 这一套完全废弃。
+          代价：需要先完成 T04c 才能定义这个 schema，本任务做不到。
+
+      **主 Agent 建议**：候选 A。理由：T04c 还没做，本任务没有权威依据定义 OCR 专属的
+      新格式（候选 C 依赖 T04c，候选 B 会丢失字级证据链，都不该在 T04c 之前先动
+      export_corpus）；候选 A 风险最小、改动最少，且不妨碍 T04c 将来重新设计。
+      执行者到本步为止，不实现任何候选，等用户回复后再继续（回复会作为新的
+      act/02.yaml 或对本文件的更新下发）。
+    commit:
+      files: [ocr/tests/test_export_corpus.py]
+      message: "test(ocr): 钉住export_corpus现状为旧格式,防止被误报已对接新M1(T25待决)"
+
+  - id: "6"
+    title: "Colab 实机跑通 —— 只能用户本人做，执行者不代做"
+    who: 用户本人（不是执行者，不是任何 Agent）
+    actions: |
+      1. 把 ocr/colab/ 上传到用户自己的 Google Drive。
+      2. 在真实 Google Colab（不是本地模拟 OCR_ROOT）里挂载该 Drive。
+      3. 运行 ocr/colab/run_colab.py 里的 full_pipeline('/content/drive/MyDrive/<你放置的路径>')，
+         对一本真实古籍图片跑一遍。
+      4. 按下表逐项记录结果。
+    record_table: |
+      | 走查项 | 结果（成功/失败+现象） | 截图或日志 | 日期 |
+      |---|---|---|---|
+      | Drive 挂载成功 | | | |
+      | full_pipeline 跑完不报错 | | | |
+      | 进度心跳（progress）实际生效 | | | |
+      | 断点续跑（中断后重新跑，能接续而不是从头开始） | | | |
+      | 产出页面 JSON 落在 Drive 而不是 Colab 临时磁盘 | | | |
+    on_fail: 记录失败现象和错误信息，写回 TODO.md T25（由用户本人或主 Agent 事后更新，不由执行者更新）。
+    note: 执行者读到这一步应该跳过，不代跑、不代填、不伪造"已验证"。
+
+  - id: "7"
+    title: "校对界面 8 条人工走查 —— 只能用户本人做，执行者不代做"
+    who: 用户本人（不是执行者，不是任何 Agent）
+    source: ocr/docs/PLAN_PROOFREAD_EDIT.md:307-317
+    actions: |
+      1. 启动本地服务（沙箱副本，不碰生产数据，命令见 PLAN_PROOFREAD_EDIT.md §8.4）：
+         R=<仓库路径>/ocr; SB=/tmp/ocr_sandbox
+         rm -rf "$SB"; mkdir -p "$SB"; cp -R "$R/data_work/data" "$SB/data"; cp -R "$R/data_work/books" "$SB/books"
+         cd "$R" && OCR_ROOT="$SB" OCR_WEB_PORT=8011 <你的venv>/bin/python local/app.py
+      2. 浏览器打开 http://127.0.0.1:8011/?page=page_001。
+      3. 逐条走一遍下表 8 项（原文见 PLAN_PROOFREAD_EDIT.md:309-316），亲手点、亲手看，
+         不是看代码猜结果。
+    record_table: |
+      | # | 走查项 | 结果（通过/不通过+现象） | 日期 |
+      |---|---|---|---|
+      | 1 | 橡皮筋能一次框中「三辰通載」四个框 | | |
+      | 2 | `M` 合并前两个框 → 变成一个 h=44 的框 | | |
+      | 3 | 选中末框 → 「等分 2 份」→ 两个 h≈66 的框 | | |
+      | 4 | 全选四框 → 「重灌」→ 三/辰/通/載 各归其位 | | |
+      | 5 | `Cmd+Z` 三次 → 完全回到原状 | | |
+      | 6 | 刷新页面后 `Cmd+Z` 仍可用（撤销栈落盘） | | |
+      | 7 | 诊断面板本来报 4 行，修完第一列后剩 3 行 | | |
+      | 8 | 框数≠字数时点重灌 → 看到的是「请先用合并/拆分…」原文，不是「操作失败」 | | |
+    on_fail: 记录不通过的具体现象（截图/复现步骤），写回 TODO.md T25，交主 Agent 评估是否需要新开条目。
+    note: 执行者读到这一步应该跳过，不代跑、不代勾、不伪造"已验证"。
+
+stop_conditions: |
+  - 任一步骤发现代码实际情况与 README.md/TDD.md 描述不一致（行号、函数名、现有断言原文对不上）。
+  - 第 4 步 test_segment_alignment.py 回归护栏变红（见该步 on_fail）。
+  - 第 5 步：本步骤设计上就是要到此为止，不是失败，是正常止步。
+  - 第 6、7 步：执行者不是用户本人，本来就不该执行，见 who 字段。
+  - 任何时候你想"放宽断言/加 try-except 吞异常/改既有回归测试来让新代码通过"——
+    先停手，这是 global_rules 第 3 条明令禁止的。
+
+completion_criteria: |
+  第 1~5 步全部按上面的 verify/expect 跑完并逐步提交，且：
+    - ocr/ 全量测试 `PYTHONPATH=src <venv>/bin/python -m pytest tests/ -q` 为 "0 failed"
+      （skipped 数只允许因 §2 的字体解析而变化，且原因必须写清楚）。
+    - TDD.md 列出的每一条新用例、每一条篡改探针都在回报里有"红→绿"或"绿→红→绿"的
+      实际命令输出（不是复述本文档，是真实跑出来的文本）。
+    - 第 5 步的「待用户决定」原样转达给用户，不由执行者自行选定候选。
+    - 第 6、7 步的记录表交给用户，执行者本身不填。
+  TODO.md、HANDOFF.md、PLAN.md 的状态字段不由执行者改（scope.forbidden 已列），
+  由主 Agent 独立验收后统一更新。
+
+report_format: |
+  ## T25 执行回报
+
+  ### 环境
+  - venv 路径、pip 安装的包版本
+
+  ### 第 1 步：开工基线
+  - 实际命令输出（完整贴）
+
+  ### 第 2 步：字体路径可移植性
+  - 红的输出 / 绿的输出 / 篡改探针三段输出
+
+  ### 第 3 步：R7
+  - 红的输出（新用例转红时的完整 assert 失败信息）
+  - 实际改动的代码 diff（segment.py 横排分支部分）
+  - 绿的输出
+  - 两条篡改探针的操作与结果
+
+  ### 第 4 步：min_gap + 断言收紧
+  - 红的输出 / 绿的输出 / 篡改探针结果
+  - test_segment_alignment.py 回归结果（必须贴，即使全绿也要贴）
+  - 若触发 on_fail：完整写「## 待裁决」小节，不要自行处理
+
+  ### 第 5 步：export_corpus
+  - 钉现状用例的通过结果
+  - 原样转述「## 待用户决定」小节（不要总结、不要替用户选）
+
+  ### 第 6、7 步
+  - 说明"本步骤按 who 字段应由用户本人执行，执行者未代做"，不留空、不跳过不提
+
+  ### 提交记录
+  - 每次 git commit 的 hash 与 message（供主 Agent 事后填进 TODO.md 完成记录，
+    执行者本人不改 TODO.md）
+
+  ### 差异（如有）
+  - 任何代码实际情况与 README.md/TDD.md 描述不一致的地方，原样列出，不要替换成你的猜测
