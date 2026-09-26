@@ -451,15 +451,80 @@ class LedgerOptionAndClosureStepsTests(unittest.TestCase):
     def test_offset_closure_reports_page_steps_not_applicable(self):
         """页/字框子步不再以「span_id 无法解析」判 FAIL，而是逐项披露 NOT_APPLICABLE（不静默跳过）。
 
-        其余子步照判：本宿主当前停在 text_offsets（offset 档 span 无 line_index，待裁决），
-        判据如实 FAIL 并点名失败子步。
+        其余子步照判。原先本宿主停在 text_offsets（offset 档 span 无 line_index）而 FAIL；
+        T20 裁决 (a) 后 line_index 也披露为不适用，判据结论与篡改探针见 OffsetTextOffsetsTests。
         """
         _code, out = self._run(["--fixture", str(OFFSET_FIXTURE), "--check", "publication"])
         line = next(l for l in out.splitlines() if " evidence_chain_closure " in l)
         self.assertNotIn("span_page_binding: span_id 无法解析", line)
         for step in ("span_page_binding", "glyph_anchor_closure"):
             self.assertIn("%s=%s" % (step, acceptance.NOT_APPLICABLE), line)
-        self.assertFalse(line.startswith("PASS "), "不适用子步不得让判据冒充通过")
+
+
+class OffsetTextOffsetsTests(unittest.TestCase):
+    """T20（用户 2026-09-26 裁决 (a)）：电子文本没有「行」，offset 档 text_offsets 不比 line_index，
+    披露为 NOT_APPLICABLE；offset/text/quote_sha256/content_status 照比，任一不符仍 FAIL。"""
+
+    SPAN_ID = "ss_qianyuan_ed01_text_000001"
+    TEXT = "去官留煞"
+
+    def _loaded(self, **entry_overrides):
+        span = {"span_id": self.SPAN_ID, "start_offset": 10, "end_offset": 14, "text": self.TEXT}
+        entry = {
+            "start_offset": 10,
+            "end_offset": 14,
+            "text": self.TEXT,
+            "quote_sha256": acceptance._sha256_hex(self.TEXT.encode("utf-8")),
+            "content_status": "machine_extracted",
+        }
+        entry.update(entry_overrides)
+        return {
+            "evidence": {"entries": {self.SPAN_ID: entry}},
+            "spans_doc": {"spans": [span], "content_status": "machine_extracted"},
+        }
+
+    def test_offset_route_does_not_require_line_index(self):
+        ok, detail = acceptance._check_text_offsets(self._loaded(), acceptance.ROUTE_OFFSET)
+        self.assertTrue(ok, detail)
+
+    def test_offset_route_still_rejects_tampered_fields(self):
+        """篡改探针：offset、text、quote_sha256、content_status 任一被改，offset 档照样 FAIL。"""
+        for field, value in (
+            ("start_offset", 11),
+            ("end_offset", 15),
+            ("text", "贪合忘煞"),
+            ("quote_sha256", "0" * 64),
+            ("content_status", "expert_verified"),
+        ):
+            with self.subTest(field=field):
+                ok, _detail = acceptance._check_text_offsets(
+                    self._loaded(**{field: value}), acceptance.ROUTE_OFFSET
+                )
+                self.assertFalse(ok, field)
+
+    def test_offset_route_rejects_a_stray_line_index(self):
+        """offset 档出现 line_index 说明混进了页/行档数据，判 FAIL，不当作「有就比、没有就算」。"""
+        ok, detail = acceptance._check_text_offsets(
+            self._loaded(line_index=0), acceptance.ROUTE_OFFSET
+        )
+        self.assertFalse(ok)
+        self.assertIn("line_index", detail)
+
+    def test_glyph_route_still_compares_line_index(self):
+        loaded = self._loaded(line_index=1)
+        loaded["spans_doc"]["spans"][0]["line_index"] = 0
+        ok, _detail = acceptance._check_text_offsets(loaded, acceptance.ROUTE_GLYPHBOX)
+        self.assertFalse(ok)
+
+    def test_offset_host_closure_passes_and_discloses_line_index(self):
+        buffer = io.StringIO()
+        with contextlib.redirect_stdout(buffer):
+            acceptance.main(["--fixture", str(OFFSET_FIXTURE), "--check", "publication"])
+        line = next(l for l in buffer.getvalue().splitlines() if " evidence_chain_closure " in l)
+        self.assertTrue(line.startswith("PASS "), line)
+        self.assertIn("text_offsets", line)
+        for step in ("span_page_binding", "glyph_anchor_closure", "text_offsets.line_index"):
+            self.assertIn("%s=%s" % (step, acceptance.NOT_APPLICABLE), line)
 
 
 if __name__ == "__main__":

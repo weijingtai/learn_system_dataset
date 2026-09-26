@@ -65,6 +65,9 @@ _OFFSET_NA_PUBLICATION_CHECKS = ("coordinate_frame",)
 # publication 的 evidence_chain_closure 内依赖页/字框的子步（T04 Q9，同 Q-M8-08 口径）：offset 档
 # 逐项标 NOT_APPLICABLE 并写进该判据的说明，不静默跳过、不按通过计。
 _OFFSET_NA_CLOSURE_STEPS = ("span_page_binding", "glyph_anchor_closure")
+# text_offsets 子步里依赖「行」的字段（T20，用户 2026-09-26 裁决 (a)）：电子文本没有行，offset 档不比，
+# 逐项披露 NOT_APPLICABLE；offset/text/quote_sha256/content_status 照比。
+_OFFSET_NA_TEXT_OFFSET_FIELDS = ("line_index",)
 
 # TODO.md T02（2026-09-23）：以下各判据一律**看 M8 实际产出**再下结论，不许无条件输出 BLOCKED。
 # 子包没产出 → BLOCKED，理由写实测事实；子包产出了但内容校验尚未实现 → FAIL（防止接上函数就自动变绿）。
@@ -400,16 +403,24 @@ def _check_reverse_index(loaded, manifest):
 
 
 # ------------------------------------------------------------------ 判定：publication
-def _check_text_offsets(loaded):
+def _check_text_offsets(loaded, route):
     entries = loaded["evidence"]["entries"]
     by_id = {span["span_id"]: span for span in loaded["spans_doc"]["spans"]}
     content_status = loaded["spans_doc"]["content_status"]
     for span_id, entry in entries.items():
         span = by_id[span_id]
+        if route == ROUTE_OFFSET:
+            # 不适用的字段必须真的不在；出现了说明混进了页/行档数据，不做「有就比」
+            for field in _OFFSET_NA_TEXT_OFFSET_FIELDS:
+                if field in entry or field in span:
+                    return False, "offset 档不应有 %s: %s" % (field, span_id)
+            line_differs = False
+        else:
+            line_differs = entry["line_index"] != span["line_index"]
         if (
             entry["start_offset"] != span["start_offset"]
             or entry["end_offset"] != span["end_offset"]
-            or entry["line_index"] != span["line_index"]
+            or line_differs
             or entry["text"] != span["text"]
         ):
             return False, "offset/text 与 spans_doc 不符: %s" % span_id
@@ -1103,13 +1114,17 @@ def _evaluate_publication(context):
         # 适用级别事先声明：offset 档这些子步一律披露为 NOT_APPLICABLE，不论后续子步成败
         not_applicable = (
             ["%s=%s" % (name, NOT_APPLICABLE) for name in _OFFSET_NA_CLOSURE_STEPS]
+            + [
+                "text_offsets.%s=%s" % (field, NOT_APPLICABLE)
+                for field in _OFFSET_NA_TEXT_OFFSET_FIELDS
+            ]
             if route == ROUTE_OFFSET
             else []
         )
         for name, func in (
             ("span_identity", lambda: _check_span_key_unique(loaded, context["spans_golden"])),
             ("span_page_binding", lambda: _check_span_page_binding(loaded)),
-            ("text_offsets", lambda: _check_text_offsets(loaded)),
+            ("text_offsets", lambda: _check_text_offsets(loaded, route)),
             ("glyph_anchor_closure", lambda: _check_glyph_closure(loaded)),
         ):
             if route == ROUTE_OFFSET and name in _OFFSET_NA_CLOSURE_STEPS:
