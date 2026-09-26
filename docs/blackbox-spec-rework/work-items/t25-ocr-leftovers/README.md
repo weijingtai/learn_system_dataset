@@ -15,7 +15,7 @@
 
 - 有测试的项：先写红测试证明缺陷存在，再改到绿，测试永久留库（契约测试）。
 - 只能人工做的项（Colab 实机、界面 8 条走查）：给出用户本人可以照做的清单和记录表，**不代做、不代勾**。
-- 格式未定、下游模块未登记的项（`export_corpus` 接新 M1）：给出候选方案与推荐，写「待用户决定」，执行者到此停手，不擅自选定格式。
+- `export_corpus` 接新 M1：原先格式未定、下游模块未登记，给出过候选方案与推荐；**用户 2026-09-26 已裁决选候选 A**（保留旧格式、标注为 audit-only、生产接入交给 T04c），本文档据此更新为按裁决执行，不再是停手点，详见 §2.6。
 
 ## 2. 背景 —— 逐项核实
 
@@ -137,7 +137,7 @@ def _find_gaps(density: np.ndarray, min_gap: int, thresh: float) -> list[tuple[i
 
 同一份文档 §8（`PLAN_PROOFREAD_EDIT.md:343-424`）记录的是"用 Chrome 无头截图 + CDP 黑盒交互"做的**自动化**验收（14/14、11/11），不是用户本人在浏览器里手动走一遍。`ASK-2026-09-26.reply.md:63`把这一点说得很直接："代码做完了，但用户没有亲手走查过"。这 8 条也是**只能用户本人**做的事，理由同 §2.4：这是产品验收，不是可由 Agent 代签的测试（`AGENTS.md` 未直接提及，但与 `TODO.md` T24 行"无任何 Agent 代签路径"同一条 P7 精神一致）。清单见 `act/01.yaml` 第 7 步。
 
-### 2.6 `export_corpus` 仍导旧格式，需对接新 M1
+### 2.6 `export_corpus` 仍导旧格式——已裁决（用户 2026-09-26，选候选 A）
 
 **代码位置**：`ocr/src/gujiorc/core/export.py:136-173`（`export_corpus` 函数）。
 
@@ -157,9 +157,20 @@ def _find_gaps(density: np.ndarray, min_gap: int, thresh: float) -> list[tuple[i
 
 `openspec/legacy-storage-transition.md:25` 把 `pipeline/corpus/` 整体判定为 `ACTIVE_LEGACY`，决议"迁移"，未来目标是"M1/M2/M3 Source、Digitization、Corpus Artifact"；`legacy-storage-transition.md:51` 明确点名 `ocr/src/gujiorc/core/export.py` 是这条迁移的调用点之一。也就是说，`export_corpus` 现在导出的旧格式本身也在待迁移之列，不是新 M1 认可的终态。
 
-**为什么本任务不能直接定下新格式**：新 M1 的电子文本路线（`pipeline/intake/source.py`）读的是"一份或多份已经是纯文本的源文件"（`read_source_files`，`source.py:153-235`），而 OCR 产出的是"逐页逐字带坐标框、生僻字标记、校订历史"的结构化数据（`ocr/src/gujiorc/core/models.py` 的 `PageResult`/`CharBox`），二者形状完全不同。OCR 路线要不要有自己的 M1/M2（`route: ocr`），这正是 `TODO.md` T04c（`TODO.md:29`）"待办"的内容——T04c 明确写着"登记表一个 stage 只能登记一个 Module……OCR 路线在调度器入口按 route 拒收"。T04c 没做完之前，"OCR 应该产出什么形状的 M1 输入"根本没有权威答案，本任务只能列候选、写清代价，不能替 T04c 做设计决定，也不能替用户选。
+**为什么本任务当初不能直接定下新格式**：新 M1 的电子文本路线（`pipeline/intake/source.py`）读的是"一份或多份已经是纯文本的源文件"（`read_source_files`，`source.py:153-235`），而 OCR 产出的是"逐页逐字带坐标框、生僻字标记、校订历史"的结构化数据（`ocr/src/gujiorc/core/models.py` 的 `PageResult`/`CharBox`），二者形状完全不同。OCR 路线要不要有自己的 M1/M2（`route: ocr`），这正是 `TODO.md` T04c（`TODO.md:29`）"待办"的内容——T04c 明确写着"登记表一个 stage 只能登记一个 Module……OCR 路线在调度器入口按 route 拒收"。T04c 没做完之前，"OCR 应该产出什么形状的 M1 输入"没有权威答案，本任务原先只列了三个候选，不替 T04c 做设计决定：
 
-三个候选见第 4 节"非目标"及 `act/01.yaml` 第 5 步；执行者在该步止步，把候选摘要转给用户，等回复。
+- **候选 A**：`export_corpus` 保留现在的旧格式产出，但明确降级为"人工核对/审计留档"用途，不再暗示已经打通新流水线；真正的生产对接留给 T04c 设计的 OCR 专属 M1/M2 模块，那个模块直接消费 OCR 的页面 JSON/audit.jsonl，不经过 manifest.yaml 这一层。代价：`export_corpus` 现在的产出暂时没有生产用途，只能人工查阅。
+- **候选 B**：把整本 transcript_v1.md 当成新 M1 电子文本路线的唯一"页面文本文件"直接摄入（借用 `pipeline/intake/source.py` 的 `read_source_files`）。代价：逐字坐标框、生僻字标记、校对历史全部丢失，OCR 的证据链等级（`glyphbox_level`）随之丢失，等于把 OCR 结果降级成普通电子文本。
+- **候选 C**：在 T04c 里新设计一个 OCR 专用的 `source_info` 变体 schema，`export_corpus` 只负责产出这份新 schema 需要的原始材料。代价：需要先完成 T04c，本任务做不到。
+
+**裁决**：用户 2026-09-26 选定**候选 A**。理由与本文档原建议一致：T04c 尚未完成，没有权威依据可以定义 OCR 专属新格式（候选 C 依赖 T04c，候选 B 会丢失字级证据链），候选 A 风险最小、改动最少，且不妨碍 T04c 将来重新设计。
+
+**执行内容**（不是"待用户决定"，是已裁决后要照做的确切改动，见 `act/01.yaml` 第 5 步）：
+
+1. `ocr/src/gujiorc/core/export.py` 的 `export_corpus`（`export.py:136-173`）新增一个模块级常量 `EXPORT_CORPUS_FORMAT = "legacy_audit_only"`，并在函数 docstring（`export.py:148`）里补一句用户裁决说明，指向 `TODO.md` T04c 作为未来生产接入点。
+2. `ocr/tests/test_export_corpus.py` 新增一条特征测试，钉住"现状确实是旧格式 + 已标注为 audit-only + docstring 指向 T04c"这三件事同时成立（详见 `TDD.md` §4）。
+3. 不改 `manifest.yaml` 产出的字段结构本身（候选 A 就是"保留旧格式"，不是"改格式"）。
+4. **交接给 T04c**：T04c 的执行者在设计 OCR 专属 M1/M2 模块时，应读到本节与 `EXPORT_CORPUS_FORMAT` 常量，知道 `export_corpus` 现在的产出不是生产输入，需要另起一条摄入路径（消费页面 JSON/audit.jsonl，不经过 `export_corpus`/`manifest.yaml`）。
 
 ### 2.7 弧线排布识别（星盘图曲线字）——已有实验结论，明确不接入
 
@@ -201,13 +212,13 @@ FAILED tests/test_segment.py::test_segment_page_chars - OSError: cannot open res
 2. `act/01.yaml` 第 3 步：R7——修 `segment_block` 横排分支（`segment.py:108-126`），补新用例。
 3. `act/01.yaml` 第 4 步：`_find_gaps` 的 `min_gap` 死参（`segment.py:305`）与 `segment_block` 的 `pad` 死参（`segment.py:70`）。
 4. `act/01.yaml` 第 4 步（同批）：收紧 `test_segment.py` 两条过宽断言（`test_segment.py:49`、`test_segment.py:72`）。
-5. `act/01.yaml` 第 5 步：`export_corpus` 对接新 M1——列候选、写「待用户决定」，执行者到此停手。
+5. `act/01.yaml` 第 5 步：`export_corpus`——按用户裁决的候选 A 执行（标注 audit-only + 特征测试钉住），不再是停手点。
 6. `act/01.yaml` 第 6、7 步：Colab 实机走查、校对界面 8 条走查——只给用户本人用的清单与记录表，执行者不代做。
 
 **非目标（本任务明确不做）**：
 
 1. **弧线排布识别不重开**。维持 `irregular_layout` 登记（`ocr/docs/HANDOFF.md:168-172`），不新增曲线切分算法，不改 `experiments/curve_segment.py`。理由见 §2.7。
-2. **OCR 路线 M2 生产模块不在本任务内**。这是 `TODO.md` T04c（`TODO.md:29`）的范围；本任务只在第 5 步给出接口约定的候选，不实现、不登记、不改 `pipeline/contract_registry/registry.yaml`。
+2. **OCR 路线 M2 生产模块不在本任务内**。这是 `TODO.md` T04c（`TODO.md:29`）的范围；本任务第 5 步只按候选 A 把 `export_corpus` 标注为 audit-only 并交接（见 §2.6 第 4 点"交接给 T04c"），不实现、不登记、不改 `pipeline/contract_registry/registry.yaml`，OCR 专属 M1/M2 摄入路径的设计仍完全留给 T04c。
 3. **OCR 端口 Adapter 数（`other_ports_adapters`，`TODO.md` T03b，`TODO.md:27`）不在本任务内**。T03b 要求 OCR/模型/索引三个端口各自至少 2 个可替换 Adapter，这是端口抽象层面的工作，T25 只管 OCR 工具自身的代码质量遗留，不新增 Adapter。
 4. **不改 `ocr/local/static/`（Web UI 前端 Vue 代码）本身**。第 7 步的界面走查是"用现有代码走一遍并记录结果"，不是"改前端代码"；若走查发现真的 bug，记录下来，另开新的 `TODO.md` 条目，不在本任务里顺手改。
 5. **不产出 `ReleaseBundle`，不进 `openspec/`**。本任务的三份文档是任务书，不是最终规范；`export_corpus` 格式一旦由用户裁定，才可能需要新的 `openspec/` 条目，那是后续任务。
@@ -234,10 +245,12 @@ Feature: R7 横排单字切分几何正确
     When 调用 segment_page_chars
     Then 返回的单字框数量应精确等于 3，不是"至少 2"
 
-  Scenario: export_corpus 的产出格式与用途在文档中被诚实标注
+  Scenario: export_corpus 的产出格式与用途按已裁决的候选 A 被诚实标注
     Given export_corpus 当前产出的是旧版 manifest.yaml 格式
-    When 阅读该函数的文档字符串或相关任务文档
-    Then 不应声称该产出已经打通新 M1；应指向"待用户决定"的候选方案
+    And 用户已裁决（2026-09-26）选定候选 A：保留旧格式，标注为 audit-only，生产接入交给 T04c
+    When 阅读该函数的文档字符串、EXPORT_CORPUS_FORMAT 常量或相关任务文档
+    Then 不应声称该产出已经打通新 M1；应明确标注为 legacy_audit_only 并指向 TODO.md T04c
+    And 不应实现候选 B 或候选 C 描述的任何新格式（那两个候选未被选中）
 
   Scenario: Colab 实机走查与校对界面 8 条人工走查只能由用户本人完成
     Given 一份记录表列出全部走查项

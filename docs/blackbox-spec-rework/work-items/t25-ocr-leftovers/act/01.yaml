@@ -1,6 +1,8 @@
 act_id: t25-ocr-leftovers/01
-title: OCR 校对工具遗留 —— R7 横排切分、min_gap 死参、断言收紧、export_corpus 对接新 M1（待决）、Colab 与界面人工走查（用户专属）
+title: OCR 校对工具遗留 —— R7 横排切分、min_gap 死参、断言收紧、export_corpus 已裁决候选 A、Colab 与界面人工走查（用户专属）
 todo_ref: TODO.md:58（T25）
+decisions:
+  - "用户 2026-09-26：export_corpus 对接新 M1 选候选 A（保留旧格式、标注 audit-only、生产接入交给 T04c）"
 depends_on_docs:
   - docs/blackbox-spec-rework/work-items/t25-ocr-leftovers/README.md
   - docs/blackbox-spec-rework/work-items/t25-ocr-leftovers/TDD.md
@@ -9,10 +11,10 @@ scope:
   write:
     - ocr/tests/test_segment.py
     - ocr/src/gujiorc/ocr/segment.py
-    - ocr/tests/test_export_corpus.py     # 只在第 5 步新增"钉现状"用例，不改 export.py
+    - ocr/tests/test_export_corpus.py
+    - ocr/src/gujiorc/core/export.py       # 第 5 步：只加 EXPORT_CORPUS_FORMAT 常量 + docstring 一段，不改 manifest 字段结构
     - docs/blackbox-spec-rework/work-items/t25-ocr-leftovers/act/01.yaml   # 仅用于第 6/7 步填记录表
   read_only:
-    - ocr/src/gujiorc/core/export.py       # 第 5 步只读，不改
     - ocr/src/gujiorc/core/models.py
     - ocr/tests/test_segment_alignment.py  # 必须保持通过，不许改它来迁就新逻辑
     - ocr/docs/                            # 全部只读参考
@@ -146,53 +148,45 @@ steps:
       message: "fix(ocr): min_gap接入空白间隙合并判定,并收紧test_segment.py两条过宽断言"
 
   - id: "5"
-    title: "export_corpus 对接新 M1 —— 停手，交给用户决定"
+    title: "export_corpus —— 已裁决（用户 2026-09-26，候选 A）：标注 audit-only，交接 T04c"
+    ruling: |
+      用户 2026-09-26 裁决：export_corpus 对接新 M1 选**候选 A**——保留现有旧格式输出，
+      不实现候选 B（把 transcript 当新 M1 文本摄入，会丢字级证据链）、不实现候选 C
+      （新设计 OCR 专属 schema，依赖尚未完成的 T04c）。本步骤不再是停手点，按下面
+      actions 做完即可，不需要再等回复。三个候选与裁决理由的完整背景见
+      README.md §2.6、TDD.md §4。
     actions: |
-      1. 按 TDD.md §4 新增 test_export_corpus_output_is_documented_legacy_format
-         （先确认 ocr/tests/test_export_corpus.py 是否已存在——本次核实它已存在，
-         若你核实时发现不存在，按 TDD.md §4 的备用写法新建，并在回报里注明）。
-      2. 跑一遍确认这条"钉现状"用例本身是绿的（它不改 export_corpus.py，只是确认
-         现状确实是旧格式）。
-      3. **不实现任何新格式，不改 ocr/src/gujiorc/core/export.py**。到这一步为止。
+      1. 改 ocr/src/gujiorc/core/export.py（按 TDD.md §4.1 的确切文字）：
+         a. 在 `# ---------------- pipeline corpus 导出（manifest.yaml） ----------------`
+            这行注释（export.py:112）之后新增模块级常量 EXPORT_CORPUS_FORMAT =
+            "legacy_audit_only"，附带说明其来源是本次用户裁决、交接点是 TODO.md T04c
+            （注释原文见 TDD.md §4.1 第 1 点）。
+         b. 把 export_corpus 的 docstring（export.py:148，现状一行）扩写为 TDD.md §4.1
+            第 2 点给出的版本，含 "T04c" 这个精确字样（下面用例断言会逐字匹配它）。
+         c. **不改** export_corpus 函数体、不改 manifest 拼出的字段结构
+            （export.py:160-171 逐字不动——候选 A 就是"不改格式"，只是标注用途）。
+      2. 按 TDD.md §4.2 新增 test_export_corpus_is_marked_legacy_audit_only_and_points_to_t04c
+         （先确认 ocr/tests/test_export_corpus.py 是否已存在——本次核实它已存在，若你核实
+         时发现不存在，按 TDD.md §4 备用写法新建，并在回报里注明）。先跑一遍，确认断言
+         1、2（EXPORT_CORPUS_FORMAT、docstring 含 "T04c"）转红，断言 3、4（旧格式标志、
+         无新必填键）本来就是绿的——把这个"部分红部分绿"的初始状态如实贴进回报，不要
+         只贴"整条用例失败"这一句话。
+      3. 做完第 1 步后重跑，四条断言应全绿。
+      4. 按 TDD.md §4.2 的三条篡改探针逐一验证并记录。
     verify: |
       cd ocr && PYTHONPATH=src /tmp/t25_ocr_venv/bin/python -m pytest tests/test_export_corpus.py -v
-    expect: 新用例通过；export.py 文件内容与本次核实时（README.md §2.6 引用的行号）一致。
-    stop_here: true
-    decision_needed: |
-      ## 待用户决定：export_corpus 对接新 M1，采用哪个候选？
-
-      背景见 README.md §2.6：新 M1（电子文本路线，pipeline/intake/source.py）要求的
-      source_info.yaml 与 OCR 产出的逐页逐字坐标框数据形状完全不同；OCR 路线自己的
-      M1/M2 生产模块（TODO.md T04c）尚未设计。三个候选：
-
-        候选 A（推荐）：export_corpus 保留现在的旧格式产出，但明确降级为"人工核对/
-          审计留档"用途，不再暗示已经打通新流水线（可以只改函数文档字符串说明这一点，
-          或者不改代码，只在 ocr/docs/HANDOFF.md 补一句现状说明）。真正的生产对接留给
-          T04c 设计的 OCR 专属 M1/M2 模块，那个模块直接消费 OCR 的页面 JSON/audit.jsonl，
-          不经过 manifest.yaml 这一层。
-          代价：export_corpus 现在的产出暂时没有生产用途，只能人工查阅。
-
-        候选 B：改造 export_corpus，把整本 transcript_v1.md 当成新 M1 电子文本路线的
-          唯一"页面文本文件"直接摄入（借用 pipeline/intake/source.py 的
-          read_source_files）。
-          代价：逐字坐标框、生僻字标记、校对历史全部丢失，OCR 的证据链等级
-          （glyphbox_level，见 pipeline/dataset_compiler 对 route 的判定逻辑）也随之
-          丢失，等于把 OCR 结果降级成普通电子文本，不满足"扫描本古籍应保留字级证据"
-          的既有设计意图。
-
-        候选 C：新设计一个 OCR 专用的 source_info 变体 schema（在 T04c 里做），
-          export_corpus 只负责产出这份新 schema 需要的原始材料（页 JSON、位图、
-          sha256 清单），manifest.yaml 这一套完全废弃。
-          代价：需要先完成 T04c 才能定义这个 schema，本任务做不到。
-
-      **主 Agent 建议**：候选 A。理由：T04c 还没做，本任务没有权威依据定义 OCR 专属的
-      新格式（候选 C 依赖 T04c，候选 B 会丢失字级证据链，都不该在 T04c 之前先动
-      export_corpus）；候选 A 风险最小、改动最少，且不妨碍 T04c 将来重新设计。
-      执行者到本步为止，不实现任何候选，等用户回复后再继续（回复会作为新的
-      act/02.yaml 或对本文件的更新下发）。
+      cd ocr && PYTHONPATH=src /tmp/t25_ocr_venv/bin/python -m pytest tests/ -q
+    expect: |
+      新用例四条断言全绿；tests/ 整体仍是 "0 failed"（相对第 4 步之后的状态不变）；
+      export.py 里 manifest 拼出的字段结构（export.py:160-171）与本次核实时逐字一致
+      （即 git diff 只应出现新增的常量和 docstring 那几行，不应出现在这两处之外）。
+    on_mismatch: |
+      如果发现 export.py 现状（行号、docstring 原文、manifest 拼接逻辑）与
+      README.md §2.6 / TDD.md §4 描述不一致，停手，把差异写进回报「## 差异」，
+      不要在不确认差异原因的情况下硬套本步骤的改法。
     commit:
-      files: [ocr/tests/test_export_corpus.py]
-      message: "test(ocr): 钉住export_corpus现状为旧格式,防止被误报已对接新M1(T25待决)"
+      files: [ocr/src/gujiorc/core/export.py, ocr/tests/test_export_corpus.py]
+      message: "docs(ocr): export_corpus标注legacy_audit_only,生产接入交接TODO.md T04c(T25候选A)"
 
   - id: "6"
     title: "Colab 实机跑通 —— 只能用户本人做，执行者不代做"
@@ -243,7 +237,7 @@ steps:
 stop_conditions: |
   - 任一步骤发现代码实际情况与 README.md/TDD.md 描述不一致（行号、函数名、现有断言原文对不上）。
   - 第 4 步 test_segment_alignment.py 回归护栏变红（见该步 on_fail）。
-  - 第 5 步：本步骤设计上就是要到此为止，不是失败，是正常止步。
+  - 第 5 步 on_mismatch：export.py 现状与 README.md/TDD.md §4 描述不一致。
   - 第 6、7 步：执行者不是用户本人，本来就不该执行，见 who 字段。
   - 任何时候你想"放宽断言/加 try-except 吞异常/改既有回归测试来让新代码通过"——
     先停手，这是 global_rules 第 3 条明令禁止的。
@@ -254,7 +248,8 @@ completion_criteria: |
       （skipped 数只允许因 §2 的字体解析而变化，且原因必须写清楚）。
     - TDD.md 列出的每一条新用例、每一条篡改探针都在回报里有"红→绿"或"绿→红→绿"的
       实际命令输出（不是复述本文档，是真实跑出来的文本）。
-    - 第 5 步的「待用户决定」原样转达给用户，不由执行者自行选定候选。
+    - 第 5 步已按候选 A 做完（EXPORT_CORPUS_FORMAT 常量 + docstring + 四条断言全绿），
+      不是停手点，不需要再等用户回复。
     - 第 6、7 步的记录表交给用户，执行者本身不填。
   TODO.md、HANDOFF.md、PLAN.md 的状态字段不由执行者改（scope.forbidden 已列），
   由主 Agent 独立验收后统一更新。
@@ -282,9 +277,10 @@ report_format: |
   - test_segment_alignment.py 回归结果（必须贴，即使全绿也要贴）
   - 若触发 on_fail：完整写「## 待裁决」小节，不要自行处理
 
-  ### 第 5 步：export_corpus
-  - 钉现状用例的通过结果
-  - 原样转述「## 待用户决定」小节（不要总结、不要替用户选）
+  ### 第 5 步：export_corpus（候选 A 已裁决）
+  - export.py 实际改动的 diff（只应有 EXPORT_CORPUS_FORMAT 常量 + docstring 那几行）
+  - 新用例四条断言从"部分红部分绿"到全绿的实际输出
+  - 三条篡改探针的操作与结果
 
   ### 第 6、7 步
   - 说明"本步骤按 who 字段应由用户本人执行，执行者未代做"，不留空、不跳过不提
